@@ -1,0 +1,1306 @@
+import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabase'
+import { getLang, t as i18nT } from '../../lib/i18n'
+import type { TranslationKey } from '../../lib/i18n'
+import { categories } from '../CategoryIcons'
+import { liveFormats } from './SubCategoryData'
+import CartoonAvatar from '../CartoonAvatar'
+
+const TOTAL_STEPS = 5
+
+export default function CreateLiveWizard() {
+  const { user, profile } = useAuth()
+  const navigate = useNavigate()
+  const lang = getLang()
+
+  const [step, setStep] = useState(0)
+  const [title, setTitle] = useState('')
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [scheduledTime, setScheduledTime] = useState('')
+  const [repeat, setRepeat] = useState('none')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedFormat, setSelectedFormat] = useState('')
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const carouselRef = useRef<HTMLDivElement>(null)
+  const [activeTip, setActiveTip] = useState(0)
+
+  // Animation state
+  const [slideDir, setSlideDir] = useState<'left' | 'right'>('left')
+  const [animating, setAnimating] = useState(false)
+  const [visible, setVisible] = useState(true)
+  const [dragOver, setDragOver] = useState(false)
+  const [titleFocused, setTitleFocused] = useState(false)
+
+  const txt = {
+    fr: {
+      tipsTitle: 'Conseils pour un super live',
+      tip1Title: 'Lumiere & son',
+      tip1Desc: 'Utilise un bon eclairage et reduis le bruit de fond. Un anneau lumineux fait toute la difference !',
+      tip2Title: 'Engage ton audience',
+      tip2Desc: 'Salue les spectateurs par leur nom, reponds aux questions en direct et cree de l\'urgence avec des offres limitees.',
+      tip3Title: 'Prepare tes produits',
+      tip3Desc: 'Aie tes articles organises et prets a montrer. Connais tes prix et descriptions par coeur.',
+      titleLabel: 'Donne un titre a ton live',
+      titlePlaceholder: 'ex: Drops sneakers du dimanche !',
+      charCount: '/150',
+      dateLabel: 'Quand ?',
+      dateInput: 'Date',
+      timeInput: 'Heure',
+      repeatLabel: 'Repetition',
+      repeatNone: 'Pas de repetition',
+      repeatWeekly: 'Hebdomadaire',
+      repeatBiweekly: 'Toutes les 2 semaines',
+      categoryLabel: 'Categorie & Format',
+      categorySelect: 'Selectionne une categorie',
+      formatSelect: 'Selectionne un format',
+      thumbnailLabel: 'Miniature',
+      thumbnailDesc: 'Telecharge une image pour l\'apercu de ton live',
+      uploadBtn: 'Telecharger une image',
+      changeBtn: 'Changer l\'image',
+      livePreview: 'Apercu',
+      next: 'Suivant',
+      goLive: 'Creer le live',
+      creating: 'Creation...',
+      stepOf: 'sur',
+    },
+    en: {
+      tipsTitle: 'Tips for a great live',
+      tip1Title: 'Light & sound',
+      tip1Desc: 'Use good lighting and minimize background noise. A ring light makes a huge difference!',
+      tip2Title: 'Engage your audience',
+      tip2Desc: 'Greet viewers by name, answer questions live, and create urgency with limited-time deals.',
+      tip3Title: 'Prepare your products',
+      tip3Desc: 'Have items organized and ready to show. Know your prices and descriptions by heart.',
+      titleLabel: 'Give your live a title',
+      titlePlaceholder: 'e.g. Sunday sneaker drops!',
+      charCount: '/150',
+      dateLabel: 'When?',
+      dateInput: 'Date',
+      timeInput: 'Time',
+      repeatLabel: 'Repeat',
+      repeatNone: 'No repeat',
+      repeatWeekly: 'Weekly',
+      repeatBiweekly: 'Every 2 weeks',
+      categoryLabel: 'Category & Format',
+      categorySelect: 'Select a category',
+      formatSelect: 'Select a format',
+      thumbnailLabel: 'Thumbnail',
+      thumbnailDesc: 'Upload an image for your live preview',
+      uploadBtn: 'Upload image',
+      changeBtn: 'Change image',
+      livePreview: 'Preview',
+      next: 'Next',
+      goLive: 'Create live',
+      creating: 'Creating...',
+      stepOf: 'of',
+    },
+    he: {
+      tipsTitle: 'טיפים לשידור מעולה',
+      tip1Title: 'תאורה וצליל',
+      tip1Desc: 'השתמש בתאורה טובה ומזער רעשי רקע. טבעת אור עושה הבדל עצום!',
+      tip2Title: 'שתף את הקהל',
+      tip2Desc: 'ברך צופים בשם, ענה על שאלות בזמן אמת, וצור דחיפות עם מבצעים מוגבלים.',
+      tip3Title: 'הכן את המוצרים',
+      tip3Desc: 'סדר את הפריטים מוכנים להצגה. דע את המחירים והתיאורים בעל פה.',
+      titleLabel: 'תן לשידור שלך כותרת',
+      titlePlaceholder: '...למשל: סניקרס יום ראשון',
+      charCount: '/150',
+      dateLabel: '?מתי',
+      dateInput: 'תאריך',
+      timeInput: 'שעה',
+      repeatLabel: 'חזרה',
+      repeatNone: 'ללא',
+      repeatWeekly: 'שבועי',
+      repeatBiweekly: 'כל שבועיים',
+      categoryLabel: 'קטגוריה ופורמט',
+      categorySelect: 'בחר קטגוריה',
+      formatSelect: 'בחר פורמט',
+      thumbnailLabel: 'תמונה ממוזערת',
+      thumbnailDesc: 'העלה תמונה לתצוגה מקדימה של השידור',
+      uploadBtn: 'העלה תמונה',
+      changeBtn: 'החלף תמונה',
+      livePreview: 'תצוגה מקדימה',
+      next: 'הבא',
+      goLive: 'צור שידור',
+      creating: '...יוצר',
+      stepOf: 'מתוך',
+    },
+    es: {
+      tipsTitle: 'Consejos para un gran directo',
+      tip1Title: 'Luz y sonido',
+      tip1Desc: 'Usa buena iluminacion y minimiza el ruido de fondo. Un aro de luz marca la diferencia!',
+      tip2Title: 'Involucra a tu audiencia',
+      tip2Desc: 'Saluda a los espectadores por nombre, responde preguntas en vivo y crea urgencia.',
+      tip3Title: 'Prepara tus productos',
+      tip3Desc: 'Ten los articulos organizados y listos. Conoce tus precios y descripciones de memoria.',
+      titleLabel: 'Dale un titulo a tu directo',
+      titlePlaceholder: 'ej: Ofertas de sneakers del domingo!',
+      charCount: '/150',
+      dateLabel: 'Cuando?',
+      dateInput: 'Fecha',
+      timeInput: 'Hora',
+      repeatLabel: 'Repetir',
+      repeatNone: 'Sin repetir',
+      repeatWeekly: 'Semanal',
+      repeatBiweekly: 'Cada 2 semanas',
+      categoryLabel: 'Categoria y formato',
+      categorySelect: 'Selecciona una categoria',
+      formatSelect: 'Selecciona un formato',
+      thumbnailLabel: 'Miniatura',
+      thumbnailDesc: 'Sube una imagen de vista previa para tu directo',
+      uploadBtn: 'Subir imagen',
+      changeBtn: 'Cambiar imagen',
+      livePreview: 'Vista previa',
+      next: 'Siguiente',
+      goLive: 'Crear directo',
+      creating: 'Creando...',
+      stepOf: 'de',
+    },
+  }
+
+  const t = txt[lang as keyof typeof txt] || txt.fr
+
+  const sellingCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
+
+  const tipColors = ['#FFD700', '#00D4FF', '#10B981']
+
+  const tips = [
+    { title: t.tip1Title, desc: t.tip1Desc, emoji: '\u2600\uFE0F', color: '#FFD700', bg: 'linear-gradient(135deg, #332800 0%, #1A1500 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
+    { title: t.tip2Title, desc: t.tip2Desc, emoji: '\uD83D\uDC65', color: '#00D4FF', bg: 'linear-gradient(135deg, #001A33 0%, #000D1A 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
+    { title: t.tip3Title, desc: t.tip3Desc, emoji: '\uD83D\uDCE6', color: '#10B981', bg: 'linear-gradient(135deg, #001A12 0%, #000D09 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> },
+  ]
+
+  // Step hero data
+  const stepHeroes = [
+    { emoji: '\uD83C\uDFA5', gradient: 'linear-gradient(135deg, #F0908A, #E8344E)' },
+    { emoji: '\u270D\uFE0F', gradient: 'linear-gradient(135deg, #A78BFA, #7C3AED)' },
+    { emoji: '\uD83D\uDCC5', gradient: 'linear-gradient(135deg, #60A5FA, #2563EB)' },
+    { emoji: '\uD83C\uDFF7\uFE0F', gradient: 'linear-gradient(135deg, #34D399, #059669)' },
+    { emoji: '\uD83D\uDDBC\uFE0F', gradient: 'linear-gradient(135deg, #FBBF24, #D97706)' },
+  ]
+
+  const canProceed = (): boolean => {
+    switch (step) {
+      case 0: return true // tips are just informational
+      case 1: return title.trim().length > 0
+      case 2: return scheduledDate !== '' && scheduledTime !== ''
+      case 3: return selectedCategory !== '' && selectedFormat !== ''
+      case 4: return true // thumbnail is optional
+      default: return false
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        setThumbnailPreview(ev.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!user) return
+    setLoading(true)
+    setError('')
+    try {
+      const scheduledAt = scheduledDate && scheduledTime
+        ? new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
+        : null
+
+      const { data: stream, error: streamError } = await supabase
+        .from('streams')
+        .insert({
+          seller_id: user.id,
+          title,
+          category: selectedCategory,
+          status: scheduledAt ? 'scheduled' : 'live',
+          scheduled_at: scheduledAt,
+          thumbnail_url: thumbnailPreview || null,
+        })
+        .select()
+        .single()
+
+      if (streamError) throw streamError
+
+      // Save extra data to localStorage
+      const liveData = {
+        streamId: stream.id,
+        format: selectedFormat,
+        repeat,
+        thumbnailPreview,
+        createdAt: new Date().toISOString(),
+      }
+      localStorage.setItem(`shapop_live_${stream.id}`, JSON.stringify(liveData))
+
+      navigate(`/stream/${stream.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error creating stream')
+      setLoading(false)
+    }
+  }
+
+  const handleNext = () => {
+    if (step === TOTAL_STEPS - 1) {
+      handleCreate()
+    } else {
+      animateStep('left', step + 1)
+    }
+  }
+
+  const handleBack = () => {
+    animateStep('right', step - 1)
+  }
+
+  const animateStep = (dir: 'left' | 'right', nextStep: number) => {
+    setSlideDir(dir)
+    setAnimating(true)
+    setVisible(false)
+    setTimeout(() => {
+      setStep(nextStep)
+      setSlideDir(dir)
+      setTimeout(() => {
+        setVisible(true)
+        setAnimating(false)
+      }, 30)
+    }, 250)
+  }
+
+  const progress = ((step + 1) / TOTAL_STEPS) * 100
+
+  const scrollToTip = (index: number) => {
+    setActiveTip(index)
+    carouselRef.current?.children[index]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }
+
+  // Generate next 7 days for date picker
+  const getNextDays = () => {
+    const days = []
+    const today = new Date()
+    const dayNames = lang === 'fr'
+      ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+      : lang === 'he'
+        ? ['\u05D0', '\u05D1', '\u05D2', '\u05D3', '\u05D4', '\u05D5', '\u05E9']
+        : lang === 'es'
+          ? ['Dom', 'Lun', 'Mar', 'Mi\u00E9', 'Jue', 'Vie', 'S\u00E1b']
+          : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+    const monthNames = lang === 'fr'
+      ? ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec']
+      : lang === 'he'
+        ? ['\u05D9\u05E0\u05D5', '\u05E4\u05D1\u05E8', '\u05DE\u05E8\u05E5', '\u05D0\u05E4\u05E8', '\u05DE\u05D0\u05D9', '\u05D9\u05D5\u05E0\u05D9', '\u05D9\u05D5\u05DC\u05D9', '\u05D0\u05D5\u05D2', '\u05E1\u05E4\u05D8', '\u05D0\u05D5\u05E7\u05D8', '\u05E0\u05D5\u05D1', '\u05D3\u05E6\u05DE']
+        : lang === 'es'
+          ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+          : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today)
+      d.setDate(today.getDate() + i)
+      const dateStr = d.toISOString().split('T')[0]
+      days.push({
+        date: dateStr,
+        dayName: dayNames[d.getDay()],
+        dayNum: d.getDate(),
+        month: monthNames[d.getMonth()],
+        isToday: i === 0,
+      })
+    }
+    return days
+  }
+
+  // Time slots
+  const getTimeSlots = () => {
+    const slots = []
+    for (let h = 8; h <= 23; h++) {
+      for (const m of ['00', '30']) {
+        const hour = h.toString().padStart(2, '0')
+        slots.push({ value: `${hour}:${m}`, label: `${hour}:${m}` })
+      }
+    }
+    return slots
+  }
+
+  // Handle drag and drop on thumbnail
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        setThumbnailPreview(ev.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Get selected category object
+  const selectedCatObj = sellingCategories.find(c => c.id === selectedCategory)
+
+  const renderStep = () => {
+    switch (step) {
+      // Step 0 - Tips carousel
+      case 0:
+        return (
+          <div style={{ padding: '0 20px' }}>
+            {/* Hero illustration */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: stepHeroes[0].gradient,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '42px',
+                boxShadow: '0 8px 32px rgba(240, 144, 138, 0.35), 0 0 0 8px rgba(240, 144, 138, 0.08)',
+              }}>
+                {stepHeroes[0].emoji}
+              </div>
+            </div>
+
+            <h2 style={{
+              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '6px',
+              textAlign: 'center', letterSpacing: '-0.5px',
+            }}>
+              {t.tipsTitle}
+            </h2>
+            <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', marginBottom: '28px' }}>
+              {lang === 'fr' ? 'Apprends des pros' : lang === 'he' ? '\u05DC\u05DE\u05D3 \u05DE\u05D4\u05DE\u05E7\u05E6\u05D5\u05E2\u05E0\u05D9\u05DD' : lang === 'es' ? 'Aprende de los profesionales' : 'Learn from the pros'}
+            </p>
+
+            <div
+              ref={carouselRef}
+              onScroll={(e) => {
+                const el = e.target as HTMLDivElement
+                const index = Math.round(el.scrollLeft / el.offsetWidth)
+                setActiveTip(index)
+              }}
+              style={{
+                display: 'flex', gap: '16px', overflowX: 'auto',
+                scrollSnapType: 'x mandatory', scrollBehavior: 'smooth',
+                padding: '0 0 24px',
+              }}
+              className="no-scrollbar"
+            >
+              {tips.map((tip, i) => (
+                <div
+                  key={i}
+                  style={{
+                    minWidth: 'calc(100% - 0px)', scrollSnapAlign: 'center',
+                    background: tip.bg,
+                    borderRadius: '20px', padding: '28px 24px',
+                    border: `1px solid ${tip.color}18`,
+                    position: 'relative',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {/* Decorative glow */}
+                  <div style={{
+                    position: 'absolute', top: '-30px', right: '-30px',
+                    width: '120px', height: '120px', borderRadius: '50%',
+                    background: `radial-gradient(circle, ${tip.color}12 0%, transparent 70%)`,
+                    pointerEvents: 'none',
+                  }} />
+
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '18px',
+                    background: `linear-gradient(135deg, ${tip.color}22, ${tip.color}08)`,
+                    border: `1px solid ${tip.color}25`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
+                    position: 'relative',
+                  }}>
+                    <div style={{ fontSize: '30px' }}>{tip.emoji}</div>
+                  </div>
+                  <h3 style={{
+                    fontSize: '20px', fontWeight: 800, color: '#fff', marginBottom: '10px',
+                    letterSpacing: '-0.3px',
+                  }}>
+                    {tip.title}
+                  </h3>
+                  <p style={{
+                    fontSize: '15px', color: '#aaa', lineHeight: 1.7,
+                    letterSpacing: '0.1px',
+                  }}>
+                    {tip.desc}
+                  </p>
+
+                  {/* Step number */}
+                  <div style={{
+                    position: 'absolute', top: '20px', right: '20px',
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: `${tip.color}15`,
+                    border: `1px solid ${tip.color}30`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '12px', fontWeight: 800, color: tip.color,
+                  }}>
+                    {i + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Premium dot indicators */}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '0px' }}>
+              {tips.map((tip, i) => (
+                <button
+                  key={i}
+                  onClick={() => scrollToTip(i)}
+                  style={{
+                    width: activeTip === i ? '28px' : '8px', height: '8px',
+                    borderRadius: '4px', border: 'none',
+                    background: activeTip === i
+                      ? `linear-gradient(90deg, ${tipColors[i]}, ${tipColors[i]}AA)`
+                      : '#222',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'pointer',
+                    boxShadow: activeTip === i ? `0 0 12px ${tipColors[i]}40` : 'none',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )
+
+      // Step 1 - Title with live preview
+      case 1:
+        return (
+          <div style={{ padding: '0 20px' }}>
+            {/* Hero */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: stepHeroes[1].gradient,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '42px',
+                boxShadow: '0 8px 32px rgba(167, 139, 250, 0.35), 0 0 0 8px rgba(167, 139, 250, 0.08)',
+              }}>
+                {stepHeroes[1].emoji}
+              </div>
+            </div>
+
+            <h2 style={{
+              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '28px',
+              textAlign: 'center', letterSpacing: '-0.5px',
+            }}>
+              {t.titleLabel}
+            </h2>
+
+            {/* Title input with gradient border on focus */}
+            <div style={{
+              position: 'relative',
+              borderRadius: '16px',
+              padding: '2px',
+              background: titleFocused
+                ? 'linear-gradient(135deg, #A78BFA, #F0908A, #FBBF24)'
+                : 'transparent',
+              transition: 'all 0.3s ease',
+              marginBottom: '8px',
+            }}>
+              <input
+                type="text"
+                value={title}
+                onChange={e => { if (e.target.value.length <= 150) setTitle(e.target.value) }}
+                onFocus={() => setTitleFocused(true)}
+                onBlur={() => setTitleFocused(false)}
+                placeholder={t.titlePlaceholder}
+                style={{
+                  width: '100%', padding: '18px 20px',
+                  backgroundColor: '#0A0A0A',
+                  border: titleFocused ? 'none' : '1px solid #1E1E1E',
+                  borderRadius: '14px', color: '#fff',
+                  fontSize: '17px', fontWeight: 500, outline: 'none', boxSizing: 'border-box',
+                  letterSpacing: '0.2px',
+                }}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', padding: '0 4px' }}>
+              <div style={{
+                height: '3px', flex: 1, borderRadius: '2px', marginRight: '12px',
+                background: '#111',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%', borderRadius: '2px',
+                  width: `${(title.length / 150) * 100}%`,
+                  background: title.length > 120
+                    ? 'linear-gradient(90deg, #FBBF24, #EF4444)'
+                    : 'linear-gradient(90deg, #A78BFA, #F0908A)',
+                  transition: 'width 0.3s ease, background 0.3s ease',
+                }} />
+              </div>
+              <p style={{
+                fontSize: '13px', fontWeight: 600,
+                color: title.length > 120 ? '#FBBF24' : '#555',
+                flexShrink: 0,
+              }}>
+                {title.length}{t.charCount}
+              </p>
+            </div>
+
+            {/* Real-time live preview card */}
+            <div style={{
+              background: 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
+              borderRadius: '20px', overflow: 'hidden',
+              border: '1px solid #1A1A1A',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}>
+              <div style={{
+                padding: '12px 16px 10px',
+                borderBottom: '1px solid #141414',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <span style={{ fontSize: '11px', color: '#666', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+                  {t.livePreview}
+                </span>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  backgroundColor: title.trim() ? '#10B981' : '#333',
+                  transition: 'background-color 0.3s ease',
+                }} />
+              </div>
+              <div style={{ position: 'relative', aspectRatio: '16/9', backgroundColor: '#080808' }}>
+                {/* Simulated camera view */}
+                <div style={{
+                  width: '100%', height: '100%',
+                  background: 'radial-gradient(ellipse at center, #1A1A1A 0%, #080808 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{ opacity: 0.3 }}>
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="1">
+                      <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                  </div>
+                </div>
+                {/* LIVE badge */}
+                <div style={{
+                  position: 'absolute', top: '12px', left: '12px',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                }}>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
+                    borderRadius: '6px', padding: '4px 10px',
+                    fontSize: '11px', fontWeight: 800, color: '#fff',
+                    letterSpacing: '1px',
+                    boxShadow: '0 2px 12px rgba(232, 52, 78, 0.5)',
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                  }}>
+                    <div style={{
+                      width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#fff',
+                    }} />
+                    LIVE
+                  </div>
+                </div>
+                {/* Viewer count mock */}
+                <div style={{
+                  position: 'absolute', top: '12px', right: '12px',
+                  background: 'rgba(0,0,0,0.6)', borderRadius: '6px',
+                  padding: '4px 8px', fontSize: '11px', color: '#ccc',
+                  backdropFilter: 'blur(8px)',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                  </svg>
+                  0
+                </div>
+              </div>
+              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                  border: '2px solid #F0908A',
+                  boxShadow: '0 0 0 2px rgba(240, 144, 138, 0.2)',
+                }}>
+                  <CartoonAvatar seed={profile?.username || profile?.id || 'seller'} size={40} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontSize: '15px', fontWeight: 700, color: title.trim() ? '#fff' : '#444',
+                    transition: 'color 0.3s ease',
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>
+                    {title.trim() || t.titlePlaceholder}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                    {profile?.display_name || profile?.username || 'You'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      // Step 2 - Date/Time with beautiful cards
+      case 2:
+        return (
+          <div style={{ padding: '0 20px' }}>
+            {/* Hero */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: stepHeroes[2].gradient,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '42px',
+                boxShadow: '0 8px 32px rgba(96, 165, 250, 0.35), 0 0 0 8px rgba(96, 165, 250, 0.08)',
+              }}>
+                {stepHeroes[2].emoji}
+              </div>
+            </div>
+
+            <h2 style={{
+              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '28px',
+              textAlign: 'center', letterSpacing: '-0.5px',
+            }}>
+              {t.dateLabel}
+            </h2>
+
+            {/* Date picker cards - horizontal scroll */}
+            <label style={{
+              display: 'block', fontSize: '12px', color: '#666', marginBottom: '10px',
+              fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
+              padding: '0 4px',
+            }}>
+              {t.dateInput}
+            </label>
+            <div style={{
+              display: 'flex', gap: '10px', overflowX: 'auto',
+              padding: '0 0 16px', marginBottom: '8px',
+            }} className="no-scrollbar">
+              {getNextDays().map((d) => {
+                const isSelected = scheduledDate === d.date
+                return (
+                  <button
+                    key={d.date}
+                    onClick={() => setScheduledDate(d.date)}
+                    style={{
+                      minWidth: '72px', padding: '14px 10px',
+                      borderRadius: '16px',
+                      background: isSelected
+                        ? 'linear-gradient(145deg, #1a3a5c 0%, #0d2240 100%)'
+                        : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
+                      border: isSelected ? '1.5px solid #60A5FA' : '1px solid #1A1A1A',
+                      cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                      transition: 'all 0.25s ease',
+                      boxShadow: isSelected ? '0 4px 20px rgba(96, 165, 250, 0.25)' : 'none',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '11px', fontWeight: 600,
+                      color: isSelected ? '#60A5FA' : '#555',
+                      letterSpacing: '0.5px',
+                    }}>
+                      {d.isToday ? (lang === 'fr' ? 'Auj.' : lang === 'he' ? '\u05D4\u05D9\u05D5\u05DD' : lang === 'es' ? 'Hoy' : 'Today') : d.dayName}
+                    </span>
+                    <span style={{
+                      fontSize: '24px', fontWeight: 800,
+                      color: isSelected ? '#fff' : '#888',
+                      lineHeight: 1,
+                    }}>
+                      {d.dayNum}
+                    </span>
+                    <span style={{
+                      fontSize: '10px', fontWeight: 600,
+                      color: isSelected ? '#60A5FA99' : '#444',
+                    }}>
+                      {d.month}
+                    </span>
+                  </button>
+                )
+              })}
+              {/* "More" card that opens native date picker */}
+              <button
+                onClick={() => {
+                  const inp = document.createElement('input')
+                  inp.type = 'date'
+                  inp.style.position = 'fixed'
+                  inp.style.opacity = '0'
+                  inp.style.pointerEvents = 'none'
+                  document.body.appendChild(inp)
+                  inp.addEventListener('change', () => {
+                    setScheduledDate(inp.value)
+                    document.body.removeChild(inp)
+                  })
+                  inp.showPicker?.()
+                  // fallback for browsers without showPicker
+                  inp.click()
+                }}
+                style={{
+                  minWidth: '72px', padding: '14px 10px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
+                  border: '1px dashed #222',
+                  cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span style={{ fontSize: '10px', color: '#555', fontWeight: 600 }}>
+                  {lang === 'fr' ? 'Plus' : lang === 'he' ? '\u05E2\u05D5\u05D3' : lang === 'es' ? 'M\u00E1s' : 'More'}
+                </span>
+              </button>
+            </div>
+
+            {/* Time picker */}
+            <label style={{
+              display: 'block', fontSize: '12px', color: '#666', marginBottom: '10px',
+              fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
+              padding: '0 4px', marginTop: '16px',
+            }}>
+              {t.timeInput}
+            </label>
+            <div style={{
+              display: 'flex', gap: '8px', overflowX: 'auto',
+              padding: '0 0 16px', marginBottom: '8px',
+              flexWrap: 'wrap',
+            }}>
+              {getTimeSlots().map((slot) => {
+                const isSelected = scheduledTime === slot.value
+                return (
+                  <button
+                    key={slot.value}
+                    onClick={() => setScheduledTime(slot.value)}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '12px',
+                      background: isSelected
+                        ? 'linear-gradient(145deg, #1a3a5c 0%, #0d2240 100%)'
+                        : '#0A0A0A',
+                      border: isSelected ? '1.5px solid #60A5FA' : '1px solid #1A1A1A',
+                      cursor: 'pointer',
+                      fontSize: '14px', fontWeight: 600,
+                      color: isSelected ? '#60A5FA' : '#666',
+                      transition: 'all 0.25s ease',
+                      boxShadow: isSelected ? '0 2px 12px rgba(96, 165, 250, 0.2)' : 'none',
+                    }}
+                  >
+                    {slot.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Repeat selection */}
+            <label style={{
+              display: 'block', fontSize: '12px', color: '#666', marginBottom: '10px',
+              fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
+              padding: '0 4px', marginTop: '16px',
+            }}>
+              {t.repeatLabel}
+            </label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {[
+                { val: 'none', label: t.repeatNone, icon: '\u2715' },
+                { val: 'weekly', label: t.repeatWeekly, icon: '\uD83D\uDD01' },
+                { val: 'biweekly', label: t.repeatBiweekly, icon: '\uD83D\uDD04' },
+              ].map(opt => {
+                const isSelected = repeat === opt.val
+                return (
+                  <button
+                    key={opt.val}
+                    onClick={() => setRepeat(opt.val)}
+                    style={{
+                      flex: 1, padding: '14px 8px', borderRadius: '14px',
+                      background: isSelected
+                        ? 'linear-gradient(145deg, rgba(240,144,138,0.12) 0%, rgba(240,144,138,0.04) 100%)'
+                        : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
+                      border: isSelected ? '1.5px solid #F0908A' : '1px solid #1A1A1A',
+                      color: isSelected ? '#F0908A' : '#666',
+                      fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      boxShadow: isSelected ? '0 4px 16px rgba(240, 144, 138, 0.15)' : 'none',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    }}
+                  >
+                    <span style={{ fontSize: '18px' }}>{opt.icon}</span>
+                    {opt.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
+
+      // Step 3 - Category & Format with image cards
+      case 3:
+        return (
+          <div style={{ padding: '0 20px' }}>
+            {/* Hero */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: stepHeroes[3].gradient,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '42px',
+                boxShadow: '0 8px 32px rgba(52, 211, 153, 0.35), 0 0 0 8px rgba(52, 211, 153, 0.08)',
+              }}>
+                {stepHeroes[3].emoji}
+              </div>
+            </div>
+
+            <h2 style={{
+              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '8px',
+              textAlign: 'center', letterSpacing: '-0.5px',
+            }}>
+              {t.categoryLabel}
+            </h2>
+            <p style={{ textAlign: 'center', color: '#555', fontSize: '14px', marginBottom: '24px' }}>
+              {t.categorySelect}
+            </p>
+
+            {/* Category image grid */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px',
+              marginBottom: '28px',
+              maxHeight: '280px', overflowY: 'auto',
+              padding: '2px',
+            }} className="no-scrollbar">
+              {sellingCategories.map(cat => {
+                const isSelected = selectedCategory === cat.id
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    style={{
+                      position: 'relative',
+                      aspectRatio: '1',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      border: isSelected ? '2px solid #34D399' : '1px solid #1A1A1A',
+                      cursor: 'pointer',
+                      background: '#0A0A0A',
+                      padding: 0,
+                      transition: 'all 0.25s ease',
+                      boxShadow: isSelected ? '0 4px 20px rgba(52, 211, 153, 0.3)' : 'none',
+                      transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                    }}
+                  >
+                    <img
+                      src={cat.image}
+                      alt={cat.label}
+                      style={{
+                        width: '100%', height: '100%', objectFit: 'cover',
+                        opacity: isSelected ? 1 : 0.6,
+                        transition: 'opacity 0.25s ease',
+                      }}
+                      loading="lazy"
+                    />
+                    {/* Dark overlay with label */}
+                    <div style={{
+                      position: 'absolute', bottom: 0, left: 0, right: 0,
+                      background: isSelected
+                        ? 'linear-gradient(transparent, rgba(16, 185, 129, 0.6))'
+                        : 'linear-gradient(transparent, rgba(0,0,0,0.85))',
+                      padding: '20px 8px 8px',
+                      transition: 'background 0.25s ease',
+                    }}>
+                      <span style={{
+                        fontSize: '11px', fontWeight: 700, color: '#fff',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
+                      }}>
+                        {i18nT(lang, cat.id as TranslationKey)}
+                      </span>
+                    </div>
+                    {/* Check mark */}
+                    {isSelected && (
+                      <div style={{
+                        position: 'absolute', top: '6px', right: '6px',
+                        width: '24px', height: '24px', borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #34D399, #059669)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 8px rgba(52,211,153,0.4)',
+                      }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Format selection */}
+            <label style={{
+              display: 'block', fontSize: '12px', color: '#666', marginBottom: '12px',
+              fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
+              padding: '0 4px',
+            }}>
+              {t.formatSelect}
+            </label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {liveFormats.map(fmt => {
+                const label = lang === 'fr' ? fmt.fr : lang === 'he' ? fmt.he : lang === 'es' ? fmt.es : fmt.en
+                const selected = selectedFormat === fmt.id
+                return (
+                  <button
+                    key={fmt.id}
+                    onClick={() => setSelectedFormat(fmt.id)}
+                    style={{
+                      padding: '12px 20px', borderRadius: '24px',
+                      background: selected
+                        ? 'linear-gradient(135deg, rgba(52,211,153,0.15) 0%, rgba(5,150,105,0.08) 100%)'
+                        : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
+                      border: selected ? '1.5px solid #34D399' : '1px solid #1A1A1A',
+                      color: selected ? '#34D399' : '#888',
+                      fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                      transition: 'all 0.25s ease',
+                      boxShadow: selected ? '0 2px 12px rgba(52, 211, 153, 0.2)' : 'none',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )
+
+      // Step 4 - Thumbnail with drag-and-drop
+      case 4:
+        return (
+          <div style={{ padding: '0 20px' }}>
+            {/* Hero */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: stepHeroes[4].gradient,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '42px',
+                boxShadow: '0 8px 32px rgba(251, 191, 36, 0.35), 0 0 0 8px rgba(251, 191, 36, 0.08)',
+              }}>
+                {stepHeroes[4].emoji}
+              </div>
+            </div>
+
+            <h2 style={{
+              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '4px',
+              textAlign: 'center', letterSpacing: '-0.5px',
+            }}>
+              {t.thumbnailLabel}
+            </h2>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '28px', textAlign: 'center' }}>{t.thumbnailDesc}</p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+
+            {!thumbnailPreview ? (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+                style={{
+                  width: '100%', padding: '48px 20px', borderRadius: '20px',
+                  background: dragOver
+                    ? 'linear-gradient(145deg, rgba(251,191,36,0.08) 0%, rgba(217,119,6,0.04) 100%)'
+                    : 'linear-gradient(145deg, #0D0D0D 0%, #080808 100%)',
+                  border: dragOver
+                    ? '2px dashed #FBBF24'
+                    : '2px dashed #1E1E1E',
+                  color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
+                  transition: 'all 0.3s ease',
+                  boxShadow: dragOver ? '0 0 40px rgba(251, 191, 36, 0.1) inset' : 'none',
+                }}
+              >
+                {/* Upload icon with gradient circle */}
+                <div style={{
+                  width: '72px', height: '72px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #FBBF2415, #D9770615)',
+                  border: '1px solid #FBBF2420',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#FBBF24' : '#555'} strokeWidth="1.5" style={{ transition: 'stroke 0.3s ease' }}>
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="17 8 12 3 7 8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{
+                    fontSize: '16px', fontWeight: 700,
+                    color: dragOver ? '#FBBF24' : '#888',
+                    marginBottom: '4px', transition: 'color 0.3s ease',
+                  }}>
+                    {t.uploadBtn}
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#444' }}>
+                    {lang === 'fr' ? 'ou glisse-depose ici' : lang === 'he' ? '\u05D0\u05D5 \u05D2\u05E8\u05D5\u05E8 \u05DC\u05DB\u05D0\u05DF' : lang === 'es' ? 'o arrastra aqu\u00ED' : 'or drag & drop here'}
+                  </p>
+                </div>
+                {/* Supported formats note */}
+                <div style={{
+                  display: 'flex', gap: '8px', marginTop: '4px',
+                }}>
+                  {['JPG', 'PNG', 'WEBP'].map(fmt => (
+                    <span key={fmt} style={{
+                      padding: '3px 10px', borderRadius: '6px',
+                      background: '#111', border: '1px solid #1A1A1A',
+                      fontSize: '10px', fontWeight: 700, color: '#444',
+                      letterSpacing: '0.5px',
+                    }}>
+                      {fmt}
+                    </span>
+                  ))}
+                </div>
+              </button>
+            ) : (
+              <div>
+                {/* Preview card - premium design */}
+                <div style={{
+                  borderRadius: '20px', overflow: 'hidden',
+                  background: 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
+                  border: '1px solid #1A1A1A', marginBottom: '16px',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+                }}>
+                  <div style={{ position: 'relative', aspectRatio: '16/9' }}>
+                    <img src={thumbnailPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {/* Overlay gradient */}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.4) 100%)',
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: '12px', left: '12px',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                    }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
+                        borderRadius: '6px', padding: '4px 10px',
+                        fontSize: '11px', fontWeight: 800, color: '#fff',
+                        letterSpacing: '1px',
+                        boxShadow: '0 2px 12px rgba(232, 52, 78, 0.5)',
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                      }}>
+                        <div style={{
+                          width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#fff',
+                        }} />
+                        LIVE
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{
+                      width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                      border: '2px solid #F0908A',
+                    }}>
+                      <CartoonAvatar seed={profile?.username || profile?.id || 'seller'} size={40} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: '15px', fontWeight: 700, color: '#fff',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                      }}>
+                        {title || 'Your live title'}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                        {profile?.display_name || profile?.username || 'You'}
+                        {selectedCatObj && (
+                          <span style={{ color: '#444' }}> &middot; {i18nT(lang, selectedCatObj.id as TranslationKey)}</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px',
+                    background: 'linear-gradient(145deg, #141414 0%, #0D0D0D 100%)',
+                    border: '1px solid #1E1E1E',
+                    color: '#aaa', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    transition: 'all 0.25s ease',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round"/>
+                    <polyline points="17 8 12 3 7 8" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  {t.changeBtn}
+                </button>
+              </div>
+            )}
+
+            {error && (
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(232,52,78,0.12) 0%, rgba(232,52,78,0.04) 100%)',
+                color: '#E8344E',
+                padding: '14px 18px', borderRadius: '14px', marginTop: '16px', fontSize: '14px',
+                fontWeight: 600,
+                border: '1px solid rgba(232,52,78,0.2)',
+                display: 'flex', alignItems: 'center', gap: '10px',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                {error}
+              </div>
+            )}
+          </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '120px' }}>
+      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 20px 12px',
+        }}>
+          {step > 0 ? (
+            <button
+              onClick={handleBack}
+              style={{
+                background: 'linear-gradient(145deg, #141414, #0A0A0A)',
+                border: '1px solid #1E1E1E',
+                cursor: 'pointer', padding: '10px',
+                borderRadius: '12px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5">
+                <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          ) : (
+            <div style={{ width: '42px' }} />
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  width: i === step ? '24px' : '8px',
+                  height: '8px',
+                  borderRadius: '4px',
+                  background: i <= step
+                    ? i === step
+                      ? 'linear-gradient(90deg, #F0908A, #E8344E)'
+                      : '#F0908A66'
+                    : '#1A1A1A',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                }}
+              />
+            ))}
+          </div>
+          <div style={{
+            fontSize: '13px', fontWeight: 700, color: '#444',
+            minWidth: '42px', textAlign: 'right',
+          }}>
+            {step + 1}/{TOTAL_STEPS}
+          </div>
+        </div>
+
+        {/* Progress bar - thick and prominent */}
+        <div style={{
+          height: '4px', backgroundColor: '#0D0D0D', margin: '0 20px 4px',
+          borderRadius: '4px', overflow: 'hidden',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)',
+        }}>
+          <div style={{
+            height: '100%', borderRadius: '4px',
+            background: 'linear-gradient(90deg, #E8344E, #F0908A, #FBBF24)',
+            width: `${progress}%`,
+            transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+            boxShadow: '0 0 12px rgba(240, 144, 138, 0.4)',
+          }} />
+        </div>
+
+        {/* Content with slide animation */}
+        <div style={{
+          opacity: visible ? 1 : 0,
+          transform: visible
+            ? 'translateX(0)'
+            : slideDir === 'left' ? 'translateX(-30px)' : 'translateX(30px)',
+          transition: 'opacity 0.25s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          paddingTop: '20px',
+        }}>
+          {renderStep()}
+        </div>
+      </div>
+
+      {/* Footer with premium button */}
+      <div style={{
+        position: 'fixed', bottom: '70px', left: 0, right: 0,
+        padding: '16px 20px',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        background: 'linear-gradient(180deg, transparent 0%, #000 30%)',
+      }}>
+        <button
+          onClick={handleNext}
+          disabled={!canProceed() || loading}
+          style={{
+            width: '100%', padding: '18px',
+            background: canProceed()
+              ? 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #F0908A 100%)'
+              : 'linear-gradient(135deg, #1A1A1A, #111)',
+            backgroundSize: '200% 100%',
+            borderRadius: '16px', border: 'none',
+            color: canProceed() ? '#fff' : '#444',
+            fontSize: '17px', fontWeight: 800,
+            cursor: canProceed() ? 'pointer' : 'not-allowed',
+            opacity: loading ? 0.7 : 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+            boxShadow: canProceed()
+              ? '0 8px 32px rgba(240, 144, 138, 0.35), 0 2px 8px rgba(240, 144, 138, 0.2)'
+              : 'none',
+            transition: 'all 0.3s ease',
+            letterSpacing: '0.3px',
+          }}
+        >
+          {loading && (
+            <span style={{
+              width: '18px', height: '18px',
+              border: '2.5px solid rgba(255,255,255,0.3)',
+              borderTopColor: '#fff',
+              borderRadius: '50%',
+              display: 'inline-block',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          )}
+          {loading ? t.creating : step === TOTAL_STEPS - 1 ? t.goLive : t.next}
+          {!loading && canProceed() && step < TOTAL_STEPS - 1 && (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          )}
+          {!loading && step === TOTAL_STEPS - 1 && (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+              <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            </svg>
+          )}
+        </button>
+      </div>
+
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+    </div>
+  )
+}
