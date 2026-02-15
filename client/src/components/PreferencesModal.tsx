@@ -212,65 +212,44 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
       {/* Bottom sheet */}
       <div style={{
         position: 'fixed',
+        top: 0,
         bottom: 0,
         left: 0,
         right: 0,
         backgroundColor: '#111',
-        borderTopLeftRadius: '24px',
-        borderTopRightRadius: '24px',
         zIndex: 101,
-        maxHeight: '85vh',
         display: 'flex',
         flexDirection: 'column',
         animation: 'slideUp 0.3s ease-out',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
-        {/* Handle bar */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 4px 0' }}>
-          <div style={{ width: '40px', height: '4px', borderRadius: '2px', backgroundColor: '#444' }} />
-        </div>
-
-        {/* Header */}
-        <div style={{ padding: '8px 24px 16px 24px', textAlign: 'center' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: '56px',
-            height: '56px',
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            marginBottom: '12px',
-          }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-            </svg>
-          </div>
-          <h2 style={{ color: '#fff', fontSize: '22px', fontWeight: 800, margin: '0 0 4px 0' }}>
+        {/* Header compact */}
+        <div style={{ padding: '16px 24px 8px 24px', textAlign: 'center' }}>
+          <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 800, margin: '0 0 4px 0' }}>
             {ct.personalizeYourFeed}
           </h2>
-          <p style={{ color: '#888', fontSize: '14px', margin: 0, lineHeight: 1.4 }}>
+          <p style={{ color: '#888', fontSize: '13px', margin: 0, lineHeight: 1.3 }}>
             {step === 'categories'
               ? ct.chooseCategories
               : ct.selectCities}
           </p>
-        </div>
-
-        {/* Step indicator */}
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '16px' }}>
-          <div style={{
-            width: step === 'categories' ? '24px' : '8px',
-            height: '8px',
-            borderRadius: '4px',
-            backgroundColor: step === 'categories' ? '#F0908A' : '#444',
-            transition: 'all 0.3s ease',
-          }} />
-          <div style={{
-            width: step === 'cities' ? '24px' : '8px',
-            height: '8px',
-            borderRadius: '4px',
-            backgroundColor: step === 'cities' ? '#F0908A' : '#444',
-            transition: 'all 0.3s ease',
-          }} />
+          {/* Step indicator */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '10px' }}>
+            <div style={{
+              width: step === 'categories' ? '24px' : '8px',
+              height: '6px',
+              borderRadius: '3px',
+              backgroundColor: step === 'categories' ? '#F0908A' : '#444',
+              transition: 'all 0.3s ease',
+            }} />
+            <div style={{
+              width: step === 'cities' ? '24px' : '8px',
+              height: '6px',
+              borderRadius: '3px',
+              backgroundColor: step === 'cities' ? '#F0908A' : '#444',
+              transition: 'all 0.3s ease',
+            }} />
+          </div>
         </div>
 
         {/* Content */}

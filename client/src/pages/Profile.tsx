@@ -376,7 +376,7 @@ export default function Profile() {
               </svg>
             </div>
             <button
-              onClick={() => navigate('/profile')}
+              onClick={() => navigate('/preferences')}
               style={{
                 marginTop: '8px', padding: '8px 20px', borderRadius: '8px',
                 backgroundColor: 'transparent', border: '1.5px solid #444',
@@ -384,7 +384,7 @@ export default function Profile() {
                 cursor: 'pointer', letterSpacing: '0.01em',
               }}
             >
-              {tx('Afficher le profil', 'View profile', '\u05E6\u05E4\u05D4 \u05D1\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', 'Ver perfil', lang)}
+              {tx('Modifier le profil', 'Edit profile', '\u05E2\u05E8\u05D5\u05DA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', 'Editar perfil', lang)}
             </button>
           </div>
         </div>

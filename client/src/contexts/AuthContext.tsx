@@ -176,8 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
-    // Clear all app data from localStorage
-    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_'))
+    // Clear app data from localStorage (keep preferences so modal doesn't re-show)
+    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_') && k !== 'shapop_preferences')
     keysToRemove.forEach(k => localStorage.removeItem(k))
   }
 
