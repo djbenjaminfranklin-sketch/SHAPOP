@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState, useCallback, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import StreamCard from '../components/StreamCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
@@ -8,11 +8,13 @@ import { useAuth } from '../contexts/AuthContext'
 import type { Stream } from '../types/database'
 import PreferencesModal, { loadPreferences, hasPreferences } from '../components/PreferencesModal'
 import { sortStreamsByMatch } from '../lib/matchingAlgorithm'
+import { getBehaviorData } from '../lib/behaviorTracker'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
-import { ISRAEL_CITIES } from '../lib/israelCities'
 import { t, getLang } from '../lib/i18n'
+import { getCommunitiesByCountry, detectUserCountry } from '../lib/communitiesData'
+import { getStoredGPSCountry } from '../lib/geolocation'
 
 const homeContent = {
   fr: {
@@ -37,66 +39,60 @@ const homeContent = {
   },
 } as Record<string, { sortedByRelevance: string; basedOnPrefs: string; modify: string }>
 
-// Demo streams to show layout even with empty DB
-const demoStreams: StreamWithSeller[] = [
-  {
-    id: 'demo-1', seller_id: '', title: 'NEW COLLECTION', description: '', category: 'Boutiques femme',
-    tags: [], status: 'live', thumbnail_url: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&h=600&fit=crop',
-    viewer_count: 60, peak_viewers: 80, engagement_score: 0, avg_watch_time_seconds: 0,
-    total_reactions: 0, scheduled_at: null, started_at: null, ended_at: null, city: 'Tel Aviv',
-    community_id: null, created_at: new Date().toISOString(),
-    seller: { display_name: 'fashionista_tlv', avatar_url: null, store_name: 'fashionista_tlv' }
-  },
-  {
-    id: 'demo-2', seller_id: '', title: 'Sneakers Drops', description: '', category: 'Sneakers',
-    tags: [], status: 'live', thumbnail_url: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400&h=600&fit=crop',
-    viewer_count: 48, peak_viewers: 55, engagement_score: 0, avg_watch_time_seconds: 0,
-    total_reactions: 0, scheduled_at: null, started_at: null, ended_at: null, city: 'Jerusalem',
-    community_id: null, created_at: new Date().toISOString(),
-    seller: { display_name: 'sneaker_king', avatar_url: null, store_name: 'sneaker_king' }
-  },
-  {
-    id: 'demo-3', seller_id: '', title: 'Vintage Luxe', description: '', category: 'Vintage',
-    tags: [], status: 'live', thumbnail_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=600&fit=crop',
-    viewer_count: 131, peak_viewers: 150, engagement_score: 0, avg_watch_time_seconds: 0,
-    total_reactions: 0, scheduled_at: null, started_at: null, ended_at: null, city: 'Haifa',
-    community_id: null, created_at: new Date().toISOString(),
-    seller: { display_name: 'vintage_shop', avatar_url: null, store_name: 'vintage_shop' }
-  },
-  {
-    id: 'demo-4', seller_id: '', title: 'Tech Deals', description: '', category: 'Electronique',
-    tags: [], status: 'live', thumbnail_url: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=600&fit=crop',
-    viewer_count: 108, peak_viewers: 120, engagement_score: 0, avg_watch_time_seconds: 0,
-    total_reactions: 0, scheduled_at: null, started_at: null, ended_at: null, city: 'Tel Aviv',
-    community_id: null, created_at: new Date().toISOString(),
-    seller: { display_name: 'tech_deals_il', avatar_url: null, store_name: 'tech_deals_il' }
-  },
-  {
-    id: 'demo-5', seller_id: '', title: 'Bijoux Artisanaux', description: '', category: 'Bijoux',
-    tags: [], status: 'live', thumbnail_url: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=600&fit=crop',
-    viewer_count: 73, peak_viewers: 90, engagement_score: 0, avg_watch_time_seconds: 0,
-    total_reactions: 0, scheduled_at: null, started_at: null, ended_at: null, city: 'Netanya',
-    community_id: null, created_at: new Date().toISOString(),
-    seller: { display_name: 'handmade_jewels', avatar_url: null, store_name: 'handmade_jewels' }
-  },
-  {
-    id: 'demo-6', seller_id: '', title: 'Sport Collection', description: '', category: 'Sport',
-    tags: [], status: 'live', thumbnail_url: 'https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=400&h=600&fit=crop',
-    viewer_count: 45, peak_viewers: 60, engagement_score: 0, avg_watch_time_seconds: 0,
-    total_reactions: 0, scheduled_at: null, started_at: null, ended_at: null, city: 'Eilat',
-    community_id: null, created_at: new Date().toISOString(),
-    seller: { display_name: 'sport_outlet', avatar_url: null, store_name: 'sport_outlet' }
-  },
+// Category ID → demo category label mapping (matches CategoryIcons IDs)
+const catIdToLabel: Record<string, string> = {
+  fashion_w: 'Mode femme', fashion_m: 'Mode homme', sneakers: 'Sneakers', bags: 'Sacs',
+  jewelry: 'Bijoux', watches: 'Montres', beauty: 'Beaute', electronics: 'High-tech',
+  gaming: 'Gaming', cards: 'Cartes', toys: 'Jouets', vintage: 'Vintage',
+  art: 'Art', furniture: 'Meubles', home: 'Maison', sports: 'Sport',
+  fitness: 'Fitness', music: 'Musique', books: 'Livres', kids: 'Enfants',
+  pets: 'Animaux', auto: 'Auto-Moto', garden: 'Jardin', food: 'Food',
+  handmade: 'Fait main', collect: 'Collection', photo: 'Photo', tools: 'Bricolage',
+}
+
+const emptyStateText: Record<string, { title: string; subtitle: string }> = {
+  fr: { title: 'Aucun live en cours', subtitle: 'Reviens bientot ou lance ton propre live !' },
+  en: { title: 'No live streams right now', subtitle: 'Come back soon or start your own live!' },
+  he: { title: 'אין שידורים חיים כרגע', subtitle: 'חזור בקרוב או התחל שידור משלך!' },
+  es: { title: 'No hay directos ahora', subtitle: 'Vuelve pronto o empieza tu propio directo!' },
+}
+
+// ═══ DEMO STREAMS — remove after presentation ═══
+const demoStream = (id: string, title: string, cat: string, thumb: string, viewers: number, seller: string, city: string): StreamWithSeller => ({
+  id: `demo-${id}`, seller_id: 'demo', title, description: null,
+  category: cat, tags: [], status: 'live', thumbnail_url: thumb,
+  viewer_count: viewers, peak_viewers: viewers + 200, engagement_score: 70, avg_watch_time_seconds: 0, total_reactions: 0,
+  scheduled_at: null, started_at: new Date().toISOString(), ended_at: null, city, community_id: null, created_at: new Date().toISOString(),
+  seller: { display_name: seller, avatar_url: null, store_name: seller },
+})
+
+const DEMO_STREAMS: StreamWithSeller[] = [
+  demoStream('1', 'Sneakers Jordan & Nike rares', 'Sneakers', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=600&fit=crop&q=80', 847, 'SneakerKing', 'Paris'),
+  demoStream('2', 'Bijoux vintage & pierres precieuses', 'Bijoux', 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=600&fit=crop&q=80', 312, 'GemStone', 'Lyon'),
+  demoStream('3', 'Cartes Pokemon & YuGiOh rares', 'Cartes', 'https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=400&h=600&fit=crop&q=80', 1523, 'CardMaster', 'Paris'),
+  demoStream('4', 'Sacs de luxe Chanel & LV', 'Sacs', 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=600&fit=crop&q=80', 198, 'LuxBags', 'Marseille'),
+  demoStream('5', 'Montres Seiko & Casio vintage', 'Montres', 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=600&fit=crop&q=80', 456, 'WatchDeals', 'Paris'),
+  demoStream('6', 'iPhone, AirPods & gadgets', 'High-tech', 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400&h=600&fit=crop&q=80', 634, 'TechBoss', 'Bordeaux'),
+  demoStream('7', 'Robes & looks ete 2026', 'Mode femme', 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=600&fit=crop&q=80', 921, 'FashionQueen', 'Paris'),
+  demoStream('8', 'Figurines Manga & collector', 'Jouets', 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400&h=600&fit=crop&q=80', 743, 'OtakuShop', 'Toulouse'),
+  demoStream('9', 'Vinyls & platines vintage', 'Musique', 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=600&fit=crop&q=80', 289, 'VinylCave', 'Bordeaux'),
+  demoStream('10', 'Air Max, Dunk & Yeezy', 'Sneakers', 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=600&fit=crop&q=80', 1102, 'KicksFactory', 'Lyon'),
+  demoStream('11', 'Maquillage & skincare K-beauty', 'Beaute', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=600&fit=crop&q=80', 567, 'GlowUp', 'Paris'),
+  demoStream('12', 'Manettes PS5 & accessoires gaming', 'Gaming', 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=400&h=600&fit=crop&q=80', 834, 'GameZone', 'Marseille'),
+  demoStream('13', 'Tableaux street art & prints', 'Art', 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop&q=80', 178, 'ArtStreet', 'Nice'),
+  demoStream('14', 'Vetements homme streetwear', 'Mode homme', 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&h=600&fit=crop&q=80', 445, 'StreetVibes', 'Paris'),
 ]
 
 export default function Home() {
   const [streams, setStreams] = useState<StreamWithSeller[]>([])
-  const [selectedCategory, setSelectedCategory] = useState('for_you')
+  const [searchParams] = useSearchParams()
+  const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || 'for_you')
   const [loading, setLoading] = useState(true)
   const [showCityPicker, setShowCityPicker] = useState(false)
-  const [lang, setLang] = useState(() => localStorage.getItem('shapop_lang') || 'en')
+  const [lang, setLang] = useState(() => localStorage.getItem('shapop_lang') || 'fr')
   const [showLangPicker, setShowLangPicker] = useState(false)
   const [showPrefsModal, setShowPrefsModal] = useState(() => !hasPreferences())
+  const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
   const { city, loading: locationLoading, setManualCity } = useLocation()
   const { user, updateCity } = useAuth()
@@ -108,8 +104,8 @@ export default function Home() {
     }
   }, [city, user])
 
-  useEffect(() => {
-    const fetchStreams = async () => {
+  const fetchStreams = useCallback(async () => {
+    try {
       let query = supabase
         .from('streams')
         .select('*, seller:profiles!seller_id(display_name, avatar_url)')
@@ -129,9 +125,14 @@ export default function Home() {
 
       const { data } = await query
       setStreams((data as StreamWithSeller[]) || [])
+    } catch {
+      // Fetch failed silently
+    } finally {
       setLoading(false)
     }
+  }, [selectedCategory, city])
 
+  useEffect(() => {
     fetchStreams()
 
     const channel = supabase
@@ -142,47 +143,77 @@ export default function Home() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [selectedCategory, city])
-
-  // Filter demo streams by city too
-  const filterByCity = (list: StreamWithSeller[]) => {
-    if (!city) return list
-    const local = list.filter(s => s.city === city)
-    const rest = list.filter(s => s.city !== city)
-    return [...local, ...rest]
-  }
+  }, [fetchStreams])
 
   // Apply matching algorithm when "Pour toi" tab is active
+  // Uses both explicit preferences AND behavioral tracking (what you actually watch)
   const getDisplayStreams = (): StreamWithSeller[] => {
-    const base = streams.length > 0 ? streams : filterByCity(demoStreams)
+    const allStreams = streams
     if (selectedCategory === 'for_you') {
       const prefs = loadPreferences()
-      if (prefs && (prefs.favorite_categories.length > 0 || prefs.preferred_cities.length > 0 || prefs.favorite_sellers.length > 0)) {
-        return sortStreamsByMatch(base, prefs)
+      const behavior = getBehaviorData()
+      const hasExplicitPrefs = prefs && (prefs.favorite_categories.length > 0 || prefs.preferred_cities.length > 0 || prefs.favorite_sellers.length > 0)
+      const hasBehaviorData = behavior.totalViews > 0
+
+      if (hasExplicitPrefs || hasBehaviorData) {
+        const defaultPrefs = prefs || { favorite_categories: [], preferred_cities: [], price_range_min: 0, price_range_max: 10000, favorite_sellers: [] }
+        return sortStreamsByMatch(allStreams, defaultPrefs)
       }
+      return allStreams
     }
-    return base
+    if (selectedCategory === 'following') return allStreams
+    // Filter by category label
+    const expectedLabel = catIdToLabel[selectedCategory]
+    if (expectedLabel) {
+      const filtered = allStreams.filter(s => s.category === expectedLabel)
+      if (filtered.length > 0) return filtered
+    }
+    return allStreams
   }
-  const displayStreams = getDisplayStreams()
+  const allStreams = [...DEMO_STREAMS, ...getDisplayStreams()]
+  const displayStreams = searchQuery.trim()
+    ? allStreams.filter(s => {
+        const q = searchQuery.toLowerCase()
+        return s.title.toLowerCase().includes(q)
+          || s.category.toLowerCase().includes(q)
+          || (s.seller?.store_name || s.seller?.display_name || '').toLowerCase().includes(q)
+          || (s.city || '').toLowerCase().includes(q)
+      })
+    : allStreams
 
   const handleCitySelect = (selectedCity: string) => {
     setManualCity(selectedCity)
     setShowCityPicker(false)
   }
 
+  // Pull-to-refresh (disabled — causes glitchy behavior on iOS WKWebView)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
   return (
-    <div className="pb-20 bg-black min-h-screen">
+    <div
+      ref={scrollRef}
+      className="pb-20 bg-black min-h-screen"
+      style={{ overflowX: 'hidden', maxWidth: '100vw' }}
+    >
       {/* Top bar — logo + search + icons */}
       <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)', backgroundColor: '#000', position: 'sticky', top: 0, zIndex: 40 }}>
-        {/* Logo + language flag */}
-        <div style={{ padding: '0px 16px 2px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          <img src="/logo.png" alt="ShaPop" style={{ width: '65%', display: 'inline-block' }} />
+        {/* Logo + home icon + language flag */}
+        <div style={{ padding: '0px 16px 0px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+          <button
+            onClick={() => { setSelectedCategory('for_you'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            style={{ position: 'absolute', left: '16px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1.5">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <img src="/logo.png" alt="ShaPop" style={{ width: '52%', display: 'inline-block' }} />
           <div style={{ position: 'absolute', right: '16px' }}>
             <button
               onClick={() => setShowLangPicker(!showLangPicker)}
               style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', padding: '4px' }}
             >
-              {lang === 'he' ? '🇮🇱' : lang === 'es' ? '🇪🇸' : '🇬🇧'}
+              {lang === 'fr' ? '🇫🇷' : lang === 'he' ? '🇮🇱' : lang === 'es' ? '🇪🇸' : '🇬🇧'}
             </button>
             {showLangPicker && (
               <div style={{
@@ -191,7 +222,7 @@ export default function Home() {
                 padding: '6px 0', zIndex: 51, minWidth: '140px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.5)', border: '1px solid #333',
               }}>
-                {([['en', 'English', '🇬🇧'], ['he', 'עברית', '🇮🇱'], ['es', 'Espanol', '🇪🇸']] as const).map(([code, label, flag]) => (
+                {([['fr', 'Français', '🇫🇷'], ['en', 'English', '🇬🇧'], ['he', 'עברית', '🇮🇱'], ['es', 'Español', '🇪🇸']] as const).map(([code, label, flag]) => (
                   <button
                     key={code}
                     onClick={() => { setLang(code); localStorage.setItem('shapop_lang', code); setShowLangPicker(false) }}
@@ -212,7 +243,7 @@ export default function Home() {
         </div>
 
         {/* City indicator */}
-        <div style={{ textAlign: 'center', paddingBottom: '6px' }}>
+        <div style={{ textAlign: 'center', paddingBottom: '4px' }}>
           <button
             onClick={() => setShowCityPicker(!showCityPicker)}
             style={{
@@ -268,25 +299,39 @@ export default function Home() {
               onClick={() => { setManualCity(''); setShowCityPicker(false) }}
               style={{
                 display: 'block', width: '100%', textAlign: 'left',
-                padding: '10px 16px', color: !city ? '#E8FF6B' : '#ccc',
+                padding: '10px 16px', color: !city ? '#F0908A' : '#ccc',
                 fontSize: '14px', background: 'transparent', border: 'none',
+                cursor: 'pointer',
               }}
             >
-              🌍 All cities
+              🌍 {t(lang, 'all_cities')}
             </button>
-            {ISRAEL_CITIES.map(c => (
-              <button
-                key={c}
-                onClick={() => handleCitySelect(c)}
-                style={{
-                  display: 'block', width: '100%', textAlign: 'left',
-                  padding: '10px 16px', color: city === c ? '#E8FF6B' : '#ccc',
-                  fontSize: '14px', background: 'transparent', border: 'none',
-                }}
-              >
-                📍 {c}
-              </button>
-            ))}
+            {(() => {
+              const country = getStoredGPSCountry() || detectUserCountry()
+              const communities = getCommunitiesByCountry(country)
+              const commCities = communities.map(c => c.city).filter((c, i, arr) => arr.indexOf(c) === i)
+              // Add the GPS-detected city at the top if not already in the list
+              const detectedCity = localStorage.getItem('shapop_user_city')
+              const allCities = detectedCity && !commCities.includes(detectedCity)
+                ? [detectedCity, ...commCities]
+                : commCities
+              return allCities.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => handleCitySelect(c)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left',
+                    padding: '10px 16px',
+                    color: city === c ? '#F0908A' : '#ccc',
+                    fontSize: '14px', background: 'transparent', border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: c === detectedCity ? 700 : 400,
+                  }}
+                >
+                  📍 {c}{c === detectedCity && !commCities.includes(detectedCity) ? ' (GPS)' : ''}
+                </button>
+              ))
+            })()}
           </div>
         )}
 
@@ -299,6 +344,8 @@ export default function Home() {
             </svg>
             <input
               type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
               placeholder={t(lang, 'search_placeholder')}
               style={{ background: 'transparent', fontSize: '16px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
             />
@@ -390,6 +437,21 @@ export default function Home() {
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-2 border-[#333] border-t-accent rounded-full animate-spin" />
+        </div>
+      ) : displayStreams.length === 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+              <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
+              <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+            {(emptyStateText[lang] || emptyStateText.fr).title}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
+            {(emptyStateText[lang] || emptyStateText.fr).subtitle}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">

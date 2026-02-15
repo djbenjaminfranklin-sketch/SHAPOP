@@ -9,6 +9,8 @@ import {
   getCountryDisplayName,
 } from '../lib/communitiesData'
 import type { CommunityDisplay, CountryCode } from '../lib/communitiesData'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -91,32 +93,37 @@ export type { CommunityDisplay }
 
 export default function CommunitiesPage() {
   const navigate = useNavigate()
+  const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
   const [search, setSearch] = useState('')
-  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => detectUserCountry())
-  const [joinedIds, setJoinedIds] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('shapop_joined_communities') || '[]')
-    } catch { return [] }
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => {
+    return (profile?.country as CountryCode) || detectUserCountry()
   })
+  const [joinedIds, setJoinedIds] = useState<string[]>([])
 
   useEffect(() => {
-    localStorage.setItem('shapop_joined_communities', JSON.stringify(joinedIds))
-  }, [joinedIds])
+    if (profile?.joined_communities) {
+      setJoinedIds(profile.joined_communities)
+    }
+  }, [profile])
 
-  // Save country preference
+  // Save country preference to Supabase
   useEffect(() => {
-    localStorage.setItem('shapop_country', selectedCountry)
-  }, [selectedCountry])
+    if (user) {
+      supabase.from('profiles').update({ country: selectedCountry }).eq('id', user.id)
+    }
+  }, [selectedCountry, user])
 
-  const toggleJoin = (e: React.MouseEvent, communityId: string) => {
+  const toggleJoin = async (e: React.MouseEvent, communityId: string) => {
     e.stopPropagation()
-    setJoinedIds(prev =>
-      prev.includes(communityId)
-        ? prev.filter(id => id !== communityId)
-        : [...prev, communityId]
-    )
+    const updated = joinedIds.includes(communityId)
+      ? joinedIds.filter(id => id !== communityId)
+      : [...joinedIds, communityId]
+    setJoinedIds(updated)
+    if (user) {
+      await supabase.from('profiles').update({ joined_communities: updated }).eq('id', user.id)
+    }
   }
 
   const communities = getCommunitiesByCountry(selectedCountry)
@@ -213,7 +220,6 @@ export default function CommunitiesPage() {
                 cursor: 'pointer',
                 flexShrink: 0,
                 minWidth: '64px',
-                transition: 'all 0.2s ease',
               }}
             >
               <span style={{ fontSize: '22px', lineHeight: 1 }}>{country.flag}</span>
@@ -386,7 +392,6 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
         borderRadius: '16px',
         overflow: 'hidden',
         cursor: 'pointer',
-        transition: 'transform 0.15s ease',
       }}
     >
       {/* Image */}
@@ -469,7 +474,6 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'inherit',
-            transition: 'all 0.2s ease',
             ...(joined
               ? {
                   backgroundColor: 'rgba(240,144,138,0.15)',

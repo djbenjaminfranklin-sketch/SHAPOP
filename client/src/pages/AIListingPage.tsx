@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 type Step = 'upload' | 'analyzing' | 'results' | 'success'
@@ -44,7 +45,7 @@ const content = {
     titleLabel: 'Titre',
     categoryLabel: 'Categorie',
     conditionLabel: 'Etat',
-    startingPrice: 'Prix de depart (ILS)',
+    startingPrice: 'Prix de depart',
     descriptionLabel: 'Description',
     generatedByAI: 'Generee par IA',
     createListing: 'Creer l\'annonce',
@@ -83,7 +84,7 @@ const content = {
     titleLabel: 'Title',
     categoryLabel: 'Category',
     conditionLabel: 'Condition',
-    startingPrice: 'Starting price (ILS)',
+    startingPrice: 'Starting price',
     descriptionLabel: 'Description',
     generatedByAI: 'AI generated',
     createListing: 'Create listing',
@@ -122,7 +123,7 @@ const content = {
     titleLabel: '\u05DB\u05D5\u05EA\u05E8\u05EA',
     categoryLabel: '\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4',
     conditionLabel: '\u05DE\u05E6\u05D1',
-    startingPrice: '\u05DE\u05D7\u05D9\u05E8 \u05D4\u05EA\u05D7\u05DC\u05EA\u05D9 (ILS)',
+    startingPrice: '\u05DE\u05D7\u05D9\u05E8 \u05D4\u05EA\u05D7\u05DC\u05EA\u05D9',
     descriptionLabel: '\u05EA\u05D9\u05D0\u05D5\u05E8',
     generatedByAI: '\u05E0\u05D5\u05E6\u05E8 \u05E2\u05DC \u05D9\u05D3\u05D9 AI',
     createListing: '\u05E6\u05D5\u05E8 \u05DE\u05D5\u05D3\u05E2\u05D4',
@@ -161,7 +162,7 @@ const content = {
     titleLabel: 'Titulo',
     categoryLabel: 'Categoria',
     conditionLabel: 'Estado',
-    startingPrice: 'Precio inicial (ILS)',
+    startingPrice: 'Precio inicial',
     descriptionLabel: 'Descripcion',
     generatedByAI: 'Generada por IA',
     createListing: 'Crear anuncio',
@@ -182,73 +183,6 @@ const categoriesFr = [
 ]
 
 const conditionsFr = ['Neuf', 'Comme neuf', 'Bon etat', 'Correct']
-
-const demoItems: { title: string; category: string; tags: string[]; priceLow: number; priceHigh: number; description: string }[] = [
-  {
-    title: 'Nike Air Max 90 OG Infrared',
-    category: 'Sneakers',
-    tags: ['nike', 'airmax', 'sneakers', 'infrared', 'og'],
-    priceLow: 85,
-    priceHigh: 140,
-    description: 'Paire de Nike Air Max 90 dans le coloris emblematique Infrared. Design classique avec bulle d\'air visible au talon. Semelle intermediaire en mousse pour un confort optimal.',
-  },
-  {
-    title: 'Sac Vintage Chanel Timeless',
-    category: 'Sacs',
-    tags: ['chanel', 'vintage', 'luxe', 'cuir', 'timeless'],
-    priceLow: 320,
-    priceHigh: 580,
-    description: 'Sac Chanel Timeless en cuir d\'agneau matelasse. Fermoir CC iconique. Bandouliere chaine entrelacee de cuir. Un classique intemporel du luxe.',
-  },
-  {
-    title: 'PlayStation 5 avec manette DualSense',
-    category: 'High-tech',
-    tags: ['ps5', 'sony', 'console', 'gaming', 'dualsense'],
-    priceLow: 280,
-    priceHigh: 420,
-    description: 'Console PlayStation 5 edition disque avec manette DualSense incluse. Performances next-gen, chargement ultra-rapide grace au SSD et retour haptique immersif.',
-  },
-  {
-    title: 'Montre Casio G-Shock DW-5600',
-    category: 'Montres',
-    tags: ['casio', 'gshock', 'montre', 'vintage', 'retro'],
-    priceLow: 45,
-    priceHigh: 75,
-    description: 'Montre Casio G-Shock DW-5600 au design carre iconique. Resistance aux chocs, etanche 200m, eclairage LED. Le modele culte de la gamme G-Shock.',
-  },
-  {
-    title: 'Carte Pokemon Dracaufeu Holo 1ere Edition',
-    category: 'Cartes',
-    tags: ['pokemon', 'dracaufeu', 'holo', 'collection', 'rare'],
-    priceLow: 150,
-    priceHigh: 350,
-    description: 'Carte Pokemon Dracaufeu holographique de la premiere edition du set de base. Carte iconique et recherchee par les collectionneurs du monde entier.',
-  },
-  {
-    title: 'Veste en cuir biker noire',
-    category: 'Mode Homme',
-    tags: ['cuir', 'veste', 'biker', 'noir', 'streetwear'],
-    priceLow: 60,
-    priceHigh: 120,
-    description: 'Veste en cuir veritable coupe biker. Col a revers, fermeture eclair asymetrique, poches zippees. Un incontournable du style rock et streetwear.',
-  },
-  {
-    title: 'AirPods Pro 2eme generation',
-    category: 'High-tech',
-    tags: ['apple', 'airpods', 'ecouteurs', 'bluetooth', 'anc'],
-    priceLow: 120,
-    priceHigh: 200,
-    description: 'Ecouteurs Apple AirPods Pro de 2eme generation avec boitier MagSafe. Reduction de bruit active, mode transparence adaptatif et audio spatial personnalise.',
-  },
-  {
-    title: 'Figurine One Piece Luffy Gear 5',
-    category: 'Jouets',
-    tags: ['onepiece', 'luffy', 'manga', 'figurine', 'anime'],
-    priceLow: 35,
-    priceHigh: 70,
-    description: 'Figurine One Piece representant Monkey D. Luffy en forme Gear 5. Sculpture detaillee, peinture haute qualite. Edition limitee pour collectionneurs.',
-  },
-]
 
 export default function AIListingPage() {
   const navigate = useNavigate()
@@ -274,10 +208,13 @@ export default function AIListingPage() {
 
   // Success toast
   const [showToast, setShowToast] = useState(false)
+  const [analysisError, setAnalysisError] = useState('')
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
   }, [])
+
+  const imageDataRef = useRef<string | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -285,52 +222,83 @@ export default function AIListingPage() {
 
     const reader = new FileReader()
     reader.onload = (ev) => {
-      setImagePreview(ev.target?.result as string)
-      startAnalysis()
+      const dataUrl = ev.target?.result as string
+      setImagePreview(dataUrl)
+      imageDataRef.current = dataUrl
+      startAnalysis(dataUrl)
     }
     reader.readAsDataURL(file)
   }
 
-  const startAnalysis = () => {
+  const startAnalysis = async (imageData: string) => {
     setStep('analyzing')
     setAnalysisProgress(0)
     setAnalysisText(analysisSteps[0])
+    setAnalysisError('')
 
-    // Animate through analysis steps
+    // Start the progress animation (runs while API call happens)
     let currentStep = 0
-    const totalDuration = 2800
-    const stepDuration = totalDuration / analysisSteps.length
-
-    const interval = setInterval(() => {
+    let animDone = false
+    const animInterval = setInterval(() => {
       currentStep++
-      if (currentStep < analysisSteps.length) {
+      if (currentStep < analysisSteps.length - 1) {
         setAnalysisText(analysisSteps[currentStep])
         setAnalysisProgress(Math.round((currentStep / analysisSteps.length) * 100))
-      } else {
-        clearInterval(interval)
-        setAnalysisProgress(100)
-        finishAnalysis()
+      } else if (!animDone) {
+        // Hold at the last step before "Finalisation"
+        animDone = true
+        setAnalysisText(analysisSteps[analysisSteps.length - 2])
+        setAnalysisProgress(85)
+        clearInterval(animInterval)
       }
-    }, stepDuration)
+    }, 600)
+
+    try {
+      // Call the Supabase Edge Function for real AI analysis
+      const { data, error } = await supabase.functions.invoke('analyze-image', {
+        body: { image: imageData },
+      })
+
+      clearInterval(animInterval)
+
+      if (error || !data || data.error) {
+        handleAnalysisError()
+        return
+      }
+
+      // Real AI result
+      setAnalysisText(analysisSteps[analysisSteps.length - 1])
+      setAnalysisProgress(100)
+
+      const result: AIResult = {
+        category: data.category,
+        title: data.title,
+        condition: data.condition,
+        confidence: data.confidence,
+        tags: data.tags,
+        priceLow: data.priceLow,
+        priceHigh: data.priceHigh,
+        description: data.description,
+      }
+
+      applyResult(result)
+    } catch {
+      clearInterval(animInterval)
+      handleAnalysisError()
+    }
   }
 
-  const finishAnalysis = () => {
-    // Pick a random demo item
-    const demo = demoItems[Math.floor(Math.random() * demoItems.length)]
-    const condition = conditionsFr[Math.floor(Math.random() * 2)] // Bias toward "Neuf" / "Comme neuf"
-    const confidence = 88 + Math.floor(Math.random() * 10) // 88-97
+  const handleAnalysisError = () => {
+    const errorMsg = lang === 'en' ? 'Analysis failed. Please try again.'
+      : lang === 'he' ? 'הניתוח נכשל. אנא נסה שוב.'
+      : lang === 'es' ? 'El analisis fallo. Intentalo de nuevo.'
+      : "L'analyse a echoue. Veuillez reessayer."
+    setAnalysisError(errorMsg)
+    setStep('upload')
+    setImagePreview(null)
+  }
 
-    const result: AIResult = {
-      category: demo.category,
-      title: demo.title,
-      condition,
-      confidence,
-      tags: demo.tags,
-      priceLow: demo.priceLow,
-      priceHigh: demo.priceHigh,
-      description: demo.description,
-    }
-
+  const applyResult = (result: AIResult) => {
     setAiResult(result)
     setEditTitle(result.title)
     setEditCategory(result.category)
@@ -365,6 +333,16 @@ export default function AIListingPage() {
       opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(20px)',
       transition: 'all 0.6s ease',
     }}>
+      {analysisError && (
+        <div style={{
+          backgroundColor: 'rgba(232,52,78,0.1)', border: '1px solid rgba(232,52,78,0.3)',
+          borderRadius: '12px', padding: '12px 16px', marginBottom: '20px',
+          color: '#E8344E', fontSize: '14px', fontWeight: 500, textAlign: 'center',
+          width: '100%', maxWidth: '340px',
+        }}>
+          {analysisError}
+        </div>
+      )}
       {/* AI badge */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
@@ -392,7 +370,6 @@ export default function AIListingPage() {
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', gap: '16px',
-          transition: 'all 0.3s ease',
           position: 'relative',
           overflow: 'hidden',
         }}
@@ -466,6 +443,7 @@ export default function AIListingPage() {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
@@ -671,7 +649,7 @@ export default function AIListingPage() {
             {t.estimatedPrice}
           </p>
           <p style={{ fontSize: '28px', fontWeight: 900, color: '#fff', marginBottom: '2px' }}>
-            {aiResult.priceLow} - {aiResult.priceHigh} ILS
+            {aiResult.priceLow} - {aiResult.priceHigh} €
           </p>
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
             {t.priceBasedOn}
@@ -772,7 +750,6 @@ export default function AIListingPage() {
                   style={{
                     padding: '10px 18px', borderRadius: '12px',
                     cursor: 'pointer', fontSize: '14px', fontWeight: 600,
-                    transition: 'all 0.2s',
                     backgroundColor: editCondition === conditionsFr[idx] ? 'rgba(240,144,138,0.15)' : '#0D0D0D',
                     border: editCondition === conditionsFr[idx] ? '1px solid rgba(240,144,138,0.4)' : '1px solid #1A1A1A',
                     color: editCondition === conditionsFr[idx] ? '#F0908A' : '#666',
@@ -805,7 +782,7 @@ export default function AIListingPage() {
                 position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
                 fontSize: '15px', fontWeight: 700, color: '#555',
               }}>
-                ILS
+                €
               </span>
             </div>
           </div>

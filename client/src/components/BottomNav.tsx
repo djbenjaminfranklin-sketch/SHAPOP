@@ -15,16 +15,6 @@ export default function BottomNav() {
 
   const tabs = [
     {
-      to: '/',
-      labelKey: 'home_tab' as const,
-      active: path === '/',
-      icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : '#666'} strokeWidth="2">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
-    {
       to: '/explore',
       labelKey: 'categories_tab' as const,
       active: path === '/explore',
@@ -36,15 +26,13 @@ export default function BottomNav() {
       ),
     },
     {
-      to: '/communities',
+      to: '/map',
       labelKey: 'map_tab' as const,
-      active: path === '/communities' || path.startsWith('/community/'),
+      active: path === '/map' || path === '/communities' || path.startsWith('/community/'),
       icon: (active: boolean) => (
         <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : '#666'} strokeWidth="2">
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M23 21v-2a4 4 0 00-3-3.87" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M16 3.13a4 4 0 010 7.75" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+          <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
     },
@@ -96,7 +84,7 @@ export default function BottomNav() {
         backgroundColor: '#0A0A0A', borderTop: '1px solid #1A1A1A', zIndex: 50,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '8px 8px 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>
           {tabs.map(tab => {
             if (tab.special) {
               return (
@@ -106,7 +94,7 @@ export default function BottomNav() {
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                    minWidth: '56px',
+                    justifySelf: 'center',
                   }}
                 >
                   {tab.icon(false)}
@@ -127,7 +115,7 @@ export default function BottomNav() {
                 to={tab.to}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  textDecoration: 'none', minWidth: '56px'
+                  textDecoration: 'none', justifySelf: 'center',
                 }}
               >
                 {tab.icon(tab.active)}

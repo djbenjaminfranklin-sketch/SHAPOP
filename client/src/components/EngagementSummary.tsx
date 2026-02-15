@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getLang } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -63,26 +65,66 @@ interface EngagementSummaryData {
   engagementTrend: number[] // last 7 data points
 }
 
-function generateMockSummary(): EngagementSummaryData {
+function createEmptySummary(): EngagementSummaryData {
   return {
-    peakViewers: 180 + Math.floor(Math.random() * 120),
-    avgEngagement: 55 + Math.floor(Math.random() * 25),
-    totalReactions: 400 + Math.floor(Math.random() * 600),
-    totalBids: 15 + Math.floor(Math.random() * 30),
-    newFollowers: 20 + Math.floor(Math.random() * 40),
-    engagementTrend: Array.from({ length: 7 }, () => 30 + Math.floor(Math.random() * 50)),
+    peakViewers: 0,
+    avgEngagement: 0,
+    totalReactions: 0,
+    totalBids: 0,
+    newFollowers: 0,
+    engagementTrend: [0, 0, 0, 0, 0, 0, 0],
   }
 }
 
 export default function EngagementSummary() {
   const lang = (getLang() || 'fr') as Lang
   const ct = summaryContent[lang] || summaryContent.fr
-  const [data, setData] = useState<EngagementSummaryData>(() => generateMockSummary())
+  const { user } = useAuth()
+  const [data, setData] = useState<EngagementSummaryData>(() => createEmptySummary())
   const [mounted, setMounted] = useState(false)
+  const [trendDelta, setTrendDelta] = useState(0)
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 100)
   }, [])
+
+  // Fetch real engagement data from recent streams
+  useEffect(() => {
+    if (!user) return
+
+    const fetchSummary = async () => {
+      const { data: streams } = await supabase
+        .from('streams')
+        .select('peak_viewers, engagement_score, total_reactions')
+        .eq('seller_id', user.id)
+        .in('status', ['ended', 'live'])
+        .order('created_at', { ascending: false })
+        .limit(7)
+
+      if (streams && streams.length > 0) {
+        const peakViewers = Math.max(...streams.map(s => s.peak_viewers || 0))
+        const avgEngagement = Math.round(streams.reduce((sum, s) => sum + (s.engagement_score || 0), 0) / streams.length)
+        const totalReactions = streams.reduce((sum, s) => sum + (s.total_reactions || 0), 0)
+        const engagementTrend = streams.slice(0, 7).reverse().map(s => s.engagement_score || 0)
+        while (engagementTrend.length < 7) engagementTrend.unshift(0)
+
+        const prevAvg = engagementTrend.slice(0, 3).reduce((a, b) => a + b, 0) / 3
+        const recentAvg = engagementTrend.slice(4).reduce((a, b) => a + b, 0) / 3
+        setTrendDelta(prevAvg > 0 ? Math.round(((recentAvg - prevAvg) / prevAvg) * 100) : 0)
+
+        setData({
+          peakViewers,
+          avgEngagement,
+          totalReactions,
+          totalBids: 0,
+          newFollowers: 0,
+          engagementTrend,
+        })
+      }
+    }
+
+    fetchSummary()
+  }, [user])
 
   const maxTrend = Math.max(...data.engagementTrend, 1)
 
@@ -177,7 +219,7 @@ export default function EngagementSummary() {
             borderRadius: '6px',
             backgroundColor: 'rgba(34,197,94,0.1)',
           }}>
-            {'\u{2191}'} +{Math.floor(Math.random() * 12 + 3)}%
+            {trendDelta >= 0 ? '\u{2191}' : '\u{2193}'} {trendDelta >= 0 ? '+' : ''}{trendDelta}%
           </span>
         </div>
 

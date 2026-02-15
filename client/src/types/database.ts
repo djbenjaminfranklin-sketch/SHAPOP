@@ -8,6 +8,19 @@ export interface Profile {
   city: string | null
   country: string
   language: string
+  joined_communities: string[]
+  created_at: string
+}
+
+export interface Address {
+  id: string
+  user_id: string
+  name: string
+  street: string
+  city: string
+  zip: string
+  phone: string | null
+  is_default: boolean
   created_at: string
 }
 
@@ -25,6 +38,17 @@ export interface Seller {
   total_sales: number
   total_revenue: number
   categories: string[]
+  sub_categories: string[]
+  seller_type: string | null
+  selling_locations: string[]
+  platforms: string[]
+  etsy_url: string | null
+  revenue_range: string | null
+  team_size: string | null
+  live_hours: string | null
+  return_address: Record<string, string> | null
+  bank_choice: string | null
+  onboarding_completed_at: string | null
   verified_at: string | null
   created_at: string
   profiles?: Profile
@@ -49,10 +73,16 @@ export interface Stream {
   ended_at: string | null
   city: string | null
   community_id: string | null
+  mux_stream_id?: string | null
+  mux_playback_id?: string | null
+  mux_stream_key?: string | null
+  mux_asset_id?: string | null
   created_at: string
   seller?: Seller & { profiles?: Profile }
   matching_score?: number
 }
+
+export type AuctionItem = Item
 
 export interface Item {
   id: string
@@ -96,6 +126,7 @@ export interface Order {
   stream_id: string | null
   amount: number
   platform_fee: number
+  processing_fee: number
   seller_payout: number
   status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed'
   shipping_address: Record<string, string> | null
@@ -159,11 +190,12 @@ export interface Database {
   public: {
     Tables: {
       profiles: { Row: Profile; Insert: Partial<Profile> & { id: string; username: string; display_name: string }; Update: Partial<Profile> }
+      addresses: { Row: Address; Insert: Partial<Address> & { user_id: string; name: string; street: string; city: string; zip: string }; Update: Partial<Address> }
       sellers: { Row: Seller; Insert: Partial<Seller> & { id: string; store_name: string }; Update: Partial<Seller> }
       streams: { Row: Stream; Insert: Partial<Stream> & { seller_id: string; title: string; category: string }; Update: Partial<Stream> }
       items: { Row: Item; Insert: Partial<Item> & { seller_id: string; title: string; category: string; starting_price: number; current_price: number }; Update: Partial<Item> }
       bids: { Row: Bid; Insert: { item_id: string; bidder_id: string; amount: number }; Update: never }
-      orders: { Row: Order; Insert: Partial<Order> & { buyer_id: string; seller_id: string; item_id: string; amount: number; platform_fee: number; seller_payout: number }; Update: Partial<Order> }
+      orders: { Row: Order; Insert: Partial<Order> & { buyer_id: string; seller_id: string; item_id: string; amount: number; platform_fee: number; processing_fee: number; seller_payout: number }; Update: Partial<Order> }
       communities: { Row: Community; Insert: Partial<Community> & { name: string; slug: string; city: string }; Update: Partial<Community> }
       chat_messages: { Row: ChatMessage; Insert: { stream_id: string; user_id: string; message: string; type?: string }; Update: never }
       engagement_metrics: { Row: EngagementMetrics; Insert: Partial<EngagementMetrics> & { stream_id: string; timestamp: string }; Update: Partial<EngagementMetrics> }

@@ -84,7 +84,7 @@ export const weeklyHours = [
 // Live format types
 export const liveFormats = [
   { id: 'auction', fr: 'Encheres', en: 'Auction', he: 'מכירה פומבית', es: 'Subasta' },
-  { id: 'fixed', fr: 'Prix fixe', en: 'Fixed price', he: 'מחיר קבוע', es: 'Precio fijo' },
+  { id: 'fixed', fr: 'Achat direct', en: 'Buy Now', he: 'קנייה ישירה', es: 'Compra directa' },
   { id: 'mystery', fr: 'Boite mystere', en: 'Mystery box', he: 'קופסת הפתעה', es: 'Caja misteriosa' },
   { id: 'rip_n_ship', fr: 'Ouverture & envoi', en: 'Rip & Ship', he: 'פתיחה ומשלוח', es: 'Abrir y enviar' },
   { id: 'showcase', fr: 'Vitrine produits', en: 'Product showcase', he: 'תצוגת מוצרים', es: 'Escaparate' },

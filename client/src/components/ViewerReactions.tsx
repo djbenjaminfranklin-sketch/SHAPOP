@@ -107,7 +107,7 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'transform 0.15s ease, background-color 0.15s ease',
+              transition: 'none',
             }}
             onPointerDown={e => {
               const el = e.currentTarget

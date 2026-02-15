@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
 import { findCommunityById, getCountryDisplayName } from '../lib/communitiesData'
 import type { CommunityDisplay } from '../lib/communitiesData'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -77,42 +79,6 @@ const detailContent = {
   },
 }
 
-// Mock live streams for community
-const MOCK_COMMUNITY_STREAMS = [
-  {
-    id: 'cs-1', title: 'Nouveaux arrivages Mode', seller: 'Sarah_TLV', viewers: 45,
-    thumbnail: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=300&h=400&fit=crop',
-    category: 'Mode',
-  },
-  {
-    id: 'cs-2', title: 'Sneakers rares du jour', seller: 'KicksMaster', viewers: 82,
-    thumbnail: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=300&h=400&fit=crop',
-    category: 'Sneakers',
-  },
-  {
-    id: 'cs-3', title: 'Bijoux faits main', seller: 'GoldArt_IL', viewers: 31,
-    thumbnail: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=300&h=400&fit=crop',
-    category: 'Bijoux',
-  },
-  {
-    id: 'cs-4', title: 'Tech deals de folie', seller: 'TechBoy', viewers: 67,
-    thumbnail: 'https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=300&h=400&fit=crop',
-    category: 'High-tech',
-  },
-]
-
-// Mock popular members
-const MOCK_MEMBERS = [
-  { id: 'm1', name: 'Sarah', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm2', name: 'David', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm3', name: 'Noa', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm4', name: 'Yoav', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm5', name: 'Shira', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm6', name: 'Omer', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm7', name: 'Maya', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop&crop=face' },
-  { id: 'm8', name: 'Eyal', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=80&h=80&fit=crop&crop=face' },
-]
-
 function formatMemberCount(count: number): string {
   if (count >= 1000) {
     return (count / 1000).toFixed(1).replace('.0', '') + 'k'
@@ -123,36 +89,76 @@ function formatMemberCount(count: number): string {
 export default function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = detailContent[lang] || detailContent.fr
   const [community, setCommunity] = useState<CommunityDisplay | null>(null)
   const [joined, setJoined] = useState(false)
+  const [activeStreams, setActiveStreams] = useState<{id: string, title: string, seller: string, viewers: number, thumbnail: string}[]>([])
+  const [members, setMembers] = useState<{id: string, name: string, avatar: string}[]>([])
 
   useEffect(() => {
     const found = findCommunityById(id || '')
     if (found) {
       setCommunity(found)
     }
-
-    // Check join state
-    try {
-      const joinedIds: string[] = JSON.parse(localStorage.getItem('shapop_joined_communities') || '[]')
-      setJoined(joinedIds.includes(id || ''))
-    } catch { /* ignore */ }
   }, [id])
 
-  const toggleJoin = () => {
-    try {
-      const joinedIds: string[] = JSON.parse(localStorage.getItem('shapop_joined_communities') || '[]')
-      let updated: string[]
-      if (joined) {
-        updated = joinedIds.filter(jid => jid !== id)
-      } else {
-        updated = [...joinedIds, id || '']
+  useEffect(() => {
+    if (profile?.joined_communities) {
+      setJoined(profile.joined_communities.includes(id || ''))
+    }
+  }, [id, profile])
+
+  useEffect(() => {
+    if (!community) return
+    const fetchStreams = async () => {
+      const { data } = await supabase
+        .from('streams')
+        .select('id, title, viewer_count, thumbnail_url, seller:sellers(store_name)')
+        .eq('status', 'live')
+        .eq('city', community.city)
+        .limit(4)
+      if (data) {
+        setActiveStreams(data.map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          seller: s.seller?.store_name || '?',
+          viewers: s.viewer_count || 0,
+          thumbnail: s.thumbnail_url || '',
+        })))
       }
-      localStorage.setItem('shapop_joined_communities', JSON.stringify(updated))
-      setJoined(!joined)
-    } catch { /* ignore */ }
+    }
+    fetchStreams()
+  }, [community])
+
+  useEffect(() => {
+    if (!id) return
+    const fetchMembers = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .contains('joined_communities', [id])
+        .limit(8)
+      if (data) {
+        setMembers(data.map(p => ({
+          id: p.id,
+          name: p.display_name,
+          avatar: p.avatar_url || '',
+        })))
+      }
+    }
+    fetchMembers()
+  }, [id])
+
+  const toggleJoin = async () => {
+    if (!user || !profile) return
+    const currentIds = profile.joined_communities || []
+    const updated = joined
+      ? currentIds.filter(jid => jid !== id)
+      : [...currentIds, id || '']
+    await supabase.from('profiles').update({ joined_communities: updated }).eq('id', user.id)
+    setJoined(!joined)
   }
 
   if (!community) {
@@ -174,9 +180,6 @@ export default function CommunityDetailPage() {
 
   // Get the country display name dynamically
   const countryDisplayName = getCountryDisplayName(community.country, lang)
-
-  // Pick streams to show based on community live_count
-  const activeStreams = MOCK_COMMUNITY_STREAMS.slice(0, community.live_count)
 
   return (
     <div style={{
@@ -287,7 +290,6 @@ export default function CommunityDetailPage() {
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'inherit',
-            transition: 'all 0.2s ease',
             ...(joined
               ? {
                   backgroundColor: 'transparent',
@@ -395,51 +397,53 @@ export default function CommunityDetailPage() {
       )}
 
       {/* Membres populaires */}
-      <div style={{ padding: '28px 20px 0' }}>
-        <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: '0 0 14px' }}>
-          {ct.popularMembers}
-        </h2>
+      {members.length > 0 && (
+        <div style={{ padding: '28px 20px 0' }}>
+          <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: '0 0 14px' }}>
+            {ct.popularMembers}
+          </h2>
 
-        <div style={{
-          display: 'flex', gap: '16px',
-          overflowX: 'auto',
-          paddingBottom: '4px',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-        }}>
-          {MOCK_MEMBERS.map(member => (
-            <div
-              key={member.id}
-              style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <div style={{
-                width: '56px', height: '56px', borderRadius: '50%',
-                border: '2px solid #F0908A',
-                padding: '2px',
-                overflow: 'hidden',
-              }}>
-                <img
-                  src={member.avatar}
-                  alt={member.name}
-                  style={{
-                    width: '100%', height: '100%', borderRadius: '50%',
-                    objectFit: 'cover', display: 'block',
-                  }}
-                />
+          <div style={{
+            display: 'flex', gap: '16px',
+            overflowX: 'auto',
+            paddingBottom: '4px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+          }}>
+            {members.map(member => (
+              <div
+                key={member.id}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%',
+                  border: '2px solid #F0908A',
+                  padding: '2px',
+                  overflow: 'hidden',
+                }}>
+                  <img
+                    src={member.avatar}
+                    alt={member.name}
+                    style={{
+                      width: '100%', height: '100%', borderRadius: '50%',
+                      objectFit: 'cover', display: 'block',
+                    }}
+                  />
+                </div>
+                <span style={{
+                  fontSize: '11px', color: '#ccc', marginTop: '6px',
+                  fontWeight: 500,
+                }}>
+                  {member.name}
+                </span>
               </div>
-              <span style={{
-                fontSize: '11px', color: '#ccc', marginTop: '6px',
-                fontWeight: 500,
-              }}>
-                {member.name}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Recent activity section */}
       <div style={{ padding: '28px 20px 0' }}>

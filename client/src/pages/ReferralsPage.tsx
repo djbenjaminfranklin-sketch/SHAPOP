@@ -5,9 +5,9 @@ import { getLang } from '../lib/i18n'
 
 const content = {
   fr: { title: 'Parrainages', subtitle: 'Gagne de l\'argent en invitant tes amis !', howTitle: 'Comment ca marche', step1: 'Partage ton lien de parrainage', step2: 'Ton ami s\'inscrit et fait son premier achat', step3: 'Vous gagnez tous les deux 10\u20AC de credit !', yourCode: 'Ton code de parrainage', share: 'Partager le lien', copied: 'Copie !', balance: 'Solde', earnings: 'Total gagne', referrals: 'Amis parraines', pending: 'En attente' },
-  en: { title: 'Referrals', subtitle: 'Earn money by inviting friends!', howTitle: 'How it works', step1: 'Share your referral link', step2: 'Friend signs up & makes first purchase', step3: 'You both earn 20 ILS credit!', yourCode: 'Your referral code', share: 'Share link', copied: 'Copied!', balance: 'Balance', earnings: 'Total earned', referrals: 'Friends referred', pending: 'Pending' },
-  he: { title: '\u05D4\u05E4\u05E0\u05D9\u05D5\u05EA', subtitle: '\u05D4\u05E8\u05D5\u05D5\u05D7 \u05DB\u05E1\u05E3 \u05D1\u05D4\u05D6\u05DE\u05E0\u05EA \u05D7\u05D1\u05E8\u05D9\u05DD!', howTitle: '\u05D0\u05D9\u05DA \u05D6\u05D4 \u05E2\u05D5\u05D1\u05D3', step1: '\u05E9\u05EA\u05E4\u05D5 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05D4\u05E4\u05E0\u05D9\u05D4', step2: '\u05D7\u05D1\u05E8 \u05E0\u05E8\u05E9\u05DD \u05D5\u05DE\u05D1\u05E6\u05E2 \u05E8\u05DB\u05D9\u05E9\u05D4 \u05E8\u05D0\u05E9\u05D5\u05E0\u05D4', step3: '\u05E9\u05E0\u05D9\u05DB\u05DD \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 20 \u05E9"\u05D7 \u05E7\u05E8\u05D3\u05D9\u05D8!', yourCode: '\u05E7\u05D5\u05D3 \u05D4\u05D4\u05E4\u05E0\u05D9\u05D4 \u05E9\u05DC\u05DA', share: '\u05E9\u05EA\u05E4\u05D5 \u05E7\u05D9\u05E9\u05D5\u05E8', copied: '\u05D4\u05D5\u05E2\u05EA\u05E7!', balance: '\u05D9\u05EA\u05E8\u05D4', earnings: '\u05E1\u05DA \u05D4\u05DB\u05DC \u05E9\u05D4\u05D5\u05E8\u05D5\u05D5\u05D7', referrals: '\u05D7\u05D1\u05E8\u05D9\u05DD \u05E9\u05D4\u05D5\u05E4\u05E0\u05D5', pending: '\u05D1\u05D4\u05DE\u05EA\u05E0\u05D4' },
-  es: { title: 'Referidos', subtitle: 'Gana dinero invitando amigos!', howTitle: 'Como funciona', step1: 'Comparte tu enlace de referido', step2: 'Tu amigo se registra y hace su primera compra', step3: 'Ambos ganan 20 ILS de credito!', yourCode: 'Tu codigo de referido', share: 'Compartir enlace', copied: 'Copiado!', balance: 'Saldo', earnings: 'Total ganado', referrals: 'Amigos referidos', pending: 'Pendiente' },
+  en: { title: 'Referrals', subtitle: 'Earn money by inviting friends!', howTitle: 'How it works', step1: 'Share your referral link', step2: 'Friend signs up & makes first purchase', step3: 'You both earn 20\u20AC credit!', yourCode: 'Your referral code', share: 'Share link', copied: 'Copied!', balance: 'Balance', earnings: 'Total earned', referrals: 'Friends referred', pending: 'Pending' },
+  he: { title: '\u05D4\u05E4\u05E0\u05D9\u05D5\u05EA', subtitle: '\u05D4\u05E8\u05D5\u05D5\u05D7 \u05DB\u05E1\u05E3 \u05D1\u05D4\u05D6\u05DE\u05E0\u05EA \u05D7\u05D1\u05E8\u05D9\u05DD!', howTitle: '\u05D0\u05D9\u05DA \u05D6\u05D4 \u05E2\u05D5\u05D1\u05D3', step1: '\u05E9\u05EA\u05E4\u05D5 \u05D0\u05EA \u05E7\u05D9\u05E9\u05D5\u05E8 \u05D4\u05D4\u05E4\u05E0\u05D9\u05D4', step2: '\u05D7\u05D1\u05E8 \u05E0\u05E8\u05E9\u05DD \u05D5\u05DE\u05D1\u05E6\u05E2 \u05E8\u05DB\u05D9\u05E9\u05D4 \u05E8\u05D0\u05E9\u05D5\u05E0\u05D4', step3: '\u05E9\u05E0\u05D9\u05DB\u05DD \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 20\u20AC \u05E7\u05E8\u05D3\u05D9\u05D8!', yourCode: '\u05E7\u05D5\u05D3 \u05D4\u05D4\u05E4\u05E0\u05D9\u05D4 \u05E9\u05DC\u05DA', share: '\u05E9\u05EA\u05E4\u05D5 \u05E7\u05D9\u05E9\u05D5\u05E8', copied: '\u05D4\u05D5\u05E2\u05EA\u05E7!', balance: '\u05D9\u05EA\u05E8\u05D4', earnings: '\u05E1\u05DA \u05D4\u05DB\u05DC \u05E9\u05D4\u05D5\u05E8\u05D5\u05D5\u05D7', referrals: '\u05D7\u05D1\u05E8\u05D9\u05DD \u05E9\u05D4\u05D5\u05E4\u05E0\u05D5', pending: '\u05D1\u05D4\u05DE\u05EA\u05E0\u05D4' },
+  es: { title: 'Referidos', subtitle: 'Gana dinero invitando amigos!', howTitle: 'Como funciona', step1: 'Comparte tu enlace de referido', step2: 'Tu amigo se registra y hace su primera compra', step3: 'Ambos ganan 20\u20AC de credito!', yourCode: 'Tu codigo de referido', share: 'Compartir enlace', copied: 'Copiado!', balance: 'Saldo', earnings: 'Total ganado', referrals: 'Amigos referidos', pending: 'Pendiente' },
 }
 
 export default function ReferralsPage() {
@@ -17,16 +17,33 @@ export default function ReferralsPage() {
   const c = content[lang] || content.fr
   const [copied, setCopied] = useState(false)
   const code = user?.id?.slice(0, 8).toUpperCase() || 'SHAPOP'
-  const link = `https://shapop.co.il/ref/${code}`
+  const link = `https://shapop.app/ref/${code}`
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try { await navigator.share({ title: 'ShaPop', text: c.subtitle, url: link }) } catch {}
-    } else {
-      await navigator.clipboard.writeText(link)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'ShaPop', text: `${c.subtitle}\n${link}`, url: link })
+        return
+      }
+    } catch {
+      // share cancelled or failed — fall through to clipboard
     }
+    // Fallback: copy to clipboard (works in WKWebView)
+    try {
+      await navigator.clipboard.writeText(link)
+    } catch {
+      // Double fallback for older WKWebView
+      const textarea = document.createElement('textarea')
+      textarea.value = link
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   return (
@@ -40,7 +57,7 @@ export default function ReferralsPage() {
       <div style={{ padding: '20px' }}>
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '24px' }}>
-          {[{ label: c.balance, value: '0 \u20AA' }, { label: c.referrals, value: '0' }, { label: c.pending, value: '0' }].map((s, i) => (
+          {[{ label: c.balance, value: '0 \u20AC' }, { label: c.referrals, value: '0' }, { label: c.pending, value: '0' }].map((s, i) => (
             <div key={i} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
               <p style={{ fontSize: '22px', fontWeight: 700, color: '#F0908A' }}>{s.value}</p>
               <p style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>{s.label}</p>

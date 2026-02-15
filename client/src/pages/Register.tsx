@@ -20,6 +20,8 @@ const content = {
     alreadyHaveAccount: 'Deja un compte ?',
     signIn: 'Se connecter',
     errorDefault: "Erreur lors de l'inscription",
+    errorFileType: 'Seuls les formats JPEG, PNG et WebP sont acceptes.',
+    errorFileSize: "L'image doit faire moins de 5 Mo.",
   },
   en: {
     title: 'Create Account',
@@ -36,6 +38,8 @@ const content = {
     alreadyHaveAccount: 'Already have an account?',
     signIn: 'Sign in',
     errorDefault: 'Registration error',
+    errorFileType: 'Only JPEG, PNG, and WebP images are allowed.',
+    errorFileSize: 'Image must be smaller than 5MB.',
   },
   he: {
     title: 'צור חשבון',
@@ -52,6 +56,8 @@ const content = {
     alreadyHaveAccount: 'כבר יש חשבון?',
     signIn: 'התחבר',
     errorDefault: 'שגיאת הרשמה',
+    errorFileType: 'רק תמונות JPEG, PNG ו-WebP מותרות.',
+    errorFileSize: 'התמונה חייבת להיות קטנה מ-5MB.',
   },
   es: {
     title: 'Crear cuenta',
@@ -68,6 +74,8 @@ const content = {
     alreadyHaveAccount: '¿Ya tienes cuenta?',
     signIn: 'Iniciar sesión',
     errorDefault: 'Error de registro',
+    errorFileType: 'Solo se permiten imagenes JPEG, PNG y WebP.',
+    errorFileSize: 'La imagen debe pesar menos de 5MB.',
   },
 }
 
@@ -93,12 +101,24 @@ export default function Register() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      setAvatarFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => setAvatarPreview(reader.result as string)
-      reader.readAsDataURL(file)
+    if (!file) return
+
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError(c.errorFileType)
+      return
     }
+    if (file.size > MAX_SIZE) {
+      setError(c.errorFileSize)
+      return
+    }
+
+    setAvatarFile(file)
+    const reader = new FileReader()
+    reader.onloadend = () => setAvatarPreview(reader.result as string)
+    reader.readAsDataURL(file)
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -253,7 +273,7 @@ export default function Register() {
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="johndoe"
+              placeholder="username"
               required
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
@@ -271,7 +291,7 @@ export default function Register() {
               type="text"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              placeholder="John Doe"
+              placeholder="Alex"
               required
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',

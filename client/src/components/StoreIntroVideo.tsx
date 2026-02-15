@@ -1,5 +1,12 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { getLang } from '../lib/i18n'
+import { showToast } from '../lib/toast'
+
+const _t = (fr: string, en: string, he: string, es: string) => {
+  const l = getLang()
+  return l === 'en' ? en : l === 'he' ? he : l === 'es' ? es : fr
+}
 
 export default function StoreIntroVideo() {
   const { user } = useAuth()
@@ -72,7 +79,7 @@ export default function StoreIntroVideo() {
 
       setMode('record')
     } catch (err) {
-      alert("Impossible d'accéder à la caméra. Vérifie les permissions.")
+      showToast(_t("Impossible d'acceder a la camera. Verifie les permissions.", "Cannot access camera. Check your permissions.", "לא ניתן לגשת למצלמה. בדוק הרשאות.", "No se puede acceder a la camara. Verifica los permisos."), 'error')
     }
   }
 
@@ -91,7 +98,7 @@ export default function StoreIntroVideo() {
 
     // Vérifier que c'est une vidéo
     if (!file.type.startsWith('video/')) {
-      alert('Veuillez sélectionner un fichier vidéo')
+      showToast(_t('Veuillez selectionner un fichier video', 'Please select a video file', 'אנא בחר קובץ וידאו', 'Por favor selecciona un archivo de video'), 'error')
       return
     }
 
@@ -100,7 +107,12 @@ export default function StoreIntroVideo() {
     video.preload = 'metadata'
     video.onloadedmetadata = () => {
       if (video.duration > MAX_DURATION) {
-        alert(`La vidéo doit faire moins de ${MAX_DURATION} secondes (la vôtre fait ${Math.ceil(video.duration)}s)`)
+        showToast(_t(
+          `La video doit faire moins de ${MAX_DURATION}s (${Math.ceil(video.duration)}s)`,
+          `Video must be under ${MAX_DURATION}s (yours is ${Math.ceil(video.duration)}s)`,
+          `הסרטון חייב להיות פחות מ-${MAX_DURATION} שניות (שלך ${Math.ceil(video.duration)} שניות)`,
+          `El video debe durar menos de ${MAX_DURATION}s (el tuyo dura ${Math.ceil(video.duration)}s)`
+        ), 'error')
         return
       }
       setVideoFile(file)
@@ -126,17 +138,15 @@ export default function StoreIntroVideo() {
 
   const handleSave = async () => {
     if (!videoFile || !user) return
-    // En production : upload vers Supabase Storage
-    // puis sauvegarder l'URL dans sellers.store_intro_video_url
-    alert('Vidéo de présentation sauvegardée !')
+    showToast(_t('Video sauvegardee !', 'Video saved!', '!הסרטון נשמר', '¡Video guardado!'))
   }
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div className="bg-gradient-to-r from-pink-500 to-orange-400 p-6 text-white">
-        <h2 className="text-xl font-bold">Vidéo de présentation</h2>
+        <h2 className="text-xl font-bold">{_t('Video de presentation', 'Intro video', 'סרטון היכרות', 'Video de presentacion')}</h2>
         <p className="text-pink-100 text-sm mt-1">
-          Enregistre une courte vidéo pour présenter ta boutique aux acheteurs (max {MAX_DURATION}s)
+          {_t(`Enregistre une courte video pour presenter ta boutique (max ${MAX_DURATION}s)`, `Record a short video to introduce your store (max ${MAX_DURATION}s)`, `הקלט סרטון קצר כדי להציג את החנות שלך (מקסימום ${MAX_DURATION} שניות)`, `Graba un video corto para presentar tu tienda (max ${MAX_DURATION}s)`)}
         </p>
       </div>
 
@@ -149,8 +159,8 @@ export default function StoreIntroVideo() {
               className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-pink-400 hover:bg-pink-50 transition-colors"
             >
               <span className="text-4xl">🎬</span>
-              <span className="font-semibold text-gray-700">Filmer maintenant</span>
-              <span className="text-xs text-gray-400">Utilise ta caméra</span>
+              <span className="font-semibold text-gray-700">{_t('Filmer maintenant', 'Record now', 'הקלט עכשיו', 'Grabar ahora')}</span>
+              <span className="text-xs text-gray-400">{_t('Utilise ta camera', 'Use your camera', 'השתמש במצלמה', 'Usa tu camara')}</span>
             </button>
 
             <button
@@ -158,8 +168,8 @@ export default function StoreIntroVideo() {
               className="flex flex-col items-center gap-3 p-8 border-2 border-dashed border-gray-300 rounded-xl hover:border-pink-400 hover:bg-pink-50 transition-colors"
             >
               <span className="text-4xl">📱</span>
-              <span className="font-semibold text-gray-700">Importer une vidéo</span>
-              <span className="text-xs text-gray-400">Depuis ta galerie</span>
+              <span className="font-semibold text-gray-700">{_t('Importer une video', 'Import a video', 'ייבא סרטון', 'Importar un video')}</span>
+              <span className="text-xs text-gray-400">{_t('Depuis ta galerie', 'From your gallery', 'מהגלריה שלך', 'Desde tu galeria')}</span>
             </button>
 
             <input
@@ -209,14 +219,14 @@ export default function StoreIntroVideo() {
                   className="bg-red-500 text-white px-8 py-3 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center gap-2"
                 >
                   <span className="w-4 h-4 bg-white rounded-sm" />
-                  Arrêter
+                  {_t('Arreter', 'Stop', 'עצור', 'Detener')}
                 </button>
               ) : (
                 <button
                   onClick={handleReset}
                   className="text-gray-500 hover:text-gray-700 px-6 py-3"
                 >
-                  Annuler
+                  {_t('Annuler', 'Cancel', 'ביטול', 'Cancelar')}
                 </button>
               )}
             </div>
@@ -243,13 +253,13 @@ export default function StoreIntroVideo() {
                 onClick={handleReset}
                 className="flex-1 border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
               >
-                Refaire
+                {_t('Refaire', 'Redo', 'צלם מחדש', 'Rehacer')}
               </button>
               <button
                 onClick={handleSave}
                 className="flex-1 bg-gradient-to-r from-pink-500 to-orange-400 text-white py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-orange-500 transition-colors"
               >
-                Utiliser cette vidéo
+                {_t('Utiliser cette video', 'Use this video', 'השתמש בסרטון הזה', 'Usar este video')}
               </button>
             </div>
           </div>

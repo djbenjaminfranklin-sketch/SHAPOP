@@ -6,10 +6,11 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   ios: {
     contentInset: 'automatic',
-    allowsLinkPreview: false
+    allowsLinkPreview: false,
+    allowsInlineMediaPlayback: true
   },
   server: {
-    allowNavigation: ['*']
+    allowNavigation: ['*.supabase.co', '*.stripe.com']
   }
 };
 

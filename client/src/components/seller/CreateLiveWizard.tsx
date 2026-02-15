@@ -240,7 +240,7 @@ export default function CreateLiveWizard() {
       }
       localStorage.setItem(`shapop_live_${stream.id}`, JSON.stringify(liveData))
 
-      navigate(`/stream/${stream.id}`)
+      navigate(`/prepare-live/${stream.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error creating stream')
       setLoading(false)
@@ -454,7 +454,7 @@ export default function CreateLiveWizard() {
                     background: activeTip === i
                       ? `linear-gradient(90deg, ${tipColors[i]}, ${tipColors[i]}AA)`
                       : '#222',
-                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', cursor: 'pointer',
+                    cursor: 'pointer',
                     boxShadow: activeTip === i ? `0 0 12px ${tipColors[i]}40` : 'none',
                   }}
                 />
@@ -682,7 +682,6 @@ export default function CreateLiveWizard() {
                       border: isSelected ? '1.5px solid #60A5FA' : '1px solid #1A1A1A',
                       cursor: 'pointer',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                      transition: 'all 0.25s ease',
                       boxShadow: isSelected ? '0 4px 20px rgba(96, 165, 250, 0.25)' : 'none',
                       flexShrink: 0,
                     }}
@@ -777,7 +776,6 @@ export default function CreateLiveWizard() {
                       cursor: 'pointer',
                       fontSize: '14px', fontWeight: 600,
                       color: isSelected ? '#60A5FA' : '#666',
-                      transition: 'all 0.25s ease',
                       boxShadow: isSelected ? '0 2px 12px rgba(96, 165, 250, 0.2)' : 'none',
                     }}
                   >
@@ -814,7 +812,6 @@ export default function CreateLiveWizard() {
                       border: isSelected ? '1.5px solid #F0908A' : '1px solid #1A1A1A',
                       color: isSelected ? '#F0908A' : '#666',
                       fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                      transition: 'all 0.25s ease',
                       boxShadow: isSelected ? '0 4px 16px rgba(240, 144, 138, 0.15)' : 'none',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
                     }}
@@ -870,14 +867,15 @@ export default function CreateLiveWizard() {
                     onClick={() => setSelectedCategory(cat.id)}
                     style={{
                       position: 'relative',
-                      aspectRatio: '1',
+                      width: '100%',
+                      paddingBottom: '100%',
+                      height: 0,
                       borderRadius: '16px',
                       overflow: 'hidden',
                       border: isSelected ? '2px solid #34D399' : '1px solid #1A1A1A',
                       cursor: 'pointer',
                       background: '#0A0A0A',
                       padding: 0,
-                      transition: 'all 0.25s ease',
                       boxShadow: isSelected ? '0 4px 20px rgba(52, 211, 153, 0.3)' : 'none',
                       transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                     }}
@@ -886,6 +884,7 @@ export default function CreateLiveWizard() {
                       src={cat.image}
                       alt={cat.label}
                       style={{
+                        position: 'absolute', top: 0, left: 0,
                         width: '100%', height: '100%', objectFit: 'cover',
                         opacity: isSelected ? 1 : 0.6,
                         transition: 'opacity 0.25s ease',
@@ -951,7 +950,6 @@ export default function CreateLiveWizard() {
                       border: selected ? '1.5px solid #34D399' : '1px solid #1A1A1A',
                       color: selected ? '#34D399' : '#888',
                       fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                      transition: 'all 0.25s ease',
                       boxShadow: selected ? '0 2px 12px rgba(52, 211, 153, 0.2)' : 'none',
                     }}
                   >
@@ -1012,7 +1010,6 @@ export default function CreateLiveWizard() {
                     : '2px dashed #1E1E1E',
                   color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
-                  transition: 'all 0.3s ease',
                   boxShadow: dragOver ? '0 0 40px rgba(251, 191, 36, 0.1) inset' : 'none',
                 }}
               >
@@ -1123,7 +1120,6 @@ export default function CreateLiveWizard() {
                     border: '1px solid #1E1E1E',
                     color: '#aaa', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    transition: 'all 0.25s ease',
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
@@ -1176,7 +1172,6 @@ export default function CreateLiveWizard() {
                 cursor: 'pointer', padding: '10px',
                 borderRadius: '12px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s ease',
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5">
@@ -1265,7 +1260,6 @@ export default function CreateLiveWizard() {
             boxShadow: canProceed()
               ? '0 8px 32px rgba(240, 144, 138, 0.35), 0 2px 8px rgba(240, 144, 138, 0.2)'
               : 'none',
-            transition: 'all 0.3s ease',
             letterSpacing: '0.3px',
           }}
         >

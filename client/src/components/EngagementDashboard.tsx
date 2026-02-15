@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getLang } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
 import type { EngagementMetrics } from '../types/database'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
@@ -175,19 +176,19 @@ const AI_ICONS: Record<string, string> = {
   peak: '\u{2B50}',
 }
 
-function generateInitialMetrics(): EngagementMetrics {
+function createEmptyMetrics(): EngagementMetrics {
   return {
-    id: 'sim-1',
+    id: '',
     stream_id: '',
     timestamp: new Date().toISOString(),
-    viewer_count: 85 + Math.floor(Math.random() * 60),
-    active_chatters: 20 + Math.floor(Math.random() * 20),
-    bids_count: 3 + Math.floor(Math.random() * 8),
-    reactions_count: 80 + Math.floor(Math.random() * 100),
-    new_followers: 5 + Math.floor(Math.random() * 10),
-    engagement_rate: 45 + Math.floor(Math.random() * 30),
-    sentiment_score: 0.5 + Math.random() * 0.4,
-    energy_level: 'medium',
+    viewer_count: 0,
+    active_chatters: 0,
+    bids_count: 0,
+    reactions_count: 0,
+    new_followers: 0,
+    engagement_rate: 0,
+    sentiment_score: 0.5,
+    energy_level: 'low',
   }
 }
 
@@ -216,7 +217,7 @@ function clamp(val: number, min: number, max: number) {
 export default function EngagementDashboard({ streamId, isVisible, onClose }: EngagementDashboardProps) {
   const lang = (getLang() || 'fr') as Lang
   const ct = dashContent[lang] || dashContent.fr
-  const [metrics, setMetrics] = useState<EngagementMetrics>(() => generateInitialMetrics())
+  const [metrics, setMetrics] = useState<EngagementMetrics>(() => createEmptyMetrics())
   const [prevViewerCount, setPrevViewerCount] = useState(metrics.viewer_count)
   const [aiRecommendation, setAiRecommendation] = useState('')
   const [aiSlideIn, setAiSlideIn] = useState(true)
@@ -235,41 +236,45 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
     }
   }, [isVisible])
 
-  // Simulate real-time metric updates
+  // Fetch real engagement metrics from Supabase
   useEffect(() => {
-    const interval = setInterval(() => {
-      setMetrics(prev => {
-        setPrevViewerCount(prev.viewer_count)
-        const viewerDelta = Math.floor(Math.random() * 11) - 4
-        const newViewers = clamp(prev.viewer_count + viewerDelta, 20, 300)
-        const newChatters = clamp(prev.active_chatters + Math.floor(Math.random() * 7) - 3, 5, Math.floor(newViewers * 0.6))
-        const newBids = clamp(prev.bids_count + (Math.random() > 0.6 ? 1 : 0), 0, 50)
-        const newReactions = prev.reactions_count + Math.floor(Math.random() * 8)
-        const newFollowers = prev.new_followers + (Math.random() > 0.85 ? 1 : 0)
-        const newEngagement = clamp(
-          Math.round(((newChatters / Math.max(newViewers, 1)) * 100 + prev.engagement_rate) / 2),
-          10, 95
-        )
-        const newSentiment = clamp(prev.sentiment_score + (Math.random() * 0.1 - 0.05), 0.1, 0.95)
+    if (!streamId) return
 
-        const updated: EngagementMetrics = {
-          ...prev,
-          viewer_count: newViewers,
-          active_chatters: newChatters,
-          bids_count: newBids,
-          reactions_count: newReactions,
-          new_followers: newFollowers,
-          engagement_rate: newEngagement,
-          sentiment_score: newSentiment,
-          energy_level: 'low', // will be recomputed
-        }
-        updated.energy_level = computeEnergyLevel(updated)
-        return updated
+    const fetchMetrics = async () => {
+      const { data } = await supabase
+        .from('engagement_metrics')
+        .select('*')
+        .eq('stream_id', streamId)
+        .order('timestamp', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (data) {
+        const updated = { ...data, energy_level: computeEnergyLevel(data) }
+        setPrevViewerCount(metrics.viewer_count)
+        setMetrics(updated)
+      }
+    }
+
+    fetchMetrics()
+
+    const channel = supabase
+      .channel(`engagement-${streamId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'engagement_metrics',
+        filter: `stream_id=eq.${streamId}`,
+      }, (payload) => {
+        const row = payload.new as EngagementMetrics
+        const updated = { ...row, energy_level: computeEnergyLevel(row) }
+        setPrevViewerCount(metricsRef.current.viewer_count)
+        setMetrics(updated)
       })
-    }, 3500)
+      .subscribe()
 
-    return () => clearInterval(interval)
-  }, [])
+    return () => { supabase.removeChannel(channel) }
+  }, [streamId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // AI recommendations rotation
   const rotateRecommendation = useCallback(() => {

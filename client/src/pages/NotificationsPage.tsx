@@ -79,12 +79,12 @@ export default function NotificationsPage() {
               onClick={() => setToggles(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
               style={{
                 width: '48px', height: '28px', borderRadius: '14px', border: 'none', cursor: 'pointer', position: 'relative',
-                backgroundColor: toggles[item.id] ? '#F0908A' : '#333', transition: 'background-color 0.2s',
+                backgroundColor: toggles[item.id] ? '#F0908A' : '#333',
               }}
             >
               <div style={{
                 width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#fff', position: 'absolute', top: '3px',
-                left: toggles[item.id] ? '23px' : '3px', transition: 'left 0.2s',
+                left: toggles[item.id] ? '23px' : '3px',
               }} />
             </button>
           </div>

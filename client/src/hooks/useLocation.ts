@@ -68,9 +68,11 @@ export function useLocation(): LocationState {
   }
 
   // Auto-request on first load if no city saved
+  // Defer so it doesn't block initial render / cause freeze on iOS WKWebView
   useEffect(() => {
     if (!city) {
-      requestLocation()
+      const timer = setTimeout(() => requestLocation(), 1500)
+      return () => clearTimeout(timer)
     }
   }, [])
 

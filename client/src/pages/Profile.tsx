@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { showToast } from '../lib/toast'
 import CartoonAvatar from '../components/CartoonAvatar'
 
 type Lang = ReturnType<typeof getLang>
@@ -44,6 +45,19 @@ export default function Profile() {
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !user) return
+
+    const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      showToast(tx('Seuls JPEG, PNG et WebP sont acceptes.', 'Only JPEG, PNG, and WebP images are allowed.', 'רק תמונות JPEG, PNG ו-WebP מותרות.', 'Solo se permiten imagenes JPEG, PNG y WebP.', lang), 'error')
+      return
+    }
+    if (file.size > MAX_SIZE) {
+      showToast(tx("L'image doit faire moins de 5 Mo.", 'Image must be smaller than 5MB.', 'התמונה חייבת להיות קטנה מ-5MB.', 'La imagen debe pesar menos de 5MB.', lang), 'error')
+      return
+    }
+
     setUploading(true)
     try {
       const ext = file.name.split('.').pop() || 'jpg'
@@ -56,8 +70,8 @@ export default function Profile() {
       const newUrl = urlData.publicUrl + '?t=' + Date.now()
       await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', user.id)
       setAvatarUrl(newUrl)
-    } catch (err) {
-      console.error('Avatar upload failed:', err)
+    } catch {
+      // Avatar upload failed
     }
     setUploading(false)
   }
@@ -389,7 +403,7 @@ export default function Profile() {
           ...entrance('80ms'),
         }}>
           {/* Parrainages et credits */}
-          <button onClick={() => {}} style={{
+          <button onClick={() => navigate('/referrals')} style={{
             backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
             padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
           }}>
@@ -398,12 +412,12 @@ export default function Profile() {
               {tx('Parrainages et credits', 'Referrals & credits', '\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD \u05D5\u05E7\u05E8\u05D3\u05D9\u05D8\u05D9\u05DD', 'Referidos y creditos', lang)}
             </p>
             <p style={{ color: '#4ADE80', fontSize: '13px', fontWeight: 600, margin: '4px 0 0' }}>
-              {tx('Solde : 0,00 \u20AC', 'Balance: $0.00', '\u05D9\u05EA\u05E8\u05D4: \u20AA0.00', 'Saldo: $0.00', lang)}
+              {tx('Solde : 0,00 \u20AC', 'Balance: $0.00', '\u05D9\u05EA\u05E8\u05D4: \u20AC0.00', 'Saldo: $0.00', lang)}
             </p>
           </button>
 
           {/* Mes recompenses */}
-          <button onClick={() => {}} style={{
+          <button onClick={() => navigate('/referrals')} style={{
             backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
             padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
           }}>
@@ -439,7 +453,7 @@ export default function Profile() {
               width: '100%', padding: '15px',
               backgroundColor: '#222', border: 'none', borderRadius: '12px',
               color: '#ccc', fontSize: '15px', fontWeight: 600,
-              cursor: 'pointer', transition: 'background-color 0.2s',
+              cursor: 'pointer',
             }}
           >
             {ico.logout}

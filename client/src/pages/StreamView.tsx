@@ -3,9 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
-import type { Stream, AuctionItem, ChatMessage, Bid } from '../types/database'
+import type { Stream, Item, ChatMessage, Order } from '../types/database'
 import EngagementDashboard from '../components/EngagementDashboard'
 import ViewerReactions from '../components/ViewerReactions'
+import MuxPlayer from '@mux/mux-player-react'
+import { loadStripe, type Stripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { apiFetch } from '../lib/api'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -31,6 +35,23 @@ const streamContent = {
     flipCamera: 'Retourner la camera',
     connectedTo: 'Connecte au live de',
     liveNow: 'EN DIRECT',
+    soldBang: 'VENDU !',
+    confirmAddress: 'Confirme ton adresse de livraison',
+    toReceiveItem: 'Pour recevoir ton article',
+    fullName: 'Nom complet',
+    addressPlaceholder: 'Adresse',
+    cityPlaceholder: 'Ville',
+    zipPlaceholder: 'Code postal',
+    phonePlaceholder: 'Telephone',
+    confirm: 'Confirmer',
+    youWon: 'Tu as gagne !',
+    payToClaim: 'Paye pour recevoir ton article',
+    payNow: 'Payer maintenant',
+    paymentSuccess: 'Paiement confirme !',
+    paymentSuccessDesc: 'Tu recevras ton article bientot',
+    paymentError: 'Erreur de paiement',
+    total: 'Total',
+    close: 'Fermer',
   },
   en: {
     viewers: 'viewers',
@@ -53,6 +74,23 @@ const streamContent = {
     flipCamera: 'Flip camera',
     connectedTo: 'Connected to live by',
     liveNow: 'LIVE',
+    soldBang: 'SOLD!',
+    confirmAddress: 'Confirm your shipping address',
+    toReceiveItem: 'To receive your item',
+    fullName: 'Full name',
+    addressPlaceholder: 'Address',
+    cityPlaceholder: 'City',
+    zipPlaceholder: 'Zip code',
+    phonePlaceholder: 'Phone',
+    confirm: 'Confirm',
+    youWon: 'You won!',
+    payToClaim: 'Pay to claim your item',
+    payNow: 'Pay now',
+    paymentSuccess: 'Payment confirmed!',
+    paymentSuccessDesc: 'You will receive your item soon',
+    paymentError: 'Payment error',
+    total: 'Total',
+    close: 'Close',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -75,6 +113,23 @@ const streamContent = {
     flipCamera: '\u05D4\u05E4\u05D5\u05DA \u05DE\u05E6\u05DC\u05DE\u05D4',
     connectedTo: '\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E9\u05DC',
     liveNow: '\u05E9\u05D9\u05D3\u05D5\u05E8',
+    soldBang: '!נמכר',
+    confirmAddress: 'אשר את כתובת המשלוח שלך',
+    toReceiveItem: 'כדי לקבל את הפריט שלך',
+    fullName: 'שם מלא',
+    addressPlaceholder: 'כתובת',
+    cityPlaceholder: 'עיר',
+    zipPlaceholder: 'מיקוד',
+    phonePlaceholder: 'טלפון',
+    confirm: 'אישור',
+    youWon: '!זכית',
+    payToClaim: 'שלם כדי לקבל את הפריט שלך',
+    payNow: 'שלם עכשיו',
+    paymentSuccess: '!התשלום אושר',
+    paymentSuccessDesc: 'תקבל את הפריט שלך בקרוב',
+    paymentError: 'שגיאת תשלום',
+    total: 'סה"כ',
+    close: 'סגור',
   },
   es: {
     viewers: 'espectadores',
@@ -97,7 +152,86 @@ const streamContent = {
     flipCamera: 'Voltear camara',
     connectedTo: 'Conectado al directo de',
     liveNow: 'EN VIVO',
+    soldBang: 'VENDIDO!',
+    confirmAddress: 'Confirma tu direccion de envio',
+    toReceiveItem: 'Para recibir tu articulo',
+    fullName: 'Nombre completo',
+    addressPlaceholder: 'Direccion',
+    cityPlaceholder: 'Ciudad',
+    zipPlaceholder: 'Codigo postal',
+    phonePlaceholder: 'Telefono',
+    confirm: 'Confirmar',
+    youWon: 'Ganaste!',
+    payToClaim: 'Paga para recibir tu articulo',
+    payNow: 'Pagar ahora',
+    paymentSuccess: 'Pago confirmado!',
+    paymentSuccessDesc: 'Recibiras tu articulo pronto',
+    paymentError: 'Error de pago',
+    total: 'Total',
+    close: 'Cerrar',
   },
+}
+
+// Stripe Elements loader — initialized once
+let stripePromise: Promise<Stripe | null> | null = null
+function getStripePromise() {
+  if (!stripePromise) {
+    stripePromise = apiFetch('/api/stripe/config')
+      .then(r => r.json())
+      .then(({ publishable_key }) => loadStripe(publishable_key))
+      .catch(() => null)
+  }
+  return stripePromise
+}
+
+// Inner payment form rendered inside <Elements>
+function PaymentFormInner({ onSuccess, onError, loading, setLoading }: {
+  onSuccess: (paymentIntentId: string) => void
+  onError: (msg: string) => void
+  loading: boolean
+  setLoading: (v: boolean) => void
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stripe || !elements) return
+    setLoading(true)
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required',
+    })
+
+    if (error) {
+      onError(error.message || 'Payment failed')
+      setLoading(false)
+    } else if (paymentIntent) {
+      onSuccess(paymentIntent.id)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <button
+        type="submit"
+        disabled={!stripe || loading}
+        style={{
+          width: '100%', marginTop: '16px', padding: '16px',
+          background: loading ? '#555' : 'linear-gradient(135deg, #22C55E, #16A34A)',
+          borderRadius: '14px', border: 'none',
+          color: '#fff', fontSize: '16px', fontWeight: 700,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? '...' : 'Pay now'}
+      </button>
+    </form>
+  )
 }
 
 export default function StreamView() {
@@ -111,7 +245,7 @@ export default function StreamView() {
   const mediaStreamRef = useRef<MediaStream | null>(null)
 
   const [stream, setStream] = useState<Stream | null>(null)
-  const [activeAuction, setActiveAuction] = useState<AuctionItem | null>(null)
+  const [activeAuction, setActiveAuction] = useState<Item | null>(null)
   const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string } })[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [bidAmount, setBidAmount] = useState('')
@@ -129,9 +263,20 @@ export default function StreamView() {
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [cameraActive, setCameraActive] = useState(false)
 
-  // Viewer simulated state
-  const [simulatedViewers, setSimulatedViewers] = useState(0)
   const [sellerName, setSellerName] = useState('')
+  const [viewerMuted, setViewerMuted] = useState(true)
+
+  // Sold animation & payment modal
+  const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number } | null>(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentOrder, setPaymentOrder] = useState<Order | null>(null)
+  const [paymentItem, setPaymentItem] = useState<Item | null>(null)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [paymentLoading, setPaymentLoading] = useState(false)
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [addressForm, setAddressForm] = useState({ name: '', street: '', city: '', zip: '', phone: '' })
+  const [addressStep, setAddressStep] = useState(true) // true = show address first, false = show payment
 
   // Determine if user is the seller of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
@@ -157,8 +302,7 @@ export default function StreamView() {
           videoRef.current.srcObject = mediaStream
         }
         setCameraActive(true)
-      } catch (err) {
-        console.error('Camera error in StreamView:', err)
+      } catch {
         setCameraActive(false)
       }
     }
@@ -173,11 +317,10 @@ export default function StreamView() {
     }
   }, [isSeller, isLive]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ═══ VIEWER: Fetch seller name and simulate viewers ═══
+  // ═══ VIEWER: Fetch seller name ═══
   useEffect(() => {
     if (isSeller || !stream) return
 
-    // Fetch seller profile name
     const fetchSellerProfile = async () => {
       const { data } = await supabase
         .from('profiles')
@@ -189,20 +332,7 @@ export default function StreamView() {
       }
     }
     fetchSellerProfile()
-
-    // Simulate viewer count changing
-    if (isLive) {
-      const base = stream.viewer_count || Math.floor(Math.random() * 200) + 50
-      setSimulatedViewers(base)
-      const interval = setInterval(() => {
-        setSimulatedViewers(prev => {
-          const change = Math.floor(Math.random() * 7) - 2
-          return Math.max(1, prev + change)
-        })
-      }, 3000 + Math.random() * 4000)
-      return () => clearInterval(interval)
-    }
-  }, [isSeller, stream, isLive])
+  }, [isSeller, stream])
 
   // Pulse the engagement button periodically to draw attention
   useEffect(() => {
@@ -238,7 +368,7 @@ export default function StreamView() {
 
     const fetchActiveAuction = async () => {
       const { data } = await supabase
-        .from('auction_items')
+        .from('items')
         .select('*')
         .eq('stream_id', id)
         .eq('status', 'active')
@@ -291,14 +421,98 @@ export default function StreamView() {
     channel.on('postgres_changes', {
       event: '*',
       schema: 'public',
-      table: 'auction_items',
+      table: 'items',
       filter: `stream_id=eq.${id}`,
-    }, (payload) => {
-      const item = payload.new as AuctionItem
+    }, async (payload) => {
+      const item = payload.new as Item
       if (item.status === 'active') {
         setActiveAuction(item)
         setBidAmount(String(item.current_price + 10))
-      } else if (item.status === 'sold' || item.status === 'unsold') {
+      } else if (item.status === 'sold') {
+        setActiveAuction(null)
+        // Show sold animation
+        let winnerName = ''
+        if (item.winner_id) {
+          const { data: wp } = await supabase
+            .from('profiles')
+            .select('display_name, username')
+            .eq('id', item.winner_id)
+            .single()
+          winnerName = wp?.display_name || wp?.username || ''
+        }
+        setSoldAnimation({ winner: winnerName, price: item.current_price })
+        setTimeout(() => setSoldAnimation(null), 3000)
+        // Show payment modal if current user is the winner
+        if (user && item.winner_id === user.id) {
+          setPaymentItem(item)
+          // Fetch the order with retry (seller may still be creating it)
+          const initPayment = async () => {
+            const { data: session } = await supabase.auth.getSession()
+            const token = session.session?.access_token
+            if (!token) return
+
+            // Poll for the order (retry up to 10 times, 1s apart)
+            let order: Order | null = null
+            for (let attempt = 0; attempt < 10; attempt++) {
+              await new Promise(r => setTimeout(r, 1000))
+              const { data } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('item_id', item.id)
+                .eq('buyer_id', user.id)
+                .single()
+              if (data) {
+                order = data as Order
+                break
+              }
+            }
+
+            if (!order) {
+              console.error('Order not found after 10 retries')
+              return
+            }
+            setPaymentOrder(order)
+
+            // Pre-fill address from saved addresses
+            const { data: savedAddr } = await supabase
+              .from('addresses')
+              .select('*')
+              .eq('user_id', user.id)
+              .eq('is_default', true)
+              .single()
+            if (savedAddr) {
+              setAddressForm({
+                name: savedAddr.name || '',
+                street: savedAddr.street || '',
+                city: savedAddr.city || '',
+                zip: savedAddr.zip || '',
+                phone: savedAddr.phone || '',
+              })
+            }
+
+            // Create PaymentIntent via server
+            const resp = await apiFetch('/api/stripe/create-payment-intent', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ order_id: order.id }),
+            })
+            if (!resp.ok) {
+              const err = await resp.json()
+              console.error('PaymentIntent error:', err)
+              return
+            }
+            const piData = await resp.json()
+            if (piData.client_secret) {
+              setClientSecret(piData.client_secret)
+              setShowPaymentModal(true)
+            }
+          }
+          initPayment()
+        }
+      } else if (item.status === 'unsold') {
         setActiveAuction(null)
       }
     })
@@ -359,13 +573,13 @@ export default function StreamView() {
     if (isNaN(amount) || amount <= activeAuction.current_price) return
 
     await supabase.from('bids').insert({
-      auction_item_id: activeAuction.id,
+      item_id: activeAuction.id,
       bidder_id: user.id,
       amount,
     })
 
     await supabase
-      .from('auction_items')
+      .from('items')
       .update({ current_price: amount })
       .eq('id', activeAuction.id)
   }
@@ -397,8 +611,8 @@ export default function StreamView() {
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream
       }
-    } catch (err) {
-      console.error('Flip camera error:', err)
+    } catch {
+      // Camera flip failed
     }
   }
 
@@ -431,32 +645,123 @@ export default function StreamView() {
     }
 
     setShowEndConfirm(false)
-    navigate('/')
+    navigate(`/live-recap/${id}`)
+  }
+
+  const handleConfirmAddress = async () => {
+    if (!user) return
+    const addr = { ...addressForm }
+    // Save address to Supabase
+    const { data: existing } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('is_default', true)
+      .single()
+    if (existing) {
+      await supabase.from('addresses').update({
+        name: addr.name || '',
+        street: addr.street || '',
+        city: addr.city || '',
+        zip: addr.zip || '',
+        phone: addr.phone || '',
+      }).eq('id', existing.id)
+    } else {
+      await supabase.from('addresses').insert({
+        user_id: user.id,
+        name: addr.name || '',
+        street: addr.street || '',
+        city: addr.city || '',
+        zip: addr.zip || '',
+        phone: addr.phone || '',
+        is_default: true,
+      })
+    }
+
+    // Save shipping address to order
+    if (paymentOrder) {
+      await supabase
+        .from('orders')
+        .update({
+          shipping_address: {
+            name: addr.name,
+            street: addr.street,
+            city: addr.city,
+            zip: addr.zip,
+            phone: addr.phone,
+          },
+        })
+        .eq('id', paymentOrder.id)
+    }
+
+    // Move to payment step
+    setAddressStep(false)
+  }
+
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    // Confirm with our server (server checks directly with Stripe API)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (token && paymentOrder) {
+        await apiFetch('/api/stripe/confirm-payment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            order_id: paymentOrder.id,
+            payment_intent_id: paymentIntentId,
+          }),
+        })
+      }
+    } catch {
+      // Even if server confirm fails, Stripe already processed the payment
+    }
+    setPaymentSuccess(true)
+    setPaymentLoading(false)
+  }
+
+  const handleClosePayment = () => {
+    setShowPaymentModal(false)
+    setPaymentOrder(null)
+    setPaymentItem(null)
+    setClientSecret(null)
+    setPaymentSuccess(false)
+    setPaymentError(null)
+    setPaymentLoading(false)
+    setAddressStep(true)
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', backgroundColor: '#000' }}>
+        <div style={{
+          width: '32px', height: '32px',
+          border: '3px solid #333', borderTopColor: '#F0908A',
+          borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
   if (!stream) {
     return (
-      <div className="text-center py-20">
-        <p className="text-xl text-gray-500">{ct.streamNotFound}</p>
+      <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: '#000', minHeight: '100vh' }}>
+        <p style={{ fontSize: '18px', color: '#666' }}>{ct.streamNotFound}</p>
       </div>
     )
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
         {/* Video + Encheres */}
-        <div className="lg:col-span-2 space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
           {/* Lecteur video */}
-          <div className="relative bg-black rounded-xl overflow-hidden aspect-video">
+          <div style={{ position: 'relative', backgroundColor: '#000', overflow: 'hidden', aspectRatio: '9/16', maxHeight: '60vh' }}>
 
             {/* ═══ SELLER VIEW: Live camera ═══ */}
             {isSeller && isLive && (
@@ -472,97 +777,124 @@ export default function StreamView() {
               />
             )}
 
-            {/* ═══ VIEWER VIEW: Simulated live experience ═══ */}
+            {/* ═══ VIEWER VIEW: Mux live player or fallback ═══ */}
             {!isSeller && isLive && (
               <div style={{
                 width: '100%', height: '100%',
                 position: 'relative',
                 overflow: 'hidden',
               }}>
-                {/* Blurred thumbnail background */}
-                {stream.thumbnail_url ? (
-                  <img
-                    src={stream.thumbnail_url}
-                    alt=""
-                    style={{
-                      position: 'absolute', inset: 0,
-                      width: '100%', height: '100%',
-                      objectFit: 'cover',
-                      filter: 'blur(20px) brightness(0.4)',
-                      transform: 'scale(1.1)',
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'radial-gradient(ellipse at center, #1a0a0e 0%, #000 70%)',
-                  }} />
-                )}
-
-                {/* Animated gradient overlay */}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'radial-gradient(circle at 30% 50%, rgba(240,144,138,0.08) 0%, transparent 50%)',
-                  animation: 'viewerGlow 4s ease-in-out infinite alternate',
-                }} />
-
-                {/* Center content */}
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', flexDirection: 'column',
-                  alignItems: 'center', justifyContent: 'center',
-                  gap: '16px',
-                  zIndex: 5,
-                }}>
-                  {/* Pulsing LIVE badge */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '8px 20px', borderRadius: '100px',
-                    background: 'rgba(232,52,78,0.2)',
-                    border: '1px solid rgba(232,52,78,0.4)',
-                    animation: 'livePulse 2s ease-in-out infinite',
-                  }}>
-                    <div style={{
-                      width: '8px', height: '8px', borderRadius: '50%',
-                      backgroundColor: '#E8344E',
-                      animation: 'liveDot 1.5s ease-in-out infinite',
-                      boxShadow: '0 0 12px rgba(232,52,78,0.8)',
-                    }} />
-                    <span style={{
-                      fontSize: '14px', fontWeight: 800, color: '#E8344E',
-                      letterSpacing: '2px',
-                    }}>
-                      {ct.liveNow}
-                    </span>
-                  </div>
-
-                  {/* Audio waveform visualization */}
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '3px',
-                    height: '40px', padding: '0 12px',
-                  }}>
-                    {Array.from({ length: 12 }).map((_, i) => (
-                      <div
-                        key={i}
+                {stream.mux_playback_id ? (
+                  <>
+                    {/* Mux HLS Player */}
+                    <MuxPlayer
+                      playbackId={stream.mux_playback_id}
+                      streamType="live"
+                      autoPlay="muted"
+                      muted={viewerMuted}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        // @ts-expect-error Mux CSS custom property
+                        '--media-object-fit': 'cover',
+                      }}
+                    />
+                    {/* Unmute button */}
+                    {viewerMuted && (
+                      <button
+                        onClick={() => setViewerMuted(false)}
                         style={{
-                          width: '3px',
-                          borderRadius: '2px',
-                          backgroundColor: '#F0908A',
-                          opacity: 0.5 + Math.random() * 0.5,
-                          animation: `waveBar ${0.6 + Math.random() * 0.8}s ease-in-out ${i * 0.08}s infinite alternate`,
+                          position: 'absolute',
+                          bottom: '16px', left: '16px',
+                          padding: '8px 16px',
+                          borderRadius: '100px',
+                          backgroundColor: 'rgba(0,0,0,0.7)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#fff', fontSize: '13px', fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          zIndex: 15,
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                          <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Unmute
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  /* Fallback: Simulated live experience (no Mux playback available) */
+                  <>
+                    {stream.thumbnail_url ? (
+                      <img
+                        src={stream.thumbnail_url}
+                        alt=""
+                        style={{
+                          position: 'absolute', inset: 0,
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          filter: 'blur(20px) brightness(0.4)',
+                          transform: 'scale(1.1)',
                         }}
                       />
-                    ))}
-                  </div>
-
-                  {/* Connected text */}
-                  <p style={{
-                    fontSize: '15px', color: 'rgba(255,255,255,0.7)',
-                    fontWeight: 500,
-                  }}>
-                    {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
-                  </p>
-                </div>
+                    ) : (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        background: 'radial-gradient(ellipse at center, #1a0a0e 0%, #000 70%)',
+                      }} />
+                    )}
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'radial-gradient(circle at 30% 50%, rgba(240,144,138,0.08) 0%, transparent 50%)',
+                      animation: 'viewerGlow 4s ease-in-out infinite alternate',
+                    }} />
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center',
+                      gap: '16px', zIndex: 5,
+                    }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '8px 20px', borderRadius: '100px',
+                        background: 'rgba(232,52,78,0.2)',
+                        border: '1px solid rgba(232,52,78,0.4)',
+                        animation: 'livePulse 2s ease-in-out infinite',
+                      }}>
+                        <div style={{
+                          width: '8px', height: '8px', borderRadius: '50%',
+                          backgroundColor: '#E8344E',
+                          animation: 'liveDot 1.5s ease-in-out infinite',
+                          boxShadow: '0 0 12px rgba(232,52,78,0.8)',
+                        }} />
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#E8344E', letterSpacing: '2px' }}>
+                          {ct.liveNow}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '40px', padding: '0 12px' }}>
+                        {Array.from({ length: 12 }).map((_, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              width: '3px', borderRadius: '2px',
+                              backgroundColor: '#F0908A',
+                              opacity: 0.5 + Math.random() * 0.5,
+                              animation: `waveBar ${0.6 + Math.random() * 0.8}s ease-in-out ${i * 0.08}s infinite alternate`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
+                        {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 {/* Viewer count badge - dynamic */}
                 <div style={{
@@ -579,7 +911,7 @@ export default function StreamView() {
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
                   <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
-                    {simulatedViewers}
+                    {stream.viewer_count || 0}
                   </span>
                 </div>
               </div>
@@ -639,7 +971,7 @@ export default function StreamView() {
                     backgroundColor: '#fff',
                     animation: 'liveDot 1.5s ease-in-out infinite',
                   }} />
-                  LIVE
+                  {ct.liveNow}
                 </span>
                 <span style={{
                   backgroundColor: 'rgba(0,0,0,0.6)',
@@ -678,7 +1010,7 @@ export default function StreamView() {
                     backgroundColor: '#fff',
                     animation: 'liveDot 1.5s ease-in-out infinite',
                   }} />
-                  LIVE
+                  {ct.liveNow}
                 </span>
               </div>
             )}
@@ -705,7 +1037,6 @@ export default function StreamView() {
                     border: '1px solid rgba(255,255,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
                   }}
                 >
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -729,7 +1060,6 @@ export default function StreamView() {
                     border: isMuted ? '1px solid rgba(232,52,78,0.5)' : '1px solid rgba(255,255,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer',
-                    transition: 'all 0.2s ease',
                   }}
                 >
                   {isMuted ? (
@@ -762,7 +1092,6 @@ export default function StreamView() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                     cursor: 'pointer',
                     boxShadow: '0 4px 16px rgba(232,52,78,0.4)',
-                    transition: 'all 0.2s ease',
                   }}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
@@ -777,16 +1106,19 @@ export default function StreamView() {
 
             {/* ═══ End Stream Confirmation Modal ═══ */}
             {showEndConfirm && (
-              <div style={{
-                position: 'absolute', inset: 0,
-                backgroundColor: 'rgba(0,0,0,0.8)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                display: 'flex', flexDirection: 'column',
-                alignItems: 'center', justifyContent: 'center',
-                gap: '20px', zIndex: 100,
-                padding: '24px',
-              }}>
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: 'fixed', inset: 0,
+                  backgroundColor: 'rgba(0,0,0,0.8)',
+                  backdropFilter: 'blur(8px)',
+                  WebkitBackdropFilter: 'blur(8px)',
+                  display: 'flex', flexDirection: 'column',
+                  alignItems: 'center', justifyContent: 'center',
+                  gap: '20px', zIndex: 300,
+                  padding: '24px',
+                }}
+              >
                 <div style={{
                   width: '64px', height: '64px', borderRadius: '50%',
                   background: 'linear-gradient(135deg, rgba(232,52,78,0.2), rgba(220,38,38,0.1))',
@@ -857,7 +1189,6 @@ export default function StreamView() {
                   justifyContent: 'center',
                   fontSize: '20px',
                   zIndex: 60,
-                  transition: 'all 0.3s ease',
                   transform: engageBtnPulse ? 'scale(1.15)' : 'scale(1)',
                   boxShadow: engageBtnPulse
                     ? '0 0 20px rgba(240,144,138,0.5)'
@@ -893,44 +1224,72 @@ export default function StreamView() {
           </div>
 
           {/* Info du stream */}
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">{stream.title}</h1>
+          <div style={{ padding: '12px 16px 0' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{stream.title}</h1>
             {stream.description && (
-              <p className="text-gray-500 mt-1">{stream.description}</p>
+              <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{stream.description}</p>
             )}
           </div>
 
           {/* Enchere active */}
           {activeAuction && (
-            <div className="bg-white rounded-xl border-2 border-purple-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">{activeAuction.title}</h3>
-                <div className={`text-2xl font-bold ${timeLeft <= 10 ? 'text-red-500 animate-pulse' : 'text-purple-600'}`}>
+            <div style={{
+              margin: '12px 16px 0', padding: '16px',
+              backgroundColor: '#0D0D0D', borderRadius: '16px',
+              border: '1.5px solid rgba(240,144,138,0.3)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+                  {activeAuction.image_urls?.[0] && (
+                    <img
+                      src={activeAuction.image_urls[0]}
+                      alt=""
+                      style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                    />
+                  )}
+                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
+                </div>
+                <div style={{
+                  fontSize: '22px', fontWeight: 800,
+                  color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
+                  animation: timeLeft <= 10 ? 'pulse 1s ease-in-out infinite' : 'none',
+                }}>
                   {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
                 </div>
               </div>
 
-              <div className="flex items-end gap-4">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-500 mb-1">{ct.currentPrice}</p>
-                  <p className="text-3xl font-bold text-purple-600">
-                    {activeAuction.current_price.toLocaleString()} {'\u{20AA}'}
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.currentPrice}</p>
+                  <p style={{ fontSize: '28px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                    {activeAuction.current_price.toLocaleString()} €
                   </p>
                 </div>
 
                 {user && (
-                  <div className="flex gap-2">
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="number"
                       value={bidAmount}
                       onChange={e => setBidAmount(e.target.value)}
                       min={activeAuction.current_price + 1}
-                      className="w-32 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-lg font-semibold"
+                      style={{
+                        width: '100px', padding: '12px',
+                        backgroundColor: '#111', border: '1px solid #333',
+                        borderRadius: '12px', color: '#fff',
+                        fontSize: '16px', fontWeight: 700, outline: 'none',
+                      }}
                     />
                     <button
                       onClick={handlePlaceBid}
                       disabled={timeLeft <= 0}
-                      className="bg-purple-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                      style={{
+                        padding: '12px 20px', borderRadius: '12px',
+                        background: timeLeft > 0 ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
+                        border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
+                        cursor: timeLeft > 0 ? 'pointer' : 'not-allowed',
+                        opacity: timeLeft <= 0 ? 0.5 : 1,
+                      }}
                     >
                       {ct.bid}
                     </button>
@@ -942,49 +1301,344 @@ export default function StreamView() {
         </div>
 
         {/* Chat */}
-        <div className="bg-white rounded-xl border border-gray-200 flex flex-col h-[600px] lg:h-auto">
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900">{ct.liveChat}</h3>
+        <div style={{
+          backgroundColor: '#0D0D0D', borderTop: '1px solid #1A1A1A',
+          display: 'flex', flexDirection: 'column', flex: 1, minHeight: '200px',
+        }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #1A1A1A' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.liveChat}</h3>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {messages.map(msg => (
-              <div key={msg.id} className="flex gap-2">
-                <span className="font-semibold text-purple-600 text-sm shrink-0">
+              <div key={msg.id} style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
                   {msg.user_profile?.display_name || ct.anonymous}
                 </span>
-                <span className="text-gray-700 text-sm break-words">{msg.message}</span>
+                <span style={{ fontSize: '13px', color: '#ccc', wordBreak: 'break-word' }}>{msg.message}</span>
               </div>
             ))}
             <div ref={chatEndRef} />
           </div>
 
           {user ? (
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex gap-2">
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #1A1A1A', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
                   value={newMessage}
                   onChange={e => setNewMessage(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                   placeholder={ct.sendMessage}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                  style={{
+                    flex: 1, padding: '12px 16px',
+                    backgroundColor: '#111', border: '1px solid #333',
+                    borderRadius: '100px', color: '#fff',
+                    fontSize: '14px', outline: 'none',
+                  }}
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                  style={{
+                    padding: '12px 20px', borderRadius: '100px',
+                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
                 >
                   {ct.send}
                 </button>
               </div>
             </div>
           ) : (
-            <div className="p-4 border-t border-gray-200 text-center">
-              <p className="text-sm text-gray-500">{ct.loginToChat}</p>
+            <div style={{ padding: '16px', borderTop: '1px solid #1A1A1A', textAlign: 'center' }}>
+              <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>{ct.loginToChat}</p>
             </div>
           )}
         </div>
       </div>
+
+      {/* SOLD animation overlay */}
+      {soldAnimation && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+          zIndex: 200,
+          pointerEvents: 'none',
+          animation: 'soldFadeIn 0.3s ease',
+        }}>
+          <p style={{
+            fontSize: '48px', fontWeight: 900, color: '#22C55E',
+            textShadow: '0 0 40px rgba(34,197,94,0.6)',
+            animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            margin: 0,
+          }}>
+            {ct.soldBang}
+          </p>
+          {soldAnimation.winner && (
+            <p style={{
+              fontSize: '18px', fontWeight: 700, color: '#fff', margin: '8px 0 0',
+              animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
+            }}>
+              @{soldAnimation.winner} — {soldAnimation.price} €
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Payment & address modal */}
+      {showPaymentModal && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 300,
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <div style={{
+            backgroundColor: '#111',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+          }}>
+            {/* Success state */}
+            {paymentSuccess ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
+                  border: '2px solid rgba(34,197,94,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>
+                  {ct.paymentSuccess}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>
+                  {ct.paymentSuccessDesc}
+                </p>
+                <button
+                  onClick={handleClosePayment}
+                  style={{
+                    width: '100%', padding: '16px',
+                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    borderRadius: '14px', border: 'none',
+                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ct.close}
+                </button>
+              </div>
+            ) : addressStep ? (
+              /* Step 1: Address */
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
+                    border: '1px solid rgba(34,197,94,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
+                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                      {ct.youWon}
+                    </h3>
+                    {paymentItem && (
+                      <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                        {paymentItem.title} — <span style={{ color: '#22C55E', fontWeight: 700 }}>{paymentOrder?.amount} €</span>
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#ccc', margin: '0 0 12px' }}>
+                  {ct.confirmAddress}
+                </h4>
+                <input
+                  type="text"
+                  value={addressForm.name}
+                  onChange={e => setAddressForm(f => ({ ...f, name: e.target.value }))}
+                  placeholder={ct.fullName}
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    backgroundColor: '#0D0D0D', border: '1px solid #222',
+                    borderRadius: '10px', color: '#fff', fontSize: '15px',
+                    outline: 'none', boxSizing: 'border-box', marginBottom: '10px',
+                  }}
+                />
+                <input
+                  type="text"
+                  value={addressForm.street}
+                  onChange={e => setAddressForm(f => ({ ...f, street: e.target.value }))}
+                  placeholder={ct.addressPlaceholder}
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    backgroundColor: '#0D0D0D', border: '1px solid #222',
+                    borderRadius: '10px', color: '#fff', fontSize: '15px',
+                    outline: 'none', boxSizing: 'border-box', marginBottom: '10px',
+                  }}
+                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <input
+                    type="text"
+                    value={addressForm.city}
+                    onChange={e => setAddressForm(f => ({ ...f, city: e.target.value }))}
+                    placeholder={ct.cityPlaceholder}
+                    style={{
+                      width: '100%', padding: '12px 14px',
+                      backgroundColor: '#0D0D0D', border: '1px solid #222',
+                      borderRadius: '10px', color: '#fff', fontSize: '15px',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={addressForm.zip}
+                    onChange={e => setAddressForm(f => ({ ...f, zip: e.target.value }))}
+                    placeholder={ct.zipPlaceholder}
+                    style={{
+                      width: '100%', padding: '12px 14px',
+                      backgroundColor: '#0D0D0D', border: '1px solid #222',
+                      borderRadius: '10px', color: '#fff', fontSize: '15px',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <input
+                  type="tel"
+                  value={addressForm.phone}
+                  onChange={e => setAddressForm(f => ({ ...f, phone: e.target.value }))}
+                  placeholder={ct.phonePlaceholder}
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    backgroundColor: '#0D0D0D', border: '1px solid #222',
+                    borderRadius: '10px', color: '#fff', fontSize: '15px',
+                    outline: 'none', boxSizing: 'border-box', marginBottom: '16px',
+                  }}
+                />
+                <button
+                  onClick={handleConfirmAddress}
+                  disabled={!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip}
+                  style={{
+                    width: '100%', padding: '16px',
+                    background: (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)
+                      ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    borderRadius: '14px', border: 'none',
+                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)
+                      ? 'not-allowed' : 'pointer',
+                    opacity: (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)
+                      ? 0.5 : 1,
+                  }}
+                >
+                  {ct.confirm}
+                </button>
+              </>
+            ) : (
+              /* Step 2: Payment */
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>
+                      {ct.payToClaim}
+                    </h3>
+                    {paymentItem && (
+                      <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>{paymentItem.title}</p>
+                    )}
+                  </div>
+                  <div style={{
+                    padding: '8px 16px', borderRadius: '12px',
+                    backgroundColor: 'rgba(34,197,94,0.1)',
+                    border: '1px solid rgba(34,197,94,0.2)',
+                  }}>
+                    <p style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
+                      {paymentOrder?.amount} €
+                    </p>
+                  </div>
+                </div>
+
+                {paymentError && (
+                  <div style={{
+                    padding: '10px 14px', marginBottom: '12px',
+                    backgroundColor: 'rgba(232,52,78,0.1)',
+                    border: '1px solid rgba(232,52,78,0.3)',
+                    borderRadius: '10px',
+                  }}>
+                    <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{paymentError}</p>
+                  </div>
+                )}
+
+                {clientSecret ? (
+                  <Elements
+                    stripe={getStripePromise()}
+                    options={{
+                      clientSecret,
+                      appearance: {
+                        theme: 'night',
+                        variables: {
+                          colorPrimary: '#F0908A',
+                          colorBackground: '#0D0D0D',
+                          colorText: '#fff',
+                          borderRadius: '10px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                        },
+                      },
+                    }}
+                  >
+                    <PaymentFormInner
+                      onSuccess={handlePaymentSuccess}
+                      onError={(msg) => setPaymentError(msg)}
+                      loading={paymentLoading}
+                      setLoading={setPaymentLoading}
+                    />
+                  </Elements>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px' }}>
+                    <div style={{
+                      width: '32px', height: '32px', margin: '0 auto',
+                      border: '3px solid #333', borderTopColor: '#F0908A',
+                      borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                    }} />
+                  </div>
+                )}
+
+                <button
+                  onClick={() => setAddressStep(true)}
+                  style={{
+                    width: '100%', marginTop: '12px', padding: '12px',
+                    backgroundColor: 'transparent',
+                    border: '1px solid #333', borderRadius: '12px',
+                    color: '#888', fontSize: '13px', fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  ← {ct.confirmAddress}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes liveDot {
@@ -1002,6 +1656,15 @@ export default function StreamView() {
         @keyframes waveBar {
           0% { height: 6px; }
           100% { height: 30px; }
+        }
+        @keyframes soldFadeIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
+        }
+        @keyframes soldPop {
+          0% { transform: scale(0.3); opacity: 0; }
+          50% { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
         }
       `}</style>
     </div>

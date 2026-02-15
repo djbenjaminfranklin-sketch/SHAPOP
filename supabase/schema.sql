@@ -19,6 +19,7 @@ create table public.profiles (
   country text default 'IL',
   location geography(Point, 4326),  -- Coordonnées GPS pour communautés locales
   language text default 'he',
+  joined_communities text[] default '{}',
   created_at timestamptz default now()
 );
 
@@ -44,6 +45,20 @@ create table public.sellers (
   total_sales integer default 0,
   total_revenue numeric(12,2) default 0,
   categories text[] default '{}',  -- Catégories du vendeur
+  -- Onboarding data
+  sub_categories text[] default '{}',
+  seller_type text,
+  selling_locations text[] default '{}',
+  platforms text[] default '{}',
+  etsy_url text,
+  revenue_range text,
+  team_size text,
+  live_hours text,
+  return_address jsonb,
+  bank_choice text,
+  fees_accepted_at timestamptz,         -- Date d'acceptation de la grille tarifaire
+  onboarding_completed_at timestamptz,
+  --
   verified_at timestamptz,
   created_at timestamptz default now()
 );
@@ -79,6 +94,11 @@ create table public.streams (
   city text,
   location geography(Point, 4326),
   community_id uuid references public.communities(id),
+  -- Mux live streaming
+  mux_stream_id text,
+  mux_playback_id text,
+  mux_stream_key text,
+  mux_asset_id text,
   created_at timestamptz default now()
 );
 
@@ -150,7 +170,8 @@ create table public.orders (
   stream_id uuid references public.streams(id),
   -- Montants
   amount numeric(10,2) not null,
-  platform_fee numeric(10,2) not null,    -- Commission WhatFor
+  platform_fee numeric(10,2) not null,    -- Commission WhatFor (8%)
+  processing_fee numeric(10,2) not null default 0,  -- Frais traitement Stripe (2.9% + 0.30€)
   seller_payout numeric(10,2) not null,
   -- Status
   status text check (status in ('pending_payment', 'paid', 'shipped', 'delivered', 'refunded', 'disputed')) default 'pending_payment',
@@ -167,7 +188,9 @@ create table public.orders (
 
 alter table public.orders enable row level security;
 create policy "Users see own orders" on public.orders for select using (auth.uid() = buyer_id or auth.uid() = seller_id);
-create policy "System creates orders" on public.orders for insert with check (auth.uid() = buyer_id);
+create policy "Buyers create orders" on public.orders for insert with check (auth.uid() = buyer_id);
+create policy "Sellers create orders" on public.orders for insert with check (auth.uid() = seller_id);
+create policy "Users update own orders" on public.orders for update using (auth.uid() = buyer_id or auth.uid() = seller_id);
 
 -- =============================================
 -- PAYMENTS
@@ -261,6 +284,29 @@ alter table public.user_preferences enable row level security;
 create policy "Users see own prefs" on public.user_preferences for select using (auth.uid() = user_id);
 create policy "Users update own prefs" on public.user_preferences for update using (auth.uid() = user_id);
 create policy "Users insert own prefs" on public.user_preferences for insert with check (auth.uid() = user_id);
+
+-- =============================================
+-- ADDRESSES (user shipping/return addresses)
+-- =============================================
+create table public.addresses (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  street text not null,
+  city text not null,
+  zip text not null,
+  phone text,
+  is_default boolean default false,
+  created_at timestamptz default now()
+);
+
+alter table public.addresses enable row level security;
+create policy "Users see own addresses" on public.addresses for select using (auth.uid() = user_id);
+create policy "Users insert own addresses" on public.addresses for insert with check (auth.uid() = user_id);
+create policy "Users update own addresses" on public.addresses for update using (auth.uid() = user_id);
+create policy "Users delete own addresses" on public.addresses for delete using (auth.uid() = user_id);
+
+create index idx_addresses_user on public.addresses(user_id);
 
 -- =============================================
 -- ENGAGEMENT METRICS (temps réel)

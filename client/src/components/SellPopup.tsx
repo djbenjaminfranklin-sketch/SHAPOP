@@ -79,7 +79,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       label: c.scheduleLive,
       description: c.scheduleDesc,
       gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
-      route: null,
+      route: '/go-live',
       featured: false,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -105,7 +105,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       label: c.createListing,
       description: c.createListingDesc,
       gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
-      route: null,
+      route: '/ai-listing',
       featured: false,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -124,48 +124,44 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   }
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)',
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: '480px',
-          backgroundColor: '#0D0D0D',
-          borderRadius: '24px 24px 0 0',
-          padding: '24px',
-        }}
-      >
-        {/* Handle bar */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <div style={{
-            width: '40px',
-            height: '4px',
-            backgroundColor: '#333',
-            borderRadius: '2px',
-          }} />
-        </div>
-
-        {/* Title */}
-        <h2 style={{
-          fontSize: '20px',
-          fontWeight: 700,
-          color: '#fff',
-          margin: '0 0 20px 0',
-        }}>
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: '#000',
+      zIndex: 100,
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
+      {/* Header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '16px 20px',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+      }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: 0 }}>
           {c.createTitle}
         </h2>
+        <button
+          onClick={onClose}
+          style={{
+            width: '36px', height: '36px', borderRadius: '50%',
+            backgroundColor: '#1A1A1A', border: 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5">
+            <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
 
+      {/* Content */}
+      <div style={{
+        flex: 1, padding: '12px 20px',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+        display: 'flex', flexDirection: 'column', gap: '16px',
+      }}>
         {/* Featured AI button - full width */}
         {actions.filter(a => a.featured).map((action) => (
           <button
@@ -176,13 +172,12 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
               border: '1px solid rgba(240,144,138,0.3)',
               borderRadius: '16px',
-              padding: '16px',
+              padding: '20px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '14px',
               textAlign: 'left',
-              marginBottom: '16px',
               position: 'relative',
               overflow: 'hidden',
             }}
@@ -193,13 +188,9 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               backgroundColor: 'rgba(240,144,138,0.08)',
             }} />
             <div style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
+              width: '52px', height: '52px', borderRadius: '50%',
               background: action.gradient,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
               boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
             }}>
@@ -207,32 +198,21 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{
-                fontSize: '16px',
-                fontWeight: 800,
-                color: '#fff',
-                marginBottom: '3px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
+                fontSize: '18px', fontWeight: 800, color: '#fff',
+                marginBottom: '4px',
+                display: 'flex', alignItems: 'center', gap: '8px',
               }}>
                 {action.label}
                 <span style={{
-                  fontSize: '9px',
-                  fontWeight: 700,
-                  color: '#F0908A',
+                  fontSize: '10px', fontWeight: 700, color: '#F0908A',
                   backgroundColor: 'rgba(240,144,138,0.15)',
-                  padding: '2px 8px',
-                  borderRadius: '100px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
+                  padding: '3px 10px', borderRadius: '100px',
+                  textTransform: 'uppercase', letterSpacing: '0.5px',
                 }}>
                   {c.newBadge}
                 </span>
               </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#999',
-              }}>
+              <div style={{ fontSize: '14px', color: '#999' }}>
                 {action.description}
               </div>
             </div>
@@ -242,7 +222,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
           </button>
         ))}
 
-        {/* 2x2 Grid for other actions */}
+        {/* Grid for other actions */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr',
@@ -255,40 +235,28 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               style={{
                 background: '#111',
                 border: '1px solid #222',
-                borderRadius: '14px',
-                padding: '16px',
+                borderRadius: '16px',
+                padding: '20px 16px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                gap: '10px',
+                gap: '12px',
                 textAlign: 'left',
               }}
             >
               <div style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
+                width: '44px', height: '44px', borderRadius: '50%',
                 background: action.gradient,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {action.icon}
               </div>
               <div>
-                <div style={{
-                  fontSize: '14px',
-                  fontWeight: 600,
-                  color: '#fff',
-                  marginBottom: '4px',
-                }}>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
                   {action.label}
                 </div>
-                <div style={{
-                  fontSize: '12px',
-                  color: '#888',
-                }}>
+                <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>
                   {action.description}
                 </div>
               </div>

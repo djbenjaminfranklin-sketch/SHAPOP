@@ -5,7 +5,7 @@ const content = {
   en: {
     title: 'About ShaPop',
     tagline: 'Live shopping, reimagined.',
-    desc: 'ShaPop is Israel\'s live shopping marketplace where sellers broadcast live, showcase their products in real-time, and connect directly with buyers. No middlemen, no algorithms hiding your content \u2014 just real people, real products, real deals.',
+    desc: 'ShaPop is Europe\'s live shopping marketplace where sellers broadcast live, showcase their products in real-time, and connect directly with buyers. No middlemen, no algorithms hiding your content \u2014 just real people, real products, real deals.',
     missionTitle: 'Our Mission',
     mission: 'To make selling and buying accessible to everyone through the power of live video. We believe the future of e-commerce is human, interactive, and fun.',
     features: [
@@ -15,7 +15,7 @@ const content = {
       { icon: 'zap', title: 'Instant Selling', desc: 'Go live in seconds. No listing fees, no waiting. Start selling today.' },
     ],
     version: 'Version',
-    made: 'Made with love in Israel',
+    made: 'Made with love in Paris',
     legal: 'Legal',
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
@@ -24,7 +24,7 @@ const content = {
   he: {
     title: '\u05D0\u05D5\u05D3\u05D5\u05EA ShaPop',
     tagline: '\u05E7\u05E0\u05D9\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9, \u05D1\u05D2\u05D3\u05D5\u05DC.',
-    desc: 'ShaPop \u05D4\u05D9\u05D0 \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05EA \u05D4\u05E7\u05E0\u05D9\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9 \u05E9\u05DC \u05D9\u05E9\u05E8\u05D0\u05DC. \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05E9\u05D3\u05E8\u05D9\u05DD \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9, \u05DE\u05E6\u05D9\u05D2\u05D9\u05DD \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA, \u05D5\u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05E2\u05DD \u05E7\u05D5\u05E0\u05D9\u05DD. \u05D1\u05DC\u05D9 \u05DE\u05EA\u05D5\u05D5\u05DB\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05D0\u05DC\u05D2\u05D5\u05E8\u05D9\u05EA\u05DE\u05D9\u05DD \u2014 \u05E8\u05E7 \u05D0\u05E0\u05E9\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD, \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD, \u05E2\u05E1\u05E7\u05D0\u05D5\u05EA \u05D0\u05DE\u05D9\u05EA\u05D9\u05D5\u05EA.',
+    desc: 'ShaPop \u05D4\u05D9\u05D0 \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05EA \u05D4\u05E7\u05E0\u05D9\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9 \u05E9\u05DC \u05D0\u05D9\u05E8\u05D5\u05E4\u05D4. \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05E9\u05D3\u05E8\u05D9\u05DD \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9, \u05DE\u05E6\u05D9\u05D2\u05D9\u05DD \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA, \u05D5\u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05E2\u05DD \u05E7\u05D5\u05E0\u05D9\u05DD. \u05D1\u05DC\u05D9 \u05DE\u05EA\u05D5\u05D5\u05DB\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05D0\u05DC\u05D2\u05D5\u05E8\u05D9\u05EA\u05DE\u05D9\u05DD \u2014 \u05E8\u05E7 \u05D0\u05E0\u05E9\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD, \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD, \u05E2\u05E1\u05E7\u05D0\u05D5\u05EA \u05D0\u05DE\u05D9\u05EA\u05D9\u05D5\u05EA.',
     missionTitle: '\u05D4\u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05DC\u05E0\u05D5',
     mission: '\u05DC\u05D4\u05E4\u05D5\u05DA \u05DE\u05DB\u05D9\u05E8\u05D4 \u05D5\u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05E0\u05D2\u05D9\u05E9\u05D9\u05DD \u05DC\u05DB\u05D5\u05DC\u05DD \u05D3\u05E8\u05DA \u05D4\u05DB\u05D5\u05D7 \u05E9\u05DC \u05D5\u05D9\u05D3\u05D0\u05D5 \u05D7\u05D9. \u05D0\u05E0\u05D7\u05E0\u05D5 \u05DE\u05D0\u05DE\u05D9\u05E0\u05D9\u05DD \u05E9\u05D4\u05E2\u05EA\u05D9\u05D3 \u05E9\u05DC \u05D4\u05DE\u05E1\u05D7\u05E8 \u05D4\u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9 \u05D4\u05D5\u05D0 \u05D0\u05E0\u05D5\u05E9\u05D9, \u05D0\u05D9\u05E0\u05D8\u05E8\u05D0\u05E7\u05D8\u05D9\u05D1\u05D9 \u05D5\u05DE\u05D4\u05E0\u05D4.',
     features: [
@@ -34,7 +34,7 @@ const content = {
       { icon: 'zap', title: '\u05DE\u05DB\u05D9\u05E8\u05D4 \u05DE\u05D9\u05D9\u05D3\u05D9\u05EA', desc: '\u05E2\u05DC\u05D5 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D1\u05E9\u05E0\u05D9\u05D5\u05EA. \u05D1\u05DC\u05D9 \u05E2\u05DE\u05DC\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DD, \u05D1\u05DC\u05D9 \u05D4\u05DE\u05EA\u05E0\u05D4. \u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u05DC\u05DE\u05DB\u05D5\u05E8 \u05D4\u05D9\u05D5\u05DD.' },
     ],
     version: '\u05D2\u05E8\u05E1\u05D4',
-    made: '\u05E0\u05D5\u05E6\u05E8 \u05D1\u05D0\u05D4\u05D1\u05D4 \u05D1\u05D9\u05E9\u05E8\u05D0\u05DC',
+    made: '\u05E0\u05D5\u05E6\u05E8 \u05D1\u05D0\u05D4\u05D1\u05D4 \u05D1\u05E4\u05E8\u05D9\u05D6',
     legal: '\u05DE\u05E9\u05E4\u05D8\u05D9',
     terms: '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9',
     privacy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA',
@@ -43,7 +43,7 @@ const content = {
   fr: {
     title: 'À propos de ShaPop',
     tagline: 'Le shopping en direct, réinventé.',
-    desc: 'ShaPop est la marketplace de shopping en direct d\'Israël où les vendeurs diffusent en live, présentent leurs produits en temps réel et se connectent directement avec les acheteurs. Pas d\'intermédiaires, pas d\'algorithmes masquant votre contenu — juste de vraies personnes, de vrais produits, de vraies affaires.',
+    desc: 'ShaPop est la marketplace de shopping en direct d\'Europe où les vendeurs diffusent en live, présentent leurs produits en temps réel et se connectent directement avec les acheteurs. Pas d\'intermédiaires, pas d\'algorithmes masquant votre contenu — juste de vraies personnes, de vrais produits, de vraies affaires.',
     missionTitle: 'Notre mission',
     mission: 'Rendre la vente et l\'achat accessibles à tous grâce à la puissance de la vidéo en direct. Nous croyons que l\'avenir du e-commerce est humain, interactif et amusant.',
     features: [
@@ -53,7 +53,7 @@ const content = {
       { icon: 'zap', title: 'Vente instantanée', desc: 'Passez en live en quelques secondes. Pas de frais de mise en ligne, pas d\'attente. Commencez à vendre dès aujourd\'hui.' },
     ],
     version: 'Version',
-    made: 'Fait avec amour en Israël',
+    made: 'Fait avec amour à Paris',
     legal: 'Mentions légales',
     terms: 'Conditions d\'utilisation',
     privacy: 'Politique de confidentialité',
@@ -62,7 +62,7 @@ const content = {
   es: {
     title: 'Sobre ShaPop',
     tagline: 'Compras en vivo, reinventadas.',
-    desc: 'ShaPop es el marketplace de compras en vivo de Israel donde los vendedores transmiten en vivo, muestran sus productos en tiempo real y se conectan directamente con compradores. Sin intermediarios, sin algoritmos \u2014 solo personas reales, productos reales, ofertas reales.',
+    desc: 'ShaPop es el marketplace de compras en vivo de Europa donde los vendedores transmiten en vivo, muestran sus productos en tiempo real y se conectan directamente con compradores. Sin intermediarios, sin algoritmos \u2014 solo personas reales, productos reales, ofertas reales.',
     missionTitle: 'Nuestra Mision',
     mission: 'Hacer que vender y comprar sea accesible para todos a traves del poder del video en vivo. Creemos que el futuro del comercio electronico es humano, interactivo y divertido.',
     features: [
@@ -72,7 +72,7 @@ const content = {
       { icon: 'zap', title: 'Venta Instantanea', desc: 'Transmite en segundos. Sin comisiones de listado. Empieza a vender hoy.' },
     ],
     version: 'Version',
-    made: 'Hecho con amor en Israel',
+    made: 'Hecho con amor en Paris',
     legal: 'Legal',
     terms: 'Terminos de Servicio',
     privacy: 'Politica de Privacidad',

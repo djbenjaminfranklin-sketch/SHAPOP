@@ -1,5 +1,5 @@
 -- =============================================
--- ShaPop — Schema de base de donnees
+-- ShaPop — Schema de base de donnees (Production)
 -- Coller dans Supabase SQL Editor et executer
 -- =============================================
 
@@ -8,7 +8,7 @@ create extension if not exists "uuid-ossp";
 -- PROFILES
 create table public.profiles (
   id uuid references auth.users on delete cascade primary key,
-  username text unique not null,
+  username text unique not null check (char_length(username) >= 3),
   display_name text not null,
   avatar_url text,
   bio text,
@@ -35,7 +35,7 @@ create table public.sellers (
   store_intro_video_url text,
   stripe_account_id text,
   kyc_status text check (kyc_status in ('pending', 'verified', 'rejected')) default 'pending',
-  rating numeric(3,2) default 0,
+  rating numeric(3,1) default 0 check (rating >= 0 and rating <= 5.0),
   total_sales integer default 0,
   total_revenue numeric(12,2) default 0,
   categories text[] default '{}',
@@ -58,7 +58,7 @@ create table public.communities (
   region text,
   country text default 'IL',
   image_url text,
-  member_count integer default 0,
+  member_count integer default 0 check (member_count >= 0),
   created_by uuid references public.profiles(id),
   created_at timestamptz default now()
 );
@@ -67,19 +67,19 @@ alter table public.communities enable row level security;
 create policy "Communities viewable by all" on public.communities for select using (true);
 create policy "Users create communities" on public.communities for insert with check (auth.uid() = created_by);
 
--- STREAMS
+-- STREAMS (seller_id -> sellers)
 create table public.streams (
   id uuid default uuid_generate_v4() primary key,
-  seller_id uuid references public.profiles(id) on delete cascade not null,
+  seller_id uuid references public.sellers(id) on delete cascade not null,
   title text not null,
   description text,
   category text not null,
   tags text[] default '{}',
   status text check (status in ('scheduled', 'live', 'ended')) default 'scheduled',
   thumbnail_url text,
-  viewer_count integer default 0,
-  peak_viewers integer default 0,
-  engagement_score numeric(5,2) default 0,
+  viewer_count integer default 0 check (viewer_count >= 0),
+  peak_viewers integer default 0 check (peak_viewers >= 0),
+  engagement_score numeric(5,2) default 0 check (engagement_score >= 0),
   avg_watch_time_seconds integer default 0,
   total_reactions integer default 0,
   scheduled_at timestamptz,
@@ -87,51 +87,58 @@ create table public.streams (
   ended_at timestamptz,
   city text,
   community_id uuid references public.communities(id),
+  deleted_at timestamptz,
   created_at timestamptz default now()
 );
 
 alter table public.streams enable row level security;
-create policy "Streams viewable by all" on public.streams for select using (true);
+create policy "Streams viewable by all" on public.streams for select using (deleted_at is null);
 create policy "Sellers create streams" on public.streams for insert with check (auth.uid() = seller_id);
 create policy "Sellers update own streams" on public.streams for update using (auth.uid() = seller_id);
 
--- ITEMS
+-- ITEMS (seller_id -> sellers)
 create table public.items (
   id uuid default uuid_generate_v4() primary key,
-  seller_id uuid references public.profiles(id) on delete cascade not null,
+  seller_id uuid references public.sellers(id) on delete cascade not null,
   stream_id uuid references public.streams(id) on delete set null,
   title text not null,
   description text,
   category text not null,
   subcategory text,
   image_urls text[] default '{}',
-  starting_price numeric(10,2) not null,
-  current_price numeric(10,2) not null,
+  starting_price numeric(10,2) not null check (starting_price >= 0),
+  current_price numeric(10,2) not null check (current_price >= 0),
   estimated_price_low numeric(10,2),
   estimated_price_high numeric(10,2),
   ai_generated boolean default false,
   ai_tags text[] default '{}',
   ai_condition text,
-  ai_confidence numeric(3,2),
+  ai_confidence numeric(3,2) check (ai_confidence >= 0 and ai_confidence <= 1),
   status text check (status in ('draft', 'pending', 'active', 'sold', 'unsold')) default 'draft',
   winner_id uuid references public.profiles(id),
-  duration_seconds integer default 60,
+  duration_seconds integer default 60 check (duration_seconds > 0),
   started_at timestamptz,
   ended_at timestamptz,
-  created_at timestamptz default now()
+  deleted_at timestamptz,
+  created_at timestamptz default now(),
+  constraint chk_estimated_price_range check (
+    estimated_price_low is null or estimated_price_high is null or estimated_price_low <= estimated_price_high
+  )
 );
 
 alter table public.items enable row level security;
-create policy "Items viewable by all" on public.items for select using (true);
+create policy "Items viewable by all" on public.items for select using (deleted_at is null);
 create policy "Sellers create items" on public.items for insert with check (auth.uid() = seller_id);
 create policy "Sellers update own items" on public.items for update using (auth.uid() = seller_id);
+create policy "Sellers delete draft items" on public.items
+  for delete using (auth.uid() = seller_id and status = 'draft');
 
 -- BIDS
 create table public.bids (
   id uuid default uuid_generate_v4() primary key,
   item_id uuid references public.items(id) on delete cascade not null,
   bidder_id uuid references public.profiles(id) on delete cascade not null,
-  amount numeric(10,2) not null,
+  amount numeric(10,2) not null check (amount >= 0),
   is_winning boolean default false,
   created_at timestamptz default now()
 );
@@ -140,16 +147,16 @@ alter table public.bids enable row level security;
 create policy "Bids viewable by all" on public.bids for select using (true);
 create policy "Users place bids" on public.bids for insert with check (auth.uid() = bidder_id);
 
--- ORDERS
+-- ORDERS (seller_id -> sellers)
 create table public.orders (
   id uuid default uuid_generate_v4() primary key,
   buyer_id uuid references public.profiles(id) not null,
-  seller_id uuid references public.profiles(id) not null,
+  seller_id uuid references public.sellers(id) not null,
   item_id uuid references public.items(id) not null,
   stream_id uuid references public.streams(id),
-  amount numeric(10,2) not null,
-  platform_fee numeric(10,2) not null,
-  seller_payout numeric(10,2) not null,
+  amount numeric(10,2) not null check (amount >= 0),
+  platform_fee numeric(10,2) not null check (platform_fee >= 0),
+  seller_payout numeric(10,2) not null check (seller_payout >= 0),
   status text check (status in ('pending_payment', 'paid', 'shipped', 'delivered', 'refunded', 'disputed')) default 'pending_payment',
   shipping_address jsonb,
   tracking_number text,
@@ -157,19 +164,22 @@ create table public.orders (
   paid_at timestamptz,
   shipped_at timestamptz,
   delivered_at timestamptz,
+  deleted_at timestamptz,
   created_at timestamptz default now()
 );
 
 alter table public.orders enable row level security;
-create policy "Users see own orders" on public.orders for select using (auth.uid() = buyer_id or auth.uid() = seller_id);
+create policy "Users see own orders" on public.orders for select using ((auth.uid() = buyer_id or auth.uid() = seller_id) and deleted_at is null);
 create policy "System creates orders" on public.orders for insert with check (auth.uid() = buyer_id);
+create policy "Order parties update orders" on public.orders
+  for update using (auth.uid() = buyer_id or auth.uid() = seller_id);
 
 -- PAYMENTS
 create table public.payments (
   id uuid default uuid_generate_v4() primary key,
   order_id uuid references public.orders(id) not null,
   user_id uuid references public.profiles(id) not null,
-  amount numeric(10,2) not null,
+  amount numeric(10,2) not null check (amount >= 0),
   currency text default 'ILS',
   type text check (type in ('charge', 'refund', 'payout')) not null,
   status text check (status in ('pending', 'processing', 'completed', 'failed')) default 'pending',
@@ -193,6 +203,8 @@ create table public.community_members (
 alter table public.community_members enable row level security;
 create policy "Membership viewable by all" on public.community_members for select using (true);
 create policy "Users join communities" on public.community_members for insert with check (auth.uid() = user_id);
+create policy "Users leave communities" on public.community_members
+  for delete using (auth.uid() = user_id);
 
 -- EVENTS
 create table public.events (
@@ -211,6 +223,10 @@ create table public.events (
 alter table public.events enable row level security;
 create policy "Events viewable by all" on public.events for select using (true);
 create policy "Users create events" on public.events for insert with check (auth.uid() = organizer_id);
+create policy "Organizers update own events" on public.events
+  for update using (auth.uid() = organizer_id);
+create policy "Organizers delete own events" on public.events
+  for delete using (auth.uid() = organizer_id);
 
 -- USER PREFERENCES
 create table public.user_preferences (
@@ -245,6 +261,10 @@ create table public.engagement_metrics (
 
 alter table public.engagement_metrics enable row level security;
 create policy "Metrics viewable by all" on public.engagement_metrics for select using (true);
+create policy "Sellers insert metrics" on public.engagement_metrics
+  for insert with check (
+    auth.uid() in (select seller_id from public.streams where id = stream_id)
+  );
 
 -- CHAT MESSAGES
 create table public.chat_messages (
@@ -259,6 +279,10 @@ create table public.chat_messages (
 alter table public.chat_messages enable row level security;
 create policy "Chat viewable by all" on public.chat_messages for select using (true);
 create policy "Users send messages" on public.chat_messages for insert with check (auth.uid() = user_id);
+create policy "Stream sellers moderate chat" on public.chat_messages
+  for delete using (
+    auth.uid() in (select seller_id from public.streams where id = stream_id)
+  );
 
 -- REALTIME
 alter publication supabase_realtime add table public.streams;
@@ -273,22 +297,31 @@ create index idx_streams_seller on public.streams(seller_id);
 create index idx_streams_category on public.streams(category);
 create index idx_streams_city on public.streams(city);
 create index idx_streams_engagement on public.streams(engagement_score desc);
+create index idx_streams_scheduled on public.streams(scheduled_at) where status = 'scheduled';
+create index idx_streams_started on public.streams(started_at desc) where status = 'live';
 
 create index idx_items_stream on public.items(stream_id);
 create index idx_items_seller on public.items(seller_id);
 create index idx_items_status on public.items(status);
 create index idx_items_category on public.items(category);
+create index idx_items_winner on public.items(winner_id) where winner_id is not null;
 
 create index idx_bids_item on public.bids(item_id);
 create index idx_bids_bidder on public.bids(bidder_id);
 create index idx_bids_amount on public.bids(item_id, amount desc);
+create index idx_bids_created on public.bids(created_at desc);
 
 create index idx_orders_buyer on public.orders(buyer_id);
 create index idx_orders_seller on public.orders(seller_id);
+create index idx_orders_status on public.orders(status);
+create index idx_orders_created on public.orders(created_at desc);
 
 create index idx_chat_stream on public.chat_messages(stream_id);
 create index idx_chat_created on public.chat_messages(stream_id, created_at);
+create index idx_chat_user on public.chat_messages(user_id);
 
 create index idx_engagement_stream on public.engagement_metrics(stream_id, timestamp desc);
+
+create index idx_sellers_kyc on public.sellers(kyc_status);
 
 create index idx_communities_city on public.communities(city);

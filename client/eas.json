@@ -6,6 +6,9 @@
   "build": {
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_NO_CAPABILITY_SYNC": "1"
+      },
       "ios": {
         "scheme": "App",
         "buildConfiguration": "Release",
@@ -13,6 +16,9 @@
       }
     },
     "production": {
+      "env": {
+        "EXPO_NO_CAPABILITY_SYNC": "1"
+      },
       "ios": {
         "scheme": "App",
         "buildConfiguration": "Release",

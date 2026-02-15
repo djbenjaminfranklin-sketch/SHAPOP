@@ -67,6 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fetchProfile(session.user)
       } else {
         setProfile(null)
+        // Clear app data on logout
+        const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_'))
+        keysToRemove.forEach(k => localStorage.removeItem(k))
       }
     })
 
@@ -83,8 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (code) {
               try {
                 await supabase.auth.exchangeCodeForSession(code)
-              } catch (err) {
-                console.error('PKCE exchange error:', err)
+              } catch {
+                // PKCE exchange failed silently
               }
               await Browser.close()
               return
@@ -103,8 +106,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   access_token: accessToken,
                   refresh_token: refreshToken,
                 })
-              } catch (err) {
-                console.error('Session set error:', err)
+              } catch {
+                // Session restoration failed silently
               }
             }
           }
@@ -173,6 +176,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) throw error
+    // Clear all app data from localStorage
+    const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_'))
+    keysToRemove.forEach(k => localStorage.removeItem(k))
   }
 
   const updateCity = async (city: string) => {

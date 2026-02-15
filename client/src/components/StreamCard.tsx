@@ -1,19 +1,20 @@
 import { Link } from 'react-router-dom'
 import type { Stream } from '../types/database'
 import { t, getLang } from '../lib/i18n'
+import { trackStreamView } from '../lib/behaviorTracker'
 
 // Community name lookup for badge display
 const COMMUNITY_NAMES: Record<string, string> = {
-  'comm-1': 'Tel Aviv Marketplace',
-  'comm-2': 'Jerusalem Vintage & Art',
-  'comm-3': 'Haifa Tech Deals',
-  'comm-4': 'Netanya Beach Market',
-  'comm-5': 'Beer Sheva Bazaar',
-  'comm-6': 'Eilat Duty Free',
-  'comm-7': 'Ashdod Fashion',
-  'comm-8': 'Ramat Gan Collectors',
-  'comm-9': 'Herzliya Premium',
-  'comm-10': 'Rishon LeZion Market',
+  'comm-1': 'Paris Marketplace',
+  'comm-2': 'Lyon Vintage & Art',
+  'comm-3': 'Marseille Deals',
+  'comm-4': 'Bordeaux Market',
+  'comm-5': 'Madrid Bazaar',
+  'comm-6': 'Barcelona Market',
+  'comm-7': 'London Fashion',
+  'comm-8': 'New York Collectors',
+  'comm-9': 'Nice Premium',
+  'comm-10': 'Toulouse Market',
 }
 
 interface StreamCardProps {
@@ -26,7 +27,7 @@ export default function StreamCard({ stream }: StreamCardProps) {
   const communityName = stream.community_id ? COMMUNITY_NAMES[stream.community_id] : null
 
   return (
-    <Link to={`/stream/${stream.id}`} style={{ display: 'block', textDecoration: 'none' }}>
+    <Link to={`/stream/${stream.id}`} onClick={() => trackStreamView(stream.category, sellerName)} style={{ display: 'block', textDecoration: 'none' }}>
       {/* Seller info above card */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
         <div style={{

@@ -42,6 +42,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
   const [step, setStep] = useState(0)
   const [rulesAccepted, setRulesAccepted] = useState(false)
+  const [feesAccepted, setFeesAccepted] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([])
   const [sellerType, setSellerType] = useState('')
@@ -83,6 +84,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       rule5: 'Respecte tous les acheteurs et vendeurs',
       understood: 'J\'ai compris !',
       accept: 'J\'accepte les regles',
+      feesTitle: 'Grille tarifaire',
+      fee1: 'Commission plateforme : 8% HT + TVA (9,60% TTC)',
+      fee2: 'Frais Stripe : 2,9% + 0,30\u20AC HT + TVA (3,48% + 0,36\u20AC TTC)',
+      fee3: 'Exemple : sur 50\u20AC, frais totaux 6,90\u20AC, vous recevez 43,10\u20AC',
+      fee4: 'Versements hebdomadaires, seuil minimum 50\u20AC',
+      acceptFees: 'J\'accepte la grille tarifaire',
       category: 'Que vends-tu ?',
       categoryDesc: 'Choisis ta categorie principale',
       subCategory: 'Plus precisement...',
@@ -127,6 +134,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       rule5: 'Respect all buyers and sellers',
       understood: 'I understand!',
       accept: 'I accept the rules',
+      feesTitle: 'Fee Schedule',
+      fee1: 'Platform commission: 8% + VAT (9.60% incl. VAT)',
+      fee2: 'Stripe processing: 2.9% + \u20AC0.30 + VAT (3.48% + \u20AC0.36 incl. VAT)',
+      fee3: 'Example: on \u20AC50 sale, total fees \u20AC6.90, you receive \u20AC43.10',
+      fee4: 'Weekly payouts, minimum threshold \u20AC50',
+      acceptFees: 'I accept the fee schedule',
       category: 'What do you sell?',
       categoryDesc: 'Pick your main category',
       subCategory: 'More specifically...',
@@ -170,7 +183,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       rule4: 'ענה לקונים תוך 24 שעות',
       rule5: 'כבד את כל הקונים והמוכרים',
       understood: '!הבנתי',
-      accept: 'אני מקבל את הכללים',
+      accept: '\u05D0\u05E0\u05D9 \u05DE\u05E7\u05D1\u05DC \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD',
+      feesTitle: '\u05DC\u05D5\u05D7 \u05E2\u05DE\u05DC\u05D5\u05EA',
+      fee1: '\u05E2\u05DE\u05DC\u05EA \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4: 8% + \u05DE\u05E2"\u05DE (9.60% \u05DB\u05D5\u05DC\u05DC \u05DE\u05E2"\u05DE)',
+      fee2: '\u05E2\u05D9\u05D1\u05D5\u05D3 Stripe: 2.9% + 0.30\u20AC + \u05DE\u05E2"\u05DE (3.48% + 0.36\u20AC)',
+      fee3: '\u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC',
+      fee4: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05E9\u05D1\u05D5\u05E2\u05D9\u05D9\u05DD, \u05E1\u05E3 \u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD 50\u20AC',
+      acceptFees: '\u05D0\u05E0\u05D9 \u05DE\u05E7\u05D1\u05DC \u05D0\u05EA \u05DC\u05D5\u05D7 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA',
       category: '?מה אתה מוכר',
       categoryDesc: 'בחר את הקטגוריה הראשית',
       subCategory: '...ליתר דיוק',
@@ -215,6 +234,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       rule5: 'Respeta a todos los compradores y vendedores',
       understood: 'Entendido!',
       accept: 'Acepto las reglas',
+      feesTitle: 'Tabla de comisiones',
+      fee1: 'Comision plataforma: 8% + IVA (9,60% IVA incl.)',
+      fee2: 'Procesamiento Stripe: 2,9% + 0,30\u20AC + IVA (3,48% + 0,36\u20AC)',
+      fee3: 'Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC',
+      fee4: 'Pagos semanales, minimo 50\u20AC',
+      acceptFees: 'Acepto la tabla de comisiones',
       category: 'Que vendes?',
       categoryDesc: 'Elige tu categoria principal',
       subCategory: 'Mas especificamente...',
@@ -259,7 +284,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
   const canProceed = (): boolean => {
     switch (step) {
-      case 0: return rulesAccepted
+      case 0: return rulesAccepted && feesAccepted
       case 1: return selectedCategory !== ''
       case 2: return selectedSubCategories.length > 0
       case 3: return sellerType !== ''
@@ -278,36 +303,42 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     if (!user) return
     setSaving(true)
     try {
-      // Save onboarding data to localStorage
-      const onboardingData = {
-        category: selectedCategory,
-        subCategories: selectedSubCategories,
-        sellerType,
-        sellingLocations: selectedLocations,
-        platforms: selectedPlatforms,
-        etsyUrl,
-        revenue,
-        teamSize,
-        liveHours,
-        returnAddress: useExistingAddress ? 'profile' : address,
-        bankChoice,
-        completedAt: new Date().toISOString(),
-      }
-      localStorage.setItem('shapop_onboarding', JSON.stringify(onboardingData))
-
       // Update profile to seller
       await supabase.from('profiles').update({ is_seller: true }).eq('id', user.id)
 
-      // Insert seller record
-      await supabase.from('sellers').insert({
-        id: user.id,
+      // Check if seller record exists
+      const { data: existingSeller } = await supabase
+        .from('sellers')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      const sellerData = {
         store_name: profile?.display_name || profile?.username || 'My Store',
         categories: [selectedCategory],
-      })
+        sub_categories: selectedSubCategories,
+        seller_type: sellerType,
+        selling_locations: selectedLocations,
+        platforms: selectedPlatforms,
+        etsy_url: etsyUrl || null,
+        revenue_range: revenue,
+        team_size: teamSize,
+        live_hours: liveHours,
+        return_address: useExistingAddress ? null : address,
+        bank_choice: bankChoice,
+        fees_accepted_at: new Date().toISOString(),
+        onboarding_completed_at: new Date().toISOString(),
+      }
+
+      if (existingSeller) {
+        await supabase.from('sellers').update(sellerData).eq('id', user.id)
+      } else {
+        await supabase.from('sellers').insert({ id: user.id, ...sellerData })
+      }
 
       onComplete()
-    } catch (err) {
-      console.error('Onboarding error:', err)
+    } catch {
+      // Onboarding save failed
     } finally {
       setSaving(false)
     }
@@ -374,7 +405,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     border: selected ? '1.5px solid rgba(240,144,138,0.6)' : '1px solid #1E1E1E',
     borderRadius: '16px',
     cursor: 'pointer',
-    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
     boxShadow: selected
       ? '0 4px 20px rgba(240,144,138,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
       : '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
@@ -390,7 +420,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     flexShrink: 0 as const,
-    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
     boxShadow: selected ? '0 2px 8px rgba(240,144,138,0.4)' : 'none',
   })
 
@@ -404,7 +433,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     flexShrink: 0 as const,
-    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
     boxShadow: selected ? '0 2px 8px rgba(240,144,138,0.4)' : 'none',
   })
 
@@ -460,7 +488,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               ))}
             </div>
 
-            {/* Accept checkbox */}
+            {/* Accept rules checkbox */}
             <button
               onClick={() => setRulesAccepted(!rulesAccepted)}
               style={{
@@ -471,7 +499,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   : 'linear-gradient(135deg, #141414, #0C0C0C)',
                 border: rulesAccepted ? '1.5px solid rgba(240,144,138,0.5)' : '1px solid #1E1E1E',
                 cursor: 'pointer',
-                transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
                 boxShadow: rulesAccepted
                   ? '0 4px 20px rgba(240,144,138,0.15)'
                   : '0 2px 8px rgba(0,0,0,0.3)',
@@ -481,6 +508,66 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 {rulesAccepted && checkIcon}
               </div>
               <span style={{ fontSize: '16px', color: '#fff', fontWeight: 700 }}>{t.accept}</span>
+            </button>
+
+            {/* Fee schedule card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0F0F0F 0%, #141418 50%, #0F0F0F 100%)',
+              borderRadius: '20px',
+              border: '1px solid #1A1A1A',
+              padding: '20px',
+              marginTop: '24px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                <div style={{
+                  width: '36px', height: '36px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '18px', flexShrink: 0,
+                }}>
+                  {'\u{1F4B0}'}
+                </div>
+                <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#fff' }}>{t.feesTitle}</h3>
+              </div>
+              {[t.fee1, t.fee2, t.fee3, t.fee4].map((fee, i) => (
+                <div key={i} style={{
+                  display: 'flex', gap: '10px', alignItems: 'flex-start',
+                  padding: '10px 0',
+                  borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  <span style={{ color: '#F59E0B', fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>
+                    {i < 2 ? '\u{2022}' : i === 2 ? '\u{1F4CA}' : '\u{1F4C5}'}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#D4D4D4', lineHeight: 1.5 }}>{fee}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Accept fees checkbox */}
+            <button
+              onClick={() => setFeesAccepted(!feesAccepted)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px', marginTop: '14px',
+                padding: '18px 20px', borderRadius: '16px', width: '100%',
+                background: feesAccepted
+                  ? 'linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(217,119,6,0.06) 100%)'
+                  : 'linear-gradient(135deg, #141414, #0C0C0C)',
+                border: feesAccepted ? '1.5px solid rgba(245,158,11,0.5)' : '1px solid #1E1E1E',
+                cursor: 'pointer',
+                boxShadow: feesAccepted
+                  ? '0 4px 20px rgba(245,158,11,0.15)'
+                  : '0 2px 8px rgba(0,0,0,0.3)',
+              }}
+            >
+              <div style={{
+                ...checkboxSquare(feesAccepted),
+                background: feesAccepted ? 'linear-gradient(135deg, #F59E0B, #D97706)' : 'transparent',
+                boxShadow: feesAccepted ? '0 2px 8px rgba(245,158,11,0.4)' : 'none',
+              }}>
+                {feesAccepted && checkIcon}
+              </div>
+              <span style={{ fontSize: '16px', color: '#fff', fontWeight: 700 }}>{t.acceptFees}</span>
             </button>
           </div>
         )
@@ -512,7 +599,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                         : 'linear-gradient(160deg, #161616 0%, #0E0E0E 100%)',
                       border: selected ? '2px solid #F0908A' : '1px solid #1C1C1C',
                       cursor: 'pointer',
-                      transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
                       boxShadow: selected
                         ? '0 4px 20px rgba(240,144,138,0.2)'
                         : '0 2px 8px rgba(0,0,0,0.3)',
@@ -557,7 +643,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       fontSize: '11px', fontWeight: selected ? 700 : 600,
                       color: selected ? '#F0908A' : '#AAA',
                       textAlign: 'center', lineHeight: 1.2,
-                      transition: 'color 0.2s ease',
                     }}>
                       {i18nT(lang, cat.id as TranslationKey)}
                     </span>
@@ -591,7 +676,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       border: selected ? '1.5px solid rgba(240,144,138,0.6)' : '1px solid #222',
                       color: selected ? '#F0908A' : '#BBB',
                       fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                      transition: 'all 0.2s cubic-bezier(0.4,0,0.2,1)',
                       boxShadow: selected
                         ? '0 2px 12px rgba(240,144,138,0.2)'
                         : '0 1px 4px rgba(0,0,0,0.3)',
@@ -636,7 +720,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     fontSize: '26px',
                     boxShadow: selected ? '0 4px 16px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.2)',
-                    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
                     border: '1px solid rgba(255,255,255,0.06)',
                   }}>
                     {opt.emoji}
@@ -679,7 +762,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   </div>
                   <span style={{
                     fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
-                    transition: 'color 0.2s ease',
                   }}>{label}</span>
                 </button>
               )
@@ -711,7 +793,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     </div>
                     <span style={{
                       fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
-                      transition: 'color 0.2s ease',
                     }}>{plat.label}</span>
                   </button>
                   {plat.hasUrl && selected && (
@@ -762,7 +843,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   </div>
                   <span style={{
                     fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
-                    transition: 'color 0.2s ease',
                   }}>{label}</span>
                 </button>
               )
@@ -795,7 +875,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   </div>
                   <span style={{
                     fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
-                    transition: 'color 0.2s ease',
                   }}>{label}</span>
                 </button>
               )
@@ -828,7 +907,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   </div>
                   <span style={{
                     fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
-                    transition: 'color 0.2s ease',
                   }}>{label}</span>
                 </button>
               )
@@ -863,7 +941,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       border: selected ? '1.5px solid rgba(240,144,138,0.5)' : '1px solid #1E1E1E',
                       color: selected ? '#F0908A' : '#777',
                       fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                      transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
                       boxShadow: selected ? '0 4px 16px rgba(240,144,138,0.12)' : '0 2px 6px rgba(0,0,0,0.3)',
                     }}
                   >
@@ -951,7 +1028,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       ? iconGradients[opt.id] || iconGradients.later
                       : 'linear-gradient(135deg, #1A1A1A, #141414)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    transition: 'all 0.25s cubic-bezier(0.4,0,0.2,1)',
                     boxShadow: selected ? `0 4px 16px ${iconColors[opt.id]}33` : 'none',
                     border: '1px solid rgba(255,255,255,0.06)',
                   }}>
@@ -965,7 +1041,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   </div>
                   <span style={{
                     fontSize: '16px', color: selected ? '#fff' : '#BBB', fontWeight: 700,
-                    flex: 1, transition: 'color 0.2s ease',
+                    flex: 1,
                   }}>{label}</span>
                   <div style={radioCircle(selected)}>
                     {selected && innerDot}
@@ -1004,7 +1080,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               background: 'linear-gradient(135deg, #1A1A1A, #111)',
               border: '1px solid #2A2A2A', cursor: 'pointer', padding: '10px',
               borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              transition: 'all 0.2s ease',
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
                 <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1026,7 +1101,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             background: 'linear-gradient(135deg, #1A1A1A, #111)',
             border: '1px solid #2A2A2A', cursor: 'pointer', padding: '10px',
             borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'all 0.2s ease',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
               <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1086,7 +1160,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             fontSize: '17px', fontWeight: 800,
             cursor: able ? 'pointer' : 'not-allowed',
             opacity: saving ? 0.7 : 1,
-            transition: 'all 0.3s cubic-bezier(0.4,0,0.2,1)',
             boxShadow: able
               ? '0 6px 24px rgba(240,144,138,0.35), 0 2px 8px rgba(232,52,78,0.3)'
               : '0 2px 8px rgba(0,0,0,0.3)',

@@ -1,9 +1,47 @@
-import { useState } from 'react'
+import { useState, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
 const trendingSearches = ['Nike Dunk', 'Pokemon', 'iPhone 16', 'Vintage', 'Sneakers']
+
+// Maps to CategoryIcons IDs used on Home page
+const categoryIds = [
+  'fashion_w', 'sneakers', 'electronics', 'cards', 'jewelry',
+  'watches', 'toys', 'vintage', 'home', 'beauty',
+  'sports', 'art', 'gaming', 'books', 'music',
+  'auto', 'bags', 'collect', 'collect', 'music',
+  'kids', 'photo', 'jewelry', 'electronics',
+]
+
+// Search keywords for each category (same index order as categoryNames)
+const categoryKeywords = [
+  'mode vetements femme robe jupe pull veste fashion clothes dress',
+  'sneakers baskets chaussures nike adidas jordan shoes',
+  'electronique tech telephone ordinateur iphone samsung tablette laptop',
+  'cartes pokemon yugioh magic trading card tcg',
+  'bijoux collier bague bracelet boucles oreilles jewelry ring necklace',
+  'montres montre watch rolex casio omega seiko',
+  'jouets lego playmobil figurine peluche jeux toy',
+  'vintage retro ancien brocante friperie secondhand',
+  'maison deco decoration meubles meuble mobilier interieur home furniture',
+  'beaute maquillage cosmetique parfum soin skincare makeup beauty',
+  'sport fitness gym equipement ballon velo running',
+  'art peinture tableau dessin sculpture toile canvas painting',
+  'gaming console ps5 xbox nintendo switch manette jeux video',
+  'livres livre roman manga bd book lecture',
+  'musique instrument guitare piano vinyl disque vinyle',
+  'auto moto voiture pieces tuning car motorcycle',
+  'sacs sac main bandouliere bag handbag pochette',
+  'figurines figurine statue funko pop collection',
+  'comics manga bd bande dessinee comic book anime',
+  'vinyles vinyl disque platine musique record',
+  'bebe enfants puericulture poussette vetements kids baby',
+  'photo camera appareil objectif reflex polaroid photography',
+  'accessoires ceinture chapeau lunettes echarpe gants montre',
+  'telephonie telephone portable coque accessoire smartphone mobile',
+]
 
 const categoryImages = [
   'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=200&h=200&fit=crop',
@@ -90,12 +128,39 @@ const exploreContent = {
 export default function Explore() {
   const lang = (getLang() || 'fr') as Lang
   const ct = exploreContent[lang] || exploreContent.fr
-  const categories = ct.categoryNames.map((name, i) => ({ name, img: categoryImages[i] }))
+  const allCategories = ct.categoryNames.map((name, i) => ({ name, img: categoryImages[i], idx: i }))
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Build unique suggestion terms from category names + keywords + trending
+  const suggestionTerms = useMemo(() => {
+    const terms = new Set<string>()
+    ct.categoryNames.forEach(name => terms.add(name))
+    trendingSearches.forEach(t => terms.add(t))
+    categoryKeywords.forEach(kw => {
+      kw.split(' ').filter(w => w.length >= 3).forEach(w =>
+        terms.add(w.charAt(0).toUpperCase() + w.slice(1))
+      )
+    })
+    return Array.from(terms)
+  }, [ct.categoryNames])
+
+  const suggestions = search.length > 0
+    ? suggestionTerms
+        .filter(t => t.toLowerCase().includes(search.toLowerCase()) && t.toLowerCase() !== search.toLowerCase())
+        .slice(0, 6)
+    : []
 
   const filtered = search
-    ? categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
-    : categories
+    ? allCategories.filter(c => {
+        const q = search.toLowerCase()
+        if (c.name.toLowerCase().includes(q)) return true
+        const kw = categoryKeywords[c.idx] || ''
+        return kw.includes(q)
+      })
+    : allCategories
 
   return (
     <div style={{
@@ -105,7 +170,7 @@ export default function Explore() {
     }}>
 
       {/* Search bar */}
-      <div style={{ padding: '16px 16px 0' }}>
+      <div style={{ padding: '16px 16px 0', position: 'relative' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           backgroundColor: '#111', border: '1.5px solid #222',
@@ -116,9 +181,11 @@ export default function Explore() {
             <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
           </svg>
           <input
+            ref={inputRef}
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }}
+            onFocus={() => setShowSuggestions(true)}
             placeholder={ct.searchPlaceholder}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
@@ -127,7 +194,7 @@ export default function Explore() {
           />
           {search && (
             <button
-              onClick={() => setSearch('')}
+              onClick={() => { setSearch(''); setShowSuggestions(false) }}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
@@ -136,6 +203,35 @@ export default function Explore() {
             </button>
           )}
         </div>
+
+        {/* Suggestions dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div style={{
+            position: 'absolute', left: '16px', right: '16px', top: '100%',
+            marginTop: '4px', backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
+            borderRadius: '16px', overflow: 'hidden', zIndex: 50,
+          }}>
+            {suggestions.map((s, i) => (
+              <button
+                key={s}
+                onClick={() => { setSearch(s); setShowSuggestions(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  width: '100%', padding: '12px 16px',
+                  background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #222' : 'none',
+                  color: '#ddd', fontSize: '15px', fontFamily: 'inherit',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" style={{ flexShrink: 0 }}>
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+                </svg>
+                <span>{s}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Trending searches */}
@@ -164,7 +260,7 @@ export default function Explore() {
       )}
 
       {/* Categories grid */}
-      <div style={{ padding: '24px 16px 0' }}>
+      <div style={{ padding: '24px 16px 0' }} onClick={() => setShowSuggestions(false)}>
         <p style={{ fontSize: '14px', fontWeight: 600, color: '#666', margin: '0 0 14px' }}>
           {ct.categoriesLabel}
         </p>
@@ -172,9 +268,10 @@ export default function Explore() {
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
           gap: '12px',
         }}>
-          {filtered.map(cat => (
+          {filtered.map((cat) => (
             <button
               key={cat.name}
+              onClick={() => navigate('/?category=' + (categoryIds[cat.idx] || 'for_you'))}
               style={{
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center',

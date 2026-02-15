@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { getLang } from '../lib/i18n'
 import { categories } from './CategoryIcons'
-import { ISRAEL_CITIES } from '../lib/israelCities'
+import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
+import { COUNTRIES, getCommunitiesByCountry, detectUserCountry } from '../lib/communitiesData'
+import type { CountryCode } from '../lib/communitiesData'
+import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -81,11 +85,37 @@ interface PreferencesModalProps {
 const selectableCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
 
 export default function PreferencesModal({ visible, onClose }: PreferencesModalProps) {
+  const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = modalContent[lang] || modalContent.fr
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [step, setStep] = useState<'categories' | 'cities'>('categories')
+  const [userCountry, setUserCountry] = useState<CountryCode>(() => {
+    return getStoredGPSCountry() || detectUserCountry()
+  })
+
+  // Try GPS detection when modal opens
+  useEffect(() => {
+    if (visible) {
+      detectCountryByGPS().then(country => {
+        if (country) {
+          setUserCountry(country)
+          localStorage.setItem('shapop_country', country)
+        }
+      })
+    }
+  }, [visible])
+
+  // Get cities from communities data for the detected country
+  const communities = getCommunitiesByCountry(userCountry)
+  const commCities = communities.map(c => c.city).filter((city, i, arr) => arr.indexOf(city) === i)
+  // Add the GPS-detected city at the top if not already in the list
+  const detectedCity = localStorage.getItem('shapop_user_city')
+  const countryCities = detectedCity && !commCities.includes(detectedCity)
+    ? [detectedCity, ...commCities]
+    : commCities
+  const countryInfo = COUNTRIES.find(c => c.code === userCountry)
 
   if (!visible) return null
 
@@ -101,7 +131,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     )
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const prefs: LocalPreferences = {
       favorite_categories: selectedCategories,
       preferred_cities: selectedCities,
@@ -110,10 +140,20 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
       favorite_sellers: [],
     }
     savePreferences(prefs)
+    if (user) {
+      await supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        favorite_categories: selectedCategories,
+        preferred_cities: selectedCities,
+        price_range_min: 0,
+        price_range_max: 10000,
+        favorite_sellers: [],
+      })
+    }
     onClose()
   }
 
-  const handleSkip = () => {
+  const handleSkip = async () => {
     // Save empty preferences so the modal doesn't show again
     const prefs: LocalPreferences = {
       favorite_categories: [],
@@ -123,6 +163,16 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
       favorite_sellers: [],
     }
     savePreferences(prefs)
+    if (user) {
+      await supabase.from('user_preferences').upsert({
+        user_id: user.id,
+        favorite_categories: [],
+        preferred_cities: [],
+        price_range_min: 0,
+        price_range_max: 10000,
+        favorite_sellers: [],
+      })
+    }
     onClose()
   }
 
@@ -233,7 +283,6 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                       fontSize: '13px',
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer',
-                      transition: 'all 0.2s ease',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
@@ -250,45 +299,81 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
               })}
             </div>
           ) : (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '10px',
-              justifyContent: 'center',
-              paddingBottom: '16px',
-            }}>
-              {ISRAEL_CITIES.map(city => {
-                const isSelected = selectedCities.includes(city)
-                return (
+            <div style={{ paddingBottom: '16px' }}>
+              {/* Country selector */}
+              <div style={{
+                display: 'flex', gap: '8px', marginBottom: '16px',
+                overflowX: 'auto', paddingBottom: '4px',
+                WebkitOverflowScrolling: 'touch' as const,
+                scrollbarWidth: 'none' as const,
+                justifyContent: 'center',
+              }}>
+                {COUNTRIES.map(country => (
                   <button
-                    key={city}
-                    onClick={() => toggleCity(city)}
+                    key={country.code}
+                    onClick={() => setUserCountry(country.code)}
                     style={{
-                      padding: '12px 20px',
-                      borderRadius: '16px',
-                      border: isSelected ? '2px solid #F0908A' : '1px solid #333',
-                      backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
-                      color: isSelected ? '#F0908A' : '#ccc',
-                      fontSize: '14px',
-                      fontWeight: isSelected ? 700 : 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
+                      display: 'flex', alignItems: 'center', gap: '4px',
+                      padding: '6px 12px', borderRadius: '16px',
+                      border: userCountry === country.code
+                        ? '1.5px solid #F0908A'
+                        : '1px solid #333',
+                      backgroundColor: userCountry === country.code
+                        ? 'rgba(240,144,138,0.15)'
+                        : '#1A1A1A',
+                      cursor: 'pointer', flexShrink: 0,
                     }}
                   >
-                    {isSelected ? (
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                    ) : (
-                      <span style={{ fontSize: '14px' }}>📍</span>
-                    )}
-                    {city}
+                    <span style={{ fontSize: '14px' }}>{country.flag}</span>
+                    <span style={{
+                      fontSize: '12px', fontWeight: 600,
+                      color: userCountry === country.code ? '#F0908A' : '#888',
+                    }}>
+                      {country.name[lang] || country.name.en}
+                    </span>
                   </button>
-                )
-              })}
+                ))}
+              </div>
+
+              {/* Cities for selected country */}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '10px',
+                justifyContent: 'center',
+              }}>
+                {countryCities.map(city => {
+                  const isSelected = selectedCities.includes(city)
+                  return (
+                    <button
+                      key={city}
+                      onClick={() => toggleCity(city)}
+                      style={{
+                        padding: '12px 20px',
+                        borderRadius: '16px',
+                        border: isSelected ? '2px solid #F0908A' : '1px solid #333',
+                        backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
+                        color: isSelected ? '#F0908A' : '#ccc',
+                        fontSize: '14px',
+                        fontWeight: isSelected ? 700 : 500,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      {isSelected ? (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <span style={{ fontSize: '14px' }}>📍</span>
+                      )}
+                      {city}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>

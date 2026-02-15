@@ -8,7 +8,7 @@ export interface CommunityDisplay extends Community {
   unsplash_query: string
 }
 
-export type CountryCode = 'IL' | 'FR' | 'ES' | 'US' | 'GB'
+export type CountryCode = 'FR' | 'ES' | 'US' | 'GB'
 
 export interface CountryInfo {
   code: CountryCode
@@ -17,11 +17,6 @@ export interface CountryInfo {
 }
 
 export const COUNTRIES: CountryInfo[] = [
-  {
-    code: 'IL',
-    flag: '\uD83C\uDDEE\uD83C\uDDF1',
-    name: { fr: 'Israel', en: 'Israel', he: '\u05D9\u05E9\u05E8\u05D0\u05DC', es: 'Israel' },
-  },
   {
     code: 'FR',
     flag: '\uD83C\uDDEB\uD83C\uDDF7',
@@ -45,98 +40,6 @@ export const COUNTRIES: CountryInfo[] = [
 ]
 
 const communitiesByCountry: Record<CountryCode, CommunityDisplay[]> = {
-  IL: [
-    {
-      id: 'il-comm-1', name: 'Tel Aviv Marketplace', slug: 'tel-aviv-marketplace',
-      description: 'Le plus grand marche live de Tel Aviv. Mode, tech, vintage et bien plus.',
-      city: 'Tel Aviv', region: 'Gush Dan', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=200&fit=crop',
-      member_count: 2847, created_by: null, created_at: '2024-01-01',
-      live_count: 5, active_sellers: 89, lives_this_week: 34,
-      unsplash_query: 'tel-aviv-city',
-    },
-    {
-      id: 'il-comm-2', name: 'Jerusalem Vintage & Art', slug: 'jerusalem-vintage-art',
-      description: 'Art, antiquites et trouvailles vintage dans la Ville Sainte.',
-      city: 'Jerusalem', region: 'Jerusalem District', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1547483238-2cbf881a559f?w=400&h=200&fit=crop',
-      member_count: 1523, created_by: null, created_at: '2024-02-15',
-      live_count: 3, active_sellers: 42, lives_this_week: 18,
-      unsplash_query: 'jerusalem',
-    },
-    {
-      id: 'il-comm-3', name: 'Haifa Tech Deals', slug: 'haifa-tech-deals',
-      description: 'Gadgets, composants et deals tech depuis la capitale du nord.',
-      city: 'Haifa', region: 'Haifa District', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1580093806881-f3309eaf498a?w=400&h=200&fit=crop',
-      member_count: 986, created_by: null, created_at: '2024-03-10',
-      live_count: 2, active_sellers: 31, lives_this_week: 12,
-      unsplash_query: 'haifa-israel',
-    },
-    {
-      id: 'il-comm-4', name: 'Netanya Beach Market', slug: 'netanya-beach-market',
-      description: 'Mode plage, surf et lifestyle mediterraneen.',
-      city: 'Netanya', region: 'Sharon', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=200&fit=crop',
-      member_count: 724, created_by: null, created_at: '2024-04-05',
-      live_count: 1, active_sellers: 23, lives_this_week: 8,
-      unsplash_query: 'beach-market',
-    },
-    {
-      id: 'il-comm-5', name: 'Beer Sheva Bazaar', slug: 'beer-sheva-bazaar',
-      description: 'Le bazaar du Negev. Epices, artisanat et bonnes affaires.',
-      city: 'Beer Sheva', region: 'Southern', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?w=400&h=200&fit=crop',
-      member_count: 612, created_by: null, created_at: '2024-04-20',
-      live_count: 2, active_sellers: 19, lives_this_week: 7,
-      unsplash_query: 'desert-market',
-    },
-    {
-      id: 'il-comm-6', name: 'Eilat Duty Free', slug: 'eilat-duty-free',
-      description: 'Shopping detaxe, mode et accessoires depuis Eilat.',
-      city: 'Eilat', region: 'Southern', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=400&h=200&fit=crop',
-      member_count: 453, created_by: null, created_at: '2024-05-01',
-      live_count: 1, active_sellers: 15, lives_this_week: 5,
-      unsplash_query: 'eilat',
-    },
-    {
-      id: 'il-comm-7', name: 'Ashdod Fashion', slug: 'ashdod-fashion',
-      description: 'Les dernieres tendances mode a prix accessible.',
-      city: 'Ashdod', region: 'Southern', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=200&fit=crop',
-      member_count: 891, created_by: null, created_at: '2024-03-25',
-      live_count: 3, active_sellers: 28, lives_this_week: 14,
-      unsplash_query: 'fashion-store',
-    },
-    {
-      id: 'il-comm-8', name: 'Ramat Gan Collectors', slug: 'ramat-gan-collectors',
-      description: 'Cartes Pokemon, figurines, comics et objets de collection.',
-      city: 'Ramat Gan', region: 'Gush Dan', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1613771404784-3a5686aa2be3?w=400&h=200&fit=crop',
-      member_count: 1102, created_by: null, created_at: '2024-02-28',
-      live_count: 4, active_sellers: 35, lives_this_week: 21,
-      unsplash_query: 'collectibles',
-    },
-    {
-      id: 'il-comm-9', name: 'Herzliya Premium', slug: 'herzliya-premium',
-      description: 'Luxe, montres, sacs de marque et mode haut de gamme.',
-      city: 'Herzliya', region: 'Sharon', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop',
-      member_count: 678, created_by: null, created_at: '2024-05-10',
-      live_count: 2, active_sellers: 21, lives_this_week: 9,
-      unsplash_query: 'luxury-shopping',
-    },
-    {
-      id: 'il-comm-10', name: 'Rishon LeZion Market', slug: 'rishon-lezion-market',
-      description: 'Tout se vend, tout s\'achete. Le marche general de Rishon.',
-      city: 'Rishon LeZion', region: 'Gush Dan', country: 'IL',
-      image_url: 'https://images.unsplash.com/photo-1556740758-90de374c12ad?w=400&h=200&fit=crop',
-      member_count: 934, created_by: null, created_at: '2024-03-15',
-      live_count: 3, active_sellers: 37, lives_this_week: 16,
-      unsplash_query: 'marketplace',
-    },
-  ],
   FR: [
     {
       id: 'fr-comm-1', name: 'Paris Marketplace', slug: 'paris-marketplace',
@@ -379,14 +282,6 @@ export function findCommunityById(id: string): CommunityDisplay | undefined {
     const found = communities.find(c => c.id === id)
     if (found) return found
   }
-  // Backward compatibility: check for old IDs (comm-1 -> il-comm-1)
-  if (id.startsWith('comm-')) {
-    const newId = 'il-' + id
-    for (const communities of Object.values(communitiesByCountry)) {
-      const found = communities.find(c => c.id === newId)
-      if (found) return found
-    }
-  }
   return undefined
 }
 
@@ -395,19 +290,25 @@ export function getCountryInfo(code: CountryCode): CountryInfo | undefined {
   return COUNTRIES.find(c => c.code === code)
 }
 
-// Detect user country from language / localStorage
+// Detect user country from GPS cache / localStorage / language
 export function detectUserCountry(): CountryCode {
-  // 1. Check localStorage first
+  // 1. Check GPS-detected country first (set by geolocation.ts)
+  const gpsCountry = localStorage.getItem('shapop_gps_country')
+  if (gpsCountry && gpsCountry in communitiesByCountry) {
+    return gpsCountry as CountryCode
+  }
+
+  // 2. Check manually selected country
   const saved = localStorage.getItem('shapop_country')
   if (saved && saved in communitiesByCountry) {
     return saved as CountryCode
   }
 
-  // 2. Check app language setting
+  // 3. Check app language setting
   const appLang = localStorage.getItem('shapop_lang')
   if (appLang) {
     const langToCountry: Record<string, CountryCode> = {
-      he: 'IL',
+      he: 'FR',
       fr: 'FR',
       es: 'ES',
       en: 'US',
@@ -417,22 +318,21 @@ export function detectUserCountry(): CountryCode {
     }
   }
 
-  // 3. Check browser language
+  // 4. Check browser language
   const browserLang = navigator.language?.toLowerCase() || ''
-  if (browserLang.startsWith('he')) return 'IL'
+  if (browserLang.startsWith('he')) return 'FR'
   if (browserLang.startsWith('fr')) return 'FR'
   if (browserLang.startsWith('es')) return 'ES'
   if (browserLang === 'en-gb') return 'GB'
   if (browserLang.startsWith('en')) return 'US'
 
-  // 4. Default to FR
+  // 5. Default to FR
   return 'FR'
 }
 
 // Get the full country name for a country code, with the country field in community data
 export function getCountryDisplayName(code: string, lang: string): string {
   const countryNames: Record<string, Record<string, string>> = {
-    IL: { fr: 'Israel', en: 'Israel', he: '\u05D9\u05E9\u05E8\u05D0\u05DC', es: 'Israel' },
     FR: { fr: 'France', en: 'France', he: '\u05E6\u05E8\u05E4\u05EA', es: 'Francia' },
     ES: { fr: 'Espagne', en: 'Spain', he: '\u05E1\u05E4\u05E8\u05D3', es: 'Espana' },
     US: { fr: 'Etats-Unis', en: 'United States', he: '\u05D0\u05E8\u05D4"\u05D1', es: 'Estados Unidos' },

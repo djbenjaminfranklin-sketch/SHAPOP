@@ -16,7 +16,7 @@ const faqItems = [
   { qFr: 'Comment et quand suis-je paye ?', q: 'How and when do I get paid?', qHe: '\u05D0\u05D9\u05DA \u05D5\u05DE\u05EA\u05D9 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05D9?', qEs: 'Como y cuando me pagan?',
     aFr: 'Les paiements sont traites via Stripe sous 3 a 5 jours ouvrables.', a: 'Payments are processed via Stripe within 3-5 business days.', aHe: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D3\u05E8\u05DA Stripe \u05EA\u05D5\u05DA 3-5 \u05D9\u05DE\u05D9 \u05E2\u05E1\u05E7\u05D9\u05DD.', aEs: 'Los pagos se procesan via Stripe en 3-5 dias habiles.' },
   { qFr: 'Quels sont les frais ?', q: 'What are the fees?', qHe: '\u05DE\u05D4 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA?', qEs: 'Cuales son las comisiones?',
-    aFr: 'ShaPop prend 8% de commission — l\'une des plus basses du marche.', a: 'ShaPop takes 8% commission — one of the lowest in the industry.', aHe: 'ShaPop \u05DC\u05D5\u05E7\u05D7 8% \u05E2\u05DE\u05DC\u05D4 \u2014 \u05D0\u05D7\u05D3 \u05D4\u05E0\u05DE\u05D5\u05DB\u05D9\u05DD \u05D1\u05EA\u05E2\u05E9\u05D9\u05D9\u05D4.', aEs: 'ShaPop cobra 8% de comision — una de las mas bajas del sector.' },
+    aFr: '8% de commission + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur les frais. Exemple : sur 50\u20AC, frais totaux 6,90\u20AC TTC, vous recevez 43,10\u20AC.', a: '8% commission + 2.9% + \u20AC0.30 Stripe fees + 20% VAT on fees. Example: on a \u20AC50 sale, total fees \u20AC6.90 incl. VAT, you receive \u20AC43.10.', aHe: '8% \u05E2\u05DE\u05DC\u05D4 + 2.9% + 0.30\u20AC Stripe + \u05DE\u05E2"\u05DE 20%. \u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC.', aEs: '8% comision + 2,9% + 0,30\u20AC Stripe + IVA 20% sobre comisiones. Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC.' },
   { qFr: 'Que puis-je vendre ?', q: 'What can I sell?', qHe: '\u05DE\u05D4 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05DB\u05D5\u05E8?', qEs: 'Que puedo vender?',
     aFr: 'Mode, sneakers, cartes, high-tech, art, bijoux et plus encore !', a: 'Fashion, sneakers, cards, electronics, art, jewelry and more!', aHe: '\u05D0\u05D5\u05E4\u05E0\u05D4, \u05E1\u05E0\u05D9\u05E7\u05E8\u05E1, \u05E7\u05DC\u05E4\u05D9\u05DD, \u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9\u05E7\u05D4, \u05D0\u05DE\u05E0\u05D5\u05EA \u05D5\u05E2\u05D5\u05D3!', aEs: 'Moda, sneakers, cartas, electronica, arte, joyeria y mas!' },
   { qFr: 'Comment fonctionne la livraison ?', q: 'How does shipping work?', qHe: '\u05D0\u05D9\u05DA \u05E2\u05D5\u05D1\u05D3\u05EA \u05D4\u05DE\u05E9\u05DC\u05D5\u05D7?', qEs: 'Como funciona el envio?',
@@ -43,18 +43,27 @@ export default function Dashboard() {
       subtitle: 'Rejoignez des milliers de vendeurs qui gagnent de l\'argent reel avec la vente en live sur ShaPop.',
       sellFast: 'Vendez en secondes',
       sellFastDesc: 'La vente en live est rapide. Gagnez plus par heure que sur n\'importe quelle marketplace.',
-      keepMore: 'Seulement 8% de commission',
-      keepMoreDesc: 'L\'une des plus basses du secteur. Vous gardez ce que vous gagnez.',
+      keepMore: 'Frais parmi les plus bas',
+      keepMoreDesc: '8% commission + frais Stripe. Vous gardez plus que sur les autres plateformes.',
       bestBuyers: 'Acheteurs engages',
       bestBuyersDesc: 'Les acheteurs en live sont fideles, enthousiastes et prets a depenser.',
       trusted: 'Plateforme de confiance',
       trustedDesc: 'Paiements securises, protection acheteur et support 24/7.',
-      stats1: '10K+',
-      stats1Label: 'Vendeurs actifs',
-      stats2: '2M+$',
-      stats2Label: 'Ventes mensuelles',
-      stats3: '4.9',
-      stats3Label: 'Note de l\'app',
+      formatsTitle: 'Comment vendre ?',
+      fmtAuction: 'Encheres',
+      fmtAuctionDesc: 'Les spectateurs encherissent en direct. Celui qui offre le plus remporte l\'article.',
+      fmtBuyNow: 'Achat direct',
+      fmtBuyNowDesc: 'Vendez a prix fixe, sans encheres. L\'acheteur clique et achete instantanement.',
+      fmtMystery: 'Boite mystere',
+      fmtMysteryDesc: 'Surprenez vos acheteurs avec un lot mystere a prix unique.',
+      fmtRipShip: 'Ouverture & envoi',
+      fmtRipShipDesc: 'Ouvrez les packs en direct devant les acheteurs et expediez aussitot.',
+      stats1: '~13%',
+      stats1Label: 'Total fees',
+      stats2: '0€',
+      stats2Label: 'Frais de demarrage',
+      stats3: '24/7',
+      stats3Label: 'Support',
       faq: 'FAQ',
       letsGo: 'C\'est parti !',
       free: 'Gratuit pour commencer',
@@ -66,18 +75,27 @@ export default function Dashboard() {
       subtitle: 'Join thousands of sellers earning real money through live shopping on ShaPop.',
       sellFast: 'Sell in seconds',
       sellFastDesc: 'Live selling is fast. Earn more per hour than any other marketplace.',
-      keepMore: 'Only 8% commission',
-      keepMoreDesc: 'One of the lowest in the industry. You keep what you earn.',
+      keepMore: 'Lowest fees around',
+      keepMoreDesc: '8% commission + Stripe fees. You keep more than on other platforms.',
       bestBuyers: 'Engaged buyers',
       bestBuyersDesc: 'Live shoppers are loyal, excited, and ready to spend.',
       trusted: 'Trusted platform',
       trustedDesc: 'Secure payments, buyer protection, and 24/7 support.',
-      stats1: '10K+',
-      stats1Label: 'Active sellers',
-      stats2: '$2M+',
-      stats2Label: 'Monthly sales',
-      stats3: '4.9',
-      stats3Label: 'App rating',
+      formatsTitle: 'How to sell?',
+      fmtAuction: 'Auctions',
+      fmtAuctionDesc: 'Viewers bid in real-time. Highest bidder wins the item.',
+      fmtBuyNow: 'Buy Now',
+      fmtBuyNowDesc: 'Sell at a fixed price, no bidding. Buyers click and purchase instantly.',
+      fmtMystery: 'Mystery box',
+      fmtMysteryDesc: 'Surprise your buyers with a mystery lot at a set price.',
+      fmtRipShip: 'Rip & Ship',
+      fmtRipShipDesc: 'Open packs live for buyers and ship immediately.',
+      stats1: '~13%',
+      stats1Label: 'Total fees',
+      stats2: '$0',
+      stats2Label: 'Startup fees',
+      stats3: '24/7',
+      stats3Label: 'Support',
       faq: 'FAQ',
       letsGo: "Let's go!",
       free: 'Free to start',
@@ -89,18 +107,27 @@ export default function Dashboard() {
       subtitle: 'הצטרף לאלפי מוכרים שמרוויחים כסף אמיתי דרך מכירות לייב ב-ShaPop.',
       sellFast: 'מכור בשניות',
       sellFastDesc: 'מכירת לייב זה מהיר. הרוויח יותר לשעה מכל מרקטפלייס.',
-      keepMore: 'רק 8% עמלה',
-      keepMoreDesc: 'אחת הנמוכות בתעשייה. תשמור על מה שהרווחת.',
+      keepMore: '\u05E2\u05DE\u05DC\u05D5\u05EA \u05E0\u05DE\u05D5\u05DB\u05D5\u05EA',
+      keepMoreDesc: '8% \u05E2\u05DE\u05DC\u05D4 + \u05D3\u05DE\u05D9 \u05E2\u05D9\u05D1\u05D5\u05D3 Stripe. \u05EA\u05E9\u05DE\u05D5\u05E8 \u05E2\u05DC \u05D9\u05D5\u05EA\u05E8.',
       bestBuyers: 'קונים מחוברים',
       bestBuyersDesc: 'קונים בלייב נאמנים, נלהבים ומוכנים לקנות.',
       trusted: 'פלטפורמה אמינה',
       trustedDesc: 'תשלומים מאובטחים, הגנת קונים ותמיכה 24/7.',
-      stats1: '+10K',
-      stats1Label: 'מוכרים פעילים',
-      stats2: '+$2M',
-      stats2Label: 'מכירות חודשיות',
-      stats3: '4.9',
-      stats3Label: 'דירוג אפליקציה',
+      formatsTitle: 'איך למכור?',
+      fmtAuction: 'מכירות פומביות',
+      fmtAuctionDesc: 'צופים מציעים בזמן אמת. המציע הגבוה זוכה.',
+      fmtBuyNow: 'קנייה ישירה',
+      fmtBuyNowDesc: 'מכור במחיר קבוע, בלי הצעות. הקונה לוחץ וקונה מיד.',
+      fmtMystery: 'קופסת הפתעה',
+      fmtMysteryDesc: 'הפתיעו את הקונים עם חבילה מסתורית במחיר אחיד.',
+      fmtRipShip: 'פתיחה ומשלוח',
+      fmtRipShipDesc: 'פתחו חבילות בשידור חי ושלחו מיד.',
+      stats1: '~13%',
+      stats1Label: '\u05E2\u05DE\u05DC\u05D5\u05EA',
+      stats2: '0$',
+      stats2Label: 'עלויות התחלה',
+      stats3: '24/7',
+      stats3Label: 'תמיכה',
       faq: 'FAQ',
       letsGo: '!יאללה',
       free: 'חינם להתחלה',
@@ -112,18 +139,27 @@ export default function Dashboard() {
       subtitle: 'Unete a miles de vendedores que ganan dinero real con ventas en vivo en ShaPop.',
       sellFast: 'Vende en segundos',
       sellFastDesc: 'Vender en vivo es rapido. Gana mas por hora que en cualquier marketplace.',
-      keepMore: 'Solo 8% comision',
-      keepMoreDesc: 'Una de las mas bajas del sector. Tu te quedas con lo que ganas.',
+      keepMore: 'Comisiones bajas',
+      keepMoreDesc: '8% comision + comisiones Stripe. Te quedas con mas que en otras plataformas.',
       bestBuyers: 'Compradores activos',
       bestBuyersDesc: 'Los compradores en vivo son fieles, entusiastas y listos para gastar.',
       trusted: 'Plataforma confiable',
       trustedDesc: 'Pagos seguros, proteccion al comprador y soporte 24/7.',
-      stats1: '10K+',
-      stats1Label: 'Vendedores activos',
-      stats2: '$2M+',
-      stats2Label: 'Ventas mensuales',
-      stats3: '4.9',
-      stats3Label: 'Valoracion app',
+      formatsTitle: 'Como vender?',
+      fmtAuction: 'Subastas',
+      fmtAuctionDesc: 'Los espectadores pujan en directo. El mejor postor se lleva el articulo.',
+      fmtBuyNow: 'Compra directa',
+      fmtBuyNowDesc: 'Vende a precio fijo, sin pujas. El comprador clica y compra al instante.',
+      fmtMystery: 'Caja misteriosa',
+      fmtMysteryDesc: 'Sorprende a tus compradores con un lote misterioso a precio unico.',
+      fmtRipShip: 'Abrir y enviar',
+      fmtRipShipDesc: 'Abre los packs en directo y envia inmediatamente.',
+      stats1: '~13%',
+      stats1Label: 'Comisiones',
+      stats2: '$0',
+      stats2Label: 'Costos iniciales',
+      stats3: '24/7',
+      stats3Label: 'Soporte',
       faq: 'FAQ',
       letsGo: 'Vamos!',
       free: 'Gratis para empezar',
@@ -231,7 +267,7 @@ export default function Dashboard() {
             {t.subtitle}
           </p>
 
-          {/* ─── Fake Live Preview Card ─── */}
+          {/* ─── Live Preview Card ─── */}
           <div style={{
             margin: '28px 20px 0', borderRadius: '20px', overflow: 'hidden',
             position: 'relative', height: '200px',
@@ -265,7 +301,7 @@ export default function Dashboard() {
               padding: '5px 10px', borderRadius: '8px',
               background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
             }}>
-              <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>847 viewers</span>
+              <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>LIVE</span>
             </div>
 
             {/* Center play icon */}
@@ -298,18 +334,8 @@ export default function Dashboard() {
                 {'\u{1F3AC}'}
               </div>
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>Sneaker Sunday Drop</p>
-                <p style={{ fontSize: '11px', color: '#999' }}>@sneaker_king</p>
-              </div>
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
-                {['$45', '$120', '$89'].map((price, i) => (
-                  <span key={i} style={{
-                    padding: '3px 8px', borderRadius: '6px',
-                    background: 'rgba(240,144,138,0.15)',
-                    border: '1px solid rgba(240,144,138,0.3)',
-                    fontSize: '11px', fontWeight: 700, color: '#F0908A',
-                  }}>{price}</span>
-                ))}
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>ShaPop Live</p>
+                <p style={{ fontSize: '11px', color: '#999' }}>@you</p>
               </div>
             </div>
           </div>
@@ -369,6 +395,48 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ─── Selling Formats ─── */}
+        <div style={{ padding: '0 16px', marginBottom: '28px' }}>
+          <p style={{
+            fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '14px',
+            letterSpacing: '-0.3px',
+          }}>
+            {t.formatsTitle}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {[
+              { emoji: '\u{1F525}', title: t.fmtAuction, desc: t.fmtAuctionDesc, gradient: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)', shadow: 'rgba(232,52,78,0.2)' },
+              { emoji: '\u{26A1}', title: t.fmtBuyNow, desc: t.fmtBuyNowDesc, gradient: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)', shadow: 'rgba(59,130,246,0.2)' },
+              { emoji: '\u{1F381}', title: t.fmtMystery, desc: t.fmtMysteryDesc, gradient: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)', shadow: 'rgba(139,92,246,0.2)' },
+              { emoji: '\u{1F4E6}', title: t.fmtRipShip, desc: t.fmtRipShipDesc, gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)', shadow: 'rgba(245,158,11,0.2)' },
+            ].map((fmt, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: '18px 14px', borderRadius: '18px',
+                  backgroundColor: '#0D0D0D',
+                  border: '1px solid #1A1A1A',
+                  opacity: mounted ? 1 : 0,
+                  transform: mounted ? 'translateY(0)' : 'translateY(20px)',
+                  transition: `all 0.5s ease ${0.7 + i * 0.1}s`,
+                }}
+              >
+                <div style={{
+                  width: '42px', height: '42px', borderRadius: '14px',
+                  background: fmt.gradient,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '20px', marginBottom: '12px',
+                  boxShadow: `0 4px 16px ${fmt.shadow}`,
+                }}>
+                  {fmt.emoji}
+                </div>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{fmt.title}</p>
+                <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>{fmt.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* ─── Free Trial Banner ─── */}
         <div style={{
           margin: '0 16px 28px', padding: '18px 20px', borderRadius: '18px',
@@ -421,7 +489,6 @@ export default function Dashboard() {
                       width: '100%', padding: '16px 18px',
                       background: openFaq === i ? '#0D0D0D' : '#080808',
                       border: 'none', cursor: 'pointer', textAlign: 'left',
-                      transition: 'background 0.2s',
                     }}
                   >
                     <span style={{ fontSize: '14px', fontWeight: 600, color: '#ccc', paddingRight: '12px' }}>

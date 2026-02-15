@@ -53,42 +53,11 @@ interface DemoMessage {
   unread: number
 }
 
-const demoOrders: DemoOrder[] = [
-  { id: 'o1', title: 'Nike Air Max 90', price: 129.99, seller: 'SneakerKing', status: 'expedie', date: '12 fev 2026', image: 'https://placehold.co/80x80/1A1A1A/F0908A?text=Nike' },
-  { id: 'o2', title: 'Sac Vintage Gucci', price: 340.00, seller: 'LuxeVintage', status: 'en_cours', date: '10 fev 2026', image: 'https://placehold.co/80x80/1A1A1A/E8344E?text=Gucci' },
-  { id: 'o3', title: 'PS5 Controller', price: 59.99, seller: 'GamerPro', status: 'livre', date: '5 fev 2026', image: 'https://placehold.co/80x80/1A1A1A/3B82F6?text=PS5' },
-  { id: 'o4', title: 'Montre Casio Vintage', price: 45.00, seller: 'RetroShop', status: 'livre', date: '28 jan 2026', image: 'https://placehold.co/80x80/1A1A1A/10B981?text=Casio' },
-  { id: 'o5', title: 'Veste en cuir noire', price: 89.90, seller: 'StreetStyle', status: 'annule', date: '20 jan 2026', image: 'https://placehold.co/80x80/1A1A1A/F59E0B?text=Veste' },
-]
-
-const demoBids: DemoBid[] = [
-  { id: 'b1', title: 'Carte Pokemon Dracaufeu', yourBid: 250, highestBid: 250, status: 'en_cours', image: 'https://placehold.co/80x80/1A1A1A/F59E0B?text=PKM' },
-  { id: 'b2', title: 'Jordan 1 Retro Chicago', yourBid: 320, highestBid: 380, status: 'perdu', image: 'https://placehold.co/80x80/1A1A1A/E8344E?text=J1' },
-  { id: 'b3', title: 'MacBook Pro M2', yourBid: 890, highestBid: 890, status: 'gagne', image: 'https://placehold.co/80x80/1A1A1A/10B981?text=Mac' },
-  { id: 'b4', title: 'Figurine One Piece', yourBid: 75, highestBid: 82, status: 'en_cours', image: 'https://placehold.co/80x80/1A1A1A/8B5CF6?text=OP' },
-]
-
-const demoOffers: DemoOffer[] = [
-  { id: 'of1', title: 'Sneakers Adidas Yeezy', yourOffer: 180, status: 'en_attente', image: 'https://placehold.co/80x80/1A1A1A/F59E0B?text=Yeezy' },
-  { id: 'of2', title: 'Sac Louis Vuitton', yourOffer: 450, status: 'contre_offre', counterAmount: 520, image: 'https://placehold.co/80x80/1A1A1A/F0908A?text=LV' },
-  { id: 'of3', title: 'Casque Sony WH-1000XM5', yourOffer: 200, status: 'acceptee', image: 'https://placehold.co/80x80/1A1A1A/10B981?text=Sony' },
-]
-
-const demoSaved: DemoSaved[] = [
-  { id: 's1', title: 'Air Force 1 Custom', price: 149.99, isLive: false, image: 'https://placehold.co/160x160/1A1A1A/F0908A?text=AF1', saved: true },
-  { id: 's2', title: 'Live Sneakers Drop', isLive: true, image: 'https://placehold.co/160x160/1A1A1A/E8344E?text=LIVE', saved: true },
-  { id: 's3', title: 'Collier en or 18k', price: 220, isLive: false, image: 'https://placehold.co/160x160/1A1A1A/F59E0B?text=Or', saved: true },
-  { id: 's4', title: 'Vinyle The Weeknd', price: 35, isLive: false, image: 'https://placehold.co/160x160/1A1A1A/8B5CF6?text=Vinyl', saved: true },
-  { id: 's5', title: 'Live Cartes Pokemon', isLive: true, image: 'https://placehold.co/160x160/1A1A1A/3B82F6?text=PKM', saved: true },
-  { id: 's6', title: 'Hoodie Supreme', price: 280, isLive: false, image: 'https://placehold.co/160x160/1A1A1A/10B981?text=SUP', saved: true },
-]
-
-const demoMessages: DemoMessage[] = [
-  { id: 'm1', username: 'SneakerKing', avatar: 'SK', lastMessage: 'Ton colis a ete expedie ! Numero de suivi...', timestamp: 'Il y a 2h', unread: 1 },
-  { id: 'm2', username: 'LuxeVintage', avatar: 'LV', lastMessage: 'Merci pour ton achat ! N\'hesite pas...', timestamp: 'Hier', unread: 0 },
-  { id: 'm3', username: 'GamerPro', avatar: 'GP', lastMessage: 'Oui la manette est bien neuve, jamais...', timestamp: 'Lun', unread: 3 },
-  { id: 'm4', username: 'RetroShop', avatar: 'RS', lastMessage: 'Je peux te faire un prix si tu prends les deux', timestamp: '8 fev', unread: 0 },
-]
+const demoOrders: DemoOrder[] = []
+const demoBids: DemoBid[] = []
+const demoOffers: DemoOffer[] = []
+const demoSaved: DemoSaved[] = []
+const demoMessages: DemoMessage[] = []
 
 export default function ActivityPage() {
   const { user } = useAuth()
@@ -674,7 +643,6 @@ export default function ActivityPage() {
                 border: mainTab === tab.id
                   ? '1px solid rgba(240,144,138,0.3)'
                   : '1px solid #1A1A1A',
-                transition: 'all 0.2s',
                 position: 'relative',
               }}
             >
@@ -713,7 +681,6 @@ export default function ActivityPage() {
                   border: subFilter === filter.id ? 'none' : '1px solid #222',
                   color: subFilter === filter.id ? '#000' : '#555',
                   fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                  transition: 'all 0.2s',
                 }}
               >
                 {t(lang, filter.labelKey)}

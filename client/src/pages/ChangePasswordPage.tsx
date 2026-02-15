@@ -176,7 +176,7 @@ export default function ChangePasswordPage() {
             width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
             color: '#fff', fontSize: '16px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s',
+            opacity: loading ? 0.6 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
           }}
         >

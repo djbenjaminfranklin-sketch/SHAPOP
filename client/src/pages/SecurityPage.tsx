@@ -142,14 +142,12 @@ export default function SecurityPage() {
               width: '52px', height: '30px', borderRadius: '15px', border: 'none',
               backgroundColor: twoFAEnabled ? '#F0908A' : '#333',
               position: 'relative', cursor: 'pointer', flexShrink: 0,
-              transition: 'background-color 0.3s',
             }}
           >
             <div style={{
               width: '24px', height: '24px', borderRadius: '50%',
               backgroundColor: '#fff', position: 'absolute', top: '3px',
               left: twoFAEnabled ? '25px' : '3px',
-              transition: 'left 0.3s',
               boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
             }} />
           </button>
@@ -220,7 +218,7 @@ export default function SecurityPage() {
             backgroundColor: 'transparent', border: '1px solid #E8344E',
             borderRadius: '12px', color: '#E8344E', fontSize: '15px', fontWeight: 600,
             cursor: signingOut ? 'not-allowed' : 'pointer',
-            opacity: signingOut ? 0.6 : 1, transition: 'opacity 0.2s',
+            opacity: signingOut ? 0.6 : 1,
           }}
         >
           {signingOut
