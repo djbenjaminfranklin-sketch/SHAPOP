@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
     allowsInlineMediaPlayback: true
   },
   server: {
-    allowNavigation: ['*.supabase.co', '*.stripe.com']
+    allowNavigation: ['*.supabase.co', '*.stripe.com', '*.onrender.com']
   }
 };
 
