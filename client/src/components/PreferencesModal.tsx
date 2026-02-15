@@ -107,6 +107,24 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     }
   }, [visible])
 
+  // Lock body scroll when modal is visible
+  useEffect(() => {
+    if (visible) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.top = `-${window.scrollY}px`
+    }
+    return () => {
+      const scrollY = document.body.style.top
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+      window.scrollTo(0, parseInt(scrollY || '0') * -1)
+    }
+  }, [visible])
+
   // Get cities from communities data for the detected country
   const communities = getCommunitiesByCountry(userCountry)
   const commCities = communities.map(c => c.city).filter((city, i, arr) => arr.indexOf(city) === i)
@@ -181,11 +199,13 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
       {/* Backdrop */}
       <div
         onClick={handleSkip}
+        onTouchMove={e => e.preventDefault()}
         style={{
           position: 'fixed',
           inset: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.7)',
           zIndex: 100,
+          touchAction: 'none',
         }}
       />
 

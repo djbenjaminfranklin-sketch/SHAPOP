@@ -46,13 +46,19 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey)
 // =============================================
 // Stripe client
 // =============================================
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('WARNING: STRIPE_SECRET_KEY not set — Stripe features will fail')
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_missing', {
   apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
 })
 
 // =============================================
 // Mux client
 // =============================================
+if (!process.env.MUX_TOKEN_ID || !process.env.MUX_TOKEN_SECRET) {
+  console.warn('WARNING: MUX_TOKEN_ID or MUX_TOKEN_SECRET not set — Mux features will fail')
+}
 const muxClient = new Mux({
   tokenId: process.env.MUX_TOKEN_ID || '',
   tokenSecret: process.env.MUX_TOKEN_SECRET || '',
@@ -169,9 +175,18 @@ type AuthenticatedRequest = Request & { user?: { id: string } }
 // Security headers
 app.use(helmet())
 
-// CORS - restricted origins
+// CORS - accept configured origins + Capacitor
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173'],
+  origin: (origin, callback) => {
+    const allowed = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173']
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+    // Allow Capacitor origins
+    if (origin.startsWith('capacitor://') || origin.startsWith('ionic://')) return callback(null, true)
+    // Allow configured origins
+    if (allowed.includes(origin)) return callback(null, true)
+    callback(null, false)
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -1185,7 +1200,7 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
     // Get order details
     const { data: order } = await supabase
       .from('orders')
-      .select('*, items:item_id(title)')
+      .select('*')
       .eq('id', order_id)
       .eq('buyer_id', buyerId)
       .single()
@@ -1240,7 +1255,7 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
         seller_id: order.seller_id,
         item_id: order.item_id,
       },
-      description: `ShaPop - ${(order as Record<string, unknown>).items && typeof (order as Record<string, unknown>).items === 'object' ? ((order as Record<string, unknown>).items as Record<string, string>).title : 'Purchase'}`,
+      description: `ShaPop - Order ${order.id}`,
     })
 
     // Update order with real PaymentIntent ID
