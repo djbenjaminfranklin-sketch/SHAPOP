@@ -357,36 +357,42 @@ export default function StreamView() {
     if (!id) return
 
     const fetchStream = async () => {
-      const { data } = await supabase
-        .from('streams')
-        .select('*')
-        .eq('id', id)
-        .single()
-      setStream(data)
+      try {
+        const { data } = await supabase
+          .from('streams')
+          .select('*')
+          .eq('id', id)
+          .single()
+        setStream(data)
+      } catch { /* ignore */ }
       setLoading(false)
     }
 
     const fetchActiveAuction = async () => {
-      const { data } = await supabase
-        .from('items')
-        .select('*')
-        .eq('stream_id', id)
-        .eq('status', 'active')
-        .single()
-      setActiveAuction(data)
-      if (data) {
-        setBidAmount(String(data.current_price + 10))
-      }
+      try {
+        const { data } = await supabase
+          .from('items')
+          .select('*')
+          .eq('stream_id', id)
+          .eq('status', 'active')
+          .single()
+        setActiveAuction(data)
+        if (data) {
+          setBidAmount(String(data.current_price + 10))
+        }
+      } catch { /* ignore */ }
     }
 
     const fetchMessages = async () => {
-      const { data } = await supabase
-        .from('chat_messages')
-        .select('*, user_profile:profiles!user_id(display_name)')
-        .eq('stream_id', id)
-        .order('created_at', { ascending: true })
-        .limit(100)
-      setMessages(data || [])
+      try {
+        const { data } = await supabase
+          .from('chat_messages')
+          .select('*, user_profile:profiles!user_id(display_name)')
+          .eq('stream_id', id)
+          .order('created_at', { ascending: true })
+          .limit(100)
+        setMessages(data || [])
+      } catch { /* ignore */ }
     }
 
     fetchStream()
