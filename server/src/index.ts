@@ -164,9 +164,7 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 // Extend Request type for auth
-interface AuthenticatedRequest extends Request {
-  user?: { id: string }
-}
+type AuthenticatedRequest = Request & { user?: { id: string } }
 
 // Security headers
 app.use(helmet())
