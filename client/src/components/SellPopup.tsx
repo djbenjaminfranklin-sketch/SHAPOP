@@ -92,7 +92,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       label: c.startLive,
       description: c.startLiveDesc,
       gradient: 'linear-gradient(135deg, #E8344E, #F0908A)',
-      route: null,
+      route: '/go-live',
       featured: false,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">

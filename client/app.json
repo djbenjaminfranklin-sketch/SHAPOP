@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "ShaPop",
+    "slug": "shapop",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/logo.png",
+    "splash": {
+      "image": "./public/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.shapop.app",
+      "buildNumber": "1"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0d21ca94-3c16-46a7-a902-620faf1f6088"
+      }
+    },
+    "owner": "shydating"
+  }
+}

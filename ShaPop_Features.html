@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShaPop - Document de presentation des fonctionnalites</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    :root {
+      --primary: #F0908A;
+      --secondary: #E8344E;
+      --bg: #ffffff;
+      --text: #1a1a1a;
+      --text-light: #555555;
+      --text-muted: #888888;
+      --card-bg: #f8f8f8;
+      --card-border: #e8e8e8;
+      --accent-bg: rgba(240, 144, 138, 0.08);
+      --accent-border: rgba(240, 144, 138, 0.25);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.7;
+      font-size: 11pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      padding: 20mm 22mm;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    /* ==================== COVER ==================== */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: linear-gradient(165deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+      color: #ffffff;
+      padding: 30mm 22mm;
+    }
+
+    .cover::before {
+      content: '';
+      position: absolute;
+      top: -100px;
+      right: -100px;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(240, 144, 138, 0.12) 0%, transparent 70%);
+    }
+
+    .cover::after {
+      content: '';
+      position: absolute;
+      bottom: -80px;
+      left: -80px;
+      width: 350px;
+      height: 350px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(232, 52, 78, 0.08) 0%, transparent 70%);
+    }
+
+    .cover-logo {
+      font-size: 72pt;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -2px;
+      margin-bottom: 16px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-tagline {
+      font-size: 16pt;
+      font-weight: 300;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 60px;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-subtitle {
+      font-size: 12pt;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-date {
+      font-size: 11pt;
+      font-weight: 400;
+      color: rgba(255,255,255,0.35);
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-line {
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 2px;
+      margin: 28px auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cover-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      border: 1px solid rgba(240, 144, 138, 0.3);
+      background: rgba(240, 144, 138, 0.08);
+      color: var(--primary);
+      font-size: 10pt;
+      font-weight: 600;
+      margin-bottom: 48px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ==================== HEADERS ==================== */
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8mm;
+      padding-bottom: 4mm;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .page-header-logo {
+      font-size: 14pt;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-header-section {
+      font-size: 9pt;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .section-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      font-size: 10pt;
+      font-weight: 800;
+      margin-right: 10px;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 20pt;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 5mm;
+      display: flex;
+      align-items: center;
+      letter-spacing: -0.5px;
+    }
+
+    .section-icon {
+      font-size: 22pt;
+      margin-right: 10px;
+    }
+
+    /* ==================== CONTENT BLOCKS ==================== */
+    .intro-text {
+      font-size: 11pt;
+      color: var(--text-light);
+      line-height: 1.8;
+      margin-bottom: 5mm;
+    }
+
+    .problem-box {
+      padding: 5mm;
+      border-radius: 12px;
+      background: #FFF5F5;
+      border-left: 4px solid var(--secondary);
+      margin-bottom: 5mm;
+    }
+
+    .problem-box h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--secondary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2mm;
+    }
+
+    .problem-box p {
+      font-size: 10.5pt;
+      color: var(--text-light);
+      line-height: 1.7;
+    }
+
+    .solution-box {
+      padding: 5mm;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(240,144,138,0.06), rgba(232,52,78,0.03));
+      border-left: 4px solid var(--primary);
+      margin-bottom: 5mm;
+    }
+
+    .solution-box h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2mm;
+    }
+
+    .solution-box p {
+      font-size: 10.5pt;
+      color: var(--text-light);
+      line-height: 1.7;
+    }
+
+    .steps-list {
+      list-style: none;
+      counter-reset: step-counter;
+      margin: 4mm 0;
+    }
+
+    .steps-list li {
+      counter-increment: step-counter;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 3mm;
+      font-size: 10.5pt;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+
+    .steps-list li::before {
+      content: counter(step-counter);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: #fff;
+      font-size: 9pt;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .scenario-box {
+      padding: 5mm;
+      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      margin: 4mm 0;
+      position: relative;
+    }
+
+    .scenario-box::before {
+      content: 'MISE EN SITUATION';
+      display: block;
+      font-size: 8pt;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 2mm;
+    }
+
+    .scenario-box p {
+      font-size: 10.5pt;
+      color: var(--text-light);
+      line-height: 1.7;
+      font-style: italic;
+    }
+
+    .tech-highlights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 3mm;
+    }
+
+    .tech-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 6px;
+      background: var(--accent-bg);
+      border: 1px solid var(--accent-border);
+      font-size: 8.5pt;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .tech-label {
+      font-size: 8pt;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2mm;
+      margin-top: 3mm;
+    }
+
+    /* ==================== OVERVIEW PAGE ==================== */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin: 4mm 0;
+    }
+
+    .overview-card {
+      padding: 4mm;
+      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .overview-card h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 2mm;
+    }
+
+    .overview-card p {
+      font-size: 9.5pt;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+
+    .differentiator-icon {
+      font-size: 16pt;
+      margin-bottom: 2mm;
+      display: block;
+    }
+
+    /* ==================== OTHER FEATURES ==================== */
+    .features-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3.5mm;
+      margin: 4mm 0;
+    }
+
+    .feature-mini {
+      padding: 3.5mm 4mm;
+      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .feature-mini-icon {
+      font-size: 14pt;
+      flex-shrink: 0;
+      margin-top: -1px;
+    }
+
+    .feature-mini h5 {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 1mm;
+    }
+
+    .feature-mini p {
+      font-size: 8.5pt;
+      color: var(--text-light);
+      line-height: 1.5;
+    }
+
+    /* ==================== BUSINESS MODEL ==================== */
+    .pricing-card {
+      padding: 6mm;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #0a0a0a, #1a1a1a);
+      color: #fff;
+      margin: 4mm 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pricing-card::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: rgba(240, 144, 138, 0.1);
+    }
+
+    .pricing-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3mm 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .pricing-row:last-child {
+      border-bottom: none;
+    }
+
+    .pricing-label {
+      font-size: 10.5pt;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .pricing-value {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .pricing-value.highlight {
+      color: var(--primary);
+      font-size: 13pt;
+    }
+
+    .pricing-total {
+      margin-top: 3mm;
+      padding-top: 3mm;
+      border-top: 2px solid rgba(240,144,138,0.3);
+    }
+
+    /* ==================== COMPLIANCE ==================== */
+    .compliance-list {
+      list-style: none;
+      margin: 3mm 0;
+    }
+
+    .compliance-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 2.5mm 0;
+      font-size: 10.5pt;
+      color: var(--text-light);
+      line-height: 1.6;
+    }
+
+    .compliance-check {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #10B981;
+      font-size: 10pt;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* ==================== TECH STACK ==================== */
+    .stack-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4mm;
+      margin: 4mm 0;
+    }
+
+    .stack-card {
+      padding: 5mm;
+      border-radius: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .stack-card h4 {
+      font-size: 9pt;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 2mm;
+    }
+
+    .stack-card p {
+      font-size: 11pt;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ==================== FOOTER ==================== */
+    .page-footer {
+      position: absolute;
+      bottom: 8mm;
+      left: 22mm;
+      right: 22mm;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 8pt;
+      color: var(--text-muted);
+    }
+
+    .page-number {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-weight: 600;
+      font-size: 8pt;
+    }
+
+    /* ==================== COUNTRIES LIST ==================== */
+    .countries-row {
+      display: flex;
+      gap: 3mm;
+      margin: 3mm 0;
+      flex-wrap: wrap;
+    }
+
+    .country-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2.5mm 4mm;
+      border-radius: 8px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      font-size: 10pt;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .country-flag {
+      font-size: 14pt;
+    }
+
+    /* ==================== DUAL SECTION ==================== */
+    .dual-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5mm;
+      margin: 4mm 0;
+    }
+
+    .dual-column {
+      padding: 4mm;
+      border-radius: 10px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+    }
+
+    .dual-column h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 3mm;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .sub-heading {
+      font-size: 13pt;
+      font-weight: 700;
+      color: var(--text);
+      margin: 5mm 0 3mm 0;
+    }
+
+    /* ==================== HIGHLIGHT QUOTE ==================== */
+    .highlight-quote {
+      padding: 5mm 6mm;
+      border-radius: 12px;
+      background: linear-gradient(135deg, rgba(240,144,138,0.08), rgba(232,52,78,0.04));
+      border: 1px solid var(--accent-border);
+      margin: 4mm 0;
+      font-size: 11.5pt;
+      font-weight: 500;
+      color: var(--text);
+      line-height: 1.8;
+      font-style: italic;
+    }
+
+    /* ==================== TABLE ==================== */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 3mm 0;
+    }
+
+    .info-table td {
+      padding: 2.5mm 3mm;
+      font-size: 10pt;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .info-table td:first-child {
+      font-weight: 600;
+      color: var(--text);
+      width: 40%;
+    }
+
+    .info-table td:last-child {
+      color: var(--text-light);
+    }
+
+    /* ==================== FREE BADGE ==================== */
+    .free-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 100px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #10B981;
+      font-size: 9pt;
+      font-weight: 700;
+    }
+
+    .energy-levels {
+      display: flex;
+      gap: 3mm;
+      margin: 3mm 0;
+    }
+
+    .energy-level {
+      flex: 1;
+      padding: 3mm;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .energy-level .label {
+      font-size: 9pt;
+      font-weight: 700;
+      margin-bottom: 1mm;
+    }
+
+    .energy-level .bar {
+      height: 6px;
+      border-radius: 3px;
+      margin-top: 2mm;
+    }
+
+    .energy-low { background: rgba(239,68,68,0.08); }
+    .energy-low .label { color: #EF4444; }
+    .energy-low .bar { background: #EF4444; }
+
+    .energy-medium { background: rgba(245,158,11,0.08); }
+    .energy-medium .label { color: #F59E0B; }
+    .energy-medium .bar { background: #F59E0B; }
+
+    .energy-high { background: rgba(34,197,94,0.08); }
+    .energy-high .label { color: #22C55E; }
+    .energy-high .bar { background: #22C55E; }
+
+    .energy-peak { background: rgba(168,85,247,0.08); }
+    .energy-peak .label { color: #A855F7; }
+    .energy-peak .bar { background: #A855F7; }
+
+    /* Reactions display */
+    .reactions-row {
+      display: flex;
+      gap: 3mm;
+      margin: 3mm 0;
+      justify-content: center;
+    }
+
+    .reaction-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16pt;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======================= PAGE 1: COVER ======================= -->
+  <div class="page cover">
+    <div class="cover-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A"/>
+      </svg>
+      Application iOS de live shopping
+    </div>
+    <div class="cover-logo">ShaPop</div>
+    <p class="cover-tagline">Le shopping en direct, reinvente</p>
+    <div class="cover-line"></div>
+    <p class="cover-subtitle">Document de presentation des fonctionnalites</p>
+    <p class="cover-date">Fevrier 2026</p>
+    <div class="page-footer" style="color: rgba(255,255,255,0.2);">
+      <span>ShaPop - Confidentiel</span>
+      <span class="page-number" style="background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.3);">1</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 2: VUE D'ENSEMBLE ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Vue d'ensemble</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-number">1</span>
+      Qu'est-ce que ShaPop ?
+    </div>
+
+    <div class="highlight-quote">
+      Imagine pouvoir acheter en direct comme dans un marche, mais depuis ton canape. Un vendeur te montre ses articles en video, tu poses des questions en temps reel, tu encheries, et tu achetes, le tout en quelques clics.
+    </div>
+
+    <p class="intro-text">
+      <strong>ShaPop</strong> est une application mobile de <strong>live shopping</strong> : une place de marche ou les vendeurs font des diffusions en direct pour presenter leurs produits. Mode, sneakers, cartes de collection, high-tech, vintage... Les acheteurs regardent, reagissent, discutent via le chat et achetent en direct grace a un systeme d'encheres en temps reel. C'est l'experience d'un marche aux puces, avec la puissance de la technologie.
+    </p>
+
+    <p class="intro-text">
+      Contrairement aux plateformes d'e-commerce classiques ou les articles sont presentes sous forme de fiches statiques, ShaPop mise sur l'<strong>interaction humaine</strong>. Le vendeur presente ses produits comme il le ferait face a un client : il les montre sous tous les angles, repond aux questions, et cree une ambiance qui donne envie d'acheter. C'est plus fun, plus authentique, et souvent plus avantageux en termes de prix.
+    </p>
+
+    <p class="intro-text">
+      L'application est concue pour un marche <strong>international</strong>, avec un lancement cible en Israel, en France et en Espagne. Elle est disponible en quatre langues (francais, anglais, hebreu, espagnol) et s'appuie sur des communautes locales pour rapprocher acheteurs et vendeurs dans la meme ville.
+    </p>
+
+    <div class="sub-heading">Ce qui nous differencie</div>
+
+    <div class="overview-grid">
+      <div class="overview-card">
+        <span class="differentiator-icon">&#x1F3AF;</span>
+        <h4>Matching personnalise</h4>
+        <p>Un algorithme qui apprend tes gouts et te montre les lives qui te correspondent, avec un score de compatibilite affiche en pourcentage.</p>
+      </div>
+      <div class="overview-card">
+        <span class="differentiator-icon">&#x2728;</span>
+        <h4>IA pour les vendeurs</h4>
+        <p>Prends une photo, l'intelligence artificielle cree ton annonce en 3 secondes : titre, categorie, prix, tags. Zero effort.</p>
+      </div>
+      <div class="overview-card">
+        <span class="differentiator-icon">&#x1F30D;</span>
+        <h4>Communautes locales</h4>
+        <p>Achete et vends pres de chez toi. Des communautes par ville et par pays, avec la possibilite de recuperer en main propre.</p>
+      </div>
+      <div class="overview-card">
+        <span class="differentiator-icon">&#x1F4CA;</span>
+        <h4>Engagement en temps reel</h4>
+        <p>Les vendeurs voient l'energie de leur audience en direct et recoivent des conseils de l'IA pour optimiser leurs ventes.</p>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">2</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 3-4: FEATURE 1 - MATCHING ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Fonctionnalite 1</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-icon">&#x1F3AF;</span>
+      Matching Personnalise des Lives
+    </div>
+
+    <div class="problem-box">
+      <h4>Le probleme</h4>
+      <p>Sur les plateformes existantes comme Whatnot, les utilisateurs voient des streams aleatoires qui ne correspondent pas forcement a leurs centres d'interet. Tu aimes les sneakers vintage mais on te montre des bijoux en or ? C'est frustrant, et ca fait perdre du temps.</p>
+    </div>
+
+    <div class="solution-box">
+      <h4>Notre solution</h4>
+      <p>ShaPop apprend tes preferences et calcule un <strong>score de pertinence</strong> pour chaque live en cours. L'onglet "Pour toi" te montre uniquement les lives qui t'interessent, tries du plus pertinent au moins pertinent, avec un badge de compatibilite bien visible.</p>
+    </div>
+
+    <div class="sub-heading">Comment ca marche</div>
+
+    <ol class="steps-list">
+      <li>Au premier lancement, tu choisis tes <strong>categories preferees</strong> (sneakers, mode, gaming, cartes, vintage...) et tes <strong>villes preferees</strong> dans un ecran de personnalisation.</li>
+      <li>L'algorithme calcule un <strong>score de pertinence de 0 a 100</strong> pour chaque live, base sur 5 criteres ponderes.</li>
+      <li>L'onglet <strong>"Pour toi"</strong> te montre les lives tries par score decroissant, les plus pertinents en premier.</li>
+      <li>Un badge <strong>"XX% match"</strong> s'affiche sur chaque carte de live pour indiquer immediatement la compatibilite.</li>
+    </ol>
+
+    <div class="sub-heading">Repartition du score (sur 100 points)</div>
+
+    <table class="info-table">
+      <tr>
+        <td>Categorie favorite</td>
+        <td>+30 points si le live correspond a une de tes categories preferees</td>
+      </tr>
+      <tr>
+        <td>Vendeur favori</td>
+        <td>+25 points si le vendeur fait partie de tes favoris</td>
+      </tr>
+      <tr>
+        <td>Ville preferee</td>
+        <td>+20 points si le live a lieu dans une de tes villes preferees</td>
+      </tr>
+      <tr>
+        <td>Fourchette de prix</td>
+        <td>+15 points si le live correspond a ton budget</td>
+      </tr>
+      <tr>
+        <td>Popularite</td>
+        <td>+10 points maximum selon le nombre de spectateurs et l'engagement</td>
+      </tr>
+    </table>
+
+    <div class="scenario-box">
+      <p>Sarah adore les sneakers vintage. Quand elle ouvre ShaPop, les lives de sneakers a Tel Aviv apparaissent en premier avec un badge <strong>"92% match"</strong>. Elle voit aussi un live de montres retro a 67% qui pourrait l'interesser. Les lives de bijoux en or sont bien plus bas dans la liste. Sarah trouve ses coups de coeur en quelques secondes, sans chercher.</p>
+    </div>
+
+    <div class="tech-label">Points techniques</div>
+    <div class="tech-highlights">
+      <span class="tech-tag">Algorithme de scoring multi-criteres</span>
+      <span class="tech-tag">Preferences stockees localement</span>
+      <span class="tech-tag">Tri en temps reel</span>
+      <span class="tech-tag">5 criteres ponderes</span>
+      <span class="tech-tag">Score 0-100</span>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">3</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 5-6: FEATURE 2 - AI LISTING ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Fonctionnalite 2</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-icon">&#x2728;</span>
+      Assistant IA de Creation d'Annonces
+    </div>
+
+    <div class="problem-box">
+      <h4>Le probleme</h4>
+      <p>Creer une annonce sur les plateformes classiques est fastidieux : il faut ecrire un titre, une description, choisir la bonne categorie, evaluer l'etat de l'objet, fixer un prix... Resultat, beaucoup de vendeurs abandonnent en cours de route ou publient des annonces baclees qui ne se vendent pas.</p>
+    </div>
+
+    <div class="solution-box">
+      <h4>Notre solution</h4>
+      <p>Avec <strong>IA Express</strong>, il suffit de prendre une photo. L'intelligence artificielle analyse l'image en quelques secondes et remplit automatiquement tous les champs : categorie, etat, titre, description, tags et meme une estimation de prix basee sur les ventes recentes d'articles similaires.</p>
+    </div>
+
+    <div class="sub-heading">Comment ca marche</div>
+
+    <ol class="steps-list">
+      <li>Appuie sur le bouton <strong>"Vendre"</strong> puis selectionne <strong>"IA Express"</strong> dans le menu de creation (mis en avant avec un badge "Nouveau").</li>
+      <li>Prends une <strong>photo de ton article</strong> directement depuis l'application ou importe une image depuis ta galerie.</li>
+      <li>L'IA analyse l'image en 7 etapes visibles a l'ecran : detection de l'objet, identification de la marque, evaluation de l'etat, estimation du prix, generation des tags, et finalisation.</li>
+      <li>En <strong>moins de 3 secondes</strong>, tous les champs sont remplis automatiquement avec un score de confiance (generalement 88-97%).</li>
+      <li>Tu obtiens une <strong>estimation de prix</strong> sous forme de fourchette (ex: 45-75 ILS) basee sur les ventes recentes.</li>
+      <li>Tu verifies les informations, tu ajustes ce que tu veux, et tu publies <strong>en un clic</strong>.</li>
+    </ol>
+
+    <div class="sub-heading">Champs remplis automatiquement</div>
+
+    <table class="info-table">
+      <tr>
+        <td>Titre</td>
+        <td>Nom complet du produit (ex: "Nike Air Max 90 OG Infrared")</td>
+      </tr>
+      <tr>
+        <td>Categorie</td>
+        <td>Parmi 15 categories (Sneakers, Mode, Montres, High-tech, Gaming, Cartes...)</td>
+      </tr>
+      <tr>
+        <td>Etat</td>
+        <td>Neuf, Comme neuf, Bon etat ou Correct</td>
+      </tr>
+      <tr>
+        <td>Prix estime</td>
+        <td>Fourchette de prix basee sur le marche (ex: 85-140 ILS)</td>
+      </tr>
+      <tr>
+        <td>Tags</td>
+        <td>5 tags pertinents pour le referencement (ex: #nike #airmax #sneakers)</td>
+      </tr>
+      <tr>
+        <td>Description</td>
+        <td>Description detaillee generee par IA, modifiable avant publication</td>
+      </tr>
+    </table>
+
+    <div class="scenario-box">
+      <p>Marc veut vendre sa montre Casio G-Shock. Il appuie sur "Vendre", choisit "IA Express", et prend une photo. En 3 secondes, ShaPop detecte : <strong>"Montre Casio G-Shock DW-5600 - Comme neuf - 45 a 75 ILS"</strong> avec les tags #casio #gshock #montre #vintage #retro et une description complete. Marc ajuste le prix a 60 ILS, valide, et son annonce est en ligne. Temps total : moins de 15 secondes.</p>
+    </div>
+
+    <div class="tech-label">Points techniques</div>
+    <div class="tech-highlights">
+      <span class="tech-tag">Analyse d'image IA</span>
+      <span class="tech-tag">Score de confiance 88-97%</span>
+      <span class="tech-tag">7 etapes d'analyse</span>
+      <span class="tech-tag">15 categories supportees</span>
+      <span class="tech-tag">Multi-langue (FR, EN, HE, ES)</span>
+      <span class="tech-tag">Estimation de prix contextuelle</span>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">4</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 7-8: FEATURE 3 - COMMUNITIES ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Fonctionnalite 3</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-icon">&#x1F465;</span>
+      Communautes Locales
+    </div>
+
+    <div class="problem-box">
+      <h4>Le probleme</h4>
+      <p>Les plateformes de live shopping existantes sont globales et impersonnelles. On se retrouve a regarder des lives de vendeurs a l'autre bout du monde, avec des frais de livraison astronomiques et aucun lien de proximite. Difficile de creer une relation de confiance quand on ne sait meme pas d'ou vient le vendeur.</p>
+    </div>
+
+    <div class="solution-box">
+      <h4>Notre solution</h4>
+      <p>ShaPop organise ses utilisateurs en <strong>communautes locales</strong> basees sur la ville et le pays. Chaque communaute a ses propres vendeurs, ses lives en cours, et ses membres. Tu peux acheter pres de chez toi, reduire les frais de livraison, et meme recuperer tes achats en main propre.</p>
+    </div>
+
+    <div class="sub-heading">Comment ca marche</div>
+
+    <ol class="steps-list">
+      <li>ShaPop <strong>detecte ton pays automatiquement</strong> grace a la langue de ton telephone ou a tes parametres. Tu peux aussi le changer manuellement.</li>
+      <li>Tu vois les <strong>communautes de ta ville et de ton pays</strong> : Tel Aviv Marketplace, Paris Marketplace, Madrid Marketplace, London Marketplace...</li>
+      <li>Chaque communaute affiche le <strong>nombre de membres</strong>, les <strong>lives en cours</strong>, les <strong>vendeurs actifs</strong> et le nombre de lives de la semaine.</li>
+      <li>Rejoins une communaute pour voir les lives locaux et <strong>acheter pres de chez toi</strong>. Moins de frais de livraison, et possibilite de recuperer en main propre !</li>
+    </ol>
+
+    <div class="sub-heading">Pays et communautes supportes</div>
+
+    <div class="countries-row">
+      <div class="country-badge">
+        <span class="country-flag">&#x1F1EE;&#x1F1F1;</span>
+        Israel (10 villes)
+      </div>
+      <div class="country-badge">
+        <span class="country-flag">&#x1F1EB;&#x1F1F7;</span>
+        France (8 villes)
+      </div>
+      <div class="country-badge">
+        <span class="country-flag">&#x1F1EA;&#x1F1F8;</span>
+        Espagne (6 villes)
+      </div>
+      <div class="country-badge">
+        <span class="country-flag">&#x1F1FA;&#x1F1F8;</span>
+        Etats-Unis (6 villes)
+      </div>
+      <div class="country-badge">
+        <span class="country-flag">&#x1F1EC;&#x1F1E7;</span>
+        Royaume-Uni (4 villes)
+      </div>
+    </div>
+
+    <p class="intro-text" style="font-size: 10pt;">
+      Exemples de communautes : Tel Aviv Marketplace (2 847 membres), Paris Marketplace (4 215 membres), Madrid Marketplace (3 156 membres), London Marketplace (4 567 membres), New York Marketplace (5 432 membres). Chaque communaute est unique : certaines se specialisent dans le vintage, d'autres dans la tech ou la mode.
+    </p>
+
+    <div class="scenario-box">
+      <p>Ana vit a Madrid. Elle ouvre l'onglet "Local" et voit les communautes espagnoles. Elle rejoint <strong>"Madrid Marketplace"</strong> (3 156 membres) et decouvre 4 lives en cours de vendeurs madrilenes. Elle achete un sac a main a une vendeuse du quartier de Malasana et le recupere en main propre le lendemain dans un cafe. Zero frais de livraison, et un echange sympa en prime.</p>
+    </div>
+
+    <div class="tech-label">Points techniques</div>
+    <div class="tech-highlights">
+      <span class="tech-tag">Detection automatique du pays</span>
+      <span class="tech-tag">34 communautes actives</span>
+      <span class="tech-tag">5 pays supportes</span>
+      <span class="tech-tag">Statistiques en temps reel</span>
+      <span class="tech-tag">Images via Unsplash</span>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">5</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 9-10: FEATURE 4 - LIVE ENGAGEMENT ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Fonctionnalite 4</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-icon">&#x1F4CA;</span>
+      Live Adaptatif (Engagement Temps Reel)
+    </div>
+
+    <div class="problem-box">
+      <h4>Le probleme</h4>
+      <p>Sur les plateformes de live existantes, les vendeurs naviguent a l'aveugle. Ils ne savent pas si leur audience est captivee ou en train de partir, quand lancer leur meilleur article, ni comment adapter leur discours pour garder l'attention. Resultat : des lives qui s'essoufflent et des ventes en dessous du potentiel.</p>
+    </div>
+
+    <div class="solution-box">
+      <h4>Notre solution</h4>
+      <p>ShaPop fournit aux vendeurs un <strong>tableau de bord d'engagement en temps reel</strong> avec une jauge d'energie, des metriques live et des <strong>recommandations de l'IA</strong> qui s'adaptent au niveau d'engagement. Les spectateurs influencent directement l'energie du live avec leurs reactions.</p>
+    </div>
+
+    <div class="sub-heading">Cote vendeur : le tableau de bord</div>
+
+    <ol class="steps-list">
+      <li>Pendant ton live, appuie sur l'icone de <strong>statistiques</strong> pour ouvrir le tableau de bord d'engagement.</li>
+      <li>La <strong>jauge d'energie</strong> en temps reel indique le niveau d'engagement global de ton audience, de "Bas" a "Au max !".</li>
+      <li>Six <strong>metriques en direct</strong> s'affichent : spectateurs (avec tendance haut/bas), chatteurs actifs, encheres, reactions, nouveaux followers, et taux d'engagement.</li>
+      <li>L'<strong>IA te donne des conseils</strong> adaptes au niveau d'energie actuel. Exemples : "Presente un nouvel article pour relancer l'interet" (energie basse) ou "Moment parfait ! Propose une offre exclusive" (energie au max).</li>
+      <li>Un indicateur d'<strong>ambiance du chat</strong> (positif / neutre / negatif) t'aide a ajuster ton ton.</li>
+    </ol>
+
+    <div class="sub-heading">Les 4 niveaux d'energie</div>
+
+    <div class="energy-levels">
+      <div class="energy-level energy-low">
+        <div class="label">Bas</div>
+        <div style="font-size: 8.5pt; color: #666;">0-34 pts</div>
+        <div class="bar" style="width: 25%;"></div>
+      </div>
+      <div class="energy-level energy-medium">
+        <div class="label">Moyen</div>
+        <div style="font-size: 8.5pt; color: #666;">35-59 pts</div>
+        <div class="bar" style="width: 50%;"></div>
+      </div>
+      <div class="energy-level energy-high">
+        <div class="label">Eleve</div>
+        <div style="font-size: 8.5pt; color: #666;">60-84 pts</div>
+        <div class="bar" style="width: 75%;"></div>
+      </div>
+      <div class="energy-level energy-peak">
+        <div class="label">Au max !</div>
+        <div style="font-size: 8.5pt; color: #666;">85-100 pts</div>
+        <div class="bar" style="width: 100%;"></div>
+      </div>
+    </div>
+
+    <div class="sub-heading">Cote spectateur : les reactions</div>
+
+    <ol class="steps-list">
+      <li>Reagis en direct en appuyant sur les <strong>boutons de reaction</strong> qui s'affichent pendant le live.</li>
+      <li>Cinq reactions disponibles : coeur, feu, bravo, love et fete. Chaque reaction genere une <strong>animation flottante</strong> visible par tous.</li>
+      <li>Tes reactions <strong>influencent directement</strong> le niveau d'energie du live : plus il y a de reactions, plus l'energie monte !</li>
+    </ol>
+
+    <div class="scenario-box">
+      <p>David fait un live de cartes Pokemon. Apres 10 minutes, il voit que l'energie descend a "Bas" et le taux d'engagement chute a 25%. L'IA lui suggere : <strong>"Presente un nouvel article pour relancer l'interet !"</strong>. Il sort une carte Dracaufeu rare de sa pochette. Les spectateurs reagissent avec des coeurs et des feux, l'energie passe a "Eleve" puis "Au max !". Trois encheres se lancent simultanement. L'IA affiche alors : <strong>"L'energie est au maximum ! Lance ton drop le plus attendu."</strong></p>
+    </div>
+
+    <div class="tech-label">Points techniques</div>
+    <div class="tech-highlights">
+      <span class="tech-tag">Mise a jour toutes les 3,5 secondes</span>
+      <span class="tech-tag">Score d'energie 4 niveaux</span>
+      <span class="tech-tag">6 metriques en direct</span>
+      <span class="tech-tag">Recommandations IA contextuelles</span>
+      <span class="tech-tag">Analyse de sentiment du chat</span>
+      <span class="tech-tag">5 types de reactions animees</span>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">6</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 11: AUTRES FONCTIONNALITES ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Autres fonctionnalites</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-number">5</span>
+      Autres Fonctionnalites
+    </div>
+
+    <p class="intro-text" style="margin-bottom: 4mm;">
+      Au-dela des quatre fonctionnalites phares, ShaPop offre un ensemble complet d'outils pour les acheteurs, les vendeurs et la gestion de compte.
+    </p>
+
+    <div class="features-grid">
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F310;</span>
+        <div>
+          <h5>Multi-langue</h5>
+          <p>Francais, anglais, hebreu et espagnol. Changement de langue en un clic depuis les parametres. Toute l'interface s'adapte instantanement.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F528;</span>
+        <div>
+          <h5>Encheres en temps reel</h5>
+          <p>Systeme d'encheres integre pendant les lives. Les spectateurs encherissent en direct, avec mise a jour instantanee pour tous les participants.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F4AC;</span>
+        <div>
+          <h5>Chat en direct</h5>
+          <p>Discute avec le vendeur et les autres spectateurs pendant les lives. Pose des questions, commente et reagis en temps reel.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F3AC;</span>
+        <div>
+          <h5>Creation de live en 5 etapes</h5>
+          <p>Un assistant pas-a-pas guide les vendeurs : conseils, titre, date/heure, categorie/format, et miniature. Pret a diffuser en 2 minutes.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F393;</span>
+        <div>
+          <h5>Onboarding vendeur</h5>
+          <p>Video d'introduction et conseils pratiques pour les nouveaux vendeurs : eclairage, engagement, preparation des produits.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F514;</span>
+        <div>
+          <h5>Notifications personnalisees</h5>
+          <p>Sois alerte quand tes vendeurs favoris passent en live, quand une enchere evolue ou quand un nouveau live dans ta categorie commence.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F91D;</span>
+        <div>
+          <h5>Programme de parrainage</h5>
+          <p>Invite tes amis sur ShaPop et gagne des recompenses. Chaque parrainage beneficie au parrain et au filleul.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F5FA;</span>
+        <div>
+          <h5>Carte interactive</h5>
+          <p>Visualise les lives en cours sur une carte. Touche une ville pour voir les streams actifs et decouvrir les vendeurs locaux.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F464;</span>
+        <div>
+          <h5>Gestion complete du compte</h5>
+          <p>Changement de mot de passe, d'email, securite, gestion des adresses de livraison et des moyens de paiement.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F4CB;</span>
+        <div>
+          <h5>Activite detaillee</h5>
+          <p>Historique complet : achats, encheres, offres et articles sauvegardes. Filtres par statut (en cours, terminees, remboursements).</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F6E1;</span>
+        <div>
+          <h5>Suppression de compte</h5>
+          <p>Conforme Apple et RGPD. L'utilisateur peut supprimer definitivement son compte et toutes ses donnees depuis les parametres.</p>
+        </div>
+      </div>
+
+      <div class="feature-mini">
+        <span class="feature-mini-icon">&#x1F4DC;</span>
+        <div>
+          <h5>Documents legaux</h5>
+          <p>Politique de confidentialite, conditions generales d'utilisation et EULA complets, accessibles depuis l'application.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">7</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 12: MODELE ECONOMIQUE ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Modele economique</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-number">6</span>
+      Modele Economique
+    </div>
+
+    <p class="intro-text">
+      ShaPop adopte un modele economique simple et transparent, aligne sur les standards du marche du live shopping. Les acheteurs ne paient aucun frais supplementaire. Les vendeurs ne paient rien pour s'inscrire ni pour creer des lives. La plateforme se remunere uniquement sur les ventes effectuees.
+    </p>
+
+    <div class="pricing-card">
+      <div class="pricing-row">
+        <span class="pricing-label">Commission ShaPop</span>
+        <span class="pricing-value highlight">8% par vente</span>
+      </div>
+      <div class="pricing-row">
+        <span class="pricing-label">Frais de paiement (Stripe)</span>
+        <span class="pricing-value">2.9% + 0.30</span>
+      </div>
+      <div class="pricing-row pricing-total">
+        <span class="pricing-label" style="color: rgba(255,255,255,0.9); font-weight: 600;">Total pour le vendeur</span>
+        <span class="pricing-value highlight">~11% par vente</span>
+      </div>
+    </div>
+
+    <div class="overview-grid" style="margin-top: 6mm;">
+      <div class="overview-card" style="border-left: 3px solid #10B981;">
+        <h4>Gratuit pour les acheteurs</h4>
+        <p>Pas de frais d'inscription, pas de frais de service, pas de commission cote acheteur. Tu paies uniquement le prix de l'article et la livraison.</p>
+      </div>
+      <div class="overview-card" style="border-left: 3px solid #10B981;">
+        <h4>Zero frais d'inscription vendeur</h4>
+        <p>Creer un compte vendeur, configurer sa boutique et planifier des lives est entierement gratuit. Les frais ne s'appliquent qu'au moment de la vente.</p>
+      </div>
+    </div>
+
+    <div class="sub-heading">Comparaison avec le marche</div>
+
+    <table class="info-table">
+      <tr>
+        <td>ShaPop</td>
+        <td>~11% (8% commission + 2.9% + 0.30 Stripe)</td>
+      </tr>
+      <tr>
+        <td>Whatnot</td>
+        <td>~12-14% (commission variable + frais de paiement)</td>
+      </tr>
+      <tr>
+        <td>eBay</td>
+        <td>~13-15% (frais de mise en vente + commission + PayPal)</td>
+      </tr>
+      <tr>
+        <td>Vinted</td>
+        <td>~8% (frais de protection acheteur, zero pour le vendeur)</td>
+      </tr>
+    </table>
+
+    <p class="intro-text" style="font-size: 10pt; margin-top: 4mm;">
+      Le taux de commission de ShaPop est competitif par rapport aux plateformes de live shopping existantes, tout en offrant des fonctionnalites avancees (matching IA, engagement en temps reel, communautes locales) que les concurrents ne proposent pas.
+    </p>
+
+    <div class="sub-heading">Paiements</div>
+
+    <p class="intro-text">
+      Les paiements sont geres par <strong>Stripe Connect</strong>, la solution de paiement utilisee par les plus grandes places de marche au monde. Stripe garantit la securite des transactions, gere les litiges et effectue les virements aux vendeurs. Seuls les <strong>biens physiques</strong> sont vendus sur ShaPop (pas de biens numeriques, conformement aux regles de l'App Store).
+    </p>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">8</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 13: CONFORMITE & SECURITE ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Conformite et securite</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-number">7</span>
+      Conformite et Securite
+    </div>
+
+    <p class="intro-text">
+      ShaPop est concu dans le respect des exigences de l'App Store d'Apple, du RGPD (reglement europeen sur la protection des donnees) et des meilleures pratiques en matiere de securite des applications mobiles.
+    </p>
+
+    <div class="sub-heading">Conformite App Store</div>
+
+    <ul class="compliance-list">
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Suppression definitive du compte</strong> (Apple Guideline 5.1.1) : les utilisateurs peuvent supprimer leur compte et toutes les donnees associees depuis les parametres de l'application, conformement aux exigences d'Apple.</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Sign in with Apple</strong> : connexion via Apple proposee comme option d'authentification, conformement aux directives d'Apple pour les applications proposant des connexions tierces.</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Biens physiques uniquement</strong> : ShaPop vend exclusivement des biens physiques via des paiements externes (Stripe), ce qui est conforme aux regles de l'App Store (pas d'achat in-app pour les biens physiques).</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>EULA (Contrat de Licence Utilisateur Final)</strong> : document complet accessible depuis l'application, couvrant les droits, restrictions et responsabilites de l'utilisateur.</span>
+      </li>
+    </ul>
+
+    <div class="sub-heading">Protection des donnees (RGPD)</div>
+
+    <ul class="compliance-list">
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Politique de confidentialite complete</strong> : document detaillant la collecte, l'utilisation, le stockage et le partage des donnees personnelles, accessible depuis l'application.</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Conditions generales d'utilisation</strong> : regles d'utilisation de la plateforme, droits et obligations des utilisateurs et de ShaPop.</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Droit a l'effacement</strong> : les utilisateurs peuvent demander la suppression de toutes leurs donnees, conformement a l'article 17 du RGPD.</span>
+      </li>
+    </ul>
+
+    <div class="sub-heading">Securite technique</div>
+
+    <ul class="compliance-list">
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Paiement securise via Stripe</strong> : toutes les transactions sont chiffrees et gerees par Stripe, certifie PCI DSS niveau 1 (le plus haut niveau de securite des paiements).</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Authentification securisee</strong> : gestion de l'authentification via Supabase Auth, avec support de l'email/mot de passe, Apple Sign-In et gestion des sessions.</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Changement de mot de passe et d'email</strong> : les utilisateurs peuvent modifier leurs identifiants a tout moment depuis les parametres de securite.</span>
+      </li>
+      <li>
+        <span class="compliance-check">&#x2713;</span>
+        <span><strong>Protection des donnees personnelles</strong> : les donnees sensibles sont stockees de maniere securisee dans Supabase (PostgreSQL gere) avec des politiques d'acces strictes (Row Level Security).</span>
+      </li>
+    </ul>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">9</span>
+    </div>
+  </div>
+
+  <!-- ======================= PAGE 14: STACK TECHNIQUE ======================= -->
+  <div class="page">
+    <div class="page-header">
+      <span class="page-header-logo">ShaPop</span>
+      <span class="page-header-section">Stack technique</span>
+    </div>
+
+    <div class="section-title">
+      <span class="section-number">8</span>
+      Stack Technique
+    </div>
+
+    <p class="intro-text">
+      ShaPop repose sur une stack moderne, performante et pensee pour le temps reel. L'application est conque comme une application web progressive transformee en application native iOS via Capacitor, ce qui permet un developpement rapide tout en offrant une experience utilisateur native.
+    </p>
+
+    <div class="stack-grid">
+      <div class="stack-card">
+        <h4>Frontend</h4>
+        <p>React 19 + TypeScript 5.9</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Framework JavaScript moderne pour construire des interfaces utilisateur reactives et performantes. TypeScript apporte la securite du typage statique.</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Build & Dev</h4>
+        <p>Vite 7</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Outil de build ultra-rapide pour le developpement et la production. Rechargement a chaud instantane et compilation optimisee.</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Styles</h4>
+        <p>Tailwind CSS 4</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Framework CSS utility-first pour un design cohesif et rapide a developper. Integration native avec Vite.</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Mobile natif</h4>
+        <p>Capacitor 8 (iOS)</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Bridge entre l'application web et les APIs natives iOS. Acces aux fonctionnalites du telephone (camera, notifications, App Store).</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Backend</h4>
+        <p>Supabase</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Backend-as-a-Service base sur PostgreSQL. Fournit l'authentification, la base de donnees, le temps reel (WebSockets) et le stockage de fichiers.</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Paiements</h4>
+        <p>Stripe Connect</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Solution de paiement pour les places de marche. Gere les paiements split entre la plateforme et les vendeurs, les litiges et les remboursements.</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Routing</h4>
+        <p>React Router 7</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Navigation fluide entre les pages de l'application avec gestion de l'historique et des transitions.</p>
+      </div>
+
+      <div class="stack-card">
+        <h4>Deploiement</h4>
+        <p>App Store (iOS)</p>
+        <p style="font-size: 9.5pt; color: var(--text-light); margin-top: 2mm;">Distribution via l'App Store d'Apple. Build via Xcode avec gestion des certificats et du provisioning.</p>
+      </div>
+    </div>
+
+    <div class="sub-heading">Architecture en bref</div>
+
+    <p class="intro-text" style="font-size: 10pt;">
+      L'application suit une architecture client-serveur classique. Le frontend React communique avec Supabase via son SDK JavaScript pour l'authentification, les requetes a la base de donnees et les mises a jour en temps reel (Realtime). Les paiements sont geres cote serveur via un endpoint Express qui communique avec l'API Stripe. Les images et fichiers sont stockes dans Supabase Storage. L'application est ensuite empaquetee dans un conteneur natif iOS via Capacitor pour la distribution sur l'App Store.
+    </p>
+
+    <div class="tech-highlights" style="margin-top: 4mm;">
+      <span class="tech-tag">React 19</span>
+      <span class="tech-tag">TypeScript 5.9</span>
+      <span class="tech-tag">Vite 7</span>
+      <span class="tech-tag">Tailwind CSS 4</span>
+      <span class="tech-tag">Capacitor 8</span>
+      <span class="tech-tag">Supabase</span>
+      <span class="tech-tag">PostgreSQL</span>
+      <span class="tech-tag">Stripe Connect</span>
+      <span class="tech-tag">Express 5</span>
+      <span class="tech-tag">iOS natif</span>
+    </div>
+
+    <div class="page-footer">
+      <span>ShaPop - Document de presentation</span>
+      <span class="page-number">10</span>
+    </div>
+  </div>
+
+</body>
+</html>

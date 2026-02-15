@@ -30,6 +30,7 @@ import AIListingPage from './pages/AIListingPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import ChangeEmailPage from './pages/ChangeEmailPage'
 import SecurityPage from './pages/SecurityPage'
+import GoLivePage from './pages/GoLivePage'
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
@@ -70,6 +71,7 @@ export default function App() {
             <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/change-email" element={<ChangeEmailPage />} />
             <Route path="/security" element={<SecurityPage />} />
+            <Route path="/go-live" element={<GoLivePage />} />
           </Routes>
           <BottomNav />
         </div>
