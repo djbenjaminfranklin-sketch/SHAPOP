@@ -113,7 +113,22 @@ export default function AdminPage() {
   const fetchStats = async () => {
     if (!token) return
     setLoading(true)
-    try { setStats(await adminFetch('/api/admin/stats')); setPageError(null) } catch (e: any) { setPageError(e.message || 'Erreur de chargement'); showToast(e.message || 'Failed to load data') }
+    try {
+      const raw = await adminFetch('/api/admin/stats')
+      setStats({
+        users: Number(raw.users) || 0,
+        sellers: Number(raw.sellers) || 0,
+        orders: Number(raw.orders) || 0,
+        orders_30d: Number(raw.orders_30d) || 0,
+        lives_now: Number(raw.lives_now) || 0,
+        disputes: Number(raw.disputes) || 0,
+        total_revenue: Number(raw.total_revenue) || 0,
+        total_fees: Number(raw.total_fees) || 0,
+        suspended_users: Number(raw.suspended_users) || 0,
+        banned_users: Number(raw.banned_users) || 0,
+      })
+      setPageError(null)
+    } catch (e: any) { setPageError(String(e?.message || 'Erreur de chargement')); showToast(String(e?.message || 'Failed to load data')) }
     setLoading(false)
   }
 
@@ -124,7 +139,7 @@ export default function AdminPage() {
       const q = new URLSearchParams({ page: String(page), limit: '30', filter: usersFilter })
       if (usersSearch) q.set('search', usersSearch)
       const data = await adminFetch(`/api/admin/users?${q}`)
-      setUsers(data.users); setUsersTotal(data.total); setUsersPage(page)
+      setUsers(Array.isArray(data.users) ? data.users : []); setUsersTotal(Number(data.total) || 0); setUsersPage(page)
     } catch { showToast('Failed to load data') }
     setLoading(false)
   }
@@ -142,7 +157,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const data = await adminFetch('/api/admin/sellers?limit=50')
-      setSellers(data.sellers); setSellersTotal(data.total)
+      setSellers(Array.isArray(data.sellers) ? data.sellers : []); setSellersTotal(Number(data.total) || 0)
     } catch { showToast('Failed to load data') }
     setLoading(false)
   }
@@ -154,7 +169,7 @@ export default function AdminPage() {
       const q = new URLSearchParams({ page: String(page), limit: '30' })
       if (ordersStatus) q.set('status', ordersStatus)
       const data = await adminFetch(`/api/admin/orders?${q}`)
-      setOrders(data.orders); setOrdersTotal(data.total); setOrdersPage(page)
+      setOrders(Array.isArray(data.orders) ? data.orders : []); setOrdersTotal(Number(data.total) || 0); setOrdersPage(page)
     } catch { showToast('Failed to load data') }
     setLoading(false)
   }
@@ -162,14 +177,14 @@ export default function AdminPage() {
   const fetchDisputes = async () => {
     if (!token) return
     setLoading(true)
-    try { setDisputes(await adminFetch('/api/admin/disputes')) } catch { showToast('Failed to load data') }
+    try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast('Failed to load data') }
     setLoading(false)
   }
 
   const fetchStreams = async () => {
     if (!token) return
     setLoading(true)
-    try { setStreams(await adminFetch(`/api/admin/streams?status=${streamsFilter}`)) } catch { showToast('Failed to load data') }
+    try { const raw = await adminFetch(`/api/admin/streams?status=${streamsFilter}`); setStreams(Array.isArray(raw) ? raw : Array.isArray(raw?.streams) ? raw.streams : []) } catch { showToast('Failed to load data') }
     setLoading(false)
   }
 
@@ -178,7 +193,7 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const data = await adminFetch(`/api/admin/audit-log?page=${page}&limit=50`)
-      setAuditLogs(data.logs); setAuditTotal(data.total); setAuditPage(page)
+      setAuditLogs(Array.isArray(data.logs) ? data.logs : []); setAuditTotal(Number(data.total) || 0); setAuditPage(page)
     } catch { showToast('Failed to load data') }
     setLoading(false)
   }
