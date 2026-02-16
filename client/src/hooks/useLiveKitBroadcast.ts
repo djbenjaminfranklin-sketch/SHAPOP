@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Room, RoomEvent, Track, type LocalTrackPublication } from 'livekit-client'
+import { Room, RoomEvent, type LocalTrackPublication } from 'livekit-client'
 
 interface UseLiveKitBroadcastOptions {
   livekitUrl: string | undefined
