@@ -884,15 +884,6 @@ export default function AdminPage() {
     }
   }
 
-  // If a previous render set renderError state, show it
-  if (renderError) {
-    return (
-      <div style={{ minHeight: '100vh', backgroundColor: '#000', padding: '40px 16px' }}>
-        {renderDebugError('Top-level render', renderError)}
-      </div>
-    )
-  }
-
   try {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '40px' }}>
@@ -976,9 +967,7 @@ export default function AdminPage() {
       </div>
     )
   } catch (err: any) {
-    // This catch handles synchronous errors during the return statement JSX evaluation.
-    // For React rendering errors, the renderError state + useEffect above handles them.
-    // We set renderError state so re-render shows the debug page.
+    // Catch synchronous errors during JSX evaluation
     const errObj = { message: String(err?.message || err), stack: String(err?.stack || '') }
     // Cannot call setRenderError here (inside render), so return the error UI directly
     return (
