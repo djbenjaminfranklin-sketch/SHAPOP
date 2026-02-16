@@ -21,8 +21,8 @@ dotenv.config()
 // =============================================
 // Config & validation
 // =============================================
-const supabaseUrl = process.env.SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY
+const supabaseUrl = (process.env.SUPABASE_URL || '').replace(/\s+/g, '')
+const supabaseServiceKey = (process.env.SUPABASE_SERVICE_KEY || '').replace(/\s+/g, '')
 
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY environment variables')
