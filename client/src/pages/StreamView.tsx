@@ -604,10 +604,17 @@ export default function StreamView() {
     if (!newMessage.trim() || !user || !id) return
 
     try {
-      await supabase.from('chat_messages').insert({
-        stream_id: id,
-        user_id: user.id,
-        message: newMessage.trim(),
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+
+      await apiFetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stream_id: id, message: newMessage.trim() }),
       })
       setNewMessage('')
     } catch (err) {
@@ -1379,7 +1386,9 @@ export default function StreamView() {
                 <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
                   {msg.user_profile?.display_name || ct.anonymous}
                 </span>
-                <span style={{ fontSize: '13px', color: '#ccc', wordBreak: 'break-word' }}>{msg.message}</span>
+                <span style={{ fontSize: '13px', color: msg.is_flagged ? '#666' : '#ccc', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
+                  {msg.is_flagged ? '[Message masqué]' : msg.message}
+                </span>
               </div>
             ))}
             <div ref={chatEndRef} />

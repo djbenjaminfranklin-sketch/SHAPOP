@@ -8,6 +8,16 @@ import type { Order, Item } from '../types/database'
 
 type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
+type ProofLevel = 'basic' | 'standard' | 'enhanced'
+
+// Helper function to calculate remaining time before claim deadline
+function formatTimeRemaining(deadline: string): string {
+  const remaining = new Date(deadline).getTime() - Date.now()
+  if (remaining <= 0) return 'Expire'
+  const hours = Math.floor(remaining / (1000 * 60 * 60))
+  const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
+  return `${hours}h ${minutes}min restantes`
+}
 
 interface PurchaseOrder extends Order {
   item?: Pick<Item, 'title' | 'image_urls' | 'category'>
@@ -45,6 +55,12 @@ export default function ActivityPage() {
   const [shipError, setShipError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Multi-proof upload states (seller)
+  const [proofLevel, setProofLevel] = useState<ProofLevel>('basic')
+  const [proofFiles, setProofFiles] = useState<{ type: string; file: File | null }[]>([{ type: 'package_photo', file: null }])
+  const [loadingProofLevel, setLoadingProofLevel] = useState(false)
+  const proofFileInputRefs = useRef<(HTMLInputElement | null)[]>([])
+
   // Proof viewer modal (buyer)
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null)
 
@@ -52,6 +68,43 @@ export default function ActivityPage() {
   const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
+
+  // Fetch seller proof level when opening shipping modal
+  const fetchProofLevel = useCallback(async () => {
+    if (!user) return
+    setLoadingProofLevel(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await apiFetch(`/api/sellers/${user.id}/trust`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const level: ProofLevel = data.proof_level || 'basic'
+        setProofLevel(level)
+        // Initialize proof file slots based on level
+        if (level === 'basic') {
+          setProofFiles([{ type: 'package_photo', file: null }])
+        } else if (level === 'standard') {
+          setProofFiles([
+            { type: 'package_photo', file: null },
+            { type: 'content_photo', file: null },
+          ])
+        } else if (level === 'enhanced') {
+          setProofFiles([
+            { type: 'package_photo', file: null },
+            { type: 'content_photo', file: null },
+            { type: 'packing_video', file: null },
+          ])
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch proof level:', err)
+    } finally {
+      setLoadingProofLevel(false)
+    }
+  }, [user])
 
   // Fetch purchases (orders where user is buyer)
   const fetchPurchases = useCallback(async () => {
@@ -106,26 +159,44 @@ export default function ActivityPage() {
     }
   }, [mainTab, fetchPurchases, fetchSales])
 
-  // Upload shipping proof and mark order as shipped
+  // Upload shipping proofs and mark order as shipped
   const handleShipOrder = async () => {
-    if (!selectedFile || !shippingOrderId) return
+    if (!shippingOrderId) return
+
+    // Validate: at least the first proof (package photo) is required
+    const firstProof = proofFiles[0]
+    if (!firstProof?.file) {
+      setShipError(lt.photoRequired)
+      return
+    }
+
     setUploading(true)
     setShipError(null)
 
     try {
-      // Upload photo to Supabase Storage
-      const filePath = `shipping-proofs/${shippingOrderId}_${Date.now()}.jpg`
-      const { error: uploadError } = await supabase.storage
-        .from('shipping-proofs')
-        .upload(filePath, selectedFile)
+      const proofs: { type: string; url: string }[] = []
+      let firstProofUrl = ''
 
-      if (uploadError) throw new Error(uploadError.message)
+      // Upload each proof file
+      for (const proof of proofFiles) {
+        if (!proof.file) continue
+        const ext = proof.type === 'packing_video' ? 'mp4' : 'jpg'
+        const filePath = `shipping-proofs/${shippingOrderId}_${proof.type}_${Date.now()}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('shipping-proofs')
+          .upload(filePath, proof.file)
 
-      const { data: urlData } = supabase.storage
-        .from('shipping-proofs')
-        .getPublicUrl(filePath)
+        if (uploadError) throw new Error(uploadError.message)
 
-      const shipping_proof_url = urlData.publicUrl
+        const { data: urlData } = supabase.storage
+          .from('shipping-proofs')
+          .getPublicUrl(filePath)
+
+        proofs.push({ type: proof.type, url: urlData.publicUrl })
+        if (proof.type === 'package_photo') {
+          firstProofUrl = urlData.publicUrl
+        }
+      }
 
       // Call API endpoint
       const { data: { session } } = await supabase.auth.getSession()
@@ -138,7 +209,8 @@ export default function ActivityPage() {
           Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          shipping_proof_url,
+          shipping_proof_url: firstProofUrl,
+          proofs,
           ...(trackingNumber.trim() ? { tracking_number: trackingNumber.trim() } : {}),
         }),
       })
@@ -151,6 +223,7 @@ export default function ActivityPage() {
       // Reset and refresh
       setShippingOrderId(null)
       setSelectedFile(null)
+      setProofFiles([{ type: 'package_photo', file: null }])
       setTrackingNumber('')
       fetchSales()
     } catch (err: unknown) {
@@ -233,6 +306,15 @@ export default function ActivityPage() {
       confirmDelivery: 'Confirmer la reception',
       deliveredOn: 'Livre le',
       photoRequired: 'La photo est obligatoire',
+      reportProblem: 'Signaler un probleme',
+      deadlineExpired: 'Delai expire',
+      timeRemainingPrefix: 'pour signaler un probleme',
+      disputeOpen: 'Litige ouvert',
+      contactSeller: 'Contacter le vendeur',
+      contactBuyer: 'Contacter l\'acheteur',
+      packagePhoto: 'Photo du colis',
+      contentPhoto: 'Photo du contenu',
+      packingVideo: 'Video d\'emballage',
     },
     en: {
       title: 'Activity',
@@ -272,6 +354,15 @@ export default function ActivityPage() {
       confirmDelivery: 'Confirm delivery',
       deliveredOn: 'Delivered on',
       photoRequired: 'Photo is required',
+      reportProblem: 'Report a problem',
+      deadlineExpired: 'Deadline expired',
+      timeRemainingPrefix: 'to report a problem',
+      disputeOpen: 'Dispute open',
+      contactSeller: 'Contact seller',
+      contactBuyer: 'Contact buyer',
+      packagePhoto: 'Package photo',
+      contentPhoto: 'Content photo',
+      packingVideo: 'Packing video',
     },
     he: {
       title: '\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA',
@@ -311,6 +402,15 @@ export default function ActivityPage() {
       confirmDelivery: '\u05D0\u05E9\u05E8 \u05E7\u05D1\u05DC\u05D4',
       deliveredOn: '\u05E0\u05DE\u05E1\u05E8 \u05D1',
       photoRequired: '\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E0\u05D3\u05E8\u05E9\u05EA',
+      reportProblem: '\u05D3\u05D5\u05D5\u05D7 \u05E2\u05DC \u05D1\u05E2\u05D9\u05D4',
+      deadlineExpired: '\u05D4\u05DE\u05D5\u05E2\u05D3 \u05E2\u05D1\u05E8',
+      timeRemainingPrefix: '\u05DC\u05D3\u05D5\u05D5\u05D7 \u05E2\u05DC \u05D1\u05E2\u05D9\u05D4',
+      disputeOpen: '\u05DE\u05D7\u05DC\u05D5\u05E7\u05EA \u05E4\u05EA\u05D5\u05D7\u05D4',
+      contactSeller: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05DE\u05D5\u05DB\u05E8',
+      contactBuyer: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05E7\u05D5\u05E0\u05D4',
+      packagePhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05D7\u05D1\u05D9\u05DC\u05D4',
+      contentPhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05EA\u05D5\u05DB\u05DF',
+      packingVideo: '\u05E1\u05E8\u05D8\u05D5\u05DF \u05D0\u05E8\u05D9\u05D6\u05D4',
     },
     es: {
       title: 'Actividad',
@@ -350,6 +450,15 @@ export default function ActivityPage() {
       confirmDelivery: 'Confirmar recepcion',
       deliveredOn: 'Entregado el',
       photoRequired: 'La foto es obligatoria',
+      reportProblem: 'Reportar un problema',
+      deadlineExpired: 'Plazo expirado',
+      timeRemainingPrefix: 'para reportar un problema',
+      disputeOpen: 'Disputa abierta',
+      contactSeller: 'Contactar al vendedor',
+      contactBuyer: 'Contactar al comprador',
+      packagePhoto: 'Foto del paquete',
+      contentPhoto: 'Foto del contenido',
+      packingVideo: 'Video de embalaje',
     },
   }
 
@@ -557,23 +666,38 @@ export default function ActivityPage() {
               {formatDate(order.created_at)}
             </p>
           </div>
-          <span style={{
-            fontSize: '11px', fontWeight: 700,
-            color: statusColor,
-            backgroundColor: `${statusColor}14`,
-            padding: '5px 12px', borderRadius: '10px',
-            border: `1px solid ${statusColor}30`,
-            whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            {statusLabel}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+            <span style={{
+              fontSize: '11px', fontWeight: 700,
+              color: statusColor,
+              backgroundColor: `${statusColor}14`,
+              padding: '5px 12px', borderRadius: '10px',
+              border: `1px solid ${statusColor}30`,
+              whiteSpace: 'nowrap',
+            }}>
+              {statusLabel}
+            </span>
+            {/* Dispute badge */}
+            {order.status === 'disputed' && (
+              <span style={{
+                fontSize: '10px', fontWeight: 700,
+                color: '#F97316',
+                backgroundColor: 'rgba(249,115,22,0.1)',
+                padding: '3px 8px', borderRadius: '8px',
+                border: '1px solid rgba(249,115,22,0.3)',
+                whiteSpace: 'nowrap',
+              }}>
+                {lt.disputeOpen}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Seller: "Ship" button for paid orders */}
         {isSale && order.status === 'paid' && (
           <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => { setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null) }}
+              onClick={() => { setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null); fetchProofLevel() }}
               style={{
                 padding: '8px 18px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
@@ -657,12 +781,63 @@ export default function ActivityPage() {
           </div>
         )}
 
-        {/* Buyer: delivered order — show delivery date */}
-        {!isSale && order.status === 'delivered' && order.delivered_at && (
+        {/* Buyer: delivered order — show delivery date + report problem button */}
+        {!isSale && order.status === 'delivered' && (
           <div style={{ marginTop: '8px' }}>
-            <p style={{ fontSize: '12px', color: '#10B981', margin: 0 }}>
-              {lt.deliveredOn} {formatDate(order.delivered_at)}
-            </p>
+            {order.delivered_at && (
+              <p style={{ fontSize: '12px', color: '#10B981', margin: '0 0 10px' }}>
+                {lt.deliveredOn} {formatDate(order.delivered_at)}
+              </p>
+            )}
+            {/* "Signaler un probleme" button + countdown */}
+            {order.claim_deadline && new Date(order.claim_deadline) > new Date() ? (
+              <div>
+                <button
+                  onClick={() => navigate(`/dispute/${order.id}`)}
+                  style={{
+                    padding: '8px 16px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #F97316, #E8344E)',
+                    border: 'none', color: '#fff', fontSize: '13px',
+                    fontWeight: 700, cursor: 'pointer',
+                    marginBottom: '6px',
+                  }}
+                >
+                  {lt.reportProblem}
+                </button>
+                <p style={{ fontSize: '11px', color: '#F97316', margin: 0 }}>
+                  {'\u23F1'} {formatTimeRemaining(order.claim_deadline)} {lt.timeRemainingPrefix}
+                </p>
+              </div>
+            ) : (
+              <button
+                disabled
+                style={{
+                  padding: '8px 16px', borderRadius: '10px',
+                  background: '#333', border: 'none',
+                  color: '#666', fontSize: '13px',
+                  fontWeight: 700, cursor: 'not-allowed',
+                }}
+              >
+                {lt.deadlineExpired}
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* "Contacter" button for paid/shipped/delivered orders */}
+        {['paid', 'shipped', 'delivered'].includes(order.status) && (
+          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-start' }}>
+            <button
+              onClick={() => navigate('/messages')}
+              style={{
+                padding: '7px 14px', borderRadius: '8px',
+                background: 'transparent', border: '1px solid #333',
+                color: '#aaa', fontSize: '12px', fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              {'\uD83D\uDCAC'} {isSale ? lt.contactBuyer : lt.contactSeller}
+            </button>
           </div>
         )}
       </div>
@@ -838,37 +1013,74 @@ export default function ActivityPage() {
               {lt.shipTitle}
             </h3>
 
-            {/* File input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={e => { setSelectedFile(e.target.files?.[0] || null); setShipError(null) }}
-              style={{ display: 'none' }}
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '12px',
-                border: selectedFile ? '2px solid #10B981' : '2px dashed #333',
-                backgroundColor: '#0A0A0A', color: selectedFile ? '#10B981' : '#666',
-                fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                marginBottom: '12px', textAlign: 'center',
-              }}
-            >
-              {selectedFile ? selectedFile.name : lt.addPhoto}
-            </button>
-
-            {/* Preview */}
-            {selectedFile && (
-              <div style={{ marginBottom: '12px', textAlign: 'center' }}>
-                <img
-                  src={URL.createObjectURL(selectedFile)}
-                  alt="Preview"
-                  style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '10px', objectFit: 'contain' }}
-                />
+            {/* Multi-proof file inputs */}
+            {loadingProofLevel ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{
+                  width: '24px', height: '24px', border: '2px solid #333',
+                  borderTopColor: '#F0908A', borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite', margin: '0 auto 8px',
+                }} />
+                <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>{lt.loading}</p>
               </div>
+            ) : (
+              proofFiles.map((proof, idx) => {
+                const proofLabel = proof.type === 'package_photo' ? lt.packagePhoto
+                  : proof.type === 'content_photo' ? lt.contentPhoto
+                  : lt.packingVideo
+                const isVideo = proof.type === 'packing_video'
+                return (
+                  <div key={proof.type} style={{ marginBottom: '12px' }}>
+                    <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
+                      {proofLabel} {idx === 0 ? '*' : ''}
+                    </p>
+                    <input
+                      ref={el => { proofFileInputRefs.current[idx] = el }}
+                      type="file"
+                      accept={isVideo ? 'video/*' : 'image/*'}
+                      capture={isVideo ? undefined : 'environment'}
+                      onChange={e => {
+                        const file = e.target.files?.[0] || null
+                        setProofFiles(prev => prev.map((p, i) => i === idx ? { ...p, file } : p))
+                        setShipError(null)
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                    <button
+                      onClick={() => proofFileInputRefs.current[idx]?.click()}
+                      style={{
+                        width: '100%', padding: '12px', borderRadius: '12px',
+                        border: proof.file ? '2px solid #10B981' : '2px dashed #333',
+                        backgroundColor: '#0A0A0A', color: proof.file ? '#10B981' : '#666',
+                        fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {proof.file ? proof.file.name : (isVideo ? lt.packingVideo : lt.addPhoto)}
+                    </button>
+                    {/* Preview for images */}
+                    {proof.file && !isVideo && (
+                      <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                        <img
+                          src={URL.createObjectURL(proof.file)}
+                          alt="Preview"
+                          style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px', objectFit: 'contain' }}
+                        />
+                      </div>
+                    )}
+                    {/* Preview for video */}
+                    {proof.file && isVideo && (
+                      <div style={{ marginTop: '8px', textAlign: 'center' }}>
+                        <video
+                          src={URL.createObjectURL(proof.file)}
+                          controls
+                          style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
 
             {/* Tracking number */}
@@ -894,13 +1106,7 @@ export default function ActivityPage() {
 
             {/* Submit */}
             <button
-              onClick={() => {
-                if (!selectedFile) {
-                  setShipError(lt.photoRequired)
-                  return
-                }
-                handleShipOrder()
-              }}
+              onClick={() => handleShipOrder()}
               disabled={uploading}
               style={{
                 width: '100%', padding: '14px', borderRadius: '14px',

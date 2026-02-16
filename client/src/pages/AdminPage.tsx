@@ -43,6 +43,15 @@ export default function AdminPage() {
 
   // Disputes
   const [disputes, setDisputes] = useState<Record<string, unknown>[]>([])
+  const [disputeNotes, setDisputeNotes] = useState<Record<string, string>>({})
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null)
+
+  // Buyer scores (anti-fraud)
+  const [buyerScores, setBuyerScores] = useState<Record<string, Record<string, unknown>>>({})
+
+  // Seller trusts (anti-fraud)
+  const [sellerTrusts, setSellerTrusts] = useState<Record<string, Record<string, unknown>>>({})
+  const [trustModal, setTrustModal] = useState<{ sellerId: string; trust_level: string; holdback_percent: number; payout_delay_days: number } | null>(null)
 
   // Lives
   const [streams, setStreams] = useState<Record<string, unknown>[]>([])
@@ -148,6 +157,14 @@ export default function AdminPage() {
       if (usersSearch) q.set('search', usersSearch)
       const data = await adminFetch(`/api/admin/users?${q}`)
       setUsers(Array.isArray(data.users) ? data.users : []); setUsersTotal(Number(data.total) || 0); setUsersPage(page)
+      // Fetch buyer scores for anti-fraud display
+      try {
+        const scoresData = await adminFetch('/api/admin/buyer-scores')
+        const scoresArr = Array.isArray(scoresData) ? scoresData : Array.isArray(scoresData?.scores) ? scoresData.scores : []
+        const scoresMap: Record<string, Record<string, unknown>> = {}
+        scoresArr.forEach((s: Record<string, unknown>) => { if (s.user_id) scoresMap[String(s.user_id)] = s })
+        setBuyerScores(scoresMap)
+      } catch { /* buyer scores not available, non-blocking */ }
     } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
@@ -166,6 +183,14 @@ export default function AdminPage() {
     try {
       const data = await adminFetch('/api/admin/sellers?limit=50')
       setSellers(Array.isArray(data.sellers) ? data.sellers : []); setSellersTotal(Number(data.total) || 0)
+      // Fetch seller trust data for anti-fraud display
+      try {
+        const trustData = await adminFetch('/api/admin/seller-trusts')
+        const trustArr = Array.isArray(trustData) ? trustData : Array.isArray(trustData?.trusts) ? trustData.trusts : []
+        const trustMap: Record<string, Record<string, unknown>> = {}
+        trustArr.forEach((t: Record<string, unknown>) => { if (t.seller_id) trustMap[String(t.seller_id)] = t })
+        setSellerTrusts(trustMap)
+      } catch { /* seller trusts not available, non-blocking */ }
     } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
@@ -185,7 +210,10 @@ export default function AdminPage() {
   const fetchDisputes = async () => {
     if (!token) return
     setLoading(true)
-    try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast('Erreur de chargement') }
+    try { const raw = await adminFetch('/api/admin/disputes-enhanced'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch {
+      // Fallback to original endpoint if enhanced is not available
+      try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast('Erreur de chargement') }
+    }
     setLoading(false)
   }
 
@@ -282,6 +310,33 @@ export default function AdminPage() {
       await adminFetch(`/api/admin/streams/${id}/suspend-streamer`, { method: 'POST', body: JSON.stringify({ reason: 'Suspended during live by admin' }) })
       showAction('Vendeur suspendu et live arrêté'); fetchStreams()
     } catch { showToast('Erreur') }
+  }
+
+  const resolveDispute = async (disputeId: string, resolution: 'buyer' | 'seller') => {
+    const note = disputeNotes[disputeId] || ''
+    try {
+      await adminFetch(`/api/admin/disputes/${disputeId}/resolve`, { method: 'POST', body: JSON.stringify({ resolution, note }) })
+      showAction(resolution === 'buyer' ? 'Litige résolu en faveur de l\'acheteur' : 'Litige résolu en faveur du vendeur')
+      setDisputeNotes(prev => { const copy = { ...prev }; delete copy[disputeId]; return copy })
+      fetchDisputes()
+    } catch { showToast('Erreur lors de la résolution') }
+  }
+
+  const updateSellerTrust = async () => {
+    if (!trustModal) return
+    try {
+      await adminFetch(`/api/admin/sellers/${trustModal.sellerId}/trust`, {
+        method: 'POST',
+        body: JSON.stringify({
+          trust_level: trustModal.trust_level,
+          holdback_percent: trustModal.holdback_percent,
+          payout_delay_days: trustModal.payout_delay_days,
+        }),
+      })
+      showAction('Niveau de confiance mis à jour')
+      setTrustModal(null)
+      fetchSellers()
+    } catch { showToast('Erreur lors de la mise à jour') }
   }
 
   // ======== STYLES ========
@@ -399,6 +454,7 @@ export default function AdminPage() {
       { label: 'Frais plateforme', value: fmtMoney(stats.total_fees), color: '#F0908A' },
       { label: 'Suspendus', value: sv(stats.suspended_users), color: '#F59E0B' },
       { label: 'Bannis', value: sv(stats.banned_users), color: '#EF4444' },
+      { label: 'Litiges ouverts', value: sv(disputes.filter(d => sv(d.status) === 'open' || sv(d.status) === 'disputed' || sv(d.status) === 'under_review').length || stats.disputes), color: '#F97316' },
     ]
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', padding: '0 16px' }}>
@@ -456,10 +512,24 @@ export default function AdminPage() {
               {sv(u.country) + ' | ' + fmtDate(u.created_at) + ' | ' + fmtId(u.id)}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0, alignItems: 'center' }}>
             {sb(u.is_seller) ? <span style={badge('#10B981')}>{'S'}</span> : null}
             {sb(u.is_suspended) ? <span style={badge('#F59E0B')}>{'SUS'}</span> : null}
             {sb(u.is_banned) ? <span style={badge('#EF4444')}>{'BAN'}</span> : null}
+            {(() => {
+              const bs = buyerScores[String(u.id || '')]
+              if (!bs) return null
+              const score = Number(bs.buyer_score) || 0
+              const risk = sv(bs.risk_level)
+              const riskColors: Record<string, string> = { low: '#10B981', medium: '#F59E0B', high: '#F97316', blocked: '#EF4444' }
+              const riskLabels: Record<string, string> = { low: 'Faible', medium: 'Moyen', high: 'Elevé', blocked: 'Bloqué' }
+              return (
+                <>
+                  <span style={{ ...badge(riskColors[risk] || '#666'), fontSize: '10px' }}>{riskLabels[risk] || risk}</span>
+                  <span style={{ color: '#888', fontSize: '10px', fontWeight: 600 }}>{'Score: ' + sv(score)}</span>
+                </>
+              )
+            })()}
           </div>
         </div>
       )) : null}
@@ -502,6 +572,28 @@ export default function AdminPage() {
                   {sv(s.kyc_status) === 'verified' ? <span style={badge('#10B981')}>{'KYC'}</span> : <span style={badge('#F59E0B')}>{'!KYC'}</span>}
                 </div>
               </div>
+
+              {/* Trust info (anti-fraud) */}
+              {(() => {
+                const trust = sellerTrusts[id]
+                if (!trust) return null
+                const trustLevel = sv(trust.trust_level)
+                const trustColors: Record<string, string> = { new: '#888', standard: '#3B82F6', trusted: '#10B981', premium: '#EAB308' }
+                const trustLabels: Record<string, string> = { new: 'Nouveau', standard: 'Standard', trusted: 'Confiance', premium: 'Premium' }
+                return (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={badge(trustColors[trustLevel] || '#666')}>{trustLabels[trustLevel] || trustLevel}</span>
+                    {Number(trust.holdback_percent) > 0 ? <span style={{ color: '#F59E0B', fontSize: '11px', fontWeight: 600 }}>{'Rétention: ' + sv(trust.holdback_percent) + '%'}</span> : null}
+                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#8B5CF6', fontSize: '11px', fontWeight: 600 }}>{'Délai paiement: ' + sv(trust.payout_delay_days) + 'j'}</span> : null}
+                    <button onClick={() => setTrustModal({
+                      sellerId: id,
+                      trust_level: trustLevel || 'new',
+                      holdback_percent: Number(trust.holdback_percent) || 0,
+                      payout_delay_days: Number(trust.payout_delay_days) || 0,
+                    })} style={{ ...btn('#555'), fontSize: '10px', padding: '3px 8px', marginBottom: 0 }}>{'Changer le niveau'}</button>
+                  </div>
+                )
+              })()}
 
               {/* Risk metrics */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px', marginBottom: '10px' }}>
@@ -606,48 +698,155 @@ export default function AdminPage() {
     </div>
   )
 
-  const renderDisputes = () => (
-    <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length) + ' litiges/remboursements'}</p>
-      {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'Aucun litige'}</p> : null}
-      {Array.isArray(disputes) ? disputes.map((d, i) => {
-        try {
-          const rawBuyer = d.buyer
-          const rawSellerProfile = d.seller_profile
-          const buyer = (rawBuyer && typeof rawBuyer === 'object' && !Array.isArray(rawBuyer)) ? rawBuyer as Record<string, unknown> : null
-          const seller = (rawSellerProfile && typeof rawSellerProfile === 'object' && !Array.isArray(rawSellerProfile)) ? rawSellerProfile as Record<string, unknown> : null
-          return (
-            <div key={i} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0 }}>{'Commande ' + fmtId(d.id)}</p>
-                  <p style={{ color: '#F0908A', fontWeight: 700, margin: '2px 0' }}>{fmtMoney(d.amount)}</p>
-                  <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                    {'Acheteur : ' + (buyer ? ('@' + sv(buyer.username)) : '?') + ' | Vendeur : ' + (seller ? ('@' + sv(seller.username)) : '?')}
-                  </p>
-                  <p style={{ color: '#444', fontSize: '11px', margin: '4px 0 0' }}>
-                    {'Créé : ' + fmtDate(d.created_at) + ' | Payé : ' + fmtDate(d.paid_at) + ' | Expédié : ' + fmtDate(d.shipped_at)}
-                  </p>
+  const renderDisputes = () => {
+    const statusColors: Record<string, string> = {
+      open: '#F59E0B', under_review: '#F97316', resolved_buyer: '#10B981',
+      resolved_seller: '#3B82F6', escalated: '#EF4444', disputed: '#EF4444', refunded: '#8B5CF6',
+    }
+    const statusLabels: Record<string, string> = {
+      open: 'Ouvert', under_review: 'En examen', resolved_buyer: 'Résolu (acheteur)',
+      resolved_seller: 'Résolu (vendeur)', escalated: 'Escaladé', disputed: 'En litige', refunded: 'Remboursé',
+    }
+    const isResolved = (status: string) => ['resolved_buyer', 'resolved_seller', 'refunded'].includes(status)
+
+    return (
+      <div style={{ padding: '0 16px' }}>
+        <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length) + ' litiges/remboursements'}</p>
+        {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'Aucun litige'}</p> : null}
+        {Array.isArray(disputes) ? disputes.map((d, i) => {
+          try {
+            const rawBuyer = d.buyer
+            const rawSellerProfile = d.seller_profile
+            const rawItem = d.item
+            const buyer = (rawBuyer && typeof rawBuyer === 'object' && !Array.isArray(rawBuyer)) ? rawBuyer as Record<string, unknown> : null
+            const seller = (rawSellerProfile && typeof rawSellerProfile === 'object' && !Array.isArray(rawSellerProfile)) ? rawSellerProfile as Record<string, unknown> : null
+            const item = (rawItem && typeof rawItem === 'object' && !Array.isArray(rawItem)) ? rawItem as Record<string, unknown> : null
+            const disputeId = String(d.id || d.dispute_id || '')
+            const status = sv(d.dispute_status || d.status)
+            const evidencePhotos = Array.isArray(d.evidence_photos) ? d.evidence_photos as string[] : []
+            const shippingProofs = Array.isArray(d.shipping_proofs) ? d.shipping_proofs as string[] : []
+            const shippingProofUrl = typeof d.shipping_proof_url === 'string' ? d.shipping_proof_url : ''
+
+            return (
+              <div key={i} style={{ ...card, padding: '20px' }}>
+                {/* Header: status + auto-refund */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <span style={badge(statusColors[status] || '#666')}>{statusLabels[status] || status}</span>
+                    {sb(d.auto_refund) ? <span style={badge('#10B981')}>{'Auto-remboursé'}</span> : null}
+                  </div>
+                  <p style={{ color: '#F0908A', fontWeight: 700, fontSize: '16px', margin: 0 }}>{fmtMoney(d.amount)}</p>
                 </div>
-                <span style={badge(sv(d.status) === 'disputed' ? '#EF4444' : '#8B5CF6')}>{sv(d.status)}</span>
+
+                {/* Order context */}
+                {item ? (
+                  <p style={{ color: '#ddd', fontWeight: 600, fontSize: '14px', margin: '0 0 8px' }}>{sv(item.title)}</p>
+                ) : (
+                  <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>{'Commande ' + fmtId(d.order_id || d.id)}</p>
+                )}
+
+                {/* Buyer + Seller info side by side */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  {/* Buyer */}
+                  <div style={{ padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
+                    <p style={{ color: '#888', fontSize: '10px', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{'Acheteur'}</p>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div style={{
+                        width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#222',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '13px', flexShrink: 0, overflow: 'hidden',
+                      }}>
+                        {(buyer && typeof buyer.avatar_url === 'string' && buyer.avatar_url)
+                          ? <img src={String(buyer.avatar_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : (buyer ? (sv(buyer.display_name)?.[0] || sv(buyer.username)?.[0] || '?') : '?')}
+                      </div>
+                      <div>
+                        <p style={{ color: '#fff', fontSize: '13px', fontWeight: 600, margin: 0 }}>{buyer ? (sv(buyer.display_name) || '@' + sv(buyer.username)) : '?'}</p>
+                        {buyer ? <p style={{ color: '#555', fontSize: '11px', margin: '1px 0 0' }}>{'@' + sv(buyer.username)}</p> : null}
+                      </div>
+                    </div>
+                    {/* Evidence photos */}
+                    {evidencePhotos.length > 0 ? (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
+                        {evidencePhotos.map((photo, pi) => (
+                          <img key={pi} src={String(photo)} alt={'Evidence ' + (pi + 1)}
+                            onClick={() => setEnlargedImage(String(photo))}
+                            style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* Seller */}
+                  <div style={{ padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
+                    <p style={{ color: '#888', fontSize: '10px', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{'Vendeur'}</p>
+                    <p style={{ color: '#fff', fontSize: '13px', fontWeight: 600, margin: 0 }}>{seller ? (sv(seller.display_name) || '@' + sv(seller.username)) : '?'}</p>
+                    {seller ? <p style={{ color: '#555', fontSize: '11px', margin: '1px 0 0' }}>{'@' + sv(seller.username)}</p> : null}
+                    {/* Shipping proofs */}
+                    {(shippingProofs.length > 0 || shippingProofUrl) ? (
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
+                        {shippingProofUrl ? (
+                          <img src={shippingProofUrl} alt="Preuve expédition"
+                            onClick={() => setEnlargedImage(shippingProofUrl)}
+                            style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
+                        ) : null}
+                        {shippingProofs.map((proof, pi) => (
+                          <img key={pi} src={String(proof)} alt={'Shipping ' + (pi + 1)}
+                            onClick={() => setEnlargedImage(String(proof))}
+                            style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  {d.opened_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Ouvert : ' + fmtDate(d.opened_at)}</span> : null}
+                  {d.created_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Créé : ' + fmtDate(d.created_at)}</span> : null}
+                  {d.paid_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Payé : ' + fmtDate(d.paid_at)}</span> : null}
+                  {d.shipped_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Expédié : ' + fmtDate(d.shipped_at)}</span> : null}
+                  {d.resolved_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Résolu : ' + fmtDate(d.resolved_at)}</span> : null}
+                </div>
+
+                {/* Dispute reason */}
+                {d.reason ? <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 10px', fontStyle: 'italic' }}>{'Motif : ' + sv(d.reason)}</p> : null}
+
+                {/* Resolution note (if already resolved) */}
+                {d.resolution_note ? <p style={{ color: '#888', fontSize: '12px', margin: '0 0 10px' }}>{'Note de résolution : ' + sv(d.resolution_note)}</p> : null}
+
+                {/* Resolution controls (only if not already resolved) */}
+                {!isResolved(status) ? (
+                  <div style={{ borderTop: '1px solid #1A1A1A', paddingTop: '12px', marginTop: '4px' }}>
+                    <textarea
+                      value={disputeNotes[disputeId] || ''}
+                      onChange={e => setDisputeNotes(prev => ({ ...prev, [disputeId]: e.target.value }))}
+                      placeholder="Note de résolution (optionnel)..."
+                      style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', marginBottom: '8px' }}
+                    />
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <button onClick={() => resolveDispute(disputeId, 'buyer')} style={btn('#10B981')}>
+                        {'Résoudre en faveur de l\'acheteur'}
+                      </button>
+                      <button onClick={() => resolveDispute(disputeId, 'seller')} style={btn('#3B82F6')}>
+                        {'Résoudre en faveur du vendeur'}
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-              {(typeof d.shipping_proof_url === 'string' && d.shipping_proof_url) ? (
-                <div style={{ marginTop: '8px' }}>
-                  <img src={sv(d.shipping_proof_url)} alt="Proof" style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333' }} />
-                </div>
-              ) : null}
-            </div>
-          )
-        } catch (err: any) {
-          return (
-            <div key={i} style={card}>
-              {renderDebugError('Dispute row #' + String(i), { message: String(err?.message || err), stack: String(err?.stack || '') })}
-            </div>
-          )
-        }
-      }) : null}
-    </div>
-  )
+            )
+          } catch (err: any) {
+            return (
+              <div key={i} style={card}>
+                {renderDebugError('Dispute row #' + String(i), { message: String(err?.message || err), stack: String(err?.stack || '') })}
+              </div>
+            )
+          }
+        }) : null}
+      </div>
+    )
+  }
 
   const renderLives = () => (
     <div style={{ padding: '0 16px' }}>
@@ -940,6 +1139,78 @@ export default function AdminPage() {
                 }
               })()}
             </div>
+          </div>
+        ) : null}
+
+        {/* Trust level modal */}
+        {trustModal ? (
+          <div onClick={() => setTrustModal(null)} style={{
+            position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 16px',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              ...card, maxWidth: '400px', width: '100%', padding: '24px',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '16px', margin: 0 }}>{'Changer le niveau de confiance'}</p>
+                <button onClick={() => setTrustModal(null)} style={{ ...btn('#333'), marginRight: 0 }}>{'X'}</button>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{'Niveau de confiance'}</label>
+                <select
+                  value={trustModal.trust_level}
+                  onChange={e => setTrustModal({ ...trustModal, trust_level: e.target.value })}
+                  style={{ ...inputStyle }}
+                >
+                  <option value="new">{'Nouveau'}</option>
+                  <option value="standard">{'Standard'}</option>
+                  <option value="trusted">{'Confiance'}</option>
+                  <option value="premium">{'Premium'}</option>
+                </select>
+              </div>
+
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{'Rétention (%)'}</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={trustModal.holdback_percent}
+                  onChange={e => setTrustModal({ ...trustModal, holdback_percent: Number(e.target.value) || 0 })}
+                  style={inputStyle}
+                />
+              </div>
+
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{'Délai de paiement (jours)'}</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={trustModal.payout_delay_days}
+                  onChange={e => setTrustModal({ ...trustModal, payout_delay_days: Number(e.target.value) || 0 })}
+                  style={inputStyle}
+                />
+              </div>
+
+              <button onClick={updateSellerTrust} style={{ ...btn('#10B981'), width: '100%', padding: '10px', fontSize: '14px' }}>
+                {'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Image preview modal */}
+        {enlargedImage ? (
+          <div onClick={() => setEnlargedImage(null)} style={{
+            position: 'fixed', inset: 0, zIndex: 10001, backgroundColor: 'rgba(0,0,0,0.9)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px',
+            cursor: 'pointer',
+          }}>
+            <img src={enlargedImage} alt="Preview" style={{
+              maxWidth: '90vw', maxHeight: '90vh', borderRadius: '12px',
+              objectFit: 'contain', border: '2px solid #333',
+            }} />
           </div>
         ) : null}
 

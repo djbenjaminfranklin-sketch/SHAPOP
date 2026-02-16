@@ -136,6 +136,10 @@ export interface Order {
   paid_at: string | null
   shipped_at: string | null
   delivered_at: string | null
+  claim_deadline: string | null
+  payout_scheduled_at: string | null
+  holdback_percent: number
+  payout_status: string
   created_at: string
 }
 
@@ -159,6 +163,8 @@ export interface ChatMessage {
   user_id: string
   message: string
   type: 'message' | 'reaction' | 'bid_notification' | 'system'
+  is_flagged: boolean
+  flag_reason: string | null
   created_at: string
   user_profile?: { display_name: string }
 }
@@ -185,6 +191,87 @@ export interface UserPreferences {
   price_range_max: number
   preferred_cities: string[]
   last_updated: string
+}
+
+export interface Dispute {
+  id: string
+  order_id: string
+  buyer_id: string
+  seller_id: string
+  reason: 'not_received' | 'wrong_item' | 'damaged' | 'not_as_described' | 'counterfeit'
+  description: string
+  evidence_urls: string[]
+  status: 'open' | 'under_review' | 'resolved_buyer' | 'resolved_seller' | 'escalated'
+  resolution_note: string | null
+  auto_refund: boolean
+  amount: number
+  opened_at: string
+  resolved_at: string | null
+  created_at: string
+}
+
+export interface BuyerScore {
+  user_id: string
+  score: number
+  total_orders: number
+  total_disputes: number
+  disputes_won: number
+  disputes_lost: number
+  total_refunds: number
+  refund_amount: number
+  last_dispute_at: string | null
+  risk_level: 'low' | 'medium' | 'high' | 'blocked'
+  updated_at: string
+}
+
+export interface SellerTrust {
+  seller_id: string
+  trust_level: 'new' | 'standard' | 'trusted' | 'premium'
+  total_completed_orders: number
+  total_disputes_against: number
+  disputes_lost: number
+  avg_ship_time_hours: number
+  positive_delivery_rate: number
+  holdback_percent: number
+  payout_delay_days: number
+  proof_level: 'basic' | 'standard' | 'enhanced'
+  manually_set: boolean
+  updated_at: string
+}
+
+export interface ShippingProof {
+  id: string
+  order_id: string
+  seller_id: string
+  type: 'photo_package' | 'photo_content' | 'video_packing'
+  url: string
+  uploaded_at: string
+}
+
+export interface Conversation {
+  id: string
+  type: 'order' | 'support' | 'dispute'
+  order_id: string | null
+  participant_1: string
+  participant_2: string
+  status: 'active' | 'closed' | 'archived'
+  created_at: string
+  other_participant?: Profile
+  last_message?: ConversationMessage
+  order?: Order
+}
+
+export interface ConversationMessage {
+  id: string
+  conversation_id: string
+  sender_id: string
+  message: string
+  is_system: boolean
+  is_flagged: boolean
+  flag_reason: string | null
+  attachment_urls: string[]
+  created_at: string
+  sender?: Profile
 }
 
 export interface Database {

@@ -738,12 +738,23 @@ export default function LiveSellerView() {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !streamId) return
-    await supabase.from('chat_messages').insert({
-      stream_id: streamId,
-      user_id: user.id,
-      message: newMessage.trim(),
-    })
-    setNewMessage('')
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+
+      await apiFetch('/api/chat/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stream_id: streamId, message: newMessage.trim() }),
+      })
+      setNewMessage('')
+    } catch (err) {
+      console.error('Failed to send chat message:', err)
+    }
   }
 
   const hasMoreItems = items.some((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
@@ -980,8 +991,8 @@ export default function LiveSellerView() {
               <span style={{ fontSize: '11px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
                 {msg.user_profile?.display_name || ct.anonymous || '?'}
               </span>
-              <span style={{ fontSize: '11px', color: '#fff', wordBreak: 'break-word' }}>
-                {msg.message}
+              <span style={{ fontSize: '11px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
+                {msg.is_flagged ? '[Message masqué]' : msg.message}
               </span>
             </div>
           ))}

@@ -227,14 +227,61 @@ async function stripeWebhookHandler(req: Request, res: Response) {
         const pi = event.data.object as Stripe.PaymentIntent
         const orderId = pi.metadata.order_id
         if (orderId) {
+          // Look up seller trust for holdback
+          const { data: orderData } = await supabase
+            .from('orders')
+            .select('seller_id, buyer_id')
+            .eq('id', orderId)
+            .single()
+
+          let holdbackPercent = 0
+          let payoutScheduledAt: string | null = null
+
+          if (orderData) {
+            const { data: trust } = await supabase
+              .from('seller_trust')
+              .select('holdback_percent, payout_delay_days')
+              .eq('seller_id', orderData.seller_id)
+              .single()
+
+            if (trust) {
+              holdbackPercent = trust.holdback_percent
+              const payoutDate = new Date()
+              payoutDate.setDate(payoutDate.getDate() + trust.payout_delay_days)
+              payoutScheduledAt = payoutDate.toISOString()
+            }
+          }
+
           await supabase
             .from('orders')
             .update({
               status: 'paid',
               paid_at: new Date().toISOString(),
+              holdback_percent: holdbackPercent,
+              payout_scheduled_at: payoutScheduledAt,
             })
             .eq('id', orderId)
-          console.log(`[Stripe] Order ${orderId} marked as paid`)
+
+          // Auto-create conversation between buyer and seller
+          if (orderData) {
+            const { data: existingConv } = await supabase
+              .from('conversations')
+              .select('id')
+              .eq('order_id', orderId)
+              .limit(1)
+              .single()
+
+            if (!existingConv) {
+              await supabase.from('conversations').insert({
+                type: 'order',
+                order_id: orderId,
+                participant_1: orderData.buyer_id,
+                participant_2: orderData.seller_id,
+              })
+            }
+          }
+
+          console.log(`[Stripe] Order ${orderId} marked as paid (holdback: ${holdbackPercent}%)`)
         }
         break
       }
@@ -1602,13 +1649,67 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
     const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id)
 
     if (paymentIntent.status === 'succeeded') {
+      // Look up seller trust for holdback
+      let holdbackPercent = 0
+      let payoutScheduledAt: string | null = null
+      const { data: trust } = await supabase
+        .from('seller_trust')
+        .select('holdback_percent, payout_delay_days')
+        .eq('seller_id', order.seller_id)
+        .single()
+      if (trust) {
+        holdbackPercent = trust.holdback_percent
+        const payoutDate = new Date()
+        payoutDate.setDate(payoutDate.getDate() + trust.payout_delay_days)
+        payoutScheduledAt = payoutDate.toISOString()
+      }
+
       await supabase
         .from('orders')
         .update({
           status: 'paid',
           paid_at: new Date().toISOString(),
+          holdback_percent: holdbackPercent,
+          payout_scheduled_at: payoutScheduledAt,
         })
         .eq('id', order_id)
+
+      // Auto-create conversation
+      const { data: existingConv } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('order_id', order_id)
+        .limit(1)
+        .single()
+
+      if (!existingConv) {
+        await supabase.from('conversations').insert({
+          type: 'order',
+          order_id: order_id,
+          participant_1: order.buyer_id,
+          participant_2: order.seller_id,
+        })
+      }
+
+      // Ensure seller has a trust record
+      const { data: existingTrust } = await supabase
+        .from('seller_trust')
+        .select('seller_id')
+        .eq('seller_id', order.seller_id)
+        .single()
+      if (!existingTrust) {
+        await supabase.from('seller_trust').insert({ seller_id: order.seller_id })
+      }
+
+      // Ensure buyer has a score record
+      const { data: existingScore } = await supabase
+        .from('buyer_scores')
+        .select('user_id')
+        .eq('user_id', order.buyer_id)
+        .single()
+      if (!existingScore) {
+        await supabase.from('buyer_scores').insert({ user_id: order.buyer_id })
+      }
 
       console.log(`[Stripe] Order ${order_id} confirmed paid via direct check`)
       res.json({ success: true, status: 'paid' })
@@ -1631,12 +1732,18 @@ app.get('/api/stripe/config', (_req: Request, res: Response) => {
 // =============================================
 // ORDERS — Ship & confirm delivery
 // =============================================
+const ShipOrderProof = z.object({
+  type: z.enum(['photo_package', 'photo_content', 'video_packing']),
+  url: z.string().url(),
+})
+
 const ShipOrderBody = z.object({
-  shipping_proof_url: z.string().url(),
+  shipping_proof_url: z.string().url().optional(),
+  proofs: z.array(ShipOrderProof).optional(),
   tracking_number: z.string().max(100).optional(),
 })
 
-// Seller marks order as shipped with proof photo
+// Seller marks order as shipped with proof photo(s)
 app.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parsed = ShipOrderBody.safeParse(req.body)
@@ -1645,8 +1752,13 @@ app.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, 
       return
     }
 
-    const { shipping_proof_url, tracking_number } = parsed.data
+    const { shipping_proof_url, proofs, tracking_number } = parsed.data
     const orderId = req.params.id
+
+    if (!shipping_proof_url && (!proofs || proofs.length === 0)) {
+      res.status(400).json({ error: 'At least one shipping proof is required' })
+      return
+    }
 
     // Fetch the order
     const { data: order, error: fetchErr } = await supabase
@@ -1670,10 +1782,54 @@ app.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, 
       return
     }
 
+    // Validate proofs against seller trust proof_level
+    if (proofs && proofs.length > 0) {
+      const { data: trust } = await supabase
+        .from('seller_trust')
+        .select('proof_level, trust_level')
+        .eq('seller_id', req.user!.id)
+        .single()
+
+      const proofLevel = trust?.proof_level || 'enhanced'
+      const trustLevel = trust?.trust_level || 'new'
+      const amount = order.amount
+
+      // Determine required proofs
+      let requiredTypes: string[] = []
+      if (proofLevel === 'basic' && amount < 20 && ['trusted', 'premium'].includes(trustLevel)) {
+        requiredTypes = ['photo_package']
+      } else if (proofLevel === 'standard' || (amount >= 20 && amount <= 100)) {
+        requiredTypes = ['photo_package', 'photo_content']
+      } else {
+        // enhanced: > 100€ or trust new
+        requiredTypes = ['photo_package', 'photo_content', 'video_packing']
+      }
+
+      const proofTypes = proofs.map(p => p.type) as string[]
+      const missingTypes = requiredTypes.filter(t => !proofTypes.includes(t))
+      if (missingTypes.length > 0) {
+        res.status(400).json({
+          error: `Preuves manquantes: ${missingTypes.join(', ')}`,
+          required: requiredTypes,
+          provided: proofTypes,
+        })
+        return
+      }
+
+      // Insert shipping proofs
+      const proofInserts = proofs.map(p => ({
+        order_id: orderId,
+        seller_id: req.user!.id,
+        type: p.type,
+        url: p.url,
+      }))
+      await supabase.from('shipping_proofs').insert(proofInserts)
+    }
+
     const updateData: Record<string, unknown> = {
       status: 'shipped',
       shipped_at: new Date().toISOString(),
-      shipping_proof_url,
+      shipping_proof_url: shipping_proof_url || (proofs && proofs.length > 0 ? proofs[0].url : null),
     }
     if (tracking_number) {
       updateData.tracking_number = tracking_number
@@ -1723,11 +1879,29 @@ app.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authentica
       return
     }
 
+    const now = new Date()
+    const claimDeadline = new Date(now.getTime() + 48 * 60 * 60 * 1000) // 48h from now
+
+    // Get seller trust for payout delay
+    let payoutScheduledAt: string | null = order.payout_scheduled_at || null
+    if (!payoutScheduledAt) {
+      const { data: trust } = await supabase
+        .from('seller_trust')
+        .select('payout_delay_days')
+        .eq('seller_id', order.seller_id)
+        .single()
+      const delayDays = trust?.payout_delay_days || 7
+      const payoutDate = new Date(now.getTime() + delayDays * 24 * 60 * 60 * 1000)
+      payoutScheduledAt = payoutDate.toISOString()
+    }
+
     const { data: updated, error: updateErr } = await supabase
       .from('orders')
       .update({
         status: 'delivered',
-        delivered_at: new Date().toISOString(),
+        delivered_at: now.toISOString(),
+        claim_deadline: claimDeadline.toISOString(),
+        payout_scheduled_at: payoutScheduledAt,
       })
       .eq('id', orderId)
       .select('*')
@@ -1736,6 +1910,46 @@ app.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authentica
     if (updateErr) {
       res.status(500).json({ error: 'Failed to update order' })
       return
+    }
+
+    // Update seller trust stats
+    const { data: trust } = await supabase
+      .from('seller_trust')
+      .select('*')
+      .eq('seller_id', order.seller_id)
+      .single()
+    if (trust) {
+      const shipTime = order.shipped_at
+        ? (now.getTime() - new Date(order.shipped_at).getTime()) / (1000 * 60 * 60)
+        : 0
+      const newTotal = trust.total_completed_orders + 1
+      const newAvgShip = ((trust.avg_ship_time_hours * trust.total_completed_orders) + shipTime) / newTotal
+      await supabase
+        .from('seller_trust')
+        .update({
+          total_completed_orders: newTotal,
+          avg_ship_time_hours: Math.round(newAvgShip * 10) / 10,
+          updated_at: now.toISOString(),
+        })
+        .eq('seller_id', order.seller_id)
+    }
+
+    // Update buyer score total_orders
+    const { data: buyerScore } = await supabase
+      .from('buyer_scores')
+      .select('*')
+      .eq('user_id', order.buyer_id)
+      .single()
+    if (buyerScore) {
+      await supabase
+        .from('buyer_scores')
+        .update({ total_orders: buyerScore.total_orders + 1, updated_at: now.toISOString() })
+        .eq('user_id', order.buyer_id)
+    } else {
+      await supabase.from('buyer_scores').insert({
+        user_id: order.buyer_id,
+        total_orders: 1,
+      })
     }
 
     res.json(updated)
@@ -2325,6 +2539,828 @@ app.get('/api/admin/audit-log', requireAdmin, async (req: AuthenticatedRequest, 
   } catch (err: any) {
     console.error('Admin audit-log error:', err?.message || err)
     res.json({ logs: [], total: 0, page: 1, limit: 50 })
+  }
+})
+
+// =============================================
+// CHAT FILTERING (Priority #1 — replaces direct Supabase insert)
+// =============================================
+const CONTACT_PATTERNS = [
+  /[\w.-]+@[\w.-]+\.\w{2,}/i,                          // Email
+  /\+?\d{10,14}/,                                       // International phone
+  /0[0-9]{1,2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}/,  // French phone
+  /0[0-9]{1,2}[-.\s]?[0-9]{6,8}/,                      // Generic local phone
+  /@[\w]{3,}/,                                          // @handle
+  /\b(instagram|insta|telegram|whatsapp|whats\s?app|snapchat|snap|signal|discord)\b/i, // Social keywords
+  /\b(dm\s+me|message\s+me|contact\s+me|text\s+me|call\s+me|appelle[\s-]moi|ecris[\s-]moi|contacte[\s-]moi)\b/i, // Contact solicitation
+]
+
+function detectContactInfo(message: string): string | null {
+  for (const pattern of CONTACT_PATTERNS) {
+    if (pattern.test(message)) {
+      return pattern.source
+    }
+  }
+  return null
+}
+
+app.post('/api/chat/send', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { stream_id, message } = req.body
+    if (!stream_id || !message || typeof message !== 'string') {
+      res.status(400).json({ error: 'stream_id and message are required' })
+      return
+    }
+
+    const trimmed = message.trim().slice(0, 500) // Max 500 chars
+    if (!trimmed) {
+      res.status(400).json({ error: 'Message cannot be empty' })
+      return
+    }
+
+    const flagReason = detectContactInfo(trimmed)
+    const isFlagged = flagReason !== null
+
+    const { data, error } = await supabase.from('chat_messages').insert({
+      stream_id,
+      user_id: req.user!.id,
+      message: trimmed,
+      is_flagged: isFlagged,
+      flag_reason: flagReason,
+    }).select('*').single()
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to send message' })
+      return
+    }
+
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// DISPUTES
+// =============================================
+const DisputeBody = z.object({
+  order_id: z.string().uuid(),
+  reason: z.enum(['not_received', 'wrong_item', 'damaged', 'not_as_described', 'counterfeit']),
+  description: z.string().min(20).max(2000),
+  evidence_urls: z.array(z.string().url()).max(5).optional(),
+})
+
+// Buyer opens a dispute
+app.post('/api/disputes', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parsed = DisputeBody.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Données invalides', details: parsed.error.flatten().fieldErrors })
+      return
+    }
+
+    const { order_id, reason, description, evidence_urls } = parsed.data
+    const buyerId = req.user!.id
+
+    // Fetch order
+    const { data: order } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', order_id)
+      .single()
+
+    if (!order) {
+      res.status(404).json({ error: 'Commande introuvable' })
+      return
+    }
+
+    if (order.buyer_id !== buyerId) {
+      res.status(403).json({ error: 'Seul l\'acheteur peut ouvrir un litige' })
+      return
+    }
+
+    if (order.status !== 'delivered') {
+      res.status(400).json({ error: 'Un litige ne peut être ouvert que sur une commande livrée' })
+      return
+    }
+
+    // Check claim deadline (48h window)
+    if (order.claim_deadline && new Date(order.claim_deadline) < new Date()) {
+      res.status(400).json({ error: 'Le délai de réclamation de 48h est dépassé' })
+      return
+    }
+
+    // Check for existing dispute
+    const { data: existing } = await supabase
+      .from('disputes')
+      .select('id')
+      .eq('order_id', order_id)
+      .limit(1)
+      .single()
+
+    if (existing) {
+      res.status(409).json({ error: 'Un litige existe déjà pour cette commande' })
+      return
+    }
+
+    // Check buyer score for auto-refund eligibility
+    const { data: buyerScore } = await supabase
+      .from('buyer_scores')
+      .select('score')
+      .eq('user_id', buyerId)
+      .single()
+
+    const score = buyerScore?.score ?? 100
+    const autoRefund = order.amount < 30 && score > 70
+
+    const disputeData = {
+      order_id,
+      buyer_id: buyerId,
+      seller_id: order.seller_id,
+      reason,
+      description,
+      evidence_urls: evidence_urls || [],
+      status: autoRefund ? 'resolved_buyer' : 'under_review',
+      auto_refund: autoRefund,
+      amount: order.amount,
+      resolved_at: autoRefund ? new Date().toISOString() : null,
+    }
+
+    const { data: dispute, error: insertErr } = await supabase
+      .from('disputes')
+      .insert(disputeData)
+      .select('*')
+      .single()
+
+    if (insertErr) {
+      res.status(500).json({ error: 'Échec de la création du litige' })
+      return
+    }
+
+    // Update order status
+    await supabase
+      .from('orders')
+      .update({ status: autoRefund ? 'refunded' : 'disputed' })
+      .eq('id', order_id)
+
+    // Update buyer scores
+    const { data: existingScore } = await supabase
+      .from('buyer_scores')
+      .select('*')
+      .eq('user_id', buyerId)
+      .single()
+
+    if (existingScore) {
+      const updates: Record<string, unknown> = {
+        total_disputes: existingScore.total_disputes + 1,
+        last_dispute_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      if (autoRefund) {
+        updates.disputes_won = existingScore.disputes_won + 1
+        updates.total_refunds = existingScore.total_refunds + 1
+        updates.refund_amount = existingScore.refund_amount + order.amount
+      }
+      await supabase.from('buyer_scores').update(updates).eq('user_id', buyerId)
+    } else {
+      await supabase.from('buyer_scores').insert({
+        user_id: buyerId,
+        total_disputes: 1,
+        last_dispute_at: new Date().toISOString(),
+        disputes_won: autoRefund ? 1 : 0,
+        total_refunds: autoRefund ? 1 : 0,
+        refund_amount: autoRefund ? order.amount : 0,
+      })
+    }
+
+    // Update seller trust stats
+    const { data: sellerTrust } = await supabase
+      .from('seller_trust')
+      .select('*')
+      .eq('seller_id', order.seller_id)
+      .single()
+
+    if (sellerTrust) {
+      const updates: Record<string, unknown> = {
+        total_disputes_against: sellerTrust.total_disputes_against + 1,
+        updated_at: new Date().toISOString(),
+      }
+      if (autoRefund) {
+        updates.disputes_lost = sellerTrust.disputes_lost + 1
+      }
+      await supabase.from('seller_trust').update(updates).eq('seller_id', order.seller_id)
+    }
+
+    // Auto-create dispute conversation
+    await supabase.from('conversations').insert({
+      type: 'dispute',
+      order_id,
+      participant_1: buyerId,
+      participant_2: order.seller_id,
+    })
+
+    res.json(dispute)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// User views their disputes
+app.get('/api/disputes/mine', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data, error } = await supabase
+      .from('disputes')
+      .select('*, order:orders(*, item:items(title, image_urls))')
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch disputes' })
+      return
+    }
+
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Get single dispute by order ID
+app.get('/api/disputes/order/:orderId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('disputes')
+      .select('*')
+      .eq('order_id', req.params.orderId)
+      .single()
+
+    if (error || !data) {
+      res.status(404).json({ error: 'Dispute not found' })
+      return
+    }
+
+    // Verify user is participant
+    const userId = req.user!.id
+    if (data.buyer_id !== userId && data.seller_id !== userId) {
+      res.status(403).json({ error: 'Access denied' })
+      return
+    }
+
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Admin resolves dispute
+app.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const disputeId = paramStr(req.params.id)
+    const { resolution, note } = req.body
+
+    if (!resolution || !['buyer', 'seller'].includes(resolution)) {
+      res.status(400).json({ error: 'resolution must be "buyer" or "seller"' })
+      return
+    }
+
+    const { data: dispute } = await supabase
+      .from('disputes')
+      .select('*')
+      .eq('id', disputeId)
+      .single()
+
+    if (!dispute) {
+      res.status(404).json({ error: 'Dispute not found' })
+      return
+    }
+
+    if (['resolved_buyer', 'resolved_seller'].includes(dispute.status)) {
+      res.status(400).json({ error: 'Dispute already resolved' })
+      return
+    }
+
+    const now = new Date().toISOString()
+    const newStatus = resolution === 'buyer' ? 'resolved_buyer' : 'resolved_seller'
+
+    // Update dispute
+    await supabase
+      .from('disputes')
+      .update({
+        status: newStatus,
+        resolution_note: note || null,
+        resolved_at: now,
+      })
+      .eq('id', disputeId)
+
+    // Update order
+    if (resolution === 'buyer') {
+      await supabase
+        .from('orders')
+        .update({ status: 'refunded' })
+        .eq('id', dispute.order_id)
+
+      // Update buyer score (won)
+      const { data: bs } = await supabase
+        .from('buyer_scores')
+        .select('*')
+        .eq('user_id', dispute.buyer_id)
+        .single()
+      if (bs) {
+        await supabase.from('buyer_scores').update({
+          disputes_won: bs.disputes_won + 1,
+          total_refunds: bs.total_refunds + 1,
+          refund_amount: bs.refund_amount + dispute.amount,
+          updated_at: now,
+        }).eq('user_id', dispute.buyer_id)
+      }
+
+      // Update seller trust (lost)
+      const { data: st } = await supabase
+        .from('seller_trust')
+        .select('*')
+        .eq('seller_id', dispute.seller_id)
+        .single()
+      if (st) {
+        await supabase.from('seller_trust').update({
+          disputes_lost: st.disputes_lost + 1,
+          updated_at: now,
+        }).eq('seller_id', dispute.seller_id)
+      }
+    } else {
+      // Resolution in favor of seller — penalize buyer
+      await supabase
+        .from('orders')
+        .update({ status: 'delivered' })
+        .eq('id', dispute.order_id)
+
+      const { data: bs } = await supabase
+        .from('buyer_scores')
+        .select('*')
+        .eq('user_id', dispute.buyer_id)
+        .single()
+      if (bs) {
+        const newScore = Math.max(0, bs.score - 20)
+        let riskLevel = 'low'
+        if (newScore < 30) riskLevel = 'blocked'
+        else if (newScore < 50) riskLevel = 'high'
+        else if (newScore < 70) riskLevel = 'medium'
+
+        await supabase.from('buyer_scores').update({
+          disputes_lost: bs.disputes_lost + 1,
+          score: newScore,
+          risk_level: riskLevel,
+          updated_at: now,
+        }).eq('user_id', dispute.buyer_id)
+      }
+    }
+
+    // Audit log
+    await logAdminAction(req.user!.id, req.user!.email || '', `resolve_dispute_${resolution}`, 'dispute', disputeId, { note, order_id: dispute.order_id })
+
+    res.json({ success: true, status: newStatus })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// SELLER TRUST LEVELS
+// =============================================
+
+// Seller views their trust info
+app.get('/api/sellers/:id/trust', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = req.params.id
+    const { data: trust } = await supabase
+      .from('seller_trust')
+      .select('*')
+      .eq('seller_id', sellerId)
+      .single()
+
+    if (!trust) {
+      // Return defaults for new seller
+      res.json({
+        seller_id: sellerId,
+        trust_level: 'new',
+        total_completed_orders: 0,
+        total_disputes_against: 0,
+        disputes_lost: 0,
+        avg_ship_time_hours: 0,
+        positive_delivery_rate: 1.0,
+        holdback_percent: 20,
+        payout_delay_days: 7,
+        proof_level: 'enhanced',
+        manually_set: false,
+      })
+      return
+    }
+
+    res.json(trust)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Admin forces trust level
+app.post('/api/admin/sellers/:id/trust', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = paramStr(req.params.id)
+    const { trust_level, holdback_percent, payout_delay_days } = req.body
+
+    if (!trust_level || !['new', 'standard', 'trusted', 'premium'].includes(trust_level)) {
+      res.status(400).json({ error: 'Invalid trust_level' })
+      return
+    }
+
+    // Derive defaults based on level
+    const defaults: Record<string, { holdback: number; delay: number; proof: string }> = {
+      new: { holdback: 20, delay: 7, proof: 'enhanced' },
+      standard: { holdback: 15, delay: 5, proof: 'standard' },
+      trusted: { holdback: 10, delay: 3, proof: 'basic' },
+      premium: { holdback: 5, delay: 1, proof: 'basic' },
+    }
+    const d = defaults[trust_level]
+
+    const { data: existing } = await supabase
+      .from('seller_trust')
+      .select('seller_id')
+      .eq('seller_id', sellerId)
+      .single()
+
+    const updateData = {
+      trust_level,
+      holdback_percent: holdback_percent ?? d.holdback,
+      payout_delay_days: payout_delay_days ?? d.delay,
+      proof_level: d.proof,
+      manually_set: true,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (existing) {
+      await supabase.from('seller_trust').update(updateData).eq('seller_id', sellerId)
+    } else {
+      await supabase.from('seller_trust').insert({ seller_id: sellerId, ...updateData })
+    }
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'set_trust_level', 'seller', sellerId, { trust_level, holdback_percent: updateData.holdback_percent, payout_delay_days: updateData.payout_delay_days })
+
+    res.json({ success: true, ...updateData })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// CONVERSATIONS (Internal messaging — Phase 3)
+// =============================================
+
+// List user's conversations
+app.get('/api/conversations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*, order:orders(id, amount, status, item:items(title, image_urls))')
+      .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch conversations' })
+      return
+    }
+
+    // Enrich with other participant profile and last message
+    const enriched = await Promise.all((data || []).map(async (conv: any) => {
+      const otherId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, username')
+        .eq('id', otherId)
+        .single()
+
+      const { data: lastMsg } = await supabase
+        .from('conversation_messages')
+        .select('*')
+        .eq('conversation_id', conv.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single()
+
+      return { ...conv, other_participant: profile, last_message: lastMsg }
+    }))
+
+    res.json(enriched)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Get messages for a conversation
+app.get('/api/conversations/:id/messages', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const convId = req.params.id
+    const userId = req.user!.id
+
+    // Verify participant
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', convId)
+      .single()
+
+    if (!conv || (conv.participant_1 !== userId && conv.participant_2 !== userId)) {
+      res.status(403).json({ error: 'Access denied' })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('conversation_messages')
+      .select('*, sender:profiles!sender_id(display_name, avatar_url)')
+      .eq('conversation_id', convId)
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch messages' })
+      return
+    }
+
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Send message in conversation (with filtering)
+app.post('/api/conversations/:id/messages', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const convId = req.params.id
+    const userId = req.user!.id
+    const { message, attachment_urls } = req.body
+
+    if (!message || typeof message !== 'string') {
+      res.status(400).json({ error: 'Message is required' })
+      return
+    }
+
+    // Verify participant
+    const { data: conv } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', convId)
+      .single()
+
+    if (!conv || (conv.participant_1 !== userId && conv.participant_2 !== userId)) {
+      res.status(403).json({ error: 'Access denied' })
+      return
+    }
+
+    if (conv.status !== 'active') {
+      res.status(400).json({ error: 'Conversation is closed' })
+      return
+    }
+
+    const trimmed = message.trim().slice(0, 2000)
+    const flagReason = detectContactInfo(trimmed)
+    const isFlagged = flagReason !== null
+
+    const { data, error } = await supabase.from('conversation_messages').insert({
+      conversation_id: convId,
+      sender_id: userId,
+      message: trimmed,
+      is_flagged: isFlagged,
+      flag_reason: flagReason,
+      attachment_urls: attachment_urls || [],
+    }).select('*, sender:profiles!sender_id(display_name, avatar_url)').single()
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to send message' })
+      return
+    }
+
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// AUTOMATIONS (Phase 4)
+// =============================================
+async function recalculateTrustLevel(sellerId: string) {
+  const { data: trust } = await supabase
+    .from('seller_trust')
+    .select('*')
+    .eq('seller_id', sellerId)
+    .single()
+
+  if (!trust || trust.manually_set) return
+
+  const { data: seller } = await supabase
+    .from('sellers')
+    .select('created_at')
+    .eq('id', sellerId)
+    .single()
+
+  if (!seller) return
+
+  const accountAgeDays = (Date.now() - new Date(seller.created_at).getTime()) / (1000 * 60 * 60 * 24)
+  const disputeRate = trust.total_completed_orders > 0
+    ? trust.total_disputes_against / trust.total_completed_orders
+    : 0
+
+  // Demotion check first
+  if (disputeRate > 0.15 && trust.trust_level !== 'new') {
+    const levels = ['new', 'standard', 'trusted', 'premium']
+    const currentIdx = levels.indexOf(trust.trust_level)
+    if (currentIdx > 0) {
+      const newLevel = levels[currentIdx - 1]
+      const defaults: Record<string, { holdback: number; delay: number; proof: string }> = {
+        new: { holdback: 20, delay: 7, proof: 'enhanced' },
+        standard: { holdback: 15, delay: 5, proof: 'standard' },
+        trusted: { holdback: 10, delay: 3, proof: 'basic' },
+        premium: { holdback: 5, delay: 1, proof: 'basic' },
+      }
+      const d = defaults[newLevel]
+      await supabase.from('seller_trust').update({
+        trust_level: newLevel,
+        holdback_percent: d.holdback,
+        payout_delay_days: d.delay,
+        proof_level: d.proof,
+        updated_at: new Date().toISOString(),
+      }).eq('seller_id', sellerId)
+      return
+    }
+  }
+
+  // Promotion check
+  let newLevel = trust.trust_level
+  if (trust.trust_level === 'new' &&
+    trust.total_completed_orders >= 10 &&
+    disputeRate < 0.10 &&
+    trust.avg_ship_time_hours < 72 &&
+    accountAgeDays > 30) {
+    newLevel = 'standard'
+  } else if (trust.trust_level === 'standard' &&
+    trust.total_completed_orders >= 50 &&
+    disputeRate < 0.05 &&
+    trust.avg_ship_time_hours < 48 &&
+    trust.positive_delivery_rate > 0.95 &&
+    accountAgeDays > 90) {
+    newLevel = 'trusted'
+  } else if (trust.trust_level === 'trusted' &&
+    trust.total_completed_orders >= 200 &&
+    disputeRate < 0.02 &&
+    trust.avg_ship_time_hours < 36 &&
+    trust.positive_delivery_rate > 0.98 &&
+    accountAgeDays > 180) {
+    newLevel = 'premium'
+  }
+
+  if (newLevel !== trust.trust_level) {
+    const defaults: Record<string, { holdback: number; delay: number; proof: string }> = {
+      new: { holdback: 20, delay: 7, proof: 'enhanced' },
+      standard: { holdback: 15, delay: 5, proof: 'standard' },
+      trusted: { holdback: 10, delay: 3, proof: 'basic' },
+      premium: { holdback: 5, delay: 1, proof: 'basic' },
+    }
+    const d = defaults[newLevel]
+    await supabase.from('seller_trust').update({
+      trust_level: newLevel,
+      holdback_percent: d.holdback,
+      payout_delay_days: d.delay,
+      proof_level: d.proof,
+      updated_at: new Date().toISOString(),
+    }).eq('seller_id', sellerId)
+  }
+}
+
+// Admin-triggered automation run (or cron)
+app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const results: Record<string, number> = {
+      auto_confirmed: 0,
+      claim_windows_closed: 0,
+      trust_recalculated: 0,
+    }
+
+    // 1. Auto-confirm delivery if shipped > 14 days without dispute
+    const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: autoConfirmOrders } = await supabase
+      .from('orders')
+      .select('id, seller_id, buyer_id, shipped_at')
+      .eq('status', 'shipped')
+      .lt('shipped_at', fourteenDaysAgo)
+
+    for (const order of (autoConfirmOrders || [])) {
+      const claimDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+      await supabase.from('orders').update({
+        status: 'delivered',
+        delivered_at: new Date().toISOString(),
+        claim_deadline: claimDeadline,
+      }).eq('id', order.id)
+      results.auto_confirmed++
+    }
+
+    // 2. Close claim windows + release payouts
+    const { data: expiredClaims } = await supabase
+      .from('orders')
+      .select('id, seller_id')
+      .eq('status', 'delivered')
+      .eq('payout_status', 'pending')
+      .lt('claim_deadline', new Date().toISOString())
+
+    for (const order of (expiredClaims || [])) {
+      await supabase.from('orders').update({
+        payout_status: 'released',
+      }).eq('id', order.id)
+      results.claim_windows_closed++
+    }
+
+    // 3. Recalculate trust levels for all sellers
+    const { data: sellers } = await supabase
+      .from('seller_trust')
+      .select('seller_id')
+      .eq('manually_set', false)
+
+    for (const seller of (sellers || [])) {
+      await recalculateTrustLevel(seller.seller_id)
+      results.trust_recalculated++
+    }
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'run_automations', 'system', 'global', results)
+
+    res.json({ success: true, results })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// Enhanced admin disputes endpoint (replaces basic one above)
+// =============================================
+app.get('/api/admin/disputes-enhanced', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data: disputes, error } = await supabase
+      .from('disputes')
+      .select('*, order:orders(*, item:items(title, image_urls))')
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+
+    // Enrich with buyer/seller profiles and shipping proofs
+    const enriched = await Promise.all((disputes || []).map(async (dispute: any) => {
+      const [buyerRes, sellerRes, proofsRes] = await Promise.all([
+        supabase.from('profiles').select('display_name, username, avatar_url').eq('id', dispute.buyer_id).single(),
+        supabase.from('profiles').select('display_name, username, avatar_url').eq('id', dispute.seller_id).single(),
+        supabase.from('shipping_proofs').select('*').eq('order_id', dispute.order_id),
+      ])
+
+      return {
+        ...dispute,
+        buyer_profile: buyerRes.data,
+        seller_profile: sellerRes.data,
+        shipping_proofs: proofsRes.data || [],
+      }
+    }))
+
+    res.json(enriched)
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch disputes' })
+  }
+})
+
+// Admin get buyer scores for users
+app.get('/api/admin/buyer-scores', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('buyer_scores')
+      .select('*')
+      .order('score', { ascending: true })
+
+    if (error) throw error
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch buyer scores' })
+  }
+})
+
+// Admin get all seller trust levels
+app.get('/api/admin/seller-trusts', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('seller_trust')
+      .select('*')
+      .order('trust_level', { ascending: true })
+
+    if (error) throw error
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch seller trusts' })
   }
 })
 
