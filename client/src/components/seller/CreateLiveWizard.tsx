@@ -15,6 +15,12 @@ export default function CreateLiveWizard() {
   const navigate = useNavigate()
   const lang = getLang()
 
+  // Block non-sellers
+  if (!profile?.is_seller) {
+    navigate('/dashboard', { replace: true })
+    return null
+  }
+
   const [step, setStep] = useState(0)
   const [title, setTitle] = useState('')
   const [scheduledDate, setScheduledDate] = useState('')

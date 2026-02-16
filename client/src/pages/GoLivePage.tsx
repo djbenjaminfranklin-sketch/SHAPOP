@@ -174,9 +174,15 @@ const goLiveContent = {
 
 export default function GoLivePage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = goLiveContent[lang] || goLiveContent.fr
+
+  // Block non-sellers
+  if (!profile?.is_seller) {
+    navigate('/dashboard', { replace: true })
+    return null
+  }
 
   const [showTips, setShowTips] = useState(true)
   const [tipIndex, setTipIndex] = useState(0)

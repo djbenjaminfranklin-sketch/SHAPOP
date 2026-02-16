@@ -196,9 +196,15 @@ const conditionsFr = ['Neuf', 'Comme neuf', 'Bon etat', 'Correct']
 
 export default function AIListingPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const t = content[lang] || content.fr
+
+  // Block non-sellers
+  if (!profile?.is_seller) {
+    navigate('/dashboard', { replace: true })
+    return null
+  }
   const analysisSteps = t.analysisSteps
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<Step>('upload')
