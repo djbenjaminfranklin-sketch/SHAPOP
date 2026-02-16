@@ -289,11 +289,19 @@ export default function PreferencesPage() {
         <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '14px 16px', marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '15px', color: '#fff' }}>{(() => {
             const country = getStoredGPSCountry() || detectUserCountry()
-            const currencies: Record<CountryCode, string> = {
+            const currencies: Partial<Record<CountryCode, string>> = {
               FR: '\u20AC EUR (Euro)',
               ES: '\u20AC EUR (Euro)',
               US: '$ USD (Dollar)',
               GB: '\u00A3 GBP (Pound)',
+              BR: 'R$ BRL (Real)',
+              JP: '\u00A5 JPY (Yen)',
+              DE: '\u20AC EUR (Euro)',
+              IT: '\u20AC EUR (Euro)',
+              IL: '\u20AA ILS (Shekel)',
+              PT: '\u20AC EUR (Euro)',
+              MA: 'MAD (Dirham)',
+              CA: '$ CAD (Dollar)',
             }
             return currencies[country] || '\u20AC EUR (Euro)'
           })()}</span>

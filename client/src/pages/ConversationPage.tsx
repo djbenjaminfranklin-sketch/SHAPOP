@@ -79,7 +79,7 @@ export default function ConversationPage() {
       const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
       const { data: otherProfile } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, username, bio, is_seller, city, country, language, joined_communities, created_at')
+        .select('id, display_name, avatar_url, username, bio, is_seller, city, country, language, joined_communities, phone_number, phone_verified, created_at')
         .eq('id', otherId)
         .single()
 

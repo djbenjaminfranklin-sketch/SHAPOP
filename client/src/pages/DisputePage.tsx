@@ -53,7 +53,7 @@ export default function DisputePage() {
   const [description, setDescription] = useState('')
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
-  const [uploadedUrls, setUploadedUrls] = useState<string[]>([])
+  const [, setUploadedUrls] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 

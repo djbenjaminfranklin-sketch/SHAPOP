@@ -49,14 +49,15 @@ export default function ActivityPage() {
 
   // Shipping modal states (seller)
   const [shippingOrderId, setShippingOrderId] = useState<string | null>(null)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [, setSelectedFile] = useState<File | null>(null)
   const [trackingNumber, setTrackingNumber] = useState('')
   const [uploading, setUploading] = useState(false)
   const [shipError, setShipError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  void fileInputRef // kept for future use
 
   // Multi-proof upload states (seller)
-  const [proofLevel, setProofLevel] = useState<ProofLevel>('basic')
+  const [, setProofLevel] = useState<ProofLevel>('basic')
   const [proofFiles, setProofFiles] = useState<{ type: string; file: File | null }[]>([{ type: 'package_photo', file: null }])
   const [loadingProofLevel, setLoadingProofLevel] = useState(false)
   const proofFileInputRefs = useRef<(HTMLInputElement | null)[]>([])
@@ -936,7 +937,10 @@ export default function ActivityPage() {
           {mainTabs.map(tab => (
             <button
               key={tab.id}
-              onClick={() => { setMainTab(tab.id); setSubFilter('all') }}
+              onClick={() => {
+                if (tab.id === 'messages') { navigate('/messages'); return }
+                setMainTab(tab.id); setSubFilter('all')
+              }}
               style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '10px 16px', borderRadius: '14px',

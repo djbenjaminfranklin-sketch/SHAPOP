@@ -80,6 +80,45 @@ const cityImages: Record<string, string> = {
   'Manchester': 'https://images.unsplash.com/photo-1520114878144-6123749968dd?w=400&h=250&fit=crop',
   'Birmingham': 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=400&h=250&fit=crop',
   'Edinburgh': 'https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=400&h=250&fit=crop',
+  // Brazil
+  'Sao Paulo': 'https://images.unsplash.com/photo-1543059080-87f29fbfefea?w=400&h=250&fit=crop',
+  'Rio de Janeiro': 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=400&h=250&fit=crop',
+  'Brasilia': 'https://images.unsplash.com/photo-1553354994-e24e0da07ef7?w=400&h=250&fit=crop',
+  'Salvador': 'https://images.unsplash.com/photo-1551887196-72e32bfc7bf3?w=400&h=250&fit=crop',
+  'Belo Horizonte': 'https://images.unsplash.com/photo-1598301257942-e6bde1d2149b?w=400&h=250&fit=crop',
+  // Japan
+  'Tokyo': 'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=400&h=250&fit=crop',
+  'Osaka': 'https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&h=250&fit=crop',
+  'Kyoto': 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=400&h=250&fit=crop',
+  'Yokohama': 'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=400&h=250&fit=crop',
+  // Germany
+  'Berlin': 'https://images.unsplash.com/photo-1560969184-10fe8719e047?w=400&h=250&fit=crop',
+  'Munich': 'https://images.unsplash.com/photo-1595867818082-083862f3d630?w=400&h=250&fit=crop',
+  'Hamburg': 'https://images.unsplash.com/photo-1562930024-4aca28e91b10?w=400&h=250&fit=crop',
+  'Frankfurt': 'https://images.unsplash.com/photo-1467269204594-9661b134dd2b?w=400&h=250&fit=crop',
+  // Italy
+  'Roma': 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=400&h=250&fit=crop',
+  'Milano': 'https://images.unsplash.com/photo-1520440229-6469a149ac59?w=400&h=250&fit=crop',
+  'Napoli': 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=400&h=250&fit=crop',
+  'Firenze': 'https://images.unsplash.com/photo-1543429257-3eb0b65d9c58?w=400&h=250&fit=crop',
+  // Israel
+  'Tel Aviv': 'https://images.unsplash.com/photo-1544991875-5dc1b05f607d?w=400&h=250&fit=crop',
+  'Jerusalem': 'https://images.unsplash.com/photo-1552423314-cf29ab68ad73?w=400&h=250&fit=crop',
+  'Haifa': 'https://images.unsplash.com/photo-1558431382-27e303142255?w=400&h=250&fit=crop',
+  // Portugal
+  'Lisboa': 'https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=400&h=250&fit=crop',
+  'Porto': 'https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=400&h=250&fit=crop',
+  'Faro': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&h=250&fit=crop',
+  // Morocco
+  'Casablanca': 'https://images.unsplash.com/photo-1569383746724-6f1b882b8f46?w=400&h=250&fit=crop',
+  'Marrakech': 'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=400&h=250&fit=crop',
+  'Rabat': 'https://images.unsplash.com/photo-1569587112025-0d460e81a126?w=400&h=250&fit=crop',
+  'Tanger': 'https://images.unsplash.com/photo-1553522991-71439aa5765b?w=400&h=250&fit=crop',
+  // Canada
+  'Toronto': 'https://images.unsplash.com/photo-1517090504332-af4e28e407e0?w=400&h=250&fit=crop',
+  'Montreal': 'https://images.unsplash.com/photo-1519178614-68673b201f36?w=400&h=250&fit=crop',
+  'Vancouver': 'https://images.unsplash.com/photo-1559511260-66a68e7e5e8c?w=400&h=250&fit=crop',
+  'Calgary': 'https://images.unsplash.com/photo-1561134643-668dafae01a4?w=400&h=250&fit=crop',
 }
 
 export default function MapPage() {

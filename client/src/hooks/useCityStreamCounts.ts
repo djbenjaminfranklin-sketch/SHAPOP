@@ -18,6 +18,14 @@ const CITIES_BY_COUNTRY: Record<CountryCode, string[]> = {
   ES: ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Malaga', 'Bilbao'],
   US: ['New York', 'Los Angeles', 'Miami', 'Chicago', 'San Francisco', 'Austin'],
   GB: ['London', 'Manchester', 'Birmingham', 'Edinburgh'],
+  BR: ['Sao Paulo', 'Rio de Janeiro', 'Brasilia', 'Salvador', 'Belo Horizonte'],
+  JP: ['Tokyo', 'Osaka', 'Kyoto', 'Yokohama'],
+  DE: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt'],
+  IT: ['Roma', 'Milano', 'Napoli', 'Firenze'],
+  IL: ['Tel Aviv', 'Jerusalem', 'Haifa'],
+  PT: ['Lisboa', 'Porto', 'Faro'],
+  MA: ['Casablanca', 'Marrakech', 'Rabat', 'Tanger'],
+  CA: ['Toronto', 'Montreal', 'Vancouver', 'Calgary'],
 }
 
 function groupByCities(streams: StreamWithSeller[], country: CountryCode): CityStreamMap {

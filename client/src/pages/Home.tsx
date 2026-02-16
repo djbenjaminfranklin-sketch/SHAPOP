@@ -9,6 +9,7 @@ import type { Stream } from '../types/database'
 import PreferencesModal, { loadPreferences, hasPreferences } from '../components/PreferencesModal'
 import { sortStreamsByMatch } from '../lib/matchingAlgorithm'
 import { getBehaviorData } from '../lib/behaviorTracker'
+import { cacheGet, cacheSet } from '../lib/cache'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
@@ -85,10 +86,15 @@ const welcomeContent = {
 } as Record<string, { tagline: string; subtitle: string; signIn: string; createAccount: string }>
 
 export default function Home() {
-  const [streams, setStreams] = useState<StreamWithSeller[]>([])
+  const [streams, setStreams] = useState<StreamWithSeller[]>(() => {
+    // Load cached streams instantly (5 min TTL — stale streams disappear fast)
+    return cacheGet<StreamWithSeller[]>('home_streams', 5 * 60 * 1000) || []
+  })
   const [searchParams] = useSearchParams()
   const [selectedCategory, setSelectedCategory] = useState(() => searchParams.get('category') || 'for_you')
-  const [loading, setLoading] = useState(true)
+  const hasCachedStreams = useRef(!!cacheGet<StreamWithSeller[]>('home_streams', 5 * 60 * 1000))
+  const [loading, setLoading] = useState(!hasCachedStreams.current)
+  const [refreshing, setRefreshing] = useState(hasCachedStreams.current)
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [lang, setLang] = useState(() => localStorage.getItem('shapop_lang') || 'fr')
   const [showLangPicker, setShowLangPicker] = useState(false)
@@ -133,11 +139,14 @@ export default function Home() {
       }
 
       const { data } = await query
-      setStreams((data as StreamWithSeller[]) || [])
+      const fresh = (data as StreamWithSeller[]) || []
+      setStreams(fresh)
+      cacheSet('home_streams', fresh)
     } catch {
-      // Fetch failed silently
+      // Fetch failed silently — cached data still displayed
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [selectedCategory, city])
 
@@ -486,6 +495,23 @@ export default function Home() {
           >
             {(homeContent[lang] || homeContent.fr).modify}
           </button>
+        </div>
+      )}
+
+      {/* Subtle refresh indicator when showing cached data */}
+      {refreshing && streams.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: '6px', padding: '6px 0',
+        }}>
+          <div style={{
+            width: '14px', height: '14px', border: '2px solid #333',
+            borderTopColor: '#F0908A', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ fontSize: '11px', color: '#555', fontWeight: 500 }}>
+            {lang === 'fr' ? 'Actualisation...' : lang === 'es' ? 'Actualizando...' : lang === 'he' ? '...מעדכן' : 'Refreshing...'}
+          </span>
         </div>
       )}
 

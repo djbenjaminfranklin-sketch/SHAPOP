@@ -98,6 +98,7 @@ export interface Item {
   image_urls: string[]
   starting_price: number
   current_price: number
+  min_price: number | null
   estimated_price_low: number | null
   estimated_price_high: number | null
   ai_generated: boolean

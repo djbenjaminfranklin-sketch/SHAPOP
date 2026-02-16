@@ -10,7 +10,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [fadingOut, setFadingOut] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
-  const [videoFailed, setVideoFailed] = useState(false)
+  const [videoFailed] = useState(false)
   const endedRef = useRef(false)
 
   const handleEnd = useCallback(() => {
@@ -23,8 +23,8 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
   useEffect(() => {
     const video = videoRef.current
     if (!video) {
-      // No video element — show logo fallback then dismiss
-      setTimeout(handleEnd, 2000)
+      // No video element — skip quickly
+      setTimeout(handleEnd, 800)
       return
     }
 
@@ -33,18 +33,16 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     const onCanPlay = () => {
       if (cancelled) return
       setVideoReady(true)
-      video.playbackRate = 2.0 // 8s video → 4s playback
+      video.playbackRate = 3.0 // Fast playback
       video.play().catch(() => {
-        // Autoplay blocked on this platform — show logo fallback
-        setVideoFailed(true)
-        setTimeout(handleEnd, 2000)
+        // Autoplay blocked on this platform — skip immediately
+        handleEnd()
       })
     }
 
     const onError = () => {
       if (cancelled) return
-      setVideoFailed(true)
-      setTimeout(handleEnd, 2000)
+      handleEnd()
     }
 
     video.addEventListener('canplay', onCanPlay, { once: true })
@@ -53,8 +51,8 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
     // Kick off loading
     video.load()
 
-    // Safety: skip after 5s no matter what
-    const timeout = setTimeout(handleEnd, 5000)
+    // Safety: skip after 2.5s no matter what
+    const timeout = setTimeout(handleEnd, 2500)
 
     return () => {
       cancelled = true

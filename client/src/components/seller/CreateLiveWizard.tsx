@@ -26,6 +26,14 @@ export default function CreateLiveWizard() {
   const [successDate, setSuccessDate] = useState('')
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [thumbnailIsVideo, setThumbnailIsVideo] = useState(false)
+  const [showTrimmer, setShowTrimmer] = useState(false)
+  const [trimVideoUrl, setTrimVideoUrl] = useState<string | null>(null)
+  const [trimDuration, setTrimDuration] = useState(0)
+  const [trimStart, setTrimStart] = useState(0)
+  const [trimming, setTrimming] = useState(false)
+  const trimVideoRef = useRef<HTMLVideoElement>(null)
+  const trimFileRef = useRef<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -74,9 +82,14 @@ export default function CreateLiveWizard() {
       categorySelect: 'Selectionne une categorie',
       formatSelect: 'Selectionne un format',
       thumbnailLabel: 'Miniature',
-      thumbnailDesc: 'Telecharge une image pour l\'apercu de ton live',
-      uploadBtn: 'Telecharger une image',
-      changeBtn: 'Changer l\'image',
+      thumbnailDesc: 'Telecharge une image ou une courte video (10s max)',
+      uploadBtn: 'Telecharger un fichier',
+      changeBtn: 'Changer le media',
+      videoTooLong: 'La video ne doit pas depasser 10 secondes',
+      trimTitle: 'Decoupe ta video',
+      trimDesc: 'Choisis les 10 secondes a garder',
+      trimBtn: 'Decouper',
+      trimming: 'Decoupe en cours...',
       livePreview: 'Apercu',
       next: 'Suivant',
       goLive: 'Valider le live',
@@ -109,9 +122,14 @@ export default function CreateLiveWizard() {
       categorySelect: 'Select a category',
       formatSelect: 'Select a format',
       thumbnailLabel: 'Thumbnail',
-      thumbnailDesc: 'Upload an image for your live preview',
-      uploadBtn: 'Upload image',
-      changeBtn: 'Change image',
+      thumbnailDesc: 'Upload an image or short video (10s max)',
+      uploadBtn: 'Upload a file',
+      changeBtn: 'Change media',
+      videoTooLong: 'Video must be 10 seconds or less',
+      trimTitle: 'Trim your video',
+      trimDesc: 'Choose which 10 seconds to keep',
+      trimBtn: 'Trim',
+      trimming: 'Trimming...',
       livePreview: 'Preview',
       next: 'Next',
       goLive: 'Confirm live',
@@ -144,9 +162,14 @@ export default function CreateLiveWizard() {
       categorySelect: 'בחר קטגוריה',
       formatSelect: 'בחר פורמט',
       thumbnailLabel: 'תמונה ממוזערת',
-      thumbnailDesc: 'העלה תמונה לתצוגה מקדימה של השידור',
-      uploadBtn: 'העלה תמונה',
-      changeBtn: 'החלף תמונה',
+      thumbnailDesc: 'העלה תמונה או סרטון קצר (10 שניות מקסימום)',
+      uploadBtn: 'העלה קובץ',
+      changeBtn: 'שנה מדיה',
+      videoTooLong: 'הסרטון חייב להיות 10 שניות או פחות',
+      trimTitle: 'חתוך את הסרטון',
+      trimDesc: 'בחר 10 שניות לשמור',
+      trimBtn: 'חתוך',
+      trimming: '...חותך',
       livePreview: 'תצוגה מקדימה',
       next: 'הבא',
       goLive: 'אשר שידור',
@@ -179,9 +202,14 @@ export default function CreateLiveWizard() {
       categorySelect: 'Selecciona una categor\u00EDa',
       formatSelect: 'Selecciona un formato',
       thumbnailLabel: 'Miniatura',
-      thumbnailDesc: 'Sube una imagen para la vista previa de tu directo',
-      uploadBtn: 'Subir imagen',
-      changeBtn: 'Cambiar imagen',
+      thumbnailDesc: 'Sube una imagen o un video corto (10s max)',
+      uploadBtn: 'Subir archivo',
+      changeBtn: 'Cambiar medio',
+      videoTooLong: 'El video no debe superar los 10 segundos',
+      trimTitle: 'Recorta tu video',
+      trimDesc: 'Elige los 10 segundos que quieres conservar',
+      trimBtn: 'Recortar',
+      trimming: 'Recortando...',
       livePreview: 'Vista previa',
       next: 'Siguiente',
       goLive: 'Confirmar directo',
@@ -228,13 +256,140 @@ export default function CreateLiveWizard() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
+    if (!file) return
+    processMediaFile(file)
+  }
+
+  const processMediaFile = (file: File) => {
+    setError('')
+    const isVideo = file.type.startsWith('video/')
+    if (isVideo) {
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      video.onloadedmetadata = () => {
+        if (video.duration > 10) {
+          // Open trimmer instead of showing error
+          trimFileRef.current = file
+          setTrimDuration(video.duration)
+          setTrimStart(0)
+          setTrimVideoUrl(URL.createObjectURL(file))
+          setShowTrimmer(true)
+          URL.revokeObjectURL(video.src)
+          return
+        }
+        URL.revokeObjectURL(video.src)
+        setThumbnailIsVideo(true)
+        setThumbnailFile(file)
+        setThumbnailPreview(URL.createObjectURL(file))
+      }
+      video.src = URL.createObjectURL(file)
+    } else {
+      setThumbnailIsVideo(false)
       setThumbnailFile(file)
       const reader = new FileReader()
       reader.onload = (ev) => {
         setThumbnailPreview(ev.target?.result as string)
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  // Trim video to 10 seconds using canvas + MediaRecorder
+  const handleTrimVideo = async () => {
+    if (!trimVideoRef.current || !trimFileRef.current) return
+    setTrimming(true)
+    setError('')
+
+    const video = trimVideoRef.current
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth || 720
+    canvas.height = video.videoHeight || 1280
+    const ctx = canvas.getContext('2d')!
+
+    try {
+      // Seek to start position
+      video.currentTime = trimStart
+      await new Promise<void>(r => { video.onseeked = () => r() })
+
+      // Try to use MediaRecorder with canvas
+      const stream = canvas.captureStream(30)
+
+      // Add audio track if video has audio
+      try {
+        const audioCtx = new AudioContext()
+        const source = audioCtx.createMediaElementSource(video)
+        const dest = audioCtx.createMediaStreamDestination()
+        source.connect(dest)
+        source.connect(audioCtx.destination)
+        dest.stream.getAudioTracks().forEach(track => stream.addTrack(track))
+      } catch {
+        // No audio or audio not supported — continue without
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4'
+        : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm'
+        : ''
+
+      if (!mimeType) {
+        // Fallback: just accept the original file and note we couldn't trim
+        setShowTrimmer(false)
+        setThumbnailIsVideo(true)
+        setThumbnailFile(trimFileRef.current)
+        setThumbnailPreview(trimVideoUrl)
+        setTrimming(false)
+        return
+      }
+
+      const recorder = new MediaRecorder(stream, { mimeType })
+      const chunks: Blob[] = []
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data) }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType })
+        const ext = mimeType.includes('mp4') ? 'mp4' : 'webm'
+        const trimmedFile = new File([blob], `trimmed_${Date.now()}.${ext}`, { type: mimeType })
+
+        setShowTrimmer(false)
+        setThumbnailIsVideo(true)
+        setThumbnailFile(trimmedFile)
+        setThumbnailPreview(URL.createObjectURL(blob))
+        setTrimming(false)
+        if (trimVideoUrl) URL.revokeObjectURL(trimVideoUrl)
+      }
+
+      // Start recording and playback
+      video.currentTime = trimStart
+      await new Promise<void>(r => { video.onseeked = () => r() })
+      video.play()
+      recorder.start()
+
+      // Draw frames to canvas
+      const drawFrame = () => {
+        if (video.currentTime >= trimStart + 10 || video.paused || video.ended) {
+          video.pause()
+          recorder.stop()
+          return
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        requestAnimationFrame(drawFrame)
+      }
+      drawFrame()
+
+      // Safety: stop after 11 seconds
+      setTimeout(() => {
+        if (recorder.state === 'recording') {
+          video.pause()
+          recorder.stop()
+        }
+      }, 11000)
+
+    } catch {
+      // If trimming fails, just use original file
+      setShowTrimmer(false)
+      setThumbnailIsVideo(true)
+      setThumbnailFile(trimFileRef.current)
+      setThumbnailPreview(trimVideoUrl)
+      setTrimming(false)
     }
   }
 
@@ -456,13 +611,8 @@ export default function CreateLiveWizard() {
     e.preventDefault()
     setDragOver(false)
     const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith('image/')) {
-      setThumbnailFile(file)
-      const reader = new FileReader()
-      reader.onload = (ev) => {
-        setThumbnailPreview(ev.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+    if (file && (file.type.startsWith('image/') || file.type.startsWith('video/'))) {
+      processMediaFile(file)
     }
   }
 
@@ -1089,7 +1239,7 @@ export default function CreateLiveWizard() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,video/*"
               onChange={handleFileChange}
               style={{ display: 'none' }}
             />
@@ -1142,7 +1292,7 @@ export default function CreateLiveWizard() {
                 <div style={{
                   display: 'flex', gap: '8px', marginTop: '4px',
                 }}>
-                  {['JPG', 'PNG', 'WEBP'].map(fmt => (
+                  {['JPG', 'PNG', 'MP4', 'MOV'].map(fmt => (
                     <span key={fmt} style={{
                       padding: '3px 10px', borderRadius: '6px',
                       background: '#111', border: '1px solid #1A1A1A',
@@ -1164,7 +1314,18 @@ export default function CreateLiveWizard() {
                   boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
                 }}>
                   <div style={{ position: 'relative', aspectRatio: '16/9' }}>
-                    <img src={thumbnailPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    {thumbnailIsVideo ? (
+                      <video
+                        src={thumbnailPreview!}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <img src={thumbnailPreview!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    )}
                     {/* Overlay gradient */}
                     <div style={{
                       position: 'absolute', inset: 0,
@@ -1188,6 +1349,21 @@ export default function CreateLiveWizard() {
                         LIVE
                       </div>
                     </div>
+                    {thumbnailIsVideo && (
+                      <div style={{
+                        position: 'absolute', top: '12px', right: '12px',
+                        background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+                        borderRadius: '6px', padding: '4px 8px',
+                        fontSize: '10px', fontWeight: 700, color: '#fff',
+                        letterSpacing: '0.5px',
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                          <polygon points="5 3 19 12 5 21 5 3" fill="#fff" stroke="none"/>
+                        </svg>
+                        VIDEO
+                      </div>
+                    )}
                   </div>
                   <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
@@ -1253,6 +1429,141 @@ export default function CreateLiveWizard() {
       default:
         return null
     }
+  }
+
+  // Video trimmer modal
+  if (showTrimmer && trimVideoUrl) {
+    const maxStart = Math.max(0, trimDuration - 10)
+    const endTime = Math.min(trimStart + 10, trimDuration)
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 100, backgroundColor: '#000',
+        display: 'flex', flexDirection: 'column',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+      }}>
+        {/* Header */}
+        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <button
+            onClick={() => { setShowTrimmer(false); if (trimVideoUrl) URL.revokeObjectURL(trimVideoUrl) }}
+            style={{
+              background: 'linear-gradient(145deg, #141414, #0A0A0A)',
+              border: '1px solid #1E1E1E', cursor: 'pointer', padding: '10px',
+              borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5">
+              <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{t.trimTitle}</h2>
+          <div style={{ width: '44px' }} />
+        </div>
+
+        <p style={{ textAlign: 'center', fontSize: '14px', color: '#888', margin: '0 0 16px' }}>
+          {t.trimDesc}
+        </p>
+
+        {/* Video preview */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 20px' }}>
+          <div style={{ width: '100%', maxWidth: '400px', borderRadius: '16px', overflow: 'hidden', position: 'relative' }}>
+            <video
+              ref={trimVideoRef}
+              src={trimVideoUrl}
+              muted
+              playsInline
+              style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', backgroundColor: '#111' }}
+              onLoadedMetadata={() => {
+                if (trimVideoRef.current) trimVideoRef.current.currentTime = trimStart
+              }}
+            />
+            {/* Time indicator */}
+            <div style={{
+              position: 'absolute', bottom: '12px', left: '12px', right: '12px',
+              display: 'flex', justifyContent: 'space-between',
+              pointerEvents: 'none',
+            }}>
+              <span style={{
+                background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
+                fontSize: '12px', fontWeight: 700, color: '#fff',
+              }}>
+                {Math.floor(trimStart)}s - {Math.floor(endTime)}s
+              </span>
+              <span style={{
+                background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
+                fontSize: '12px', fontWeight: 600, color: '#888',
+              }}>
+                {Math.floor(trimDuration)}s total
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline slider */}
+        <div style={{ padding: '20px 24px' }}>
+          {/* Visual timeline bar */}
+          <div style={{
+            position: 'relative', height: '40px', marginBottom: '8px',
+            background: '#111', borderRadius: '8px', overflow: 'hidden',
+          }}>
+            {/* Selected portion highlight */}
+            <div style={{
+              position: 'absolute', top: 0, bottom: 0,
+              left: `${(trimStart / trimDuration) * 100}%`,
+              width: `${(10 / trimDuration) * 100}%`,
+              background: 'linear-gradient(135deg, rgba(240,144,138,0.3), rgba(232,52,78,0.2))',
+              border: '2px solid #F0908A',
+              borderRadius: '6px',
+            }} />
+          </div>
+
+          <input
+            type="range"
+            min={0}
+            max={maxStart}
+            step={0.1}
+            value={trimStart}
+            onChange={(e) => {
+              const val = parseFloat(e.target.value)
+              setTrimStart(val)
+              if (trimVideoRef.current) trimVideoRef.current.currentTime = val
+            }}
+            style={{ width: '100%', accentColor: '#F0908A' }}
+          />
+        </div>
+
+        {/* Trim button */}
+        <div style={{ padding: '0 20px 24px' }}>
+          <button
+            onClick={handleTrimVideo}
+            disabled={trimming}
+            style={{
+              width: '100%', padding: '18px',
+              background: trimming
+                ? 'linear-gradient(135deg, #1A1A1A, #111)'
+                : 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #F0908A 100%)',
+              borderRadius: '16px', border: 'none',
+              color: trimming ? '#666' : '#fff',
+              fontSize: '17px', fontWeight: 800, cursor: trimming ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+              boxShadow: trimming ? 'none' : '0 8px 32px rgba(240,144,138,0.35)',
+              paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+            }}
+          >
+            {trimming && (
+              <span style={{
+                width: '18px', height: '18px',
+                border: '2.5px solid rgba(255,255,255,0.3)',
+                borderTopColor: '#fff', borderRadius: '50%',
+                display: 'inline-block', animation: 'spin 0.8s linear infinite',
+              }} />
+            )}
+            {trimming ? t.trimming : `${t.trimBtn} (${Math.floor(trimStart)}s → ${Math.floor(endTime)}s)`}
+          </button>
+        </div>
+
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
   }
 
   return (
@@ -1358,9 +1669,9 @@ export default function CreateLiveWizard() {
 
       {/* Footer with premium button */}
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
+        position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)', left: 0, right: 0,
         padding: '16px 20px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        paddingBottom: '8px',
         background: 'linear-gradient(180deg, transparent 0%, #000 30%)',
       }}>
         <button

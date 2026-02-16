@@ -233,11 +233,13 @@ export default function AIListingPage() {
   }, [])
 
   const imageDataRef = useRef<string | null>(null)
+  const imageFileRef = useRef<File | null>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    imageFileRef.current = file
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
@@ -336,6 +338,37 @@ export default function AIListingPage() {
     setSaving(true)
 
     try {
+      // Upload image to Supabase Storage first
+      let imageUrl: string | null = null
+      if (imageFileRef.current) {
+        const ext = imageFileRef.current.name.split('.').pop() || 'jpg'
+        const path = `${user.id}/items/${Date.now()}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('avatars')
+          .upload(path, imageFileRef.current, { upsert: true })
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+          imageUrl = urlData.publicUrl
+        }
+      } else if (imagePreview && imagePreview.startsWith('data:')) {
+        // Fallback: upload base64 as blob
+        try {
+          const res = await fetch(imagePreview)
+          const blob = await res.blob()
+          const ext = blob.type.split('/')[1] || 'jpg'
+          const path = `${user.id}/items/${Date.now()}.${ext}`
+          const { error: uploadErr } = await supabase.storage
+            .from('avatars')
+            .upload(path, blob, { upsert: true, contentType: blob.type })
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+            imageUrl = urlData.publicUrl
+          }
+        } catch {
+          // Upload failed — continue without image
+        }
+      }
+
       const { error } = await supabase.from('items').insert({
         seller_id: user.id,
         title: editTitle,
@@ -343,7 +376,7 @@ export default function AIListingPage() {
         category: editCategory,
         starting_price: parseFloat(editPrice) || 0,
         current_price: parseFloat(editPrice) || 0,
-        image_urls: imagePreview ? [imagePreview] : [],
+        image_urls: imageUrl ? [imageUrl] : [],
         ai_generated: true,
         ai_tags: editTags,
         ai_condition: editCondition,

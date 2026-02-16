@@ -26,6 +26,8 @@ const pageContent = {
     choosePhoto: 'Choisir dans la galerie',
     saving: 'Enregistrement...',
     items: 'articles',
+    minPrice: 'Prix minimum (optionnel)',
+    minPriceHint: 'Si l\'enchere n\'atteint pas ce prix, l\'article sera invendu',
     duration: 'Duree par article',
     seconds: 'sec',
     durationHint: 'Temps d\'enchere pour chaque article',
@@ -51,6 +53,8 @@ const pageContent = {
     choosePhoto: 'Choose from gallery',
     saving: 'Saving...',
     items: 'items',
+    minPrice: 'Reserve price (optional)',
+    minPriceHint: 'If bidding doesn\'t reach this price, item stays unsold',
     duration: 'Duration per item',
     seconds: 'sec',
     durationHint: 'Bidding time for each item',
@@ -76,6 +80,8 @@ const pageContent = {
     choosePhoto: 'בחר מהגלריה',
     saving: '...שומר',
     items: 'פריטים',
+    minPrice: 'מחיר מינימום (אופציונלי)',
+    minPriceHint: 'אם ההצעות לא מגיעות למחיר זה, הפריט לא יימכר',
     duration: 'משך לכל פריט',
     seconds: 'שנ',
     durationHint: 'זמן מכירה לכל פריט',
@@ -101,6 +107,8 @@ const pageContent = {
     choosePhoto: 'Elegir de la galeria',
     saving: 'Guardando...',
     items: 'articulos',
+    minPrice: 'Precio minimo (opcional)',
+    minPriceHint: 'Si las pujas no alcanzan este precio, el articulo queda sin vender',
     duration: 'Duracion por articulo',
     seconds: 'seg',
     durationHint: 'Tiempo de puja para cada articulo',
@@ -141,6 +149,7 @@ export default function PrepareLivePage() {
   const [formImage, setFormImage] = useState<string | null>(null)
   const [formQuantity, setFormQuantity] = useState(1)
   const [formDuration, setFormDuration] = useState(60)
+  const [formMinPrice, setFormMinPrice] = useState('')
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -249,6 +258,7 @@ export default function PrepareLivePage() {
           title,
           starting_price: price,
           current_price: price,
+          min_price: formMinPrice ? parseFloat(formMinPrice) : null,
           category,
           status: 'draft' as const,
           image_urls: imageUrls,
@@ -633,6 +643,26 @@ export default function PrepareLivePage() {
                 marginBottom: '10px',
               }}
             />
+
+            {/* Min price (optional) */}
+            <input
+              type="number"
+              value={formMinPrice}
+              onChange={e => setFormMinPrice(e.target.value)}
+              placeholder={ct.minPrice}
+              min="0"
+              step="1"
+              style={{
+                width: '100%', padding: '12px 14px',
+                backgroundColor: '#0D0D0D',
+                border: '1px solid #222',
+                borderRadius: '10px',
+                color: '#fff', fontSize: '15px',
+                outline: 'none', boxSizing: 'border-box',
+                marginBottom: '4px',
+              }}
+            />
+            <p style={{ fontSize: '11px', color: '#555', margin: '0 0 10px 4px' }}>{ct.minPriceHint}</p>
 
             {/* Category (optional) */}
             <input

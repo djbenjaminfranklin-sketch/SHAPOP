@@ -185,6 +185,9 @@ export default function LiveSellerView() {
     isUnsold?: boolean
   } | null>(null)
 
+  // Return policy
+  const [returnPolicy, setReturnPolicy] = useState<string>('no_return')
+
   // Mux broadcast
   const [sessionToken, setSessionToken] = useState<string | undefined>(undefined)
 
@@ -193,6 +196,15 @@ export default function LiveSellerView() {
       setSessionToken(data.session?.access_token)
     })
   }, [])
+
+  // Fetch seller's return policy
+  useEffect(() => {
+    if (!user) return
+    supabase.from('sellers').select('return_policy').eq('id', user.id).single()
+      .then(({ data }) => {
+        if (data?.return_policy) setReturnPolicy(data.return_policy)
+      })
+  }, [user])
 
   const { isConnected: muxConnected, isBroadcasting, error: muxError, startBroadcast, stopBroadcast } = useMuxBroadcast({
     streamId,
@@ -432,8 +444,10 @@ export default function LiveSellerView() {
       const hasBids = bids && bids.length > 0
       const now = new Date().toISOString()
 
-      if (hasBids) {
-        // Auto-sell to highest bidder
+      const minPrice = currentItem.min_price || 0
+
+      if (hasBids && bids[0].amount >= minPrice) {
+        // Auto-sell to highest bidder (bid meets reserve price)
         const winnerId = bids[0].bidder_id
         const finalPrice = bids[0].amount
 
@@ -566,99 +580,7 @@ export default function LiveSellerView() {
       .eq('id', currentItem.id)
   }
 
-  const handleSold = async () => {
-    if (!currentItem || !user || !streamId) return
-
-    const { data: bids } = await supabase
-      .from('bids')
-      .select('*')
-      .eq('item_id', currentItem.id)
-      .order('amount', { ascending: false })
-      .limit(1)
-
-    const winnerId = bids?.[0]?.bidder_id || null
-    const finalPrice = bids?.[0]?.amount || currentItem.current_price
-
-    await supabase
-      .from('items')
-      .update({
-        status: 'sold' as const,
-        winner_id: winnerId,
-        current_price: finalPrice,
-        ended_at: new Date().toISOString(),
-      })
-      .eq('id', currentItem.id)
-
-    if (winnerId) {
-      // Frais TTC (TVA 20% incluse sur les frais)
-      const platformFee = Math.round(finalPrice * 0.08 * 1.20 * 100) / 100
-      const processingFee = Math.round((finalPrice * 0.029 + 0.30) * 1.20 * 100) / 100
-      const sellerPayout = Math.round((finalPrice - platformFee - processingFee) * 100) / 100
-
-      await supabase
-        .from('orders')
-        .insert({
-          buyer_id: winnerId,
-          seller_id: user.id,
-          item_id: currentItem.id,
-          stream_id: streamId,
-          amount: finalPrice,
-          platform_fee: platformFee,
-          processing_fee: processingFee,
-          seller_payout: sellerPayout,
-          status: 'pending_payment' as const,
-        })
-
-      const { data: winnerProfile } = await supabase
-        .from('profiles')
-        .select('display_name, username')
-        .eq('id', winnerId)
-        .single()
-
-      const winnerName = winnerProfile?.display_name || winnerProfile?.username || winnerId.slice(0, 8).toUpperCase()
-      showSoldOverlay(formatLot(currentIndex + 1), `@${winnerName}`, finalPrice)
-      showToast(`${ct.paymentAccepted} — ${ct.addressOk}`)
-    } else {
-      showSoldOverlay(formatLot(currentIndex + 1), '', finalPrice)
-    }
-
-    setItems(prev => prev.map((it, i) =>
-      i === currentIndex ? { ...it, status: 'sold' as const, winner_id: winnerId, current_price: finalPrice } : it
-    ))
-
-    // Auto-advance after a short delay to let the overlay show
-    setTimeout(() => {
-      const latestItems = itemsRef.current
-      const latestIndex = currentIndexRef.current
-      const nextIdx = latestItems.findIndex((it, i) => i > latestIndex && (it.status === 'draft' || it.status === 'pending'))
-      if (nextIdx >= 0) setCurrentIndex(nextIdx)
-    }, 2000)
-  }
-
-  const handleUnsold = async () => {
-    if (!currentItem) return
-
-    await supabase
-      .from('items')
-      .update({
-        status: 'unsold' as const,
-        ended_at: new Date().toISOString(),
-      })
-      .eq('id', currentItem.id)
-
-    showSoldOverlay(formatLot(currentIndex + 1), '', 0, true)
-
-    setItems(prev => prev.map((it, i) =>
-      i === currentIndex ? { ...it, status: 'unsold' as const } : it
-    ))
-
-    setTimeout(() => {
-      const latestItems = itemsRef.current
-      const latestIndex = currentIndexRef.current
-      const nextIdx = latestItems.findIndex((it, i) => i > latestIndex && (it.status === 'draft' || it.status === 'pending'))
-      if (nextIdx >= 0) setCurrentIndex(nextIdx)
-    }, 2000)
-  }
+  // handleSold and handleUnsold removed — auction resolves automatically
 
   const handleNextItem = () => {
     const nextIdx = items.findIndex((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
@@ -945,9 +867,37 @@ export default function LiveSellerView() {
         </div>
       </div>
 
+      {/* Return policy badge */}
+      {(() => {
+        const policyLabels: Record<string, Record<string, { icon: string; label: string; color: string; bg: string }>> = {
+          no_return: { fr: { icon: '🚫', label: 'Aucun retour', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' }, en: { icon: '🚫', label: 'No returns', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' }, he: { icon: '🚫', label: 'ללא החזרות', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' }, es: { icon: '🚫', label: 'Sin devoluciones', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' } },
+          exchange_only: { fr: { icon: '🔄', label: 'Echanges uniquement', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' }, en: { icon: '🔄', label: 'Exchanges only', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' }, he: { icon: '🔄', label: 'החלפות בלבד', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' }, es: { icon: '🔄', label: 'Solo intercambios', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' } },
+          return_7: { fr: { icon: '✅', label: 'Retours 7j', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, en: { icon: '✅', label: 'Returns 7d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, he: { icon: '✅', label: 'החזרות 7 ימים', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, es: { icon: '✅', label: 'Devoluciones 7d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' } },
+          return_14: { fr: { icon: '✅', label: 'Retours 14j', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, en: { icon: '✅', label: 'Returns 14d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, he: { icon: '✅', label: 'החזרות 14 ימים', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, es: { icon: '✅', label: 'Devoluciones 14d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' } },
+          return_30: { fr: { icon: '✅', label: 'Retours 30j', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, en: { icon: '✅', label: 'Returns 30d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, he: { icon: '✅', label: 'החזרות 30 ימים', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, es: { icon: '✅', label: 'Devoluciones 30d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' } },
+        }
+        const p = policyLabels[returnPolicy]?.[lang] || policyLabels.no_return.fr
+        return (
+          <div style={{
+            position: 'absolute', top: 'calc(env(safe-area-inset-top, 44px) + 52px)',
+            left: '12px', zIndex: 25, pointerEvents: 'none',
+          }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              padding: '4px 10px', borderRadius: '8px',
+              backgroundColor: p.bg, backdropFilter: 'blur(8px)',
+              border: `1px solid ${p.color}30`,
+              fontSize: '11px', fontWeight: 700, color: p.color,
+            }}>
+              {p.icon} {p.label}
+            </span>
+          </div>
+        )
+      })()}
+
       {/* Toasts */}
       <div style={{
-        position: 'absolute', top: 'calc(env(safe-area-inset-top, 44px) + 60px)',
+        position: 'absolute', top: 'calc(env(safe-area-inset-top, 44px) + 76px)',
         left: '12px', right: '12px',
         display: 'flex', flexDirection: 'column', gap: '6px',
         zIndex: 30, pointerEvents: 'none',
@@ -1138,32 +1088,22 @@ export default function LiveSellerView() {
         )}
 
         {currentItem?.status === 'active' && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={handleUnsold}
-              style={{
-                flex: 1, padding: '14px',
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '14px',
-                color: '#fff', fontSize: '14px', fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {ct.unsold}
-            </button>
-            <button
-              onClick={handleSold}
-              style={{
-                flex: 2, padding: '14px',
-                background: 'linear-gradient(135deg, #22C55E, #16A34A)',
-                borderRadius: '14px', border: 'none',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {ct.sold}
-            </button>
+          <div style={{
+            padding: '14px', borderRadius: '14px',
+            background: 'linear-gradient(135deg, rgba(240,144,138,0.1), rgba(232,52,78,0.05))',
+            border: '1px solid rgba(240,144,138,0.2)',
+            textAlign: 'center',
+          }}>
+            <p style={{ margin: 0, fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
+              {timeLeft > 0
+                ? (lang === 'fr' ? 'Enchere en cours...' : lang === 'es' ? 'Subasta en curso...' : lang === 'he' ? '...מכירה פומבית בעיצומה' : 'Auction in progress...')
+                : (lang === 'fr' ? 'Resolution...' : lang === 'es' ? 'Resolviendo...' : lang === 'he' ? '...פותר' : 'Resolving...')}
+            </p>
+            {currentItem.min_price != null && currentItem.min_price > 0 && (
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#666' }}>
+                {lang === 'fr' ? `Prix minimum : ${currentItem.min_price} €` : lang === 'es' ? `Precio minimo: ${currentItem.min_price} €` : lang === 'he' ? `מחיר מינימום: ${currentItem.min_price} €` : `Reserve: ${currentItem.min_price} €`}
+              </p>
+            )}
           </div>
         )}
 

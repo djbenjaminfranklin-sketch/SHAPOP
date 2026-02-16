@@ -5,6 +5,7 @@ import type { Profile } from '../types/database'
 import { Browser } from '@capacitor/browser'
 import { App as CapApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
+import { cacheSet, cacheGet, cacheClearAll } from '../lib/cache'
 
 interface AuthContextType {
   user: User | null
@@ -29,6 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = async (u: User) => {
+    // Load cached profile instantly while fetching fresh data
+    const cached = cacheGet<Profile>('profile_' + u.id)
+    if (cached && !profile) {
+      setProfile(cached)
+    }
+
     const { data } = await supabase
       .from('profiles')
       .select('*')
@@ -45,6 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
       setProfile(data)
+      cacheSet('profile_' + u.id, data)
     } else {
       // Auto-create profile (OAuth users or email signUp after confirmation)
       const meta = u.user_metadata || {}
@@ -228,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Clear app data from localStorage (keep preferences so modal doesn't re-show)
     const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_') && k !== 'shapop_preferences')
     keysToRemove.forEach(k => localStorage.removeItem(k))
+    cacheClearAll()
   }
 
   const updateCity = async (city: string) => {

@@ -37,6 +37,7 @@ export default function MessagesPage() {
   const navigate = useNavigate()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [orderTitlesMap, setOrderTitlesMap] = useState<Record<string, string | undefined>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -118,6 +119,15 @@ export default function MessagesPage() {
         }
       }
 
+      // Build order titles map
+      const titlesMap: Record<string, string | undefined> = {}
+      for (const c of convs) {
+        if (c.order_id && ordersMap[c.order_id]) {
+          titlesMap[c.id] = ordersMap[c.order_id].item_title
+        }
+      }
+      setOrderTitlesMap(titlesMap)
+
       // Enrich conversations
       const enriched = convs.map(c => {
         const otherId = c.participant_1 === user.id ? c.participant_2 : c.participant_1
@@ -131,7 +141,6 @@ export default function MessagesPage() {
           last_message: lastMsg
             ? { message: lastMsg.message, created_at: lastMsg.created_at } as Conversation['last_message']
             : undefined,
-          _order_item_title: c.order_id ? ordersMap[c.order_id]?.item_title : undefined,
         }
       })
 
@@ -224,7 +233,7 @@ export default function MessagesPage() {
                   : lastMsg.message
                 : 'Aucun message'
               const lastTime = lastMsg?.created_at || conv.created_at
-              const orderTitle = (conv as Record<string, unknown>)._order_item_title as string | undefined
+              const orderTitle = orderTitlesMap[conv.id]
 
               return (
                 <button
