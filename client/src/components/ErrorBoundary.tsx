@@ -32,9 +32,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(_error: Error, errorInfo: { componentStack?: string }) {
-    // Capture the component stack to help identify which component caused the error
-    const stack = errorInfo?.componentStack || ''
-    this.setState({ errorInfo: stack })
+    this.setState({ errorInfo: errorInfo?.componentStack || null })
   }
 
   handleGoHome = () => {

@@ -78,7 +78,7 @@ export default function AdminPage() {
     })
   }, [user, navigate])
 
-  if (authLoading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#E8344E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style></div>
+  if (authLoading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="admin-spinner" /></div>
 
   if (!user || user.email !== ADMIN_EMAIL) return null
 
@@ -312,6 +312,15 @@ export default function AdminPage() {
     boxSizing: 'border-box',
   }
 
+  // Safe value helper — prevents any object from being rendered as React child
+  const sv = (v: unknown): string => {
+    if (v === null || v === undefined) return ''
+    if (typeof v === 'string') return v
+    if (typeof v === 'number') return String(v)
+    if (typeof v === 'boolean') return v ? 'true' : ''
+    try { return JSON.stringify(v) } catch { return '[object]' }
+  }
+
   const fmtDate = (d: unknown) => {
     if (!d || typeof d !== 'string') return '-'
     return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -334,17 +343,17 @@ export default function AdminPage() {
 
   const renderOverview = () => {
     if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>Loading...</p>
-    const statCards: { label: string; value: string | number; color: string }[] = [
-      { label: 'Total Users', value: stats.users, color: '#3B82F6' },
-      { label: 'Sellers', value: stats.sellers, color: '#10B981' },
-      { label: 'Orders', value: stats.orders, color: '#F59E0B' },
-      { label: 'Orders (30d)', value: stats.orders_30d, color: '#8B5CF6' },
-      { label: 'Lives Now', value: stats.lives_now, color: '#E8344E' },
-      { label: 'Disputes', value: stats.disputes, color: '#EF4444' },
+    const statCards: { label: string; value: string; color: string }[] = [
+      { label: 'Total Users', value: sv(stats.users), color: '#3B82F6' },
+      { label: 'Sellers', value: sv(stats.sellers), color: '#10B981' },
+      { label: 'Orders', value: sv(stats.orders), color: '#F59E0B' },
+      { label: 'Orders (30d)', value: sv(stats.orders_30d), color: '#8B5CF6' },
+      { label: 'Lives Now', value: sv(stats.lives_now), color: '#E8344E' },
+      { label: 'Disputes', value: sv(stats.disputes), color: '#EF4444' },
       { label: 'Revenue', value: fmtMoney(stats.total_revenue), color: '#10B981' },
       { label: 'Platform Fees', value: fmtMoney(stats.total_fees), color: '#F0908A' },
-      { label: 'Suspended', value: stats.suspended_users, color: '#F59E0B' },
-      { label: 'Banned', value: stats.banned_users, color: '#EF4444' },
+      { label: 'Suspended', value: sv(stats.suspended_users), color: '#F59E0B' },
+      { label: 'Banned', value: sv(stats.banned_users), color: '#EF4444' },
     ]
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', padding: '0 16px' }}>
@@ -381,7 +390,7 @@ export default function AdminPage() {
         </select>
         <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>Search</button>
       </div>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{usersTotal} users found</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(usersTotal)} users found</p>
 
       {/* User detail modal */}
       {userDetail && (
@@ -399,13 +408,13 @@ export default function AdminPage() {
               const notes = (userDetail.notes as Record<string, unknown>[]) || []
               const st = userDetail.stats as Record<string, number> | null
               if (!p) return <p style={{ color: '#666' }}>No data</p>
-              const uid = p.id as string
+              const uid = String(p.id || '')
               return (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <div>
-                      <p style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0 }}>{String(p.display_name)}</p>
-                      <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>@{String(p.username)} | {String(p.country)} | {fmtId(uid)}</p>
+                      <p style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0 }}>{sv(p.display_name)}</p>
+                      <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>@{sv(p.username)} | {sv(p.country)} | {fmtId(uid)}</p>
                     </div>
                     <button onClick={() => setUserDetail(null)} style={{ ...btn('#333'), marginRight: 0 }}>X</button>
                   </div>
@@ -418,17 +427,17 @@ export default function AdminPage() {
                   </div>
 
                   <p style={{ color: '#666', fontSize: '12px' }}>
-                    Joined: {fmtDate(p.created_at)} | Purchases: {st?.total_purchases || 0} ({fmtMoney(st?.total_spent || 0)}) | Sales: {st?.total_sales || 0} ({fmtMoney(st?.total_earned || 0)})
+                    Joined: {fmtDate(p.created_at)} | Purchases: {sv(st?.total_purchases || 0)} ({fmtMoney(st?.total_spent || 0)}) | Sales: {sv(st?.total_sales || 0)} ({fmtMoney(st?.total_earned || 0)})
                   </p>
 
                   {s && (
                     <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                      <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>Store: {String(s.store_name)}</p>
+                      <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>Store: {sv(s.store_name)}</p>
                       <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                        Revenue: {fmtMoney(s.total_revenue)} | Sales: {String(s.total_sales)} | Stripe: {s.stripe_account_id ? 'Connected' : 'None'}
+                        Revenue: {fmtMoney(s.total_revenue)} | Sales: {sv(s.total_sales)} | Stripe: {s.stripe_account_id ? 'Connected' : 'None'}
                       </p>
                       {Boolean(s.payments_blocked) && <span style={badge('#EF4444')}>PAYMENTS BLOCKED</span>}
-                      {Number(s.reserve_percent) > 0 && <span style={badge('#F59E0B')}>RESERVE {String(s.reserve_percent)}%</span>}
+                      {Number(s.reserve_percent) > 0 && <span style={badge('#F59E0B')}>RESERVE {sv(s.reserve_percent)}%</span>}
 
                     </div>
                   )}
@@ -451,15 +460,15 @@ export default function AdminPage() {
 
                   {/* Notes */}
                   <div style={{ marginTop: '20px' }}>
-                    <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>Internal Notes ({notes.length})</p>
+                    <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>Internal Notes ({sv(notes.length)})</p>
                     <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
                       <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." style={{ ...inputStyle, flex: 1 }} />
                       <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>Add</button>
                     </div>
                     {notes.map((n, i) => (
                       <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
-                        <p style={{ color: '#ddd', fontSize: '13px', margin: 0 }}>{String(n.note)}</p>
-                        <p style={{ color: '#555', fontSize: '11px', margin: '4px 0 0' }}>{String(n.admin_email)} - {fmtDate(n.created_at)}</p>
+                        <p style={{ color: '#ddd', fontSize: '13px', margin: 0 }}>{sv(n.note)}</p>
+                        <p style={{ color: '#555', fontSize: '11px', margin: '4px 0 0' }}>{sv(n.admin_email)} - {fmtDate(n.created_at)}</p>
                       </div>
                     ))}
                   </div>
@@ -473,20 +482,20 @@ export default function AdminPage() {
       {/* User list */}
       {users.map((u, i) => (
         <div key={i} style={{ ...card, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-          onClick={() => { setSelectedUser(u); fetchUserDetail(u.id as string) }}>
+          onClick={() => { setSelectedUser(u); fetchUserDetail(String(u.id || '')) }}>
           <div style={{
             width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '16px', flexShrink: 0, overflow: 'hidden',
           }}>
-            {(u.avatar_url as string) ? <img src={u.avatar_url as string} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (String(u.display_name)?.[0] || '?')}
+            {(u.avatar_url as string) ? <img src={u.avatar_url as string} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (sv(u.display_name)?.[0] || '?')}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {String(u.display_name)} <span style={{ color: '#555', fontWeight: 400 }}>@{String(u.username)}</span>
+              {sv(u.display_name)} <span style={{ color: '#555', fontWeight: 400 }}>@{sv(u.username)}</span>
             </p>
             <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
-              {String(u.country)} | {fmtDate(u.created_at)} | {fmtId(u.id)}
+              {sv(u.country)} | {fmtDate(u.created_at)} | {fmtId(u.id)}
             </p>
           </div>
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0 }}>
@@ -501,7 +510,7 @@ export default function AdminPage() {
       {usersTotal > 30 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
           <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>Prev</button>
-          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {usersPage} / {Math.ceil(usersTotal / 30)}</span>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {sv(usersPage)} / {sv(Math.ceil(usersTotal / 30))}</span>
           <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>Next</button>
         </div>
       )}
@@ -510,23 +519,23 @@ export default function AdminPage() {
 
   const renderSellers = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sellersTotal} sellers</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(sellersTotal)} sellers</p>
       {sellers.map((s, i) => {
         const p = s.profiles as Record<string, unknown> | null
         const rm = s.risk_metrics as Record<string, number> | null
-        const id = s.id as string
+        const id = String(s.id || '')
         return (
           <div key={i} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div>
-                <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{String(s.store_name)}</p>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{sv(s.store_name)}</p>
                 <p style={{ color: '#666', fontSize: '12px', margin: '2px 0 0' }}>
-                  {p ? `@${p.username} | ${p.country}` : ''} | {fmtId(id)} | Joined: {fmtDate(p?.created_at)}
+                  {p ? `@${sv(p.username)} | ${sv(p.country)}` : ''} | {fmtId(id)} | Joined: {fmtDate(p?.created_at)}
                 </p>
               </div>
               <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                 {Boolean(s.payments_blocked) && <span style={badge('#EF4444')}>BLOCKED</span>}
-                {Number(s.reserve_percent) > 0 && <span style={badge('#F59E0B')}>{String(s.reserve_percent)}% RES</span>}
+                {Number(s.reserve_percent) > 0 && <span style={badge('#F59E0B')}>{sv(s.reserve_percent)}% RES</span>}
                 {Boolean(s.documents_requested) && <span style={badge('#3B82F6')}>DOC REQ</span>}
                 {Boolean(p?.is_suspended) && <span style={badge('#F59E0B')}>SUS</span>}
                 {s.kyc_status === 'verified' ? <span style={badge('#10B981')}>KYC</span> : <span style={badge('#F59E0B')}>!KYC</span>}
@@ -537,10 +546,10 @@ export default function AdminPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px', marginBottom: '10px' }}>
               {[
                 { l: 'Revenue', v: fmtMoney(s.total_revenue), c: '#10B981' },
-                { l: 'Orders', v: rm?.total_orders || 0, c: '#3B82F6' },
-                { l: '30d', v: rm?.orders_30d || 0, c: '#8B5CF6' },
-                { l: 'Refund %', v: `${rm?.refund_rate || 0}%`, c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
-                { l: 'Dispute %', v: `${rm?.dispute_rate || 0}%`, c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
+                { l: 'Orders', v: sv(rm?.total_orders || 0), c: '#3B82F6' },
+                { l: '30d', v: sv(rm?.orders_30d || 0), c: '#8B5CF6' },
+                { l: 'Refund %', v: `${sv(rm?.refund_rate || 0)}%`, c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
+                { l: 'Dispute %', v: `${sv(rm?.dispute_rate || 0)}%`, c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
               ].map(m => (
                 <div key={m.l} style={{ textAlign: 'center', padding: '6px', backgroundColor: '#0A0A0A', borderRadius: '8px' }}>
                   <p style={{ color: m.c, fontWeight: 700, fontSize: '14px', margin: 0 }}>{m.v}</p>
@@ -554,7 +563,7 @@ export default function AdminPage() {
               <button onClick={() => blockPayments(id, !s.payments_blocked)} style={btn(s.payments_blocked ? '#10B981' : '#EF4444')}>
                 {s.payments_blocked ? 'Unblock Pay' : 'Block Pay'}
               </button>
-              <button onClick={() => { const p = prompt('Reserve % (0-100)?', String(s.reserve_percent || 0)); if (p !== null) setReserve(id, Number(p)) }} style={btn('#F59E0B')}>
+              <button onClick={() => { const p = prompt('Reserve % (0-100)?', sv(s.reserve_percent || 0)); if (p !== null) setReserve(id, Number(p)) }} style={btn('#F59E0B')}>
                 Set Reserve
               </button>
               {!s.documents_requested && (
@@ -581,7 +590,7 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{ordersTotal} orders</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(ordersTotal)} orders</p>
       {orders.map((o, i) => {
         const buyer = o.buyer as Record<string, unknown> | null
         const seller = o.seller_profile as Record<string, unknown> | null
@@ -594,24 +603,24 @@ export default function AdminPage() {
           <div key={i} style={{ ...card, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
               <p style={{ color: '#fff', fontWeight: 600, fontSize: '13px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item ? String((item as Record<string, unknown>).title) : fmtId(o.id)}
+                {item ? sv((item as Record<string, unknown>).title) : fmtId(o.id)}
               </p>
               <p style={{ color: '#F0908A', fontWeight: 700, fontSize: '14px', margin: '2px 0' }}>{fmtMoney(o.amount)}</p>
               <p style={{ color: '#555', fontSize: '11px', margin: 0 }}>
-                Buyer: {buyer ? `@${buyer.username}` : fmtId(o.buyer_id)} | Seller: {seller ? `@${seller.username}` : fmtId(o.seller_id)}
+                Buyer: {buyer ? `@${sv(buyer.username)}` : fmtId(o.buyer_id)} | Seller: {seller ? `@${sv(seller.username)}` : fmtId(o.seller_id)}
               </p>
               <p style={{ color: '#444', fontSize: '11px', margin: '2px 0 0' }}>
                 {fmtDate(o.created_at)} | Fee: {fmtMoney(o.platform_fee)} | {fmtId(o.id)}
               </p>
             </div>
-            <span style={badge(statusColor[String(o.status)] || '#666')}>{String(o.status)}</span>
+            <span style={badge(statusColor[String(o.status)] || '#666')}>{sv(o.status)}</span>
           </div>
         )
       })}
       {ordersTotal > 30 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
           <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>Prev</button>
-          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {ordersPage} / {Math.ceil(ordersTotal / 30)}</span>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {sv(ordersPage)} / {sv(Math.ceil(ordersTotal / 30))}</span>
           <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>Next</button>
         </div>
       )}
@@ -620,7 +629,7 @@ export default function AdminPage() {
 
   const renderDisputes = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{disputes.length} disputes/refunds</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length)} disputes/refunds</p>
       {disputes.length === 0 && <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>No disputes</p>}
       {disputes.map((d, i) => {
         const buyer = d.buyer as Record<string, unknown> | null
@@ -632,17 +641,17 @@ export default function AdminPage() {
                 <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Order {fmtId(d.id)}</p>
                 <p style={{ color: '#F0908A', fontWeight: 700, margin: '2px 0' }}>{fmtMoney(d.amount)}</p>
                 <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                  Buyer: {buyer ? `@${buyer.username}` : '?'} | Seller: {seller ? `@${seller.username}` : '?'}
+                  Buyer: {buyer ? `@${sv(buyer.username)}` : '?'} | Seller: {seller ? `@${sv(seller.username)}` : '?'}
                 </p>
                 <p style={{ color: '#444', fontSize: '11px', margin: '4px 0 0' }}>
                   Created: {fmtDate(d.created_at)} | Paid: {fmtDate(d.paid_at)} | Shipped: {fmtDate(d.shipped_at)}
                 </p>
               </div>
-              <span style={badge(d.status === 'disputed' ? '#EF4444' : '#8B5CF6')}>{String(d.status)}</span>
+              <span style={badge(d.status === 'disputed' ? '#EF4444' : '#8B5CF6')}>{sv(d.status)}</span>
             </div>
             {Boolean(d.shipping_proof_url) && (
               <div style={{ marginTop: '8px' }}>
-                <img src={String(d.shipping_proof_url)} alt="Proof" style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333' }} />
+                <img src={sv(d.shipping_proof_url)} alt="Proof" style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333' }} />
               </div>
             )}
           </div>
@@ -669,27 +678,27 @@ export default function AdminPage() {
           <div key={i} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
               <div>
-                <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{String(s.title)}</p>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{sv(s.title)}</p>
                 <p style={{ color: '#888', fontSize: '12px', margin: '2px 0 0' }}>
-                  {seller ? String(seller.store_name) : '?'} ({sellerProfile ? `@${sellerProfile.username}` : '?'})
+                  {seller ? sv(seller.store_name) : '?'} ({sellerProfile ? `@${sv(sellerProfile.username)}` : '?'})
                 </p>
                 <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
-                  Viewers: {String(s.viewer_count)} | Peak: {String(s.peak_viewers)} | {String(s.category)} | {fmtDate(s.started_at || s.scheduled_at)}
+                  Viewers: {sv(s.viewer_count)} | Peak: {sv(s.peak_viewers)} | {sv(s.category)} | {fmtDate(s.started_at || s.scheduled_at)}
                 </p>
               </div>
               <span style={badge(s.status === 'live' ? '#E8344E' : s.status === 'scheduled' ? '#3B82F6' : '#555')}>
-                {String(s.status).toUpperCase()}
+                {sv(s.status).toUpperCase()}
               </span>
             </div>
             {s.status === 'live' && (
               <div style={{ display: 'flex', gap: '6px' }}>
-                <button onClick={() => stopStream(s.id as string)} style={btn('#EF4444')}>Stop Live</button>
-                <button onClick={() => suspendStreamer(s.id as string)} style={btn('#F59E0B')}>Suspend Streamer</button>
+                <button onClick={() => stopStream(String(s.id || ''))} style={btn('#EF4444')}>Stop Live</button>
+                <button onClick={() => suspendStreamer(String(s.id || ''))} style={btn('#F59E0B')}>Suspend Streamer</button>
               </div>
             )}
             {Boolean(s.mux_playback_id) && s.status === 'ended' && (
               <p style={{ color: '#3B82F6', fontSize: '12px', margin: '8px 0 0' }}>
-                Replay: mux.com/playback/{String(s.mux_playback_id)}
+                Replay: mux.com/playback/{sv(s.mux_playback_id)}
               </p>
             )}
           </div>
@@ -700,7 +709,7 @@ export default function AdminPage() {
 
   const renderAudit = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{auditTotal} log entries</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(auditTotal)} log entries</p>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead>
@@ -714,16 +723,16 @@ export default function AdminPage() {
             {auditLogs.map((log, i) => (
               <tr key={i} style={{ borderBottom: '1px solid #111' }}>
                 <td style={{ color: '#666', padding: '8px 6px', whiteSpace: 'nowrap' }}>{fmtDate(log.created_at)}</td>
-                <td style={{ color: '#aaa', padding: '8px 6px' }}>{String(log.admin_email).split('@')[0]}</td>
+                <td style={{ color: '#aaa', padding: '8px 6px' }}>{sv(log.admin_email).split('@')[0]}</td>
                 <td style={{ padding: '8px 6px' }}>
                   <span style={badge(
-                    String(log.action).includes('ban') ? '#EF4444' :
-                    String(log.action).includes('suspend') ? '#F59E0B' :
-                    String(log.action).includes('block') ? '#EF4444' :
+                    sv(log.action).includes('ban') ? '#EF4444' :
+                    sv(log.action).includes('suspend') ? '#F59E0B' :
+                    sv(log.action).includes('block') ? '#EF4444' :
                     '#3B82F6'
-                  )}>{String(log.action)}</span>
+                  )}>{sv(log.action)}</span>
                 </td>
-                <td style={{ color: '#888', padding: '8px 6px' }}>{String(log.target_type)}</td>
+                <td style={{ color: '#888', padding: '8px 6px' }}>{sv(log.target_type)}</td>
                 <td style={{ color: '#555', padding: '8px 6px', fontFamily: 'monospace' }}>{fmtId(log.target_id)}</td>
                 <td style={{ color: '#555', padding: '8px 6px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {log.details && typeof log.details === 'object' ? JSON.stringify(log.details) : '-'}
@@ -736,7 +745,7 @@ export default function AdminPage() {
       {auditTotal > 50 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
           <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>Prev</button>
-          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {auditPage} / {Math.ceil(auditTotal / 50)}</span>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {sv(auditPage)} / {sv(Math.ceil(auditTotal / 50))}</span>
           <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>Next</button>
         </div>
       )}
@@ -769,13 +778,7 @@ export default function AdminPage() {
               <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>ShaPop Back-Office</p>
             </div>
           </div>
-          {loading && (
-            <div style={{
-              width: '20px', height: '20px', border: '2px solid #222',
-              borderTopColor: '#F0908A', borderRadius: '50%',
-              animation: 'spin 0.8s linear infinite',
-            }} />
-          )}
+          {loading && <div className="admin-spinner" style={{ width: '20px', height: '20px' }} />}
         </div>
 
         {/* Action message */}
@@ -824,8 +827,6 @@ export default function AdminPage() {
         {/* Content */}
         {!pageError && renderContent()}
       </div>
-
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
       {/* Toast */}
       {toast && (

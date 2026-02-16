@@ -104,3 +104,16 @@ body {
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Admin page spinner */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.admin-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #333;
+  border-top-color: #E8344E;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
