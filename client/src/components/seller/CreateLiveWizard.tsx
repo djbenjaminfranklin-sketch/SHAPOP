@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { apiFetch } from '../../lib/api'
 import { getLang, t as i18nT } from '../../lib/i18n'
 import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
@@ -280,12 +281,20 @@ export default function CreateLiveWizard() {
         URL.revokeObjectURL(video.src)
         setThumbnailIsVideo(true)
         setThumbnailFile(file)
+        // Revoke old preview URL before creating new one
+        if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) {
+          URL.revokeObjectURL(thumbnailPreview)
+        }
         setThumbnailPreview(URL.createObjectURL(file))
       }
       video.src = URL.createObjectURL(file)
     } else {
       setThumbnailIsVideo(false)
       setThumbnailFile(file)
+      // Revoke old preview URL before creating new one
+      if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(thumbnailPreview)
+      }
       const reader = new FileReader()
       reader.onload = (ev) => {
         setThumbnailPreview(ev.target?.result as string)
@@ -406,66 +415,60 @@ export default function CreateLiveWizard() {
       let uploadedThumbnailUrl: string | null = null
       if (thumbnailFile) {
         const ext = thumbnailFile.name.split('.').pop() || 'jpg'
-        const path = `${user.id}/thumbnails/${Date.now()}.${ext}`
+        const path = `thumbnails/${user.id}/${Date.now()}.${ext}`
         const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, thumbnailFile, { upsert: true })
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-          uploadedThumbnailUrl = urlData.publicUrl
+        if (uploadErr) {
+          throw new Error(uploadErr.message)
         }
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+        uploadedThumbnailUrl = urlData.publicUrl
       } else if (thumbnailPreview && thumbnailPreview.startsWith('data:')) {
         // Fallback: upload base64 data as a file if no File object is available
-        try {
-          const res = await fetch(thumbnailPreview)
-          const blob = await res.blob()
-          const ext = blob.type.split('/')[1] || 'png'
-          const path = `${user.id}/thumbnails/${Date.now()}.${ext}`
-          const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: blob.type })
-          if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-            uploadedThumbnailUrl = urlData.publicUrl
-          }
-        } catch {
-          // Upload failed, fall back to null
+        const res = await fetch(thumbnailPreview)
+        const blob = await res.blob()
+        const ext = blob.type.split('/')[1] || 'png'
+        const path = `thumbnails/${user.id}/${Date.now()}.${ext}`
+        const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: blob.type })
+        if (uploadErr) {
+          throw new Error(uploadErr.message)
         }
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+        uploadedThumbnailUrl = urlData.publicUrl
       }
 
-      // Verify seller record exists, auto-create if missing
-      const { error: sellerCheckErr } = await supabase
-        .from('sellers')
-        .select('id')
-        .eq('id', user.id)
-        .single()
+      // Create stream via server API (handles seller auto-creation)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Not authenticated')
 
-      if (sellerCheckErr && sellerCheckErr.code === 'PGRST116') {
-        const { error: createSellerErr } = await supabase
-          .from('sellers')
-          .insert({ id: user.id })
-        if (createSellerErr) throw new Error('Erreur creation vendeur')
-      } else if (sellerCheckErr) {
-        throw sellerCheckErr
-      }
-
-      const { data: stream, error: streamError } = await supabase
-        .from('streams')
-        .insert({
-          seller_id: user.id,
+      const resp = await apiFetch('/api/streams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           title,
           category: selectedCategory,
-          status: scheduledAt ? 'scheduled' : 'live',
           scheduled_at: scheduledAt,
           thumbnail_url: uploadedThumbnailUrl,
-        })
-        .select()
-        .single()
+          city: profile?.city || null,
+        }),
+      })
 
-      if (streamError) throw streamError
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: 'Erreur creation' }))
+        throw new Error(err.error || 'Erreur creation')
+      }
 
-      // Save extra data to localStorage
+      const stream = await resp.json()
+
+      // Save extra data to localStorage (use uploaded URL, not blob URL)
       const liveData = {
         streamId: stream.id,
         format: selectedFormat,
         repeat,
-        thumbnailPreview,
+        thumbnailPreview: uploadedThumbnailUrl,
         createdAt: new Date().toISOString(),
       }
       localStorage.setItem(`shapop_live_${stream.id}`, JSON.stringify(liveData))

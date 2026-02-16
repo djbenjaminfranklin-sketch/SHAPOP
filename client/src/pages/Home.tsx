@@ -117,7 +117,7 @@ export default function Home() {
     if (city && user) {
       updateCity(city).catch(() => {})
     }
-  }, [city, user])
+  }, [city, user, updateCity])
 
   const fetchStreams = useCallback(async () => {
     try {
@@ -133,11 +133,6 @@ export default function Home() {
         query = query.eq('category', cat.label)
       }
 
-      // Filter by city when location is active
-      if (city) {
-        query = query.eq('city', city)
-      }
-
       const { data } = await query
       const fresh = (data as StreamWithSeller[]) || []
       setStreams(fresh)
@@ -148,7 +143,7 @@ export default function Home() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [selectedCategory, city])
+  }, [selectedCategory])
 
   useEffect(() => {
     fetchStreams()

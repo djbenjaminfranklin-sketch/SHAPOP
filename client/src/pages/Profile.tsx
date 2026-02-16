@@ -15,6 +15,15 @@ const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
   return fr
 }
 
+interface MyStream {
+  id: string
+  title: string
+  category: string
+  status: 'scheduled' | 'live' | 'ended'
+  created_at: string
+  item_count?: number
+}
+
 export default function Profile() {
   const { user, profile, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
@@ -23,6 +32,8 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [myStreams, setMyStreams] = useState<MyStream[]>([])
+  const [streamsLoaded, setStreamsLoaded] = useState(false)
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true))
@@ -32,6 +43,32 @@ export default function Profile() {
   useEffect(() => {
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url)
   }, [profile])
+
+  // Fetch seller's streams
+  useEffect(() => {
+    if (!user || !profile?.is_seller) return
+    const fetchStreams = async () => {
+      const { data } = await supabase
+        .from('streams')
+        .select('id, title, category, status, created_at')
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false })
+      if (data) {
+        const withCounts = await Promise.all(
+          data.map(async (s) => {
+            const { count } = await supabase
+              .from('items')
+              .select('*', { count: 'exact', head: true })
+              .eq('stream_id', s.id)
+            return { ...s, item_count: count || 0 } as MyStream
+          })
+        )
+        setMyStreams(withCounts)
+      }
+      setStreamsLoaded(true)
+    }
+    fetchStreams()
+  }, [user, profile?.is_seller])
 
   const handleSignOut = async () => {
     await signOut()
@@ -451,6 +488,45 @@ export default function Profile() {
             </p>
           </button>
         </div>
+
+        {/* ── Mes lives card (seller only) ──────────────────────── */}
+        {profile?.is_seller && (
+          <div style={{
+            padding: '0 16px 20px',
+            ...entrance('100ms'),
+          }}>
+            <button onClick={() => navigate('/go-live')} style={{
+              width: '100%',
+              backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
+              padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: '14px',
+            }}>
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(232,52,78,0.2), rgba(240,144,138,0.1))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+                  <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#fff', fontSize: '15px', fontWeight: 600, margin: 0 }}>
+                  {tx('Mes lives', 'My lives', 'השידורים שלי', 'Mis directos', lang)}
+                </p>
+                {streamsLoaded && myStreams.length > 0 && (
+                  <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>
+                    {myStreams.length} {tx('lives', 'lives', 'שידורים', 'directos', lang)}
+                  </p>
+                )}
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 18l6-6-6-6"/>
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* ── Account menu items ──────────────────────────────────── */}
         <div style={{ padding: '0 0 8px', ...entrance('120ms') }}>

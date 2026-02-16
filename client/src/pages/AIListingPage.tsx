@@ -240,10 +240,11 @@ export default function AIListingPage() {
     if (!file) return
 
     imageFileRef.current = file
+    setImagePreview(URL.createObjectURL(file))
+    // Still need data URL for the AI analysis edge function
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
-      setImagePreview(dataUrl)
       imageDataRef.current = dataUrl
       startAnalysis(dataUrl)
     }
@@ -338,35 +339,22 @@ export default function AIListingPage() {
     setSaving(true)
 
     try {
-      // Upload image to Supabase Storage first
-      let imageUrl: string | null = null
-      if (imageFileRef.current) {
-        const ext = imageFileRef.current.name.split('.').pop() || 'jpg'
-        const path = `${user.id}/items/${Date.now()}.${ext}`
-        const { error: uploadErr } = await supabase.storage
+      // Upload image to Supabase Storage instead of storing base64 in DB
+      let imageUrls: string[] = []
+      const file = imageFileRef.current
+      if (file) {
+        const ext = file.name.split('.').pop() || 'jpg'
+        const filePath = `items/${user.id}/${Date.now()}.${ext}`
+        const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(path, imageFileRef.current, { upsert: true })
-        if (!uploadErr) {
-          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-          imageUrl = urlData.publicUrl
+          .upload(filePath, file, { contentType: file.type, upsert: false })
+        if (uploadError) {
+          showToast(t.listingError, 'error')
+          setSaving(false)
+          return
         }
-      } else if (imagePreview && imagePreview.startsWith('data:')) {
-        // Fallback: upload base64 as blob
-        try {
-          const res = await fetch(imagePreview)
-          const blob = await res.blob()
-          const ext = blob.type.split('/')[1] || 'jpg'
-          const path = `${user.id}/items/${Date.now()}.${ext}`
-          const { error: uploadErr } = await supabase.storage
-            .from('avatars')
-            .upload(path, blob, { upsert: true, contentType: blob.type })
-          if (!uploadErr) {
-            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-            imageUrl = urlData.publicUrl
-          }
-        } catch {
-          // Upload failed — continue without image
-        }
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+        imageUrls = [urlData.publicUrl]
       }
 
       const { error } = await supabase.from('items').insert({
@@ -376,7 +364,7 @@ export default function AIListingPage() {
         category: editCategory,
         starting_price: parseFloat(editPrice) || 0,
         current_price: parseFloat(editPrice) || 0,
-        image_urls: imageUrl ? [imageUrl] : [],
+        image_urls: imageUrls,
         ai_generated: true,
         ai_tags: editTags,
         ai_condition: editCondition,

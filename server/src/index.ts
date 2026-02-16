@@ -33,6 +33,7 @@ const PROCESSING_FEE_RATE = 0.029   // 2.9% HT (Stripe)
 const PROCESSING_FEE_FIXED = 0.30   // 0.30€ HT fixe (Stripe)
 const VAT_RATE = 0.20               // 20% TVA (France)
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
+const APP_BASE_URL = process.env.APP_BASE_URL || 'https://shapop.app'
 
 // Helper: escape HTML special characters to prevent injection
 function escapeHtml(str: string): string {
@@ -321,6 +322,24 @@ async function stripeWebhookHandler(req: Request, res: Response) {
 
 async function muxWebhookHandler(req: Request, res: Response) {
   try {
+    // Verify Mux webhook signature if secret is configured
+    const muxWebhookSecret = process.env.MUX_WEBHOOK_SECRET
+    if (muxWebhookSecret) {
+      const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+      const signature = req.headers['mux-signature'] as string
+      if (!signature) {
+        res.status(401).json({ error: 'Missing Mux signature header' })
+        return
+      }
+      try {
+        muxClient.webhooks.verifySignature(rawBody.toString(), { 'mux-signature': signature }, muxWebhookSecret)
+      } catch {
+        console.error('[Mux Webhook] Signature verification failed')
+        res.status(401).json({ error: 'Invalid Mux webhook signature' })
+        return
+      }
+    }
+
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString()) : req.body)
     const type = body?.type as string
     const data = body?.data as Record<string, unknown>
@@ -555,8 +574,8 @@ app.post('/api/auth/send-otp', otpLimiter, async (req: Request, res: Response) =
       return
     }
 
-    // Generate 6-digit code
-    const code = String(Math.floor(100000 + Math.random() * 900000))
+    // Generate 6-digit code (cryptographically secure)
+    const code = String(crypto.randomInt(100000, 999999))
     otpStore.set(normalized, { code, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0 })
 
     // Send via Twilio if configured
@@ -717,6 +736,164 @@ app.get('/api/streams/:id', async (req: Request, res: Response) => {
   }
 })
 
+// =============================================
+// POST /api/streams — create a new stream (auth required)
+// =============================================
+app.post('/api/streams', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    // Validate request body
+    const { title, category, scheduled_at, thumbnail_url, city } = req.body
+
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      res.status(400).json({ error: 'title is required' })
+      return
+    }
+    if (!category || typeof category !== 'string') {
+      res.status(400).json({ error: 'category is required' })
+      return
+    }
+    if (scheduled_at && isNaN(Date.parse(scheduled_at))) {
+      res.status(400).json({ error: 'scheduled_at must be a valid ISO date' })
+      return
+    }
+
+    // Auto-create seller record if missing
+    const { error: sellerError } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('id', userId)
+      .single()
+
+    if (sellerError && sellerError.code === 'PGRST116') {
+      const { error: createSellerError } = await supabase
+        .from('sellers')
+        .insert({ id: userId })
+      if (createSellerError) {
+        console.error('Failed to auto-create seller:', createSellerError)
+        res.status(500).json({ error: 'Failed to create seller record' })
+        return
+      }
+    } else if (sellerError) {
+      console.error('Seller check error:', sellerError)
+      res.status(500).json({ error: 'Failed to verify seller record' })
+      return
+    }
+
+    // Insert stream
+    const { data: stream, error: streamError } = await supabase
+      .from('streams')
+      .insert({
+        seller_id: userId,
+        title: title.trim(),
+        category,
+        status: scheduled_at ? 'scheduled' : 'scheduled',
+        scheduled_at: scheduled_at || null,
+        thumbnail_url: thumbnail_url || null,
+        city: city || null,
+      })
+      .select()
+      .single()
+
+    if (streamError) {
+      console.error('Stream creation error:', streamError)
+      res.status(500).json({ error: 'Failed to create stream' })
+      return
+    }
+
+    res.json(stream)
+  } catch (err) {
+    console.error('POST /api/streams error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// POST /api/orders — create an order for a won auction item (auth required)
+// =============================================
+app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    // Validate request body
+    const { item_id } = req.body
+    if (!item_id || typeof item_id !== 'string') {
+      res.status(400).json({ error: 'item_id is required' })
+      return
+    }
+    // Basic UUID format check
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item_id)) {
+      res.status(400).json({ error: 'item_id must be a valid UUID' })
+      return
+    }
+
+    // Fetch the item — must be sold with a winner
+    const { data: item, error: itemError } = await supabase
+      .from('items')
+      .select('id, status, winner_id, current_price, seller_id, stream_id')
+      .eq('id', item_id)
+      .single()
+
+    if (itemError || !item) {
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+    if (item.status !== 'sold') {
+      res.status(400).json({ error: 'Item is not sold' })
+      return
+    }
+    if (!item.winner_id) {
+      res.status(400).json({ error: 'Item has no winner' })
+      return
+    }
+
+    // Check for existing order (idempotency)
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('item_id', item_id)
+      .maybeSingle()
+
+    if (existingOrder) {
+      res.json(existingOrder)
+      return
+    }
+
+    // Calculate fees using the server-side helper
+    const amount = item.current_price
+    const fees = calculateFees(amount)
+
+    // Create the order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        buyer_id: item.winner_id,
+        seller_id: item.seller_id,
+        item_id: item.id,
+        stream_id: item.stream_id,
+        amount,
+        platform_fee: fees.platformFee,
+        processing_fee: fees.processingFee,
+        seller_payout: fees.sellerPayout,
+        status: 'pending_payment',
+      })
+      .select()
+      .single()
+
+    if (orderError) {
+      console.error('Order creation error:', orderError)
+      res.status(500).json({ error: 'Failed to create order' })
+      return
+    }
+
+    res.json(order)
+  } catch (err) {
+    console.error('POST /api/orders error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 app.post('/api/streams/:id/end', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     // Verify ownership
@@ -826,7 +1003,7 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
         .select('*')
         .eq('item_id', req.params.id)
         .limit(1)
-        .single()
+        .maybeSingle()
 
       if (existingOrder) {
         // Order already exists (possible duplicate request), return it
@@ -1232,7 +1409,7 @@ app.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authentic
     // Verify the authenticated user is the stream owner/seller
     const { data: stream, error: streamFetchError } = await supabase
       .from('streams')
-      .select('seller_id')
+      .select('seller_id, peak_viewers')
       .eq('id', streamId)
       .single()
 
@@ -1277,7 +1454,7 @@ app.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authentic
       .update({
         engagement_score: engagementRate * 100,
         viewer_count,
-        peak_viewers: viewer_count,
+        peak_viewers: Math.max(viewer_count, stream.peak_viewers || 0),
       })
       .eq('id', streamId)
 
@@ -1541,9 +1718,9 @@ app.post('/api/streams/:id/create-mux-stream', requireAuth, async (req: Authenti
       mux_stream_id: muxStreamId,
       mux_playback_id: muxPlaybackId,
     })
-  } catch (err) {
-    console.error('Mux stream creation error:', err)
-    res.status(500).json({ error: 'Failed to create Mux stream' })
+  } catch (err: any) {
+    console.error('Mux stream creation error:', err?.message || err, err?.response?.data)
+    res.status(500).json({ error: 'Failed to create Mux stream', details: err?.message })
   }
 })
 
@@ -1607,8 +1784,8 @@ app.post('/api/stripe/create-connect-account', requireAuth, async (req: Authenti
       // Account already exists, just create a new onboarding link
       const accountLink = await stripe.accountLinks.create({
         account: seller.stripe_account_id,
-        refresh_url: `${req.headers.origin || 'https://shapop.app'}/payments?stripe=refresh`,
-        return_url: `${req.headers.origin || 'https://shapop.app'}/payments?stripe=success`,
+        refresh_url: `${APP_BASE_URL}/payments?stripe=refresh`,
+        return_url: `${APP_BASE_URL}/payments?stripe=success`,
         type: 'account_onboarding',
       })
       res.json({ url: accountLink.url, account_id: seller.stripe_account_id })
@@ -1648,8 +1825,8 @@ app.post('/api/stripe/create-connect-account', requireAuth, async (req: Authenti
     // Create onboarding link
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${req.headers.origin || 'https://shapop.app'}/payments?stripe=refresh`,
-      return_url: `${req.headers.origin || 'https://shapop.app'}/payments?stripe=success`,
+      refresh_url: `${APP_BASE_URL}/payments?stripe=refresh`,
+      return_url: `${APP_BASE_URL}/payments?stripe=success`,
       type: 'account_onboarding',
     })
 
@@ -2115,8 +2292,8 @@ app.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authentica
       .eq('seller_id', order.seller_id)
       .single()
     if (trust) {
-      const shipTime = order.shipped_at
-        ? (now.getTime() - new Date(order.shipped_at).getTime()) / (1000 * 60 * 60)
+      const shipTime = order.shipped_at && order.paid_at
+        ? (new Date(order.shipped_at).getTime() - new Date(order.paid_at).getTime()) / (1000 * 60 * 60)
         : 0
       const newTotal = trust.total_completed_orders + 1
       const newAvgShip = ((trust.avg_ship_time_hours * trust.total_completed_orders) + shipTime) / newTotal

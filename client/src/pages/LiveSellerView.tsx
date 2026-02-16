@@ -39,6 +39,12 @@ const pageContent = {
     articlesLabel: 'articles',
     anonymous: 'Anonyme',
     back: 'Retour',
+    endAuction: 'Terminer l\'enchere',
+    addItem: 'Ajouter un article',
+    addItemTitle: 'Titre',
+    addItemPrice: 'Prix de depart (€)',
+    addItemAdd: 'Ajouter',
+    addItemCancel: 'Annuler',
   },
   en: {
     live: 'LIVE',
@@ -69,6 +75,12 @@ const pageContent = {
     articlesLabel: 'items',
     anonymous: 'Anonymous',
     back: 'Back',
+    endAuction: 'End auction',
+    addItem: 'Add item',
+    addItemTitle: 'Title',
+    addItemPrice: 'Starting price (€)',
+    addItemAdd: 'Add',
+    addItemCancel: 'Cancel',
   },
   he: {
     live: 'שידור',
@@ -99,6 +111,12 @@ const pageContent = {
     articlesLabel: 'פריטים',
     anonymous: 'אנונימי',
     back: 'חזור',
+    endAuction: 'סיים מכירה',
+    addItem: 'הוסף פריט',
+    addItemTitle: 'כותרת',
+    addItemPrice: 'מחיר התחלתי (€)',
+    addItemAdd: 'הוסף',
+    addItemCancel: 'ביטול',
   },
   es: {
     live: 'EN VIVO',
@@ -129,6 +147,12 @@ const pageContent = {
     articlesLabel: 'articulos',
     anonymous: 'Anonimo',
     back: 'Volver',
+    endAuction: 'Terminar subasta',
+    addItem: 'Agregar articulo',
+    addItemTitle: 'Titulo',
+    addItemPrice: 'Precio inicial (€)',
+    addItemAdd: 'Agregar',
+    addItemCancel: 'Cancelar',
   },
 }
 
@@ -184,6 +208,12 @@ export default function LiveSellerView() {
     price: number
     isUnsold?: boolean
   } | null>(null)
+
+  // Add item during live
+  const [showAddItem, setShowAddItem] = useState(false)
+  const [addItemTitle, setAddItemTitle] = useState('')
+  const [addItemPrice, setAddItemPrice] = useState('')
+  const [addingItem, setAddingItem] = useState(false)
 
   // Return policy
   const [returnPolicy, setReturnPolicy] = useState<string>('no_return')
@@ -461,24 +491,17 @@ export default function LiveSellerView() {
           })
           .eq('id', currentItem.id)
 
-        // Frais TTC (TVA 20% incluse sur les frais)
-        const platformFee = Math.round(finalPrice * 0.08 * 1.20 * 100) / 100
-        const processingFee = Math.round((finalPrice * 0.029 + 0.30) * 1.20 * 100) / 100
-        const sellerPayout = Math.round((finalPrice - platformFee - processingFee) * 100) / 100
-
-        await supabase
-          .from('orders')
-          .insert({
-            buyer_id: winnerId,
-            seller_id: user.id,
-            item_id: currentItem.id,
-            stream_id: streamId,
-            amount: finalPrice,
-            platform_fee: platformFee,
-            processing_fee: processingFee,
-            seller_payout: sellerPayout,
-            status: 'pending_payment' as const,
+        // Create order via server API (server calculates fees)
+        if (sessionToken) {
+          await apiFetch('/api/orders', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`,
+            },
+            body: JSON.stringify({ item_id: currentItem.id }),
           })
+        }
 
         const { data: winnerProfile } = await supabase
           .from('profiles')
@@ -677,6 +700,46 @@ export default function LiveSellerView() {
     } catch (err) {
       console.error('Failed to send chat message:', err)
     }
+  }
+
+  const handleEndAuctionEarly = () => {
+    if (!currentItem || currentItem.status !== 'active') return
+    // Setting timeLeft to 0 triggers the existing autoResolve useEffect
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    setTimeLeft(0)
+  }
+
+  const handleAddItemDuringLive = async () => {
+    if (!addItemTitle.trim() || !addItemPrice || !user || !streamId) return
+    const price = parseFloat(addItemPrice)
+    if (isNaN(price) || price <= 0) return
+
+    setAddingItem(true)
+    const { data, error } = await supabase
+      .from('items')
+      .insert({
+        seller_id: user.id,
+        stream_id: streamId,
+        title: addItemTitle.trim(),
+        starting_price: price,
+        current_price: price,
+        status: 'draft' as const,
+        duration_seconds: 60,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setItems(prev => [...prev, data])
+      setAddItemTitle('')
+      setAddItemPrice('')
+      setShowAddItem(false)
+      showToast(ct.addItem + ' ✓')
+    }
+    setAddingItem(false)
   }
 
   const hasMoreItems = items.some((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
@@ -1088,21 +1151,38 @@ export default function LiveSellerView() {
         )}
 
         {currentItem?.status === 'active' && (
-          <div style={{
-            padding: '14px', borderRadius: '14px',
-            background: 'linear-gradient(135deg, rgba(240,144,138,0.1), rgba(232,52,78,0.05))',
-            border: '1px solid rgba(240,144,138,0.2)',
-            textAlign: 'center',
-          }}>
-            <p style={{ margin: 0, fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
-              {timeLeft > 0
-                ? (lang === 'fr' ? 'Enchere en cours...' : lang === 'es' ? 'Subasta en curso...' : lang === 'he' ? '...מכירה פומבית בעיצומה' : 'Auction in progress...')
-                : (lang === 'fr' ? 'Resolution...' : lang === 'es' ? 'Resolviendo...' : lang === 'he' ? '...פותר' : 'Resolving...')}
-            </p>
-            {currentItem.min_price != null && currentItem.min_price > 0 && (
-              <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#666' }}>
-                {lang === 'fr' ? `Prix minimum : ${currentItem.min_price} €` : lang === 'es' ? `Precio minimo: ${currentItem.min_price} €` : lang === 'he' ? `מחיר מינימום: ${currentItem.min_price} €` : `Reserve: ${currentItem.min_price} €`}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <div style={{
+              padding: '14px', borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(240,144,138,0.1), rgba(232,52,78,0.05))',
+              border: '1px solid rgba(240,144,138,0.2)',
+              textAlign: 'center',
+            }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
+                {timeLeft > 0
+                  ? (lang === 'fr' ? 'Enchere en cours...' : lang === 'es' ? 'Subasta en curso...' : lang === 'he' ? '...מכירה פומבית בעיצומה' : 'Auction in progress...')
+                  : (lang === 'fr' ? 'Resolution...' : lang === 'es' ? 'Resolviendo...' : lang === 'he' ? '...פותר' : 'Resolving...')}
               </p>
+              {currentItem.min_price != null && currentItem.min_price > 0 && (
+                <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#666' }}>
+                  {lang === 'fr' ? `Prix minimum : ${currentItem.min_price} €` : lang === 'es' ? `Precio minimo: ${currentItem.min_price} €` : lang === 'he' ? `מחיר מינימום: ${currentItem.min_price} €` : `Reserve: ${currentItem.min_price} €`}
+                </p>
+              )}
+            </div>
+            {timeLeft > 0 && (
+              <button
+                onClick={handleEndAuctionEarly}
+                style={{
+                  width: '100%', padding: '12px',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '12px',
+                  color: '#ccc', fontSize: '14px', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {ct.endAuction}
+              </button>
             )}
           </div>
         )}
@@ -1129,6 +1209,99 @@ export default function LiveSellerView() {
           }}>
             {ct.noMoreItems}
           </p>
+        )}
+
+        {/* Add item button — always visible */}
+        {!showAddItem && (
+          <button
+            onClick={() => setShowAddItem(true)}
+            style={{
+              width: '100%', padding: '10px',
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              border: '1px dashed rgba(255,255,255,0.2)',
+              borderRadius: '12px',
+              color: '#888', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round"/>
+              <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round"/>
+            </svg>
+            {ct.addItem}
+          </button>
+        )}
+
+        {/* Add item quick form */}
+        {showAddItem && (
+          <div style={{
+            padding: '12px', borderRadius: '14px',
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            display: 'flex', flexDirection: 'column', gap: '8px',
+          }}>
+            <input
+              type="text"
+              value={addItemTitle}
+              onChange={e => setAddItemTitle(e.target.value)}
+              placeholder={ct.addItemTitle}
+              style={{
+                width: '100%', padding: '10px 12px',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '10px',
+                color: '#fff', fontSize: '14px',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            <input
+              type="number"
+              value={addItemPrice}
+              onChange={e => setAddItemPrice(e.target.value)}
+              placeholder={ct.addItemPrice}
+              min="0"
+              step="0.01"
+              style={{
+                width: '100%', padding: '10px 12px',
+                backgroundColor: 'rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '10px',
+                color: '#fff', fontSize: '14px',
+                outline: 'none', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => { setShowAddItem(false); setAddItemTitle(''); setAddItemPrice('') }}
+                style={{
+                  flex: 1, padding: '10px',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '10px',
+                  color: '#888', fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {ct.addItemCancel}
+              </button>
+              <button
+                onClick={handleAddItemDuringLive}
+                disabled={addingItem || !addItemTitle.trim() || !addItemPrice}
+                style={{
+                  flex: 1, padding: '10px',
+                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  border: 'none',
+                  borderRadius: '10px',
+                  color: '#fff', fontSize: '13px', fontWeight: 700,
+                  cursor: 'pointer',
+                  opacity: addingItem || !addItemTitle.trim() || !addItemPrice ? 0.5 : 1,
+                }}
+              >
+                {ct.addItemAdd}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

@@ -240,6 +240,8 @@ export default function StreamView() {
   const lang = (getLang() || 'fr') as Lang
   const ct = streamContent[lang] || streamContent.fr
   const { user } = useAuth()
+  const userRef = useRef(user)
+  useEffect(() => { userRef.current = user }, [user])
   const videoRef = useRef<HTMLVideoElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -264,7 +266,7 @@ export default function StreamView() {
   const [cameraActive, setCameraActive] = useState(false)
 
   const [sellerName, setSellerName] = useState('')
-  const [sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
+  const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
   const [viewerMuted, setViewerMuted] = useState(true)
 
   // Sold animation & payment modal
@@ -329,7 +331,7 @@ export default function StreamView() {
         mediaStreamRef.current = null
       }
     }
-  }, [isSeller, isLive]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isSeller, isLive, facingMode])
 
   // ═══ VIEWER: Fetch seller name ═══
   useEffect(() => {
@@ -494,7 +496,7 @@ export default function StreamView() {
         setSoldAnimation({ winner: winnerName, price: item.current_price })
         setTimeout(() => setSoldAnimation(null), 3000)
         // Show payment modal if current user is the winner
-        if (user && item.winner_id === user.id) {
+        if (userRef.current && item.winner_id === userRef.current.id) {
           setPaymentItem(item)
           // Fetch the order with retry (seller may still be creating it)
           const initPayment = async () => {
@@ -523,7 +525,7 @@ export default function StreamView() {
                   .from('orders')
                   .select('*')
                   .eq('item_id', item.id)
-                  .eq('buyer_id', user.id)
+                  .eq('buyer_id', user!.id)
                   .single()
                 if (data) {
                   order = data as Order
@@ -547,7 +549,7 @@ export default function StreamView() {
             const { data: savedAddr } = await supabase
               .from('addresses')
               .select('*')
-              .eq('user_id', user.id)
+              .eq('user_id', user!.id)
               .eq('is_default', true)
               .single()
             if (savedAddr) {
@@ -835,7 +837,7 @@ export default function StreamView() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh', backgroundColor: '#000' }}>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
         <div style={{
           width: '32px', height: '32px',
           border: '3px solid #333', borderTopColor: '#F0908A',
@@ -848,19 +850,26 @@ export default function StreamView() {
 
   if (!stream) {
     return (
-      <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: '#000', minHeight: '100vh' }}>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', padding: '20px' }}>
         <p style={{ fontSize: '18px', color: '#666' }}>{ct.streamNotFound}</p>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            marginTop: '16px', padding: '12px 24px', borderRadius: '100px',
+            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+            border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          {ct.close}
+        </button>
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-        {/* Video + Encheres */}
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-          {/* Lecteur video */}
-          <div style={{ position: 'relative', backgroundColor: '#000', overflow: 'hidden', aspectRatio: '9/16', maxHeight: '60vh' }}>
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', overflow: 'hidden' }}>
+      {/* Fullscreen video container */}
+      <div style={{ position: 'absolute', inset: 0 }}>
 
             {/* ═══ SELLER VIEW: Live camera ═══ */}
             {isSeller && isLive && (
@@ -1089,28 +1098,60 @@ export default function StreamView() {
               </div>
             )}
 
-            {/* Viewer LIVE badge */}
-            {stream.status === 'live' && !isSeller && (
+            {/* Viewer: top bar with back button + LIVE badge */}
+            {!isSeller && (
               <div style={{
-                position: 'absolute', top: '16px', left: '16px',
+                position: 'absolute',
+                top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+                left: '12px', right: '12px',
                 zIndex: 20,
-                display: 'flex', alignItems: 'center', gap: '8px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <span style={{
-                  background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
-                  padding: '5px 14px', borderRadius: '8px',
-                  fontSize: '12px', fontWeight: 800, color: '#fff',
-                  letterSpacing: '1px',
-                  boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                }}>
-                  <div style={{
-                    width: '6px', height: '6px', borderRadius: '50%',
-                    backgroundColor: '#fff',
-                    animation: 'liveDot 1.5s ease-in-out infinite',
-                  }} />
-                  {ct.liveNow}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    onClick={() => navigate(-1)}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '50%',
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </button>
+                  {stream.status === 'live' && (
+                    <span style={{
+                      background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
+                      padding: '5px 14px', borderRadius: '8px',
+                      fontSize: '12px', fontWeight: 800, color: '#fff',
+                      letterSpacing: '1px',
+                      boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                    }}>
+                      <div style={{
+                        width: '6px', height: '6px', borderRadius: '50%',
+                        backgroundColor: '#fff',
+                        animation: 'liveDot 1.5s ease-in-out infinite',
+                      }} />
+                      {ct.liveNow}
+                    </span>
+                  )}
+                  <span style={{
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    padding: '5px 10px', borderRadius: '8px',
+                    fontSize: '11px', fontWeight: 600, color: '#fff',
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    {stream.viewer_count || 0}
+                  </span>
+                </div>
               </div>
             )}
 
@@ -1322,179 +1363,156 @@ export default function StreamView() {
             )}
           </div>
 
-          {/* Info du stream */}
-          <div style={{ padding: '12px 16px 0' }}>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stream.title}</h1>
-            {stream.description && (
-              <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{stream.description}</p>
-            )}
-            {/* Return policy badge */}
-            {(() => {
-              const policyConfig: Record<string, { label: Record<string, string>; bg: string; border: string; color: string; icon: string }> = {
-                no_return: {
-                  label: { fr: 'Aucun retour', en: 'No returns', he: 'ללא החזרות', es: 'Sin devoluciones' },
-                  bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#f87171', icon: '🚫',
-                },
-                exchange_only: {
-                  label: { fr: 'Echanges uniquement', en: 'Exchanges only', he: 'החלפות בלבד', es: 'Solo cambios' },
-                  bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.3)', color: '#fb923c', icon: '🔄',
-                },
-                return_7: {
-                  label: { fr: 'Retours 7j', en: 'Returns 7d', he: 'החזרות 7 ימים', es: 'Devoluciones 7d' },
-                  bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80', icon: '✅',
-                },
-                return_14: {
-                  label: { fr: 'Retours 14j', en: 'Returns 14d', he: 'החזרות 14 ימים', es: 'Devoluciones 14d' },
-                  bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80', icon: '✅',
-                },
-                return_30: {
-                  label: { fr: 'Retours 30j', en: 'Returns 30d', he: 'החזרות 30 ימים', es: 'Devoluciones 30d' },
-                  bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80', icon: '✅',
-                },
-              }
-              const cfg = policyConfig[sellerReturnPolicy] || policyConfig.no_return
-              const label = cfg.label[lang] || cfg.label.fr
-              return (
-                <div style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  marginTop: '8px', padding: '5px 12px',
-                  borderRadius: '8px',
-                  backgroundColor: cfg.bg,
-                  border: `1px solid ${cfg.border}`,
-                }}>
-                  <span style={{ fontSize: '12px' }}>{cfg.icon}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: cfg.color }}>{label}</span>
-                </div>
-              )
-            })()}
-          </div>
+      {/* ═══ BOTTOM GRADIENT ═══ */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
+        background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.5) 60%, transparent)',
+        pointerEvents: 'none', zIndex: 5,
+      }} />
 
-          {/* Enchere active */}
-          {activeAuction && (
-            <div style={{
-              margin: '12px 16px 0', padding: '16px',
-              backgroundColor: '#0D0D0D', borderRadius: '16px',
-              border: '1.5px solid rgba(240,144,138,0.3)',
+      {/* ═══ BOTTOM OVERLAY: stream info + auction + chat + input ═══ */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        left: '12px', right: '12px',
+        zIndex: 15,
+        display: 'flex', flexDirection: 'column', gap: '8px',
+      }}>
+        {/* Chat messages — last 4, overlaid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          {messages.slice(-4).map(msg => (
+            <div key={msg.id} style={{
+              display: 'flex', gap: '6px',
+              padding: '4px 10px',
+              backgroundColor: 'rgba(0,0,0,0.55)',
+              borderRadius: '8px',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
-                  {activeAuction.image_urls?.[0] && (
-                    <img
-                      src={activeAuction.image_urls[0]}
-                      alt=""
-                      style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                    />
-                  )}
-                  <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
-                </div>
-                <div style={{
-                  fontSize: '22px', fontWeight: 800,
-                  color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
-                  animation: timeLeft <= 10 ? 'pulse 1s ease-in-out infinite' : 'none',
-                }}>
-                  {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px' }}>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.currentPrice}</p>
-                  <p style={{ fontSize: '28px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                    {activeAuction.current_price.toLocaleString()} €
-                  </p>
-                </div>
-
-                {user && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input
-                      type="number"
-                      value={bidAmount}
-                      onChange={e => setBidAmount(e.target.value)}
-                      min={activeAuction.current_price + 1}
-                      style={{
-                        width: '100px', padding: '12px',
-                        backgroundColor: '#111', border: '1px solid #333',
-                        borderRadius: '12px', color: '#fff',
-                        fontSize: '16px', fontWeight: 700, outline: 'none',
-                      }}
-                    />
-                    <button
-                      onClick={handlePlaceBid}
-                      disabled={timeLeft <= 0}
-                      style={{
-                        padding: '12px 20px', borderRadius: '12px',
-                        background: timeLeft > 0 ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
-                        border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
-                        cursor: timeLeft > 0 ? 'pointer' : 'not-allowed',
-                        opacity: timeLeft <= 0 ? 0.5 : 1,
-                      }}
-                    >
-                      {ct.bid}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                {msg.user_profile?.display_name || ct.anonymous}
+              </span>
+              <span style={{ fontSize: '12px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
+                {msg.is_flagged ? '[Message masqué]' : msg.message}
+              </span>
             </div>
-          )}
+          ))}
         </div>
 
-        {/* Chat */}
+        {/* Chat input */}
+        {user ? (
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <input
+              type="text"
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
+              placeholder={ct.sendMessage}
+              style={{
+                flex: 1, padding: '10px 14px',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '100px',
+                color: '#fff', fontSize: '13px',
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={handleSendMessage}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '100px',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: 'none', color: '#fff',
+                fontSize: '12px', fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {ct.send}
+            </button>
+          </div>
+        ) : (
+          <p style={{ fontSize: '12px', color: '#666', margin: 0, textAlign: 'center' }}>{ct.loginToChat}</p>
+        )}
+
+        {/* Active auction + bid */}
+        {activeAuction && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(12px)',
+            borderRadius: '14px',
+            border: '1px solid rgba(240,144,138,0.3)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                {activeAuction.image_urls?.[0] && (
+                  <img
+                    src={activeAuction.image_urls[0]}
+                    alt=""
+                    style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                  />
+                )}
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
+              </div>
+              <div style={{
+                fontSize: '20px', fontWeight: 800,
+                color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
+                animation: timeLeft <= 10 ? 'pulse 1s ease-in-out infinite' : 'none',
+              }}>
+                {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '11px', color: '#888', margin: '0 0 2px' }}>{ct.currentPrice}</p>
+                <p style={{ fontSize: '24px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                  {activeAuction.current_price.toLocaleString()} €
+                </p>
+              </div>
+
+              {user && (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input
+                    type="number"
+                    value={bidAmount}
+                    onChange={e => setBidAmount(e.target.value)}
+                    min={activeAuction.current_price + 1}
+                    style={{
+                      width: '80px', padding: '10px',
+                      backgroundColor: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '12px', color: '#fff',
+                      fontSize: '16px', fontWeight: 700, outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handlePlaceBid}
+                    disabled={timeLeft <= 0}
+                    style={{
+                      padding: '10px 18px', borderRadius: '12px',
+                      background: timeLeft > 0 ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
+                      border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
+                      cursor: timeLeft > 0 ? 'pointer' : 'not-allowed',
+                      opacity: timeLeft <= 0 ? 0.5 : 1,
+                    }}
+                  >
+                    {ct.bid}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Stream title */}
         <div style={{
-          backgroundColor: '#0D0D0D', borderTop: '1px solid #1A1A1A',
-          display: 'flex', flexDirection: 'column', flex: 1, minHeight: '200px',
+          padding: '6px 10px',
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          borderRadius: '10px',
         }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid #1A1A1A' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.liveChat}</h3>
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {messages.map(msg => (
-              <div key={msg.id} style={{ display: 'flex', gap: '8px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                  {msg.user_profile?.display_name || ct.anonymous}
-                </span>
-                <span style={{ fontSize: '13px', color: msg.is_flagged ? '#666' : '#ccc', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
-                  {msg.is_flagged ? '[Message masqué]' : msg.message}
-                </span>
-              </div>
-            ))}
-            <div ref={chatEndRef} />
-          </div>
-
-          {user ? (
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #1A1A1A', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={e => setNewMessage(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                  placeholder={ct.sendMessage}
-                  style={{
-                    flex: 1, padding: '12px 16px',
-                    backgroundColor: '#111', border: '1px solid #333',
-                    borderRadius: '100px', color: '#fff',
-                    fontSize: '14px', outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  style={{
-                    padding: '12px 20px', borderRadius: '100px',
-                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                    border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {ct.send}
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ padding: '16px', borderTop: '1px solid #1A1A1A', textAlign: 'center' }}>
-              <p style={{ fontSize: '13px', color: '#666', margin: 0 }}>{ct.loginToChat}</p>
-            </div>
-          )}
+          <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {stream.title}
+          </p>
         </div>
       </div>
 

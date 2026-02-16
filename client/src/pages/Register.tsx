@@ -9,7 +9,14 @@ const COUNTRY_PREFIXES = [
   { code: '+33', label: 'FR +33' },
   { code: '+972', label: 'IL +972' },
   { code: '+34', label: 'ES +34' },
-  { code: '+1', label: 'US +1' },
+  { code: '+1', label: 'US/CA +1' },
+  { code: '+55', label: 'BR +55' },
+  { code: '+81', label: 'JP +81' },
+  { code: '+49', label: 'DE +49' },
+  { code: '+39', label: 'IT +39' },
+  { code: '+351', label: 'PT +351' },
+  { code: '+212', label: 'MA +212' },
+  { code: '+44', label: 'GB +44' },
 ]
 
 const content = {
@@ -39,7 +46,7 @@ const content = {
     errorFileSize: "L'image doit faire moins de 5 Mo.",
     errorEmailTaken: 'Cet email est deja utilise',
     errorUsernameTaken: "Ce nom d'utilisateur est deja pris",
-    errorPhoneRequired: 'Verifie ton numero de telephone avant de continuer',
+    errorPhoneRequired: 'Le numero de telephone est obligatoire',
     checkEmail: 'Verifie ton email',
     checkEmailDesc: 'Un lien de confirmation a ete envoye a ton adresse email.',
   },
@@ -69,7 +76,7 @@ const content = {
     errorFileSize: 'Image must be smaller than 5MB.',
     errorEmailTaken: 'This email is already registered',
     errorUsernameTaken: 'This username is already taken',
-    errorPhoneRequired: 'Verify your phone number before continuing',
+    errorPhoneRequired: 'Phone number is required',
     checkEmail: 'Check your email',
     checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
@@ -159,14 +166,9 @@ export default function Register() {
   const lang = getLang()
   const c = content[lang] || content.fr
 
-  // Phone + OTP state
+  // Phone state (simple field, no OTP)
   const [phonePrefix, setPhonePrefix] = useState('+33')
   const [phoneLocal, setPhoneLocal] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
-  const [otpCode, setOtpCode] = useState('')
-  const [phoneVerified, setPhoneVerified] = useState(false)
-  const [otpLoading, setOtpLoading] = useState(false)
-  const [otpError, setOtpError] = useState('')
 
   const fullPhone = `${phonePrefix}${phoneLocal.replace(/^0+/, '')}`
 
@@ -200,68 +202,12 @@ export default function Register() {
     reader.readAsDataURL(file)
   }
 
-  const handleSendOtp = async () => {
-    setOtpError('')
-    if (!phoneLocal || phoneLocal.length < 4) {
-      setOtpError('Numero invalide')
-      return
-    }
-    setOtpLoading(true)
-    try {
-      const res = await apiFetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setOtpError(data.error || 'Erreur')
-        return
-      }
-      setOtpSent(true)
-    } catch {
-      setOtpError('Erreur reseau')
-    } finally {
-      setOtpLoading(false)
-    }
-  }
-
-  const handleVerifyOtp = async () => {
-    setOtpError('')
-    if (!otpCode || otpCode.length !== 6) {
-      setOtpError('Code a 6 chiffres requis')
-      return
-    }
-    setOtpLoading(true)
-    try {
-      const res = await apiFetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone, code: otpCode }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setOtpError(data.error || 'Erreur')
-        return
-      }
-      if (data.verified) {
-        setPhoneVerified(true)
-      } else {
-        setOtpError(data.error || 'Code incorrect')
-      }
-    } catch {
-      setOtpError('Erreur reseau')
-    } finally {
-      setOtpLoading(false)
-    }
-  }
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
 
-    // Phone must be verified
-    if (!phoneVerified) {
+    // Phone number required
+    if (!phoneLocal || phoneLocal.length < 4) {
       setError(c.errorPhoneRequired)
       return
     }
@@ -548,113 +494,45 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Phone + OTP section */}
+        {/* Phone field (required, no OTP) */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.phone}
           </label>
-
-          {phoneVerified ? (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '14px 18px', borderRadius: '14px',
-              backgroundColor: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.3)',
-            }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-              <span style={{ color: '#22C55E', fontWeight: 600, fontSize: '15px' }}>
-                {c.phoneVerified} ({fullPhone})
-              </span>
-            </div>
-          ) : (
-            <>
-              {/* Phone input with prefix selector */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: otpSent ? '12px' : '0' }}>
-                <select
-                  value={phonePrefix}
-                  onChange={e => setPhonePrefix(e.target.value)}
-                  style={{
-                    padding: '16px 8px', borderRadius: '14px',
-                    backgroundColor: '#111', border: '1.5px solid #222',
-                    fontSize: '15px', color: '#fff', outline: 'none',
-                    fontFamily: 'inherit', minWidth: '95px',
-                  }}
-                >
-                  {COUNTRY_PREFIXES.map(p => (
-                    <option key={p.code} value={p.code}>{p.label}</option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  value={phoneLocal}
-                  onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="612345678"
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={otpLoading || !phoneLocal}
-                  style={{
-                    padding: '14px 16px', borderRadius: '14px',
-                    backgroundColor: '#F0908A', border: 'none',
-                    color: '#fff', fontSize: '14px', fontWeight: 600,
-                    cursor: 'pointer', whiteSpace: 'nowrap',
-                    opacity: (otpLoading || !phoneLocal) ? 0.5 : 1,
-                  }}
-                >
-                  {otpLoading && !otpSent ? c.sendingCode : c.sendCode}
-                </button>
-              </div>
-
-              {/* OTP error */}
-              {otpError && (
-                <div style={{ color: '#F87171', fontSize: '13px', marginTop: '6px', marginBottom: '6px' }}>
-                  {otpError}
-                </div>
-              )}
-
-              {/* OTP code input */}
-              {otpSent && !phoneVerified && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={e => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                    placeholder="000000"
-                    style={{ ...inputStyle, flex: 1, letterSpacing: '8px', textAlign: 'center', fontSize: '22px' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleVerifyOtp}
-                    disabled={otpLoading || otpCode.length !== 6}
-                    style={{
-                      padding: '14px 20px', borderRadius: '14px',
-                      backgroundColor: '#22C55E', border: 'none',
-                      color: '#fff', fontSize: '15px', fontWeight: 600,
-                      cursor: 'pointer', whiteSpace: 'nowrap',
-                      opacity: (otpLoading || otpCode.length !== 6) ? 0.5 : 1,
-                    }}
-                  >
-                    {otpLoading ? c.verifying : c.verify}
-                  </button>
-                </div>
-              )}
-            </>
-          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <select
+              value={phonePrefix}
+              onChange={e => setPhonePrefix(e.target.value)}
+              style={{
+                padding: '16px 8px', borderRadius: '14px',
+                backgroundColor: '#111', border: '1.5px solid #222',
+                fontSize: '15px', color: '#fff', outline: 'none',
+                fontFamily: 'inherit', minWidth: '95px',
+              }}
+            >
+              {COUNTRY_PREFIXES.map(p => (
+                <option key={p.code} value={p.code}>{p.label}</option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              value={phoneLocal}
+              onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="612345678"
+              required
+              style={{ ...inputStyle, flex: 1 }}
+            />
+          </div>
         </div>
 
         <button
           type="submit"
-          disabled={loading || !phoneVerified}
+          disabled={loading}
           style={{
             width: '100%', padding: '17px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
             color: '#fff', fontSize: '17px', fontWeight: 700, border: 'none',
-            cursor: 'pointer', opacity: (loading || !phoneVerified) ? 0.5 : 1,
+            cursor: 'pointer', opacity: loading ? 0.5 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
             letterSpacing: '0.2px',
           }}

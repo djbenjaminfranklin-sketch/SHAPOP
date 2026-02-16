@@ -2,8 +2,37 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import { categories } from '../components/CategoryIcons'
+
+// Compress image to max 800px and JPEG quality 0.7 (~100-200KB)
+function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height)
+        width = Math.round(width * ratio)
+        height = Math.round(height * ratio)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('Canvas not supported'))
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Compression failed')),
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -136,6 +165,18 @@ const goLiveContent = {
     subtitle: 'Choisis un titre et une categorie, puis prepare tes articles avant de passer en direct.',
     createError: 'Erreur lors de la creation',
     sellerError: 'Impossible de verifier votre compte vendeur',
+    myLives: 'Mes lives',
+    noLives: 'Aucun live pour le moment',
+    deleteConfirm: 'Supprimer ce live et ses articles ?',
+    liveNow: 'En direct',
+    scheduled: 'Programme',
+    ended: 'Termine',
+    items: 'articles',
+    edit: 'Modifier',
+    delete: 'Supprimer',
+    thumbnail: 'Miniature (optionnel)',
+    thumbnailBtn: 'Ajouter une photo',
+    thumbnailChange: 'Changer',
   },
   en: {
     title: 'New live',
@@ -147,6 +188,18 @@ const goLiveContent = {
     subtitle: 'Choose a title and category, then prepare your items before going live.',
     createError: 'Error creating the live',
     sellerError: 'Unable to verify your seller account',
+    myLives: 'My lives',
+    noLives: 'No lives yet',
+    deleteConfirm: 'Delete this live and its items?',
+    liveNow: 'Live now',
+    scheduled: 'Scheduled',
+    ended: 'Ended',
+    items: 'items',
+    edit: 'Edit',
+    delete: 'Delete',
+    thumbnail: 'Thumbnail (optional)',
+    thumbnailBtn: 'Add a photo',
+    thumbnailChange: 'Change',
   },
   he: {
     title: 'שידור חדש',
@@ -158,6 +211,18 @@ const goLiveContent = {
     subtitle: 'בחר כותרת וקטגוריה, ואז הכן את הפריטים שלך לפני שתצא לשידור.',
     createError: 'שגיאה ביצירת השידור',
     sellerError: 'לא ניתן לאמת את חשבון המוכר שלך',
+    myLives: 'השידורים שלי',
+    noLives: 'אין שידורים עדיין',
+    deleteConfirm: 'למחוק את השידור והפריטים שלו?',
+    liveNow: 'בשידור חי',
+    scheduled: 'מתוזמן',
+    ended: 'הסתיים',
+    items: 'פריטים',
+    edit: 'עריכה',
+    delete: 'מחק',
+    thumbnail: 'תמונה ממוזערת (אופציונלי)',
+    thumbnailBtn: 'הוסף תמונה',
+    thumbnailChange: 'שנה',
   },
   es: {
     title: 'Nuevo directo',
@@ -169,6 +234,18 @@ const goLiveContent = {
     subtitle: 'Elige un t\u00EDtulo y una categor\u00EDa, luego prepara tus art\u00EDculos antes de salir en directo.',
     createError: 'Error al crear el directo',
     sellerError: 'No se pudo verificar tu cuenta de vendedor',
+    myLives: 'Mis directos',
+    noLives: 'Ningun directo todavia',
+    deleteConfirm: 'Eliminar este directo y sus articulos?',
+    liveNow: 'En directo',
+    scheduled: 'Programado',
+    ended: 'Terminado',
+    items: 'articulos',
+    edit: 'Editar',
+    delete: 'Eliminar',
+    thumbnail: 'Miniatura (opcional)',
+    thumbnailBtn: 'Agregar una foto',
+    thumbnailChange: 'Cambiar',
   },
 }
 
@@ -185,12 +262,68 @@ export default function GoLivePage() {
     }
   }, [profile, navigate])
 
-  const [showTips, setShowTips] = useState(true)
+  const [showTips, setShowTips] = useState(() => {
+    // Only show tips the first time
+    const seen = localStorage.getItem('shapop_live_tips_seen')
+    if (seen) return false
+    localStorage.setItem('shapop_live_tips_seen', '1')
+    return true
+  })
   const [tipIndex, setTipIndex] = useState(0)
   const [liveTitle, setLiveTitle] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [creating, setCreating] = useState(false)
   const [error, setError] = useState('')
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const thumbnailInputRef = useRef<HTMLInputElement>(null)
+
+  // My lives
+  interface MyStream {
+    id: string
+    title: string
+    category: string
+    status: 'scheduled' | 'live' | 'ended'
+    created_at: string
+    scheduled_at: string | null
+    item_count?: number
+  }
+  const [myStreams, setMyStreams] = useState<MyStream[]>([])
+
+  useEffect(() => {
+    if (!user) return
+    const fetchMyStreams = async () => {
+      const { data } = await supabase
+        .from('streams')
+        .select('id, title, category, status, created_at, scheduled_at')
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false })
+      if (data) {
+        // Fetch item counts for each stream
+        const streamsWithCounts = await Promise.all(
+          data.map(async (s) => {
+            const { count } = await supabase
+              .from('items')
+              .select('*', { count: 'exact', head: true })
+              .eq('stream_id', s.id)
+            return { ...s, item_count: count || 0 } as MyStream
+          })
+        )
+        setMyStreams(streamsWithCounts)
+      }
+    }
+    fetchMyStreams()
+  }, [user])
+
+  const handleDeleteStream = async (streamId: string) => {
+    if (!confirm(ct.deleteConfirm)) return
+    // Delete items first, then stream
+    await supabase.from('items').delete().eq('stream_id', streamId)
+    const { error: delErr } = await supabase.from('streams').delete().eq('id', streamId)
+    if (!delErr) {
+      setMyStreams(prev => prev.filter(s => s.id !== streamId))
+    }
+  }
 
   const langTips = tips[lang] || tips.fr
   const th = tipsHeader[lang] || tipsHeader.fr
@@ -242,14 +375,29 @@ export default function GoLivePage() {
     isSwiping.current = false
   }, [langTips.length])
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true })
+    }
+  }, [user, navigate])
+
   if (!user) {
-    navigate('/login', { replace: true })
     return null
   }
 
   const sellingCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
 
   const canProceed = liveTitle.trim().length > 0 && selectedCategory && !creating
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Revoke old preview URL to prevent memory leak
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview)
+    setThumbnailFile(file)
+    setThumbnailPreview(URL.createObjectURL(file))
+  }
 
   const handleCreate = async () => {
     if (!user || !canProceed) return
@@ -258,37 +406,44 @@ export default function GoLivePage() {
     setError('')
 
     try {
-      // Verify seller record exists, auto-create if missing
-      const { data: _seller, error: sellerError } = await supabase
-        .from('sellers')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      if (sellerError && sellerError.code === 'PGRST116') {
-        // No seller record found — auto-create one
-        const { error: createSellerError } = await supabase
-          .from('sellers')
-          .insert({ id: user.id })
-
-        if (createSellerError) throw new Error(ct.sellerError)
-      } else if (sellerError) {
-        throw new Error(ct.sellerError)
+      // Upload thumbnail if provided
+      let uploadedThumbnailUrl: string | null = null
+      if (thumbnailFile) {
+        const compressed = await compressImage(thumbnailFile)
+        const path = `thumbnails/${user.id}/${Date.now()}.jpg`
+        const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true, contentType: 'image/jpeg' })
+        if (uploadErr) {
+          throw new Error(uploadErr.message)
+        }
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+        uploadedThumbnailUrl = urlData.publicUrl
       }
 
-      const { data: stream, error: dbError } = await supabase
-        .from('streams')
-        .insert({
-          seller_id: user.id,
+      // Create stream via server API (handles seller auto-creation)
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) throw new Error('Not authenticated')
+
+      const resp = await apiFetch('/api/streams', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           title: liveTitle.trim(),
           category: selectedCategory,
-          status: 'scheduled' as const,
-        })
-        .select()
-        .single()
+          city: profile?.city || null,
+          thumbnail_url: uploadedThumbnailUrl,
+        }),
+      })
 
-      if (dbError) throw dbError
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: ct.createError }))
+        throw new Error(err.error || ct.createError)
+      }
 
+      const stream = await resp.json()
       if (!stream?.id) throw new Error('Stream creation failed')
 
       setCreating(false)
@@ -542,6 +697,66 @@ export default function GoLivePage() {
           </div>
         </div>
 
+        {/* Thumbnail */}
+        <div style={{ marginBottom: '32px' }}>
+          <p style={{
+            fontSize: '12px', fontWeight: 700, color: '#888',
+            marginBottom: '12px', letterSpacing: '1px', textTransform: 'uppercase',
+          }}>
+            {ct.thumbnail}
+          </p>
+          <input
+            ref={thumbnailInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleThumbnailChange}
+            style={{ display: 'none' }}
+          />
+          {thumbnailPreview ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <img
+                src={thumbnailPreview}
+                alt=""
+                style={{
+                  width: '80px', height: '80px', borderRadius: '12px',
+                  objectFit: 'cover', border: '1px solid #222',
+                }}
+              />
+              <button
+                onClick={() => thumbnailInputRef.current?.click()}
+                style={{
+                  padding: '10px 18px', borderRadius: '10px',
+                  background: '#1A1A1A', border: '1px solid #333',
+                  color: '#fff', fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {ct.thumbnailChange}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => thumbnailInputRef.current?.click()}
+              style={{
+                width: '100%', padding: '20px',
+                borderRadius: '14px',
+                background: '#0A0A0A',
+                border: '2px dashed #222',
+                color: '#666', fontSize: '14px', fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="1.5">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round"/>
+                <polyline points="17 8 12 3 7 8" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {ct.thumbnailBtn}
+            </button>
+          )}
+        </div>
+
         {/* Buttons */}
         <button
           onClick={handleCreate}
@@ -607,10 +822,125 @@ export default function GoLivePage() {
         >
           {ct.cancel}
         </button>
+
+        {/* My Lives section */}
+        {myStreams.length > 0 && (
+          <div style={{ marginTop: '40px' }}>
+            <h2 style={{
+              fontSize: '16px', fontWeight: 800, color: '#fff',
+              marginBottom: '16px', letterSpacing: '0.5px',
+            }}>
+              {ct.myLives}
+            </h2>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {myStreams.map(stream => {
+                const isLive = stream.status === 'live'
+                const statusLabel = stream.status === 'live' ? ct.liveNow
+                  : stream.status === 'scheduled' ? ct.scheduled
+                  : ct.ended
+                const statusColor = stream.status === 'live' ? '#E8344E'
+                  : stream.status === 'scheduled' ? '#F0908A'
+                  : '#555'
+
+                return (
+                  <div
+                    key={stream.id}
+                    style={{
+                      backgroundColor: '#111',
+                      border: isLive ? '1px solid rgba(232,52,78,0.4)' : '1px solid #222',
+                      borderRadius: '14px',
+                      padding: '14px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{
+                            fontSize: '10px', fontWeight: 800,
+                            color: statusColor,
+                            backgroundColor: `${statusColor}15`,
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                          }}>
+                            {isLive && (
+                              <span style={{
+                                display: 'inline-block',
+                                width: '6px', height: '6px',
+                                borderRadius: '50%',
+                                backgroundColor: '#E8344E',
+                                marginRight: '4px',
+                                animation: 'liveDot 1.5s ease infinite',
+                              }} />
+                            )}
+                            {statusLabel}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#555' }}>
+                            {stream.item_count || 0} {ct.items}
+                          </span>
+                        </div>
+                        <p style={{
+                          fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {stream.title}
+                        </p>
+                        <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>
+                          {stream.category} — {new Date(stream.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        {/* Edit — go to PrepareLivePage */}
+                        <button
+                          onClick={() => navigate(`/prepare-live/${stream.id}`)}
+                          style={{
+                            padding: '8px 14px',
+                            backgroundColor: '#1A1A1A',
+                            border: '1px solid #333',
+                            borderRadius: '8px',
+                            color: '#fff',
+                            fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {ct.edit}
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDeleteStream(stream.id)}
+                          style={{
+                            padding: '8px 14px',
+                            backgroundColor: 'rgba(232,52,78,0.1)',
+                            border: '1px solid rgba(232,52,78,0.3)',
+                            borderRadius: '8px',
+                            color: '#E8344E',
+                            fontSize: '12px', fontWeight: 600,
+                            cursor: 'pointer',
+                            }}
+                          >
+                            {ct.delete}
+                          </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes liveDot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.3; }
+        }
       `}</style>
     </div>
   )

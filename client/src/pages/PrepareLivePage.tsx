@@ -5,6 +5,34 @@ import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
 
+// Compress image to max 800px and JPEG quality 0.7
+function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      let { width, height } = img
+      if (width > maxSize || height > maxSize) {
+        const ratio = Math.min(maxSize / width, maxSize / height)
+        width = Math.round(width * ratio)
+        height = Math.round(height * ratio)
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return reject(new Error('Canvas not supported'))
+      ctx.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Compression failed')),
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => reject(new Error('Failed to load image'))
+    img.src = URL.createObjectURL(file)
+  })
+}
+
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
 const pageContent = {
@@ -26,14 +54,15 @@ const pageContent = {
     choosePhoto: 'Choisir dans la galerie',
     saving: 'Enregistrement...',
     items: 'articles',
-    minPrice: 'Prix minimum (optionnel)',
-    minPriceHint: 'Si l\'enchere n\'atteint pas ce prix, l\'article sera invendu',
     duration: 'Duree par article',
     seconds: 'sec',
     durationHint: 'Temps d\'enchere pour chaque article',
     quantity: 'Quantite',
     quantityHint: 'Chaque article aura un code unique',
     generating: 'Generation de {n} articles...',
+    muxError: 'La configuration du streaming video a echoue. Les spectateurs pourraient ne pas voir votre video.',
+    minPrice: 'Prix minimum (optionnel)',
+    minPriceHint: 'Si aucune enchere n\'atteint ce prix, l\'article sera invendu',
   },
   en: {
     title: 'Prepare your live',
@@ -53,14 +82,15 @@ const pageContent = {
     choosePhoto: 'Choose from gallery',
     saving: 'Saving...',
     items: 'items',
-    minPrice: 'Reserve price (optional)',
-    minPriceHint: 'If bidding doesn\'t reach this price, item stays unsold',
     duration: 'Duration per item',
     seconds: 'sec',
     durationHint: 'Bidding time for each item',
     quantity: 'Quantity',
     quantityHint: 'Each item will have a unique code',
     generating: 'Generating {n} items...',
+    muxError: 'Video streaming setup failed. Viewers may not see your video.',
+    minPrice: 'Minimum price (optional)',
+    minPriceHint: 'If no bid reaches this price, the item will be unsold',
   },
   he: {
     title: 'הכנת השידור',
@@ -80,14 +110,15 @@ const pageContent = {
     choosePhoto: 'בחר מהגלריה',
     saving: '...שומר',
     items: 'פריטים',
-    minPrice: 'מחיר מינימום (אופציונלי)',
-    minPriceHint: 'אם ההצעות לא מגיעות למחיר זה, הפריט לא יימכר',
     duration: 'משך לכל פריט',
     seconds: 'שנ',
     durationHint: 'זמן מכירה לכל פריט',
     quantity: 'כמות',
     quantityHint: 'לכל פריט יהיה קוד ייחודי',
     generating: '...{n} יוצר פריטים',
+    muxError: 'הגדרת הזרמת הווידאו נכשלה. הצופים עלולים לא לראות את הווידאו שלך.',
+    minPrice: '(מחיר מינימום (אופציונלי',
+    minPriceHint: 'אם אף הצעה לא מגיעה למחיר זה, הפריט יהיה לא נמכר',
   },
   es: {
     title: 'Preparar el directo',
@@ -107,14 +138,15 @@ const pageContent = {
     choosePhoto: 'Elegir de la galeria',
     saving: 'Guardando...',
     items: 'articulos',
-    minPrice: 'Precio minimo (opcional)',
-    minPriceHint: 'Si las pujas no alcanzan este precio, el articulo queda sin vender',
     duration: 'Duracion por articulo',
     seconds: 'seg',
     durationHint: 'Tiempo de puja para cada articulo',
     quantity: 'Cantidad',
     quantityHint: 'Cada articulo tendra un codigo unico',
     generating: 'Generando {n} articulos...',
+    muxError: 'La configuracion del streaming de video fallo. Los espectadores podrian no ver tu video.',
+    minPrice: 'Precio minimo (opcional)',
+    minPriceHint: 'Si ninguna puja alcanza este precio, el articulo no se vendera',
   },
 }
 
@@ -122,6 +154,7 @@ interface DraftItem {
   id?: string
   title: string
   starting_price: number
+  min_price: number | null
   category: string
   image_url: string | null
   lot_number: number
@@ -147,9 +180,11 @@ export default function PrepareLivePage() {
   const [formPrice, setFormPrice] = useState('')
   const [formCategory, setFormCategory] = useState('')
   const [formImage, setFormImage] = useState<string | null>(null)
+  const [formImageFile, setFormImageFile] = useState<File | null>(null)
   const [formQuantity, setFormQuantity] = useState(1)
   const [formDuration, setFormDuration] = useState(60)
   const [formMinPrice, setFormMinPrice] = useState('')
+  const [formError, setFormError] = useState('')
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -183,6 +218,7 @@ export default function PrepareLivePage() {
           id: item.id,
           title: item.title,
           starting_price: item.starting_price,
+          min_price: item.min_price || null,
           category: item.category,
           image_url: item.image_urls?.[0] || null,
           lot_number: i + 1,
@@ -199,10 +235,14 @@ export default function PrepareLivePage() {
     fileInputRef.current?.click()
   }
 
-  const [formImageFile, setFormImageFile] = useState<File | null>(null)
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!user) {
+      navigate('/login', { replace: true })
+    }
+  }, [user, navigate])
 
   if (!user) {
-    navigate('/login', { replace: true })
     return null
   }
 
@@ -210,16 +250,13 @@ export default function PrepareLivePage() {
     const file = e.target.files?.[0]
     if (!file) return
     setFormImageFile(file)
-    const reader = new FileReader()
-    reader.onload = (ev) => {
-      setFormImage(ev.target?.result as string)
-    }
-    reader.readAsDataURL(file)
+    setFormImage(URL.createObjectURL(file))
   }
 
   const handleAddItem = async () => {
     if (!formTitle.trim() || !formPrice || !user || !streamId) return
     setSaving(true)
+    setFormError('')
 
     const price = parseFloat(formPrice)
     if (isNaN(price) || price <= 0) {
@@ -233,15 +270,26 @@ export default function PrepareLivePage() {
 
     const newItems: DraftItem[] = []
 
-    // Upload image to Supabase Storage if provided
+    // Upload image to Supabase Storage instead of storing base64 in DB
     let imageUrls: string[] = []
-    if (formImageFile && user) {
-      const ext = formImageFile.name.split('.').pop() || 'jpg'
-      const path = `${user.id}/items/${streamId}_${Date.now()}.${ext}`
-      const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, formImageFile, { upsert: true })
-      if (!uploadErr) {
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+    if (formImageFile) {
+      try {
+        const compressed = await compressImage(formImageFile)
+        const filePath = `items/${user.id}/${Date.now()}.jpg`
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, compressed, { contentType: 'image/jpeg', upsert: false })
+        if (uploadError) {
+          setFormError(uploadError.message)
+          setSaving(false)
+          return
+        }
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
         imageUrls = [urlData.publicUrl]
+      } catch (err) {
+        setFormError(err instanceof Error ? err.message : 'Image upload failed')
+        setSaving(false)
+        return
       }
     }
 
@@ -250,6 +298,7 @@ export default function PrepareLivePage() {
       const title = `${baseTitle} [${code}]`
       const lotNumber = items.length + newItems.length + 1
 
+      const minPrice = formMinPrice ? parseFloat(formMinPrice) : null
       const { data, error } = await supabase
         .from('items')
         .insert({
@@ -258,7 +307,7 @@ export default function PrepareLivePage() {
           title,
           starting_price: price,
           current_price: price,
-          min_price: formMinPrice ? parseFloat(formMinPrice) : null,
+          min_price: (minPrice && minPrice > 0) ? minPrice : null,
           category,
           status: 'draft' as const,
           image_urls: imageUrls,
@@ -267,13 +316,20 @@ export default function PrepareLivePage() {
         .select()
         .single()
 
-      if (!error && data) {
+      if (error) {
+        console.error('Insert error:', error)
+        setFormError(error.message || 'Erreur lors de la creation')
+        setSaving(false)
+        return
+      }
+      if (data) {
         newItems.push({
           id: data.id,
           title: data.title,
           starting_price: data.starting_price,
+          min_price: data.min_price || null,
           category: data.category,
-          image_url: imageUrls[0] || formImage,
+          image_url: imageUrls[0] || null,
           lot_number: lotNumber,
           duration_seconds: formDuration,
         })
@@ -287,9 +343,12 @@ export default function PrepareLivePage() {
     setFormTitle('')
     setFormPrice('')
     setFormCategory('')
+    if (formImage) URL.revokeObjectURL(formImage)
     setFormImage(null)
+    setFormImageFile(null)
     setFormQuantity(1)
     setFormDuration(60)
+    setFormMinPrice('')
     setShowForm(false)
     setSaving(false)
   }
@@ -356,16 +415,22 @@ export default function PrepareLivePage() {
       const token = session?.session?.access_token
       if (token) {
         const { apiFetch } = await import('../lib/api')
-        await apiFetch(`/api/streams/${streamId}/create-mux-stream`, {
+        const resp = await apiFetch(`/api/streams/${streamId}/create-mux-stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
         })
+        if (!resp.ok) {
+          const errBody = await resp.json().catch(() => ({}))
+          console.error('Mux provisioning failed:', resp.status, errBody)
+          alert(ct.muxError)
+        }
       }
-    } catch {
-      // Continue even if Mux provisioning fails — stream can still work locally
+    } catch (err) {
+      console.error('Mux provisioning network error:', err)
+      alert(ct.muxError)
     }
 
     await supabase
@@ -499,6 +564,11 @@ export default function PrepareLivePage() {
                 <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
                   {item.starting_price} €
                 </span>
+                {item.min_price != null && item.min_price > 0 && (
+                  <span style={{ fontSize: '11px', color: '#F59E0B' }}>
+                    min {item.min_price} €
+                  </span>
+                )}
                 <span style={{ fontSize: '11px', color: '#666' }}>
                   {item.duration_seconds}s
                 </span>
@@ -645,24 +715,27 @@ export default function PrepareLivePage() {
             />
 
             {/* Min price (optional) */}
-            <input
-              type="number"
-              value={formMinPrice}
-              onChange={e => setFormMinPrice(e.target.value)}
-              placeholder={ct.minPrice}
-              min="0"
-              step="1"
-              style={{
-                width: '100%', padding: '12px 14px',
-                backgroundColor: '#0D0D0D',
-                border: '1px solid #222',
-                borderRadius: '10px',
-                color: '#fff', fontSize: '15px',
-                outline: 'none', boxSizing: 'border-box',
-                marginBottom: '4px',
-              }}
-            />
-            <p style={{ fontSize: '11px', color: '#555', margin: '0 0 10px 4px' }}>{ct.minPriceHint}</p>
+            <div style={{ marginBottom: '10px' }}>
+              <input
+                type="number"
+                value={formMinPrice}
+                onChange={e => setFormMinPrice(e.target.value)}
+                placeholder={ct.minPrice}
+                min="0"
+                step="1"
+                style={{
+                  width: '100%', padding: '12px 14px',
+                  backgroundColor: '#0D0D0D',
+                  border: '1px solid #222',
+                  borderRadius: '10px',
+                  color: '#fff', fontSize: '15px',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              <p style={{ fontSize: '11px', color: '#666', margin: '4px 0 0 4px' }}>
+                {ct.minPriceHint}
+              </p>
+            </div>
 
             {/* Category (optional) */}
             <input
@@ -808,6 +881,19 @@ export default function PrepareLivePage() {
               )}
             </div>
 
+            {/* Error message */}
+            {formError && (
+              <div style={{
+                padding: '10px 14px',
+                backgroundColor: 'rgba(232,52,78,0.15)',
+                border: '1px solid rgba(232,52,78,0.3)',
+                borderRadius: '10px',
+                marginBottom: '10px',
+              }}>
+                <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{formError}</p>
+              </div>
+            )}
+
             {/* Buttons */}
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
@@ -816,7 +902,9 @@ export default function PrepareLivePage() {
                   setFormTitle('')
                   setFormPrice('')
                   setFormCategory('')
+                  if (formImage) URL.revokeObjectURL(formImage)
                   setFormImage(null)
+                  setFormImageFile(null)
                   setFormQuantity(1)
                   setFormDuration(60)
                 }}
