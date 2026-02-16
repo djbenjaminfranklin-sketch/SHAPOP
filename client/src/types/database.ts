@@ -9,6 +9,8 @@ export interface Profile {
   country: string
   language: string
   joined_communities: string[]
+  phone_number: string | null
+  phone_verified: boolean
   created_at: string
 }
 
@@ -47,6 +49,7 @@ export interface Seller {
   team_size: string | null
   live_hours: string | null
   return_address: Record<string, string> | null
+  return_policy: 'no_return' | 'exchange_only' | 'return_7' | 'return_14' | 'return_30'
   bank_choice: string | null
   onboarding_completed_at: string | null
   verified_at: string | null

@@ -11,7 +11,7 @@ interface AuthContextType {
   profile: Profile | null
   session: Session | null
   loading: boolean
-  signUp: (email: string, password: string, username: string, displayName: string) => Promise<void>
+  signUp: (email: string, password: string, username: string, displayName: string, phone?: string) => Promise<void>
   signIn: (email: string, password: string) => Promise<void>
   signInWithGoogle: () => Promise<void>
   signInWithApple: () => Promise<void>
@@ -35,6 +35,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', u.id)
       .single()
     if (data) {
+      // Check if user is banned — force sign out
+      if ((data as Record<string, unknown>).is_banned) {
+        await supabase.auth.signOut()
+        setUser(null)
+        setSession(null)
+        setProfile(null)
+        alert('Votre compte a ete banni.')
+        return
+      }
       setProfile(data)
     } else {
       // Auto-create profile (OAuth users or email signUp after confirmation)
@@ -145,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const signUp = async (email: string, password: string, username: string, displayName: string) => {
+  const signUp = async (email: string, password: string, username: string, displayName: string, phone?: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -160,11 +169,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(data.session)
       setUser(data.user)
 
-      const { data: newProfile, error: profileError } = await supabase.from('profiles').insert({
+      const profileData: Record<string, unknown> = {
         id: data.user.id,
         username,
         display_name: displayName,
-      }).select().single()
+      }
+      if (phone) {
+        profileData.phone_number = phone
+        profileData.phone_verified = true
+      }
+
+      const { data: newProfile, error: profileError } = await supabase.from('profiles').insert(profileData).select().single()
       if (profileError) throw profileError
       if (newProfile) setProfile(newProfile)
     }

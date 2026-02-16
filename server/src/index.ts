@@ -414,7 +414,31 @@ const adminLimiter = rateLimit({
   message: { error: 'Too many admin requests, slow down' },
 })
 
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Trop de tentatives, reessayez plus tard' },
+})
+
 app.use(globalLimiter)
+
+// =============================================
+// OTP store (in-memory, expires after 5 min)
+// =============================================
+const otpStore = new Map<string, { code: string; expiresAt: number; attempts: number }>()
+
+// Cleanup expired OTPs every 5 min
+setInterval(() => {
+  const now = Date.now()
+  for (const [key, val] of otpStore) {
+    if (now > val.expiresAt) otpStore.delete(key)
+  }
+}, 5 * 60 * 1000)
+
+// Normalize phone to E.164 format
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-\(\)\.]/g, '')
+}
 
 // =============================================
 // Zod schemas
@@ -462,6 +486,18 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
       res.status(401).json({ error: 'Invalid or expired token' })
       return
     }
+
+    // Check if user is banned
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('is_banned')
+      .eq('id', data.user.id)
+      .single()
+    if (profile?.is_banned) {
+      res.status(403).json({ error: 'Votre compte a ete banni' })
+      return
+    }
+
     req.user = { id: data.user.id, email: data.user.email }
     next()
   } catch {
@@ -477,6 +513,166 @@ app.get('/api/health', (_req, res) => {
 })
 
 // =============================================
+// Auth: OTP & Ban check (public)
+// =============================================
+
+// Send OTP via SMS
+app.post('/api/auth/send-otp', otpLimiter, async (req: Request, res: Response) => {
+  try {
+    const { phone } = req.body
+    if (!phone || typeof phone !== 'string') {
+      res.status(400).json({ error: 'Numero de telephone requis' })
+      return
+    }
+
+    const normalized = normalizePhone(phone)
+    if (!/^\+\d{8,15}$/.test(normalized)) {
+      res.status(400).json({ error: 'Format de numero invalide (ex: +33612345678)' })
+      return
+    }
+
+    // Check if phone is banned
+    const { data: banned } = await supabase
+      .from('banned_identifiers')
+      .select('id')
+      .eq('type', 'phone')
+      .eq('value', normalized)
+      .maybeSingle()
+    if (banned) {
+      res.status(403).json({ error: 'Ce numero de telephone est bloque' })
+      return
+    }
+
+    // Check if phone already used by a verified profile
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('phone_number', normalized)
+      .eq('phone_verified', true)
+      .maybeSingle()
+    if (existingProfile) {
+      res.status(409).json({ error: 'Ce numero est deja utilise par un autre compte' })
+      return
+    }
+
+    // Generate 6-digit code
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    otpStore.set(normalized, { code, expiresAt: Date.now() + 5 * 60 * 1000, attempts: 0 })
+
+    // Send via Twilio if configured
+    const twilioSid = process.env.TWILIO_ACCOUNT_SID
+    const twilioToken = process.env.TWILIO_AUTH_TOKEN
+    const twilioFrom = process.env.TWILIO_PHONE_NUMBER
+
+    if (twilioSid && twilioToken && twilioFrom) {
+      const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`
+      const body = new URLSearchParams({
+        To: normalized,
+        From: twilioFrom,
+        Body: `Votre code ShaPop : ${code}`,
+      })
+      await fetch(twilioUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Basic ' + Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64'),
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body,
+      })
+    } else {
+      console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
+    }
+
+    res.json({ sent: true })
+  } catch (err) {
+    console.error('[send-otp]', err)
+    res.status(500).json({ error: "Erreur lors de l'envoi du code" })
+  }
+})
+
+// Verify OTP code
+app.post('/api/auth/verify-otp', otpLimiter, async (req: Request, res: Response) => {
+  try {
+    const { phone, code } = req.body
+    if (!phone || !code) {
+      res.status(400).json({ error: 'Telephone et code requis' })
+      return
+    }
+
+    const normalized = normalizePhone(phone)
+    const entry = otpStore.get(normalized)
+
+    if (!entry) {
+      res.json({ verified: false, error: 'Code expire ou inexistant' })
+      return
+    }
+
+    if (Date.now() > entry.expiresAt) {
+      otpStore.delete(normalized)
+      res.json({ verified: false, error: 'Code expire' })
+      return
+    }
+
+    entry.attempts++
+    if (entry.attempts > 5) {
+      otpStore.delete(normalized)
+      res.json({ verified: false, error: 'Trop de tentatives, demandez un nouveau code' })
+      return
+    }
+
+    if (entry.code !== String(code).trim()) {
+      res.json({ verified: false, error: 'Code incorrect' })
+      return
+    }
+
+    // Success — remove from store
+    otpStore.delete(normalized)
+    res.json({ verified: true })
+  } catch {
+    res.status(500).json({ error: 'Erreur de verification' })
+  }
+})
+
+// Check if email or phone is banned
+app.post('/api/auth/check-banned', async (req: Request, res: Response) => {
+  try {
+    const { email, phone } = req.body
+    const conditions: { type: string; value: string }[] = []
+
+    if (email && typeof email === 'string') {
+      conditions.push({ type: 'email', value: email.toLowerCase().trim() })
+    }
+    if (phone && typeof phone === 'string') {
+      conditions.push({ type: 'phone', value: normalizePhone(phone) })
+    }
+
+    if (conditions.length === 0) {
+      res.json({ banned: false })
+      return
+    }
+
+    // Check each identifier
+    for (const cond of conditions) {
+      const { data } = await supabase
+        .from('banned_identifiers')
+        .select('reason')
+        .eq('type', cond.type)
+        .eq('value', cond.value)
+        .maybeSingle()
+      if (data) {
+        const label = cond.type === 'email' ? 'Cet email est bloque' : 'Ce numero est bloque'
+        res.json({ banned: true, reason: label })
+        return
+      }
+    }
+
+    res.json({ banned: false })
+  } catch {
+    res.status(500).json({ error: 'Erreur de verification' })
+  }
+})
+
+// =============================================
 // STREAMS (public reads, auth writes)
 // =============================================
 app.get('/api/streams', async (req: Request, res: Response) => {
@@ -485,7 +681,7 @@ app.get('/api/streams', async (req: Request, res: Response) => {
 
     let query = supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, id, profiles:profiles!id(display_name, avatar_url))')
+      .select('*, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))')
       .in('status', status ? [status as string] : ['live', 'scheduled'])
       .order('engagement_score', { ascending: false })
 
@@ -507,7 +703,7 @@ app.get('/api/streams/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, id, profiles:profiles!id(display_name, avatar_url))')
+      .select('*, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))')
       .eq('id', req.params.id)
       .single()
 
@@ -2188,6 +2384,21 @@ app.post('/api/admin/users/:id/ban', requireAdmin, async (req: AuthenticatedRequ
 
     if (error) throw error
 
+    // Add email + phone to banned_identifiers
+    const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+    const { data: profile } = await supabase.from('profiles').select('phone_number').eq('id', userId).single()
+
+    const identifiers: { type: string; value: string; banned_user_id: string; banned_by: string; reason: string }[] = []
+    if (authUser?.user?.email) {
+      identifiers.push({ type: 'email', value: authUser.user.email.toLowerCase().trim(), banned_user_id: userId, banned_by: req.user!.id, reason: reason || 'Banned by admin' })
+    }
+    if (profile?.phone_number) {
+      identifiers.push({ type: 'phone', value: profile.phone_number, banned_user_id: userId, banned_by: req.user!.id, reason: reason || 'Banned by admin' })
+    }
+    if (identifiers.length > 0) {
+      await supabase.from('banned_identifiers').upsert(identifiers, { onConflict: 'type,value' })
+    }
+
     await logAdminAction(req.user!.id, req.user!.email || '', 'ban_user', 'user', userId, { reason })
     res.json({ success: true })
   } catch {
@@ -2209,6 +2420,9 @@ app.post('/api/admin/users/:id/unban', requireAdmin, async (req: AuthenticatedRe
     }).eq('id', userId)
 
     if (error) throw error
+
+    // Remove from banned_identifiers
+    await supabase.from('banned_identifiers').delete().eq('banned_user_id', userId)
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'unban_user', 'user', userId)
     res.json({ success: true })

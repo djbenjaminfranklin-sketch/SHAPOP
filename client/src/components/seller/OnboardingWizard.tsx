@@ -19,7 +19,7 @@ interface Props {
   onClose: () => void
 }
 
-const TOTAL_STEPS = 11
+const TOTAL_STEPS = 12
 
 /* ─── Step hero illustrations (emoji in gradient circles) ─── */
 const stepHeroes: { emoji: string; gradient: string }[] = [
@@ -33,7 +33,8 @@ const stepHeroes: { emoji: string; gradient: string }[] = [
   { emoji: '\u{1F465}', gradient: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 60%, #4338CA 100%)' },  // 7 team
   { emoji: '\u{1F3A5}', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 60%, #B91C1C 100%)' },  // 8 hours
   { emoji: '\u{1F4E6}', gradient: 'linear-gradient(135deg, #14B8A6 0%, #0D9488 60%, #0F766E 100%)' },  // 9 address
-  { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #9F1239 100%)' },  // 10 bank
+  { emoji: '\u{1F504}', gradient: 'linear-gradient(135deg, #10B981 0%, #0D9488 60%, #0F766E 100%)' },  // 10 return policy
+  { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #9F1239 100%)' },  // 11 bank
 ]
 
 export default function OnboardingWizard({ onComplete, onClose }: Props) {
@@ -54,6 +55,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const [liveHours, setLiveHours] = useState('')
   const [useExistingAddress, setUseExistingAddress] = useState(true)
   const [address, setAddress] = useState({ street: '', city: '', zip: '', country: '' })
+  const [returnPolicy, setReturnPolicy] = useState('no_return')
   const [bankChoice, setBankChoice] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -118,6 +120,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       city: 'Ville',
       zip: 'Code postal',
       country: 'Pays',
+      returnPolicyTitle: 'Politique de retour',
+      returnPolicyDesc: 'Quelle est ta politique pour les retours ?',
+      noReturn: 'Aucun retour',
+      exchangeOnly: 'Echanges uniquement',
+      return7: 'Retours sous 7 jours',
+      return14: 'Retours sous 14 jours',
+      return30: 'Retours sous 30 jours',
       bankTitle: 'Configuration du paiement',
       bankDesc: 'Comment tu veux etre paye',
       next: 'Suivant',
@@ -168,6 +177,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       city: 'City',
       zip: 'ZIP code',
       country: 'Country',
+      returnPolicyTitle: 'Return policy',
+      returnPolicyDesc: 'What is your return policy?',
+      noReturn: 'No returns',
+      exchangeOnly: 'Exchanges only',
+      return7: 'Returns within 7 days',
+      return14: 'Returns within 14 days',
+      return30: 'Returns within 30 days',
       bankTitle: 'Payment setup',
       bankDesc: 'How you want to get paid',
       next: 'Next',
@@ -218,6 +234,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       city: 'עיר',
       zip: 'מיקוד',
       country: 'מדינה',
+      returnPolicyTitle: 'מדיניות החזרות',
+      returnPolicyDesc: 'מה מדיניות ההחזרות שלך?',
+      noReturn: 'ללא החזרות',
+      exchangeOnly: 'החלפות בלבד',
+      return7: 'החזרות תוך 7 ימים',
+      return14: 'החזרות תוך 14 ימים',
+      return30: 'החזרות תוך 30 ימים',
       bankTitle: 'הגדרת תשלום',
       bankDesc: 'איך תרצה לקבל תשלום',
       next: 'הבא',
@@ -268,6 +291,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       city: 'Ciudad',
       zip: 'C\u00F3digo postal',
       country: 'Pa\u00EDs',
+      returnPolicyTitle: 'Pol\u00EDtica de devoluci\u00F3n',
+      returnPolicyDesc: '\u00BFCu\u00E1l es tu pol\u00EDtica de devoluci\u00F3n?',
+      noReturn: 'Sin devoluciones',
+      exchangeOnly: 'Solo cambios',
+      return7: 'Devoluciones en 7 d\u00EDas',
+      return14: 'Devoluciones en 14 d\u00EDas',
+      return30: 'Devoluciones en 30 d\u00EDas',
       bankTitle: 'Configuraci\u00F3n de pago',
       bankDesc: '\u00BFC\u00F3mo quieres recibir los pagos?',
       next: 'Siguiente',
@@ -294,7 +324,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       case 7: return teamSize !== ''
       case 8: return liveHours !== ''
       case 9: return useExistingAddress || (address.street !== '' && address.city !== '' && address.zip !== '' && address.country !== '')
-      case 10: return bankChoice !== ''
+      case 10: return returnPolicy !== ''
+      case 11: return bankChoice !== ''
       default: return false
     }
   }
@@ -325,6 +356,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         team_size: teamSize,
         live_hours: liveHours,
         return_address: useExistingAddress ? null : address,
+        return_policy: returnPolicy,
         bank_choice: bankChoice,
         fees_accepted_at: new Date().toISOString(),
         onboarding_completed_at: new Date().toISOString(),
@@ -992,11 +1024,48 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
           </div>
         )
 
-      // Step 10 - Bank
+      // Step 10 - Return policy
       case 10:
         return (
           <div style={{ padding: '0 24px' }}>
             <div style={heroCircle(10)}>{stepHeroes[10].emoji}</div>
+            <h2 style={sectionTitle}>{t.returnPolicyTitle}</h2>
+            <p style={sectionDesc}>{t.returnPolicyDesc}</p>
+            {[
+              { id: 'no_return', label: t.noReturn },
+              { id: 'exchange_only', label: t.exchangeOnly },
+              { id: 'return_7', label: t.return7 },
+              { id: 'return_14', label: t.return14 },
+              { id: 'return_30', label: t.return30 },
+            ].map(opt => {
+              const selected = returnPolicy === opt.id
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => setReturnPolicy(opt.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
+                    padding: '18px', marginBottom: '10px', textAlign: 'left',
+                    ...glassCard(selected),
+                  }}
+                >
+                  <div style={radioCircle(selected)}>
+                    {selected && innerDot}
+                  </div>
+                  <span style={{
+                    fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                  }}>{opt.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        )
+
+      // Step 11 - Bank
+      case 11:
+        return (
+          <div style={{ padding: '0 24px' }}>
+            <div style={heroCircle(11)}>{stepHeroes[11].emoji}</div>
             <h2 style={sectionTitle}>{t.bankTitle}</h2>
             <p style={sectionDesc}>{t.bankDesc}</p>
             {bankOptions.map(opt => {

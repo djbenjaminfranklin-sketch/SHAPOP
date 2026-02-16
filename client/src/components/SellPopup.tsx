@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 
 interface SellPopupProps {
@@ -20,6 +21,15 @@ const popupContent = {
     directSaleDesc: 'Vends au prix fixe, sans live',
     createListing: 'Creer une annonce',
     createListingDesc: 'Vends un produit',
+    becomeSellerTitle: 'Devenir vendeur',
+    becomeSellerDesc: 'Pour vendre sur WhatFor, tu dois d\'abord completer ton profil vendeur.',
+    becomeSellerStep1: 'Accepter les regles de la communaute',
+    becomeSellerStep2: 'Choisir ta categorie de vente',
+    becomeSellerStep3: 'Configurer ton adresse de retour',
+    becomeSellerStep4: 'Definir ta politique de retour',
+    becomeSellerStep5: 'Configurer ton moyen de paiement',
+    becomeSellerCta: 'Commencer l\'inscription',
+    becomeSellerTime: 'Environ 2 minutes',
   },
   en: {
     createTitle: 'Create',
@@ -34,6 +44,15 @@ const popupContent = {
     directSaleDesc: 'Sell at fixed price, no live',
     createListing: 'Create a listing',
     createListingDesc: 'Sell a product',
+    becomeSellerTitle: 'Become a seller',
+    becomeSellerDesc: 'To sell on WhatFor, you need to complete your seller profile first.',
+    becomeSellerStep1: 'Accept community rules',
+    becomeSellerStep2: 'Choose your selling category',
+    becomeSellerStep3: 'Set up your return address',
+    becomeSellerStep4: 'Define your return policy',
+    becomeSellerStep5: 'Set up your payment method',
+    becomeSellerCta: 'Start registration',
+    becomeSellerTime: 'About 2 minutes',
   },
   he: {
     createTitle: 'יצירה',
@@ -48,6 +67,15 @@ const popupContent = {
     directSaleDesc: 'מכור במחיר קבוע, בלי שידור',
     createListing: 'צור מודעה',
     createListingDesc: 'מכור מוצר',
+    becomeSellerTitle: 'הפוך למוכר',
+    becomeSellerDesc: 'כדי למכור ב-WhatFor, עליך להשלים את פרופיל המוכר שלך.',
+    becomeSellerStep1: 'קבל את כללי הקהילה',
+    becomeSellerStep2: 'בחר את קטגוריית המכירה',
+    becomeSellerStep3: 'הגדר כתובת החזרה',
+    becomeSellerStep4: 'הגדר מדיניות החזרות',
+    becomeSellerStep5: 'הגדר אמצעי תשלום',
+    becomeSellerCta: 'התחל הרשמה',
+    becomeSellerTime: 'כ-2 דקות',
   },
   es: {
     createTitle: 'Crear',
@@ -62,13 +90,25 @@ const popupContent = {
     directSaleDesc: 'Vende a precio fijo, sin live',
     createListing: 'Crear un anuncio',
     createListingDesc: 'Vende un producto',
+    becomeSellerTitle: 'Convertirte en vendedor',
+    becomeSellerDesc: 'Para vender en WhatFor, primero debes completar tu perfil de vendedor.',
+    becomeSellerStep1: 'Aceptar las reglas de la comunidad',
+    becomeSellerStep2: 'Elegir tu categoria de venta',
+    becomeSellerStep3: 'Configurar tu direccion de devolucion',
+    becomeSellerStep4: 'Definir tu politica de devolucion',
+    becomeSellerStep5: 'Configurar tu metodo de pago',
+    becomeSellerCta: 'Empezar el registro',
+    becomeSellerTime: 'Aproximadamente 2 minutos',
   },
 }
 
 export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   const navigate = useNavigate()
+  const { profile } = useAuth()
   const lang = getLang()
   const c = popupContent[lang] || popupContent.fr
+
+  const isSeller = !!profile?.is_seller
 
   const actions = [
     {
@@ -143,6 +183,19 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
     navigate(route || '/dashboard')
   }
 
+  const handleBecomeSeller = () => {
+    onClose()
+    navigate('/dashboard')
+  }
+
+  const steps = [
+    c.becomeSellerStep1,
+    c.becomeSellerStep2,
+    c.becomeSellerStep3,
+    c.becomeSellerStep4,
+    c.becomeSellerStep5,
+  ]
+
   return (
     <div
       onClick={onClose}
@@ -162,7 +215,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: 0 }}>
-          {c.createTitle}
+          {isSeller ? c.createTitle : c.becomeSellerTitle}
         </h2>
         <button
           onClick={onClose}
@@ -187,109 +240,206 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         display: 'flex', flexDirection: 'column', gap: '16px',
         overflowY: 'auto',
       }}>
-        {/* Featured AI button - full width */}
-        {actions.filter(a => a.featured).map((action) => (
-          <button
-            key={action.label}
-            onClick={() => handleAction(action.route)}
-            style={{
-              width: '100%',
-              background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
-              border: '1px solid rgba(240,144,138,0.3)',
-              borderRadius: '16px',
-              padding: '20px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              textAlign: 'left',
-              position: 'relative',
-              overflow: 'hidden',
-              touchAction: 'manipulation',
-            }}
-          >
+        {!isSeller ? (
+          /* ═══ NON-SELLER: Become a seller screen ═══ */
+          <>
+            {/* Hero icon */}
             <div style={{
-              position: 'absolute', top: '-15px', right: '-15px',
-              width: '60px', height: '60px', borderRadius: '50%',
-              backgroundColor: 'rgba(240,144,138,0.08)',
-            }} />
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '50%',
-              background: action.gradient,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-              boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
+              display: 'flex', justifyContent: 'center', marginTop: '8px', marginBottom: '4px',
             }}>
-              {action.icon}
-            </div>
-            <div style={{ flex: 1 }}>
               <div style={{
-                fontSize: '18px', fontWeight: 800, color: '#fff',
-                marginBottom: '4px',
-                display: 'flex', alignItems: 'center', gap: '8px',
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #B91C3C 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '40px',
+                boxShadow: '0 8px 32px rgba(240,144,138,0.25), 0 0 0 6px rgba(240,144,138,0.08)',
               }}>
-                {action.label}
-                <span style={{
-                  fontSize: '10px', fontWeight: 700, color: '#F0908A',
-                  backgroundColor: 'rgba(240,144,138,0.15)',
-                  padding: '3px 10px', borderRadius: '100px',
-                  textTransform: 'uppercase', letterSpacing: '0.5px',
-                }}>
-                  {c.newBadge}
-                </span>
-              </div>
-              <div style={{ fontSize: '14px', color: '#999' }}>
-                {action.description}
+                {'\u{1F6CD}\u{FE0F}'}
               </div>
             </div>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </button>
-        ))}
 
-        {/* Grid for other actions */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '12px',
-        }}>
-          {actions.filter(a => !a.featured).map((action) => (
+            {/* Description */}
+            <p style={{
+              fontSize: '15px', color: '#888', textAlign: 'center',
+              lineHeight: 1.6, margin: '0 0 8px',
+            }}>
+              {c.becomeSellerDesc}
+            </p>
+
+            {/* Steps checklist */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0F0F0F 0%, #141418 50%, #0F0F0F 100%)',
+              borderRadius: '20px',
+              border: '1px solid #1A1A1A',
+              padding: '6px 0',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
+            }}>
+              {steps.map((step, i) => (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: '14px',
+                  padding: '16px 20px',
+                  borderBottom: i < steps.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
+                    border: '1px solid rgba(240,144,138,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    fontSize: '13px', fontWeight: 700, color: '#F0908A',
+                  }}>
+                    {i + 1}
+                  </div>
+                  <span style={{ fontSize: '14px', color: '#D4D4D4', fontWeight: 500, lineHeight: 1.4 }}>
+                    {step}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Time estimate */}
+            <p style={{
+              fontSize: '13px', color: '#666', textAlign: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              margin: '4px 0 0',
+            }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {c.becomeSellerTime}
+            </p>
+
+            {/* CTA button */}
             <button
-              key={action.label}
-              onClick={() => handleAction(action.route)}
+              onClick={handleBecomeSeller}
               style={{
-                background: '#111',
-                border: '1px solid #222',
-                borderRadius: '16px',
-                padding: '20px 16px',
+                width: '100%', padding: '18px', marginTop: '8px',
+                background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #B91C3C 100%)',
+                borderRadius: '16px', border: 'none',
+                color: '#fff', fontSize: '17px', fontWeight: 800,
                 cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: '12px',
-                textAlign: 'left',
-                touchAction: 'manipulation',
+                boxShadow: '0 6px 24px rgba(240,144,138,0.35), 0 2px 8px rgba(232,52,78,0.3)',
+                letterSpacing: '0.3px',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
               <div style={{
-                width: '44px', height: '44px', borderRadius: '50%',
-                background: action.gradient,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {action.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
-                  {action.label}
-                </div>
-                <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>
-                  {action.description}
-                </div>
-              </div>
+                position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+              }} />
+              {c.becomeSellerCta}
             </button>
-          ))}
-        </div>
+          </>
+        ) : (
+          /* ═══ SELLER: Normal sell actions ═══ */
+          <>
+            {/* Featured AI button - full width */}
+            {actions.filter(a => a.featured).map((action) => (
+              <button
+                key={action.label}
+                onClick={() => handleAction(action.route)}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
+                  border: '1px solid rgba(240,144,138,0.3)',
+                  borderRadius: '16px',
+                  padding: '20px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '14px',
+                  textAlign: 'left',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  touchAction: 'manipulation',
+                }}
+              >
+                <div style={{
+                  position: 'absolute', top: '-15px', right: '-15px',
+                  width: '60px', height: '60px', borderRadius: '50%',
+                  backgroundColor: 'rgba(240,144,138,0.08)',
+                }} />
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '50%',
+                  background: action.gradient,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
+                }}>
+                  {action.icon}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{
+                    fontSize: '18px', fontWeight: 800, color: '#fff',
+                    marginBottom: '4px',
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                  }}>
+                    {action.label}
+                    <span style={{
+                      fontSize: '10px', fontWeight: 700, color: '#F0908A',
+                      backgroundColor: 'rgba(240,144,138,0.15)',
+                      padding: '3px 10px', borderRadius: '100px',
+                      textTransform: 'uppercase', letterSpacing: '0.5px',
+                    }}>
+                      {c.newBadge}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#999' }}>
+                    {action.description}
+                  </div>
+                </div>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
+              </button>
+            ))}
+
+            {/* Grid for other actions */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '12px',
+            }}>
+              {actions.filter(a => !a.featured).map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => handleAction(action.route)}
+                  style={{
+                    background: '#111',
+                    border: '1px solid #222',
+                    borderRadius: '16px',
+                    padding: '20px 16px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    textAlign: 'left',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '50%',
+                    background: action.gradient,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {action.icon}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                      {action.label}
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>
+                      {action.description}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
       </div>
     </div>

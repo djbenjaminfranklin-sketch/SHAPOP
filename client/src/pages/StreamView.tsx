@@ -264,6 +264,7 @@ export default function StreamView() {
   const [cameraActive, setCameraActive] = useState(false)
 
   const [sellerName, setSellerName] = useState('')
+  const [sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
   const [viewerMuted, setViewerMuted] = useState(true)
 
   // Sold animation & payment modal
@@ -344,7 +345,34 @@ export default function StreamView() {
         setSellerName(data.display_name || data.username || '')
       }
     }
+    const fetchSellerReturnPolicy = async () => {
+      const { data } = await supabase
+        .from('sellers')
+        .select('return_policy')
+        .eq('id', stream.seller_id)
+        .single()
+      if (data?.return_policy) {
+        setSellerReturnPolicy(data.return_policy)
+      }
+    }
     fetchSellerProfile()
+    fetchSellerReturnPolicy()
+  }, [isSeller, stream])
+
+  // ═══ SELLER: Fetch own return policy ═══
+  useEffect(() => {
+    if (!isSeller || !stream) return
+    const fetchOwnPolicy = async () => {
+      const { data } = await supabase
+        .from('sellers')
+        .select('return_policy')
+        .eq('id', stream.seller_id)
+        .single()
+      if (data?.return_policy) {
+        setSellerReturnPolicy(data.return_policy)
+      }
+    }
+    fetchOwnPolicy()
   }, [isSeller, stream])
 
   // Pulse the engagement button periodically to draw attention
@@ -1300,6 +1328,45 @@ export default function StreamView() {
             {stream.description && (
               <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{stream.description}</p>
             )}
+            {/* Return policy badge */}
+            {(() => {
+              const policyConfig: Record<string, { label: Record<string, string>; bg: string; border: string; color: string; icon: string }> = {
+                no_return: {
+                  label: { fr: 'Aucun retour', en: 'No returns', he: 'ללא החזרות', es: 'Sin devoluciones' },
+                  bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#f87171', icon: '🚫',
+                },
+                exchange_only: {
+                  label: { fr: 'Echanges uniquement', en: 'Exchanges only', he: 'החלפות בלבד', es: 'Solo cambios' },
+                  bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.3)', color: '#fb923c', icon: '🔄',
+                },
+                return_7: {
+                  label: { fr: 'Retours 7j', en: 'Returns 7d', he: 'החזרות 7 ימים', es: 'Devoluciones 7d' },
+                  bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80', icon: '✅',
+                },
+                return_14: {
+                  label: { fr: 'Retours 14j', en: 'Returns 14d', he: 'החזרות 14 ימים', es: 'Devoluciones 14d' },
+                  bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80', icon: '✅',
+                },
+                return_30: {
+                  label: { fr: 'Retours 30j', en: 'Returns 30d', he: 'החזרות 30 ימים', es: 'Devoluciones 30d' },
+                  bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80', icon: '✅',
+                },
+              }
+              const cfg = policyConfig[sellerReturnPolicy] || policyConfig.no_return
+              const label = cfg.label[lang] || cfg.label.fr
+              return (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '6px',
+                  marginTop: '8px', padding: '5px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: cfg.bg,
+                  border: `1px solid ${cfg.border}`,
+                }}>
+                  <span style={{ fontSize: '12px' }}>{cfg.icon}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: cfg.color }}>{label}</span>
+                </div>
+              )
+            })()}
           </div>
 
           {/* Enchere active */}

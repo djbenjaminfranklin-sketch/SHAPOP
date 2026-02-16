@@ -57,6 +57,9 @@ export default function DisputePage() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  // Seller return policy
+  const [sellerReturnPolicy, setSellerReturnPolicy] = useState<string | null>(null)
+
   // Success state
   const [submitted, setSubmitted] = useState(false)
   const [submittedDispute, setSubmittedDispute] = useState<Dispute | null>(null)
@@ -93,6 +96,22 @@ export default function DisputePage() {
     }
     fetchOrder()
   }, [user, orderId])
+
+  // Fetch seller return policy
+  useEffect(() => {
+    if (!order) return
+    const fetchPolicy = async () => {
+      const { data } = await supabase
+        .from('sellers')
+        .select('return_policy')
+        .eq('id', order.seller_id)
+        .single()
+      if (data?.return_policy) {
+        setSellerReturnPolicy(data.return_policy)
+      }
+    }
+    fetchPolicy()
+  }, [order])
 
   // Check if dispute already exists
   useEffect(() => {
@@ -291,6 +310,28 @@ export default function DisputePage() {
             </div>
           )}
 
+          {/* Seller return policy badge */}
+          {sellerReturnPolicy && (
+            <div style={{
+              backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px',
+            }}>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Politique de retour du vendeur</p>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: '8px',
+                backgroundColor: sellerReturnPolicy === 'no_return' ? 'rgba(239,68,68,0.1)' : sellerReturnPolicy === 'exchange_only' ? 'rgba(249,115,22,0.1)' : 'rgba(34,197,94,0.1)',
+                border: `1px solid ${sellerReturnPolicy === 'no_return' ? 'rgba(239,68,68,0.3)' : sellerReturnPolicy === 'exchange_only' ? 'rgba(249,115,22,0.3)' : 'rgba(34,197,94,0.3)'}`,
+              }}>
+                <span style={{
+                  fontSize: '13px', fontWeight: 600,
+                  color: sellerReturnPolicy === 'no_return' ? '#f87171' : sellerReturnPolicy === 'exchange_only' ? '#fb923c' : '#4ade80',
+                }}>
+                  {{ no_return: 'Aucun retour', exchange_only: 'Echanges uniquement', return_7: 'Retours sous 7 jours', return_14: 'Retours sous 14 jours', return_30: 'Retours sous 30 jours' }[sellerReturnPolicy] || sellerReturnPolicy}
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Dispute status card */}
           <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -411,6 +452,49 @@ export default function DisputePage() {
                 <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{order.amount.toFixed(2)} EUR</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Seller return policy badge */}
+        {sellerReturnPolicy && (
+          <div style={{
+            backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px',
+          }}>
+            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Politique de retour du vendeur</p>
+            {(() => {
+              const policyLabels: Record<string, string> = {
+                no_return: 'Aucun retour accepte',
+                exchange_only: 'Echanges uniquement',
+                return_7: 'Retours sous 7 jours',
+                return_14: 'Retours sous 14 jours',
+                return_30: 'Retours sous 30 jours',
+              }
+              const policyColors: Record<string, { bg: string; border: string; color: string }> = {
+                no_return: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#f87171' },
+                exchange_only: { bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.3)', color: '#fb923c' },
+                return_7: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80' },
+                return_14: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80' },
+                return_30: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80' },
+              }
+              const label = policyLabels[sellerReturnPolicy] || sellerReturnPolicy
+              const colors = policyColors[sellerReturnPolicy] || policyColors.no_return
+              return (
+                <>
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 14px', borderRadius: '8px',
+                    backgroundColor: colors.bg, border: `1px solid ${colors.border}`,
+                  }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, color: colors.color }}>{label}</span>
+                  </div>
+                  {sellerReturnPolicy === 'no_return' && (
+                    <p style={{ fontSize: '12px', color: '#f97316', marginTop: '8px', lineHeight: 1.5 }}>
+                      Ce vendeur n'accepte pas les retours. Vous pouvez tout de meme contester si l'article est non conforme ou contrefait.
+                    </p>
+                  )}
+                </>
+              )
+            })()}
           </div>
         )}
 

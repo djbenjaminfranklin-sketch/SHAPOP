@@ -2,7 +2,15 @@ import { useState, useEffect, useRef, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
+
+const COUNTRY_PREFIXES = [
+  { code: '+33', label: 'FR +33' },
+  { code: '+972', label: 'IL +972' },
+  { code: '+34', label: 'ES +34' },
+  { code: '+1', label: 'US +1' },
+]
 
 const content = {
   fr: {
@@ -15,6 +23,13 @@ const content = {
     displayName: 'Nom affiche',
     email: 'Email',
     password: 'Mot de passe',
+    phone: 'Telephone',
+    sendCode: 'Envoyer le code',
+    sendingCode: 'Envoi...',
+    otpCode: 'Code de verification',
+    verify: 'Verifier',
+    verifying: 'Verification...',
+    phoneVerified: 'Numero verifie',
     signUp: "S'inscrire",
     signingUp: 'Creation...',
     alreadyHaveAccount: 'Deja un compte ?',
@@ -24,6 +39,7 @@ const content = {
     errorFileSize: "L'image doit faire moins de 5 Mo.",
     errorEmailTaken: 'Cet email est deja utilise',
     errorUsernameTaken: "Ce nom d'utilisateur est deja pris",
+    errorPhoneRequired: 'Verifie ton numero de telephone avant de continuer',
     checkEmail: 'Verifie ton email',
     checkEmailDesc: 'Un lien de confirmation a ete envoye a ton adresse email.',
   },
@@ -37,6 +53,13 @@ const content = {
     displayName: 'Display name',
     email: 'Email',
     password: 'Password',
+    phone: 'Phone number',
+    sendCode: 'Send code',
+    sendingCode: 'Sending...',
+    otpCode: 'Verification code',
+    verify: 'Verify',
+    verifying: 'Verifying...',
+    phoneVerified: 'Number verified',
     signUp: 'Sign up',
     signingUp: 'Creating...',
     alreadyHaveAccount: 'Already have an account?',
@@ -46,53 +69,77 @@ const content = {
     errorFileSize: 'Image must be smaller than 5MB.',
     errorEmailTaken: 'This email is already registered',
     errorUsernameTaken: 'This username is already taken',
+    errorPhoneRequired: 'Verify your phone number before continuing',
     checkEmail: 'Check your email',
     checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
   he: {
-    title: 'צור חשבון',
-    subtitle: 'הצטרף ל-ShaPop והתחל לקנות או למכור בשידור חי',
-    continueApple: 'המשך עם Apple',
-    continueGoogle: 'המשך עם Google',
-    or: 'או',
-    username: 'שם משתמש',
-    displayName: 'שם תצוגה',
-    email: 'אימייל',
-    password: 'סיסמה',
-    signUp: 'הרשמה',
-    signingUp: '...יוצר',
-    alreadyHaveAccount: 'כבר יש חשבון?',
-    signIn: 'התחבר',
-    errorDefault: 'שגיאת הרשמה',
-    errorFileType: 'רק תמונות JPEG, PNG ו-WebP מותרות.',
-    errorFileSize: 'התמונה חייבת להיות קטנה מ-5MB.',
-    errorEmailTaken: 'האימייל הזה כבר רשום',
-    errorUsernameTaken: 'שם המשתמש הזה כבר תפוס',
-    checkEmail: 'בדוק את האימייל שלך',
-    checkEmailDesc: 'קישור אישור נשלח לכתובת האימייל שלך.',
+    title: '\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF',
+    subtitle: '\u05D4\u05E6\u05D8\u05E8\u05E3 \u05DC-ShaPop \u05D5\u05D4\u05EA\u05D7\u05DC \u05DC\u05E7\u05E0\u05D5\u05EA \u05D0\u05D5 \u05DC\u05DE\u05DB\u05D5\u05E8 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9',
+    continueApple: '\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD Apple',
+    continueGoogle: '\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD Google',
+    or: '\u05D0\u05D5',
+    username: '\u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9',
+    displayName: '\u05E9\u05DD \u05EA\u05E6\u05D5\u05D2\u05D4',
+    email: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC',
+    password: '\u05E1\u05D9\u05E1\u05DE\u05D4',
+    phone: '\u05DE\u05E1\u05E4\u05E8 \u05D8\u05DC\u05E4\u05D5\u05DF',
+    sendCode: '\u05E9\u05DC\u05D7 \u05E7\u05D5\u05D3',
+    sendingCode: '...\u05E9\u05D5\u05DC\u05D7',
+    otpCode: '\u05E7\u05D5\u05D3 \u05D0\u05D9\u05DE\u05D5\u05EA',
+    verify: '\u05D0\u05DE\u05EA',
+    verifying: '...\u05DE\u05D0\u05DE\u05EA',
+    phoneVerified: '\u05DE\u05E1\u05E4\u05E8 \u05D0\u05D5\u05DE\u05EA',
+    signUp: '\u05D4\u05E8\u05E9\u05DE\u05D4',
+    signingUp: '...\u05D9\u05D5\u05E6\u05E8',
+    alreadyHaveAccount: '\u05DB\u05D1\u05E8 \u05D9\u05E9 \u05D7\u05E9\u05D1\u05D5\u05DF?',
+    signIn: '\u05D4\u05EA\u05D7\u05D1\u05E8',
+    errorDefault: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05D4\u05E8\u05E9\u05DE\u05D4',
+    errorFileType: '\u05E8\u05E7 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA JPEG, PNG \u05D5-WebP \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA.',
+    errorFileSize: '\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D9\u05D9\u05D1\u05EA \u05DC\u05D4\u05D9\u05D5\u05EA \u05E7\u05D8\u05E0\u05D4 \u05DE-5MB.',
+    errorEmailTaken: '\u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05E8\u05E9\u05D5\u05DD',
+    errorUsernameTaken: '\u05E9\u05DD \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9 \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05EA\u05E4\u05D5\u05E1',
+    errorPhoneRequired: '\u05D0\u05DE\u05EA \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05D8\u05DC\u05E4\u05D5\u05DF \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05E9\u05DA',
+    checkEmail: '\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA',
+    checkEmailDesc: '\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.',
   },
   es: {
     title: 'Crear cuenta',
-    subtitle: 'Únete a ShaPop y empieza a comprar o vender en vivo',
+    subtitle: '\u00DAnete a ShaPop y empieza a comprar o vender en vivo',
     continueApple: 'Continuar con Apple',
     continueGoogle: 'Continuar con Google',
     or: 'o',
     username: 'Nombre de usuario',
     displayName: 'Nombre visible',
-    email: 'Correo electrónico',
-    password: 'Contraseña',
+    email: 'Correo electr\u00F3nico',
+    password: 'Contrase\u00F1a',
+    phone: 'Telefono',
+    sendCode: 'Enviar codigo',
+    sendingCode: 'Enviando...',
+    otpCode: 'Codigo de verificacion',
+    verify: 'Verificar',
+    verifying: 'Verificando...',
+    phoneVerified: 'Numero verificado',
     signUp: 'Registrarse',
     signingUp: 'Creando...',
-    alreadyHaveAccount: '¿Ya tienes cuenta?',
-    signIn: 'Iniciar sesión',
+    alreadyHaveAccount: '\u00BFYa tienes cuenta?',
+    signIn: 'Iniciar sesi\u00F3n',
     errorDefault: 'Error de registro',
     errorFileType: 'Solo se permiten imagenes JPEG, PNG y WebP.',
     errorFileSize: 'La imagen debe pesar menos de 5MB.',
     errorEmailTaken: 'Este correo ya esta registrado',
     errorUsernameTaken: 'Este nombre de usuario ya esta en uso',
+    errorPhoneRequired: 'Verifica tu numero de telefono antes de continuar',
     checkEmail: 'Revisa tu correo',
     checkEmailDesc: 'Se ha enviado un enlace de confirmacion a tu correo electronico.',
   },
+}
+
+const inputStyle = {
+  width: '100%', padding: '16px 18px', borderRadius: '14px',
+  backgroundColor: '#111', border: '1.5px solid #222',
+  fontSize: '17px', color: '#fff', outline: 'none',
+  boxSizing: 'border-box' as const, fontFamily: 'inherit',
 }
 
 export default function Register() {
@@ -111,6 +158,17 @@ export default function Register() {
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
+
+  // Phone + OTP state
+  const [phonePrefix, setPhonePrefix] = useState('+33')
+  const [phoneLocal, setPhoneLocal] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpCode, setOtpCode] = useState('')
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [otpLoading, setOtpLoading] = useState(false)
+  const [otpError, setOtpError] = useState('')
+
+  const fullPhone = `${phonePrefix}${phoneLocal.replace(/^0+/, '')}`
 
   // Redirect when user becomes authenticated (OAuth callback)
   useEffect(() => {
@@ -142,12 +200,88 @@ export default function Register() {
     reader.readAsDataURL(file)
   }
 
+  const handleSendOtp = async () => {
+    setOtpError('')
+    if (!phoneLocal || phoneLocal.length < 4) {
+      setOtpError('Numero invalide')
+      return
+    }
+    setOtpLoading(true)
+    try {
+      const res = await apiFetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: fullPhone }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setOtpError(data.error || 'Erreur')
+        return
+      }
+      setOtpSent(true)
+    } catch {
+      setOtpError('Erreur reseau')
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    setOtpError('')
+    if (!otpCode || otpCode.length !== 6) {
+      setOtpError('Code a 6 chiffres requis')
+      return
+    }
+    setOtpLoading(true)
+    try {
+      const res = await apiFetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: fullPhone, code: otpCode }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setOtpError(data.error || 'Erreur')
+        return
+      }
+      if (data.verified) {
+        setPhoneVerified(true)
+      } else {
+        setOtpError(data.error || 'Code incorrect')
+      }
+    } catch {
+      setOtpError('Erreur reseau')
+    } finally {
+      setOtpLoading(false)
+    }
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+
+    // Phone must be verified
+    if (!phoneVerified) {
+      setError(c.errorPhoneRequired)
+      return
+    }
+
     setLoading(true)
     try {
-      await signUp(email, password, username, displayName)
+      // Check banned before signup
+      const banRes = await apiFetch('/api/auth/check-banned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, phone: fullPhone }),
+      })
+      const banData = await banRes.json()
+      if (banData.banned) {
+        setError(banData.reason || 'Inscription bloquee')
+        setLoading(false)
+        return
+      }
+
+      await signUp(email, password, username, displayName, fullPhone)
 
       // Check if a session exists (email confirmation may be required)
       const { data: { session } } = await supabase.auth.getSession()
@@ -378,16 +512,11 @@ export default function Register() {
             onChange={e => setEmail(e.target.value)}
             placeholder="ton@email.com"
             required
-            style={{
-              width: '100%', padding: '16px 18px', borderRadius: '14px',
-              backgroundColor: '#111', border: '1.5px solid #222',
-              fontSize: '17px', color: '#fff', outline: 'none',
-              boxSizing: 'border-box', fontFamily: 'inherit',
-            }}
+            style={inputStyle}
           />
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.password}
           </label>
@@ -399,12 +528,7 @@ export default function Register() {
               placeholder="••••••••"
               minLength={6}
               required
-              style={{
-                width: '100%', padding: '16px 18px', paddingRight: '48px', borderRadius: '14px',
-                backgroundColor: '#111', border: '1.5px solid #222',
-                fontSize: '17px', color: '#fff', outline: 'none',
-                boxSizing: 'border-box', fontFamily: 'inherit',
-              }}
+              style={{ ...inputStyle, paddingRight: '48px' }}
             />
             <button
               type="button"
@@ -424,14 +548,113 @@ export default function Register() {
           </div>
         </div>
 
+        {/* Phone + OTP section */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+            {c.phone}
+          </label>
+
+          {phoneVerified ? (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '14px 18px', borderRadius: '14px',
+              backgroundColor: 'rgba(34,197,94,0.1)', border: '1.5px solid rgba(34,197,94,0.3)',
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              <span style={{ color: '#22C55E', fontWeight: 600, fontSize: '15px' }}>
+                {c.phoneVerified} ({fullPhone})
+              </span>
+            </div>
+          ) : (
+            <>
+              {/* Phone input with prefix selector */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: otpSent ? '12px' : '0' }}>
+                <select
+                  value={phonePrefix}
+                  onChange={e => setPhonePrefix(e.target.value)}
+                  style={{
+                    padding: '16px 8px', borderRadius: '14px',
+                    backgroundColor: '#111', border: '1.5px solid #222',
+                    fontSize: '15px', color: '#fff', outline: 'none',
+                    fontFamily: 'inherit', minWidth: '95px',
+                  }}
+                >
+                  {COUNTRY_PREFIXES.map(p => (
+                    <option key={p.code} value={p.code}>{p.label}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={phoneLocal}
+                  onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="612345678"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={otpLoading || !phoneLocal}
+                  style={{
+                    padding: '14px 16px', borderRadius: '14px',
+                    backgroundColor: '#F0908A', border: 'none',
+                    color: '#fff', fontSize: '14px', fontWeight: 600,
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                    opacity: (otpLoading || !phoneLocal) ? 0.5 : 1,
+                  }}
+                >
+                  {otpLoading && !otpSent ? c.sendingCode : c.sendCode}
+                </button>
+              </div>
+
+              {/* OTP error */}
+              {otpError && (
+                <div style={{ color: '#F87171', fontSize: '13px', marginTop: '6px', marginBottom: '6px' }}>
+                  {otpError}
+                </div>
+              )}
+
+              {/* OTP code input */}
+              {otpSent && !phoneVerified && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={e => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                    placeholder="000000"
+                    style={{ ...inputStyle, flex: 1, letterSpacing: '8px', textAlign: 'center', fontSize: '22px' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyOtp}
+                    disabled={otpLoading || otpCode.length !== 6}
+                    style={{
+                      padding: '14px 20px', borderRadius: '14px',
+                      backgroundColor: '#22C55E', border: 'none',
+                      color: '#fff', fontSize: '15px', fontWeight: 600,
+                      cursor: 'pointer', whiteSpace: 'nowrap',
+                      opacity: (otpLoading || otpCode.length !== 6) ? 0.5 : 1,
+                    }}
+                  >
+                    {otpLoading ? c.verifying : c.verify}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !phoneVerified}
           style={{
             width: '100%', padding: '17px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
             color: '#fff', fontSize: '17px', fontWeight: 700, border: 'none',
-            cursor: 'pointer', opacity: loading ? 0.5 : 1,
+            cursor: 'pointer', opacity: (loading || !phoneVerified) ? 0.5 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
             letterSpacing: '0.2px',
           }}
