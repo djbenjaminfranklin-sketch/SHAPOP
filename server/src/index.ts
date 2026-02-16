@@ -1963,6 +1963,67 @@ app.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Authent
   }
 })
 
+// Activate an item (start auction) — uses service key to bypass RLS
+app.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const itemId = req.params.id
+
+    const { data: item } = await supabase
+      .from('items')
+      .select('seller_id')
+      .eq('id', itemId)
+      .single()
+
+    if (!item || item.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Not your item' })
+      return
+    }
+
+    const { error } = await supabase
+      .from('items')
+      .update({ status: 'active', started_at: new Date().toISOString() })
+      .eq('id', itemId)
+
+    if (error) throw error
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to activate item' })
+  }
+})
+
+// Track viewer count: increment on join, decrement on leave
+app.post('/api/streams/:id/viewer-join', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+    await supabase.rpc('increment_viewer_count', { stream_id_param: streamId }).throwOnError()
+    res.json({ success: true })
+  } catch {
+    // Fallback: direct increment
+    try {
+      const { data } = await supabase.from('streams').select('viewer_count').eq('id', req.params.id).single()
+      if (data) {
+        await supabase.from('streams').update({ viewer_count: (data.viewer_count || 0) + 1 }).eq('id', req.params.id)
+      }
+      res.json({ success: true })
+    } catch {
+      res.status(500).json({ error: 'Failed to update viewer count' })
+    }
+  }
+})
+
+app.post('/api/streams/:id/viewer-leave', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+    const { data } = await supabase.from('streams').select('viewer_count').eq('id', streamId).single()
+    if (data) {
+      await supabase.from('streams').update({ viewer_count: Math.max(0, (data.viewer_count || 0) - 1) }).eq('id', streamId)
+    }
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to update viewer count' })
+  }
+})
+
 // =============================================
 // STRIPE CONNECT
 // =============================================

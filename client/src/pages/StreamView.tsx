@@ -317,6 +317,32 @@ export default function StreamView() {
     fetchLkToken()
   }, [stream?.id, stream?.livekit_room_name, stream?.status, isSeller])
 
+  // Track viewer count
+  useEffect(() => {
+    if (!stream?.id || !isLive || isSeller || !user) return
+    const trackViewer = async () => {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session?.session?.access_token
+      if (!token) return
+      apiFetch(`/api/streams/${stream.id}/viewer-join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      }).catch(() => {})
+    }
+    trackViewer()
+    return () => {
+      if (!stream?.id || !user) return
+      supabase.auth.getSession().then(({ data: session }) => {
+        const token = session?.session?.access_token
+        if (!token) return
+        apiFetch(`/api/streams/${stream.id}/viewer-leave`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        }).catch(() => {})
+      })
+    }
+  }, [stream?.id, isLive, isSeller, user])
+
   // ═══ Payment modal timeout: prevent infinite spinner ═══
   useEffect(() => {
     if (!showPaymentModal || addressStep || clientSecret || paymentError) return

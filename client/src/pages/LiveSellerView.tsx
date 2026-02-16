@@ -606,22 +606,40 @@ export default function LiveSellerView() {
     const now = new Date().toISOString()
     const duration = currentItem.duration_seconds || 60
 
-    // Start the local countdown IMMEDIATELY
-    setTimeLeft(duration)
-
-    // Update local state
-    setItems(prev => prev.map((it, i) =>
-      i === currentIndex ? { ...it, status: 'active' as const, started_at: now } : it
-    ))
-
-    // Also update DB (non-blocking)
-    supabase
+    // Update DB FIRST to ensure realtime reaches viewers
+    const { error: dbError } = await supabase
       .from('items')
       .update({
         status: 'active' as const,
         started_at: now,
       })
       .eq('id', currentItem.id)
+
+    if (dbError) {
+      console.error('Failed to activate item in DB:', dbError)
+      // Fallback: try via API server (bypasses RLS)
+      if (sessionToken) {
+        try {
+          await apiFetch(`/api/items/${currentItem.id}/activate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sessionToken}`,
+            },
+          })
+        } catch (err) {
+          console.error('API activate fallback also failed:', err)
+        }
+      }
+    }
+
+    // Start the local countdown
+    setTimeLeft(duration)
+
+    // Update local state
+    setItems(prev => prev.map((it, i) =>
+      i === currentIndex ? { ...it, status: 'active' as const, started_at: now } : it
+    ))
   }
 
   // handleSold and handleUnsold removed — auction resolves automatically
