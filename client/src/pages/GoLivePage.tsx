@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -179,10 +179,11 @@ export default function GoLivePage() {
   const ct = goLiveContent[lang] || goLiveContent.fr
 
   // Block non-sellers
-  if (!profile?.is_seller) {
-    navigate('/dashboard', { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (profile && !profile.is_seller) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [profile, navigate])
 
   const [showTips, setShowTips] = useState(true)
   const [tipIndex, setTipIndex] = useState(0)

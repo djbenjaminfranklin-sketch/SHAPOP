@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
@@ -14,12 +14,6 @@ export default function CreateLiveWizard() {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
-
-  // Block non-sellers
-  if (!profile?.is_seller) {
-    navigate('/dashboard', { replace: true })
-    return null
-  }
 
   const [step, setStep] = useState(0)
   const [title, setTitle] = useState('')
@@ -44,6 +38,13 @@ export default function CreateLiveWizard() {
   const [visible, setVisible] = useState(true)
   const [dragOver, setDragOver] = useState(false)
   const [titleFocused, setTitleFocused] = useState(false)
+
+  // Block non-sellers
+  useEffect(() => {
+    if (profile && !profile.is_seller) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [profile, navigate])
 
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null)

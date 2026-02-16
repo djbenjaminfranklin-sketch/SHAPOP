@@ -201,10 +201,11 @@ export default function AIListingPage() {
   const t = content[lang] || content.fr
 
   // Block non-sellers
-  if (!profile?.is_seller) {
-    navigate('/dashboard', { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (profile && !profile.is_seller) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [profile, navigate])
   const analysisSteps = t.analysisSteps
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState<Step>('upload')
