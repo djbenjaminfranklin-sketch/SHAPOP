@@ -425,8 +425,23 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
 // =============================================
 // Health
 // =============================================
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
+app.get('/api/health', async (_req, res) => {
+  // Check Supabase connectivity
+  let supabaseOk = false
+  let supabaseError = ''
+  try {
+    const { data, error } = await supabase.from('profiles').select('id').limit(1)
+    if (error) supabaseError = error.message
+    else supabaseOk = true
+  } catch (e: any) { supabaseError = e.message }
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    supabase_url: supabaseUrl.substring(0, 30) + '...',
+    supabase_key_prefix: supabaseServiceKey.substring(0, 20) + '...',
+    supabase_connected: supabaseOk,
+    supabase_error: supabaseError || undefined,
+  })
 })
 
 // =============================================
