@@ -80,6 +80,7 @@ export interface Stream {
   mux_playback_id?: string | null
   mux_stream_key?: string | null
   mux_asset_id?: string | null
+  livekit_room_name?: string | null
   created_at: string
   seller?: Seller & { profiles?: Profile }
   matching_score?: number

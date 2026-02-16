@@ -409,13 +409,13 @@ export default function PrepareLivePage() {
     if (!streamId || items.length === 0) return
     setGoingLive(true)
 
-    // Provision Mux live stream
+    // Provision LiveKit room
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session?.session?.access_token
       if (token) {
         const { apiFetch } = await import('../lib/api')
-        const resp = await apiFetch(`/api/streams/${streamId}/create-mux-stream`, {
+        const resp = await apiFetch(`/api/streams/${streamId}/create-livekit-room`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -424,12 +424,12 @@ export default function PrepareLivePage() {
         })
         if (!resp.ok) {
           const errBody = await resp.json().catch(() => ({}))
-          console.error('Mux provisioning failed:', resp.status, errBody)
+          console.error('LiveKit room provisioning failed:', resp.status, errBody)
           alert(ct.muxError)
         }
       }
     } catch (err) {
-      console.error('Mux provisioning network error:', err)
+      console.error('LiveKit room provisioning network error:', err)
       alert(ct.muxError)
     }
 

@@ -7,6 +7,7 @@ import type { Stream, Item, ChatMessage, Order } from '../types/database'
 import EngagementDashboard from '../components/EngagementDashboard'
 import ViewerReactions from '../components/ViewerReactions'
 import MuxPlayer from '@mux/mux-player-react'
+import LiveKitViewer from '../components/LiveKitViewer'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { apiFetch } from '../lib/api'
@@ -269,6 +270,10 @@ export default function StreamView() {
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
   const [viewerMuted, setViewerMuted] = useState(true)
 
+  // LiveKit viewer state
+  const [viewerLkUrl, setViewerLkUrl] = useState<string | null>(null)
+  const [viewerLkToken, setViewerLkToken] = useState<string | null>(null)
+
   // Sold animation & payment modal
   const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number } | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -284,6 +289,33 @@ export default function StreamView() {
   // Determine if user is the seller of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
   const isLive = stream?.status === 'live'
+
+  // Fetch LiveKit viewer token when stream has a livekit room and is live
+  useEffect(() => {
+    if (!stream?.livekit_room_name || stream.status !== 'live' || isSeller) return
+    const fetchLkToken = async () => {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session?.session?.access_token
+      if (!token) return
+      try {
+        const resp = await apiFetch(`/api/streams/${stream.id}/livekit-token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        })
+        const data = await resp.json()
+        if (data.token && data.url) {
+          setViewerLkToken(data.token)
+          setViewerLkUrl(data.url)
+        }
+      } catch (err) {
+        console.error('Failed to fetch LiveKit viewer token:', err)
+      }
+    }
+    fetchLkToken()
+  }, [stream?.id, stream?.livekit_room_name, stream?.status, isSeller])
 
   // ═══ Payment modal timeout: prevent infinite spinner ═══
   useEffect(() => {
@@ -885,21 +917,59 @@ export default function StreamView() {
               />
             )}
 
-            {/* ═══ VIEWER VIEW: Mux live player or fallback ═══ */}
+            {/* ═══ VIEWER VIEW: LiveKit WebRTC player, Mux fallback, or animated fallback ═══ */}
             {!isSeller && isLive && (
               <div style={{
                 width: '100%', height: '100%',
                 position: 'relative',
                 overflow: 'hidden',
               }}>
-                {stream.mux_playback_id ? (
+                {viewerLkUrl && viewerLkToken ? (
                   <>
-                    {/* Mux HLS Player */}
+                    {/* LiveKit WebRTC Player (sub-300ms latency) */}
+                    <LiveKitViewer
+                      livekitUrl={viewerLkUrl}
+                      livekitToken={viewerLkToken}
+                      muted={viewerMuted}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                    {/* Unmute button */}
+                    {viewerMuted && (
+                      <button
+                        onClick={() => setViewerMuted(false)}
+                        style={{
+                          position: 'absolute',
+                          bottom: '16px', left: '16px',
+                          padding: '8px 16px',
+                          borderRadius: '100px',
+                          backgroundColor: 'rgba(0,0,0,0.7)',
+                          backdropFilter: 'blur(8px)',
+                          WebkitBackdropFilter: 'blur(8px)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          color: '#fff', fontSize: '13px', fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          zIndex: 15,
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                          <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        Unmute
+                      </button>
+                    )}
+                  </>
+                ) : stream.mux_playback_id ? (
+                  <>
+                    {/* Mux HLS Player — fallback for older streams */}
                     <MuxPlayer
                       playbackId={stream.mux_playback_id}
-                      streamType="live"
+                      streamType="ll-live"
                       autoPlay="muted"
                       muted={viewerMuted}
+                      targetLiveWindow={3}
                       style={{
                         width: '100%',
                         height: '100%',

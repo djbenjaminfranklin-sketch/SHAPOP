@@ -15,6 +15,7 @@ import { spawn, type ChildProcess } from 'child_process'
 import Mux from '@mux/mux-node'
 import Stripe from 'stripe'
 import { Resend } from 'resend'
+import { AccessToken, RoomServiceClient, WebhookReceiver } from 'livekit-server-sdk'
 
 dotenv.config()
 
@@ -197,6 +198,25 @@ const muxClient = new Mux({
 })
 
 // =============================================
+// LiveKit client (WebRTC low-latency streaming)
+// =============================================
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || ''
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || ''
+const LIVEKIT_URL = process.env.LIVEKIT_URL || '' // e.g. wss://xxx.livekit.cloud
+
+const livekitRoomService = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_URL)
+  ? new RoomServiceClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+  : null
+
+const livekitWebhookReceiver = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET)
+  ? new WebhookReceiver(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+  : null
+
+if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
+  console.warn('WARNING: LIVEKIT_API_KEY, LIVEKIT_API_SECRET, or LIVEKIT_URL not set — LiveKit features will fail')
+}
+
+// =============================================
 // Webhook handlers (defined early, registered before express.json)
 // =============================================
 async function stripeWebhookHandler(req: Request, res: Response) {
@@ -377,6 +397,55 @@ async function muxWebhookHandler(req: Request, res: Response) {
   }
 }
 
+async function livekitWebhookHandler(req: Request, res: Response) {
+  try {
+    if (!livekitWebhookReceiver) {
+      res.status(500).json({ error: 'LiveKit webhook receiver not configured' })
+      return
+    }
+
+    const body = Buffer.isBuffer(req.body) ? req.body.toString() : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
+    const authHeader = req.headers['authorization'] as string || ''
+    const event = await livekitWebhookReceiver.receive(body, authHeader)
+
+    if (event.event === 'participant_joined' && event.participant?.identity?.startsWith('seller-')) {
+      // Publisher (seller) joined → mark stream as live + push notifs
+      const roomName = event.room?.name
+      if (roomName) {
+        const { data: streams } = await supabase
+          .from('streams')
+          .update({ status: 'live', started_at: new Date().toISOString() })
+          .eq('livekit_room_name', roomName)
+          .eq('status', 'scheduled')
+          .select('id, title, seller_id')
+
+        if (streams && streams.length > 0) {
+          const stream = streams[0]
+          notifyFollowersSellerLive(stream.seller_id, stream.title, stream.id).catch(err =>
+            console.error('Push notification error:', err)
+          )
+        }
+      }
+    }
+
+    if (event.event === 'room_finished') {
+      const roomName = event.room?.name
+      if (roomName) {
+        await supabase
+          .from('streams')
+          .update({ status: 'ended', ended_at: new Date().toISOString() })
+          .eq('livekit_room_name', roomName)
+          .eq('status', 'live')
+      }
+    }
+
+    res.json({ received: true })
+  } catch (err) {
+    console.error('LiveKit webhook error:', err)
+    res.status(400).json({ error: 'Invalid webhook' })
+  }
+}
+
 // =============================================
 // Express setup
 // =============================================
@@ -409,6 +478,7 @@ app.use(cors({
 // Webhooks need raw body for signature verification — MUST be before express.json()
 app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), stripeWebhookHandler as express.RequestHandler)
 app.post('/api/webhooks/mux', express.raw({ type: 'application/json' }), muxWebhookHandler as express.RequestHandler)
+app.post('/api/webhooks/livekit', express.raw({ type: 'application/json' }), livekitWebhookHandler as express.RequestHandler)
 
 app.use(express.json({ limit: '10mb' }))
 
@@ -1697,7 +1767,8 @@ app.post('/api/streams/:id/create-mux-stream', requireAuth, async (req: Authenti
     const muxStream = await muxClient.video.liveStreams.create({
       playback_policy: ['public'],
       new_asset_settings: { playback_policy: ['public'] },
-      reduced_latency: true,
+      latency_mode: 'low',
+      reconnect_window: 30,
     })
 
     const muxStreamId = muxStream.id
@@ -1763,6 +1834,134 @@ app.post('/api/streams/:id/end-mux-stream', requireAuth, async (req: Authenticat
 })
 
 // Mux Webhooks — registered early (before express.json)
+
+// =============================================
+// LIVEKIT LIVE STREAMING (WebRTC, sub-300ms latency)
+// =============================================
+
+// Create a LiveKit room for a stream
+app.post('/api/streams/:id/create-livekit-room', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, livekit_room_name')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'You can only create LiveKit rooms for your own streams' })
+      return
+    }
+
+    // Don't create duplicate rooms
+    if (stream.livekit_room_name) {
+      res.json({ livekit_room_name: stream.livekit_room_name })
+      return
+    }
+
+    if (!livekitRoomService) {
+      res.status(500).json({ error: 'LiveKit not configured' })
+      return
+    }
+
+    const roomName = `stream-${streamId}`
+    await livekitRoomService.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: 500 })
+
+    await supabase
+      .from('streams')
+      .update({ livekit_room_name: roomName })
+      .eq('id', streamId)
+
+    res.json({ livekit_room_name: roomName })
+  } catch (err: any) {
+    console.error('LiveKit room creation error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to create LiveKit room', details: err?.message })
+  }
+})
+
+// Generate a LiveKit access token for a stream
+app.post('/api/streams/:id/livekit-token', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+    const userId = req.user!.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, livekit_room_name')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || !stream.livekit_room_name) {
+      res.status(404).json({ error: 'Stream not found or LiveKit room not created' })
+      return
+    }
+
+    if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
+      res.status(500).json({ error: 'LiveKit not configured' })
+      return
+    }
+
+    const isSeller = stream.seller_id === userId
+    const identity = isSeller ? `seller-${userId}` : `viewer-${userId}`
+
+    const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+      identity,
+      ttl: '6h',
+    })
+
+    token.addGrant({
+      room: stream.livekit_room_name,
+      roomJoin: true,
+      canPublish: isSeller,
+      canSubscribe: true,
+    })
+
+    const jwt = await token.toJwt()
+
+    res.json({ token: jwt, url: LIVEKIT_URL })
+  } catch (err: any) {
+    console.error('LiveKit token error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to generate LiveKit token' })
+  }
+})
+
+// End a LiveKit stream
+app.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, livekit_room_name')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'You can only end your own streams' })
+      return
+    }
+
+    // Delete the LiveKit room
+    if (stream.livekit_room_name && livekitRoomService) {
+      try {
+        await livekitRoomService.deleteRoom(stream.livekit_room_name)
+      } catch {
+        // Room may already be gone
+      }
+    }
+
+    await supabase
+      .from('streams')
+      .update({ status: 'ended', ended_at: new Date().toISOString() })
+      .eq('id', streamId)
+
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to end LiveKit stream' })
+  }
+})
 
 // =============================================
 // STRIPE CONNECT
@@ -2840,7 +3039,7 @@ app.post('/api/admin/streams/:id/stop', requireAdmin, async (req: AuthenticatedR
 
     const { data: stream } = await supabase
       .from('streams')
-      .select('mux_stream_id, seller_id')
+      .select('mux_stream_id, livekit_room_name, seller_id')
       .eq('id', streamId)
       .single()
 
@@ -2855,6 +3054,15 @@ app.post('/api/admin/streams/:id/stop', requireAdmin, async (req: AuthenticatedR
         await muxClient.video.liveStreams.complete(stream.mux_stream_id)
       } catch {
         // May already be ended
+      }
+    }
+
+    // End on LiveKit if active
+    if (stream.livekit_room_name && livekitRoomService) {
+      try {
+        await livekitRoomService.deleteRoom(stream.livekit_room_name)
+      } catch {
+        // Room may already be gone
       }
     }
 
@@ -2880,7 +3088,7 @@ app.post('/api/admin/streams/:id/suspend-streamer', requireAdmin, async (req: Au
 
     const { data: stream } = await supabase
       .from('streams')
-      .select('seller_id, mux_stream_id')
+      .select('seller_id, mux_stream_id, livekit_room_name')
       .eq('id', streamId)
       .single()
 
@@ -2889,9 +3097,13 @@ app.post('/api/admin/streams/:id/suspend-streamer', requireAdmin, async (req: Au
       return
     }
 
-    // Stop stream
+    // Stop stream on Mux
     if (stream.mux_stream_id) {
       try { await muxClient.video.liveStreams.complete(stream.mux_stream_id) } catch { /* ignore */ }
+    }
+    // Stop stream on LiveKit
+    if (stream.livekit_room_name && livekitRoomService) {
+      try { await livekitRoomService.deleteRoom(stream.livekit_room_name) } catch { /* ignore */ }
     }
     await supabase.from('streams').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', streamId)
 
@@ -3812,10 +4024,13 @@ wss.on('connection', async (ws: WebSocket, req) => {
 
   // Spawn FFmpeg: pipe WebM chunks from stdin → RTMP to Mux
   const ffmpeg = spawn('ffmpeg', [
+    '-fflags', 'nobuffer',
+    '-flags', 'low_delay',
     '-i', 'pipe:0',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     '-tune', 'zerolatency',
+    '-g', '30',           // Keyframe every 1s (at 30fps) — helps LL-HLS segmenting
     '-c:a', 'aac',
     '-ar', '44100',
     '-b:a', '128k',

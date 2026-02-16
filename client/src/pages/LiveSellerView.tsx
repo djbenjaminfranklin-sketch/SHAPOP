@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
-import { useMuxBroadcast } from '../hooks/useMuxBroadcast'
+import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage } from '../types/database'
 
@@ -218,14 +218,36 @@ export default function LiveSellerView() {
   // Return policy
   const [returnPolicy, setReturnPolicy] = useState<string>('no_return')
 
-  // Mux broadcast
+  // LiveKit broadcast
   const [sessionToken, setSessionToken] = useState<string | undefined>(undefined)
+  const [livekitUrl, setLivekitUrl] = useState<string | undefined>(undefined)
+  const [livekitToken, setLivekitToken] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSessionToken(data.session?.access_token)
     })
   }, [])
+
+  // Fetch LiveKit token once we have the session token
+  useEffect(() => {
+    if (!sessionToken || !streamId) return
+    apiFetch(`/api/streams/${streamId}/livekit-token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionToken}`,
+      },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.token && data.url) {
+          setLivekitToken(data.token)
+          setLivekitUrl(data.url)
+        }
+      })
+      .catch(err => console.error('Failed to fetch LiveKit token:', err))
+  }, [sessionToken, streamId])
 
   // Fetch seller's return policy
   useEffect(() => {
@@ -236,20 +258,19 @@ export default function LiveSellerView() {
       })
   }, [user])
 
-  const { isConnected: muxConnected, isBroadcasting, error: muxError, startBroadcast, stopBroadcast } = useMuxBroadcast({
-    streamId,
-    token: sessionToken,
-    mediaStream: mediaStreamRef.current,
+  const { isConnected: lkConnected, isBroadcasting, error: lkError, startBroadcast, stopBroadcast } = useLiveKitBroadcast({
+    livekitUrl,
+    livekitToken,
   })
 
-  // Start broadcast once camera and token are ready
+  // Start broadcast once LiveKit token is ready
   const broadcastStartedRef = useRef(false)
   useEffect(() => {
-    if (mediaStreamRef.current && sessionToken && streamId && !broadcastStartedRef.current) {
+    if (livekitUrl && livekitToken && !broadcastStartedRef.current) {
       broadcastStartedRef.current = true
       startBroadcast()
     }
-  }, [sessionToken, streamId, startBroadcast])
+  }, [livekitUrl, livekitToken, startBroadcast])
 
   const currentItem = currentIndex >= 0 && currentIndex < items.length ? items[currentIndex] : null
   const formatLot = (n: number) => `#${String(n).padStart(3, '0')}`
@@ -614,7 +635,7 @@ export default function LiveSellerView() {
     const newMode = facingMode === 'user' ? 'environment' : 'user'
     setFacingMode(newMode)
 
-    // Stop broadcast before switching camera
+    // Stop LiveKit broadcast and restart with new camera
     stopBroadcast()
 
     if (mediaStreamRef.current) {
@@ -628,7 +649,8 @@ export default function LiveSellerView() {
       mediaStreamRef.current = ms
       if (videoRef.current) videoRef.current.srcObject = ms
 
-      // Restart broadcast with new stream after a small delay
+      // Restart LiveKit broadcast after a small delay
+      broadcastStartedRef.current = false
       setTimeout(() => startBroadcast(), 500)
     } catch {
       // Camera flip failed
@@ -636,7 +658,7 @@ export default function LiveSellerView() {
   }
 
   const handleEndLive = async () => {
-    // Stop Mux broadcast
+    // Stop LiveKit broadcast
     stopBroadcast()
 
     if (mediaStreamRef.current) {
@@ -645,9 +667,9 @@ export default function LiveSellerView() {
     }
 
     if (streamId && sessionToken) {
-      // End Mux stream via API
+      // End LiveKit stream via API
       try {
-        await apiFetch(`/api/streams/${streamId}/end-mux-stream`, {
+        await apiFetch(`/api/streams/${streamId}/end-livekit-stream`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -873,24 +895,24 @@ export default function LiveSellerView() {
             </svg>
             {viewerCount}
           </span>
-          {/* Mux broadcast status */}
+          {/* LiveKit broadcast status */}
           <span style={{
             padding: '5px 10px', borderRadius: '8px',
             fontSize: '10px', fontWeight: 700,
-            backgroundColor: muxConnected
+            backgroundColor: lkConnected
               ? 'rgba(34,197,94,0.2)'
-              : muxError
+              : lkError
                 ? 'rgba(232,52,78,0.2)'
                 : 'rgba(255,255,255,0.1)',
-            color: muxConnected ? '#22C55E' : muxError ? '#E8344E' : '#888',
-            border: `1px solid ${muxConnected ? 'rgba(34,197,94,0.3)' : muxError ? 'rgba(232,52,78,0.3)' : 'rgba(255,255,255,0.15)'}`,
+            color: lkConnected ? '#22C55E' : lkError ? '#E8344E' : '#888',
+            border: `1px solid ${lkConnected ? 'rgba(34,197,94,0.3)' : lkError ? 'rgba(232,52,78,0.3)' : 'rgba(255,255,255,0.15)'}`,
             display: 'flex', alignItems: 'center', gap: '4px',
           }}>
             <div style={{
               width: '5px', height: '5px', borderRadius: '50%',
-              backgroundColor: muxConnected ? '#22C55E' : muxError ? '#E8344E' : '#888',
+              backgroundColor: lkConnected ? '#22C55E' : lkError ? '#E8344E' : '#888',
             }} />
-            {isBroadcasting ? 'STREAM' : muxError ? 'ERR' : 'OFF'}
+            {isBroadcasting ? 'STREAM' : lkError ? 'ERR' : 'OFF'}
           </span>
         </div>
 
