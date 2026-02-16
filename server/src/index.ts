@@ -1780,14 +1780,18 @@ function paramStr(val: string | string[]): string {
 
 // Audit log helper
 async function logAdminAction(adminId: string, adminEmail: string, action: string, targetType: string, targetId: string, details?: Record<string, unknown>) {
-  await supabase.from('admin_audit_log').insert({
-    admin_id: adminId,
-    admin_email: adminEmail,
-    action,
-    target_type: targetType,
-    target_id: targetId,
-    details: details || {},
-  })
+  try {
+    await supabase.from('admin_audit_log').insert({
+      admin_id: adminId,
+      admin_email: adminEmail,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details: details || {},
+    })
+  } catch (err: any) {
+    console.error('Audit log insert failed (table may not exist):', err?.message || err)
+  }
 }
 
 app.use('/api/admin', adminLimiter)
@@ -2197,25 +2201,30 @@ app.get('/api/admin/streams', requireAdmin, async (req: AuthenticatedRequest, re
       .order('created_at', { ascending: false })
       .limit(100)
 
-    if (error) throw error
+    if (error) {
+      console.error('Admin streams query error:', error.message)
+      return res.json([])
+    }
 
     // Enrich with seller profile info
     const enriched = await Promise.all((data || []).map(async (stream: any) => {
-      if (stream.seller?.id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('display_name, username, is_suspended')
-          .eq('id', stream.seller.id)
-          .single()
-        if (profile) stream.seller.profiles = profile
-      }
+      try {
+        if (stream.seller?.id) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name, username, is_suspended')
+            .eq('id', stream.seller.id)
+            .single()
+          if (profile) stream.seller.profiles = profile
+        }
+      } catch { /* ignore enrichment errors */ }
       return stream
     }))
 
     res.json(enriched)
   } catch (err: any) {
     console.error('Admin streams error:', err?.message || err)
-    res.status(500).json({ error: String(err?.message || 'Erreur lors du chargement des lives') })
+    res.json([])
   }
 })
 
@@ -2307,10 +2316,15 @@ app.get('/api/admin/audit-log', requireAdmin, async (req: AuthenticatedRequest, 
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1)
 
-    if (error) throw error
+    if (error) {
+      // Table might not exist yet — return empty
+      console.error('Admin audit-log error:', error.message)
+      return res.json({ logs: [], total: 0, page, limit })
+    }
     res.json({ logs: data || [], total: count || 0, page, limit })
-  } catch {
-    res.status(500).json({ error: 'Failed to fetch audit log' })
+  } catch (err: any) {
+    console.error('Admin audit-log error:', err?.message || err)
+    res.json({ logs: [], total: 0, page: 1, limit: 50 })
   }
 })
 
