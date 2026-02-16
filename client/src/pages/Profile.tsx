@@ -16,7 +16,7 @@ const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
 }
 
 export default function Profile() {
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -84,14 +84,30 @@ export default function Profile() {
   })
 
   // ════════════════════════════════════════════════════════════════════
+  // LOADING
+  // ════════════════════════════════════════════════════════════════════
+  if (authLoading || (user && !profile)) {
+    return (
+      <div style={{
+        minHeight: '100vh', backgroundColor: '#000',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+      }}>
+        <div style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
+  // ════════════════════════════════════════════════════════════════════
   // NOT LOGGED IN
   // ════════════════════════════════════════════════════════════════════
-  if (!user || !profile) {
+  if (!user) {
     return (
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: '100px', paddingLeft: '32px', paddingRight: '32px',
+        paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))', paddingLeft: '32px', paddingRight: '32px',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ height: '40px', marginBottom: '32px', objectFit: 'contain' }} />
@@ -246,7 +262,7 @@ export default function Profile() {
   // ════════════════════════════════════════════════════════════════════
 
   type MenuItem = {
-    icon: JSX.Element
+    icon: React.JSX.Element
     label: string
     sub?: string
     external?: boolean
@@ -258,14 +274,18 @@ export default function Profile() {
     { icon: ico.affiliate, label: tx("Programme d'affiliation : gagne de l'argent", 'Referral program: earn money', '\u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E9\u05D5\u05EA\u05E4\u05D9\u05DD', 'Programa de afiliados', lang), to: '/referrals' },
     { icon: ico.card, label: tx('Paiements et livraison', 'Payments & shipping', '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7', 'Pagos y envio', lang), to: '/payments' },
     { icon: ico.pin, label: tx('Adresses', 'Addresses', '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', 'Direcciones', lang), to: '/addresses' },
-    { icon: ico.verified, label: tx('Acheteur verifie', 'Verified buyer', '\u05E7\u05D5\u05E0\u05D4 \u05DE\u05D0\u05D5\u05DE\u05EA', 'Comprador verificado', lang), to: '/account-status' },
     { icon: ico.bell, label: tx('Notifications', 'Notifications', '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA', 'Notificaciones', lang), to: '/notifications' },
     { icon: ico.controls, label: tx('Controles de compte', 'Account controls', '\u05D1\u05E7\u05E8\u05D5\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF', 'Controles de cuenta', lang), to: '/preferences' },
     { icon: ico.mail, label: tx("Modifier l'adresse e-mail", 'Change email', '\u05E9\u05E0\u05D4 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC', 'Cambiar e-mail', lang), sub: user.email || '', to: '/change-email' },
     { icon: ico.lock, label: tx('Modifier le mot de passe', 'Change password', '\u05E9\u05E0\u05D4 \u05E1\u05D9\u05E1\u05DE\u05D4', 'Cambiar contrasena', lang), to: '/change-password' },
     { icon: ico.key, label: tx("Cle d'acces", 'Passkey', '\u05DE\u05E4\u05EA\u05D7 \u05D2\u05D9\u05E9\u05D4', 'Clave de acceso', lang), to: '/security' },
-    { icon: ico.gear, label: tx('Preferences', 'Preferences', '\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA', 'Preferencias', lang), to: '/preferences' },
   ]
+
+  // Admin link — only for admin email
+  const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
+  const adminItems: MenuItem[] = user.email?.toLowerCase() === ADMIN_EMAIL ? [
+    { icon: ico.gear, label: tx('Administration', 'Administration', 'ניהול', 'Administracion', lang), to: '/admin' },
+  ] : []
 
   const supportItems: MenuItem[] = [
     { icon: ico.chat, label: tx('Nous contacter', 'Contact us', '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', 'Contactanos', lang), to: '/contact' },
@@ -273,6 +293,7 @@ export default function Profile() {
     { icon: ico.tax, label: tx('Exoneration de la taxe de vente', 'Sales tax exemption', '\u05E4\u05D8\u05D5\u05E8 \u05DE\u05DE\u05E1 \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA', 'Exencion de impuestos', lang), to: '/contact' },
     { icon: ico.doc, label: tx('Politique de confidentialite', 'Privacy policy', '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA', 'Politica de privacidad', lang), external: true, to: '/privacy' },
     { icon: ico.doc, label: tx('Conditions generales', 'Terms of Service', '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9', 'Terminos de servicio', lang), external: true, to: '/terms' },
+    { icon: ico.doc, label: tx('CLUF', 'EULA', '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF', 'CLUF', lang), external: true, to: '/eula' },
     { icon: ico.help, label: 'FAQ', external: true, to: '/faq' },
   ]
 
@@ -313,7 +334,7 @@ export default function Profile() {
   // LOGGED IN RENDER
   // ════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '100px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
 
         {/* ── HEADER: Avatar + Username + "Afficher le profil" ──────── */}
@@ -369,7 +390,7 @@ export default function Profile() {
                 fontSize: '24px', fontWeight: 700, color: '#fff', margin: 0,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {profile.display_name || profile.username}
+                {profile?.display_name || profile?.username}
               </h1>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M6 9l6 6 6-6"/>
@@ -411,8 +432,8 @@ export default function Profile() {
             <p style={{ color: '#fff', fontSize: '14px', fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
               {tx('Parrainages et credits', 'Referrals & credits', '\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD \u05D5\u05E7\u05E8\u05D3\u05D9\u05D8\u05D9\u05DD', 'Referidos y creditos', lang)}
             </p>
-            <p style={{ color: '#4ADE80', fontSize: '13px', fontWeight: 600, margin: '4px 0 0' }}>
-              {tx('Solde : 0,00 \u20AC', 'Balance: $0.00', '\u05D9\u05EA\u05E8\u05D4: \u20AC0.00', 'Saldo: $0.00', lang)}
+            <p style={{ color: '#888', fontSize: '13px', fontWeight: 500, margin: '4px 0 0', fontStyle: 'italic' }}>
+              {tx('Bientot disponible', 'Coming soon', '\u05D1\u05E7\u05E8\u05D5\u05D1', 'Proximamente', lang)}
             </p>
           </button>
 
@@ -425,8 +446,8 @@ export default function Profile() {
             <p style={{ color: '#fff', fontSize: '14px', fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
               {tx('Mes recompenses', 'My rewards', '\u05D4\u05EA\u05D2\u05DE\u05D5\u05DC\u05D9\u05DD \u05E9\u05DC\u05D9', 'Mis recompensas', lang)}
             </p>
-            <p style={{ color: '#888', fontSize: '13px', fontWeight: 400, margin: '4px 0 0' }}>
-              {tx('Voir les coupons', 'View coupons', '\u05E8\u05D0\u05D4 \u05E7\u05D5\u05E4\u05D5\u05E0\u05D9\u05DD', 'Ver cupones', lang)}
+            <p style={{ color: '#888', fontSize: '13px', fontWeight: 500, margin: '4px 0 0', fontStyle: 'italic' }}>
+              {tx('Bientot disponible', 'Coming soon', '\u05D1\u05E7\u05E8\u05D5\u05D1', 'Proximamente', lang)}
             </p>
           </button>
         </div>
@@ -435,6 +456,16 @@ export default function Profile() {
         <div style={{ padding: '0 0 8px', ...entrance('120ms') }}>
           {accountItems.map((item, i) => renderRow(item, i === accountItems.length - 1, i))}
         </div>
+
+        {/* ── Admin menu (only for admin) ──────────────────────── */}
+        {adminItems.length > 0 && (
+          <>
+            <div style={{ height: '8px', backgroundColor: '#111', ...entrance('140ms') }} />
+            <div style={{ padding: '8px 0', ...entrance('150ms') }}>
+              {adminItems.map((item, i) => renderRow(item, i === adminItems.length - 1, i + accountItems.length + 100))}
+            </div>
+          </>
+        )}
 
         {/* ── Separator ───────────────────────────────────────────── */}
         <div style={{ height: '8px', backgroundColor: '#111', ...entrance('160ms') }} />

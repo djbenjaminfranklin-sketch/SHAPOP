@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { showToast } from '../lib/toast'
+import { supabase } from '../lib/supabase'
 
 const _t = (fr: string, en: string, he: string, es: string) => {
   const l = getLang()
@@ -17,8 +18,9 @@ export default function StoreIntroVideo() {
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  const [recordedChunks, setRecordedChunks] = useState<Blob[]>([])
+  const [_recordedChunks, setRecordedChunks] = useState<Blob[]>([])
   const [mode, setMode] = useState<'choose' | 'record' | 'upload' | 'preview'>('choose')
+  const [saving, setSaving] = useState(false)
   const [duration, setDuration] = useState(0)
   const timerRef = useRef<ReturnType<typeof setInterval>>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -138,7 +140,48 @@ export default function StoreIntroVideo() {
 
   const handleSave = async () => {
     if (!videoFile || !user) return
-    showToast(_t('Video sauvegardee !', 'Video saved!', '!הסרטון נשמר', '¡Video guardado!'))
+    setSaving(true)
+
+    try {
+      // Upload video to Supabase storage
+      const fileExt = videoFile.name.split('.').pop() || 'webm'
+      const filePath = `${user.id}/store-intro-${Date.now()}.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, videoFile, { upsert: true })
+
+      if (uploadError) {
+        showToast(_t("Erreur lors de l'upload de la video. Reessayez.", 'Error uploading video. Please try again.', '.שגיאה בהעלאת הסרטון. נסה שוב', 'Error al subir el video. Intentalo de nuevo.'), 'error')
+        setSaving(false)
+        return
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('videos')
+        .getPublicUrl(filePath)
+
+      const videoUrl = urlData.publicUrl
+
+      // Update sellers table
+      const { error: updateError } = await supabase
+        .from('sellers')
+        .update({ store_intro_video_url: videoUrl })
+        .eq('id', user.id)
+
+      if (updateError) {
+        showToast(_t('Erreur lors de la sauvegarde. Reessayez.', 'Error saving video. Please try again.', '.שגיאה בשמירת הסרטון. נסה שוב', 'Error al guardar el video. Intentalo de nuevo.'), 'error')
+        setSaving(false)
+        return
+      }
+
+      showToast(_t('Video sauvegardee !', 'Video saved!', '!הסרטון נשמר', '¡Video guardado!'))
+    } catch {
+      showToast(_t('Erreur inattendue. Reessayez.', 'Unexpected error. Please try again.', '.שגיאה בלתי צפויה. נסה שוב', 'Error inesperado. Intentalo de nuevo.'), 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -257,9 +300,12 @@ export default function StoreIntroVideo() {
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 bg-gradient-to-r from-pink-500 to-orange-400 text-white py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-orange-500 transition-colors"
+                disabled={saving}
+                className={`flex-1 bg-gradient-to-r from-pink-500 to-orange-400 text-white py-3 rounded-xl font-semibold transition-colors ${saving ? 'opacity-60 cursor-not-allowed' : 'hover:from-pink-600 hover:to-orange-500'}`}
               >
-                {_t('Utiliser cette video', 'Use this video', 'השתמש בסרטון הזה', 'Usar este video')}
+                {saving
+                  ? _t('Sauvegarde...', 'Saving...', '...שומר', 'Guardando...')
+                  : _t('Utiliser cette video', 'Use this video', 'השתמש בסרטון הזה', 'Usar este video')}
               </button>
             </div>
           </div>

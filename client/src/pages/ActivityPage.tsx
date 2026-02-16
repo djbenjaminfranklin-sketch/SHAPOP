@@ -1,290 +1,426 @@
-import { useState, useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang, t } from '../lib/i18n'
-import type { TranslationKey } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
+import { getLang } from '../lib/i18n'
+import type { Order, Item } from '../types/database'
 
-type MainTab = 'purchases' | 'auctions' | 'offers' | 'saved' | 'messages'
+type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
 
-interface DemoOrder {
-  id: string
-  title: string
-  price: number
-  seller: string
-  status: 'en_cours' | 'expedie' | 'livre' | 'annule'
-  date: string
-  image: string
+interface PurchaseOrder extends Order {
+  item?: Pick<Item, 'title' | 'image_urls' | 'category'>
 }
 
-interface DemoBid {
-  id: string
-  title: string
-  yourBid: number
-  highestBid: number
-  status: 'gagne' | 'perdu' | 'en_cours'
-  image: string
+interface SaleOrder extends Order {
+  item?: Pick<Item, 'title' | 'image_urls' | 'category'>
+  buyer_profile?: { display_name: string; username: string }
 }
-
-interface DemoOffer {
-  id: string
-  title: string
-  yourOffer: number
-  status: 'en_attente' | 'acceptee' | 'refusee' | 'contre_offre'
-  counterAmount?: number
-  image: string
-}
-
-interface DemoSaved {
-  id: string
-  title: string
-  price?: number
-  isLive: boolean
-  image: string
-  saved: boolean
-}
-
-interface DemoMessage {
-  id: string
-  username: string
-  avatar: string
-  lastMessage: string
-  timestamp: string
-  unread: number
-}
-
-const demoOrders: DemoOrder[] = []
-const demoBids: DemoBid[] = []
-const demoOffers: DemoOffer[] = []
-const demoSaved: DemoSaved[] = []
-const demoMessages: DemoMessage[] = []
 
 export default function ActivityPage() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const lang = getLang()
   const location = useLocation()
+  const navigate = useNavigate()
   const initialTab = (location.state as { tab?: MainTab })?.tab || 'purchases'
 
   const [mainTab, setMainTab] = useState<MainTab>(initialTab)
   const [subFilter, setSubFilter] = useState<SubFilter>('all')
   const [mounted, setMounted] = useState(false)
-  const [savedItems, setSavedItems] = useState(demoSaved)
+
+  // Data states
+  const [purchases, setPurchases] = useState<PurchaseOrder[]>([])
+  const [sales, setSales] = useState<SaleOrder[]>([])
+  const [loadingPurchases, setLoadingPurchases] = useState(false)
+  const [loadingSales, setLoadingSales] = useState(false)
+  const [errorPurchases, setErrorPurchases] = useState<string | null>(null)
+  const [errorSales, setErrorSales] = useState<string | null>(null)
+
+  // Shipping modal states (seller)
+  const [shippingOrderId, setShippingOrderId] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [trackingNumber, setTrackingNumber] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [shipError, setShipError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Proof viewer modal (buyer)
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(null)
+
+  // Confirm delivery loading
+  const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
+
+  // Fetch purchases (orders where user is buyer)
+  const fetchPurchases = useCallback(async () => {
+    if (!user) return
+    setLoadingPurchases(true)
+    setErrorPurchases(null)
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, item:items(title, image_urls, category)')
+        .eq('buyer_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setPurchases((data as PurchaseOrder[]) || [])
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorPurchases(message)
+    } finally {
+      setLoadingPurchases(false)
+    }
+  }, [user])
+
+  // Fetch sales (orders where user is seller)
+  const fetchSales = useCallback(async () => {
+    if (!user || !profile?.is_seller) return
+    setLoadingSales(true)
+    setErrorSales(null)
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, item:items(title, image_urls, category), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username)')
+        .eq('seller_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setSales((data as SaleOrder[]) || [])
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setErrorSales(message)
+    } finally {
+      setLoadingSales(false)
+    }
+  }, [user, profile?.is_seller])
+
+  // Fetch data on mount and when tab changes
+  useEffect(() => {
+    if (mainTab === 'purchases') {
+      fetchPurchases()
+    } else if (mainTab === 'sales') {
+      fetchSales()
+    }
+  }, [mainTab, fetchPurchases, fetchSales])
+
+  // Upload shipping proof and mark order as shipped
+  const handleShipOrder = async () => {
+    if (!selectedFile || !shippingOrderId) return
+    setUploading(true)
+    setShipError(null)
+
+    try {
+      // Upload photo to Supabase Storage
+      const filePath = `shipping-proofs/${shippingOrderId}_${Date.now()}.jpg`
+      const { error: uploadError } = await supabase.storage
+        .from('shipping-proofs')
+        .upload(filePath, selectedFile)
+
+      if (uploadError) throw new Error(uploadError.message)
+
+      const { data: urlData } = supabase.storage
+        .from('shipping-proofs')
+        .getPublicUrl(filePath)
+
+      const shipping_proof_url = urlData.publicUrl
+
+      // Call API endpoint
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Not authenticated')
+
+      const res = await apiFetch(`/api/orders/${shippingOrderId}/ship`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          shipping_proof_url,
+          ...(trackingNumber.trim() ? { tracking_number: trackingNumber.trim() } : {}),
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to ship order')
+      }
+
+      // Reset and refresh
+      setShippingOrderId(null)
+      setSelectedFile(null)
+      setTrackingNumber('')
+      fetchSales()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setShipError(message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // Confirm delivery (buyer)
+  const handleConfirmDelivery = async (orderId: string) => {
+    setConfirmingDelivery(orderId)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const res = await apiFetch(`/api/orders/${orderId}/confirm-delivery`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to confirm delivery')
+      }
+
+      fetchPurchases()
+    } catch (err) {
+      console.error('Confirm delivery error:', err)
+    } finally {
+      setConfirmingDelivery(null)
+    }
+  }
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const txt = {
     fr: {
       title: 'Activite',
-      referralTitle: 'Invite tes amis et gagne 10\u20AC',
-      referralCta: 'Partager',
+      purchasesTab: 'Achats',
+      salesTab: 'Ventes',
+      followingTab: 'Suivis',
+      messagesTab: 'Messages',
+      favoritesTab: 'Favoris',
       emptyPurchases: 'Aucun achat pour le moment',
       emptyPurchasesDesc: 'Les articles que tu achetes apparaitront ici',
-      emptyAuctions: 'Aucune enchere pour le moment',
-      emptyAuctionsDesc: 'Ton historique d\'encheres apparaitra ici',
-      emptyOffers: 'Aucune offre pour le moment',
-      emptyOffersDesc: 'Les offres que tu fais apparaitront ici',
-      emptySaved: 'Rien de sauvegarde',
-      emptySavedDesc: 'Les articles et lives sauvegardes apparaitront ici',
-      emptyMessages: 'Aucun message',
-      emptyMessagesDesc: 'Tes conversations avec les vendeurs apparaitront ici',
-      statusEnCours: 'En cours',
-      statusExpedie: 'Expedie',
-      statusLivre: 'Livre',
-      statusAnnule: 'Annule',
-      bidGagne: 'Gagne',
-      bidPerdu: 'Perdu',
-      bidEnCours: 'En cours',
-      yourBid: 'Ton enchere',
-      highestBid: 'Enchere max',
-      offerEnAttente: 'En attente',
-      offerAcceptee: 'Acceptee',
-      offerRefusee: 'Refusee',
-      offerContreOffre: 'Contre-offre',
-      yourOffer: 'Ton offre',
-      counterOffer: 'Contre-offre',
-      messagesTab: 'Messages',
-      live: 'LIVE',
+      emptySales: 'Aucune vente pour le moment',
+      emptySalesDesc: 'Les articles que tu vends apparaitront ici',
+      notSeller: 'Tu n\'es pas encore vendeur',
+      notSellerDesc: 'Deviens vendeur pour voir tes ventes ici',
+      comingSoon: 'Bientot disponible',
+      comingSoonFollowing: 'Le suivi de tes vendeurs preferes arrive bientot',
+      comingSoonMessages: 'La messagerie directe arrive bientot',
+      comingSoonFavorites: 'Les favoris arrivent bientot',
+      statusPendingPayment: 'En attente',
+      statusPaid: 'Paye',
+      statusShipped: 'Expedie',
+      statusDelivered: 'Livre',
+      statusRefunded: 'Rembourse',
+      statusDisputed: 'Litige',
+      buyer: 'Acheteur',
+      loading: 'Chargement...',
+      error: 'Erreur de chargement',
+      retry: 'Reessayer',
+      shipOrder: 'Expedier',
+      shipTitle: 'Confirmer l\'expedition',
+      addPhoto: 'Ajouter une photo',
+      trackingNumber: 'Numero de suivi (optionnel)',
+      confirmShipment: 'Confirmer l\'envoi',
+      uploading: 'Envoi en cours...',
+      shippedOn: 'Expedie le',
+      viewProof: 'Voir la preuve',
+      confirmDelivery: 'Confirmer la reception',
+      deliveredOn: 'Livre le',
+      photoRequired: 'La photo est obligatoire',
     },
     en: {
       title: 'Activity',
-      referralTitle: 'Invite friends and earn $10',
-      referralCta: 'Share',
+      purchasesTab: 'Purchases',
+      salesTab: 'Sales',
+      followingTab: 'Following',
+      messagesTab: 'Messages',
+      favoritesTab: 'Favorites',
       emptyPurchases: 'No purchases yet',
       emptyPurchasesDesc: 'Items you buy will appear here',
-      emptyAuctions: 'No auctions yet',
-      emptyAuctionsDesc: 'Your bid history will appear here',
-      emptyOffers: 'No offers yet',
-      emptyOffersDesc: 'Offers you make will appear here',
-      emptySaved: 'Nothing saved',
-      emptySavedDesc: 'Saved items and lives will appear here',
-      emptyMessages: 'No messages',
-      emptyMessagesDesc: 'Your conversations with sellers will appear here',
-      statusEnCours: 'In progress',
-      statusExpedie: 'Shipped',
-      statusLivre: 'Delivered',
-      statusAnnule: 'Cancelled',
-      bidGagne: 'Won',
-      bidPerdu: 'Lost',
-      bidEnCours: 'Active',
-      yourBid: 'Your bid',
-      highestBid: 'Highest bid',
-      offerEnAttente: 'Pending',
-      offerAcceptee: 'Accepted',
-      offerRefusee: 'Declined',
-      offerContreOffre: 'Counter-offer',
-      yourOffer: 'Your offer',
-      counterOffer: 'Counter-offer',
-      messagesTab: 'Messages',
-      live: 'LIVE',
+      emptySales: 'No sales yet',
+      emptySalesDesc: 'Items you sell will appear here',
+      notSeller: 'You are not a seller yet',
+      notSellerDesc: 'Become a seller to see your sales here',
+      comingSoon: 'Coming soon',
+      comingSoonFollowing: 'Follow your favorite sellers soon',
+      comingSoonMessages: 'Direct messaging is coming soon',
+      comingSoonFavorites: 'Favorites are coming soon',
+      statusPendingPayment: 'Pending',
+      statusPaid: 'Paid',
+      statusShipped: 'Shipped',
+      statusDelivered: 'Delivered',
+      statusRefunded: 'Refunded',
+      statusDisputed: 'Disputed',
+      buyer: 'Buyer',
+      loading: 'Loading...',
+      error: 'Loading error',
+      retry: 'Retry',
+      shipOrder: 'Ship',
+      shipTitle: 'Confirm Shipment',
+      addPhoto: 'Add a photo',
+      trackingNumber: 'Tracking number (optional)',
+      confirmShipment: 'Confirm Shipment',
+      uploading: 'Uploading...',
+      shippedOn: 'Shipped on',
+      viewProof: 'View proof',
+      confirmDelivery: 'Confirm delivery',
+      deliveredOn: 'Delivered on',
+      photoRequired: 'Photo is required',
     },
     he: {
       title: '\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA',
-      referralTitle: '\u05D4\u05D6\u05DE\u05DF \u05D7\u05D1\u05E8\u05D9\u05DD \u05D5\u05D4\u05E8\u05D5\u05D5\u05D7 10$',
-      referralCta: '\u05E9\u05EA\u05E3',
+      purchasesTab: '\u05E8\u05DB\u05D9\u05E9\u05D5\u05EA',
+      salesTab: '\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA',
+      followingTab: '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD',
+      messagesTab: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
+      favoritesTab: '\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD',
       emptyPurchases: '\u05D0\u05D9\u05DF \u05E8\u05DB\u05D9\u05E9\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
       emptyPurchasesDesc: '\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05EA\u05E7\u05E0\u05D4 \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
-      emptyAuctions: '\u05D0\u05D9\u05DF \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
-      emptyAuctionsDesc: '\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D9\u05EA \u05D4\u05D4\u05E6\u05E2\u05D5\u05EA \u05E9\u05DC\u05DA \u05EA\u05D5\u05E4\u05D9\u05E2 \u05DB\u05D0\u05DF',
-      emptyOffers: '\u05D0\u05D9\u05DF \u05D4\u05E6\u05E2\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
-      emptyOffersDesc: '\u05D4\u05E6\u05E2\u05D5\u05EA \u05E9\u05EA\u05E2\u05E9\u05D4 \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
-      emptySaved: '\u05D0\u05D9\u05DF \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05DE\u05D5\u05E8\u05D9\u05DD',
-      emptySavedDesc: '\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05E9\u05DE\u05E8\u05EA \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
-      emptyMessages: '\u05D0\u05D9\u05DF \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
-      emptyMessagesDesc: '\u05E9\u05D9\u05D7\u05D5\u05EA \u05E2\u05DD \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
-      statusEnCours: '\u05D1\u05EA\u05D4\u05DC\u05D9\u05DA',
-      statusExpedie: '\u05E0\u05E9\u05DC\u05D7',
-      statusLivre: '\u05E0\u05DE\u05E1\u05E8',
-      statusAnnule: '\u05D1\u05D5\u05D8\u05DC',
-      bidGagne: '\u05E0\u05D9\u05E6\u05D7',
-      bidPerdu: '\u05D4\u05E4\u05E1\u05D3',
-      bidEnCours: '\u05E4\u05E2\u05D9\u05DC',
-      yourBid: '\u05D4\u05D4\u05E6\u05E2\u05D4 \u05E9\u05DC\u05DA',
-      highestBid: '\u05D4\u05E6\u05E2\u05D4 \u05D2\u05D1\u05D5\u05D4\u05D4',
-      offerEnAttente: '\u05DE\u05DE\u05EA\u05D9\u05DF',
-      offerAcceptee: '\u05D0\u05D5\u05E9\u05E8',
-      offerRefusee: '\u05E0\u05D3\u05D7\u05D4',
-      offerContreOffre: '\u05D4\u05E6\u05E2\u05D4 \u05E0\u05D2\u05D3\u05D9\u05EA',
-      yourOffer: '\u05D4\u05D4\u05E6\u05E2\u05D4 \u05E9\u05DC\u05DA',
-      counterOffer: '\u05D4\u05E6\u05E2\u05D4 \u05E0\u05D2\u05D3\u05D9\u05EA',
-      messagesTab: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
-      live: 'LIVE',
+      emptySales: '\u05D0\u05D9\u05DF \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
+      emptySalesDesc: '\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05EA\u05DE\u05DB\u05D5\u05E8 \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
+      notSeller: '\u05D0\u05EA\u05D4 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05DE\u05D5\u05DB\u05E8',
+      notSellerDesc: '\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC\u05DA',
+      comingSoon: '\u05D1\u05E7\u05E8\u05D5\u05D1',
+      comingSoonFollowing: '\u05DE\u05E2\u05E7\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD \u05D1\u05E7\u05E8\u05D5\u05D1',
+      comingSoonMessages: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05E7\u05E8\u05D5\u05D1',
+      comingSoonFavorites: '\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD \u05D1\u05E7\u05E8\u05D5\u05D1',
+      statusPendingPayment: '\u05DE\u05DE\u05EA\u05D9\u05DF',
+      statusPaid: '\u05E9\u05D5\u05DC\u05DD',
+      statusShipped: '\u05E0\u05E9\u05DC\u05D7',
+      statusDelivered: '\u05E0\u05DE\u05E1\u05E8',
+      statusRefunded: '\u05D4\u05D5\u05D7\u05D6\u05E8',
+      statusDisputed: '\u05D1\u05DE\u05D7\u05DC\u05D5\u05E7\u05EA',
+      buyer: '\u05E7\u05D5\u05E0\u05D4',
+      loading: '\u05D8\u05D5\u05E2\u05DF...',
+      error: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05D8\u05E2\u05D9\u05E0\u05D4',
+      retry: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
+      shipOrder: '\u05DC\u05E9\u05DC\u05D5\u05D7',
+      shipTitle: '\u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7',
+      addPhoto: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D4',
+      trackingNumber: '\u05DE\u05E1\u05E4\u05E8 \u05DE\u05E2\u05E7\u05D1 (\u05D0\u05D5\u05E4\u05E6\u05D9\u05D5\u05E0\u05DC\u05D9)',
+      confirmShipment: '\u05D0\u05E9\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7',
+      uploading: '\u05E9\u05D5\u05DC\u05D7...',
+      shippedOn: '\u05E0\u05E9\u05DC\u05D7 \u05D1',
+      viewProof: '\u05E6\u05E4\u05D4 \u05D1\u05D4\u05D5\u05DB\u05D7\u05D4',
+      confirmDelivery: '\u05D0\u05E9\u05E8 \u05E7\u05D1\u05DC\u05D4',
+      deliveredOn: '\u05E0\u05DE\u05E1\u05E8 \u05D1',
+      photoRequired: '\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E0\u05D3\u05E8\u05E9\u05EA',
     },
     es: {
       title: 'Actividad',
-      referralTitle: 'Invita amigos y gana 10$',
-      referralCta: 'Compartir',
+      purchasesTab: 'Compras',
+      salesTab: 'Ventas',
+      followingTab: 'Seguidos',
+      messagesTab: 'Mensajes',
+      favoritesTab: 'Favoritos',
       emptyPurchases: 'Sin compras todavia',
       emptyPurchasesDesc: 'Los articulos que compres apareceran aqui',
-      emptyAuctions: 'Sin subastas todavia',
-      emptyAuctionsDesc: 'Tu historial de pujas aparecera aqui',
-      emptyOffers: 'Sin ofertas todavia',
-      emptyOffersDesc: 'Las ofertas que hagas apareceran aqui',
-      emptySaved: 'Nada guardado',
-      emptySavedDesc: 'Los articulos y lives guardados apareceran aqui',
-      emptyMessages: 'Sin mensajes',
-      emptyMessagesDesc: 'Tus conversaciones con vendedores apareceran aqui',
-      statusEnCours: 'En curso',
-      statusExpedie: 'Enviado',
-      statusLivre: 'Entregado',
-      statusAnnule: 'Cancelado',
-      bidGagne: 'Ganado',
-      bidPerdu: 'Perdido',
-      bidEnCours: 'Activo',
-      yourBid: 'Tu puja',
-      highestBid: 'Puja maxima',
-      offerEnAttente: 'Pendiente',
-      offerAcceptee: 'Aceptada',
-      offerRefusee: 'Rechazada',
-      offerContreOffre: 'Contraoferta',
-      yourOffer: 'Tu oferta',
-      counterOffer: 'Contraoferta',
-      messagesTab: 'Mensajes',
-      live: 'EN VIVO',
+      emptySales: 'Sin ventas todavia',
+      emptySalesDesc: 'Los articulos que vendas apareceran aqui',
+      notSeller: 'Aun no eres vendedor',
+      notSellerDesc: 'Conviertete en vendedor para ver tus ventas aqui',
+      comingSoon: 'Proximamente',
+      comingSoonFollowing: 'Sigue a tus vendedores favoritos pronto',
+      comingSoonMessages: 'Mensajeria directa proximamente',
+      comingSoonFavorites: 'Favoritos proximamente',
+      statusPendingPayment: 'Pendiente',
+      statusPaid: 'Pagado',
+      statusShipped: 'Enviado',
+      statusDelivered: 'Entregado',
+      statusRefunded: 'Reembolsado',
+      statusDisputed: 'En disputa',
+      buyer: 'Comprador',
+      loading: 'Cargando...',
+      error: 'Error de carga',
+      retry: 'Reintentar',
+      shipOrder: 'Enviar',
+      shipTitle: 'Confirmar envio',
+      addPhoto: 'Agregar una foto',
+      trackingNumber: 'Numero de seguimiento (opcional)',
+      confirmShipment: 'Confirmar envio',
+      uploading: 'Enviando...',
+      shippedOn: 'Enviado el',
+      viewProof: 'Ver prueba',
+      confirmDelivery: 'Confirmar recepcion',
+      deliveredOn: 'Entregado el',
+      photoRequired: 'La foto es obligatoria',
     },
   }
 
   const lt = txt[lang as keyof typeof txt] || txt.fr
 
-  const mainTabs: { id: MainTab; labelKey: TranslationKey | null; label?: string; emoji: string }[] = [
-    { id: 'purchases', labelKey: 'purchases_tab', emoji: '\uD83D\uDECD\uFE0F' },
-    { id: 'auctions', labelKey: 'auctions_tab', emoji: '\uD83D\uDD25' },
-    { id: 'offers', labelKey: 'offers_tab', emoji: '\uD83D\uDCB0' },
-    { id: 'saved', labelKey: 'saved_tab', emoji: '\u2764\uFE0F' },
-    { id: 'messages', labelKey: null, label: lt.messagesTab, emoji: '\uD83D\uDCAC' },
+  const mainTabs: { id: MainTab; label: string; emoji: string }[] = [
+    { id: 'purchases', label: lt.purchasesTab, emoji: '\uD83D\uDECD\uFE0F' },
+    { id: 'sales', label: lt.salesTab, emoji: '\uD83D\uDCB0' },
+    { id: 'following', label: lt.followingTab, emoji: '\uD83D\uDC65' },
+    { id: 'messages', label: lt.messagesTab, emoji: '\uD83D\uDCAC' },
+    { id: 'favorites', label: lt.favoritesTab, emoji: '\u2764\uFE0F' },
   ]
 
-  const subFilters: { id: SubFilter; labelKey: TranslationKey }[] = [
-    { id: 'all', labelKey: 'filter_all' },
-    { id: 'active', labelKey: 'filter_active' },
-    { id: 'completed', labelKey: 'filter_completed' },
-    { id: 'refunds', labelKey: 'filter_refunds' },
+  const subFilters: { id: SubFilter; label: string }[] = [
+    { id: 'all', label: { fr: 'Toutes', en: 'All', he: '\u05D4\u05DB\u05DC', es: 'Todas' }[lang] || 'Toutes' },
+    { id: 'active', label: { fr: 'En cours', en: 'Active', he: '\u05E4\u05E2\u05D9\u05DC', es: 'Activas' }[lang] || 'En cours' },
+    { id: 'completed', label: { fr: 'Terminees', en: 'Completed', he: '\u05D4\u05D5\u05E9\u05DC\u05DD', es: 'Finalizadas' }[lang] || 'Terminees' },
+    { id: 'refunds', label: { fr: 'Remboursements', en: 'Refunds', he: '\u05D4\u05D7\u05D6\u05E8\u05D9\u05DD', es: 'Reembolsos' }[lang] || 'Remboursements' },
   ]
 
-  const getOrderStatusColor = (status: DemoOrder['status']) => {
+  const getOrderStatusColor = (status: Order['status']) => {
     switch (status) {
-      case 'en_cours': return '#F59E0B'
-      case 'expedie': return '#3B82F6'
-      case 'livre': return '#10B981'
-      case 'annule': return '#E8344E'
+      case 'pending_payment': return '#F59E0B'
+      case 'paid': return '#3B82F6'
+      case 'shipped': return '#10B981'
+      case 'delivered': return '#10B981'
+      case 'refunded': return '#8B5CF6'
+      case 'disputed': return '#E8344E'
+      default: return '#666'
     }
   }
 
-  const getOrderStatusLabel = (status: DemoOrder['status']) => {
+  const getOrderStatusLabel = (status: Order['status']) => {
     switch (status) {
-      case 'en_cours': return lt.statusEnCours
-      case 'expedie': return lt.statusExpedie
-      case 'livre': return lt.statusLivre
-      case 'annule': return lt.statusAnnule
+      case 'pending_payment': return lt.statusPendingPayment
+      case 'paid': return lt.statusPaid
+      case 'shipped': return lt.statusShipped
+      case 'delivered': return lt.statusDelivered
+      case 'refunded': return lt.statusRefunded
+      case 'disputed': return lt.statusDisputed
+      default: return status
     }
   }
 
-  const getBidStatusColor = (status: DemoBid['status']) => {
-    switch (status) {
-      case 'gagne': return '#10B981'
-      case 'perdu': return '#E8344E'
-      case 'en_cours': return '#F59E0B'
-    }
-  }
-
-  const getBidStatusLabel = (status: DemoBid['status']) => {
-    switch (status) {
-      case 'gagne': return lt.bidGagne
-      case 'perdu': return lt.bidPerdu
-      case 'en_cours': return lt.bidEnCours
-    }
-  }
-
-  const getOfferStatusColor = (status: DemoOffer['status']) => {
-    switch (status) {
-      case 'en_attente': return '#F59E0B'
-      case 'acceptee': return '#10B981'
-      case 'refusee': return '#E8344E'
-      case 'contre_offre': return '#8B5CF6'
-    }
-  }
-
-  const getOfferStatusLabel = (status: DemoOffer['status']) => {
-    switch (status) {
-      case 'en_attente': return lt.offerEnAttente
-      case 'acceptee': return lt.offerAcceptee
-      case 'refusee': return lt.offerRefusee
-      case 'contre_offre': return lt.offerContreOffre
-    }
-  }
-
-  const filterOrders = (items: DemoOrder[]): DemoOrder[] => {
+  const filterOrders = <T extends { status: Order['status'] }>(items: T[]): T[] => {
     switch (subFilter) {
-      case 'active': return items.filter(o => ['en_cours', 'expedie'].includes(o.status))
-      case 'completed': return items.filter(o => o.status === 'livre')
-      case 'refunds': return items.filter(o => o.status === 'annule')
+      case 'active': return items.filter(o => ['pending_payment', 'paid', 'shipped'].includes(o.status))
+      case 'completed': return items.filter(o => o.status === 'delivered')
+      case 'refunds': return items.filter(o => ['refunded', 'disputed'].includes(o.status))
       default: return items
     }
   }
 
-  const toggleSave = (id: string) => {
-    setSavedItems(prev => prev.map(item =>
-      item.id === id ? { ...item, saved: !item.saved } : item
-    ))
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr)
+    return date.toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
+  const formatAmount = (amount: number) => {
+    return amount.toFixed(2) + ' \u20AC'
+  }
+
+  const getItemImage = (item?: Pick<Item, 'image_urls'>) => {
+    if (item?.image_urls && item.image_urls.length > 0) {
+      return item.image_urls[0]
+    }
+    return null
   }
 
   const renderEmpty = (icon: string, title: string, desc: string, gradient: string) => (
@@ -308,278 +444,300 @@ export default function ActivityPage() {
     </div>
   )
 
-  const renderPurchases = () => {
-    const filtered = filterOrders(demoOrders)
-    if (filtered.length === 0) return renderEmpty('\uD83D\uDECD\uFE0F', lt.emptyPurchases, lt.emptyPurchasesDesc, 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)')
+  const renderLoading = () => (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
+    }}>
+      <div style={{
+        width: '32px', height: '32px', border: '3px solid #222',
+        borderTopColor: '#F0908A', borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite', marginBottom: '16px',
+      }} />
+      <p style={{ fontSize: '14px', color: '#666' }}>{lt.loading}</p>
+    </div>
+  )
 
-    return (
-      <div style={{ padding: '0 16px' }}>
-        {filtered.map((order, i) => (
-          <div key={order.id} style={{
-            padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
-            border: '1px solid #1A1A1A', marginBottom: '10px',
-            display: 'flex', alignItems: 'center', gap: '12px',
-            opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
-            transition: `all 0.4s ease ${0.1 + i * 0.05}s`,
-          }}>
-            <img
-              src={order.image}
-              alt={order.title}
-              style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', backgroundColor: '#111' }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {order.title}
-              </p>
-              <p style={{ fontSize: '13px', color: '#aaa', marginBottom: '3px' }}>
-                {order.price.toFixed(2)} \u20AC
-              </p>
-              <p style={{ fontSize: '12px', color: '#555' }}>
-                {order.seller} \u00B7 {order.date}
-              </p>
-            </div>
-            <span style={{
-              fontSize: '11px', fontWeight: 700,
-              color: getOrderStatusColor(order.status),
-              backgroundColor: `${getOrderStatusColor(order.status)}14`,
-              padding: '5px 12px', borderRadius: '10px',
-              border: `1px solid ${getOrderStatusColor(order.status)}30`,
-              whiteSpace: 'nowrap',
-            }}>
-              {getOrderStatusLabel(order.status)}
-            </span>
-          </div>
-        ))}
+  const renderError = (errorMsg: string, onRetry: () => void) => (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
+    }}>
+      <div style={{
+        width: '80px', height: '80px', borderRadius: '50%',
+        background: 'linear-gradient(135deg, #E8344E 0%, #991B1B 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '36px', marginBottom: '20px',
+      }}>
+        !
       </div>
-    )
-  }
+      <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.error}</p>
+      <p style={{ fontSize: '13px', color: '#666', maxWidth: '260px', marginBottom: '16px' }}>{errorMsg}</p>
+      <button
+        onClick={onRetry}
+        style={{
+          padding: '10px 24px', borderRadius: '12px',
+          background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+          border: 'none', color: '#fff', fontSize: '14px',
+          fontWeight: 700, cursor: 'pointer',
+        }}
+      >
+        {lt.retry}
+      </button>
+    </div>
+  )
 
-  const renderAuctions = () => {
-    if (demoBids.length === 0) return renderEmpty('\uD83C\uDFAF', lt.emptyAuctions, lt.emptyAuctionsDesc, 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)')
-
-    return (
-      <div style={{ padding: '0 16px' }}>
-        {demoBids.map((bid, i) => (
-          <div key={bid.id} style={{
-            padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
-            border: '1px solid #1A1A1A', marginBottom: '10px',
-            display: 'flex', alignItems: 'center', gap: '12px',
-            opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
-            transition: `all 0.4s ease ${0.1 + i * 0.05}s`,
-          }}>
-            <img
-              src={bid.image}
-              alt={bid.title}
-              style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', backgroundColor: '#111' }}
-            />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {bid.title}
-              </p>
-              <p style={{ fontSize: '12px', color: '#aaa', marginBottom: '2px' }}>
-                {lt.yourBid}: <span style={{ color: '#F0908A', fontWeight: 600 }}>{bid.yourBid.toFixed(2)} \u20AC</span>
-              </p>
-              <p style={{ fontSize: '12px', color: '#555' }}>
-                {lt.highestBid}: {bid.highestBid.toFixed(2)} \u20AC
-              </p>
-            </div>
-            <span style={{
-              fontSize: '11px', fontWeight: 700,
-              color: getBidStatusColor(bid.status),
-              backgroundColor: `${getBidStatusColor(bid.status)}14`,
-              padding: '5px 12px', borderRadius: '10px',
-              border: `1px solid ${getBidStatusColor(bid.status)}30`,
-              whiteSpace: 'nowrap',
-            }}>
-              {getBidStatusLabel(bid.status)}
-            </span>
-          </div>
-        ))}
+  const renderComingSoon = (icon: string, description: string) => (
+    <div style={{
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
+      opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(15px)',
+      transition: 'all 0.5s ease 0.2s',
+    }}>
+      <div style={{
+        width: '80px', height: '80px', borderRadius: '50%',
+        background: 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '36px', marginBottom: '20px',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+      }}>
+        {icon}
       </div>
-    )
-  }
+      <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.comingSoon}</p>
+      <p style={{ fontSize: '14px', color: '#666', maxWidth: '280px' }}>{description}</p>
+    </div>
+  )
 
-  const renderOffers = () => {
-    if (demoOffers.length === 0) return renderEmpty('\uD83D\uDCB3', lt.emptyOffers, lt.emptyOffersDesc, 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)')
+  const renderOrderCard = (order: PurchaseOrder | SaleOrder, index: number, isSale: boolean) => {
+    const itemImage = getItemImage(order.item)
+    const itemTitle = order.item?.title || `Order #${order.id.slice(0, 8)}`
+    const statusColor = getOrderStatusColor(order.status)
+    const statusLabel = getOrderStatusLabel(order.status)
+    const saleOrder = order as SaleOrder
 
     return (
-      <div style={{ padding: '0 16px' }}>
-        {demoOffers.map((offer, i) => (
-          <div key={offer.id} style={{
-            padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
-            border: '1px solid #1A1A1A', marginBottom: '10px',
-            display: 'flex', alignItems: 'center', gap: '12px',
-            opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
-            transition: `all 0.4s ease ${0.1 + i * 0.05}s`,
-          }}>
+      <div key={order.id} style={{
+        padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
+        border: '1px solid #1A1A1A', marginBottom: '10px',
+        opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
+        transition: `all 0.4s ease ${0.1 + index * 0.05}s`,
+      }}>
+        {/* Main order row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {itemImage ? (
             <img
-              src={offer.image}
-              alt={offer.title}
+              src={itemImage}
+              alt={itemTitle}
               style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', backgroundColor: '#111' }}
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {offer.title}
-              </p>
-              <p style={{ fontSize: '12px', color: '#aaa', marginBottom: '2px' }}>
-                {lt.yourOffer}: <span style={{ color: '#F0908A', fontWeight: 600 }}>{offer.yourOffer.toFixed(2)} \u20AC</span>
-              </p>
-              {offer.status === 'contre_offre' && offer.counterAmount && (
-                <p style={{ fontSize: '12px', color: '#8B5CF6' }}>
-                  {lt.counterOffer}: {offer.counterAmount.toFixed(2)} \u20AC
+          ) : (
+            <div style={{
+              width: '80px', height: '80px', borderRadius: '12px',
+              backgroundColor: '#111', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '28px', flexShrink: 0,
+            }}>
+              {isSale ? '\uD83D\uDCB0' : '\uD83D\uDECD\uFE0F'}
+            </div>
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{
+              fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '3px',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {itemTitle}
+            </p>
+            <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600, marginBottom: '3px' }}>
+              {formatAmount(order.amount)}
+            </p>
+            <p style={{ fontSize: '12px', color: '#555' }}>
+              {isSale && saleOrder.buyer_profile
+                ? `${lt.buyer}: ${saleOrder.buyer_profile.display_name} \u00B7 `
+                : ''
+              }
+              {formatDate(order.created_at)}
+            </p>
+          </div>
+          <span style={{
+            fontSize: '11px', fontWeight: 700,
+            color: statusColor,
+            backgroundColor: `${statusColor}14`,
+            padding: '5px 12px', borderRadius: '10px',
+            border: `1px solid ${statusColor}30`,
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            {statusLabel}
+          </span>
+        </div>
+
+        {/* Seller: "Ship" button for paid orders */}
+        {isSale && order.status === 'paid' && (
+          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => { setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null) }}
+              style={{
+                padding: '8px 18px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                border: 'none', color: '#fff', fontSize: '13px',
+                fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              {lt.shipOrder}
+            </button>
+          </div>
+        )}
+
+        {/* Seller: shipped order — show proof thumbnail + tracking */}
+        {isSale && order.status === 'shipped' && order.shipping_proof_url && (
+          <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <img
+              src={order.shipping_proof_url}
+              alt="Shipping proof"
+              onClick={() => setProofImageUrl(order.shipping_proof_url)}
+              style={{
+                width: '48px', height: '48px', borderRadius: '8px',
+                objectFit: 'cover', cursor: 'pointer', border: '1px solid #333',
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              {order.shipped_at && (
+                <p style={{ fontSize: '12px', color: '#10B981', margin: 0 }}>
+                  {lt.shippedOn} {formatDate(order.shipped_at)}
+                </p>
+              )}
+              {order.tracking_number && (
+                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                  # {order.tracking_number}
                 </p>
               )}
             </div>
-            <span style={{
-              fontSize: '11px', fontWeight: 700,
-              color: getOfferStatusColor(offer.status),
-              backgroundColor: `${getOfferStatusColor(offer.status)}14`,
-              padding: '5px 12px', borderRadius: '10px',
-              border: `1px solid ${getOfferStatusColor(offer.status)}30`,
-              whiteSpace: 'nowrap',
-            }}>
-              {getOfferStatusLabel(offer.status)}
-            </span>
           </div>
-        ))}
-      </div>
-    )
-  }
+        )}
 
-  const renderSaved = () => {
-    const active = savedItems.filter(s => s.saved)
-    if (active.length === 0) return renderEmpty('\uD83D\uDD16', lt.emptySaved, lt.emptySavedDesc, 'linear-gradient(135deg, #EC4899 0%, #BE185D 100%)')
-
-    return (
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
-        padding: '0 16px',
-      }}>
-        {active.map((item, i) => (
-          <div key={item.id} style={{
-            backgroundColor: '#0D0D0D', borderRadius: '14px',
-            border: '1px solid #1A1A1A', overflow: 'hidden',
-            position: 'relative',
-            opacity: mounted ? 1 : 0, transform: mounted ? 'scale(1)' : 'scale(0.95)',
-            transition: `all 0.4s ease ${0.1 + i * 0.06}s`,
-          }}>
-            <div style={{ position: 'relative' }}>
-              <img
-                src={item.image}
-                alt={item.title}
-                style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', backgroundColor: '#111' }}
-              />
-              {item.isLive && (
-                <span style={{
-                  position: 'absolute', top: '8px', left: '8px',
-                  backgroundColor: '#E8344E', color: '#fff',
-                  fontSize: '10px', fontWeight: 800, padding: '3px 8px',
-                  borderRadius: '6px', letterSpacing: '0.5px',
-                }}>
-                  {lt.live}
-                </span>
+        {/* Buyer: shipped order — view proof + confirm delivery */}
+        {!isSale && order.status === 'shipped' && (
+          <div style={{ marginTop: '10px' }}>
+            {order.shipped_at && (
+              <p style={{ fontSize: '12px', color: '#10B981', margin: '0 0 8px' }}>
+                {lt.shippedOn} {formatDate(order.shipped_at)}
+              </p>
+            )}
+            {order.tracking_number && (
+              <p style={{ fontSize: '11px', color: '#888', margin: '0 0 8px' }}>
+                # {order.tracking_number}
+              </p>
+            )}
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {order.shipping_proof_url && (
+                <button
+                  onClick={() => setProofImageUrl(order.shipping_proof_url)}
+                  style={{
+                    padding: '7px 14px', borderRadius: '8px',
+                    background: 'transparent', border: '1px solid #333',
+                    color: '#aaa', fontSize: '12px', fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {lt.viewProof}
+                </button>
               )}
               <button
-                onClick={() => toggleSave(item.id)}
+                onClick={() => handleConfirmDelivery(order.id)}
+                disabled={confirmingDelivery === order.id}
                 style={{
-                  position: 'absolute', top: '8px', right: '8px',
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  backgroundColor: 'rgba(0,0,0,0.6)', border: 'none',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', fontSize: '16px',
+                  padding: '7px 14px', borderRadius: '8px',
+                  background: 'linear-gradient(135deg, #10B981, #059669)',
+                  border: 'none', color: '#fff', fontSize: '12px',
+                  fontWeight: 700, cursor: 'pointer',
+                  opacity: confirmingDelivery === order.id ? 0.6 : 1,
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="#E8344E" stroke="#E8344E" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
+                {confirmingDelivery === order.id ? lt.uploading : lt.confirmDelivery}
               </button>
             </div>
-            <div style={{ padding: '10px 12px' }}>
-              <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {item.title}
-              </p>
-              {item.price ? (
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
-                  {item.price.toFixed(2)} \u20AC
-                </p>
-              ) : (
-                <p style={{ fontSize: '12px', color: '#E8344E', fontWeight: 700 }}>
-                  \u25CF {lt.live}
-                </p>
-              )}
-            </div>
           </div>
-        ))}
+        )}
+
+        {/* Buyer: delivered order — show delivery date */}
+        {!isSale && order.status === 'delivered' && order.delivered_at && (
+          <div style={{ marginTop: '8px' }}>
+            <p style={{ fontSize: '12px', color: '#10B981', margin: 0 }}>
+              {lt.deliveredOn} {formatDate(order.delivered_at)}
+            </p>
+          </div>
+        )}
       </div>
     )
   }
 
-  const renderMessages = () => {
-    if (demoMessages.length === 0) return renderEmpty('\uD83D\uDCAC', lt.emptyMessages, lt.emptyMessagesDesc, 'linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)')
+  const renderPurchases = () => {
+    if (loadingPurchases) return renderLoading()
+    if (errorPurchases) return renderError(errorPurchases, fetchPurchases)
+
+    const filtered = filterOrders(purchases)
+    if (filtered.length === 0) {
+      return renderEmpty(
+        '\uD83D\uDECD\uFE0F',
+        lt.emptyPurchases,
+        lt.emptyPurchasesDesc,
+        'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+      )
+    }
 
     return (
       <div style={{ padding: '0 16px' }}>
-        {demoMessages.map((msg, i) => (
-          <div key={msg.id} style={{
-            padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
-            border: '1px solid #1A1A1A', marginBottom: '10px',
-            display: 'flex', alignItems: 'center', gap: '12px',
-            cursor: 'pointer',
-            opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
-            transition: `all 0.4s ease ${0.1 + i * 0.05}s`,
-          }}>
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '16px', fontWeight: 800, color: '#fff', flexShrink: 0,
-            }}>
-              {msg.avatar}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
-                  {msg.username}
-                </p>
-                <span style={{ fontSize: '11px', color: '#555', flexShrink: 0 }}>
-                  {msg.timestamp}
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <p style={{ fontSize: '13px', color: '#777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '8px' }}>
-                  {msg.lastMessage}
-                </p>
-                {msg.unread > 0 && (
-                  <span style={{
-                    minWidth: '20px', height: '20px', borderRadius: '10px',
-                    backgroundColor: '#E8344E', color: '#fff',
-                    fontSize: '11px', fontWeight: 700,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    padding: '0 6px', flexShrink: 0,
-                  }}>
-                    {msg.unread}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+        {filtered.map((order, i) => renderOrderCard(order, i, false))}
       </div>
     )
   }
+
+  const renderSales = () => {
+    if (!profile?.is_seller) {
+      return renderEmpty(
+        '\uD83D\uDCB0',
+        lt.notSeller,
+        lt.notSellerDesc,
+        'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+      )
+    }
+
+    if (loadingSales) return renderLoading()
+    if (errorSales) return renderError(errorSales, fetchSales)
+
+    const filtered = filterOrders(sales)
+    if (filtered.length === 0) {
+      return renderEmpty(
+        '\uD83D\uDCB0',
+        lt.emptySales,
+        lt.emptySalesDesc,
+        'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+      )
+    }
+
+    return (
+      <div style={{ padding: '0 16px' }}>
+        {filtered.map((order, i) => renderOrderCard(order, i, true))}
+      </div>
+    )
+  }
+
+  const renderFollowing = () => renderComingSoon('\uD83D\uDC65', lt.comingSoonFollowing)
+  const renderMessages = () => renderComingSoon('\uD83D\uDCAC', lt.comingSoonMessages)
+  const renderFavorites = () => renderComingSoon('\u2764\uFE0F', lt.comingSoonFavorites)
 
   const renderContent = () => {
     switch (mainTab) {
       case 'purchases': return renderPurchases()
-      case 'auctions': return renderAuctions()
-      case 'offers': return renderOffers()
-      case 'saved': return renderSaved()
+      case 'sales': return renderSales()
+      case 'following': return renderFollowing()
       case 'messages': return renderMessages()
+      case 'favorites': return renderFavorites()
     }
   }
 
+  const showSubFilters = mainTab === 'purchases' || mainTab === 'sales'
+
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '100px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {/* Header */}
         <div style={{
@@ -593,35 +751,6 @@ export default function ActivityPage() {
           }}>
             {lt.title}
           </h1>
-        </div>
-
-        {/* Referral banner */}
-        <div style={{
-          margin: '16px 16px 0', padding: '14px 16px', borderRadius: '14px',
-          background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          opacity: mounted ? 1 : 0,
-          transition: 'all 0.5s ease 0.15s',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <path d="M16 6H8a4 4 0 0 1 0-8h0a4 4 0 0 1 4 4 4 4 0 0 1 4-4h0a4 4 0 0 1 0 8" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <line x1="12" y1="2" x2="12" y2="22" />
-            </svg>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
-              {lt.referralTitle}
-            </span>
-          </div>
-          <button style={{
-            padding: '8px 16px', borderRadius: '10px',
-            backgroundColor: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-            color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-            backdropFilter: 'blur(4px)',
-          }}>
-            {lt.referralCta}
-          </button>
         </div>
 
         {/* Main tabs */}
@@ -652,21 +781,14 @@ export default function ActivityPage() {
                 fontWeight: mainTab === tab.id ? 700 : 500,
                 color: mainTab === tab.id ? '#F0908A' : '#666',
               }}>
-                {tab.labelKey ? t(lang, tab.labelKey) : tab.label}
+                {tab.label}
               </span>
-              {tab.id === 'messages' && demoMessages.reduce((sum, m) => sum + m.unread, 0) > 0 && (
-                <span style={{
-                  width: '8px', height: '8px', borderRadius: '50%',
-                  backgroundColor: '#E8344E', position: 'absolute',
-                  top: '8px', right: '8px',
-                }} />
-              )}
             </button>
           ))}
         </div>
 
-        {/* Sub-filters (not shown for messages and saved tabs) */}
-        {mainTab !== 'messages' && mainTab !== 'saved' && (
+        {/* Sub-filters (only for purchases and sales) */}
+        {showSubFilters && (
           <div style={{
             display: 'flex', gap: '8px', padding: '4px 16px 16px',
             overflowX: 'auto',
@@ -683,7 +805,7 @@ export default function ActivityPage() {
                   fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                 }}
               >
-                {t(lang, filter.labelKey)}
+                {filter.label}
               </button>
             ))}
           </div>
@@ -692,6 +814,167 @@ export default function ActivityPage() {
         {/* Content */}
         {renderContent()}
       </div>
+
+      {/* Shipping modal (seller uploads proof) */}
+      {shippingOrderId && (
+        <div
+          onClick={() => setShippingOrderId(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#111', borderRadius: '20px',
+              padding: '24px', width: '100%', maxWidth: '380px',
+              border: '1px solid #222',
+            }}
+          >
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>
+              {lt.shipTitle}
+            </h3>
+
+            {/* File input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={e => { setSelectedFile(e.target.files?.[0] || null); setShipError(null) }}
+              style={{ display: 'none' }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                border: selectedFile ? '2px solid #10B981' : '2px dashed #333',
+                backgroundColor: '#0A0A0A', color: selectedFile ? '#10B981' : '#666',
+                fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                marginBottom: '12px', textAlign: 'center',
+              }}
+            >
+              {selectedFile ? selectedFile.name : lt.addPhoto}
+            </button>
+
+            {/* Preview */}
+            {selectedFile && (
+              <div style={{ marginBottom: '12px', textAlign: 'center' }}>
+                <img
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="Preview"
+                  style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '10px', objectFit: 'contain' }}
+                />
+              </div>
+            )}
+
+            {/* Tracking number */}
+            <input
+              type="text"
+              value={trackingNumber}
+              onChange={e => setTrackingNumber(e.target.value)}
+              placeholder={lt.trackingNumber}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px',
+                border: '1px solid #222', backgroundColor: '#0A0A0A',
+                color: '#fff', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box',
+              }}
+            />
+
+            {/* Error */}
+            {shipError && (
+              <p style={{ color: '#E8344E', fontSize: '13px', margin: '0 0 12px', textAlign: 'center' }}>
+                {shipError}
+              </p>
+            )}
+
+            {/* Submit */}
+            <button
+              onClick={() => {
+                if (!selectedFile) {
+                  setShipError(lt.photoRequired)
+                  return
+                }
+                handleShipOrder()
+              }}
+              disabled={uploading}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: uploading
+                  ? '#333'
+                  : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                border: 'none', color: '#fff', fontSize: '15px',
+                fontWeight: 700, cursor: uploading ? 'default' : 'pointer',
+              }}
+            >
+              {uploading ? (
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <span style={{
+                    width: '16px', height: '16px', border: '2px solid #666',
+                    borderTopColor: '#fff', borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite', display: 'inline-block',
+                  }} />
+                  {lt.uploading}
+                </span>
+              ) : lt.confirmShipment}
+            </button>
+
+            {/* Cancel */}
+            <button
+              onClick={() => setShippingOrderId(null)}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px',
+                background: 'transparent', border: 'none',
+                color: '#666', fontSize: '14px', cursor: 'pointer',
+                marginTop: '8px',
+              }}
+            >
+              {lt.retry === 'Reessayer' ? 'Annuler' : lang === 'en' ? 'Cancel' : lang === 'he' ? '\u05D1\u05D9\u05D8\u05D5\u05DC' : 'Cancelar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Proof image full-screen viewer */}
+      {proofImageUrl && (
+        <div
+          onClick={() => setProofImageUrl(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 10000,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setProofImageUrl(null)}
+            style={{
+              position: 'absolute', top: '20px', right: '20px',
+              width: '40px', height: '40px', borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.15)', border: 'none',
+              color: '#fff', fontSize: '20px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10001,
+            }}
+          >
+            X
+          </button>
+          <img
+            src={proofImageUrl}
+            alt="Shipping proof"
+            onClick={e => e.stopPropagation()}
+            style={{
+              maxWidth: '100%', maxHeight: '90vh',
+              objectFit: 'contain', borderRadius: '12px',
+            }}
+          />
+        </div>
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>

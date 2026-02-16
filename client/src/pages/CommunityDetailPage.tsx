@@ -8,6 +8,15 @@ import { useAuth } from '../contexts/AuthContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
+interface RecentStream {
+  id: string
+  title: string
+  status: 'scheduled' | 'live' | 'ended'
+  seller_name: string
+  viewer_count: number
+  created_at: string
+}
+
 const detailContent = {
   fr: {
     members: 'Membres',
@@ -19,12 +28,12 @@ const detailContent = {
     live: 'EN DIRECT',
     popularMembers: 'Membres populaires',
     recentActivity: 'Activite recente',
-    activities: [
-      { text: 'Sarah a mis en vente 3 nouveaux articles', time: 'Il y a 5 min', icon: 'tag' },
-      { text: 'David a demarre un live "Sneakers Drops"', time: 'Il y a 12 min', icon: 'video' },
-      { text: 'Noa a rejoint la communaute', time: 'Il y a 25 min', icon: 'user-plus' },
-      { text: '15 nouveaux membres cette semaine', time: 'Il y a 1h', icon: 'trending-up' },
-    ],
+    noRecentActivity: 'Aucune activite recente',
+    viewers: 'spectateurs',
+    streamEnded: 'Termine',
+    streamLive: 'En direct',
+    streamScheduled: 'Programme',
+    loadingActivity: 'Chargement...',
   },
   en: {
     members: 'Members',
@@ -36,12 +45,12 @@ const detailContent = {
     live: 'LIVE',
     popularMembers: 'Popular members',
     recentActivity: 'Recent activity',
-    activities: [
-      { text: 'Sarah listed 3 new items for sale', time: '5 min ago', icon: 'tag' },
-      { text: 'David started a live "Sneakers Drops"', time: '12 min ago', icon: 'video' },
-      { text: 'Noa joined the community', time: '25 min ago', icon: 'user-plus' },
-      { text: '15 new members this week', time: '1h ago', icon: 'trending-up' },
-    ],
+    noRecentActivity: 'No recent activity',
+    viewers: 'viewers',
+    streamEnded: 'Ended',
+    streamLive: 'Live',
+    streamScheduled: 'Scheduled',
+    loadingActivity: 'Loading...',
   },
   he: {
     members: '\u05D7\u05D1\u05E8\u05D9\u05DD',
@@ -53,12 +62,12 @@ const detailContent = {
     live: '\u05E9\u05D9\u05D3\u05D5\u05E8',
     popularMembers: '\u05D7\u05D1\u05E8\u05D9\u05DD \u05E4\u05D5\u05E4\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD',
     recentActivity: '\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D4',
-    activities: [
-      { text: '\u05E9\u05E8\u05D4 \u05D4\u05E2\u05DC\u05EA\u05D4 3 \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05DC\u05DE\u05DB\u05D9\u05E8\u05D4', time: '\u05DC\u05E4\u05E0\u05D9 5 \u05D3\u05E7\u05D5\u05EA', icon: 'tag' },
-      { text: '\u05D3\u05D5\u05D3 \u05D4\u05EA\u05D7\u05D9\u05DC \u05E9\u05D9\u05D3\u05D5\u05E8 "Sneakers Drops"', time: '\u05DC\u05E4\u05E0\u05D9 12 \u05D3\u05E7\u05D5\u05EA', icon: 'video' },
-      { text: '\u05E0\u05D5\u05E2\u05D4 \u05D4\u05E6\u05D8\u05E8\u05E4\u05D4 \u05DC\u05E7\u05D4\u05D9\u05DC\u05D4', time: '\u05DC\u05E4\u05E0\u05D9 25 \u05D3\u05E7\u05D5\u05EA', icon: 'user-plus' },
-      { text: '15 \u05D7\u05D1\u05E8\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD \u05D4\u05E9\u05D1\u05D5\u05E2', time: '\u05DC\u05E4\u05E0\u05D9 \u05E9\u05E2\u05D4', icon: 'trending-up' },
-    ],
+    noRecentActivity: '\u05D0\u05D9\u05DF \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA',
+    viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
+    streamEnded: '\u05D4\u05E1\u05EA\u05D9\u05D9\u05DD',
+    streamLive: '\u05E9\u05D9\u05D3\u05D5\u05E8',
+    streamScheduled: '\u05DE\u05EA\u05D5\u05DB\u05E0\u05DF',
+    loadingActivity: '\u05D8\u05D5\u05E2\u05DF...',
   },
   es: {
     members: 'Miembros',
@@ -70,12 +79,12 @@ const detailContent = {
     live: 'EN DIRECTO',
     popularMembers: 'Miembros populares',
     recentActivity: 'Actividad reciente',
-    activities: [
-      { text: 'Sarah puso en venta 3 nuevos articulos', time: 'Hace 5 min', icon: 'tag' },
-      { text: 'David inicio un live "Sneakers Drops"', time: 'Hace 12 min', icon: 'video' },
-      { text: 'Noa se unio a la comunidad', time: 'Hace 25 min', icon: 'user-plus' },
-      { text: '15 nuevos miembros esta semana', time: 'Hace 1h', icon: 'trending-up' },
-    ],
+    noRecentActivity: 'No hay actividad reciente',
+    viewers: 'espectadores',
+    streamEnded: 'Finalizado',
+    streamLive: 'En directo',
+    streamScheduled: 'Programado',
+    loadingActivity: 'Cargando...',
   },
 }
 
@@ -84,6 +93,34 @@ function formatMemberCount(count: number): string {
     return (count / 1000).toFixed(1).replace('.0', '') + 'k'
   }
   return count.toString()
+}
+
+function formatTimeAgo(dateStr: string, lang: Lang): string {
+  const now = new Date()
+  const date = new Date(dateStr)
+  const diffMs = now.getTime() - date.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  const labels = {
+    fr: { min: 'min', hour: 'h', day: 'j', ago: 'Il y a' },
+    en: { min: 'min ago', hour: 'h ago', day: 'd ago', ago: '' },
+    he: { min: '\u05D3\u05E7\u05D5\u05EA', hour: '\u05E9\u05E2\u05D5\u05EA', day: '\u05D9\u05DE\u05D9\u05DD', ago: '\u05DC\u05E4\u05E0\u05D9' },
+    es: { min: 'min', hour: 'h', day: 'd', ago: 'Hace' },
+  }
+  const l = labels[lang] || labels.en
+
+  if (diffMin < 1) {
+    return lang === 'en' ? 'Just now' : lang === 'fr' ? 'A l\'instant' : lang === 'he' ? '\u05E2\u05DB\u05E9\u05D9\u05D5' : 'Ahora mismo'
+  }
+  if (diffMin < 60) {
+    return lang === 'en' ? `${diffMin} ${l.min}` : `${l.ago} ${diffMin} ${l.min}`
+  }
+  if (diffHours < 24) {
+    return lang === 'en' ? `${diffHours}${l.hour}` : `${l.ago} ${diffHours}${l.hour}`
+  }
+  return lang === 'en' ? `${diffDays}${l.day}` : `${l.ago} ${diffDays}${l.day}`
 }
 
 export default function CommunityDetailPage() {
@@ -96,6 +133,8 @@ export default function CommunityDetailPage() {
   const [joined, setJoined] = useState(false)
   const [activeStreams, setActiveStreams] = useState<{id: string, title: string, seller: string, viewers: number, thumbnail: string}[]>([])
   const [members, setMembers] = useState<{id: string, name: string, avatar: string}[]>([])
+  const [recentStreams, setRecentStreams] = useState<RecentStream[]>([])
+  const [loadingActivity, setLoadingActivity] = useState(true)
 
   useEffect(() => {
     const found = findCommunityById(id || '')
@@ -149,6 +188,37 @@ export default function CommunityDetailPage() {
       }
     }
     fetchMembers()
+  }, [id])
+
+  // Fetch recent activity from streams table
+  useEffect(() => {
+    if (!id) return
+    const fetchRecentActivity = async () => {
+      setLoadingActivity(true)
+      try {
+        const { data } = await supabase
+          .from('streams')
+          .select('id, title, status, viewer_count, created_at, seller:sellers(store_name)')
+          .eq('community_id', id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+        if (data) {
+          setRecentStreams(data.map((s: any) => ({
+            id: s.id,
+            title: s.title,
+            status: s.status,
+            seller_name: s.seller?.store_name || '?',
+            viewer_count: s.viewer_count || 0,
+            created_at: s.created_at,
+          })))
+        }
+      } catch (err) {
+        console.error('Error fetching recent activity:', err)
+      } finally {
+        setLoadingActivity(false)
+      }
+    }
+    fetchRecentActivity()
   }, [id])
 
   const toggleJoin = async () => {
@@ -451,56 +521,87 @@ export default function CommunityDetailPage() {
           {ct.recentActivity}
         </h2>
 
-        {ct.activities.map((activity, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex', alignItems: 'flex-start', gap: '12px',
-              padding: '12px 0',
-              borderBottom: i < 3 ? '1px solid #111' : 'none',
-            }}
-          >
+        {loadingActivity ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
             <div style={{
-              width: '32px', height: '32px', borderRadius: '10px',
-              backgroundColor: '#111', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {activity.icon === 'tag' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
-                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="7" y1="7" x2="7.01" y2="7" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-              {activity.icon === 'video' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
-                  <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-              {activity.icon === 'user-plus' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
-                  <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <circle cx="8.5" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="20" y1="8" x2="20" y2="14" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="23" y1="11" x2="17" y2="11" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-              {activity.icon === 'trending-up' && (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="17 6 23 6 23 12" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: '13px', color: '#ccc', margin: 0, lineHeight: 1.4 }}>
-                {activity.text}
-              </p>
-              <p style={{ fontSize: '11px', color: '#555', margin: '3px 0 0' }}>
-                {activity.time}
-              </p>
-            </div>
+              width: '24px', height: '24px',
+              border: '2px solid #333', borderTopColor: '#F0908A',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 8px',
+            }} />
+            <p style={{ fontSize: '13px', color: '#555', margin: 0 }}>{ct.loadingActivity}</p>
           </div>
-        ))}
+        ) : recentStreams.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '24px 0' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" style={{ margin: '0 auto 10px', display: 'block' }}>
+              <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p style={{ fontSize: '14px', color: '#555', margin: 0 }}>
+              {ct.noRecentActivity}
+            </p>
+          </div>
+        ) : (
+          recentStreams.map((stream, i) => {
+            const statusLabel = stream.status === 'live'
+              ? ct.streamLive
+              : stream.status === 'ended'
+                ? ct.streamEnded
+                : ct.streamScheduled
+            const statusColor = stream.status === 'live' ? '#E8344E' : stream.status === 'ended' ? '#666' : '#F0908A'
+
+            return (
+              <div
+                key={stream.id}
+                onClick={() => navigate(`/stream/${stream.id}`)}
+                style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '12px',
+                  padding: '12px 0',
+                  borderBottom: i < recentStreams.length - 1 ? '1px solid #111' : 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: '32px', height: '32px', borderRadius: '10px',
+                  backgroundColor: '#111', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={statusColor} strokeWidth="2">
+                    <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{
+                    fontSize: '13px', color: '#ccc', margin: 0, lineHeight: 1.4,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {stream.title}
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
+                    <span style={{ fontSize: '11px', color: '#888' }}>
+                      {stream.seller_name}
+                    </span>
+                    <span style={{
+                      fontSize: '10px', fontWeight: 700, color: statusColor,
+                      padding: '1px 6px', borderRadius: '4px',
+                      backgroundColor: stream.status === 'live' ? 'rgba(232,52,78,0.15)' : 'transparent',
+                    }}>
+                      {statusLabel}
+                    </span>
+                    {stream.viewer_count > 0 && (
+                      <span style={{ fontSize: '11px', color: '#555' }}>
+                        {stream.viewer_count} {ct.viewers}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#555', margin: '3px 0 0' }}>
+                    {formatTimeAgo(stream.created_at, lang)}
+                  </p>
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
 
       {/* Keyframe for live dot pulse */}

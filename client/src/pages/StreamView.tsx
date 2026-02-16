@@ -239,7 +239,7 @@ export default function StreamView() {
   const navigate = useNavigate()
   const lang = (getLang() || 'fr') as Lang
   const ct = streamContent[lang] || streamContent.fr
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const videoRef = useRef<HTMLVideoElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -254,7 +254,7 @@ export default function StreamView() {
 
   // Engagement dashboard state
   const [showEngagement, setShowEngagement] = useState(false)
-  const [reactionCount, setReactionCount] = useState(0)
+  const [_reactionCount, setReactionCount] = useState(0)
   const [engageBtnPulse, setEngageBtnPulse] = useState(false)
 
   // Seller camera state
@@ -281,6 +281,19 @@ export default function StreamView() {
   // Determine if user is the seller of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
   const isLive = stream?.status === 'live'
+
+  // ═══ Payment modal timeout: prevent infinite spinner ═══
+  useEffect(() => {
+    if (!showPaymentModal || addressStep || clientSecret || paymentError) return
+
+    const timeout = setTimeout(() => {
+      if (!clientSecret) {
+        setPaymentError('Payment setup timed out. Please close and try again.')
+      }
+    }, 10000)
+
+    return () => clearTimeout(timeout)
+  }, [showPaymentModal, addressStep, clientSecret, paymentError])
 
   // ═══ SELLER: Start camera capture ═══
   useEffect(() => {
@@ -364,7 +377,7 @@ export default function StreamView() {
           .eq('id', id)
           .single()
         setStream(data)
-      } catch { /* ignore */ }
+      } catch (err) { console.error('Failed to fetch stream:', err) }
       setLoading(false)
     }
 
@@ -380,7 +393,7 @@ export default function StreamView() {
         if (data) {
           setBidAmount(String(data.current_price + 10))
         }
-      } catch { /* ignore */ }
+      } catch (err) { console.error('Failed to fetch active auction:', err) }
     }
 
     const fetchMessages = async () => {
@@ -392,7 +405,7 @@ export default function StreamView() {
           .order('created_at', { ascending: true })
           .limit(100)
         setMessages(data || [])
-      } catch { /* ignore */ }
+      } catch (err) { console.error('Failed to fetch chat messages:', err) }
     }
 
     fetchStream()
@@ -413,13 +426,17 @@ export default function StreamView() {
       table: 'chat_messages',
       filter: `stream_id=eq.${id}`,
     }, async (payload) => {
-      const { data: enriched } = await supabase
-        .from('chat_messages')
-        .select('*, user_profile:profiles!user_id(display_name)')
-        .eq('id', payload.new.id)
-        .single()
-      if (enriched) {
-        setMessages(prev => [...prev, enriched])
+      try {
+        const { data: enriched } = await supabase
+          .from('chat_messages')
+          .select('*, user_profile:profiles!user_id(display_name)')
+          .eq('id', payload.new.id)
+          .single()
+        if (enriched) {
+          setMessages(prev => [...prev, enriched])
+        }
+      } catch (err) {
+        console.error('Failed to enrich chat message:', err)
       }
     })
 
@@ -453,28 +470,47 @@ export default function StreamView() {
           setPaymentItem(item)
           // Fetch the order with retry (seller may still be creating it)
           const initPayment = async () => {
-            const { data: session } = await supabase.auth.getSession()
-            const token = session.session?.access_token
-            if (!token) return
+            // Fix #6: Null check for session
+            const { data: session, error: sessionError } = await supabase.auth.getSession()
+            if (sessionError || !session.session) {
+              console.error('Failed to get auth session:', sessionError || 'session is null')
+              setPaymentError('Authentication error. Please log in again.')
+              setShowPaymentModal(true)
+              return
+            }
+            const token = session.session.access_token
+            if (!token) {
+              console.error('No access token in session')
+              setPaymentError('Authentication error. Please log in again.')
+              setShowPaymentModal(true)
+              return
+            }
 
             // Poll for the order (retry up to 10 times, 1s apart)
             let order: Order | null = null
             for (let attempt = 0; attempt < 10; attempt++) {
               await new Promise(r => setTimeout(r, 1000))
-              const { data } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('item_id', item.id)
-                .eq('buyer_id', user.id)
-                .single()
-              if (data) {
-                order = data as Order
-                break
+              try {
+                const { data } = await supabase
+                  .from('orders')
+                  .select('*')
+                  .eq('item_id', item.id)
+                  .eq('buyer_id', user.id)
+                  .single()
+                if (data) {
+                  order = data as Order
+                  break
+                }
+              } catch (err) {
+                console.error(`Order polling attempt ${attempt + 1} failed:`, err)
+                // Continue to next attempt
               }
             }
 
             if (!order) {
               console.error('Order not found after 10 retries')
+              setPaymentError('Could not find your order. Please contact support.')
+              setShowPaymentModal(true)
               return
             }
             setPaymentOrder(order)
@@ -508,6 +544,8 @@ export default function StreamView() {
             if (!resp.ok) {
               const err = await resp.json()
               console.error('PaymentIntent error:', err)
+              setPaymentError('Failed to initialize payment. Please try again.')
+              setShowPaymentModal(true)
               return
             }
             const piData = await resp.json()
@@ -565,12 +603,16 @@ export default function StreamView() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !id) return
 
-    await supabase.from('chat_messages').insert({
-      stream_id: id,
-      user_id: user.id,
-      message: newMessage.trim(),
-    })
-    setNewMessage('')
+    try {
+      await supabase.from('chat_messages').insert({
+        stream_id: id,
+        user_id: user.id,
+        message: newMessage.trim(),
+      })
+      setNewMessage('')
+    } catch (err) {
+      console.error('Failed to send chat message:', err)
+    }
   }
 
   const handlePlaceBid = async () => {
@@ -578,16 +620,23 @@ export default function StreamView() {
     const amount = parseFloat(bidAmount)
     if (isNaN(amount) || amount <= activeAuction.current_price) return
 
-    await supabase.from('bids').insert({
-      item_id: activeAuction.id,
-      bidder_id: user.id,
-      amount,
-    })
+    try {
+      const { error: bidError } = await supabase.from('bids').insert({
+        item_id: activeAuction.id,
+        bidder_id: user.id,
+        amount,
+      })
+      if (bidError) throw bidError
 
-    await supabase
-      .from('items')
-      .update({ current_price: amount })
-      .eq('id', activeAuction.id)
+      const { error: updateError } = await supabase
+        .from('items')
+        .update({ current_price: amount })
+        .eq('id', activeAuction.id)
+      if (updateError) throw updateError
+    } catch (err) {
+      console.error('Failed to place bid:', err)
+      alert('Failed to place bid. Please try again.')
+    }
   }
 
   const handleViewerReaction = useCallback(() => {
@@ -656,52 +705,60 @@ export default function StreamView() {
 
   const handleConfirmAddress = async () => {
     if (!user) return
-    const addr = { ...addressForm }
-    // Save address to Supabase
-    const { data: existing } = await supabase
-      .from('addresses')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('is_default', true)
-      .single()
-    if (existing) {
-      await supabase.from('addresses').update({
-        name: addr.name || '',
-        street: addr.street || '',
-        city: addr.city || '',
-        zip: addr.zip || '',
-        phone: addr.phone || '',
-      }).eq('id', existing.id)
-    } else {
-      await supabase.from('addresses').insert({
-        user_id: user.id,
-        name: addr.name || '',
-        street: addr.street || '',
-        city: addr.city || '',
-        zip: addr.zip || '',
-        phone: addr.phone || '',
-        is_default: true,
-      })
-    }
-
-    // Save shipping address to order
-    if (paymentOrder) {
-      await supabase
-        .from('orders')
-        .update({
-          shipping_address: {
-            name: addr.name,
-            street: addr.street,
-            city: addr.city,
-            zip: addr.zip,
-            phone: addr.phone,
-          },
+    try {
+      const addr = { ...addressForm }
+      // Save address to Supabase
+      const { data: existing } = await supabase
+        .from('addresses')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .single()
+      if (existing) {
+        const { error } = await supabase.from('addresses').update({
+          name: addr.name || '',
+          street: addr.street || '',
+          city: addr.city || '',
+          zip: addr.zip || '',
+          phone: addr.phone || '',
+        }).eq('id', existing.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('addresses').insert({
+          user_id: user.id,
+          name: addr.name || '',
+          street: addr.street || '',
+          city: addr.city || '',
+          zip: addr.zip || '',
+          phone: addr.phone || '',
+          is_default: true,
         })
-        .eq('id', paymentOrder.id)
-    }
+        if (error) throw error
+      }
 
-    // Move to payment step
-    setAddressStep(false)
+      // Save shipping address to order
+      if (paymentOrder) {
+        const { error } = await supabase
+          .from('orders')
+          .update({
+            shipping_address: {
+              name: addr.name,
+              street: addr.street,
+              city: addr.city,
+              zip: addr.zip,
+              phone: addr.phone,
+            },
+          })
+          .eq('id', paymentOrder.id)
+        if (error) throw error
+      }
+
+      // Move to payment step
+      setAddressStep(false)
+    } catch (err) {
+      console.error('Failed to save address:', err)
+      alert('Failed to save address. Please try again.')
+    }
   }
 
   const handlePaymentSuccess = async (paymentIntentId: string) => {
@@ -722,8 +779,9 @@ export default function StreamView() {
           }),
         })
       }
-    } catch {
+    } catch (err) {
       // Even if server confirm fails, Stripe already processed the payment
+      console.error('Server payment confirmation failed (Stripe already processed):', err)
     }
     setPaymentSuccess(true)
     setPaymentLoading(false)
@@ -801,7 +859,7 @@ export default function StreamView() {
                       style={{
                         width: '100%',
                         height: '100%',
-                        // @ts-expect-error Mux CSS custom property
+                        // @ts-ignore Mux CSS custom property
                         '--media-object-fit': 'cover',
                       }}
                     />
@@ -1231,7 +1289,7 @@ export default function StreamView() {
 
           {/* Info du stream */}
           <div style={{ padding: '12px 16px 0' }}>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{stream.title}</h1>
+            <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stream.title}</h1>
             {stream.description && (
               <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{stream.description}</p>
             )}

@@ -1,0 +1,832 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
+import { apiFetch } from '../lib/api'
+import { supabase } from '../lib/supabase'
+
+const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
+
+type Tab = 'overview' | 'users' | 'sellers' | 'payments' | 'disputes' | 'lives' | 'audit'
+
+interface Stats {
+  users: number; sellers: number; orders: number; orders_30d: number
+  lives_now: number; disputes: number; total_revenue: number; total_fees: number
+  suspended_users: number; banned_users: number
+}
+
+export default function AdminPage() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [tab, setTab] = useState<Tab>('overview')
+  const [token, setToken] = useState('')
+
+  // Overview
+  const [stats, setStats] = useState<Stats | null>(null)
+
+  // Users
+  const [users, setUsers] = useState<Record<string, unknown>[]>([])
+  const [usersTotal, setUsersTotal] = useState(0)
+  const [usersPage, setUsersPage] = useState(1)
+  const [usersSearch, setUsersSearch] = useState('')
+  const [usersFilter, setUsersFilter] = useState('all')
+  const [_selectedUser, setSelectedUser] = useState<Record<string, unknown> | null>(null)
+  const [userDetail, setUserDetail] = useState<Record<string, unknown> | null>(null)
+  const [noteText, setNoteText] = useState('')
+
+  // Sellers
+  const [sellers, setSellers] = useState<Record<string, unknown>[]>([])
+  const [sellersTotal, setSellersTotal] = useState(0)
+
+  // Payments/Orders
+  const [orders, setOrders] = useState<Record<string, unknown>[]>([])
+  const [ordersTotal, setOrdersTotal] = useState(0)
+  const [ordersPage, setOrdersPage] = useState(1)
+  const [ordersStatus, setOrdersStatus] = useState('')
+
+  // Disputes
+  const [disputes, setDisputes] = useState<Record<string, unknown>[]>([])
+
+  // Lives
+  const [streams, setStreams] = useState<Record<string, unknown>[]>([])
+  const [streamsFilter, setStreamsFilter] = useState('live')
+
+  // Audit
+  const [auditLogs, setAuditLogs] = useState<Record<string, unknown>[]>([])
+  const [auditTotal, setAuditTotal] = useState(0)
+  const [auditPage, setAuditPage] = useState(1)
+
+  const [loading, setLoading] = useState(false)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [actionMsg, setActionMsg] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
+  const [pageError, setPageError] = useState<string | null>(null)
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 4000)
+  }
+
+  // Get auth token + admin gate
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session && user?.email === ADMIN_EMAIL) {
+        setToken(session.access_token)
+      } else {
+        navigate('/', { replace: true })
+      }
+      setAuthLoading(false)
+    })
+  }, [user, navigate])
+
+  if (authLoading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#E8344E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /><style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style></div>
+
+  if (!user || user.email !== ADMIN_EMAIL) return null
+
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+
+  const adminFetch = async (path: string, opts?: RequestInit) => {
+    let res: Response
+    try {
+      res = await apiFetch(path, { headers, ...opts })
+    } catch {
+      throw new Error('Serveur injoignable. Vérifie que le serveur est déployé.')
+    }
+    if (!res.ok) {
+      let msg = `Erreur ${res.status}`
+      try { const body = await res.json(); msg = body.error || msg } catch { /* non-JSON response */ }
+      throw new Error(msg)
+    }
+    try {
+      return await res.json()
+    } catch {
+      throw new Error('Réponse invalide du serveur')
+    }
+  }
+
+  const showAction = (msg: string) => {
+    setActionMsg(msg)
+    setTimeout(() => setActionMsg(''), 3000)
+  }
+
+  // ======== FETCHERS ========
+
+  const fetchStats = async () => {
+    if (!token) return
+    setLoading(true)
+    try { setStats(await adminFetch('/api/admin/stats')); setPageError(null) } catch (e: any) { setPageError(e.message || 'Erreur de chargement'); showToast(e.message || 'Failed to load data') }
+    setLoading(false)
+  }
+
+  const fetchUsers = async (page = 1) => {
+    if (!token) return
+    setLoading(true)
+    try {
+      const q = new URLSearchParams({ page: String(page), limit: '30', filter: usersFilter })
+      if (usersSearch) q.set('search', usersSearch)
+      const data = await adminFetch(`/api/admin/users?${q}`)
+      setUsers(data.users); setUsersTotal(data.total); setUsersPage(page)
+    } catch { showToast('Failed to load data') }
+    setLoading(false)
+  }
+
+  const fetchUserDetail = async (id: string) => {
+    if (!token) return
+    try {
+      const data = await adminFetch(`/api/admin/users/${id}`)
+      setUserDetail(data)
+    } catch { showToast('Failed to load data') }
+  }
+
+  const fetchSellers = async () => {
+    if (!token) return
+    setLoading(true)
+    try {
+      const data = await adminFetch('/api/admin/sellers?limit=50')
+      setSellers(data.sellers); setSellersTotal(data.total)
+    } catch { showToast('Failed to load data') }
+    setLoading(false)
+  }
+
+  const fetchOrders = async (page = 1) => {
+    if (!token) return
+    setLoading(true)
+    try {
+      const q = new URLSearchParams({ page: String(page), limit: '30' })
+      if (ordersStatus) q.set('status', ordersStatus)
+      const data = await adminFetch(`/api/admin/orders?${q}`)
+      setOrders(data.orders); setOrdersTotal(data.total); setOrdersPage(page)
+    } catch { showToast('Failed to load data') }
+    setLoading(false)
+  }
+
+  const fetchDisputes = async () => {
+    if (!token) return
+    setLoading(true)
+    try { setDisputes(await adminFetch('/api/admin/disputes')) } catch { showToast('Failed to load data') }
+    setLoading(false)
+  }
+
+  const fetchStreams = async () => {
+    if (!token) return
+    setLoading(true)
+    try { setStreams(await adminFetch(`/api/admin/streams?status=${streamsFilter}`)) } catch { showToast('Failed to load data') }
+    setLoading(false)
+  }
+
+  const fetchAudit = async (page = 1) => {
+    if (!token) return
+    setLoading(true)
+    try {
+      const data = await adminFetch(`/api/admin/audit-log?page=${page}&limit=50`)
+      setAuditLogs(data.logs); setAuditTotal(data.total); setAuditPage(page)
+    } catch { showToast('Failed to load data') }
+    setLoading(false)
+  }
+
+  // Load data when tab changes
+  useEffect(() => {
+    if (!token) return
+    switch (tab) {
+      case 'overview': fetchStats(); break
+      case 'users': fetchUsers(); break
+      case 'sellers': fetchSellers(); break
+      case 'payments': fetchOrders(); break
+      case 'disputes': fetchDisputes(); break
+      case 'lives': fetchStreams(); break
+      case 'audit': fetchAudit(); break
+    }
+  }, [tab, token])
+
+  // ======== ACTIONS ========
+
+  const suspendUser = async (id: string, reason: string) => {
+    try {
+      await adminFetch(`/api/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) })
+      showAction('User suspended'); fetchUsers(usersPage)
+      if (userDetail) fetchUserDetail(id)
+    } catch { showToast('Action failed') }
+  }
+
+  const unsuspendUser = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/users/${id}/unsuspend`, { method: 'POST' })
+      showAction('User unsuspended'); fetchUsers(usersPage)
+      if (userDetail) fetchUserDetail(id)
+    } catch { showToast('Action failed') }
+  }
+
+  const banUser = async (id: string, reason: string) => {
+    try {
+      await adminFetch(`/api/admin/users/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) })
+      showAction('User banned'); fetchUsers(usersPage)
+      if (userDetail) fetchUserDetail(id)
+    } catch { showToast('Action failed') }
+  }
+
+  const unbanUser = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/users/${id}/unban`, { method: 'POST' })
+      showAction('User unbanned'); fetchUsers(usersPage)
+      if (userDetail) fetchUserDetail(id)
+    } catch { showToast('Action failed') }
+  }
+
+  const addNote = async (id: string) => {
+    if (!noteText.trim()) return
+    try {
+      await adminFetch(`/api/admin/users/${id}/note`, { method: 'POST', body: JSON.stringify({ note: noteText }) })
+      setNoteText('')
+      showAction('Note added'); fetchUserDetail(id)
+    } catch { showToast('Failed to save note') }
+  }
+
+  const blockPayments = async (id: string, block: boolean) => {
+    try {
+      await adminFetch(`/api/admin/sellers/${id}/block-payments`, { method: 'POST', body: JSON.stringify({ block }) })
+      showAction(block ? 'Payments blocked' : 'Payments unblocked'); fetchSellers()
+    } catch { showToast('Action failed') }
+  }
+
+  const setReserve = async (id: string, percent: number) => {
+    try {
+      await adminFetch(`/api/admin/sellers/${id}/reserve`, { method: 'POST', body: JSON.stringify({ percent }) })
+      showAction(`Reserve set to ${percent}%`); fetchSellers()
+    } catch { showToast('Action failed') }
+  }
+
+  const requestDocuments = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/sellers/${id}/request-documents`, { method: 'POST' })
+      showAction('Documents requested'); fetchSellers()
+    } catch { showToast('Action failed') }
+  }
+
+  const stopStream = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/streams/${id}/stop`, { method: 'POST' })
+      showAction('Stream stopped'); fetchStreams()
+    } catch { showToast('Action failed') }
+  }
+
+  const suspendStreamer = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/streams/${id}/suspend-streamer`, { method: 'POST', body: JSON.stringify({ reason: 'Suspended during live by admin' }) })
+      showAction('Streamer suspended & stream stopped'); fetchStreams()
+    } catch { showToast('Action failed') }
+  }
+
+  // ======== STYLES ========
+
+  const card: React.CSSProperties = {
+    backgroundColor: '#111', borderRadius: '14px', padding: '16px',
+    border: '1px solid #1A1A1A', marginBottom: '10px',
+  }
+  const badge = (color: string): React.CSSProperties => ({
+    fontSize: '11px', fontWeight: 700, color, backgroundColor: `${color}18`,
+    padding: '3px 10px', borderRadius: '8px', border: `1px solid ${color}30`,
+    display: 'inline-block',
+  })
+  const btn = (bg: string): React.CSSProperties => ({
+    padding: '6px 14px', borderRadius: '8px', border: 'none',
+    background: bg, color: '#fff', fontSize: '12px', fontWeight: 700,
+    cursor: 'pointer', marginRight: '6px', marginBottom: '4px',
+  })
+  const inputStyle: React.CSSProperties = {
+    padding: '10px 14px', borderRadius: '10px', border: '1px solid #222',
+    backgroundColor: '#0A0A0A', color: '#fff', fontSize: '14px', width: '100%',
+    boxSizing: 'border-box',
+  }
+
+  const fmtDate = (d: unknown) => {
+    if (!d || typeof d !== 'string') return '-'
+    return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  const fmtMoney = (n: unknown) => typeof n === 'number' ? n.toFixed(2) + ' EUR' : '-'
+  const fmtId = (id: unknown) => typeof id === 'string' ? id.slice(0, 8) + '...' : '-'
+
+  // ======== TABS ========
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'users', label: 'Users' },
+    { id: 'sellers', label: 'Sellers' },
+    { id: 'payments', label: 'Payments' },
+    { id: 'disputes', label: 'Disputes' },
+    { id: 'lives', label: 'Lives' },
+    { id: 'audit', label: 'Audit Log' },
+  ]
+
+  // ======== RENDER ========
+
+  const renderOverview = () => {
+    if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>Loading...</p>
+    const statCards: { label: string; value: string | number; color: string }[] = [
+      { label: 'Total Users', value: stats.users, color: '#3B82F6' },
+      { label: 'Sellers', value: stats.sellers, color: '#10B981' },
+      { label: 'Orders', value: stats.orders, color: '#F59E0B' },
+      { label: 'Orders (30d)', value: stats.orders_30d, color: '#8B5CF6' },
+      { label: 'Lives Now', value: stats.lives_now, color: '#E8344E' },
+      { label: 'Disputes', value: stats.disputes, color: '#EF4444' },
+      { label: 'Revenue', value: fmtMoney(stats.total_revenue), color: '#10B981' },
+      { label: 'Platform Fees', value: fmtMoney(stats.total_fees), color: '#F0908A' },
+      { label: 'Suspended', value: stats.suspended_users, color: '#F59E0B' },
+      { label: 'Banned', value: stats.banned_users, color: '#EF4444' },
+    ]
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', padding: '0 16px' }}>
+        {statCards.map(s => (
+          <div key={s.label} style={{ ...card, textAlign: 'center' }}>
+            <p style={{ fontSize: '24px', fontWeight: 900, color: s.color, margin: '0 0 4px' }}>{s.value}</p>
+            <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>{s.label}</p>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const renderUsers = () => (
+    <div style={{ padding: '0 16px' }}>
+      {/* Search + filter */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <input
+          value={usersSearch}
+          onChange={e => setUsersSearch(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && fetchUsers(1)}
+          placeholder="Search username..."
+          style={{ ...inputStyle, flex: 1, minWidth: '150px' }}
+        />
+        <select
+          value={usersFilter}
+          onChange={e => { setUsersFilter(e.target.value); setTimeout(() => fetchUsers(1), 0) }}
+          style={{ ...inputStyle, width: 'auto', minWidth: '120px' }}
+        >
+          <option value="all">All</option>
+          <option value="sellers">Sellers</option>
+          <option value="suspended">Suspended</option>
+          <option value="banned">Banned</option>
+        </select>
+        <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>Search</button>
+      </div>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{usersTotal} users found</p>
+
+      {/* User detail modal */}
+      {userDetail && (
+        <div onClick={() => setUserDetail(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.8)',
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
+          overflowY: 'auto',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            ...card, maxWidth: '500px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
+          }}>
+            {(() => {
+              const p = userDetail.profile as Record<string, unknown> | null
+              const s = userDetail.seller as Record<string, unknown> | null
+              const notes = (userDetail.notes as Record<string, unknown>[]) || []
+              const st = userDetail.stats as Record<string, number> | null
+              if (!p) return <p style={{ color: '#666' }}>No data</p>
+              const uid = p.id as string
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div>
+                      <p style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0 }}>{String(p.display_name)}</p>
+                      <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>@{String(p.username)} | {String(p.country)} | {fmtId(uid)}</p>
+                    </div>
+                    <button onClick={() => setUserDetail(null)} style={{ ...btn('#333'), marginRight: 0 }}>X</button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    {Boolean(p.is_suspended) && <span style={badge('#F59E0B')}>SUSPENDED</span>}
+                    {Boolean(p.is_banned) && <span style={badge('#EF4444')}>BANNED</span>}
+                    {Boolean(p.is_seller) && <span style={badge('#10B981')}>SELLER</span>}
+                    {s?.kyc_status === 'verified' && <span style={badge('#3B82F6')}>KYC VERIFIED</span>}
+                  </div>
+
+                  <p style={{ color: '#666', fontSize: '12px' }}>
+                    Joined: {fmtDate(p.created_at)} | Purchases: {st?.total_purchases || 0} ({fmtMoney(st?.total_spent || 0)}) | Sales: {st?.total_sales || 0} ({fmtMoney(st?.total_earned || 0)})
+                  </p>
+
+                  {s && (
+                    <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
+                      <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>Store: {String(s.store_name)}</p>
+                      <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
+                        Revenue: {fmtMoney(s.total_revenue)} | Sales: {String(s.total_sales)} | Stripe: {s.stripe_account_id ? 'Connected' : 'None'}
+                      </p>
+                      {Boolean(s.payments_blocked) && <span style={badge('#EF4444')}>PAYMENTS BLOCKED</span>}
+                      {Number(s.reserve_percent) > 0 && <span style={badge('#F59E0B')}>RESERVE {String(s.reserve_percent)}%</span>}
+
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div style={{ marginTop: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {!Boolean(p.is_suspended) && !Boolean(p.is_banned) && (
+                      <button onClick={() => { const r = prompt('Reason?'); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>Suspend</button>
+                    )}
+                    {Boolean(p.is_suspended) && !Boolean(p.is_banned) && (
+                      <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>Unsuspend</button>
+                    )}
+                    {!Boolean(p.is_banned) && (
+                      <button onClick={() => { const r = prompt('Reason?'); if (r) banUser(uid, r) }} style={btn('#EF4444')}>Ban</button>
+                    )}
+                    {Boolean(p.is_banned) && (
+                      <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>Unban</button>
+                    )}
+                  </div>
+
+                  {/* Notes */}
+                  <div style={{ marginTop: '20px' }}>
+                    <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>Internal Notes ({notes.length})</p>
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                      <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." style={{ ...inputStyle, flex: 1 }} />
+                      <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>Add</button>
+                    </div>
+                    {notes.map((n, i) => (
+                      <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
+                        <p style={{ color: '#ddd', fontSize: '13px', margin: 0 }}>{String(n.note)}</p>
+                        <p style={{ color: '#555', fontSize: '11px', margin: '4px 0 0' }}>{String(n.admin_email)} - {fmtDate(n.created_at)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* User list */}
+      {users.map((u, i) => (
+        <div key={i} style={{ ...card, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+          onClick={() => { setSelectedUser(u); fetchUserDetail(u.id as string) }}>
+          <div style={{
+            width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '16px', flexShrink: 0, overflow: 'hidden',
+          }}>
+            {(u.avatar_url as string) ? <img src={u.avatar_url as string} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (String(u.display_name)?.[0] || '?')}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {String(u.display_name)} <span style={{ color: '#555', fontWeight: 400 }}>@{String(u.username)}</span>
+            </p>
+            <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
+              {String(u.country)} | {fmtDate(u.created_at)} | {fmtId(u.id)}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0 }}>
+            {Boolean(u.is_seller) && <span style={badge('#10B981')}>S</span>}
+            {Boolean(u.is_suspended) && <span style={badge('#F59E0B')}>SUS</span>}
+            {Boolean(u.is_banned) && <span style={badge('#EF4444')}>BAN</span>}
+          </div>
+        </div>
+      ))}
+
+      {/* Pagination */}
+      {usersTotal > 30 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
+          <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>Prev</button>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {usersPage} / {Math.ceil(usersTotal / 30)}</span>
+          <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>Next</button>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderSellers = () => (
+    <div style={{ padding: '0 16px' }}>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sellersTotal} sellers</p>
+      {sellers.map((s, i) => {
+        const p = s.profiles as Record<string, unknown> | null
+        const rm = s.risk_metrics as Record<string, number> | null
+        const id = s.id as string
+        return (
+          <div key={i} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <div>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{String(s.store_name)}</p>
+                <p style={{ color: '#666', fontSize: '12px', margin: '2px 0 0' }}>
+                  {p ? `@${p.username} | ${p.country}` : ''} | {fmtId(id)} | Joined: {fmtDate(p?.created_at)}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {Boolean(s.payments_blocked) && <span style={badge('#EF4444')}>BLOCKED</span>}
+                {Number(s.reserve_percent) > 0 && <span style={badge('#F59E0B')}>{String(s.reserve_percent)}% RES</span>}
+                {Boolean(s.documents_requested) && <span style={badge('#3B82F6')}>DOC REQ</span>}
+                {Boolean(p?.is_suspended) && <span style={badge('#F59E0B')}>SUS</span>}
+                {s.kyc_status === 'verified' ? <span style={badge('#10B981')}>KYC</span> : <span style={badge('#F59E0B')}>!KYC</span>}
+              </div>
+            </div>
+
+            {/* Risk metrics */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px', marginBottom: '10px' }}>
+              {[
+                { l: 'Revenue', v: fmtMoney(s.total_revenue), c: '#10B981' },
+                { l: 'Orders', v: rm?.total_orders || 0, c: '#3B82F6' },
+                { l: '30d', v: rm?.orders_30d || 0, c: '#8B5CF6' },
+                { l: 'Refund %', v: `${rm?.refund_rate || 0}%`, c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
+                { l: 'Dispute %', v: `${rm?.dispute_rate || 0}%`, c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
+              ].map(m => (
+                <div key={m.l} style={{ textAlign: 'center', padding: '6px', backgroundColor: '#0A0A0A', borderRadius: '8px' }}>
+                  <p style={{ color: m.c, fontWeight: 700, fontSize: '14px', margin: 0 }}>{m.v}</p>
+                  <p style={{ color: '#555', fontSize: '10px', margin: 0 }}>{m.l}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <button onClick={() => blockPayments(id, !s.payments_blocked)} style={btn(s.payments_blocked ? '#10B981' : '#EF4444')}>
+                {s.payments_blocked ? 'Unblock Pay' : 'Block Pay'}
+              </button>
+              <button onClick={() => { const p = prompt('Reserve % (0-100)?', String(s.reserve_percent || 0)); if (p !== null) setReserve(id, Number(p)) }} style={btn('#F59E0B')}>
+                Set Reserve
+              </button>
+              {!s.documents_requested && (
+                <button onClick={() => requestDocuments(id)} style={btn('#3B82F6')}>Request Docs</button>
+              )}
+              <button onClick={() => { setSelectedUser({ id }); fetchUserDetail(id) }} style={btn('#333')}>View User</button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const renderPayments = () => (
+    <div style={{ padding: '0 16px' }}>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        {['', 'pending_payment', 'paid', 'shipped', 'delivered', 'refunded', 'disputed'].map(s => (
+          <button key={s} onClick={() => { setOrdersStatus(s); setTimeout(() => fetchOrders(1), 0) }}
+            style={{
+              ...btn(ordersStatus === s ? '#F0908A' : '#222'),
+              fontSize: '11px', padding: '5px 10px',
+            }}>
+            {s || 'All'}
+          </button>
+        ))}
+      </div>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{ordersTotal} orders</p>
+      {orders.map((o, i) => {
+        const buyer = o.buyer as Record<string, unknown> | null
+        const seller = o.seller_profile as Record<string, unknown> | null
+        const item = o.item as Record<string, unknown> | null
+        const statusColor: Record<string, string> = {
+          pending_payment: '#F59E0B', paid: '#3B82F6', shipped: '#10B981',
+          delivered: '#10B981', refunded: '#8B5CF6', disputed: '#EF4444',
+        }
+        return (
+          <div key={i} style={{ ...card, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: '#fff', fontWeight: 600, fontSize: '13px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {item ? String((item as Record<string, unknown>).title) : fmtId(o.id)}
+              </p>
+              <p style={{ color: '#F0908A', fontWeight: 700, fontSize: '14px', margin: '2px 0' }}>{fmtMoney(o.amount)}</p>
+              <p style={{ color: '#555', fontSize: '11px', margin: 0 }}>
+                Buyer: {buyer ? `@${buyer.username}` : fmtId(o.buyer_id)} | Seller: {seller ? `@${seller.username}` : fmtId(o.seller_id)}
+              </p>
+              <p style={{ color: '#444', fontSize: '11px', margin: '2px 0 0' }}>
+                {fmtDate(o.created_at)} | Fee: {fmtMoney(o.platform_fee)} | {fmtId(o.id)}
+              </p>
+            </div>
+            <span style={badge(statusColor[String(o.status)] || '#666')}>{String(o.status)}</span>
+          </div>
+        )
+      })}
+      {ordersTotal > 30 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
+          <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>Prev</button>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {ordersPage} / {Math.ceil(ordersTotal / 30)}</span>
+          <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>Next</button>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderDisputes = () => (
+    <div style={{ padding: '0 16px' }}>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{disputes.length} disputes/refunds</p>
+      {disputes.length === 0 && <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>No disputes</p>}
+      {disputes.map((d, i) => {
+        const buyer = d.buyer as Record<string, unknown> | null
+        const seller = d.seller_profile as Record<string, unknown> | null
+        return (
+          <div key={i} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Order {fmtId(d.id)}</p>
+                <p style={{ color: '#F0908A', fontWeight: 700, margin: '2px 0' }}>{fmtMoney(d.amount)}</p>
+                <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
+                  Buyer: {buyer ? `@${buyer.username}` : '?'} | Seller: {seller ? `@${seller.username}` : '?'}
+                </p>
+                <p style={{ color: '#444', fontSize: '11px', margin: '4px 0 0' }}>
+                  Created: {fmtDate(d.created_at)} | Paid: {fmtDate(d.paid_at)} | Shipped: {fmtDate(d.shipped_at)}
+                </p>
+              </div>
+              <span style={badge(d.status === 'disputed' ? '#EF4444' : '#8B5CF6')}>{String(d.status)}</span>
+            </div>
+            {Boolean(d.shipping_proof_url) && (
+              <div style={{ marginTop: '8px' }}>
+                <img src={String(d.shipping_proof_url)} alt="Proof" style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333' }} />
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const renderLives = () => (
+    <div style={{ padding: '0 16px' }}>
+      <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
+        {['live', 'scheduled', 'ended'].map(s => (
+          <button key={s} onClick={() => { setStreamsFilter(s); setTimeout(fetchStreams, 0) }}
+            style={{ ...btn(streamsFilter === s ? '#F0908A' : '#222'), fontSize: '12px' }}>
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+      {streams.length === 0 && <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>No streams</p>}
+      {streams.map((s, i) => {
+        const seller = s.seller as Record<string, unknown> | null
+        const sellerProfile = seller?.profiles as Record<string, unknown> | null
+        return (
+          <div key={i} style={card}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+              <div>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{String(s.title)}</p>
+                <p style={{ color: '#888', fontSize: '12px', margin: '2px 0 0' }}>
+                  {seller ? String(seller.store_name) : '?'} ({sellerProfile ? `@${sellerProfile.username}` : '?'})
+                </p>
+                <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
+                  Viewers: {String(s.viewer_count)} | Peak: {String(s.peak_viewers)} | {String(s.category)} | {fmtDate(s.started_at || s.scheduled_at)}
+                </p>
+              </div>
+              <span style={badge(s.status === 'live' ? '#E8344E' : s.status === 'scheduled' ? '#3B82F6' : '#555')}>
+                {String(s.status).toUpperCase()}
+              </span>
+            </div>
+            {s.status === 'live' && (
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button onClick={() => stopStream(s.id as string)} style={btn('#EF4444')}>Stop Live</button>
+                <button onClick={() => suspendStreamer(s.id as string)} style={btn('#F59E0B')}>Suspend Streamer</button>
+              </div>
+            )}
+            {Boolean(s.mux_playback_id) && s.status === 'ended' && (
+              <p style={{ color: '#3B82F6', fontSize: '12px', margin: '8px 0 0' }}>
+                Replay: mux.com/playback/{String(s.mux_playback_id)}
+              </p>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+
+  const renderAudit = () => (
+    <div style={{ padding: '0 16px' }}>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{auditTotal} log entries</p>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #222' }}>
+              {['Date', 'Admin', 'Action', 'Target', 'ID', 'Details'].map(h => (
+                <th key={h} style={{ color: '#888', fontWeight: 600, padding: '8px 6px', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {auditLogs.map((log, i) => (
+              <tr key={i} style={{ borderBottom: '1px solid #111' }}>
+                <td style={{ color: '#666', padding: '8px 6px', whiteSpace: 'nowrap' }}>{fmtDate(log.created_at)}</td>
+                <td style={{ color: '#aaa', padding: '8px 6px' }}>{String(log.admin_email).split('@')[0]}</td>
+                <td style={{ padding: '8px 6px' }}>
+                  <span style={badge(
+                    String(log.action).includes('ban') ? '#EF4444' :
+                    String(log.action).includes('suspend') ? '#F59E0B' :
+                    String(log.action).includes('block') ? '#EF4444' :
+                    '#3B82F6'
+                  )}>{String(log.action)}</span>
+                </td>
+                <td style={{ color: '#888', padding: '8px 6px' }}>{String(log.target_type)}</td>
+                <td style={{ color: '#555', padding: '8px 6px', fontFamily: 'monospace' }}>{fmtId(log.target_id)}</td>
+                <td style={{ color: '#555', padding: '8px 6px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {log.details && typeof log.details === 'object' ? JSON.stringify(log.details) : '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {auditTotal > 50 && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
+          <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>Prev</button>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>Page {auditPage} / {Math.ceil(auditTotal / 50)}</span>
+          <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>Next</button>
+        </div>
+      )}
+    </div>
+  )
+
+  const renderContent = () => {
+    switch (tab) {
+      case 'overview': return renderOverview()
+      case 'users': return renderUsers()
+      case 'sellers': return renderSellers()
+      case 'payments': return renderPayments()
+      case 'disputes': return renderDisputes()
+      case 'lives': return renderLives()
+      case 'audit': return renderAudit()
+    }
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '40px' }}>
+      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        {/* Header */}
+        <div style={{ padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <div>
+              <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>Admin Panel</h1>
+              <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>ShaPop Back-Office</p>
+            </div>
+          </div>
+          {loading && (
+            <div style={{
+              width: '20px', height: '20px', border: '2px solid #222',
+              borderTopColor: '#F0908A', borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }} />
+          )}
+        </div>
+
+        {/* Action message */}
+        {actionMsg && (
+          <div style={{
+            position: 'fixed', top: '60px', left: '50%', transform: 'translateX(-50%)',
+            backgroundColor: '#10B981', color: '#fff', padding: '10px 24px',
+            borderRadius: '12px', fontSize: '14px', fontWeight: 700, zIndex: 9999,
+            boxShadow: '0 4px 20px rgba(16,185,129,0.3)',
+          }}>
+            {actionMsg}
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div style={{
+          display: 'flex', gap: '4px', padding: '16px 16px 12px',
+          overflowX: 'auto',
+        }} className="no-scrollbar">
+          {tabs.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              style={{
+                padding: '8px 14px', borderRadius: '10px', flexShrink: 0,
+                cursor: 'pointer', fontSize: '13px', fontWeight: tab === t.id ? 700 : 500,
+                background: tab === t.id ? 'rgba(240,144,138,0.12)' : '#0D0D0D',
+                border: tab === t.id ? '1px solid rgba(240,144,138,0.3)' : '1px solid #1A1A1A',
+                color: tab === t.id ? '#F0908A' : '#666',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Error banner */}
+        {pageError && (
+          <div style={{ margin: '16px', padding: '16px', backgroundColor: '#1a0a0a', border: '1px solid #E8344E', borderRadius: '12px', textAlign: 'center' }}>
+            <p style={{ color: '#E8344E', fontSize: '14px', fontWeight: 600, margin: '0 0 8px' }}>{pageError}</p>
+            <p style={{ color: '#666', fontSize: '12px', margin: '0 0 12px' }}>Le serveur doit etre deploye avec les endpoints admin.</p>
+            <button onClick={() => { setPageError(null); fetchStats() }} style={btn('#333')}>Reessayer</button>
+          </div>
+        )}
+
+        {/* Content */}
+        {!pageError && renderContent()}
+      </div>
+
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
+          padding: '14px 24px', borderRadius: '12px',
+          backgroundColor: '#3a1a1a',
+          border: '1px solid #E8344E',
+          color: '#E8344E',
+          fontSize: '14px', fontWeight: 600, zIndex: 10000,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          whiteSpace: 'nowrap',
+        }}>
+          {toast}
+        </div>
+      )}
+    </div>
+  )
+}

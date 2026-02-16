@@ -160,7 +160,6 @@ export default function LiveSellerView() {
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
-  const chatEndRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const [items, setItems] = useState<Item[]>([])
@@ -176,6 +175,9 @@ export default function LiveSellerView() {
   const [liveEnded, setLiveEnded] = useState(false)
   const autoResolvedRef = useRef<string | null>(null) // tracks item ID already auto-resolved
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const itemsRef = useRef<Item[]>(items)
+  const currentIndexRef = useRef(currentIndex)
+  const handleEndLiveRef = useRef<() => Promise<void>>(() => Promise.resolve())
   const [soldOverlay, setSoldOverlay] = useState<{
     lotNumber: string
     winnerName: string
@@ -208,8 +210,6 @@ export default function LiveSellerView() {
   }, [sessionToken, streamId, startBroadcast])
 
   const currentItem = currentIndex >= 0 && currentIndex < items.length ? items[currentIndex] : null
-  const itemDuration = currentItem?.duration_seconds || 60
-
   const formatLot = (n: number) => `#${String(n).padStart(3, '0')}`
 
   const showSoldOverlay = useCallback((lotNumber: string, winnerName: string, price: number, isUnsold = false) => {
@@ -224,6 +224,10 @@ export default function LiveSellerView() {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, 4000)
   }, [])
+
+  // Keep refs in sync for use inside setTimeout callbacks (avoids stale closures)
+  useEffect(() => { itemsRef.current = items }, [items])
+  useEffect(() => { currentIndexRef.current = currentIndex }, [currentIndex])
 
   // Prevent scrolling/bouncing on the live view
   useEffect(() => {
@@ -244,12 +248,22 @@ export default function LiveSellerView() {
 
   // Start camera
   useEffect(() => {
+    let cancelled = false
     const startCamera = async () => {
+      // Stop all tracks on the old stream before starting a new one
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(t => t.stop())
+        mediaStreamRef.current = null
+      }
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: true,
         })
+        if (cancelled) {
+          mediaStream.getTracks().forEach(t => t.stop())
+          return
+        }
         mediaStreamRef.current = mediaStream
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
@@ -260,12 +274,13 @@ export default function LiveSellerView() {
     }
     startCamera()
     return () => {
+      cancelled = true
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(t => t.stop())
         mediaStreamRef.current = null
       }
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [facingMode])
 
   // Fetch real viewer count from stream record
   useEffect(() => {
@@ -482,18 +497,21 @@ export default function LiveSellerView() {
       }
 
       // Auto-advance after delay to let overlay show, or end live
+      // Read from refs to avoid stale closures (items/currentIndex may have changed by the time this fires)
       setTimeout(() => {
-        const nextIdx = items.findIndex((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
+        const latestItems = itemsRef.current
+        const latestIndex = currentIndexRef.current
+        const nextIdx = latestItems.findIndex((it, i) => i > latestIndex && (it.status === 'draft' || it.status === 'pending'))
         if (nextIdx >= 0) {
           setCurrentIndex(nextIdx)
         } else {
-          handleEndLive()
+          handleEndLiveRef.current()
         }
       }, 2500)
     }
 
     autoResolve()
-  }, [timeLeft, currentItem?.id, currentItem?.status])
+  }, [timeLeft, currentItem?.id, currentItem?.status, user, streamId, showSoldOverlay, showToast, ct.paymentAccepted, ct.addressOk])
 
   // When new messages arrive, mark them visible then auto-hide after 5s
   useEffect(() => {
@@ -519,6 +537,11 @@ export default function LiveSellerView() {
   useEffect(() => {
     autoResolvedRef.current = null
   }, [currentIndex])
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const handleActivateItem = async () => {
     if (!currentItem || !streamId) return
@@ -605,7 +628,9 @@ export default function LiveSellerView() {
 
     // Auto-advance after a short delay to let the overlay show
     setTimeout(() => {
-      const nextIdx = items.findIndex((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
+      const latestItems = itemsRef.current
+      const latestIndex = currentIndexRef.current
+      const nextIdx = latestItems.findIndex((it, i) => i > latestIndex && (it.status === 'draft' || it.status === 'pending'))
       if (nextIdx >= 0) setCurrentIndex(nextIdx)
     }, 2000)
   }
@@ -628,7 +653,9 @@ export default function LiveSellerView() {
     ))
 
     setTimeout(() => {
-      const nextIdx = items.findIndex((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
+      const latestItems = itemsRef.current
+      const latestIndex = currentIndexRef.current
+      const nextIdx = latestItems.findIndex((it, i) => i > latestIndex && (it.status === 'draft' || it.status === 'pending'))
       if (nextIdx >= 0) setCurrentIndex(nextIdx)
     }, 2000)
   }
@@ -707,6 +734,7 @@ export default function LiveSellerView() {
     setShowEndConfirm(false)
     setLiveEnded(true)
   }
+  handleEndLiveRef.current = handleEndLive
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user || !streamId) return
@@ -721,12 +749,6 @@ export default function LiveSellerView() {
   const hasMoreItems = items.some((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
 
   // Format timer
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60)
-    const sec = s % 60
-    return m > 0 ? `${m}:${String(sec).padStart(2, '0')}` : `${sec}s`
-  }
-
   // Post-live screen
   if (liveEnded) {
     return (

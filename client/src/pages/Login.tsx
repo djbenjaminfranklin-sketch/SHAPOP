@@ -16,6 +16,7 @@ const content = {
     signingIn: 'Connexion...',
     noAccount: 'Pas de compte ?',
     createAccount: "S'inscrire",
+    forgotPassword: 'Mot de passe oublie ?',
     errorDefault: 'Erreur de connexion',
   },
   en: {
@@ -30,6 +31,7 @@ const content = {
     signingIn: 'Signing in...',
     noAccount: 'No account?',
     createAccount: 'Create account',
+    forgotPassword: 'Forgot password?',
     errorDefault: 'Sign in error',
   },
   he: {
@@ -44,6 +46,7 @@ const content = {
     signingIn: '...מתחבר',
     noAccount: 'אין חשבון?',
     createAccount: 'צור חשבון',
+    forgotPassword: 'שכחת סיסמה?',
     errorDefault: 'שגיאת התחברות',
   },
   es: {
@@ -58,6 +61,7 @@ const content = {
     signingIn: 'Iniciando sesión...',
     noAccount: '¿Sin cuenta?',
     createAccount: 'Crear cuenta',
+    forgotPassword: 'Olvido su contrasena?',
     errorDefault: 'Error de inicio de sesión',
   },
 }
@@ -65,6 +69,7 @@ const content = {
 export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { user, loading: authLoading, signIn, signInWithGoogle, signInWithApple } = useAuth()
@@ -74,7 +79,10 @@ export default function Login() {
 
   // Redirect when user becomes authenticated (OAuth callback)
   useEffect(() => {
-    if (!authLoading && user) navigate('/')
+    if (!authLoading && user) {
+      sessionStorage.setItem('shapop_fresh_login', '1')
+      navigate('/')
+    }
   }, [user, authLoading, navigate])
 
   const handleSubmit = async (e: FormEvent) => {
@@ -83,6 +91,7 @@ export default function Login() {
     setLoading(true)
     try {
       await signIn(email, password)
+      sessionStorage.setItem('shapop_fresh_login', '1')
       navigate('/')
     } catch (err) {
       setError(err instanceof Error ? err.message : c.errorDefault)
@@ -185,23 +194,46 @@ export default function Login() {
           />
         </div>
 
-        <div style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.password}
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            required
-            style={{
-              width: '100%', padding: '16px 18px', borderRadius: '14px',
-              backgroundColor: '#111', border: '1.5px solid #222',
-              fontSize: '17px', color: '#fff', outline: 'none',
-              boxSizing: 'border-box', fontFamily: 'inherit',
-            }}
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              style={{
+                width: '100%', padding: '16px 18px', paddingRight: '48px', borderRadius: '14px',
+                backgroundColor: '#111', border: '1.5px solid #222',
+                fontSize: '17px', color: '#fff', outline: 'none',
+                boxSizing: 'border-box', fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {showPassword ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ textAlign: 'right', marginBottom: '24px' }}>
+          <Link to="/forgot-password" style={{ fontSize: '14px', color: '#F0908A', fontWeight: 500, textDecoration: 'none' }}>
+            {c.forgotPassword}
+          </Link>
         </div>
 
         <button

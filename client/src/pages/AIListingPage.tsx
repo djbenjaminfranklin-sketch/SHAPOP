@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { showToast } from '../lib/toast'
 import { supabase } from '../lib/supabase'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
@@ -49,7 +51,9 @@ const content = {
     descriptionLabel: 'Description',
     generatedByAI: 'Generee par IA',
     createListing: 'Creer l\'annonce',
+    saving: 'Sauvegarde en cours...',
     listingCreated: 'Annonce creee avec succes !',
+    listingError: 'Erreur lors de la creation. Reessayez.',
     categories: [
       'Sneakers', 'Mode Femme', 'Mode Homme', 'Sacs', 'Bijoux',
       'Montres', 'High-tech', 'Gaming', 'Cartes', 'Vintage',
@@ -88,7 +92,9 @@ const content = {
     descriptionLabel: 'Description',
     generatedByAI: 'AI generated',
     createListing: 'Create listing',
+    saving: 'Saving...',
     listingCreated: 'Listing created successfully!',
+    listingError: 'Error creating listing. Please try again.',
     categories: [
       'Sneakers', 'Women\'s Fashion', 'Men\'s Fashion', 'Bags', 'Jewelry',
       'Watches', 'Tech', 'Gaming', 'Cards', 'Vintage',
@@ -127,7 +133,9 @@ const content = {
     descriptionLabel: '\u05EA\u05D9\u05D0\u05D5\u05E8',
     generatedByAI: '\u05E0\u05D5\u05E6\u05E8 \u05E2\u05DC \u05D9\u05D3\u05D9 AI',
     createListing: '\u05E6\u05D5\u05E8 \u05DE\u05D5\u05D3\u05E2\u05D4',
+    saving: '...\u05E9\u05D5\u05DE\u05E8',
     listingCreated: '\u05D4\u05DE\u05D5\u05D3\u05E2\u05D4 \u05E0\u05D5\u05E6\u05E8\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!',
+    listingError: '.\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05DE\u05D5\u05D3\u05E2\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
     categories: [
       'Sneakers', '\u05D0\u05D5\u05E4\u05E0\u05EA \u05E0\u05E9\u05D9\u05DD', '\u05D0\u05D5\u05E4\u05E0\u05EA \u05D2\u05D1\u05E8\u05D9\u05DD', '\u05EA\u05D9\u05E7\u05D9\u05DD', '\u05EA\u05DB\u05E9\u05D9\u05D8\u05D9\u05DD',
       '\u05E9\u05E2\u05D5\u05E0\u05D9\u05DD', '\u05D8\u05E7', 'Gaming', '\u05E7\u05DC\u05E4\u05D9\u05DD', '\u05D5\u05D9\u05E0\u05D8\u05D2\u05F3',
@@ -166,7 +174,9 @@ const content = {
     descriptionLabel: 'Descripcion',
     generatedByAI: 'Generada por IA',
     createListing: 'Crear anuncio',
+    saving: 'Guardando...',
     listingCreated: 'Anuncio creado con exito!',
+    listingError: 'Error al crear el anuncio. Intentalo de nuevo.',
     categories: [
       'Sneakers', 'Moda Mujer', 'Moda Hombre', 'Bolsos', 'Joyas',
       'Relojes', 'Tecnologia', 'Gaming', 'Cartas', 'Vintage',
@@ -186,6 +196,7 @@ const conditionsFr = ['Neuf', 'Comme neuf', 'Bon etat', 'Correct']
 
 export default function AIListingPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const t = content[lang] || content.fr
   const analysisSteps = t.analysisSteps
@@ -206,8 +217,8 @@ export default function AIListingPage() {
   const [editDescription, setEditDescription] = useState('')
   const [editTags, setEditTags] = useState<string[]>([])
 
-  // Success toast
-  const [showToast, setShowToast] = useState(false)
+  // Save state
+  const [saving, setSaving] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
 
   useEffect(() => {
@@ -313,11 +324,40 @@ export default function AIListingPage() {
     }, 400)
   }
 
-  const handleSubmit = () => {
-    setShowToast(true)
-    setTimeout(() => {
-      navigate(-1)
-    }, 1600)
+  const handleSubmit = async () => {
+    if (!user || !aiResult) return
+    setSaving(true)
+
+    try {
+      const { error } = await supabase.from('items').insert({
+        seller_id: user.id,
+        title: editTitle,
+        description: editDescription,
+        category: editCategory,
+        starting_price: parseFloat(editPrice) || 0,
+        current_price: parseFloat(editPrice) || 0,
+        image_urls: imagePreview ? [imagePreview] : [],
+        ai_generated: true,
+        ai_tags: editTags,
+        ai_condition: editCondition,
+        ai_confidence: aiResult.confidence,
+        status: 'draft',
+      })
+
+      if (error) {
+        showToast(t.listingError, 'error')
+        setSaving(false)
+        return
+      }
+
+      showToast(t.listingCreated)
+      setTimeout(() => {
+        navigate('/dashboard')
+      }, 1200)
+    } catch {
+      showToast(t.listingError, 'error')
+      setSaving(false)
+    }
   }
 
   const removeTag = (index: number) => {
@@ -586,7 +626,7 @@ export default function AIListingPage() {
 
     return (
       <div style={{
-        flex: 1, overflowY: 'auto', padding: '0 16px 120px',
+        flex: 1, overflowY: 'auto', padding: '0 16px', paddingBottom: 'calc(180px + env(safe-area-inset-bottom, 0px))',
         opacity: showResults ? 1 : 0,
         transform: showResults ? 'translateY(0)' : 'translateY(20px)',
         transition: 'all 0.5s ease',
@@ -817,20 +857,22 @@ export default function AIListingPage() {
         {/* Submit button */}
         <button
           onClick={handleSubmit}
+          disabled={saving}
           style={{
             width: '100%', padding: '16px', borderRadius: '16px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            border: 'none', cursor: 'pointer',
+            border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
             marginTop: '24px',
             boxShadow: '0 8px 32px rgba(240,144,138,0.25)',
+            opacity: saving ? 0.6 : 1,
           }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="white"/>
           </svg>
           <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>
-            {t.createListing}
+            {saving ? t.saving : t.createListing}
           </span>
         </button>
       </div>
@@ -903,25 +945,7 @@ export default function AIListingPage() {
       {step === 'analyzing' && renderAnalysisStep()}
       {step === 'results' && renderResultsStep()}
 
-      {/* Success toast */}
-      {showToast && (
-        <div style={{
-          position: 'fixed', top: '80px', left: '50%', transform: 'translateX(-50%)',
-          padding: '14px 24px', borderRadius: '14px',
-          background: 'linear-gradient(135deg, #10B981, #059669)',
-          display: 'flex', alignItems: 'center', gap: '10px',
-          zIndex: 200,
-          boxShadow: '0 8px 32px rgba(16,185,129,0.3)',
-          animation: 'toastIn 0.4s ease',
-        }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6L9 17l-5-5"/>
-          </svg>
-          <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
-            {t.listingCreated}
-          </span>
-        </div>
-      )}
+      {/* Toast is now handled by showToast() from lib/toast */}
 
       {/* CSS Animations */}
       <style>{`

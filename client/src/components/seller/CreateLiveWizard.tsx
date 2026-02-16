@@ -22,7 +22,10 @@ export default function CreateLiveWizard() {
   const [repeat, setRepeat] = useState('none')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedFormat, setSelectedFormat] = useState('')
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [successDate, setSuccessDate] = useState('')
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -35,6 +38,11 @@ export default function CreateLiveWizard() {
   const [visible, setVisible] = useState(true)
   const [dragOver, setDragOver] = useState(false)
   const [titleFocused, setTitleFocused] = useState(false)
+
+  // Swipe gesture state
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+  const touchMoved = useRef(false)
 
   const txt = {
     fr: {
@@ -64,9 +72,13 @@ export default function CreateLiveWizard() {
       changeBtn: 'Changer l\'image',
       livePreview: 'Apercu',
       next: 'Suivant',
-      goLive: 'Creer le live',
-      creating: 'Creation...',
+      goLive: 'Valider le live',
+      creating: 'Validation...',
       stepOf: 'sur',
+      skip: 'Passer',
+      successTitle: 'Live programme !',
+      successMsg: 'Ton live est prevu pour le',
+      successBtn: 'Parfait',
     },
     en: {
       tipsTitle: 'Tips for a great live',
@@ -95,9 +107,13 @@ export default function CreateLiveWizard() {
       changeBtn: 'Change image',
       livePreview: 'Preview',
       next: 'Next',
-      goLive: 'Create live',
-      creating: 'Creating...',
+      goLive: 'Confirm live',
+      creating: 'Confirming...',
       stepOf: 'of',
+      skip: 'Skip',
+      successTitle: 'Live scheduled!',
+      successMsg: 'Your live is set for',
+      successBtn: 'Great',
     },
     he: {
       tipsTitle: 'טיפים לשידור מעולה',
@@ -126,40 +142,48 @@ export default function CreateLiveWizard() {
       changeBtn: 'החלף תמונה',
       livePreview: 'תצוגה מקדימה',
       next: 'הבא',
-      goLive: 'צור שידור',
-      creating: '...יוצר',
+      goLive: 'אשר שידור',
+      creating: '...מאשר',
       stepOf: 'מתוך',
+      skip: 'דלג',
+      successTitle: '!השידור תוזמן',
+      successMsg: 'השידור שלך מתוכנן ל',
+      successBtn: 'מצוין',
     },
     es: {
       tipsTitle: 'Consejos para un gran directo',
       tip1Title: 'Luz y sonido',
-      tip1Desc: 'Usa buena iluminacion y minimiza el ruido de fondo. Un aro de luz marca la diferencia!',
+      tip1Desc: '\u00A1Usa buena iluminaci\u00F3n y reduce el ruido de fondo. Un aro de luz marca toda la diferencia!',
       tip2Title: 'Involucra a tu audiencia',
-      tip2Desc: 'Saluda a los espectadores por nombre, responde preguntas en vivo y crea urgencia.',
+      tip2Desc: 'Saluda a los espectadores por su nombre, responde preguntas en directo y crea urgencia con ofertas limitadas.',
       tip3Title: 'Prepara tus productos',
-      tip3Desc: 'Ten los articulos organizados y listos. Conoce tus precios y descripciones de memoria.',
-      titleLabel: 'Dale un titulo a tu directo',
-      titlePlaceholder: 'ej: Ofertas de sneakers del domingo!',
+      tip3Desc: 'Ten tus art\u00EDculos organizados y listos para mostrar. Conoce tus precios y descripciones de memoria.',
+      titleLabel: 'Dale un t\u00EDtulo a tu directo',
+      titlePlaceholder: 'ej: \u00A1Ofertas de sneakers del domingo!',
       charCount: '/150',
-      dateLabel: 'Cuando?',
+      dateLabel: '\u00BFCu\u00E1ndo?',
       dateInput: 'Fecha',
       timeInput: 'Hora',
-      repeatLabel: 'Repetir',
-      repeatNone: 'Sin repetir',
+      repeatLabel: 'Repetici\u00F3n',
+      repeatNone: 'Sin repetici\u00F3n',
       repeatWeekly: 'Semanal',
       repeatBiweekly: 'Cada 2 semanas',
-      categoryLabel: 'Categoria y formato',
-      categorySelect: 'Selecciona una categoria',
+      categoryLabel: 'Categor\u00EDa y formato',
+      categorySelect: 'Selecciona una categor\u00EDa',
       formatSelect: 'Selecciona un formato',
       thumbnailLabel: 'Miniatura',
-      thumbnailDesc: 'Sube una imagen de vista previa para tu directo',
+      thumbnailDesc: 'Sube una imagen para la vista previa de tu directo',
       uploadBtn: 'Subir imagen',
       changeBtn: 'Cambiar imagen',
       livePreview: 'Vista previa',
       next: 'Siguiente',
-      goLive: 'Crear directo',
-      creating: 'Creando...',
+      goLive: 'Confirmar directo',
+      creating: 'Confirmando...',
       stepOf: 'de',
+      skip: 'Omitir',
+      successTitle: '\u00A1Directo programado!',
+      successMsg: 'Tu directo est\u00E1 previsto para el',
+      successBtn: 'Perfecto',
     },
   }
 
@@ -198,6 +222,7 @@ export default function CreateLiveWizard() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      setThumbnailFile(file)
       const reader = new FileReader()
       reader.onload = (ev) => {
         setThumbnailPreview(ev.target?.result as string)
@@ -215,6 +240,49 @@ export default function CreateLiveWizard() {
         ? new Date(`${scheduledDate}T${scheduledTime}`).toISOString()
         : null
 
+      // Upload thumbnail to Supabase storage if available
+      let uploadedThumbnailUrl: string | null = null
+      if (thumbnailFile) {
+        const ext = thumbnailFile.name.split('.').pop() || 'jpg'
+        const path = `${user.id}/thumbnails/${Date.now()}.${ext}`
+        const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, thumbnailFile, { upsert: true })
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+          uploadedThumbnailUrl = urlData.publicUrl
+        }
+      } else if (thumbnailPreview && thumbnailPreview.startsWith('data:')) {
+        // Fallback: upload base64 data as a file if no File object is available
+        try {
+          const res = await fetch(thumbnailPreview)
+          const blob = await res.blob()
+          const ext = blob.type.split('/')[1] || 'png'
+          const path = `${user.id}/thumbnails/${Date.now()}.${ext}`
+          const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: blob.type })
+          if (!uploadErr) {
+            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+            uploadedThumbnailUrl = urlData.publicUrl
+          }
+        } catch {
+          // Upload failed, fall back to null
+        }
+      }
+
+      // Verify seller record exists, auto-create if missing
+      const { error: sellerCheckErr } = await supabase
+        .from('sellers')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      if (sellerCheckErr && sellerCheckErr.code === 'PGRST116') {
+        const { error: createSellerErr } = await supabase
+          .from('sellers')
+          .insert({ id: user.id })
+        if (createSellerErr) throw new Error('Erreur creation vendeur')
+      } else if (sellerCheckErr) {
+        throw sellerCheckErr
+      }
+
       const { data: stream, error: streamError } = await supabase
         .from('streams')
         .insert({
@@ -223,7 +291,7 @@ export default function CreateLiveWizard() {
           category: selectedCategory,
           status: scheduledAt ? 'scheduled' : 'live',
           scheduled_at: scheduledAt,
-          thumbnail_url: thumbnailPreview || null,
+          thumbnail_url: uploadedThumbnailUrl,
         })
         .select()
         .single()
@@ -240,9 +308,19 @@ export default function CreateLiveWizard() {
       }
       localStorage.setItem(`shapop_live_${stream.id}`, JSON.stringify(liveData))
 
-      navigate(`/prepare-live/${stream.id}`)
+      setLoading(false)
+
+      // Format the date for the success popup
+      if (scheduledAt) {
+        const d = new Date(scheduledAt)
+        const dateStr = d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'es' ? 'es-ES' : lang === 'he' ? 'he-IL' : 'en-US', {
+          weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
+        })
+        setSuccessDate(dateStr)
+      }
+      setShowSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error creating stream')
+      setError(err instanceof Error ? err.message : (t as any).createError || 'Erreur')
       setLoading(false)
     }
   }
@@ -278,6 +356,47 @@ export default function CreateLiveWizard() {
   const scrollToTip = (index: number) => {
     setActiveTip(index)
     carouselRef.current?.children[index]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }
+
+  // Swipe gesture handlers for step navigation
+  const SWIPE_THRESHOLD = 50
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    touchMoved.current = false
+  }
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current !== null) {
+      const dx = Math.abs(e.touches[0].clientX - touchStartX.current)
+      const dy = Math.abs(e.touches[0].clientY - (touchStartY.current || 0))
+      if (dx > 10 || dy > 10) touchMoved.current = true
+    }
+  }
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || animating) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = Math.abs(e.changedTouches[0].clientY - (touchStartY.current || 0))
+    // Only trigger if horizontal swipe is dominant
+    if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > dy) {
+      if (dx < 0 && step < TOTAL_STEPS - 1 && canProceed()) {
+        // Swiped left -> next step
+        handleNext()
+      } else if (dx > 0 && step > 0) {
+        // Swiped right -> previous step
+        handleBack()
+      }
+    }
+    touchStartX.current = null
+    touchStartY.current = null
+  }
+
+  // Determine if the current step can be skipped (only tips step 0 and thumbnail step 4)
+  const canSkip = step === 0 || step === 4
+
+  const handleSkip = () => {
+    if (step < TOTAL_STEPS - 1) {
+      animateStep('left', step + 1)
+    }
   }
 
   // Generate next 7 days for date picker
@@ -331,6 +450,7 @@ export default function CreateLiveWizard() {
     setDragOver(false)
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) {
+      setThumbnailFile(file)
       const reader = new FileReader()
       reader.onload = (ev) => {
         setThumbnailPreview(ev.target?.result as string)
@@ -444,7 +564,7 @@ export default function CreateLiveWizard() {
 
             {/* Premium dot indicators */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '0px' }}>
-              {tips.map((tip, i) => (
+              {tips.map((_tip, i) => (
                 <button
                   key={i}
                   onClick={() => scrollToTip(i)}
@@ -756,10 +876,14 @@ export default function CreateLiveWizard() {
               {t.timeInput}
             </label>
             <div style={{
-              display: 'flex', gap: '8px', overflowX: 'auto',
-              padding: '0 0 16px', marginBottom: '8px',
-              flexWrap: 'wrap',
-            }}>
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '8px',
+              maxHeight: '200px',
+              overflowY: 'auto',
+              padding: '2px 0 16px',
+              marginBottom: '8px',
+            }} className="no-scrollbar">
               {getTimeSlots().map((slot) => {
                 const isSelected = scheduledTime === slot.value
                 return (
@@ -767,7 +891,7 @@ export default function CreateLiveWizard() {
                     key={slot.value}
                     onClick={() => setScheduledTime(slot.value)}
                     style={{
-                      padding: '10px 16px',
+                      padding: '10px 4px',
                       borderRadius: '12px',
                       background: isSelected
                         ? 'linear-gradient(145deg, #1a3a5c 0%, #0d2240 100%)'
@@ -852,9 +976,10 @@ export default function CreateLiveWizard() {
               {t.categorySelect}
             </p>
 
-            {/* Category image grid */}
+            {/* Category pills */}
             <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px',
+              display: 'flex', flexWrap: 'wrap', gap: '10px',
+              justifyContent: 'center',
               marginBottom: '28px',
               maxHeight: '280px', overflowY: 'auto',
               padding: '2px',
@@ -866,61 +991,29 @@ export default function CreateLiveWizard() {
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
                     style={{
-                      position: 'relative',
-                      width: '100%',
-                      paddingBottom: '100%',
-                      height: 0,
-                      borderRadius: '16px',
-                      overflow: 'hidden',
-                      border: isSelected ? '2px solid #34D399' : '1px solid #1A1A1A',
+                      padding: '10px 18px',
+                      borderRadius: '20px',
+                      border: isSelected ? '2px solid #34D399' : '1px solid #333',
+                      backgroundColor: isSelected ? 'rgba(52, 211, 153, 0.15)' : '#1A1A1A',
+                      color: isSelected ? '#34D399' : '#ccc',
+                      fontSize: '14px',
+                      fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer',
-                      background: '#0A0A0A',
-                      padding: 0,
-                      boxShadow: isSelected ? '0 4px 20px rgba(52, 211, 153, 0.3)' : 'none',
-                      transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      touchAction: 'manipulation',
+                      boxShadow: isSelected ? '0 4px 16px rgba(52, 211, 153, 0.2)' : 'none',
                     }}
                   >
-                    <img
-                      src={cat.image}
-                      alt={cat.label}
-                      style={{
-                        position: 'absolute', top: 0, left: 0,
-                        width: '100%', height: '100%', objectFit: 'cover',
-                        opacity: isSelected ? 1 : 0.6,
-                        transition: 'opacity 0.25s ease',
-                      }}
-                      loading="lazy"
-                    />
-                    {/* Dark overlay with label */}
-                    <div style={{
-                      position: 'absolute', bottom: 0, left: 0, right: 0,
-                      background: isSelected
-                        ? 'linear-gradient(transparent, rgba(16, 185, 129, 0.6))'
-                        : 'linear-gradient(transparent, rgba(0,0,0,0.85))',
-                      padding: '20px 8px 8px',
-                      transition: 'background 0.25s ease',
-                    }}>
-                      <span style={{
-                        fontSize: '11px', fontWeight: 700, color: '#fff',
-                        textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                      }}>
-                        {i18nT(lang, cat.id as TranslationKey)}
-                      </span>
-                    </div>
-                    {/* Check mark */}
                     {isSelected && (
-                      <div style={{
-                        position: 'absolute', top: '6px', right: '6px',
-                        width: '24px', height: '24px', borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #34D399, #059669)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(52,211,153,0.4)',
-                      }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      </div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
                     )}
+                    <span>
+                      {i18nT(lang, cat.id as TranslationKey)}
+                    </span>
                   </button>
                 )
               })}
@@ -1163,24 +1256,21 @@ export default function CreateLiveWizard() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '16px 20px 12px',
         }}>
-          {step > 0 ? (
-            <button
-              onClick={handleBack}
-              style={{
-                background: 'linear-gradient(145deg, #141414, #0A0A0A)',
-                border: '1px solid #1E1E1E',
-                cursor: 'pointer', padding: '10px',
-                borderRadius: '12px',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5">
-                <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </button>
-          ) : (
-            <div style={{ width: '42px' }} />
-          )}
+          <button
+            onClick={step > 0 ? handleBack : () => navigate(-1)}
+            style={{
+              background: 'linear-gradient(145deg, #141414, #0A0A0A)',
+              border: '1px solid #1E1E1E',
+              cursor: 'pointer', padding: '10px',
+              borderRadius: '12px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'manipulation',
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5">
+              <path d={step > 0 ? "M19 12H5M12 19l-7-7 7-7" : "M18 6L6 18M6 6l12 12"} strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
               <div
@@ -1199,12 +1289,26 @@ export default function CreateLiveWizard() {
               />
             ))}
           </div>
-          <div style={{
-            fontSize: '13px', fontWeight: 700, color: '#444',
-            minWidth: '42px', textAlign: 'right',
-          }}>
-            {step + 1}/{TOTAL_STEPS}
-          </div>
+          {canSkip ? (
+            <button
+              onClick={handleSkip}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '14px', fontWeight: 700, color: '#F0908A',
+                minWidth: '42px', textAlign: 'right', padding: '4px 0',
+                letterSpacing: '0.2px',
+              }}
+            >
+              {t.skip}
+            </button>
+          ) : (
+            <div style={{
+              fontSize: '13px', fontWeight: 700, color: '#444',
+              minWidth: '42px', textAlign: 'right',
+            }}>
+              {step + 1}/{TOTAL_STEPS}
+            </div>
+          )}
         </div>
 
         {/* Progress bar - thick and prominent */}
@@ -1222,22 +1326,32 @@ export default function CreateLiveWizard() {
           }} />
         </div>
 
-        {/* Content with slide animation */}
-        <div style={{
-          opacity: visible ? 1 : 0,
-          transform: visible
-            ? 'translateX(0)'
-            : slideDir === 'left' ? 'translateX(-30px)' : 'translateX(30px)',
-          transition: 'opacity 0.25s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          paddingTop: '20px',
-        }}>
+        {/* Content with slide animation + swipe support + scroll */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible
+              ? 'translateX(0)'
+              : slideDir === 'left' ? 'translateX(-30px)' : 'translateX(30px)',
+            transition: 'opacity 0.25s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            paddingTop: '20px',
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            maxHeight: 'calc(100vh - 200px)',
+            WebkitOverflowScrolling: 'touch' as any,
+            paddingBottom: '32px',
+          }}
+        >
           {renderStep()}
         </div>
       </div>
 
       {/* Footer with premium button */}
       <div style={{
-        position: 'fixed', bottom: '70px', left: 0, right: 0,
+        position: 'fixed', bottom: 0, left: 0, right: 0,
         padding: '16px 20px',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
         background: 'linear-gradient(180deg, transparent 0%, #000 30%)',
@@ -1294,7 +1408,66 @@ export default function CreateLiveWizard() {
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
+        @keyframes popIn {
+          0% { transform: scale(0.8); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
       `}</style>
+
+      {/* Success popup */}
+      {showSuccess && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px',
+        }}>
+          <div style={{
+            backgroundColor: '#111',
+            border: '1px solid #222',
+            borderRadius: '24px',
+            padding: '36px 28px',
+            maxWidth: '340px',
+            width: '100%',
+            textAlign: 'center',
+            animation: 'popIn 0.3s ease',
+          }}>
+            <div style={{
+              width: '72px', height: '72px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #10B981, #059669)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 20px',
+              boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+            }}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 12px' }}>
+              {t.successTitle}
+            </h3>
+            <p style={{ fontSize: '15px', color: '#999', margin: '0 0 8px', lineHeight: 1.5 }}>
+              {t.successMsg}
+            </p>
+            <p style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A', margin: '0 0 28px' }}>
+              {successDate}
+            </p>
+            <button
+              onClick={() => navigate(-1)}
+              style={{
+                width: '100%', padding: '16px',
+                borderRadius: '14px', border: 'none',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                color: '#fff', fontSize: '16px', fontWeight: 700,
+                cursor: 'pointer', touchAction: 'manipulation',
+                boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
+              }}
+            >
+              {t.successBtn}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

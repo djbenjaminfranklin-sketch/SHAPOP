@@ -12,6 +12,12 @@ export default function BottomNav() {
   const [showSell, setShowSell] = useState(false)
 
   if (path.startsWith('/stream/')) return null
+  if (path.startsWith('/live-seller/')) return null
+  if (path.startsWith('/prepare-live/')) return null
+  if (path === '/go-live') return null
+  if (path === '/schedule-live') return null
+  if (path === '/ai-listing') return null
+  if (!user) return null
 
   const tabs = [
     {
@@ -94,10 +100,10 @@ export default function BottomNav() {
                   style={{
                     display: 'flex', flexDirection: 'column', alignItems: 'center',
                     background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                    justifySelf: 'center',
+                    justifySelf: 'center', touchAction: 'manipulation',
                   }}
                 >
-                  {tab.icon(false)}
+                  {tab.icon()}
                   <span style={{
                     fontSize: '10px', fontWeight: 500,
                     color: '#666',
@@ -115,7 +121,7 @@ export default function BottomNav() {
                 to={tab.to}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  textDecoration: 'none', justifySelf: 'center',
+                  textDecoration: 'none', justifySelf: 'center', touchAction: 'manipulation',
                 }}
               >
                 {tab.icon(tab.active)}

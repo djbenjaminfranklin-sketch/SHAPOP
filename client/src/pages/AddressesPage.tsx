@@ -16,10 +16,10 @@ interface Address {
 }
 
 const content = {
-  fr: { title: 'Adresses', noAddr: 'Aucune adresse enregistree.', add: 'Ajouter une adresse', name: 'Nom complet', street: 'Adresse', city: 'Ville', zip: 'Code postal', phone: 'Telephone', save: 'Enregistrer', cancel: 'Annuler', edit: 'Modifier', delete: 'Supprimer', saved: 'Adresse enregistree !' },
-  en: { title: 'Addresses', noAddr: 'No addresses saved yet.', add: 'Add address', name: 'Full name', street: 'Street address', city: 'City', zip: 'Zip code', phone: 'Phone', save: 'Save address', cancel: 'Cancel', edit: 'Edit', delete: 'Delete', saved: 'Address saved!' },
-  he: { title: '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', noAddr: '\u05D0\u05D9\u05DF \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA.', add: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05EA\u05D5\u05D1\u05EA', name: '\u05E9\u05DD \u05DE\u05DC\u05D0', street: '\u05E8\u05D7\u05D5\u05D1', city: '\u05E2\u05D9\u05E8', zip: '\u05DE\u05D9\u05E7\u05D5\u05D3', phone: '\u05D8\u05DC\u05E4\u05D5\u05DF', save: '\u05E9\u05DE\u05D5\u05E8 \u05DB\u05EA\u05D5\u05D1\u05EA', cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC', edit: '\u05E2\u05E8\u05D5\u05DA', delete: '\u05DE\u05D7\u05E7', saved: '!\u05DB\u05EA\u05D5\u05D1\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4' },
-  es: { title: 'Direcciones', noAddr: 'No hay direcciones guardadas.', add: 'Agregar direccion', name: 'Nombre completo', street: 'Direccion', city: 'Ciudad', zip: 'Codigo postal', phone: 'Telefono', save: 'Guardar direccion', cancel: 'Cancelar', edit: 'Editar', delete: 'Eliminar', saved: 'Direccion guardada!' },
+  fr: { title: 'Adresses', noAddr: 'Aucune adresse enregistree.', add: 'Ajouter une adresse', name: 'Nom complet', street: 'Adresse', city: 'Ville', zip: 'Code postal', phone: 'Telephone', save: 'Enregistrer', cancel: 'Annuler', edit: 'Modifier', delete: 'Supprimer', saved: 'Adresse enregistree !', confirm: 'Confirmer ?', confirmDelete: 'Confirmer la suppression ?', setDefault: 'Par defaut', defaultLabel: 'Par defaut', nameRequired: 'Le nom est requis', streetRequired: "L'adresse est requise", errorSave: "Erreur lors de l'enregistrement", errorDelete: 'Erreur lors de la suppression', errorDefault: 'Erreur lors du changement', saving: 'Enregistrement...' },
+  en: { title: 'Addresses', noAddr: 'No addresses saved yet.', add: 'Add address', name: 'Full name', street: 'Street address', city: 'City', zip: 'Zip code', phone: 'Phone', save: 'Save address', cancel: 'Cancel', edit: 'Edit', delete: 'Delete', saved: 'Address saved!', confirm: 'Confirm?', confirmDelete: 'Confirm delete?', setDefault: 'Set default', defaultLabel: 'Default', nameRequired: 'Name is required', streetRequired: 'Street is required', errorSave: 'Error saving address', errorDelete: 'Error deleting address', errorDefault: 'Error setting default', saving: 'Saving...' },
+  he: { title: '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', noAddr: '\u05D0\u05D9\u05DF \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA.', add: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05EA\u05D5\u05D1\u05EA', name: '\u05E9\u05DD \u05DE\u05DC\u05D0', street: '\u05E8\u05D7\u05D5\u05D1', city: '\u05E2\u05D9\u05E8', zip: '\u05DE\u05D9\u05E7\u05D5\u05D3', phone: '\u05D8\u05DC\u05E4\u05D5\u05DF', save: '\u05E9\u05DE\u05D5\u05E8 \u05DB\u05EA\u05D5\u05D1\u05EA', cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC', edit: '\u05E2\u05E8\u05D5\u05DA', delete: '\u05DE\u05D7\u05E7', saved: '!\u05DB\u05EA\u05D5\u05D1\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4', confirm: '?\u05DC\u05D0\u05E9\u05E8', confirmDelete: '?\u05DC\u05D0\u05E9\u05E8 \u05DE\u05D7\u05D9\u05E7\u05D4', setDefault: '\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC', defaultLabel: '\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC', nameRequired: '\u05E9\u05DD \u05E0\u05D3\u05E8\u05E9', streetRequired: '\u05E8\u05D7\u05D5\u05D1 \u05E0\u05D3\u05E8\u05E9', errorSave: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05D4', errorDelete: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05D7\u05D9\u05E7\u05D4', errorDefault: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05D9\u05E0\u05D5\u05D9', saving: '...\u05E9\u05D5\u05DE\u05E8' },
+  es: { title: 'Direcciones', noAddr: 'No hay direcciones guardadas.', add: 'Agregar direccion', name: 'Nombre completo', street: 'Direccion', city: 'Ciudad', zip: 'Codigo postal', phone: 'Telefono', save: 'Guardar direccion', cancel: 'Cancelar', edit: 'Editar', delete: 'Eliminar', saved: 'Direccion guardada!', confirm: 'Confirmar?', confirmDelete: 'Confirmar eliminacion?', setDefault: 'Predeterminada', defaultLabel: 'Predeterminada', nameRequired: 'El nombre es obligatorio', streetRequired: 'La direccion es obligatoria', errorSave: 'Error al guardar', errorDelete: 'Error al eliminar', errorDefault: 'Error al cambiar', saving: 'Guardando...' },
 }
 
 export default function AddressesPage() {
@@ -39,15 +39,22 @@ export default function AddressesPage() {
   const [formCity, setFormCity] = useState('')
   const [formZip, setFormZip] = useState('')
   const [formPhone, setFormPhone] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<{ name?: boolean; street?: boolean }>({})
 
   const fetchAddresses = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('addresses')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: true })
+    if (error) {
+      console.error('Fetch addresses error:', error)
+      // Table might not exist yet — don't crash
+    }
     if (data) setAddresses(data)
     setLoading(false)
   }, [user])
@@ -57,30 +64,51 @@ export default function AddressesPage() {
   }, [fetchAddresses])
 
   const handleSave = async () => {
-    if (!user || !formName.trim() || !formStreet.trim()) return
+    if (!user) return
 
-    const fields = {
-      name: formName.trim(),
-      street: formStreet.trim(),
-      city: formCity.trim(),
-      zip: formZip.trim(),
-      phone: formPhone.trim(),
+    const errors: { name?: boolean; street?: boolean } = {}
+    if (!formName.trim()) errors.name = true
+    if (!formStreet.trim()) errors.street = true
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors)
+      return
     }
+    setFieldErrors({})
 
-    if (editIndex !== null) {
-      const id = addresses[editIndex].id
-      await supabase.from('addresses').update(fields).eq('id', id)
-    } else {
-      await supabase.from('addresses').insert({
-        user_id: user.id,
-        ...fields,
-        is_default: addresses.length === 0,
-      })
+    setSaving(true)
+    try {
+      const fields = {
+        name: formName.trim(),
+        street: formStreet.trim(),
+        city: formCity.trim(),
+        zip: formZip.trim(),
+        phone: formPhone.trim(),
+      }
+
+      let error
+      if (editIndex !== null) {
+        const id = addresses[editIndex].id
+        ;({ error } = await supabase.from('addresses').update(fields).eq('id', id))
+      } else {
+        ;({ error } = await supabase.from('addresses').insert({
+          user_id: user.id,
+          ...fields,
+          is_default: addresses.length === 0,
+        }))
+      }
+
+      if (error) {
+        console.error('Address save error:', error)
+        showToast(`${c.errorSave}: ${error.message || error.code || 'Unknown'}`, 'error')
+        return
+      }
+
+      await fetchAddresses()
+      resetForm()
+      showToast(c.saved)
+    } finally {
+      setSaving(false)
     }
-
-    await fetchAddresses()
-    resetForm()
-    showToast(c.saved)
   }
 
   const handleEdit = (index: number) => {
@@ -95,8 +123,34 @@ export default function AddressesPage() {
   }
 
   const handleDelete = async (index: number) => {
+    if (confirmDeleteIndex !== index) {
+      setConfirmDeleteIndex(index)
+      return
+    }
+    setConfirmDeleteIndex(null)
     const id = addresses[index].id
-    await supabase.from('addresses').delete().eq('id', id)
+    const { error } = await supabase.from('addresses').delete().eq('id', id)
+    if (error) {
+      showToast(c.errorDelete, 'error')
+      return
+    }
+    await fetchAddresses()
+  }
+
+  const handleSetDefault = async (index: number) => {
+    if (!user) return
+    const id = addresses[index].id
+    // Unset all defaults for this user, then set the chosen one
+    const { error: e1 } = await supabase
+      .from('addresses')
+      .update({ is_default: false })
+      .eq('user_id', user.id)
+    if (e1) { showToast(c.errorDefault, 'error'); return }
+    const { error: e2 } = await supabase
+      .from('addresses')
+      .update({ is_default: true })
+      .eq('id', id)
+    if (e2) { showToast(c.errorDefault, 'error'); return }
     await fetchAddresses()
   }
 
@@ -108,6 +162,12 @@ export default function AddressesPage() {
     setFormPhone('')
     setEditIndex(null)
     setShowForm(false)
+    setFieldErrors({})
+  }
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
   }
 
   const inputStyle = { width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box' as const, marginBottom: '12px' }
@@ -136,9 +196,16 @@ export default function AddressesPage() {
                 backgroundColor: '#111', borderRadius: '14px', padding: '16px',
                 border: '1px solid #222',
               }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
-                  {addr.name}
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                    {addr.name}
+                  </p>
+                  {addr.is_default && (
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#F0908A', backgroundColor: 'rgba(240,144,138,0.12)', padding: '2px 8px', borderRadius: '6px' }}>
+                      {c.defaultLabel}
+                    </span>
+                  )}
+                </div>
                 <p style={{ fontSize: '13px', color: '#888', margin: '0 0 2px' }}>
                   {addr.street}
                 </p>
@@ -150,7 +217,7 @@ export default function AddressesPage() {
                     {addr.phone}
                   </p>
                 )}
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     onClick={() => handleEdit(i)}
                     style={{
@@ -165,14 +232,42 @@ export default function AddressesPage() {
                   <button
                     onClick={() => handleDelete(i)}
                     style={{
-                      padding: '8px 16px', backgroundColor: 'rgba(232,52,78,0.1)',
-                      border: 'none', borderRadius: '8px',
+                      padding: '8px 16px',
+                      backgroundColor: confirmDeleteIndex === i ? 'rgba(232,52,78,0.25)' : 'rgba(232,52,78,0.1)',
+                      border: confirmDeleteIndex === i ? '1px solid #E8344E' : 'none',
+                      borderRadius: '8px',
                       color: '#E8344E', fontSize: '13px', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
-                    {c.delete}
+                    {confirmDeleteIndex === i ? c.confirm : c.delete}
                   </button>
+                  {confirmDeleteIndex === i && (
+                    <button
+                      onClick={() => setConfirmDeleteIndex(null)}
+                      style={{
+                        padding: '8px 16px', backgroundColor: '#1A1A1A',
+                        border: 'none', borderRadius: '8px',
+                        color: '#888', fontSize: '13px', fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {c.cancel}
+                    </button>
+                  )}
+                  {!addr.is_default && (
+                    <button
+                      onClick={() => handleSetDefault(i)}
+                      style={{
+                        padding: '8px 16px', backgroundColor: '#1A1A1A',
+                        border: 'none', borderRadius: '8px',
+                        color: '#888', fontSize: '13px', fontWeight: 600,
+                        cursor: 'pointer', marginLeft: 'auto',
+                      }}
+                    >
+                      &#9734; {c.setDefault}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
@@ -200,16 +295,18 @@ export default function AddressesPage() {
           </>
         ) : (
           <div>
-            <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder={c.name} style={inputStyle} />
-            <input type="text" value={formStreet} onChange={e => setFormStreet(e.target.value)} placeholder={c.street} style={inputStyle} />
+            <input type="text" value={formName} onChange={e => { setFormName(e.target.value); if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: false })) }} placeholder={c.name} style={{ ...inputStyle, borderColor: fieldErrors.name ? '#E8344E' : '#222' }} />
+            {fieldErrors.name && <p style={{ fontSize: '12px', color: '#E8344E', margin: '-8px 0 12px 2px' }}>{c.nameRequired}</p>}
+            <input type="text" value={formStreet} onChange={e => { setFormStreet(e.target.value); if (fieldErrors.street) setFieldErrors(prev => ({ ...prev, street: false })) }} placeholder={c.street} style={{ ...inputStyle, borderColor: fieldErrors.street ? '#E8344E' : '#222' }} />
+            {fieldErrors.street && <p style={{ fontSize: '12px', color: '#E8344E', margin: '-8px 0 12px 2px' }}>{c.streetRequired}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <input type="text" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder={c.city} style={inputStyle} />
               <input type="text" value={formZip} onChange={e => setFormZip(e.target.value)} placeholder={c.zip} style={inputStyle} />
             </div>
             <input type="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder={c.phone} style={inputStyle} />
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-              <button onClick={resetForm} style={{ flex: 1, padding: '14px', backgroundColor: '#1A1A1A', border: 'none', borderRadius: '10px', color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>{c.cancel}</button>
-              <button onClick={handleSave} style={{ flex: 1, padding: '14px', backgroundColor: '#F0908A', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>{c.save}</button>
+              <button onClick={resetForm} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#1A1A1A', border: 'none', borderRadius: '10px', color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>{c.cancel}</button>
+              <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#F0908A', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? c.saving : c.save}</button>
             </div>
           </div>
         )}

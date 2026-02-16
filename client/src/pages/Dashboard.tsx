@@ -9,18 +9,18 @@ import EngagementSummary from '../components/EngagementSummary'
 
 // FAQ data
 const faqItems = [
-  { qFr: 'Comment devenir vendeur ?', q: 'How do I unlock seller access?', qHe: '\u05D0\u05D9\u05DA \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05DE\u05D5\u05DB\u05E8?', qEs: 'Como desbloqueo el acceso de vendedor?',
+  { qFr: 'Comment devenir vendeur ?', q: 'How do I unlock seller access?', qHe: '\u05D0\u05D9\u05DA \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05DE\u05D5\u05DB\u05E8?', qEs: '\u00BFC\u00F3mo desbloqueo el acceso de vendedor?',
     aFr: 'Appuie sur "C\'est parti !" et commence a vendre instantanement.', a: 'Tap the "Become a seller" button and start streaming instantly.', aHe: '\u05DC\u05D7\u05E5 \u05E2\u05DC "\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8" \u05D5\u05EA\u05EA\u05D7\u05D9\u05DC \u05DC\u05E9\u05D3\u05E8.', aEs: 'Toca "Convertirme en vendedor" y empieza a transmitir al instante.' },
-  { qFr: 'Quand puis-je planifier un live ?', q: 'When can I schedule a live?', qHe: '\u05DE\u05EA\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05EA\u05D6\u05DE\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8?', qEs: 'Cuando puedo programar un directo?',
-    aFr: 'A tout moment ! Planifie a l\'avance ou passe en live maintenant.', a: 'Anytime! Schedule ahead or go live right now.', aHe: '\u05D1\u05DB\u05DC \u05E2\u05EA! \u05EA\u05D6\u05DE\u05DF \u05DE\u05E8\u05D0\u05E9 \u05D0\u05D5 \u05E6\u05D0 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5.', aEs: 'En cualquier momento! Programa con antelacion o transmite ahora.' },
-  { qFr: 'Comment et quand suis-je paye ?', q: 'How and when do I get paid?', qHe: '\u05D0\u05D9\u05DA \u05D5\u05DE\u05EA\u05D9 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05D9?', qEs: 'Como y cuando me pagan?',
-    aFr: 'Les paiements sont traites via Stripe sous 3 a 5 jours ouvrables.', a: 'Payments are processed via Stripe within 3-5 business days.', aHe: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D3\u05E8\u05DA Stripe \u05EA\u05D5\u05DA 3-5 \u05D9\u05DE\u05D9 \u05E2\u05E1\u05E7\u05D9\u05DD.', aEs: 'Los pagos se procesan via Stripe en 3-5 dias habiles.' },
-  { qFr: 'Quels sont les frais ?', q: 'What are the fees?', qHe: '\u05DE\u05D4 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA?', qEs: 'Cuales son las comisiones?',
-    aFr: '8% de commission + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur les frais. Exemple : sur 50\u20AC, frais totaux 6,90\u20AC TTC, vous recevez 43,10\u20AC.', a: '8% commission + 2.9% + \u20AC0.30 Stripe fees + 20% VAT on fees. Example: on a \u20AC50 sale, total fees \u20AC6.90 incl. VAT, you receive \u20AC43.10.', aHe: '8% \u05E2\u05DE\u05DC\u05D4 + 2.9% + 0.30\u20AC Stripe + \u05DE\u05E2"\u05DE 20%. \u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC.', aEs: '8% comision + 2,9% + 0,30\u20AC Stripe + IVA 20% sobre comisiones. Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC.' },
-  { qFr: 'Que puis-je vendre ?', q: 'What can I sell?', qHe: '\u05DE\u05D4 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05DB\u05D5\u05E8?', qEs: 'Que puedo vender?',
-    aFr: 'Mode, sneakers, cartes, high-tech, art, bijoux et plus encore !', a: 'Fashion, sneakers, cards, electronics, art, jewelry and more!', aHe: '\u05D0\u05D5\u05E4\u05E0\u05D4, \u05E1\u05E0\u05D9\u05E7\u05E8\u05E1, \u05E7\u05DC\u05E4\u05D9\u05DD, \u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9\u05E7\u05D4, \u05D0\u05DE\u05E0\u05D5\u05EA \u05D5\u05E2\u05D5\u05D3!', aEs: 'Moda, sneakers, cartas, electronica, arte, joyeria y mas!' },
-  { qFr: 'Comment fonctionne la livraison ?', q: 'How does shipping work?', qHe: '\u05D0\u05D9\u05DA \u05E2\u05D5\u05D1\u05D3\u05EA \u05D4\u05DE\u05E9\u05DC\u05D5\u05D7?', qEs: 'Como funciona el envio?',
-    aFr: 'Le vendeur expedie sous 3 jours. Le suivi est envoye automatiquement a l\'acheteur.', a: 'Seller ships within 3 days. Tracking provided to buyer automatically.', aHe: '\u05D4\u05DE\u05D5\u05DB\u05E8 \u05E9\u05D5\u05DC\u05D7 \u05EA\u05D5\u05DA 3 \u05D9\u05DE\u05D9\u05DD. \u05DE\u05E2\u05E7\u05D1 \u05E0\u05E9\u05DC\u05D7 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA.', aEs: 'El vendedor envia en 3 dias. Seguimiento automatico al comprador.' },
+  { qFr: 'Quand puis-je planifier un live ?', q: 'When can I schedule a live?', qHe: '\u05DE\u05EA\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05EA\u05D6\u05DE\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8?', qEs: '\u00BFCu\u00E1ndo puedo programar un directo?',
+    aFr: 'A tout moment ! Planifie a l\'avance ou passe en live maintenant.', a: 'Anytime! Schedule ahead or go live right now.', aHe: '\u05D1\u05DB\u05DC \u05E2\u05EA! \u05EA\u05D6\u05DE\u05DF \u05DE\u05E8\u05D0\u05E9 \u05D0\u05D5 \u05E6\u05D0 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5.', aEs: '\u00A1En cualquier momento! Programa con antelaci\u00F3n o transmite ahora.' },
+  { qFr: 'Comment et quand suis-je paye ?', q: 'How and when do I get paid?', qHe: '\u05D0\u05D9\u05DA \u05D5\u05DE\u05EA\u05D9 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05D9?', qEs: '\u00BFC\u00F3mo y cu\u00E1ndo me pagan?',
+    aFr: 'Les paiements sont traites via Stripe sous 3 a 5 jours ouvrables.', a: 'Payments are processed via Stripe within 3-5 business days.', aHe: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D3\u05E8\u05DA Stripe \u05EA\u05D5\u05DA 3-5 \u05D9\u05DE\u05D9 \u05E2\u05E1\u05E7\u05D9\u05DD.', aEs: 'Los pagos se procesan v\u00EDa Stripe en 3-5 d\u00EDas h\u00E1biles.' },
+  { qFr: 'Quels sont les frais ?', q: 'What are the fees?', qHe: '\u05DE\u05D4 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA?', qEs: '\u00BFCu\u00E1les son las comisiones?',
+    aFr: '8% de commission + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur les frais. Exemple : sur 50\u20AC, frais totaux 6,90\u20AC TTC, vous recevez 43,10\u20AC.', a: '8% commission + 2.9% + \u20AC0.30 Stripe fees + 20% VAT on fees. Example: on a \u20AC50 sale, total fees \u20AC6.90 incl. VAT, you receive \u20AC43.10.', aHe: '8% \u05E2\u05DE\u05DC\u05D4 + 2.9% + 0.30\u20AC Stripe + \u05DE\u05E2"\u05DE 20%. \u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC.', aEs: '8% comisi\u00F3n + 2,9% + 0,30\u20AC Stripe + IVA 20% sobre comisiones. Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC.' },
+  { qFr: 'Que puis-je vendre ?', q: 'What can I sell?', qHe: '\u05DE\u05D4 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05DB\u05D5\u05E8?', qEs: '\u00BFQu\u00E9 puedo vender?',
+    aFr: 'Mode, sneakers, cartes, high-tech, art, bijoux et plus encore !', a: 'Fashion, sneakers, cards, electronics, art, jewelry and more!', aHe: '\u05D0\u05D5\u05E4\u05E0\u05D4, \u05E1\u05E0\u05D9\u05E7\u05E8\u05E1, \u05E7\u05DC\u05E4\u05D9\u05DD, \u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9\u05E7\u05D4, \u05D0\u05DE\u05E0\u05D5\u05EA \u05D5\u05E2\u05D5\u05D3!', aEs: '\u00A1Moda, sneakers, cartas, electr\u00F3nica, arte, joyer\u00EDa y mucho m\u00E1s!' },
+  { qFr: 'Comment fonctionne la livraison ?', q: 'How does shipping work?', qHe: '\u05D0\u05D9\u05DA \u05E2\u05D5\u05D1\u05D3\u05EA \u05D4\u05DE\u05E9\u05DC\u05D5\u05D7?', qEs: '\u00BFC\u00F3mo funciona el env\u00EDo?',
+    aFr: 'Le vendeur expedie sous 3 jours. Le suivi est envoye automatiquement a l\'acheteur.', a: 'Seller ships within 3 days. Tracking provided to buyer automatically.', aHe: '\u05D4\u05DE\u05D5\u05DB\u05E8 \u05E9\u05D5\u05DC\u05D7 \u05EA\u05D5\u05DA 3 \u05D9\u05DE\u05D9\u05DD. \u05DE\u05E2\u05E7\u05D1 \u05E0\u05E9\u05DC\u05D7 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA.', aEs: 'El vendedor env\u00EDa en 3 d\u00EDas. El seguimiento se env\u00EDa autom\u00E1ticamente al comprador.' },
 ]
 
 type WizardState = 'idle' | 'onboarding' | 'celebration'
@@ -35,6 +35,11 @@ export default function Dashboard() {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const txt = {
     fr: {
@@ -135,35 +140,35 @@ export default function Dashboard() {
     },
     es: {
       badge: 'EMPIEZA A VENDER HOY',
-      title: 'Transmite.\nVende al instante.',
-      subtitle: 'Unete a miles de vendedores que ganan dinero real con ventas en vivo en ShaPop.',
+      title: 'Transmite en directo.\nVende al instante.',
+      subtitle: '\u00DAnete a miles de vendedores que ganan dinero real con ventas en directo en ShaPop.',
       sellFast: 'Vende en segundos',
-      sellFastDesc: 'Vender en vivo es rapido. Gana mas por hora que en cualquier marketplace.',
-      keepMore: 'Comisiones bajas',
-      keepMoreDesc: '8% comision + comisiones Stripe. Te quedas con mas que en otras plataformas.',
-      bestBuyers: 'Compradores activos',
-      bestBuyersDesc: 'Los compradores en vivo son fieles, entusiastas y listos para gastar.',
-      trusted: 'Plataforma confiable',
-      trustedDesc: 'Pagos seguros, proteccion al comprador y soporte 24/7.',
-      formatsTitle: 'Como vender?',
+      sellFastDesc: 'La venta en directo es r\u00E1pida. Gana m\u00E1s por hora que en cualquier marketplace.',
+      keepMore: 'Comisiones de las m\u00E1s bajas',
+      keepMoreDesc: '8% de comisi\u00F3n + comisiones Stripe. Te quedas con m\u00E1s que en otras plataformas.',
+      bestBuyers: 'Compradores comprometidos',
+      bestBuyersDesc: 'Los compradores en directo son fieles, entusiastas y listos para gastar.',
+      trusted: 'Plataforma de confianza',
+      trustedDesc: 'Pagos seguros, protecci\u00F3n al comprador y soporte 24/7.',
+      formatsTitle: '\u00BFC\u00F3mo vender?',
       fmtAuction: 'Subastas',
-      fmtAuctionDesc: 'Los espectadores pujan en directo. El mejor postor se lleva el articulo.',
+      fmtAuctionDesc: 'Los espectadores pujan en directo. El mejor postor se lleva el art\u00EDculo.',
       fmtBuyNow: 'Compra directa',
-      fmtBuyNowDesc: 'Vende a precio fijo, sin pujas. El comprador clica y compra al instante.',
+      fmtBuyNowDesc: 'Vende a precio fijo, sin pujas. El comprador hace clic y compra al instante.',
       fmtMystery: 'Caja misteriosa',
-      fmtMysteryDesc: 'Sorprende a tus compradores con un lote misterioso a precio unico.',
+      fmtMysteryDesc: 'Sorprende a tus compradores con un lote misterioso a precio \u00FAnico.',
       fmtRipShip: 'Abrir y enviar',
-      fmtRipShipDesc: 'Abre los packs en directo y envia inmediatamente.',
+      fmtRipShipDesc: 'Abre los packs en directo delante de los compradores y env\u00EDa de inmediato.',
       stats1: '~13%',
-      stats1Label: 'Comisiones',
-      stats2: '$0',
+      stats1Label: 'Comisiones totales',
+      stats2: '0\u20AC',
       stats2Label: 'Costos iniciales',
       stats3: '24/7',
       stats3Label: 'Soporte',
       faq: 'FAQ',
-      letsGo: 'Vamos!',
+      letsGo: '\u00A1Vamos!',
       free: 'Gratis para empezar',
-      freeDesc: 'Sin costos iniciales. Tus primeros 7 dias sin comision!',
+      freeDesc: '\u00A1Sin costos iniciales. Tus primeros 7 d\u00EDas sin comisi\u00F3n!',
     },
   }
 

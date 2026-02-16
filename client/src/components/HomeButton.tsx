@@ -5,9 +5,15 @@ export default function HomeButton() {
   const navigate = useNavigate()
   const path = location.pathname
 
-  // Don't show on home page or during streams (has its own UI)
+  // Don't show on home, login/register, streams, or creation wizards (have their own back button)
   if (path === '/') return null
+  if (path === '/login' || path === '/register') return null
   if (path.startsWith('/stream/')) return null
+  if (path.startsWith('/live-seller/')) return null
+  if (path.startsWith('/prepare-live/')) return null
+  if (path === '/go-live') return null
+  if (path === '/schedule-live') return null
+  if (path === '/ai-listing') return null
 
   return (
     <>
@@ -15,7 +21,7 @@ export default function HomeButton() {
       <div style={{ height: '48px' }} />
       {/* Fixed home button */}
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate(-1)}
         style={{
           position: 'fixed',
           top: 'calc(env(safe-area-inset-top, 12px) + 10px)',
@@ -34,8 +40,8 @@ export default function HomeButton() {
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1.5">
-          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+          <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </button>
     </>

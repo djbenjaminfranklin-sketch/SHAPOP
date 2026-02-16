@@ -1,5 +1,6 @@
 import { useState, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
@@ -72,8 +73,8 @@ const categoryImages = [
 
 const exploreContent = {
   fr: {
-    searchPlaceholder: 'Rechercher produits, vendeurs...',
-    trending: 'Tendances',
+    searchPlaceholder: 'Rechercher des categories...',
+    trending: 'Suggestions',
     categoriesLabel: 'Categories',
     noCategoryFound: 'Aucune categorie trouvee',
     categoryNames: [
@@ -85,8 +86,8 @@ const exploreContent = {
     ],
   },
   en: {
-    searchPlaceholder: 'Search products, sellers...',
-    trending: 'Trending',
+    searchPlaceholder: 'Search categories...',
+    trending: 'Suggestions',
     categoriesLabel: 'Categories',
     noCategoryFound: 'No category found',
     categoryNames: [
@@ -98,8 +99,8 @@ const exploreContent = {
     ],
   },
   he: {
-    searchPlaceholder: '...\u05D7\u05E4\u05E9 \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD, \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD',
-    trending: '\u05D8\u05E8\u05E0\u05D3\u05D9\u05DD',
+    searchPlaceholder: '...\u05D7\u05E4\u05E9 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA',
+    trending: '\u05D4\u05E6\u05E2\u05D5\u05EA',
     categoriesLabel: '\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA',
     noCategoryFound: '\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4',
     categoryNames: [
@@ -111,8 +112,8 @@ const exploreContent = {
     ],
   },
   es: {
-    searchPlaceholder: 'Buscar productos, vendedores...',
-    trending: 'Tendencias',
+    searchPlaceholder: 'Buscar categorias...',
+    trending: 'Sugerencias',
     categoriesLabel: 'Categorias',
     noCategoryFound: 'No se encontro ninguna categoria',
     categoryNames: [
@@ -126,10 +127,11 @@ const exploreContent = {
 }
 
 export default function Explore() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const lang = (getLang() || 'fr') as Lang
   const ct = exploreContent[lang] || exploreContent.fr
   const allCategories = ct.categoryNames.map((name, i) => ({ name, img: categoryImages[i], idx: i }))
-  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -146,6 +148,11 @@ export default function Explore() {
     })
     return Array.from(terms)
   }, [ct.categoryNames])
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const suggestions = search.length > 0
     ? suggestionTerms

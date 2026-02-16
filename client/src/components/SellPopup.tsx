@@ -13,9 +13,11 @@ const popupContent = {
     iaDescription: "L'IA cree ton annonce",
     newBadge: 'Nouveau',
     scheduleLive: 'Planifier un live',
-    scheduleDesc: 'Programme ton prochain live',
+    scheduleDesc: 'Choisis ta date et ton heure',
     startLive: 'Demarrer un live',
     startLiveDesc: 'Passe en direct maintenant',
+    directSale: 'Vente directe',
+    directSaleDesc: 'Vends au prix fixe, sans live',
     createListing: 'Creer une annonce',
     createListingDesc: 'Vends un produit',
   },
@@ -25,9 +27,11 @@ const popupContent = {
     iaDescription: 'AI creates your listing',
     newBadge: 'New',
     scheduleLive: 'Schedule a live',
-    scheduleDesc: 'Schedule your next live',
+    scheduleDesc: 'Pick your date and time',
     startLive: 'Start a live',
     startLiveDesc: 'Go live now',
+    directSale: 'Direct sale',
+    directSaleDesc: 'Sell at fixed price, no live',
     createListing: 'Create a listing',
     createListingDesc: 'Sell a product',
   },
@@ -37,9 +41,11 @@ const popupContent = {
     iaDescription: 'הבינה המלאכותית יוצרת את המודעה',
     newBadge: 'חדש',
     scheduleLive: 'תזמן שידור חי',
-    scheduleDesc: 'תזמן את השידור הבא',
+    scheduleDesc: 'בחר תאריך ושעה',
     startLive: 'התחל שידור חי',
     startLiveDesc: 'עבור לשידור חי עכשיו',
+    directSale: 'מכירה ישירה',
+    directSaleDesc: 'מכור במחיר קבוע, בלי שידור',
     createListing: 'צור מודעה',
     createListingDesc: 'מכור מוצר',
   },
@@ -49,9 +55,11 @@ const popupContent = {
     iaDescription: 'La IA crea tu anuncio',
     newBadge: 'Nuevo',
     scheduleLive: 'Programar un live',
-    scheduleDesc: 'Programa tu próximo live',
+    scheduleDesc: 'Elige tu fecha y hora',
     startLive: 'Iniciar un live',
     startLiveDesc: 'Transmite en vivo ahora',
+    directSale: 'Venta directa',
+    directSaleDesc: 'Vende a precio fijo, sin live',
     createListing: 'Crear un anuncio',
     createListingDesc: 'Vende un producto',
   },
@@ -79,7 +87,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       label: c.scheduleLive,
       description: c.scheduleDesc,
       gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
-      route: '/go-live',
+      route: '/schedule-live',
       featured: false,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -102,15 +110,27 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       ),
     },
     {
-      label: c.createListing,
-      description: c.createListingDesc,
-      gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
-      route: '/ai-listing',
+      label: c.directSale,
+      description: c.directSaleDesc,
+      gradient: 'linear-gradient(135deg, #10B981, #059669)',
+      route: '/ai-listing?mode=direct',
       featured: false,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
           <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" strokeLinecap="round" strokeLinejoin="round"/>
           <line x1="7" y1="7" x2="7.01" y2="7" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+    },
+    {
+      label: c.createListing,
+      description: c.createListingDesc,
+      gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
+      route: '/ai-listing?mode=manual',
+      featured: false,
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="none" stroke="white" strokeWidth="2"/>
         </svg>
       ),
     },
@@ -124,7 +144,9 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   }
 
   return (
-    <div style={{
+    <div
+      onClick={onClose}
+      style={{
       position: 'fixed',
       inset: 0,
       backgroundColor: '#000',
@@ -132,6 +154,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       display: 'flex',
       flexDirection: 'column',
     }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -148,6 +171,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
             backgroundColor: '#1A1A1A', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer',
+            touchAction: 'manipulation',
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5">
@@ -161,6 +185,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         flex: 1, padding: '12px 20px',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
         display: 'flex', flexDirection: 'column', gap: '16px',
+        overflowY: 'auto',
       }}>
         {/* Featured AI button - full width */}
         {actions.filter(a => a.featured).map((action) => (
@@ -180,6 +205,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               textAlign: 'left',
               position: 'relative',
               overflow: 'hidden',
+              touchAction: 'manipulation',
             }}
           >
             <div style={{
@@ -243,6 +269,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 alignItems: 'flex-start',
                 gap: '12px',
                 textAlign: 'left',
+                touchAction: 'manipulation',
               }}
             >
               <div style={{
@@ -263,6 +290,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
             </button>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )

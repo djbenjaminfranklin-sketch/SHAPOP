@@ -130,6 +130,7 @@ export interface Order {
   seller_payout: number
   status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed'
   shipping_address: Record<string, string> | null
+  shipping_proof_url: string | null
   tracking_number: string | null
   stripe_payment_intent_id: string | null
   paid_at: string | null
@@ -189,17 +190,17 @@ export interface UserPreferences {
 export interface Database {
   public: {
     Tables: {
-      profiles: { Row: Profile; Insert: Partial<Profile> & { id: string; username: string; display_name: string }; Update: Partial<Profile> }
-      addresses: { Row: Address; Insert: Partial<Address> & { user_id: string; name: string; street: string; city: string; zip: string }; Update: Partial<Address> }
-      sellers: { Row: Seller; Insert: Partial<Seller> & { id: string; store_name: string }; Update: Partial<Seller> }
-      streams: { Row: Stream; Insert: Partial<Stream> & { seller_id: string; title: string; category: string }; Update: Partial<Stream> }
-      items: { Row: Item; Insert: Partial<Item> & { seller_id: string; title: string; category: string; starting_price: number; current_price: number }; Update: Partial<Item> }
-      bids: { Row: Bid; Insert: { item_id: string; bidder_id: string; amount: number }; Update: never }
-      orders: { Row: Order; Insert: Partial<Order> & { buyer_id: string; seller_id: string; item_id: string; amount: number; platform_fee: number; processing_fee: number; seller_payout: number }; Update: Partial<Order> }
-      communities: { Row: Community; Insert: Partial<Community> & { name: string; slug: string; city: string }; Update: Partial<Community> }
-      chat_messages: { Row: ChatMessage; Insert: { stream_id: string; user_id: string; message: string; type?: string }; Update: never }
-      engagement_metrics: { Row: EngagementMetrics; Insert: Partial<EngagementMetrics> & { stream_id: string; timestamp: string }; Update: Partial<EngagementMetrics> }
-      user_preferences: { Row: UserPreferences; Insert: Partial<UserPreferences> & { user_id: string }; Update: Partial<UserPreferences> }
+      profiles: { Row: Profile; Insert: Partial<Profile> & { id: string; username: string; display_name: string }; Update: Partial<Profile>; Relationships: [] }
+      addresses: { Row: Address; Insert: Partial<Address> & { user_id: string; name: string; street: string; city: string; zip: string }; Update: Partial<Address>; Relationships: [] }
+      sellers: { Row: Seller; Insert: Partial<Seller> & { id: string; store_name: string }; Update: Partial<Seller>; Relationships: [] }
+      streams: { Row: Stream; Insert: Partial<Stream> & { seller_id: string; title: string; category: string }; Update: Partial<Stream>; Relationships: [] }
+      items: { Row: Item; Insert: Partial<Item> & { seller_id: string; title: string; category: string; starting_price: number; current_price: number }; Update: Partial<Item>; Relationships: [] }
+      bids: { Row: Bid; Insert: { item_id: string; bidder_id: string; amount: number }; Update: never; Relationships: [] }
+      orders: { Row: Order; Insert: Partial<Order> & { buyer_id: string; seller_id: string; item_id: string; amount: number; platform_fee: number; processing_fee: number; seller_payout: number }; Update: Partial<Order>; Relationships: [] }
+      communities: { Row: Community; Insert: Partial<Community> & { name: string; slug: string; city: string }; Update: Partial<Community>; Relationships: [] }
+      chat_messages: { Row: ChatMessage; Insert: { stream_id: string; user_id: string; message: string; type?: string }; Update: never; Relationships: [] }
+      engagement_metrics: { Row: EngagementMetrics; Insert: Partial<EngagementMetrics> & { stream_id: string; timestamp: string }; Update: Partial<EngagementMetrics>; Relationships: [] }
+      user_preferences: { Row: UserPreferences; Insert: Partial<UserPreferences> & { user_id: string }; Update: Partial<UserPreferences>; Relationships: [] }
     }
     Views: Record<string, never>
     Functions: Record<string, never>

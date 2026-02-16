@@ -9,7 +9,10 @@ import type { CountryCode } from '../lib/communitiesData'
 
 const content = {
   fr: {
-    title: 'Preferences', langLabel: 'Langue', currency: 'Devise', theme: 'Theme', dark: 'Sombre',
+    title: 'Modifier le profil', langLabel: 'Langue', currency: 'Devise',
+    profileSection: 'Profil', displayName: 'Nom affiché', username: 'Nom d\'utilisateur', bio: 'Bio',
+    bioPlaceholder: 'Parle-nous de toi...', save: 'Enregistrer', saving: 'Enregistrement...', saved: 'Profil mis à jour !',
+    saveError: 'Erreur lors de la sauvegarde.',
     deleteTitle: 'Zone dangereuse', deleteBtn: 'Supprimer mon compte',
     deleteStep1Title: 'Attention !',
     deleteStep1Warning: 'Tu es sur le point de supprimer ton compte ShaPop. Voici ce qui va se passer :',
@@ -31,7 +34,10 @@ const content = {
     deleteError: 'Erreur lors de la suppression. Veuillez reessayer.',
   },
   en: {
-    title: 'Preferences', langLabel: 'Language', currency: 'Currency', theme: 'Theme', dark: 'Dark',
+    title: 'Edit Profile', langLabel: 'Language', currency: 'Currency',
+    profileSection: 'Profile', displayName: 'Display name', username: 'Username', bio: 'Bio',
+    bioPlaceholder: 'Tell us about yourself...', save: 'Save', saving: 'Saving...', saved: 'Profile updated!',
+    saveError: 'Error saving profile.',
     deleteTitle: 'Danger zone', deleteBtn: 'Delete my account',
     deleteStep1Title: 'Warning!',
     deleteStep1Warning: 'You are about to delete your ShaPop account. Here is what will happen:',
@@ -53,7 +59,10 @@ const content = {
     deleteError: 'Error during deletion. Please try again.',
   },
   he: {
-    title: '\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA', langLabel: '\u05E9\u05E4\u05D4', currency: '\u05DE\u05D8\u05D1\u05E2', theme: '\u05E2\u05E8\u05DB\u05EA \u05E0\u05D5\u05E9\u05D0', dark: '\u05DB\u05D4\u05D4',
+    title: '\u05E2\u05E8\u05D9\u05DB\u05EA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', langLabel: '\u05E9\u05E4\u05D4', currency: '\u05DE\u05D8\u05D1\u05E2',
+    profileSection: '\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', displayName: '\u05E9\u05DD \u05EA\u05E6\u05D5\u05D2\u05D4', username: '\u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9', bio: '\u05D1\u05D9\u05D5',
+    bioPlaceholder: '...\u05E1\u05E4\u05E8\u05D5 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DB\u05DD', save: '\u05E9\u05DE\u05D9\u05E8\u05D4', saving: '...\u05E9\u05D5\u05DE\u05E8', saved: '!\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E2\u05D5\u05D3\u05DB\u05DF',
+    saveError: '.\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05D4',
     deleteTitle: '\u05D0\u05D6\u05D5\u05E8 \u05DE\u05E1\u05D5\u05DB\u05DF', deleteBtn: '\u05DE\u05D7\u05E7 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05D9',
     deleteStep1Title: '\u05D0\u05D6\u05D4\u05E8\u05D4!',
     deleteStep1Warning: '\u05D0\u05EA\u05D4 \u05E2\u05D5\u05DE\u05D3 \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D4-ShaPop \u05E9\u05DC\u05DA. \u05D4\u05E0\u05D4 \u05DE\u05D4 \u05E9\u05D9\u05E7\u05E8\u05D4:',
@@ -75,7 +84,10 @@ const content = {
     deleteError: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05D7\u05D9\u05E7\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1.',
   },
   es: {
-    title: 'Preferencias', langLabel: 'Idioma', currency: 'Moneda', theme: 'Tema', dark: 'Oscuro',
+    title: 'Editar perfil', langLabel: 'Idioma', currency: 'Moneda',
+    profileSection: 'Perfil', displayName: 'Nombre visible', username: 'Nombre de usuario', bio: 'Bio',
+    bioPlaceholder: 'Cuentanos sobre ti...', save: 'Guardar', saving: 'Guardando...', saved: 'Perfil actualizado!',
+    saveError: 'Error al guardar el perfil.',
     deleteTitle: 'Zona de peligro', deleteBtn: 'Eliminar mi cuenta',
     deleteStep1Title: 'Atencion!',
     deleteStep1Warning: 'Estas a punto de eliminar tu cuenta ShaPop. Esto es lo que pasara:',
@@ -107,7 +119,7 @@ const languages = [
 
 export default function PreferencesPage() {
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user, profile, signOut } = useAuth()
   const lang = getLang()
   const c = content[lang] || content.fr
 
@@ -115,6 +127,48 @@ export default function PreferencesPage() {
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
+
+  // Profile editing
+  const [displayName, setDisplayName] = useState(profile?.display_name || '')
+  const [username, setUsername] = useState(profile?.username || '')
+  const [bio, setBio] = useState(profile?.bio || '')
+  const [savingProfile, setSavingProfile] = useState(false)
+
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.display_name || '')
+      setUsername(profile.username || '')
+      setBio(profile.bio || '')
+    }
+  }, [profile])
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
+
+  const handleSaveProfile = async () => {
+    if (!displayName.trim() || !username.trim()) return
+    setSavingProfile(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: displayName.trim(),
+          username: username.trim().toLowerCase(),
+          bio: bio.trim() || null,
+        })
+        .eq('id', user.id)
+      if (error) throw error
+      setToast(c.saved)
+      setTimeout(() => setToast(null), 3000)
+    } catch {
+      setToast(c.saveError)
+      setTimeout(() => setToast(null), 4000)
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   const handleLangChange = (newLang: Lang) => {
     setLang(newLang)
@@ -155,7 +209,7 @@ export default function PreferencesPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -163,6 +217,54 @@ export default function PreferencesPage() {
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
       <div style={{ padding: '20px' }}>
+        {/* Profile editing */}
+        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.profileSection}</p>
+        <div style={{ marginBottom: '28px' }}>
+          <label style={{ display: 'block', fontSize: '13px', color: '#888', marginBottom: '6px' }}>{c.displayName}</label>
+          <input
+            type="text"
+            value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            style={{
+              width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222',
+              borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px',
+            }}
+          />
+          <label style={{ display: 'block', fontSize: '13px', color: '#888', marginBottom: '6px' }}>{c.username}</label>
+          <input
+            type="text"
+            value={username}
+            onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+            style={{
+              width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222',
+              borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px',
+            }}
+          />
+          <label style={{ display: 'block', fontSize: '13px', color: '#888', marginBottom: '6px' }}>{c.bio}</label>
+          <textarea
+            value={bio}
+            onChange={e => setBio(e.target.value)}
+            placeholder={c.bioPlaceholder}
+            rows={3}
+            style={{
+              width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222',
+              borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: '12px',
+            }}
+          />
+          <button
+            onClick={handleSaveProfile}
+            disabled={savingProfile || !displayName.trim() || !username.trim()}
+            style={{
+              width: '100%', padding: '12px', backgroundColor: savingProfile || !displayName.trim() || !username.trim() ? '#333' : '#F0908A',
+              color: '#fff', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600,
+              cursor: savingProfile || !displayName.trim() || !username.trim() ? 'default' : 'pointer',
+              opacity: savingProfile ? 0.7 : 1,
+            }}
+          >
+            {savingProfile ? c.saving : c.save}
+          </button>
+        </div>
+
         {/* Language */}
         <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.langLabel}</p>
         <div style={{ display: 'flex', gap: '8px', marginBottom: '28px' }}>
@@ -196,15 +298,6 @@ export default function PreferencesPage() {
             return currencies[country] || '\u20AC EUR (Euro)'
           })()}</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </div>
-
-        {/* Theme */}
-        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.theme}</p>
-        <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '14px 16px', marginBottom: '40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '15px', color: '#fff' }}>{c.dark}</span>
-          <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#F0908A', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </div>
         </div>
 
         {/* Danger zone */}

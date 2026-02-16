@@ -100,7 +100,7 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
             gap: '12px 12px',
           }}>
             {data.streams.map(stream => (
-              <StreamCard key={stream.id} stream={stream} />
+              <StreamCard key={stream.id} stream={stream as any} />
             ))}
           </div>
         </div>

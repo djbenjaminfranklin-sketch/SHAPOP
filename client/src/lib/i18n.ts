@@ -236,7 +236,12 @@ export function t(lang: string, key: TranslationKey): string {
 }
 
 export function getLang(): Lang {
-  return (localStorage.getItem('shapop_lang') as Lang) || 'fr'
+  const stored = localStorage.getItem('shapop_lang') as Lang | null
+  if (stored && stored in translations) return stored
+  // Auto-detect from device language
+  const browserLang = navigator.language?.slice(0, 2)?.toLowerCase()
+  if (browserLang && browserLang in translations) return browserLang as Lang
+  return 'fr'
 }
 
 export function setLang(lang: Lang) {

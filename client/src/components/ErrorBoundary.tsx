@@ -11,11 +11,11 @@ interface State {
 
 const getErrorText = () => {
   const lang = localStorage.getItem('shapop_lang') || 'fr'
-  const texts: Record<string, { title: string; desc: string; btn: string }> = {
-    fr: { title: 'Une erreur est survenue', desc: 'Une erreur inattendue s\'est produite. Veuillez rafraichir la page.', btn: 'Rafraichir' },
-    en: { title: 'Something went wrong', desc: 'An unexpected error occurred. Please try refreshing the page.', btn: 'Refresh' },
-    he: { title: 'משהו השתבש', desc: 'אירעה שגיאה בלתי צפויה. אנא רענן את הדף.', btn: 'רענן' },
-    es: { title: 'Algo salio mal', desc: 'Ocurrio un error inesperado. Por favor, recarga la pagina.', btn: 'Recargar' },
+  const texts: Record<string, { title: string; desc: string; btn: string; backBtn: string }> = {
+    fr: { title: 'Une erreur est survenue', desc: 'Une erreur inattendue s\'est produite.', btn: 'Rafraichir', backBtn: 'Retour a l\'accueil' },
+    en: { title: 'Something went wrong', desc: 'An unexpected error occurred.', btn: 'Refresh', backBtn: 'Back to home' },
+    he: { title: 'משהו השתבש', desc: 'אירעה שגיאה בלתי צפויה.', btn: 'רענן', backBtn: 'חזרה לדף הבית' },
+    es: { title: 'Algo salio mal', desc: 'Ocurrio un error inesperado.', btn: 'Recargar', backBtn: 'Volver al inicio' },
   }
   return texts[lang] || texts.fr
 }
@@ -28,6 +28,23 @@ export default class ErrorBoundary extends Component<Props, State> {
 
   static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error }
+  }
+
+  handleGoHome = () => {
+    this.setState({ hasError: false, error: null })
+    // Use history API to navigate without full reload (works on Capacitor)
+    window.history.pushState(null, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    // Fallback: if React router doesn't pick up the change, force reload
+    setTimeout(() => {
+      if (this.state.hasError) {
+        window.location.href = '/'
+      }
+    }, 500)
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null })
   }
 
   render() {
@@ -59,17 +76,30 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p style={{ fontSize: '14px', color: '#888', marginBottom: '24px', maxWidth: '300px' }}>
             {t.desc}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '12px 32px', borderRadius: '12px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              border: 'none', color: '#fff', fontSize: '15px',
-              fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            {t.btn}
-          </button>
+          <div style={{ display: 'flex', gap: '12px', flexDirection: 'column', alignItems: 'center' }}>
+            <button
+              onClick={this.handleRetry}
+              style={{
+                padding: '12px 32px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: 'none', color: '#fff', fontSize: '15px',
+                fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {t.btn}
+            </button>
+            <button
+              onClick={this.handleGoHome}
+              style={{
+                padding: '10px 24px', borderRadius: '12px',
+                background: 'none', border: '1px solid #333',
+                color: '#888', fontSize: '14px',
+                fontWeight: 500, cursor: 'pointer',
+              }}
+            >
+              {t.backBtn}
+            </button>
+          </div>
         </div>
       )
     }

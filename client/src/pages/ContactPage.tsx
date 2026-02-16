@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 
 const content = {
   en: {
@@ -90,11 +91,51 @@ export default function ContactPage() {
   const [topic, setTopic] = useState('')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState('')
 
-  const handleSend = () => {
-    if (!topic || !message.trim()) return
-    // In production, this would send to Supabase or an API
-    setSent(true)
+  const handleSend = async () => {
+    if (!topic || !message.trim() || !user) return
+    setSending(true)
+    setSendError('')
+
+    try {
+      // Get user profile for display name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, username')
+        .eq('id', user.id)
+        .single()
+
+      // Insert directly into Supabase (always works)
+      const { error } = await supabase.from('contact_messages').insert({
+        user_id: user.id,
+        user_email: user.email || '',
+        user_name: profile?.display_name || profile?.username || 'Unknown',
+        topic,
+        message: message.trim(),
+        status: 'new',
+      })
+
+      if (error) throw error
+
+      // Send email notification via Supabase Edge Function — fire and forget
+      const displayName = profile?.display_name || profile?.username || 'Unknown'
+      supabase.functions.invoke('send-contact-email', {
+        body: { topic, message: message.trim(), user_email: user.email || '', user_name: displayName },
+      }).catch(() => {}) // Email is best-effort, message is already saved
+
+      setSent(true)
+    } catch (err: unknown) {
+      const msg = err && typeof err === 'object' && 'message' in err ? (err as { message: string }).message : ''
+      console.error('Contact send error:', err)
+      setSendError((lang === 'fr' ? 'Erreur lors de l\'envoi.' :
+        lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DC\u05D9\u05D7\u05D4.' :
+        lang === 'es' ? 'Error al enviar.' :
+        'Failed to send.') + (msg ? ` (${msg})` : ''))
+    } finally {
+      setSending(false)
+    }
   }
 
   if (sent) {
@@ -165,22 +206,28 @@ export default function ContactPage() {
           </p>
         )}
 
+        {sendError && (
+          <p style={{ fontSize: '13px', color: '#E8344E', marginBottom: '12px' }}>{sendError}</p>
+        )}
+
         <button
           onClick={handleSend}
-          disabled={!topic || !message.trim()}
+          disabled={!topic || !message.trim() || sending}
           style={{
-            width: '100%', padding: '14px', backgroundColor: (!topic || !message.trim()) ? '#333' : '#F0908A',
+            width: '100%', padding: '14px',
+            backgroundColor: (!topic || !message.trim() || sending) ? '#333' : '#F0908A',
             color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 600,
-            cursor: (!topic || !message.trim()) ? 'default' : 'pointer',
+            cursor: (!topic || !message.trim() || sending) ? 'default' : 'pointer',
+            opacity: sending ? 0.7 : 1,
           }}
         >
-          {c.send}
+          {sending ? (lang === 'fr' ? 'Envoi...' : lang === 'he' ? '...\u05E9\u05D5\u05DC\u05D7' : lang === 'es' ? 'Enviando...' : 'Sending...') : c.send}
         </button>
 
         {/* Direct email */}
         <div style={{ marginTop: '32px', padding: '16px', backgroundColor: '#111', borderRadius: '12px' }}>
           <p style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>{c.email}</p>
-          <p style={{ fontSize: '15px', color: '#F0908A', fontWeight: 600 }}>shapopcontact@gmail.com</p>
+          <a href="mailto:shapopcontact@gmail.com" style={{ fontSize: '15px', color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>shapopcontact@gmail.com</a>
           <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>{c.hours}</p>
         </div>
       </div>

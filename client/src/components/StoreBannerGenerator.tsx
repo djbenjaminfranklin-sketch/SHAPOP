@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { showToast } from '../lib/toast'
+import { supabase } from '../lib/supabase'
 
 interface BannerResult {
   concept: string
@@ -33,9 +34,10 @@ export default function StoreBannerGenerator() {
   const [selectedStyle, setSelectedStyle] = useState('modern')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [_loading, setLoading] = useState(false)
   const [result, setResult] = useState<BannerResult | null>(null)
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [step, setStep] = useState<'upload' | 'style' | 'generating' | 'result'>('upload')
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -92,6 +94,42 @@ export default function StoreBannerGenerator() {
     setResult(null)
     setStep('upload')
     setError('')
+  }
+
+  const handleSaveBanner = async () => {
+    if (!user || !result) return
+    setSaving(true)
+
+    try {
+      const bannerUrl = result.generated_image_url || null
+      const colors = result.color_palette || []
+      const tagline = typeof result.tagline === 'string'
+        ? result.tagline
+        : result.tagline
+          ? `${result.tagline.he} — ${result.tagline.fr}`
+          : null
+
+      const { error: updateError } = await supabase
+        .from('sellers')
+        .update({
+          store_banner_url: bannerUrl,
+          store_banner_colors: colors,
+          store_tagline: tagline,
+        })
+        .eq('id', user.id)
+
+      if (updateError) {
+        showToast(_t('Erreur lors de la sauvegarde. Reessayez.', 'Error saving banner. Please try again.', '.שגיאה בשמירת הבאנר. נסה שוב', 'Error al guardar el banner. Intentalo de nuevo.'), 'error')
+        setSaving(false)
+        return
+      }
+
+      showToast(_t('Banniere sauvegardee !', 'Banner saved!', '!הבאנר נשמר', '¡Banner guardado!'))
+    } catch {
+      showToast(_t('Erreur inattendue. Reessayez.', 'Unexpected error. Please try again.', '.שגיאה בלתי צפויה. נסה שוב', 'Error inesperado. Intentalo de nuevo.'), 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -302,12 +340,13 @@ export default function StoreBannerGenerator() {
                 {_t('Regenerer', 'Regenerate', 'צור מחדש', 'Regenerar')}
               </button>
               <button
-                onClick={() => {
-                  showToast(_t('Banniere sauvegardee !', 'Banner saved!', '!הבאנר נשמר', '¡Banner guardado!'))
-                }}
-                className="flex-1 bg-purple-600 text-white py-3 rounded-xl font-semibold hover:bg-purple-700 transition-colors"
+                onClick={handleSaveBanner}
+                disabled={saving}
+                className={`flex-1 bg-purple-600 text-white py-3 rounded-xl font-semibold transition-colors ${saving ? 'opacity-60 cursor-not-allowed' : 'hover:bg-purple-700'}`}
               >
-                {_t('Utiliser cette banniere', 'Use this banner', 'השתמש בבאנר הזה', 'Usar este banner')}
+                {saving
+                  ? _t('Sauvegarde...', 'Saving...', '...שומר', 'Guardando...')
+                  : _t('Utiliser cette banniere', 'Use this banner', 'השתמש בבאנר הזה', 'Usar este banner')}
               </button>
             </div>
 

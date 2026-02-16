@@ -17,6 +17,7 @@ interface AuthContextType {
   signInWithApple: () => Promise<void>
   signOut: () => Promise<void>
   updateCity: (city: string) => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -36,10 +37,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (data) {
       setProfile(data)
     } else {
-      // Auto-create profile for OAuth users
+      // Auto-create profile (OAuth users or email signUp after confirmation)
       const meta = u.user_metadata || {}
-      const name = meta.full_name || meta.name || u.email?.split('@')[0] || 'user'
-      const username = (u.email?.split('@')[0] || `user_${u.id.slice(0, 6)}`).toLowerCase().replace(/[^a-z0-9_]/g, '')
+      const name = meta.display_name || meta.full_name || meta.name || u.email?.split('@')[0] || 'user'
+      const username = meta.username || (u.email?.split('@')[0] || `user_${u.id.slice(0, 6)}`).toLowerCase().replace(/[^a-z0-9_]/g, '')
       const { data: newProfile } = await supabase.from('profiles').insert({
         id: u.id,
         username,
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -71,7 +72,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_'))
         keysToRemove.forEach(k => localStorage.removeItem(k))
       }
+      // When user confirms email change, refresh user data from server
+      if (event === 'USER_UPDATED' && session?.user) {
+        supabase.auth.getUser().then(({ data }) => {
+          if (data.user) setUser(data.user)
+        })
+      }
     })
+
+    // Refresh user data when app resumes from background (e.g. after email confirm)
+    let appResumeListener: { remove: () => void } | undefined
+    if (Capacitor.isNativePlatform()) {
+      CapApp.addListener('appStateChange', async ({ isActive }) => {
+        if (isActive) {
+          const { data } = await supabase.auth.getUser()
+          if (data.user) setUser(data.user)
+        }
+      }).then(listener => {
+        appResumeListener = listener
+      })
+    }
 
     // Listen for OAuth deep link callback on native platforms
     let appUrlListener: { remove: () => void } | undefined
@@ -120,21 +140,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       subscription.unsubscribe()
+      if (appResumeListener) appResumeListener.remove()
       if (appUrlListener) appUrlListener.remove()
     }
   }, [])
 
   const signUp = async (email: string, password: string, username: string, displayName: string) => {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username, display_name: displayName },
+      },
+    })
     if (error) throw error
-    if (data.user) {
-      const { error: profileError } = await supabase.from('profiles').insert({
+    // If session exists (email confirmation disabled), create profile and set state immediately
+    if (data.session && data.user) {
+      // Set auth state immediately — don't wait for onAuthStateChange
+      setSession(data.session)
+      setUser(data.user)
+
+      const { data: newProfile, error: profileError } = await supabase.from('profiles').insert({
         id: data.user.id,
         username,
         display_name: displayName,
-      })
+      }).select().single()
       if (profileError) throw profileError
+      if (newProfile) setProfile(newProfile)
     }
+    // If no session (email confirmation required), profile will be created on first login via fetchProfile
   }
 
   const signIn = async (email: string, password: string) => {
@@ -188,8 +222,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(prev => prev ? { ...prev, city } : prev)
   }
 
+  const refreshUser = async () => {
+    const { data } = await supabase.auth.getUser()
+    if (data.user) {
+      setUser(data.user)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, session, loading, signUp, signIn, signInWithGoogle, signInWithApple, signOut, updateCity }}>
+    <AuthContext.Provider value={{ user, profile, session, loading, signUp, signIn, signInWithGoogle, signInWithApple, signOut, updateCity, refreshUser }}>
       {children}
     </AuthContext.Provider>
 

@@ -347,6 +347,24 @@ create policy "Chat viewable by all" on public.chat_messages for select using (t
 create policy "Users send messages" on public.chat_messages for insert with check (auth.uid() = user_id);
 
 -- =============================================
+-- CONTACT MESSAGES (support tickets)
+-- =============================================
+create table public.contact_messages (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete set null,
+  user_email text not null,
+  user_name text not null,
+  topic text not null,
+  message text not null,
+  status text check (status in ('new', 'read', 'replied', 'closed')) default 'new',
+  created_at timestamptz default now()
+);
+
+alter table public.contact_messages enable row level security;
+-- Only service role can read all; users can insert their own
+create policy "Users send contact" on public.contact_messages for insert with check (auth.uid() = user_id);
+
+-- =============================================
 -- REALTIME
 -- =============================================
 alter publication supabase_realtime add table public.streams;
@@ -386,3 +404,50 @@ create index idx_communities_city on public.communities(city);
 create index idx_communities_location on public.communities using gist(location);
 
 create index idx_engagement_stream on public.engagement_metrics(stream_id, timestamp desc);
+
+-- =============================================
+-- DEVICE TOKENS (push notifications)
+-- =============================================
+create table public.device_tokens (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  token text not null,
+  platform text check (platform in ('ios', 'android', 'web')) not null default 'ios',
+  -- Notification preferences
+  notify_live boolean default true,
+  notify_orders boolean default true,
+  notify_deals boolean default false,
+  notify_messages boolean default true,
+  notify_reminders boolean default true,
+  notify_community boolean default false,
+  --
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(user_id, token)
+);
+
+alter table public.device_tokens enable row level security;
+create policy "Users see own tokens" on public.device_tokens for select using (auth.uid() = user_id);
+create policy "Users insert own tokens" on public.device_tokens for insert with check (auth.uid() = user_id);
+create policy "Users update own tokens" on public.device_tokens for update using (auth.uid() = user_id);
+create policy "Users delete own tokens" on public.device_tokens for delete using (auth.uid() = user_id);
+
+create index idx_device_tokens_user on public.device_tokens(user_id);
+
+-- =============================================
+-- FOLLOWERS (user follows seller)
+-- =============================================
+create table public.followers (
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  seller_id uuid references public.sellers(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  primary key (user_id, seller_id)
+);
+
+alter table public.followers enable row level security;
+create policy "Follows viewable by all" on public.followers for select using (true);
+create policy "Users follow sellers" on public.followers for insert with check (auth.uid() = user_id);
+create policy "Users unfollow sellers" on public.followers for delete using (auth.uid() = user_id);
+
+create index idx_followers_seller on public.followers(seller_id);
+create index idx_followers_user on public.followers(user_id);

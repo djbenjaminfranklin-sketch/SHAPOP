@@ -157,7 +157,7 @@ export default function EngagementSummary() {
       emoji: '\u{1F465}',
       label: ct.newFollowers,
       value: `+${data.newFollowers}`,
-      color: '#3B82F6',
+      color: '#F0908A',
     },
   ]
 

@@ -18,24 +18,17 @@ export default function SecurityPage() {
   const { user, signOut } = useAuth()
   const lang = getLang()
 
-  const [twoFAEnabled, setTwoFAEnabled] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [signingOut, setSigningOut] = useState(false)
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const showToast = (message: string, type: 'success' | 'error' | 'info') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3000)
-  }
-
-  const comingSoonMsg = tx('Bientot disponible', 'Coming soon', 'בקרוב', 'Proximamente', lang)
-
-  const handlePasskeySetup = () => {
-    showToast(comingSoonMsg, 'info')
-  }
-
-  const handleTwoFAToggle = () => {
-    showToast(comingSoonMsg, 'info')
-    // Don't actually toggle since it's not available yet
   }
 
   const handleSignOutAll = async () => {
@@ -81,77 +74,6 @@ export default function SecurityPage() {
       </div>
 
       <div style={{ padding: '0 20px 24px' }}>
-
-        {/* ── Section: Passkey ── */}
-        <p style={sectionTitleStyle}>
-          {tx("Cle d'acces (Passkey)", 'Passkey', 'מפתח גישה (Passkey)', 'Clave de acceso (Passkey)', lang)}
-        </p>
-        <div style={{
-          backgroundColor: '#111', borderRadius: '14px', padding: '18px 16px',
-          border: '1px solid #1A1A1A',
-        }}>
-          <p style={{ fontSize: '14px', color: '#999', lineHeight: 1.6, margin: '0 0 16px' }}>
-            {tx(
-              "Les cles d'acces vous permettent de vous connecter en toute securite sans mot de passe, en utilisant la biometrie de votre appareil (empreinte digitale, reconnaissance faciale).",
-              'Passkeys allow you to sign in securely without a password, using your device biometrics (fingerprint, face recognition).',
-              'מפתחות גישה מאפשרים לך להתחבר בצורה מאובטחת ללא סיסמה, באמצעות הביומטריה של המכשיר שלך (טביעת אצבע, זיהוי פנים).',
-              'Las claves de acceso le permiten iniciar sesion de forma segura sin contrasena, utilizando la biometria de su dispositivo (huella dactilar, reconocimiento facial).',
-              lang
-            )}
-          </p>
-          <button
-            onClick={handlePasskeySetup}
-            style={{
-              width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
-              background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-              color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
-            }}
-          >
-            {tx("Configurer une cle d'acces", 'Set up a passkey', 'הגדר מפתח גישה', 'Configurar una clave de acceso', lang)}
-          </button>
-        </div>
-
-        {/* ── Section: 2FA ── */}
-        <p style={sectionTitleStyle}>
-          {tx('Authentification a deux facteurs', 'Two-factor authentication', 'אימות דו-שלבי', 'Autenticacion de dos factores', lang)}
-        </p>
-        <div style={{
-          backgroundColor: '#111', borderRadius: '14px', padding: '16px',
-          border: '1px solid #1A1A1A',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '15px', color: '#E5E5E5', fontWeight: 500, margin: 0 }}>
-              {tx('Activer la 2FA', 'Enable 2FA', 'הפעל אימות דו-שלבי', 'Activar 2FA', lang)}
-            </p>
-            <p style={{ fontSize: '13px', color: '#666', margin: '4px 0 0' }}>
-              {tx(
-                'Ajoutez une couche de securite supplementaire',
-                'Add an extra layer of security',
-                'הוסף שכבת אבטחה נוספת',
-                'Agregue una capa adicional de seguridad',
-                lang
-              )}
-            </p>
-          </div>
-          {/* Toggle switch */}
-          <button
-            onClick={handleTwoFAToggle}
-            style={{
-              width: '52px', height: '30px', borderRadius: '15px', border: 'none',
-              backgroundColor: twoFAEnabled ? '#F0908A' : '#333',
-              position: 'relative', cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            <div style={{
-              width: '24px', height: '24px', borderRadius: '50%',
-              backgroundColor: '#fff', position: 'absolute', top: '3px',
-              left: twoFAEnabled ? '25px' : '3px',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            }} />
-          </button>
-        </div>
 
         {/* ── Section: Active sessions ── */}
         <p style={sectionTitleStyle}>

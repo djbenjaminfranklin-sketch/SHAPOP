@@ -210,10 +210,6 @@ function getSentiment(score: number, labels: { positive: string; neutral: string
   return { emoji: '\u{1F61F}', label: labels.negative, key: 'negative' }
 }
 
-function clamp(val: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, val))
-}
-
 export default function EngagementDashboard({ streamId, isVisible, onClose }: EngagementDashboardProps) {
   const lang = (getLang() || 'fr') as Lang
   const ct = dashContent[lang] || dashContent.fr
@@ -250,7 +246,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
         .single()
 
       if (data) {
-        const updated = { ...data, energy_level: computeEnergyLevel(data) }
+        const updated = { ...data, energy_level: computeEnergyLevel(data) } as EngagementMetrics
         setPrevViewerCount(metrics.viewer_count)
         setMetrics(updated)
       }
@@ -361,6 +357,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
       <div style={{
         flex: 1,
         overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         padding: '16px',
         display: 'flex',
         flexDirection: 'column',

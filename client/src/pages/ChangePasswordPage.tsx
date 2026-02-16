@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 
 type Lang = ReturnType<typeof getLang>
@@ -13,14 +14,23 @@ const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
 }
 
 export default function ChangePasswordPage() {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
@@ -49,7 +59,7 @@ export default function ChangePasswordPage() {
         : tx('Forte', 'Strong', 'חזקה', 'Fuerte', lang)
 
   const handleSubmit = async () => {
-    if (!newPassword || !confirmPassword) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
       showToast(tx('Veuillez remplir tous les champs', 'Please fill in all fields', 'נא למלא את כל השדות', 'Por favor complete todos los campos', lang), 'error')
       return
     }
@@ -64,12 +74,34 @@ export default function ChangePasswordPage() {
 
     setLoading(true)
     try {
+      // Verify current password by signing in (uses same session)
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: currentPassword,
+      })
+      if (verifyError) {
+        showToast(tx('Le mot de passe actuel est incorrect', 'Current password is incorrect', 'הסיסמה הנוכחית שגויה', 'La contrasena actual es incorrecta', lang), 'error')
+        setLoading(false)
+        return
+      }
+
+      // Small delay to let the session settle after re-auth
+      await new Promise(r => setTimeout(r, 200))
+
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
       showToast(tx('Mot de passe mis a jour avec succes', 'Password updated successfully', 'הסיסמה עודכנה בהצלחה', 'Contrasena actualizada correctamente', lang), 'success')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
       setTimeout(() => navigate(-1), 1500)
     } catch (err: any) {
-      showToast(err.message || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+      const msg = err.message || ''
+      if (msg.includes('same_password') || msg.includes('different')) {
+        showToast(tx('Le nouveau mot de passe doit etre different de l\'ancien', 'New password must be different from current', 'הסיסמה החדשה חייבת להיות שונה מהנוכחית', 'La nueva contrasena debe ser diferente', lang), 'error')
+      } else {
+        showToast(msg || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+      }
     }
     setLoading(false)
   }
@@ -109,29 +141,63 @@ export default function ChangePasswordPage() {
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {tx('Mot de passe actuel', 'Current password', 'סיסמה נוכחית', 'Contrasena actual', lang)}
         </label>
-        <input
-          type="password"
-          value={currentPassword}
-          onChange={e => setCurrentPassword(e.target.value)}
-          placeholder={tx('Entrez votre mot de passe actuel', 'Enter your current password', 'הזן את סיסמתך הנוכחית', 'Ingrese su contrasena actual', lang)}
-          style={{ ...inputStyle, marginBottom: '20px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
-          onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
-        />
+        <div style={{ position: 'relative', marginBottom: '20px' }}>
+          <input
+            type={showCurrentPassword ? 'text' : 'password'}
+            value={currentPassword}
+            onChange={e => setCurrentPassword(e.target.value)}
+            placeholder={tx('Entrez votre mot de passe actuel', 'Enter your current password', 'הזן את סיסמתך הנוכחית', 'Ingrese su contrasena actual', lang)}
+            style={{ ...inputStyle, paddingRight: '48px' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+            onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+            style={{
+              position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {showCurrentPassword ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            )}
+          </button>
+        </div>
 
         {/* New password */}
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {tx('Nouveau mot de passe', 'New password', 'סיסמה חדשה', 'Nueva contrasena', lang)}
         </label>
-        <input
-          type="password"
-          value={newPassword}
-          onChange={e => setNewPassword(e.target.value)}
-          placeholder={tx('Entrez votre nouveau mot de passe', 'Enter your new password', 'הזן סיסמה חדשה', 'Ingrese su nueva contrasena', lang)}
-          style={{ ...inputStyle, marginBottom: '8px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
-          onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
-        />
+        <div style={{ position: 'relative', marginBottom: '8px' }}>
+          <input
+            type={showNewPassword ? 'text' : 'password'}
+            value={newPassword}
+            onChange={e => setNewPassword(e.target.value)}
+            placeholder={tx('Entrez votre nouveau mot de passe', 'Enter your new password', 'הזן סיסמה חדשה', 'Ingrese su nueva contrasena', lang)}
+            style={{ ...inputStyle, paddingRight: '48px' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+            onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowNewPassword(!showNewPassword)}
+            style={{
+              position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {showNewPassword ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            )}
+          </button>
+        </div>
 
         {/* Password strength indicator */}
         {newPassword.length > 0 && (
@@ -158,15 +224,32 @@ export default function ChangePasswordPage() {
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {tx('Confirmer le mot de passe', 'Confirm password', 'אשר סיסמה', 'Confirmar contrasena', lang)}
         </label>
-        <input
-          type="password"
-          value={confirmPassword}
-          onChange={e => setConfirmPassword(e.target.value)}
-          placeholder={tx('Confirmez votre nouveau mot de passe', 'Confirm your new password', 'אשר את סיסמתך החדשה', 'Confirme su nueva contrasena', lang)}
-          style={{ ...inputStyle, marginBottom: '32px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
-          onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
-        />
+        <div style={{ position: 'relative', marginBottom: '32px' }}>
+          <input
+            type={showConfirmPassword ? 'text' : 'password'}
+            value={confirmPassword}
+            onChange={e => setConfirmPassword(e.target.value)}
+            placeholder={tx('Confirmez votre nouveau mot de passe', 'Confirm your new password', 'אשר את סיסמתך החדשה', 'Confirme su nueva contrasena', lang)}
+            style={{ ...inputStyle, paddingRight: '48px' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+            onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            style={{
+              position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {showConfirmPassword ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            )}
+          </button>
+        </div>
 
         {/* Submit button */}
         <button

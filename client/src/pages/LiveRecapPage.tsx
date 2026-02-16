@@ -210,6 +210,11 @@ export default function LiveRecapPage() {
     fetchData()
   }, [streamId, user])
 
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
+
   const formatLot = (n: number) => `#${String(n).padStart(3, '0')}`
 
   const totalRevenue = sales.reduce((sum, s) => sum + (s.order?.amount || s.item.current_price), 0)

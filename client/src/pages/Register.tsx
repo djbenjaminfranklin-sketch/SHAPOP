@@ -22,6 +22,10 @@ const content = {
     errorDefault: "Erreur lors de l'inscription",
     errorFileType: 'Seuls les formats JPEG, PNG et WebP sont acceptes.',
     errorFileSize: "L'image doit faire moins de 5 Mo.",
+    errorEmailTaken: 'Cet email est deja utilise',
+    errorUsernameTaken: "Ce nom d'utilisateur est deja pris",
+    checkEmail: 'Verifie ton email',
+    checkEmailDesc: 'Un lien de confirmation a ete envoye a ton adresse email.',
   },
   en: {
     title: 'Create Account',
@@ -40,6 +44,10 @@ const content = {
     errorDefault: 'Registration error',
     errorFileType: 'Only JPEG, PNG, and WebP images are allowed.',
     errorFileSize: 'Image must be smaller than 5MB.',
+    errorEmailTaken: 'This email is already registered',
+    errorUsernameTaken: 'This username is already taken',
+    checkEmail: 'Check your email',
+    checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
   he: {
     title: 'צור חשבון',
@@ -58,6 +66,10 @@ const content = {
     errorDefault: 'שגיאת הרשמה',
     errorFileType: 'רק תמונות JPEG, PNG ו-WebP מותרות.',
     errorFileSize: 'התמונה חייבת להיות קטנה מ-5MB.',
+    errorEmailTaken: 'האימייל הזה כבר רשום',
+    errorUsernameTaken: 'שם המשתמש הזה כבר תפוס',
+    checkEmail: 'בדוק את האימייל שלך',
+    checkEmailDesc: 'קישור אישור נשלח לכתובת האימייל שלך.',
   },
   es: {
     title: 'Crear cuenta',
@@ -76,6 +88,10 @@ const content = {
     errorDefault: 'Error de registro',
     errorFileType: 'Solo se permiten imagenes JPEG, PNG y WebP.',
     errorFileSize: 'La imagen debe pesar menos de 5MB.',
+    errorEmailTaken: 'Este correo ya esta registrado',
+    errorUsernameTaken: 'Este nombre de usuario ya esta en uso',
+    checkEmail: 'Revisa tu correo',
+    checkEmailDesc: 'Se ha enviado un enlace de confirmacion a tu correo electronico.',
   },
 }
 
@@ -86,6 +102,8 @@ export default function Register() {
   const [displayName, setDisplayName] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
+  const [confirmEmail, setConfirmEmail] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -96,7 +114,10 @@ export default function Register() {
 
   // Redirect when user becomes authenticated (OAuth callback)
   useEffect(() => {
-    if (!authLoading && user) navigate('/')
+    if (!authLoading && user) {
+      sessionStorage.setItem('shapop_fresh_login', '1')
+      navigate('/')
+    }
   }, [user, authLoading, navigate])
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,6 +148,16 @@ export default function Register() {
     setLoading(true)
     try {
       await signUp(email, password, username, displayName)
+
+      // Check if a session exists (email confirmation may be required)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        // No session means email confirmation is required
+        setConfirmEmail(true)
+        setLoading(false)
+        return
+      }
+
       // Upload avatar if selected
       if (avatarFile) {
         const { data: { user } } = await supabase.auth.getUser()
@@ -138,12 +169,46 @@ export default function Register() {
           await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', user.id)
         }
       }
+      sessionStorage.setItem('shapop_fresh_login', '1')
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : c.errorDefault)
+      const msg = err instanceof Error ? err.message : c.errorDefault
+      if (/already registered|User already registered/i.test(msg)) {
+        setError(c.errorEmailTaken)
+      } else if (/unique|duplicate/i.test(msg)) {
+        setError(c.errorUsernameTaken)
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
+  }
+
+  if (confirmEmail) {
+    return (
+      <div style={{
+        minHeight: '100vh', backgroundColor: '#000',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        padding: '0 24px',
+      }}>
+        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#fff', margin: '24px 0 12px', textAlign: 'center' }}>
+          {c.checkEmail}
+        </h1>
+        <p style={{ fontSize: '16px', color: '#999', textAlign: 'center', lineHeight: 1.5, maxWidth: '300px' }}>
+          {c.checkEmailDesc}
+        </p>
+        <Link to="/login" style={{
+          marginTop: '32px', color: '#F0908A', fontWeight: 600, fontSize: '16px', textDecoration: 'none',
+        }}>
+          {c.signIn}
+        </Link>
+      </div>
+    )
   }
 
   return (
@@ -326,20 +391,37 @@ export default function Register() {
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.password}
           </label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="••••••••"
-            minLength={6}
-            required
-            style={{
-              width: '100%', padding: '16px 18px', borderRadius: '14px',
-              backgroundColor: '#111', border: '1.5px solid #222',
-              fontSize: '17px', color: '#fff', outline: 'none',
-              boxSizing: 'border-box', fontFamily: 'inherit',
-            }}
-          />
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              minLength={6}
+              required
+              style={{
+                width: '100%', padding: '16px 18px', paddingRight: '48px', borderRadius: '14px',
+                backgroundColor: '#111', border: '1.5px solid #222',
+                fontSize: '17px', color: '#fff', outline: 'none',
+                boxSizing: 'border-box', fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {showPassword ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              )}
+            </button>
+          </div>
         </div>
 
         <button

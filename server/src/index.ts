@@ -6,10 +6,15 @@ import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { createServer } from 'http'
+import http2 from 'http2'
+import crypto from 'crypto'
+import fs from 'fs'
+import path from 'path'
 import { WebSocketServer, type WebSocket } from 'ws'
 import { spawn, type ChildProcess } from 'child_process'
 import Mux from '@mux/mux-node'
 import Stripe from 'stripe'
+import { Resend } from 'resend'
 
 dotenv.config()
 
@@ -28,6 +33,11 @@ const PROCESSING_FEE_RATE = 0.029   // 2.9% HT (Stripe)
 const PROCESSING_FEE_FIXED = 0.30   // 0.30€ HT fixe (Stripe)
 const VAT_RATE = 0.20               // 20% TVA (France)
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
+
+// Helper: escape HTML special characters to prevent injection
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+}
 
 // Helper: calcule tous les frais sur un montant de vente (TVA incluse sur les frais)
 function calculateFees(amount: number) {
@@ -53,6 +63,127 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_missing', {
   apiVersion: '2025-01-27.acacia' as Stripe.LatestApiVersion,
 })
 
+// Resend for email notifications
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+
+// =============================================
+// APNs Push Notifications (iOS)
+// =============================================
+const APNS_KEY_ID = process.env.APNS_KEY_ID || ''
+const APNS_TEAM_ID = process.env.APNS_TEAM_ID || ''
+const APNS_BUNDLE_ID = process.env.APNS_BUNDLE_ID || 'com.shapop.app'
+const APNS_KEY_PATH = process.env.APNS_KEY_PATH || ''
+const APNS_PRODUCTION = process.env.NODE_ENV === 'production'
+
+let apnsPrivateKey: string | null = null
+if (APNS_KEY_PATH && fs.existsSync(APNS_KEY_PATH)) {
+  apnsPrivateKey = fs.readFileSync(APNS_KEY_PATH, 'utf8')
+  console.log('APNs key loaded from', APNS_KEY_PATH)
+} else if (process.env.APNS_PRIVATE_KEY) {
+  apnsPrivateKey = process.env.APNS_PRIVATE_KEY.replace(/\\n/g, '\n')
+  console.log('APNs key loaded from env')
+} else {
+  console.warn('WARNING: APNs key not configured — push notifications will not work')
+}
+
+let apnsJwtToken: string | null = null
+let apnsJwtIssuedAt = 0
+
+function getApnsJwt(): string | null {
+  if (!apnsPrivateKey || !APNS_KEY_ID || !APNS_TEAM_ID) return null
+  const now = Math.floor(Date.now() / 1000)
+  // APNs tokens are valid for 1 hour — refresh every 50 minutes
+  if (apnsJwtToken && (now - apnsJwtIssuedAt) < 3500) return apnsJwtToken
+
+  const header = Buffer.from(JSON.stringify({ alg: 'ES256', kid: APNS_KEY_ID })).toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ iss: APNS_TEAM_ID, iat: now })).toString('base64url')
+  const signer = crypto.createSign('SHA256')
+  signer.update(`${header}.${payload}`)
+  const signature = signer.sign(apnsPrivateKey, 'base64url')
+  apnsJwtToken = `${header}.${payload}.${signature}`
+  apnsJwtIssuedAt = now
+  return apnsJwtToken
+}
+
+async function sendApnsPush(deviceToken: string, title: string, body: string, data?: Record<string, string>): Promise<boolean> {
+  const jwt = getApnsJwt()
+  if (!jwt) return false
+
+  const host = APNS_PRODUCTION ? 'api.push.apple.com' : 'api.sandbox.push.apple.com'
+
+  return new Promise((resolve) => {
+    const client = http2.connect(`https://${host}`)
+    client.on('error', () => { resolve(false) })
+
+    const payload = JSON.stringify({
+      aps: { alert: { title, body }, sound: 'default', badge: 1 },
+      ...(data || {}),
+    })
+
+    const req = client.request({
+      ':method': 'POST',
+      ':path': `/3/device/${deviceToken}`,
+      'authorization': `bearer ${jwt}`,
+      'apns-topic': APNS_BUNDLE_ID,
+      'apns-push-type': 'alert',
+      'apns-priority': '10',
+      'content-type': 'application/json',
+      'content-length': Buffer.byteLength(payload),
+    })
+
+    req.on('response', (headers) => {
+      const status = headers[':status'] as number
+      if (status !== 200) {
+        console.warn(`APNs error ${status} for token ${deviceToken.slice(0, 8)}...`)
+      }
+      resolve(status === 200)
+    })
+    req.on('error', () => resolve(false))
+    req.end(payload)
+
+    // Close HTTP/2 session after response
+    req.on('close', () => client.close())
+  })
+}
+
+/** Send push notification to all followers of a seller who have notify_live enabled */
+async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, streamId: string) {
+  // Step 1: Get follower user IDs
+  const { data: followers } = await supabase
+    .from('followers')
+    .select('user_id')
+    .eq('seller_id', sellerId)
+
+  if (!followers || followers.length === 0) return
+  const followerIds = followers.map(f => f.user_id)
+
+  // Step 2: Get device tokens for these followers who have live notifications enabled
+  const { data: tokens } = await supabase
+    .from('device_tokens')
+    .select('token')
+    .eq('notify_live', true)
+    .in('user_id', followerIds)
+
+  if (!tokens || tokens.length === 0) return
+
+  // Get seller name
+  const { data: seller } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', sellerId)
+    .single()
+
+  const sellerName = seller?.display_name || 'A seller'
+  const title = `${sellerName} is live!`
+  const body = streamTitle
+
+  // Send in parallel (safety cap at 200)
+  const batch = tokens.slice(0, 200)
+  await Promise.allSettled(
+    batch.map(t => sendApnsPush(t.token, title, body, { stream_id: streamId }))
+  )
+}
+
 // =============================================
 // Mux client
 // =============================================
@@ -74,14 +205,21 @@ async function stripeWebhookHandler(req: Request, res: Response) {
     const sig = req.headers['stripe-signature']
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
-    if (webhookSecret && sig) {
-      // Verify signature in production
+    if (!webhookSecret) {
+      console.error('[Stripe Webhook] STRIPE_WEBHOOK_SECRET not set — rejecting webhook')
+      res.status(500).json({ error: 'Webhook secret not configured' })
+      return
+    }
+    if (!sig) {
+      res.status(400).json({ error: 'Missing stripe-signature header' })
+      return
+    }
+    try {
       event = stripe.webhooks.constructEvent(req.body as Buffer, sig as string, webhookSecret)
-    } else {
-      // Dev mode: parse without verification (log a warning)
-      console.warn('[Stripe Webhook] No STRIPE_WEBHOOK_SECRET set — skipping signature verification')
-      const body = typeof req.body === 'string' ? JSON.parse(req.body) : (Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString()) : req.body)
-      event = body as Stripe.Event
+    } catch (err: any) {
+      console.error('[Stripe Webhook] Signature verification failed:', err.message)
+      res.status(400).json({ error: 'Invalid signature' })
+      return
     }
 
     switch (event.type) {
@@ -141,10 +279,20 @@ async function muxWebhookHandler(req: Request, res: Response) {
     const data = body?.data as Record<string, unknown>
 
     if (type === 'video.live_stream.active' && data?.id) {
-      await supabase
+      // Update stream status
+      const { data: streams } = await supabase
         .from('streams')
         .update({ status: 'live' })
         .eq('mux_stream_id', data.id as string)
+        .select('id, title, seller_id')
+
+      // Send push notifications to followers
+      if (streams && streams.length > 0) {
+        const stream = streams[0]
+        notifyFollowersSellerLive(stream.seller_id, stream.title, stream.id).catch(err =>
+          console.error('Push notification error:', err)
+        )
+      }
     }
 
     if (type === 'video.asset.ready' && data?.id) {
@@ -170,7 +318,7 @@ const app = express()
 const PORT = process.env.PORT || 4000
 
 // Extend Request type for auth
-type AuthenticatedRequest = Request & { user?: { id: string } }
+type AuthenticatedRequest = Request & { user?: { id: string; email?: string } }
 
 // Security headers
 app.use(helmet())
@@ -211,6 +359,12 @@ const aiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
   message: { error: 'Too many AI requests, please try again later' },
+})
+
+const adminLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 60,
+  message: { error: 'Too many admin requests, slow down' },
 })
 
 app.use(globalLimiter)
@@ -261,7 +415,7 @@ async function requireAuth(req: AuthenticatedRequest, res: Response, next: NextF
       res.status(401).json({ error: 'Invalid or expired token' })
       return
     }
-    req.user = { id: data.user.id }
+    req.user = { id: data.user.id, email: data.user.email }
     next()
   } catch {
     res.status(401).json({ error: 'Authentication failed' })
@@ -423,6 +577,20 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
 
     // Create order if sold
     if (topBid && winnerId) {
+      // Idempotency check: skip if an order already exists for this item
+      const { data: existingOrder } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('item_id', req.params.id)
+        .limit(1)
+        .single()
+
+      if (existingOrder) {
+        // Order already exists (possible duplicate request), return it
+        res.json({ success: true, status, winner_id: winnerId, order: existingOrder })
+        return
+      }
+
       const { data: item } = await supabase
         .from('items')
         .select('*')
@@ -778,6 +946,33 @@ app.get('/api/streams/:id/adaptive-suggestions', async (req: Request, res: Respo
 })
 
 // =============================================
+// PUSH NOTIFICATIONS — Send test notification
+// =============================================
+app.post('/api/notifications/test', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { data: tokens } = await supabase
+      .from('device_tokens')
+      .select('token')
+      .eq('user_id', userId)
+
+    if (!tokens || tokens.length === 0) {
+      res.status(404).json({ error: 'No device token registered' })
+      return
+    }
+
+    const results = await Promise.allSettled(
+      tokens.map(t => sendApnsPush(t.token, 'ShaPop', 'Test notification — push is working!'))
+    )
+
+    const sent = results.filter(r => r.status === 'fulfilled' && r.value).length
+    res.json({ sent, total: tokens.length })
+  } catch {
+    res.status(500).json({ error: 'Failed to send test notification' })
+  }
+})
+
+// =============================================
 // ENGAGEMENT TRACKING (auth required)
 // =============================================
 app.post('/api/streams/:id/track-engagement', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
@@ -791,6 +986,22 @@ app.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authentic
     const streamId = req.params.id
     const { viewer_count, active_chatters, bids_count, reactions_count, new_followers } = parsed.data
 
+    // Verify the authenticated user is the stream owner/seller
+    const { data: stream, error: streamFetchError } = await supabase
+      .from('streams')
+      .select('seller_id')
+      .eq('id', streamId)
+      .single()
+
+    if (streamFetchError || !stream) {
+      res.status(404).json({ error: 'Stream not found' })
+      return
+    }
+    if (stream.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Not authorized to update this stream' })
+      return
+    }
+
     const engagementRate = viewer_count > 0
       ? (active_chatters + bids_count + reactions_count) / viewer_count
       : 0
@@ -801,7 +1012,7 @@ app.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authentic
     else if (engagementRate < 0.4) energyLevel = 'high'
     else energyLevel = 'peak'
 
-    const { error } = await supabase.from('engagement_metrics').insert({
+    const { error: metricsError } = await supabase.from('engagement_metrics').insert({
       stream_id: streamId,
       timestamp: new Date().toISOString(),
       viewer_count,
@@ -813,7 +1024,12 @@ app.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authentic
       energy_level: energyLevel,
     })
 
-    await supabase
+    if (metricsError) {
+      res.status(500).json({ error: 'Failed to track engagement' })
+      return
+    }
+
+    const { error: streamUpdateError } = await supabase
       .from('streams')
       .update({
         engagement_score: engagementRate * 100,
@@ -822,13 +1038,75 @@ app.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authentic
       })
       .eq('id', streamId)
 
-    if (error) {
-      res.status(500).json({ error: 'Failed to track engagement' })
+    if (streamUpdateError) {
+      res.status(500).json({ error: 'Failed to update stream engagement' })
       return
     }
+
     res.json({ energy_level: energyLevel, engagement_rate: engagementRate })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// Contact — Store support messages
+// =============================================
+app.post('/api/contact', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { topic, message } = req.body
+    if (!topic || !message || typeof message !== 'string' || !message.trim()) {
+      res.status(400).json({ error: 'Topic and message are required' })
+      return
+    }
+
+    const userEmail = req.user!.email || 'unknown'
+    const userName = req.user!.id
+
+    // Get user profile for context
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username, display_name')
+      .eq('id', req.user!.id)
+      .single()
+
+    const displayName = profile?.display_name || profile?.username || 'Unknown'
+
+    // Store in Supabase
+    await supabase.from('contact_messages').insert({
+      user_id: req.user!.id,
+      user_email: userEmail,
+      user_name: displayName,
+      topic,
+      message: message.trim(),
+      status: 'new',
+    })
+
+    // Send email notification via Resend
+    if (resend) {
+      try {
+        await resend.emails.send({
+          from: 'ShaPop Support <onboarding@resend.dev>',
+          to: 'shapopcontact@gmail.com',
+          subject: `[ShaPop Contact] ${topic} — ${displayName}`,
+          html: `
+            <h2>New contact message</h2>
+            <p><strong>From:</strong> ${displayName} (${userEmail})</p>
+            <p><strong>Topic:</strong> ${topic}</p>
+            <p><strong>Message:</strong></p>
+            <blockquote style="border-left:3px solid #F0908A;padding-left:12px;color:#333">${escapeHtml(message.trim()).replace(/\n/g, '<br>')}</blockquote>
+            <p style="color:#888;font-size:12px">User ID: ${userName}</p>
+          `,
+        })
+      } catch (emailErr) {
+        console.error('Failed to send email notification:', emailErr)
+      }
+    }
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('Contact endpoint error:', err)
+    res.status(500).json({ error: 'Failed to send message' })
   }
 })
 
@@ -1097,14 +1375,17 @@ app.post('/api/stripe/create-connect-account', requireAuth, async (req: Authenti
     // Get seller profile info
     const { data: profile } = await supabase
       .from('profiles')
-      .select('display_name, username')
+      .select('display_name, username, country')
       .eq('id', userId)
       .single()
+
+    // Use country from request body, then profile, then default to FR
+    const country = req.body?.country || profile?.country || 'FR'
 
     // Create Express connected account
     const account = await stripe.accounts.create({
       type: 'express',
-      country: 'FR',
+      country,
       capabilities: {
         card_payments: { requested: true },
         transfers: { requested: true },
@@ -1259,13 +1540,25 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
     })
 
     // Update order with real PaymentIntent ID
-    await supabase
+    const { error: dbUpdateError } = await supabase
       .from('orders')
       .update({
         stripe_payment_intent_id: paymentIntent.id,
         status: 'pending_payment',
       })
       .eq('id', order_id)
+
+    if (dbUpdateError) {
+      // DB update failed after PaymentIntent was created — cancel the PaymentIntent to stay consistent
+      console.error('DB update failed after PaymentIntent creation, cancelling PaymentIntent:', dbUpdateError)
+      try {
+        await stripe.paymentIntents.cancel(paymentIntent.id)
+      } catch (cancelErr) {
+        console.error('Failed to cancel PaymentIntent after DB error:', cancelErr)
+      }
+      res.status(500).json({ error: 'Failed to create payment' })
+      return
+    }
 
     res.json({
       client_secret: paymentIntent.client_secret,
@@ -1333,6 +1626,677 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
 // Get Stripe publishable key (for client)
 app.get('/api/stripe/config', (_req: Request, res: Response) => {
   res.json({ publishable_key: process.env.STRIPE_PUBLISHABLE_KEY })
+})
+
+// =============================================
+// ORDERS — Ship & confirm delivery
+// =============================================
+const ShipOrderBody = z.object({
+  shipping_proof_url: z.string().url(),
+  tracking_number: z.string().max(100).optional(),
+})
+
+// Seller marks order as shipped with proof photo
+app.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parsed = ShipOrderBody.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors })
+      return
+    }
+
+    const { shipping_proof_url, tracking_number } = parsed.data
+    const orderId = req.params.id
+
+    // Fetch the order
+    const { data: order, error: fetchErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+
+    if (fetchErr || !order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Only the seller can mark this order as shipped' })
+      return
+    }
+
+    if (order.status !== 'paid') {
+      res.status(400).json({ error: 'Only paid orders can be shipped' })
+      return
+    }
+
+    const updateData: Record<string, unknown> = {
+      status: 'shipped',
+      shipped_at: new Date().toISOString(),
+      shipping_proof_url,
+    }
+    if (tracking_number) {
+      updateData.tracking_number = tracking_number
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('orders')
+      .update(updateData)
+      .eq('id', orderId)
+      .select('*')
+      .single()
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update order' })
+      return
+    }
+
+    res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Buyer confirms delivery
+app.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = req.params.id
+
+    const { data: order, error: fetchErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+
+    if (fetchErr || !order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.buyer_id !== req.user!.id) {
+      res.status(403).json({ error: 'Only the buyer can confirm delivery' })
+      return
+    }
+
+    if (order.status !== 'shipped') {
+      res.status(400).json({ error: 'Only shipped orders can be confirmed as delivered' })
+      return
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('orders')
+      .update({
+        status: 'delivered',
+        delivered_at: new Date().toISOString(),
+      })
+      .eq('id', orderId)
+      .select('*')
+      .single()
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update order' })
+      return
+    }
+
+    res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// ADMIN BACK-OFFICE
+// =============================================
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'djbenjaminfranklin@gmail.com').split(',').map(e => e.trim())
+
+async function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> {
+  const authHeader = req.headers.authorization
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Authentication required' })
+    return
+  }
+  const token = authHeader.split('Bearer ')[1]
+  try {
+    const { data, error } = await supabase.auth.getUser(token)
+    if (error || !data.user) {
+      res.status(401).json({ error: 'Invalid or expired token' })
+      return
+    }
+    if (!data.user.email || !ADMIN_EMAILS.includes(data.user.email)) {
+      res.status(403).json({ error: 'Admin access required' })
+      return
+    }
+    req.user = { id: data.user.id, email: data.user.email }
+    next()
+  } catch {
+    res.status(401).json({ error: 'Authentication failed' })
+  }
+}
+
+// Helper: safely get param as string (Express 5 can return string | string[])
+function paramStr(val: string | string[]): string {
+  return Array.isArray(val) ? val[0] : val
+}
+
+// Audit log helper
+async function logAdminAction(adminId: string, adminEmail: string, action: string, targetType: string, targetId: string, details?: Record<string, unknown>) {
+  await supabase.from('admin_audit_log').insert({
+    admin_id: adminId,
+    admin_email: adminEmail,
+    action,
+    target_type: targetType,
+    target_id: targetId,
+    details: details || {},
+  })
+}
+
+app.use('/api/admin', adminLimiter)
+
+// --- Admin: Overview stats ---
+app.get('/api/admin/stats', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const [
+      { count: userCount },
+      { count: sellerCount },
+      { count: orderCount },
+      { count: liveCount },
+      { count: disputeCount },
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).then(r => ({ count: r.count || 0 })),
+      supabase.from('sellers').select('*', { count: 'exact', head: true }).then(r => ({ count: r.count || 0 })),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).then(r => ({ count: r.count || 0 })),
+      supabase.from('streams').select('*', { count: 'exact', head: true }).eq('status', 'live').then(r => ({ count: r.count || 0 })),
+      supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'disputed').then(r => ({ count: r.count || 0 })),
+    ])
+
+    // Revenue totals
+    const { data: revenueData } = await supabase.from('orders').select('amount, platform_fee').in('status', ['paid', 'shipped', 'delivered'])
+    const totalRevenue = revenueData?.reduce((s, o) => s + Number(o.amount), 0) || 0
+    const totalFees = revenueData?.reduce((s, o) => s + Number(o.platform_fee), 0) || 0
+
+    // Orders last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString()
+    const { count: orders30d } = await supabase.from('orders').select('*', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo)
+
+    // Suspended users
+    const { count: suspendedCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_suspended', true)
+    const { count: bannedCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('is_banned', true)
+
+    res.json({
+      users: userCount,
+      sellers: sellerCount,
+      orders: orderCount,
+      orders_30d: orders30d || 0,
+      lives_now: liveCount,
+      disputes: disputeCount,
+      total_revenue: totalRevenue,
+      total_fees: totalFees,
+      suspended_users: suspendedCount || 0,
+      banned_users: bannedCount || 0,
+    })
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch stats' })
+  }
+})
+
+// --- Admin: Users list ---
+app.get('/api/admin/users', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(100, Number(req.query.limit) || 50)
+    const search = (req.query.search as string) || ''
+    const filter = (req.query.filter as string) || 'all' // all, suspended, banned, sellers
+
+    let query = supabase
+      .from('profiles')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (search) {
+      const safeSearch = search.replace(/[%_\\]/g, '\\$&')
+      query = query.or(`username.ilike.%${safeSearch}%,display_name.ilike.%${safeSearch}%`)
+    }
+    if (filter === 'suspended') query = query.eq('is_suspended', true)
+    if (filter === 'banned') query = query.eq('is_banned', true)
+    if (filter === 'sellers') query = query.eq('is_seller', true)
+
+    const { data, count, error } = await query
+    if (error) throw error
+
+    res.json({ users: data || [], total: count || 0, page, limit })
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch users' })
+  }
+})
+
+// --- Admin: User detail ---
+app.get('/api/admin/users/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+
+    const [profileRes, sellerRes, ordersRes, notesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('sellers').select('*').eq('id', userId).single(),
+      supabase.from('orders').select('id, buyer_id, seller_id, amount, status, created_at')
+        .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase.from('admin_notes').select('*').eq('target_user_id', userId).order('created_at', { ascending: false }),
+    ])
+
+    if (!profileRes.data) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    // Compute stats
+    const allOrders = ordersRes.data || []
+    const purchases = allOrders.filter(o => o.buyer_id === userId)
+    const sales = allOrders.filter(o => o.seller_id === userId)
+    const totalSpent = purchases.reduce((s, o) => s + Number(o.amount), 0)
+    const totalEarned = sales.reduce((s, o) => s + Number(o.amount), 0)
+
+    res.json({
+      profile: profileRes.data,
+      seller: sellerRes.data,
+      orders: ordersRes.data || [],
+      notes: notesRes.data || [],
+      stats: {
+        total_purchases: purchases.length,
+        total_sales: sales.length,
+        total_spent: totalSpent,
+        total_earned: totalEarned,
+      },
+    })
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch user' })
+  }
+})
+
+// --- Admin: Suspend user ---
+app.post('/api/admin/users/:id/suspend', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+    const { reason } = req.body || {}
+
+    const { error } = await supabase.from('profiles').update({
+      is_suspended: true,
+      suspension_reason: reason || 'Suspended by admin',
+      suspended_at: new Date().toISOString(),
+    }).eq('id', userId)
+
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'suspend_user', 'user', userId, { reason })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to suspend user' })
+  }
+})
+
+// --- Admin: Unsuspend user ---
+app.post('/api/admin/users/:id/unsuspend', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+
+    const { error } = await supabase.from('profiles').update({
+      is_suspended: false,
+      suspension_reason: null,
+      suspended_at: null,
+    }).eq('id', userId)
+
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'unsuspend_user', 'user', userId)
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to unsuspend user' })
+  }
+})
+
+// --- Admin: Ban user ---
+app.post('/api/admin/users/:id/ban', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+    const { reason } = req.body || {}
+
+    const { error } = await supabase.from('profiles').update({
+      is_banned: true,
+      is_suspended: true,
+      suspension_reason: reason || 'Banned by admin',
+      banned_at: new Date().toISOString(),
+    }).eq('id', userId)
+
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'ban_user', 'user', userId, { reason })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to ban user' })
+  }
+})
+
+// --- Admin: Unban user ---
+app.post('/api/admin/users/:id/unban', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+
+    const { error } = await supabase.from('profiles').update({
+      is_banned: false,
+      is_suspended: false,
+      suspension_reason: null,
+      banned_at: null,
+      suspended_at: null,
+    }).eq('id', userId)
+
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'unban_user', 'user', userId)
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to unban user' })
+  }
+})
+
+// --- Admin: Add note on user ---
+app.post('/api/admin/users/:id/note', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+    const { note } = req.body
+    if (!note || typeof note !== 'string' || !note.trim()) {
+      res.status(400).json({ error: 'Note is required' })
+      return
+    }
+    if (note.length > 5000) {
+      res.status(400).json({ error: 'Note too long (max 5000 characters)' })
+      return
+    }
+
+    const { data, error } = await supabase.from('admin_notes').insert({
+      target_user_id: userId,
+      admin_id: req.user!.id,
+      admin_email: req.user!.email || '',
+      note: note.trim(),
+    }).select().single()
+
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'add_note', 'user', userId, { note: note.trim().slice(0, 100) })
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Failed to add note' })
+  }
+})
+
+// --- Admin: Sellers list (risk view) ---
+app.get('/api/admin/sellers', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(100, Number(req.query.limit) || 50)
+
+    const { data: sellers, count, error } = await supabase
+      .from('sellers')
+      .select('*, profiles:profiles!id(username, display_name, avatar_url, country, created_at, is_suspended, is_banned)', { count: 'exact' })
+      .order('total_revenue', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (error) throw error
+
+    // Enrich with order stats per seller
+    const enriched = await Promise.all((sellers || []).map(async (seller: Record<string, unknown>) => {
+      const sellerId = seller.id as string
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString()
+
+      const [ordersAll, orders30d, refundsAll, disputesAll] = await Promise.all([
+        supabase.from('orders').select('amount', { count: 'exact', head: true }).eq('seller_id', sellerId).in('status', ['paid', 'shipped', 'delivered']),
+        supabase.from('orders').select('amount', { count: 'exact', head: true }).eq('seller_id', sellerId).gte('created_at', thirtyDaysAgo),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('seller_id', sellerId).eq('status', 'refunded'),
+        supabase.from('orders').select('*', { count: 'exact', head: true }).eq('seller_id', sellerId).eq('status', 'disputed'),
+      ])
+
+      const totalOrders = ordersAll.count || 0
+      const refundRate = totalOrders > 0 ? ((refundsAll.count || 0) / totalOrders) * 100 : 0
+      const disputeRate = totalOrders > 0 ? ((disputesAll.count || 0) / totalOrders) * 100 : 0
+
+      return {
+        ...seller,
+        risk_metrics: {
+          total_orders: totalOrders,
+          orders_30d: orders30d.count || 0,
+          refund_count: refundsAll.count || 0,
+          dispute_count: disputesAll.count || 0,
+          refund_rate: Math.round(refundRate * 100) / 100,
+          dispute_rate: Math.round(disputeRate * 100) / 100,
+        },
+      }
+    }))
+
+    res.json({ sellers: enriched, total: count || 0, page, limit })
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch sellers' })
+  }
+})
+
+// --- Admin: Block seller payments ---
+app.post('/api/admin/sellers/:id/block-payments', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = paramStr(req.params.id)
+    const { block } = req.body // true to block, false to unblock
+
+    const { error } = await supabase.from('sellers').update({ payments_blocked: !!block }).eq('id', sellerId)
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', block ? 'block_payments' : 'unblock_payments', 'seller', sellerId)
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to update seller' })
+  }
+})
+
+// --- Admin: Set seller reserve ---
+app.post('/api/admin/sellers/:id/reserve', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = paramStr(req.params.id)
+    const { percent } = req.body
+    const reservePercent = Math.max(0, Math.min(100, Number(percent) || 0))
+
+    const { error } = await supabase.from('sellers').update({ reserve_percent: reservePercent }).eq('id', sellerId)
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'set_reserve', 'seller', sellerId, { percent: reservePercent })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to set reserve' })
+  }
+})
+
+// --- Admin: Request documents from seller ---
+app.post('/api/admin/sellers/:id/request-documents', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = paramStr(req.params.id)
+
+    const { error } = await supabase.from('sellers').update({ documents_requested: true }).eq('id', sellerId)
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'request_documents', 'seller', sellerId)
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to request documents' })
+  }
+})
+
+// --- Admin: Set seller sale limit ---
+app.post('/api/admin/sellers/:id/set-limit', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = paramStr(req.params.id)
+    const { limit: saleLimit } = req.body
+
+    const { error } = await supabase.from('sellers').update({
+      sale_limit: saleLimit ? Number(saleLimit) : null,
+    }).eq('id', sellerId)
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'set_sale_limit', 'seller', sellerId, { limit: saleLimit })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to set limit' })
+  }
+})
+
+// --- Admin: Orders / Payments list ---
+app.get('/api/admin/orders', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(100, Number(req.query.limit) || 50)
+    const status = req.query.status as string
+
+    let query = supabase
+      .from('orders')
+      .select('*, item:items(title, image_urls), buyer:profiles!orders_buyer_id_fkey(username, display_name), seller_profile:profiles!orders_seller_id_fkey(username, display_name)', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (status) query = query.eq('status', status)
+
+    const { data, count, error } = await query
+    if (error) throw error
+
+    res.json({ orders: data || [], total: count || 0, page, limit })
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch orders' })
+  }
+})
+
+// --- Admin: Disputes ---
+app.get('/api/admin/disputes', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, item:items(title, image_urls), buyer:profiles!orders_buyer_id_fkey(username, display_name), seller_profile:profiles!orders_seller_id_fkey(username, display_name)')
+      .in('status', ['disputed', 'refunded'])
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch disputes' })
+  }
+})
+
+// --- Admin: Streams (lives) ---
+app.get('/api/admin/streams', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const status = (req.query.status as string) || 'live'
+
+    const { data, error } = await supabase
+      .from('streams')
+      .select('*, seller:sellers!seller_id(store_name, id, profiles:profiles!id(display_name, username, is_suspended))')
+      .eq('status', status)
+      .order('created_at', { ascending: false })
+      .limit(100)
+
+    if (error) throw error
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch streams' })
+  }
+})
+
+// --- Admin: Stop a live stream ---
+app.post('/api/admin/streams/:id/stop', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = paramStr(req.params.id)
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('mux_stream_id, seller_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream) {
+      res.status(404).json({ error: 'Stream not found' })
+      return
+    }
+
+    // End on Mux if active
+    if (stream.mux_stream_id) {
+      try {
+        await muxClient.video.liveStreams.complete(stream.mux_stream_id)
+      } catch {
+        // May already be ended
+      }
+    }
+
+    const { error } = await supabase
+      .from('streams')
+      .update({ status: 'ended', ended_at: new Date().toISOString() })
+      .eq('id', streamId)
+
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'stop_stream', 'stream', streamId, { seller_id: stream.seller_id })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to stop stream' })
+  }
+})
+
+// --- Admin: Suspend streamer (suspend user + stop live) ---
+app.post('/api/admin/streams/:id/suspend-streamer', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = paramStr(req.params.id)
+    const { reason } = req.body || {}
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, mux_stream_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream) {
+      res.status(404).json({ error: 'Stream not found' })
+      return
+    }
+
+    // Stop stream
+    if (stream.mux_stream_id) {
+      try { await muxClient.video.liveStreams.complete(stream.mux_stream_id) } catch { /* ignore */ }
+    }
+    await supabase.from('streams').update({ status: 'ended', ended_at: new Date().toISOString() }).eq('id', streamId)
+
+    // Suspend user
+    await supabase.from('profiles').update({
+      is_suspended: true,
+      suspension_reason: reason || 'Suspended during live stream by admin',
+      suspended_at: new Date().toISOString(),
+    }).eq('id', stream.seller_id)
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'suspend_streamer', 'stream', streamId, { seller_id: stream.seller_id, reason })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to suspend streamer' })
+  }
+})
+
+// --- Admin: Audit log ---
+app.get('/api/admin/audit-log', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(200, Number(req.query.limit) || 50)
+
+    const { data, count, error } = await supabase
+      .from('admin_audit_log')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (error) throw error
+    res.json({ logs: data || [], total: count || 0, page, limit })
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch audit log' })
+  }
 })
 
 // =============================================
@@ -1423,10 +2387,20 @@ wss.on('connection', async (ws: WebSocket, req) => {
 
   console.log(`[WS] Broadcast started for stream ${streamId.slice(0, 8)} by user ${userId.slice(0, 8)}`)
 
+  // Prevent unhandled errors on ffmpeg stdin
+  ffmpeg.stdin?.on('error', (err) => {
+    console.error(`[FFmpeg ${streamId.slice(0, 8)}] stdin error:`, err.message)
+  })
+
   ws.on('message', (data: Buffer) => {
     // Forward binary video chunks to FFmpeg stdin
     if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
-      ffmpeg.stdin.write(data)
+      try {
+        ffmpeg.stdin.write(data)
+      } catch (err) {
+        console.error(`[FFmpeg ${streamId.slice(0, 8)}] write error:`, (err as Error).message)
+        ws.close(4005, 'FFmpeg write failed')
+      }
     }
   })
 

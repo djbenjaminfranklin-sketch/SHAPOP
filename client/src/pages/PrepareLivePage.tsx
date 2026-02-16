@@ -192,6 +192,11 @@ export default function PrepareLivePage() {
 
   const [formImageFile, setFormImageFile] = useState<File | null>(null)
 
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -258,7 +263,7 @@ export default function PrepareLivePage() {
           title: data.title,
           starting_price: data.starting_price,
           category: data.category,
-          image_url: formImage,
+          image_url: imageUrls[0] || formImage,
           lot_number: lotNumber,
           duration_seconds: formDuration,
         })
@@ -279,6 +284,20 @@ export default function PrepareLivePage() {
     setSaving(false)
   }
 
+  const persistLotNumbers = async (updatedItems: DraftItem[]) => {
+    try {
+      await Promise.all(
+        updatedItems
+          .filter(item => item.id)
+          .map(item =>
+            supabase.from('items').update({ lot_number: item.lot_number }).eq('id', item.id!)
+          )
+      )
+    } catch (err) {
+      console.error('Failed to persist lot numbers:', err)
+    }
+  }
+
   const handleMoveUp = (index: number) => {
     if (index <= 0) return
     setItems(prev => {
@@ -286,7 +305,9 @@ export default function PrepareLivePage() {
       const temp = copy[index]
       copy[index] = copy[index - 1]
       copy[index - 1] = temp
-      return copy.map((item, i) => ({ ...item, lot_number: i + 1 }))
+      const updated = copy.map((item, i) => ({ ...item, lot_number: i + 1 }))
+      persistLotNumbers(updated)
+      return updated
     })
   }
 
@@ -297,14 +318,20 @@ export default function PrepareLivePage() {
       const temp = copy[index]
       copy[index] = copy[index + 1]
       copy[index + 1] = temp
-      return copy.map((item, i) => ({ ...item, lot_number: i + 1 }))
+      const updated = copy.map((item, i) => ({ ...item, lot_number: i + 1 }))
+      persistLotNumbers(updated)
+      return updated
     })
   }
 
   const handleDeleteItem = async (index: number) => {
     const item = items[index]
     if (item.id) {
-      await supabase.from('items').delete().eq('id', item.id)
+      const { error } = await supabase.from('items').delete().eq('id', item.id)
+      if (error) {
+        console.error('Failed to delete item:', error)
+        return
+      }
     }
     setItems(prev => prev.filter((_, i) => i !== index).map((it, i) => ({ ...it, lot_number: i + 1 })))
   }
@@ -760,6 +787,7 @@ export default function PrepareLivePage() {
                   setFormPrice('')
                   setFormCategory('')
                   setFormImage(null)
+                  setFormQuantity(1)
                   setFormDuration(60)
                 }}
                 style={{
@@ -799,7 +827,7 @@ export default function PrepareLivePage() {
       {/* Bottom actions */}
       <div style={{
         padding: '16px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
         borderTop: '1px solid #1A1A1A',
         display: 'flex', flexDirection: 'column', gap: '10px',
         flexShrink: 0,

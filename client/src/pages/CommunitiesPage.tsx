@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
 import {
@@ -101,12 +101,57 @@ export default function CommunitiesPage() {
     return (profile?.country as CountryCode) || detectUserCountry()
   })
   const [joinedIds, setJoinedIds] = useState<string[]>([])
+  const [realMemberCounts, setRealMemberCounts] = useState<Record<string, number>>({})
+  const [realLiveCounts, setRealLiveCounts] = useState<Record<string, number>>({})
+  const [loadingData, setLoadingData] = useState(true)
 
   useEffect(() => {
     if (profile?.joined_communities) {
       setJoinedIds(profile.joined_communities)
     }
   }, [profile])
+
+  // Fetch real member counts from Supabase communities table
+  const fetchRealData = useCallback(async () => {
+    setLoadingData(true)
+    try {
+      // Fetch real member_count from communities table
+      const { data: communitiesData } = await supabase
+        .from('communities')
+        .select('id, member_count')
+      if (communitiesData) {
+        const counts: Record<string, number> = {}
+        communitiesData.forEach((c: any) => {
+          counts[c.id] = c.member_count ?? 0
+        })
+        setRealMemberCounts(counts)
+      }
+
+      // Fetch real live stream counts grouped by community_id
+      const { data: liveStreams } = await supabase
+        .from('streams')
+        .select('community_id')
+        .eq('status', 'live')
+        .not('community_id', 'is', null)
+      if (liveStreams) {
+        const liveCounts: Record<string, number> = {}
+        liveStreams.forEach((s: any) => {
+          if (s.community_id) {
+            liveCounts[s.community_id] = (liveCounts[s.community_id] || 0) + 1
+          }
+        })
+        setRealLiveCounts(liveCounts)
+      }
+    } catch (err) {
+      console.error('Error fetching community data:', err)
+    } finally {
+      setLoadingData(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchRealData()
+  }, [fetchRealData])
 
   // Save country preference to Supabase
   useEffect(() => {
@@ -126,7 +171,13 @@ export default function CommunitiesPage() {
     }
   }
 
-  const communities = getCommunitiesByCountry(selectedCountry)
+  // Get static community list but overlay real data from Supabase
+  const staticCommunities = getCommunitiesByCountry(selectedCountry)
+  const communities = staticCommunities.map(c => ({
+    ...c,
+    member_count: realMemberCounts[c.id] ?? (loadingData ? 0 : c.member_count),
+    live_count: realLiveCounts[c.id] ?? 0,
+  }))
 
   const filtered = search.trim()
     ? communities.filter(c =>
@@ -135,7 +186,7 @@ export default function CommunitiesPage() {
       )
     : communities
 
-  // Compute stats for selected country
+  // Compute stats for selected country using real data
   const totalMembers = communities.reduce((sum, c) => sum + c.member_count, 0)
   const totalLives = communities.reduce((sum, c) => sum + c.live_count, 0)
   const formattedMembers = totalMembers >= 1000

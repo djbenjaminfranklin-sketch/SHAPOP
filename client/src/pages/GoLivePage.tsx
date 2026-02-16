@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -91,29 +91,29 @@ const tips = {
   ],
   es: [
     {
-      icon: '🎯',
+      icon: '\uD83C\uDFAF',
       title: 'Elige el momento adecuado',
-      desc: 'Los directos por la noche (19-22h) y los fines de semana atraen mas publico.',
+      desc: 'Los directos por la noche (19-22h) y los fines de semana atraen m\u00E1s p\u00FAblico. Prueba diferentes horarios para encontrar tu audiencia.',
     },
     {
-      icon: '💡',
-      title: 'Cuida la iluminacion',
-      desc: 'Una buena luz lo cambia todo. Ponte frente a una ventana o usa un aro de luz.',
+      icon: '\uD83D\uDCA1',
+      title: 'Cuida la iluminaci\u00F3n',
+      desc: '\u00A1Una buena iluminaci\u00F3n lo cambia todo! Col\u00F3cate frente a una ventana o usa un aro de luz para mostrar bien tus art\u00EDculos.',
     },
     {
-      icon: '🏷️',
-      title: 'Prepara tus precios',
-      desc: 'Define los precios de salida antes del directo. Precios atractivos generan mas pujas.',
+      icon: '\uD83C\uDFF7\uFE0F',
+      title: 'Prepara tus precios con antelaci\u00F3n',
+      desc: 'Define los precios de salida antes del directo. Los precios atractivos generan m\u00E1s pujas y hacen subir las ofertas.',
     },
     {
-      icon: '🗣️',
-      title: 'Interactua con tu audiencia',
-      desc: 'Responde a los comentarios, llama a la gente por su nombre. Cuanto mas interactues, mas compran.',
+      icon: '\uD83D\uDDE3\uFE0F',
+      title: 'Interact\u00FAa con tu audiencia',
+      desc: 'Responde a los comentarios, llama a la gente por su nombre. Cuanto m\u00E1s interact\u00FAes, m\u00E1s tiempo se quedan y m\u00E1s compran.',
     },
     {
-      icon: '📦',
+      icon: '\uD83D\uDCE6',
       title: 'Muestra los detalles',
-      desc: 'Gira los articulos, muestra etiquetas y defectos. La transparencia genera confianza.',
+      desc: 'Gira los art\u00EDculos, muestra las etiquetas y los defectos si los hay. La transparencia genera confianza y evita devoluciones.',
     },
   ],
 }
@@ -122,7 +122,7 @@ const tipsHeader = {
   fr: { title: 'Conseils pour reussir ton live', next: 'Suivant', start: 'C\'est parti !', skip: 'Passer', page: 'sur' },
   en: { title: 'Tips for a great live', next: 'Next', start: 'Let\'s go!', skip: 'Skip', page: 'of' },
   he: { title: 'טיפים לשידור מוצלח', next: 'הבא', start: '!בואו נתחיל', skip: 'דלג', page: 'מתוך' },
-  es: { title: 'Consejos para tu directo', next: 'Siguiente', start: 'Vamos!', skip: 'Saltar', page: 'de' },
+  es: { title: 'Consejos para tu directo', next: 'Siguiente', start: '\u00A1Vamos!', skip: 'Saltar', page: 'de' },
 }
 
 const goLiveContent = {
@@ -135,6 +135,7 @@ const goLiveContent = {
     creating: 'Creation...',
     subtitle: 'Choisis un titre et une categorie, puis prepare tes articles avant de passer en direct.',
     createError: 'Erreur lors de la creation',
+    sellerError: 'Impossible de verifier votre compte vendeur',
   },
   en: {
     title: 'New live',
@@ -145,6 +146,7 @@ const goLiveContent = {
     creating: 'Creating...',
     subtitle: 'Choose a title and category, then prepare your items before going live.',
     createError: 'Error creating the live',
+    sellerError: 'Unable to verify your seller account',
   },
   he: {
     title: 'שידור חדש',
@@ -155,16 +157,18 @@ const goLiveContent = {
     creating: '...יוצר',
     subtitle: 'בחר כותרת וקטגוריה, ואז הכן את הפריטים שלך לפני שתצא לשידור.',
     createError: 'שגיאה ביצירת השידור',
+    sellerError: 'לא ניתן לאמת את חשבון המוכר שלך',
   },
   es: {
     title: 'Nuevo directo',
-    titlePlaceholder: 'Dale un titulo a tu directo...',
-    category: 'Categoria',
-    next: 'Preparar mis articulos',
+    titlePlaceholder: 'Dale un t\u00EDtulo a tu directo...',
+    category: 'Categor\u00EDa',
+    next: 'Preparar mis art\u00EDculos',
     cancel: 'Cancelar',
     creating: 'Creando...',
-    subtitle: 'Elige un titulo y una categoria, luego prepara tus articulos antes de salir en directo.',
+    subtitle: 'Elige un t\u00EDtulo y una categor\u00EDa, luego prepara tus art\u00EDculos antes de salir en directo.',
     createError: 'Error al crear el directo',
+    sellerError: 'No se pudo verificar tu cuenta de vendedor',
   },
 }
 
@@ -184,6 +188,58 @@ export default function GoLivePage() {
   const langTips = tips[lang] || tips.fr
   const th = tipsHeader[lang] || tipsHeader.fr
 
+  // Swipe gesture state for tips carousel
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+  const isSwiping = useRef(false)
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+    isSwiping.current = false
+  }, [])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const diffX = Math.abs(e.touches[0].clientX - touchStartX.current)
+    const diffY = Math.abs(e.touches[0].clientY - touchStartY.current)
+    // If horizontal movement is dominant, mark as swiping
+    if (diffX > diffY && diffX > 10) {
+      isSwiping.current = true
+    }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current
+    const threshold = 50
+
+    if (Math.abs(deltaX) > threshold && isSwiping.current) {
+      if (deltaX < 0) {
+        // Swiped left -> next tip or dismiss
+        setTipIndex(prev => {
+          if (prev === langTips.length - 1) {
+            setShowTips(false)
+            return prev
+          }
+          return prev + 1
+        })
+      } else {
+        // Swiped right -> previous tip
+        setTipIndex(prev => (prev > 0 ? prev - 1 : prev))
+      }
+    }
+
+    touchStartX.current = null
+    touchStartY.current = null
+    isSwiping.current = false
+  }, [langTips.length])
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
+
   const sellingCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
 
   const canProceed = liveTitle.trim().length > 0 && selectedCategory && !creating
@@ -195,6 +251,24 @@ export default function GoLivePage() {
     setError('')
 
     try {
+      // Verify seller record exists, auto-create if missing
+      const { data: _seller, error: sellerError } = await supabase
+        .from('sellers')
+        .select('id')
+        .eq('id', user.id)
+        .single()
+
+      if (sellerError && sellerError.code === 'PGRST116') {
+        // No seller record found — auto-create one
+        const { error: createSellerError } = await supabase
+          .from('sellers')
+          .insert({ id: user.id })
+
+        if (createSellerError) throw new Error(ct.sellerError)
+      } else if (sellerError) {
+        throw new Error(ct.sellerError)
+      }
+
       const { data: stream, error: dbError } = await supabase
         .from('streams')
         .insert({
@@ -208,6 +282,9 @@ export default function GoLivePage() {
 
       if (dbError) throw dbError
 
+      if (!stream?.id) throw new Error('Stream creation failed')
+
+      setCreating(false)
       navigate(`/prepare-live/${stream.id}`)
     } catch (err: any) {
       setError(err?.message || ct.createError)
@@ -254,20 +331,29 @@ export default function GoLivePage() {
           <button
             onClick={() => setShowTips(false)}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: '#888', fontSize: '14px', fontWeight: 600,
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '100px', cursor: 'pointer',
+              color: '#fff', fontSize: '14px', fontWeight: 700,
+              padding: '8px 18px',
             }}
           >
             {th.skip}
           </button>
         </div>
 
-        {/* Content */}
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          padding: '24px 32px', gap: '32px',
-        }}>
+        {/* Content - swipeable area */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            flex: 1, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            padding: '24px 32px', gap: '32px',
+            touchAction: 'pan-y',
+            userSelect: 'none',
+          }}
+        >
           {/* Big emoji icon */}
           <div style={{
             width: '100px', height: '100px', borderRadius: '28px',
@@ -307,15 +393,20 @@ export default function GoLivePage() {
             marginBottom: '20px',
           }}>
             {langTips.map((_, i) => (
-              <div key={i} style={{
-                width: i === tipIndex ? '24px' : '8px',
-                height: '8px',
-                borderRadius: '4px',
-                background: i === tipIndex
-                  ? 'linear-gradient(135deg, #F0908A, #E8344E)'
-                  : '#333',
-                transition: 'all 0.3s ease',
-              }} />
+              <div
+                key={i}
+                onClick={() => setTipIndex(i)}
+                style={{
+                  width: i === tipIndex ? '24px' : '8px',
+                  height: '8px',
+                  borderRadius: '4px',
+                  background: i === tipIndex
+                    ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                    : '#333',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                }}
+              />
             ))}
           </div>
 
@@ -353,7 +444,7 @@ export default function GoLivePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,

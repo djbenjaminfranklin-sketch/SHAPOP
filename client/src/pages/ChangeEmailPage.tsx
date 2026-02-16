@@ -23,6 +23,11 @@ export default function ChangeEmailPage() {
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
 
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
+
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 4000)
@@ -40,6 +45,17 @@ export default function ChangeEmailPage() {
 
     setLoading(true)
     try {
+      // Re-authenticate with password before allowing email change
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email!,
+        password: password,
+      })
+      if (signInError) {
+        showToast(tx('Mot de passe incorrect', 'Wrong password', 'סיסמה שגויה', 'Contrasena incorrecta', lang), 'error')
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.updateUser({ email: newEmail })
       if (error) throw error
       showToast(

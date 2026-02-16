@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
+import { showToast } from '../lib/toast'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -29,6 +30,12 @@ const content = {
     feesTitle: 'Vos frais',
     feesDesc: 'Commission 8% + Stripe 2,9% + 0,30\u20AC + TVA 20%',
     feesExample: 'Exemple : vente de 50\u20AC \u2192 vous recevez 43,10\u20AC',
+    pending: 'En attente',
+    notSellerMsg: 'Devenez vendeur pour connecter Stripe et recevoir des paiements.',
+    savedLocally: 'Sauvegarde sur cet appareil',
+    errorConnect: 'Erreur de connexion a Stripe',
+    errorDashboard: 'Impossible d\'ouvrir le dashboard Stripe',
+    errorLoad: 'Erreur de chargement du statut Stripe',
   },
   en: {
     title: 'Payments & Shipping',
@@ -51,6 +58,12 @@ const content = {
     feesTitle: 'Your fees',
     feesDesc: 'Commission 8% + Stripe 2.9% + \u20AC0.30 + VAT 20%',
     feesExample: 'Example: \u20AC50 sale \u2192 you receive \u20AC43.10',
+    pending: 'Pending',
+    notSellerMsg: 'Become a seller to connect Stripe and receive payments.',
+    savedLocally: 'Saved on this device',
+    errorConnect: 'Failed to connect to Stripe',
+    errorDashboard: 'Failed to open Stripe dashboard',
+    errorLoad: 'Failed to load Stripe status',
   },
   he: {
     title: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7',
@@ -73,6 +86,12 @@ const content = {
     feesTitle: '\u05D4\u05E2\u05DE\u05DC\u05D5\u05EA \u05E9\u05DC\u05DA',
     feesDesc: '\u05E2\u05DE\u05DC\u05D4 8% + Stripe 2.9% + 0.30\u20AC + \u05DE\u05E2"\u05DE 20%',
     feesExample: '\u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DB\u05D9\u05E8\u05D4 50\u20AC \u2192 \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC',
+    pending: '\u05D1\u05D4\u05DE\u05EA\u05E0\u05D4',
+    notSellerMsg: '\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 Stripe \u05D5\u05DC\u05E7\u05D1\u05DC \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
+    savedLocally: '\u05E0\u05E9\u05DE\u05E8 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D6\u05D4',
+    errorConnect: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05DC-Stripe',
+    errorDashboard: '\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA \u05D3\u05E9\u05D1\u05D5\u05E8\u05D3 Stripe',
+    errorLoad: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D8\u05E2\u05D9\u05E0\u05EA \u05E1\u05D8\u05D8\u05D5\u05E1 Stripe',
   },
   es: {
     title: 'Pagos y Envio',
@@ -95,6 +114,12 @@ const content = {
     feesTitle: 'Tus comisiones',
     feesDesc: 'Comision 8% + Stripe 2,9% + 0,30\u20AC + IVA 20%',
     feesExample: 'Ejemplo: venta de 50\u20AC \u2192 recibes 43,10\u20AC',
+    pending: 'Pendiente',
+    notSellerMsg: 'Conviertete en vendedor para conectar Stripe y recibir pagos.',
+    savedLocally: 'Guardado en este dispositivo',
+    errorConnect: 'Error al conectar con Stripe',
+    errorDashboard: 'No se pudo abrir el panel de Stripe',
+    errorLoad: 'Error al cargar el estado de Stripe',
   },
 }
 
@@ -107,7 +132,7 @@ interface StripeStatus {
 
 export default function PaymentsPage() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const [searchParams] = useSearchParams()
   const lang = (getLang() || 'fr') as Lang
   const c = content[lang] || content.fr
@@ -115,21 +140,37 @@ export default function PaymentsPage() {
   const [status, setStatus] = useState<StripeStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
+  const [shippingPref, setShippingPref] = useState<number>(() => {
+    const saved = localStorage.getItem('shippingPref')
+    return saved !== null ? Number(saved) : 0
+  })
 
   const fetchStatus = useCallback(async () => {
+    // Only fetch Stripe status if user is a seller
+    if (!profile?.is_seller) {
+      setLoading(false)
+      return
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
+      if (!session) { setLoading(false); return }
       const res = await apiFetch('/api/stripe/account-status', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
       if (res.ok) {
         const data = await res.json()
         setStatus(data)
+      } else {
+        // Don't show error toast for 404 (no Stripe account yet) or 500 (server issue)
+        // Silently fail — the UI will show "Connect Stripe" which is correct
+        console.warn('Stripe status check failed:', res.status)
       }
-    } catch { /* ignore */ }
+    } catch {
+      // Network error — don't show toast, just fail gracefully
+      console.warn('Stripe status check failed: network error')
+    }
     setLoading(false)
-  }, [])
+  }, [profile?.is_seller])
 
   useEffect(() => {
     fetchStatus()
@@ -153,12 +194,17 @@ export default function PaymentsPage() {
           Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ country: profile?.country || 'FR' }),
       })
       const data = await res.json()
       if (data.url) {
         window.location.href = data.url
+      } else if (data.error) {
+        showToast(data.error, 'error')
       }
-    } catch { /* ignore */ }
+    } catch {
+      showToast(c.errorConnect, 'error')
+    }
     setConnecting(false)
   }
 
@@ -176,8 +222,17 @@ export default function PaymentsPage() {
       const data = await res.json()
       if (data.url) {
         window.open(data.url, '_blank')
+      } else if (data.error) {
+        showToast(data.error, 'error')
       }
-    } catch { /* ignore */ }
+    } catch {
+      showToast(c.errorDashboard, 'error')
+    }
+  }
+
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
   }
 
   const isFullyConnected = status?.connected && status?.charges_enabled && status?.payouts_enabled
@@ -246,7 +301,7 @@ export default function PaymentsPage() {
                 </svg>
               </div>
               <p style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B', marginBottom: '8px' }}>
-                Stripe - {lang === 'fr' ? 'En attente' : lang === 'he' ? '\u05D1\u05D4\u05DE\u05EA\u05E0\u05D4' : lang === 'es' ? 'Pendiente' : 'Pending'}
+                Stripe - {c.pending}
               </p>
               <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px' }}>
                 {c.pendingDesc}
@@ -282,7 +337,7 @@ export default function PaymentsPage() {
               <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px', maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
                 {c.secureDesc}
               </p>
-              {profile?.is_seller && (
+              {profile?.is_seller ? (
                 <button
                   onClick={handleConnect}
                   disabled={connecting}
@@ -295,6 +350,18 @@ export default function PaymentsPage() {
                   }}
                 >
                   {connecting ? c.connecting : c.setupPayment}
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  style={{
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    padding: '4px 0', marginTop: '4px',
+                  }}
+                >
+                  <p style={{ fontSize: '13px', color: '#F59E0B', textDecoration: 'underline' }}>
+                    {c.notSellerMsg}
+                  </p>
                 </button>
               )}
             </>
@@ -329,10 +396,11 @@ export default function PaymentsPage() {
           <p style={{ fontSize: '12px', color: '#888', padding: '16px 16px 8px' }}>{c.defaultShip}</p>
           {[c.standard, c.express, c.pickup].map((opt, i) => (
             <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < 2 ? '1px solid #1A1A1A' : 'none', cursor: 'pointer' }}>
-              <input type="radio" name="shipping" defaultChecked={i === 0} style={{ accentColor: '#F0908A' }} />
+              <input type="radio" name="shipping" checked={shippingPref === i} onChange={() => { setShippingPref(i); localStorage.setItem('shippingPref', String(i)) }} style={{ accentColor: '#F0908A' }} />
               <span style={{ fontSize: '15px', color: '#fff' }}>{opt}</span>
             </label>
           ))}
+          <p style={{ fontSize: '11px', color: '#555', padding: '8px 16px 12px', textAlign: 'right' }}>{c.savedLocally}</p>
         </div>
       </div>
     </div>

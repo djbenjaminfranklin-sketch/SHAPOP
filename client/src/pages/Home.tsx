@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import StreamCard from '../components/StreamCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
@@ -12,7 +12,7 @@ import { getBehaviorData } from '../lib/behaviorTracker'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
-import { t, getLang } from '../lib/i18n'
+import { t } from '../lib/i18n'
 import { getCommunitiesByCountry, detectUserCountry } from '../lib/communitiesData'
 import { getStoredGPSCountry } from '../lib/geolocation'
 
@@ -57,31 +57,32 @@ const emptyStateText: Record<string, { title: string; subtitle: string }> = {
   es: { title: 'No hay directos ahora', subtitle: 'Vuelve pronto o empieza tu propio directo!' },
 }
 
-// ═══ DEMO STREAMS — remove after presentation ═══
-const demoStream = (id: string, title: string, cat: string, thumb: string, viewers: number, seller: string, city: string): StreamWithSeller => ({
-  id: `demo-${id}`, seller_id: 'demo', title, description: null,
-  category: cat, tags: [], status: 'live', thumbnail_url: thumb,
-  viewer_count: viewers, peak_viewers: viewers + 200, engagement_score: 70, avg_watch_time_seconds: 0, total_reactions: 0,
-  scheduled_at: null, started_at: new Date().toISOString(), ended_at: null, city, community_id: null, created_at: new Date().toISOString(),
-  seller: { display_name: seller, avatar_url: null, store_name: seller },
-})
-
-const DEMO_STREAMS: StreamWithSeller[] = [
-  demoStream('1', 'Sneakers Jordan & Nike rares', 'Sneakers', 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=600&fit=crop&q=80', 847, 'SneakerKing', 'Paris'),
-  demoStream('2', 'Bijoux vintage & pierres precieuses', 'Bijoux', 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=400&h=600&fit=crop&q=80', 312, 'GemStone', 'Lyon'),
-  demoStream('3', 'Cartes Pokemon & YuGiOh rares', 'Cartes', 'https://images.unsplash.com/photo-1606503153255-59d8b8b82176?w=400&h=600&fit=crop&q=80', 1523, 'CardMaster', 'Paris'),
-  demoStream('4', 'Sacs de luxe Chanel & LV', 'Sacs', 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=600&fit=crop&q=80', 198, 'LuxBags', 'Marseille'),
-  demoStream('5', 'Montres Seiko & Casio vintage', 'Montres', 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=400&h=600&fit=crop&q=80', 456, 'WatchDeals', 'Paris'),
-  demoStream('6', 'iPhone, AirPods & gadgets', 'High-tech', 'https://images.unsplash.com/photo-1468495244123-6c6c332eeece?w=400&h=600&fit=crop&q=80', 634, 'TechBoss', 'Bordeaux'),
-  demoStream('7', 'Robes & looks ete 2026', 'Mode femme', 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=600&fit=crop&q=80', 921, 'FashionQueen', 'Paris'),
-  demoStream('8', 'Figurines Manga & collector', 'Jouets', 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=400&h=600&fit=crop&q=80', 743, 'OtakuShop', 'Toulouse'),
-  demoStream('9', 'Vinyls & platines vintage', 'Musique', 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&h=600&fit=crop&q=80', 289, 'VinylCave', 'Bordeaux'),
-  demoStream('10', 'Air Max, Dunk & Yeezy', 'Sneakers', 'https://images.unsplash.com/photo-1600185365926-3a2ce3cdb9eb?w=400&h=600&fit=crop&q=80', 1102, 'KicksFactory', 'Lyon'),
-  demoStream('11', 'Maquillage & skincare K-beauty', 'Beaute', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=400&h=600&fit=crop&q=80', 567, 'GlowUp', 'Paris'),
-  demoStream('12', 'Manettes PS5 & accessoires gaming', 'Gaming', 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=400&h=600&fit=crop&q=80', 834, 'GameZone', 'Marseille'),
-  demoStream('13', 'Tableaux street art & prints', 'Art', 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=600&fit=crop&q=80', 178, 'ArtStreet', 'Nice'),
-  demoStream('14', 'Vetements homme streetwear', 'Mode homme', 'https://images.unsplash.com/photo-1617137968427-85924c800a22?w=400&h=600&fit=crop&q=80', 445, 'StreetVibes', 'Paris'),
-]
+const welcomeContent = {
+  fr: {
+    tagline: 'Le shopping en live,\nreinvente.',
+    subtitle: 'Achete, vends et participe aux lives en direct avec des milliers de passionnes.',
+    signIn: 'Se connecter',
+    createAccount: 'Creer un compte',
+  },
+  en: {
+    tagline: 'Live shopping,\nreinvented.',
+    subtitle: 'Buy, sell and join live streams with thousands of passionate people.',
+    signIn: 'Sign in',
+    createAccount: 'Create account',
+  },
+  he: {
+    tagline: 'קניות בשידור חי,\nהמצאה מחדש.',
+    subtitle: 'קנו, מכרו והצטרפו לשידורים חיים עם אלפי אנשים.',
+    signIn: 'התחבר',
+    createAccount: 'צור חשבון',
+  },
+  es: {
+    tagline: 'Shopping en vivo,\nreinventado.',
+    subtitle: 'Compra, vende y unete a las transmisiones en vivo con miles de apasionados.',
+    signIn: 'Iniciar sesion',
+    createAccount: 'Crear cuenta',
+  },
+} as Record<string, { tagline: string; subtitle: string; signIn: string; createAccount: string }>
 
 export default function Home() {
   const [streams, setStreams] = useState<StreamWithSeller[]>([])
@@ -91,7 +92,15 @@ export default function Home() {
   const [showCityPicker, setShowCityPicker] = useState(false)
   const [lang, setLang] = useState(() => localStorage.getItem('shapop_lang') || 'fr')
   const [showLangPicker, setShowLangPicker] = useState(false)
-  const [showPrefsModal, setShowPrefsModal] = useState(() => !hasPreferences())
+  const [showPrefsModal, setShowPrefsModal] = useState(() => {
+    // Only show after a fresh login/register, not on app restart
+    const freshLogin = sessionStorage.getItem('shapop_fresh_login')
+    if (freshLogin && !hasPreferences()) {
+      sessionStorage.removeItem('shapop_fresh_login')
+      return true
+    }
+    return false
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
   const { city, loading: locationLoading, setManualCity } = useLocation()
@@ -170,7 +179,7 @@ export default function Home() {
     }
     return allStreams
   }
-  const allStreams = [...DEMO_STREAMS, ...getDisplayStreams()]
+  const allStreams = getDisplayStreams()
   const displayStreams = searchQuery.trim()
     ? allStreams.filter(s => {
         const q = searchQuery.toLowerCase()
@@ -188,6 +197,53 @@ export default function Home() {
 
   // Pull-to-refresh (disabled — causes glitchy behavior on iOS WKWebView)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  const wc = welcomeContent[lang] || welcomeContent.fr
+
+  // ═══ WELCOME SCREEN — shown when user is not logged in ═══
+  if (!user) {
+    return (
+      <div style={{
+        minHeight: '100vh', backgroundColor: '#000',
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        justifyContent: 'center', padding: '0 32px',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}>
+        <img src="/logo.png" alt="ShaPop" style={{ width: '60%', maxWidth: '260px', marginBottom: '40px', objectFit: 'contain' }} />
+        <h1 style={{
+          fontSize: '32px', fontWeight: 900, color: '#fff',
+          textAlign: 'center', lineHeight: 1.2, margin: '0 0 16px',
+          whiteSpace: 'pre-line',
+        }}>
+          {wc.tagline}
+        </h1>
+        <p style={{
+          fontSize: '15px', color: '#888', textAlign: 'center',
+          lineHeight: 1.5, maxWidth: '320px', margin: '0 0 40px',
+        }}>
+          {wc.subtitle}
+        </p>
+        <Link to="/login" style={{
+          display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
+          borderRadius: '14px', textDecoration: 'none',
+          background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+          color: '#fff', fontSize: '16px', fontWeight: 700, textAlign: 'center',
+          boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
+        }}>
+          {wc.signIn}
+        </Link>
+        <Link to="/register" style={{
+          display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
+          borderRadius: '14px', textDecoration: 'none',
+          backgroundColor: 'transparent', border: '1.5px solid #333',
+          color: '#ccc', fontSize: '16px', fontWeight: 700, textAlign: 'center',
+        }}>
+          {wc.createAccount}
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div

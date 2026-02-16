@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
+import { getLang, t } from '../lib/i18n'
 
 interface SplashScreenProps {
   onFinish: () => void
 }
 
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
+  const lang = getLang()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [fadingOut, setFadingOut] = useState(false)
   const [videoReady, setVideoReady] = useState(false)
@@ -79,7 +81,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         ref={videoRef}
         muted
         playsInline
-        // @ts-expect-error webkit-playsinline needed for older iOS
+        // @ts-ignore webkit-playsinline needed for older iOS
         webkit-playsinline="true"
         preload="auto"
         onEnded={handleEnd}
@@ -132,7 +134,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
           zIndex: 1,
         }}
       >
-        Passer
+        {t(lang, 'skip')}
       </button>
 
       <style>{`

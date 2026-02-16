@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { getLang } from '../lib/i18n'
 import { categories } from './CategoryIcons'
 import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
@@ -107,21 +108,15 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     }
   }, [visible])
 
-  // Lock body scroll when modal is visible
+  // Lock body scroll + hide BottomNav when modal is visible
   useEffect(() => {
     if (visible) {
       document.body.style.overflow = 'hidden'
-      document.body.style.position = 'fixed'
-      document.body.style.width = '100%'
-      document.body.style.top = `-${window.scrollY}px`
+      document.body.setAttribute('data-modal-open', 'true')
     }
     return () => {
-      const scrollY = document.body.style.top
       document.body.style.overflow = ''
-      document.body.style.position = ''
-      document.body.style.width = ''
-      document.body.style.top = ''
-      window.scrollTo(0, parseInt(scrollY || '0') * -1)
+      document.body.removeAttribute('data-modal-open')
     }
   }, [visible])
 
@@ -133,8 +128,6 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
   const countryCities = detectedCity && !commCities.includes(detectedCity)
     ? [detectedCity, ...commCities]
     : commCities
-  const countryInfo = COUNTRIES.find(c => c.code === userCountry)
-
   if (!visible) return null
 
   const toggleCategory = (label: string) => {
@@ -194,37 +187,23 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     onClose()
   }
 
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={handleSkip}
-        onTouchMove={e => e.preventDefault()}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 100,
-          touchAction: 'none',
-        }}
-      />
-
-      {/* Bottom sheet */}
+  // Use createPortal to render directly in document.body — bypasses stacking context issues (BottomNav was on top)
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 99999 }}>
+      {/* Force-hide BottomNav and any other fixed elements behind the modal */}
+      <style>{`body[data-modal-open] nav { display: none !important; } body[data-modal-open] .home-button { display: none !important; }`}</style>
+      {/* Full-screen modal */}
       <div style={{
-        position: 'fixed',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
+        position: 'absolute',
+        inset: 0,
         backgroundColor: '#111',
-        zIndex: 101,
         display: 'flex',
         flexDirection: 'column',
-        animation: 'slideUp 0.3s ease-out',
         paddingTop: 'env(safe-area-inset-top, 0px)',
       }}>
-        {/* Header compact */}
+        {/* Header with logo */}
         <div style={{ padding: '16px 24px 8px 24px', textAlign: 'center' }}>
+          <img src="/logo.png" alt="ShaPop" style={{ height: '36px', objectFit: 'contain', marginBottom: '12px' }} />
           <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 800, margin: '0 0 4px 0' }}>
             {ct.personalizeYourFeed}
           </h2>
@@ -285,6 +264,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                       display: 'flex',
                       alignItems: 'center',
                       gap: '6px',
+                      touchAction: 'manipulation',
                     }}
                   >
                     {isSelected && (
@@ -321,6 +301,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                         ? 'rgba(240,144,138,0.15)'
                         : '#1A1A1A',
                       cursor: 'pointer', flexShrink: 0,
+                      touchAction: 'manipulation',
                     }}
                   >
                     <span style={{ fontSize: '14px' }}>{country.flag}</span>
@@ -359,6 +340,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
+                        touchAction: 'manipulation',
                       }}
                     >
                       {isSelected ? (
@@ -380,7 +362,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
         {/* Bottom actions */}
         <div style={{
           padding: '16px 20px',
-          paddingBottom: 'calc(16px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
           display: 'flex',
           gap: '12px',
           borderTop: '1px solid #222',
@@ -392,11 +374,12 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
               padding: '14px',
               borderRadius: '14px',
               border: '1px solid #333',
-              backgroundColor: 'transparent',
+              backgroundColor: '#1A1A1A',
               color: '#888',
               fontSize: '15px',
               fontWeight: 600,
               cursor: 'pointer',
+              touchAction: 'manipulation',
             }}
           >
             {ct.skip}
@@ -416,6 +399,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                 fontSize: '15px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                touchAction: 'manipulation',
               }}
             >
               {ct.next} ({selectedCategories.length} {ct.chosen})
@@ -433,6 +417,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                 fontSize: '15px',
                 fontWeight: 700,
                 cursor: 'pointer',
+                touchAction: 'manipulation',
               }}
             >
               {ct.letsGo}
@@ -440,14 +425,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
           )}
         </div>
       </div>
-
-      {/* Animation keyframes */}
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-      `}</style>
-    </>
+    </div>,
+    document.body
   )
 }

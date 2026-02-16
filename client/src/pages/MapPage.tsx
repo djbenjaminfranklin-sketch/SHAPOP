@@ -112,6 +112,11 @@ export default function MapPage() {
     })
   }, [user])
 
+  if (!user) {
+    navigate('/login', { replace: true })
+    return null
+  }
+
   const countryName = getCountryDisplayName(selectedCountry, lang)
   const cities = Object.entries(cityData).filter(([_, data]) => data.count > 0 || !loading)
   const totalLive = Object.values(cityData).reduce((sum, d) => sum + d.count, 0)
@@ -120,7 +125,7 @@ export default function MapPage() {
     <div style={{
       minHeight: '100vh', backgroundColor: '#000',
       paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: '100px',
+      paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
     }}>
       {/* Header */}
       <div style={{ padding: '16px 20px 0' }}>
