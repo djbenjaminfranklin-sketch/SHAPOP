@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
-import { supabase } from '../lib/supabase'
 
 const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
 
@@ -15,10 +14,9 @@ interface Stats {
 }
 
 export default function AdminPage() {
-  const { user } = useAuth()
+  const { user, session, loading: authContextLoading } = useAuth()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('overview')
-  const [token, setToken] = useState('')
 
   // Overview
   const [stats, setStats] = useState<Stats | null>(null)
@@ -56,27 +54,23 @@ export default function AdminPage() {
   const [auditPage, setAuditPage] = useState(1)
 
   const [loading, setLoading] = useState(false)
-  const [authLoading, setAuthLoading] = useState(true)
   const [actionMsg, setActionMsg] = useState('')
   const [toast, setToast] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
+
+  const token = session?.access_token || ''
 
   const showToast = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 4000)
   }
 
-  // Get auth token + admin gate
+  // Redirect non-admin users
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session && user?.email === ADMIN_EMAIL) {
-        setToken(session.access_token)
-      } else {
-        navigate('/', { replace: true })
-      }
-      setAuthLoading(false)
-    })
-  }, [user, navigate])
+    if (!authContextLoading && (!user || user.email !== ADMIN_EMAIL)) {
+      navigate('/', { replace: true })
+    }
+  }, [user, authContextLoading, navigate])
 
   // Load data when tab changes — MUST be before early returns (Rules of Hooks)
   useEffect(() => {
@@ -92,7 +86,7 @@ export default function AdminPage() {
     }
   }, [tab, token])
 
-  if (authLoading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="admin-spinner" /></div>
+  if (authContextLoading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="admin-spinner" /></div>
 
   if (!user || user.email !== ADMIN_EMAIL) return null
 
