@@ -2192,15 +2192,30 @@ app.get('/api/admin/streams', requireAdmin, async (req: AuthenticatedRequest, re
 
     const { data, error } = await supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, id, profiles:profiles!id(display_name, username, is_suspended))')
+      .select('*, seller:sellers!seller_id(store_name, id)')
       .eq('status', status)
       .order('created_at', { ascending: false })
       .limit(100)
 
     if (error) throw error
-    res.json(data || [])
-  } catch {
-    res.status(500).json({ error: 'Failed to fetch streams' })
+
+    // Enrich with seller profile info
+    const enriched = await Promise.all((data || []).map(async (stream: any) => {
+      if (stream.seller?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name, username, is_suspended')
+          .eq('id', stream.seller.id)
+          .single()
+        if (profile) stream.seller.profiles = profile
+      }
+      return stream
+    }))
+
+    res.json(enriched)
+  } catch (err: any) {
+    console.error('Admin streams error:', err?.message || err)
+    res.status(500).json({ error: String(err?.message || 'Erreur lors du chargement des lives') })
   }
 })
 

@@ -437,101 +437,6 @@ export default function AdminPage() {
       </div>
       <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(usersTotal) + ' utilisateurs'}</p>
 
-      {/* User detail modal */}
-      {userDetail ? (
-        <div onClick={() => setUserDetail(null)} style={{
-          position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.8)',
-          display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
-          overflowY: 'auto',
-        }}>
-          <div onClick={e => e.stopPropagation()} style={{
-            ...card, maxWidth: '500px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
-          }}>
-            {(() => {
-              try {
-                const rawProfile = userDetail.profile
-                const rawSeller = userDetail.seller
-                const rawNotes = userDetail.notes
-                const rawStats = userDetail.stats
-
-                const p = (rawProfile && typeof rawProfile === 'object') ? rawProfile as Record<string, unknown> : null
-                const s = (rawSeller && typeof rawSeller === 'object') ? rawSeller as Record<string, unknown> : null
-                const notes = Array.isArray(rawNotes) ? rawNotes as Record<string, unknown>[] : []
-                const st = (rawStats && typeof rawStats === 'object') ? rawStats as Record<string, number> : null
-                if (!p) return <p style={{ color: '#666' }}>{'Aucune donnée'}</p>
-                const uid = String(p.id || '')
-                return (
-                  <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <div>
-                        <p style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0 }}>{sv(p.display_name)}</p>
-                        <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>{'@' + sv(p.username) + ' | ' + sv(p.country) + ' | ' + fmtId(uid)}</p>
-                      </div>
-                      <button onClick={() => setUserDetail(null)} style={{ ...btn('#333'), marginRight: 0 }}>{'X'}</button>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                      {sb(p.is_suspended) ? <span style={badge('#F59E0B')}>{'SUSPENDED'}</span> : null}
-                      {sb(p.is_banned) ? <span style={badge('#EF4444')}>{'BANNED'}</span> : null}
-                      {sb(p.is_seller) ? <span style={badge('#10B981')}>{'VENDEUR'}</span> : null}
-                      {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{'KYC VÉRIFIÉ'}</span> : null}
-                    </div>
-
-                    <p style={{ color: '#666', fontSize: '12px' }}>
-                      {'Inscrit : ' + fmtDate(p.created_at) + ' | Achats : ' + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | Ventes : ' + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
-                    </p>
-
-                    {s ? (
-                      <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                        <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>{'Boutique : ' + sv(s.store_name)}</p>
-                        <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                          {'Revenue: ' + fmtMoney(s.total_revenue) + ' | Ventes : ' + sv(s.total_sales) + ' | Stripe: ' + (s.stripe_account_id ? 'Connecté' : 'Non')}
-                        </p>
-                        {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'PAIEMENTS BLOQUES'}</span> : null}
-                        {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{'RESERVE ' + sv(s.reserve_percent) + '%'}</span> : null}
-                      </div>
-                    ) : null}
-
-                    {/* Actions */}
-                    <div style={{ marginTop: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {(!sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                        <button onClick={() => { const r = prompt('Motif ?'); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{'Suspendre'}</button>
-                      ) : null}
-                      {(sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                        <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{'Réactiver'}</button>
-                      ) : null}
-                      {!sb(p.is_banned) ? (
-                        <button onClick={() => { const r = prompt('Motif ?'); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{'Bannir'}</button>
-                      ) : null}
-                      {sb(p.is_banned) ? (
-                        <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{'Débannir'}</button>
-                      ) : null}
-                    </div>
-
-                    {/* Notes */}
-                    <div style={{ marginTop: '20px' }}>
-                      <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>{'Notes internes (' + sv(notes.length) + ')'}</p>
-                      <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                        <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Ajouter une note..." style={{ ...inputStyle, flex: 1 }} />
-                        <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{'Ajouter'}</button>
-                      </div>
-                      {notes.map((n, i) => (
-                        <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
-                          <p style={{ color: '#ddd', fontSize: '13px', margin: 0 }}>{sv(n.note)}</p>
-                          <p style={{ color: '#555', fontSize: '11px', margin: '4px 0 0' }}>{sv(n.admin_email) + ' - ' + fmtDate(n.created_at)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )
-              } catch (err: any) {
-                return renderDebugError('UserDetail IIFE', { message: String(err?.message || err), stack: String(err?.stack || '') })
-              }
-            })()}
-          </div>
-        </div>
-      ) : null}
-
       {/* User list */}
       {Array.isArray(users) ? users.map((u, i) => (
         <div key={i} style={{ ...card, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
@@ -942,6 +847,101 @@ export default function AdminPage() {
           {/* Content */}
           {!pageError ? renderContent() : null}
         </div>
+
+        {/* User detail modal — global so it works from any tab */}
+        {userDetail ? (
+          <div onClick={() => setUserDetail(null)} style={{
+            position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 16px',
+            overflowY: 'auto',
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              ...card, maxWidth: '500px', width: '100%', maxHeight: '85vh', overflowY: 'auto',
+            }}>
+              {(() => {
+                try {
+                  const rawProfile = userDetail.profile
+                  const rawSeller = userDetail.seller
+                  const rawNotes = userDetail.notes
+                  const rawStats = userDetail.stats
+
+                  const p = (rawProfile && typeof rawProfile === 'object') ? rawProfile as Record<string, unknown> : null
+                  const s = (rawSeller && typeof rawSeller === 'object') ? rawSeller as Record<string, unknown> : null
+                  const notes = Array.isArray(rawNotes) ? rawNotes as Record<string, unknown>[] : []
+                  const st = (rawStats && typeof rawStats === 'object') ? rawStats as Record<string, number> : null
+                  if (!p) return <p style={{ color: '#666' }}>{'Aucune donnée'}</p>
+                  const uid = String(p.id || '')
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <div>
+                          <p style={{ color: '#fff', fontWeight: 700, fontSize: '18px', margin: 0 }}>{sv(p.display_name)}</p>
+                          <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>{'@' + sv(p.username) + ' | ' + sv(p.country) + ' | ' + fmtId(uid)}</p>
+                        </div>
+                        <button onClick={() => setUserDetail(null)} style={{ ...btn('#333'), marginRight: 0 }}>{'X'}</button>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        {sb(p.is_suspended) ? <span style={badge('#F59E0B')}>{'SUSPENDU'}</span> : null}
+                        {sb(p.is_banned) ? <span style={badge('#EF4444')}>{'BANNI'}</span> : null}
+                        {sb(p.is_seller) ? <span style={badge('#10B981')}>{'VENDEUR'}</span> : null}
+                        {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{'KYC VÉRIFIÉ'}</span> : null}
+                      </div>
+
+                      <p style={{ color: '#666', fontSize: '12px' }}>
+                        {'Inscrit : ' + fmtDate(p.created_at) + ' | Achats : ' + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | Ventes : ' + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
+                      </p>
+
+                      {s ? (
+                        <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
+                          <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>{'Boutique : ' + sv(s.store_name)}</p>
+                          <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
+                            {'Revenu : ' + fmtMoney(s.total_revenue) + ' | Ventes : ' + sv(s.total_sales) + ' | Stripe : ' + (s.stripe_account_id ? 'Connecté' : 'Non')}
+                          </p>
+                          {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'PAIEMENTS BLOQUÉS'}</span> : null}
+                          {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{'RÉSERVE ' + sv(s.reserve_percent) + '%'}</span> : null}
+                        </div>
+                      ) : null}
+
+                      {/* Actions */}
+                      <div style={{ marginTop: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {(!sb(p.is_suspended) && !sb(p.is_banned)) ? (
+                          <button onClick={() => { const r = prompt('Motif ?'); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{'Suspendre'}</button>
+                        ) : null}
+                        {(sb(p.is_suspended) && !sb(p.is_banned)) ? (
+                          <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{'Réactiver'}</button>
+                        ) : null}
+                        {!sb(p.is_banned) ? (
+                          <button onClick={() => { const r = prompt('Motif ?'); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{'Bannir'}</button>
+                        ) : null}
+                        {sb(p.is_banned) ? (
+                          <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{'Débannir'}</button>
+                        ) : null}
+                      </div>
+
+                      {/* Notes */}
+                      <div style={{ marginTop: '20px' }}>
+                        <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>{'Notes internes (' + sv(notes.length) + ')'}</p>
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                          <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Ajouter une note..." style={{ ...inputStyle, flex: 1 }} />
+                          <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{'Ajouter'}</button>
+                        </div>
+                        {notes.map((n, i) => (
+                          <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
+                            <p style={{ color: '#ddd', fontSize: '13px', margin: 0 }}>{sv(n.note)}</p>
+                            <p style={{ color: '#555', fontSize: '11px', margin: '4px 0 0' }}>{sv(n.admin_email) + ' - ' + fmtDate(n.created_at)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )
+                } catch (err: any) {
+                  return renderDebugError('UserDetail IIFE', { message: String(err?.message || err), stack: String(err?.stack || '') })
+                }
+              })()}
+            </div>
+          </div>
+        ) : null}
 
         {/* Toast */}
         {toast ? (
