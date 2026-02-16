@@ -716,18 +716,24 @@ export default function StreamView() {
     if (isNaN(amount) || amount <= activeAuction.current_price) return
 
     try {
-      const { error: bidError } = await supabase.from('bids').insert({
-        item_id: activeAuction.id,
-        bidder_id: user.id,
-        amount,
-      })
-      if (bidError) throw bidError
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
 
-      const { error: updateError } = await supabase
-        .from('items')
-        .update({ current_price: amount })
-        .eq('id', activeAuction.id)
-      if (updateError) throw updateError
+      const resp = await apiFetch(`/api/items/${activeAuction.id}/bid`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        throw new Error(err.error || 'Bid failed')
+      }
+      // Update local bid amount for next bid
+      setBidAmount(String(amount + 10))
     } catch (err) {
       console.error('Failed to place bid:', err)
       alert('Failed to place bid. Please try again.')

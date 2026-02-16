@@ -1991,23 +1991,74 @@ app.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReques
   }
 })
 
+// Place a bid on an item (bypasses RLS)
+app.post('/api/items/:id/bid', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const itemId = req.params.id
+    const { amount } = req.body
+    const userId = req.user!.id
+
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      res.status(400).json({ error: 'Invalid bid amount' })
+      return
+    }
+
+    // Verify item exists and is active
+    const { data: item } = await supabase
+      .from('items')
+      .select('id, current_price, status, seller_id')
+      .eq('id', itemId)
+      .single()
+
+    if (!item) {
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+    if (item.status !== 'active') {
+      res.status(400).json({ error: 'Auction is not active' })
+      return
+    }
+    if (item.seller_id === userId) {
+      res.status(400).json({ error: 'Cannot bid on your own item' })
+      return
+    }
+    if (amount <= item.current_price) {
+      res.status(400).json({ error: 'Bid must be higher than current price' })
+      return
+    }
+
+    // Insert bid
+    const { error: bidError } = await supabase.from('bids').insert({
+      item_id: itemId,
+      bidder_id: userId,
+      amount,
+    })
+    if (bidError) throw bidError
+
+    // Update item current price
+    await supabase
+      .from('items')
+      .update({ current_price: amount })
+      .eq('id', itemId)
+
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('Bid error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to place bid' })
+  }
+})
+
 // Track viewer count: increment on join, decrement on leave
 app.post('/api/streams/:id/viewer-join', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const streamId = req.params.id
-    await supabase.rpc('increment_viewer_count', { stream_id_param: streamId }).throwOnError()
+    const { data } = await supabase.from('streams').select('viewer_count').eq('id', streamId).single()
+    if (data) {
+      await supabase.from('streams').update({ viewer_count: (data.viewer_count || 0) + 1 }).eq('id', streamId)
+    }
     res.json({ success: true })
   } catch {
-    // Fallback: direct increment
-    try {
-      const { data } = await supabase.from('streams').select('viewer_count').eq('id', req.params.id).single()
-      if (data) {
-        await supabase.from('streams').update({ viewer_count: (data.viewer_count || 0) + 1 }).eq('id', req.params.id)
-      }
-      res.json({ success: true })
-    } catch {
-      res.status(500).json({ error: 'Failed to update viewer count' })
-    }
+    res.status(500).json({ error: 'Failed to update viewer count' })
   }
 })
 
