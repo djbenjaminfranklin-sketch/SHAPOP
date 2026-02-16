@@ -1420,17 +1420,7 @@ export default function StreamView() {
               />
             )}
 
-            {/* ── Viewer: Reaction Buttons ── */}
-            {!isSeller && isLive && user && (
-              <div style={{
-                position: 'absolute',
-                bottom: '16px',
-                right: '16px',
-                zIndex: 40,
-              }}>
-                <ViewerReactions onReaction={handleViewerReaction} />
-              </div>
-            )}
+            {/* Viewer reactions moved to bottom overlay */}
           </div>
 
       {/* ═══ BOTTOM GRADIENT ═══ */}
@@ -1443,10 +1433,10 @@ export default function StreamView() {
       {/* ═══ BOTTOM OVERLAY: stream info + auction + chat + input ═══ */}
       <div style={{
         position: 'absolute',
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
-        left: '12px', right: '12px',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
+        left: '10px', right: '10px',
         zIndex: 15,
-        display: 'flex', flexDirection: 'column', gap: '8px',
+        display: 'flex', flexDirection: 'column', gap: '6px',
       }}>
         {/* Chat messages — last 4, overlaid */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
@@ -1501,6 +1491,11 @@ export default function StreamView() {
           </div>
         ) : (
           <p style={{ fontSize: '12px', color: '#666', margin: 0, textAlign: 'center' }}>{ct.loginToChat}</p>
+        )}
+
+        {/* Viewer reaction buttons */}
+        {!isSeller && isLive && user && (
+          <ViewerReactions onReaction={handleViewerReaction} />
         )}
 
         {/* Active auction + bid */}
