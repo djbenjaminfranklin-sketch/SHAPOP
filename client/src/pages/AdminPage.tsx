@@ -136,7 +136,7 @@ export default function AdminPage() {
         banned_users: Number(raw.banned_users) || 0,
       })
       setPageError(null)
-    } catch (e: any) { setPageError(String(e?.message || 'Erreur de chargement')); showToast(String(e?.message || 'Failed to load data')) }
+    } catch (e: any) { setPageError(String(e?.message || 'Erreur de chargement')); showToast(String(e?.message || 'Erreur de chargement')) }
     setLoading(false)
   }
 
@@ -148,7 +148,7 @@ export default function AdminPage() {
       if (usersSearch) q.set('search', usersSearch)
       const data = await adminFetch(`/api/admin/users?${q}`)
       setUsers(Array.isArray(data.users) ? data.users : []); setUsersTotal(Number(data.total) || 0); setUsersPage(page)
-    } catch { showToast('Failed to load data') }
+    } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
 
@@ -157,7 +157,7 @@ export default function AdminPage() {
     try {
       const data = await adminFetch(`/api/admin/users/${id}`)
       setUserDetail(data)
-    } catch { showToast('Failed to load data') }
+    } catch { showToast('Erreur de chargement') }
   }
 
   const fetchSellers = async () => {
@@ -166,7 +166,7 @@ export default function AdminPage() {
     try {
       const data = await adminFetch('/api/admin/sellers?limit=50')
       setSellers(Array.isArray(data.sellers) ? data.sellers : []); setSellersTotal(Number(data.total) || 0)
-    } catch { showToast('Failed to load data') }
+    } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
 
@@ -178,21 +178,21 @@ export default function AdminPage() {
       if (ordersStatus) q.set('status', ordersStatus)
       const data = await adminFetch(`/api/admin/orders?${q}`)
       setOrders(Array.isArray(data.orders) ? data.orders : []); setOrdersTotal(Number(data.total) || 0); setOrdersPage(page)
-    } catch { showToast('Failed to load data') }
+    } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
 
   const fetchDisputes = async () => {
     if (!token) return
     setLoading(true)
-    try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast('Failed to load data') }
+    try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
 
   const fetchStreams = async () => {
     if (!token) return
     setLoading(true)
-    try { const raw = await adminFetch(`/api/admin/streams?status=${streamsFilter}`); setStreams(Array.isArray(raw) ? raw : Array.isArray(raw?.streams) ? raw.streams : []) } catch { showToast('Failed to load data') }
+    try { const raw = await adminFetch(`/api/admin/streams?status=${streamsFilter}`); setStreams(Array.isArray(raw) ? raw : Array.isArray(raw?.streams) ? raw.streams : []) } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
 
@@ -202,7 +202,7 @@ export default function AdminPage() {
     try {
       const data = await adminFetch(`/api/admin/audit-log?page=${page}&limit=50`)
       setAuditLogs(Array.isArray(data.logs) ? data.logs : []); setAuditTotal(Number(data.total) || 0); setAuditPage(page)
-    } catch { showToast('Failed to load data') }
+    } catch { showToast('Erreur de chargement') }
     setLoading(false)
   }
 
@@ -211,33 +211,33 @@ export default function AdminPage() {
   const suspendUser = async (id: string, reason: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) })
-      showAction('User suspended'); fetchUsers(usersPage)
+      showAction('Utilisateur suspendu'); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Action failed') }
+    } catch { showToast('Erreur') }
   }
 
   const unsuspendUser = async (id: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/unsuspend`, { method: 'POST' })
-      showAction('User unsuspended'); fetchUsers(usersPage)
+      showAction('Utilisateur réactivé'); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Action failed') }
+    } catch { showToast('Erreur') }
   }
 
   const banUser = async (id: string, reason: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) })
-      showAction('User banned'); fetchUsers(usersPage)
+      showAction('Utilisateur banni'); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Action failed') }
+    } catch { showToast('Erreur') }
   }
 
   const unbanUser = async (id: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/unban`, { method: 'POST' })
-      showAction('User unbanned'); fetchUsers(usersPage)
+      showAction('Utilisateur débanni'); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Action failed') }
+    } catch { showToast('Erreur') }
   }
 
   const addNote = async (id: string) => {
@@ -245,43 +245,43 @@ export default function AdminPage() {
     try {
       await adminFetch(`/api/admin/users/${id}/note`, { method: 'POST', body: JSON.stringify({ note: noteText }) })
       setNoteText('')
-      showAction('Note added'); fetchUserDetail(id)
-    } catch { showToast('Failed to save note') }
+      showAction('Note ajoutée'); fetchUserDetail(id)
+    } catch { showToast('Erreur de sauvegarde') }
   }
 
   const blockPayments = async (id: string, block: boolean) => {
     try {
       await adminFetch(`/api/admin/sellers/${id}/block-payments`, { method: 'POST', body: JSON.stringify({ block }) })
-      showAction(block ? 'Payments blocked' : 'Payments unblocked'); fetchSellers()
-    } catch { showToast('Action failed') }
+      showAction(block ? 'Paiements bloqués' : 'Paiements débloqués'); fetchSellers()
+    } catch { showToast('Erreur') }
   }
 
   const setReserve = async (id: string, percent: number) => {
     try {
       await adminFetch(`/api/admin/sellers/${id}/reserve`, { method: 'POST', body: JSON.stringify({ percent }) })
-      showAction(`Reserve set to ${percent}%`); fetchSellers()
-    } catch { showToast('Action failed') }
+      showAction(`Réserve fixée à ${percent}%`); fetchSellers()
+    } catch { showToast('Erreur') }
   }
 
   const requestDocuments = async (id: string) => {
     try {
       await adminFetch(`/api/admin/sellers/${id}/request-documents`, { method: 'POST' })
-      showAction('Documents requested'); fetchSellers()
-    } catch { showToast('Action failed') }
+      showAction('Documents demandés'); fetchSellers()
+    } catch { showToast('Erreur') }
   }
 
   const stopStream = async (id: string) => {
     try {
       await adminFetch(`/api/admin/streams/${id}/stop`, { method: 'POST' })
-      showAction('Stream stopped'); fetchStreams()
-    } catch { showToast('Action failed') }
+      showAction('Live arrêté'); fetchStreams()
+    } catch { showToast('Erreur') }
   }
 
   const suspendStreamer = async (id: string) => {
     try {
       await adminFetch(`/api/admin/streams/${id}/suspend-streamer`, { method: 'POST', body: JSON.stringify({ reason: 'Suspended during live by admin' }) })
-      showAction('Streamer suspended & stream stopped'); fetchStreams()
-    } catch { showToast('Action failed') }
+      showAction('Vendeur suspendu et live arrêté'); fetchStreams()
+    } catch { showToast('Erreur') }
   }
 
   // ======== STYLES ========
@@ -345,13 +345,13 @@ export default function AdminPage() {
 
   // ======== TABS ========
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'users', label: 'Users' },
-    { id: 'sellers', label: 'Sellers' },
-    { id: 'payments', label: 'Payments' },
-    { id: 'disputes', label: 'Disputes' },
+    { id: 'overview', label: 'Vue d\'ensemble' },
+    { id: 'users', label: 'Utilisateurs' },
+    { id: 'sellers', label: 'Vendeurs' },
+    { id: 'payments', label: 'Paiements' },
+    { id: 'disputes', label: 'Litiges' },
     { id: 'lives', label: 'Lives' },
-    { id: 'audit', label: 'Audit Log' },
+    { id: 'audit', label: 'Journal' },
   ]
 
   // ======== ERROR DISPLAY ========
@@ -362,7 +362,7 @@ export default function AdminPage() {
       border: '2px solid #ff3333', borderRadius: '12px',
     }}>
       <p style={{ color: '#ff3333', fontSize: '16px', fontWeight: 900, margin: '0 0 8px' }}>
-        {'RENDER CRASH: ' + String(label)}
+        {'ERREUR : ' + String(label)}
       </p>
       <p style={{ color: '#ff8888', fontSize: '13px', margin: '0 0 12px', wordBreak: 'break-word' }}>
         {String(err.message || 'Unknown error')}
@@ -373,13 +373,13 @@ export default function AdminPage() {
         maxHeight: '300px', overflow: 'auto',
         padding: '10px', backgroundColor: '#0a0000', borderRadius: '8px',
       }}>
-        {String(err.stack || 'No stack trace')}
+        {String(err.stack || 'Pas de trace')}
       </pre>
       <button
-        onClick={() => setRenderError(null)}
+        onClick={() => window.location.reload()}
         style={{ ...btn('#333'), marginTop: '12px' }}
       >
-        {'Dismiss'}
+        {'Fermer'}
       </button>
     </div>
   )
@@ -387,18 +387,18 @@ export default function AdminPage() {
   // ======== RENDER ========
 
   const renderOverview = () => {
-    if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>{'Loading...'}</p>
+    if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>{'Chargement...'}</p>
     const statCards: { label: string; value: string; color: string }[] = [
-      { label: 'Total Users', value: sv(stats.users), color: '#3B82F6' },
-      { label: 'Sellers', value: sv(stats.sellers), color: '#10B981' },
-      { label: 'Orders', value: sv(stats.orders), color: '#F59E0B' },
-      { label: 'Orders (30d)', value: sv(stats.orders_30d), color: '#8B5CF6' },
-      { label: 'Lives Now', value: sv(stats.lives_now), color: '#E8344E' },
-      { label: 'Disputes', value: sv(stats.disputes), color: '#EF4444' },
-      { label: 'Revenue', value: fmtMoney(stats.total_revenue), color: '#10B981' },
-      { label: 'Platform Fees', value: fmtMoney(stats.total_fees), color: '#F0908A' },
-      { label: 'Suspended', value: sv(stats.suspended_users), color: '#F59E0B' },
-      { label: 'Banned', value: sv(stats.banned_users), color: '#EF4444' },
+      { label: 'Utilisateurs', value: sv(stats.users), color: '#3B82F6' },
+      { label: 'Vendeurs', value: sv(stats.sellers), color: '#10B981' },
+      { label: 'Commandes', value: sv(stats.orders), color: '#F59E0B' },
+      { label: 'Commandes (30j)', value: sv(stats.orders_30d), color: '#8B5CF6' },
+      { label: 'Lives en cours', value: sv(stats.lives_now), color: '#E8344E' },
+      { label: 'Litiges', value: sv(stats.disputes), color: '#EF4444' },
+      { label: 'Chiffre d\'affaires', value: fmtMoney(stats.total_revenue), color: '#10B981' },
+      { label: 'Frais plateforme', value: fmtMoney(stats.total_fees), color: '#F0908A' },
+      { label: 'Suspendus', value: sv(stats.suspended_users), color: '#F59E0B' },
+      { label: 'Bannis', value: sv(stats.banned_users), color: '#EF4444' },
     ]
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', padding: '0 16px' }}>
@@ -420,7 +420,7 @@ export default function AdminPage() {
           value={usersSearch}
           onChange={e => setUsersSearch(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && fetchUsers(1)}
-          placeholder="Search username..."
+          placeholder="Rechercher..."
           style={{ ...inputStyle, flex: 1, minWidth: '150px' }}
         />
         <select
@@ -428,14 +428,14 @@ export default function AdminPage() {
           onChange={e => { setUsersFilter(e.target.value); setTimeout(() => fetchUsers(1), 0) }}
           style={{ ...inputStyle, width: 'auto', minWidth: '120px' }}
         >
-          <option value="all">{'All'}</option>
-          <option value="sellers">{'Sellers'}</option>
-          <option value="suspended">{'Suspended'}</option>
-          <option value="banned">{'Banned'}</option>
+          <option value="all">{'Tous'}</option>
+          <option value="sellers">{'Vendeurs'}</option>
+          <option value="suspended">{'Suspendus'}</option>
+          <option value="banned">{'Bannis'}</option>
         </select>
-        <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>{'Search'}</button>
+        <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>{'Chercher'}</button>
       </div>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(usersTotal) + ' users found'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(usersTotal) + ' utilisateurs'}</p>
 
       {/* User detail modal */}
       {userDetail ? (
@@ -458,7 +458,7 @@ export default function AdminPage() {
                 const s = (rawSeller && typeof rawSeller === 'object') ? rawSeller as Record<string, unknown> : null
                 const notes = Array.isArray(rawNotes) ? rawNotes as Record<string, unknown>[] : []
                 const st = (rawStats && typeof rawStats === 'object') ? rawStats as Record<string, number> : null
-                if (!p) return <p style={{ color: '#666' }}>{'No data'}</p>
+                if (!p) return <p style={{ color: '#666' }}>{'Aucune donnée'}</p>
                 const uid = String(p.id || '')
                 return (
                   <>
@@ -473,21 +473,21 @@ export default function AdminPage() {
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                       {sb(p.is_suspended) ? <span style={badge('#F59E0B')}>{'SUSPENDED'}</span> : null}
                       {sb(p.is_banned) ? <span style={badge('#EF4444')}>{'BANNED'}</span> : null}
-                      {sb(p.is_seller) ? <span style={badge('#10B981')}>{'SELLER'}</span> : null}
-                      {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{'KYC VERIFIED'}</span> : null}
+                      {sb(p.is_seller) ? <span style={badge('#10B981')}>{'VENDEUR'}</span> : null}
+                      {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{'KYC VÉRIFIÉ'}</span> : null}
                     </div>
 
                     <p style={{ color: '#666', fontSize: '12px' }}>
-                      {'Joined: ' + fmtDate(p.created_at) + ' | Purchases: ' + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | Sales: ' + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
+                      {'Inscrit : ' + fmtDate(p.created_at) + ' | Achats : ' + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | Ventes : ' + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
                     </p>
 
                     {s ? (
                       <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                        <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>{'Store: ' + sv(s.store_name)}</p>
+                        <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>{'Boutique : ' + sv(s.store_name)}</p>
                         <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                          {'Revenue: ' + fmtMoney(s.total_revenue) + ' | Sales: ' + sv(s.total_sales) + ' | Stripe: ' + (s.stripe_account_id ? 'Connected' : 'None')}
+                          {'Revenue: ' + fmtMoney(s.total_revenue) + ' | Ventes : ' + sv(s.total_sales) + ' | Stripe: ' + (s.stripe_account_id ? 'Connecté' : 'Non')}
                         </p>
-                        {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'PAYMENTS BLOCKED'}</span> : null}
+                        {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'PAIEMENTS BLOQUES'}</span> : null}
                         {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{'RESERVE ' + sv(s.reserve_percent) + '%'}</span> : null}
                       </div>
                     ) : null}
@@ -495,25 +495,25 @@ export default function AdminPage() {
                     {/* Actions */}
                     <div style={{ marginTop: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       {(!sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                        <button onClick={() => { const r = prompt('Reason?'); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{'Suspend'}</button>
+                        <button onClick={() => { const r = prompt('Motif ?'); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{'Suspendre'}</button>
                       ) : null}
                       {(sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                        <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{'Unsuspend'}</button>
+                        <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{'Réactiver'}</button>
                       ) : null}
                       {!sb(p.is_banned) ? (
-                        <button onClick={() => { const r = prompt('Reason?'); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{'Ban'}</button>
+                        <button onClick={() => { const r = prompt('Motif ?'); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{'Bannir'}</button>
                       ) : null}
                       {sb(p.is_banned) ? (
-                        <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{'Unban'}</button>
+                        <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{'Débannir'}</button>
                       ) : null}
                     </div>
 
                     {/* Notes */}
                     <div style={{ marginTop: '20px' }}>
-                      <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>{'Internal Notes (' + sv(notes.length) + ')'}</p>
+                      <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>{'Notes internes (' + sv(notes.length) + ')'}</p>
                       <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                        <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Add a note..." style={{ ...inputStyle, flex: 1 }} />
-                        <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{'Add'}</button>
+                        <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Ajouter une note..." style={{ ...inputStyle, flex: 1 }} />
+                        <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{'Ajouter'}</button>
                       </div>
                       {notes.map((n, i) => (
                         <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
@@ -562,9 +562,9 @@ export default function AdminPage() {
       {/* Pagination */}
       {usersTotal > 30 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
-          <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>{'Prev'}</button>
+          <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>{'Préc.'}</button>
           <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{'Page ' + sv(usersPage) + ' / ' + sv(Math.ceil(usersTotal / 30))}</span>
-          <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>{'Next'}</button>
+          <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>{'Suiv.'}</button>
         </div>
       ) : null}
     </div>
@@ -572,7 +572,7 @@ export default function AdminPage() {
 
   const renderSellers = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(sellersTotal) + ' sellers'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(sellersTotal) + ' vendeurs'}</p>
       {Array.isArray(sellers) ? sellers.map((s, i) => {
         try {
           const rawProfiles = s.profiles
@@ -586,13 +586,13 @@ export default function AdminPage() {
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{sv(s.store_name)}</p>
                   <p style={{ color: '#666', fontSize: '12px', margin: '2px 0 0' }}>
-                    {(p ? ('@' + sv(p.username) + ' | ' + sv(p.country)) : '') + ' | ' + fmtId(id) + ' | Joined: ' + fmtDate(p ? p.created_at : null)}
+                    {(p ? ('@' + sv(p.username) + ' | ' + sv(p.country)) : '') + ' | ' + fmtId(id) + ' | Inscrit : ' + fmtDate(p ? p.created_at : null)}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                   {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'BLOCKED'}</span> : null}
                   {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{sv(s.reserve_percent) + '% RES'}</span> : null}
-                  {sb(s.documents_requested) ? <span style={badge('#3B82F6')}>{'DOC REQ'}</span> : null}
+                  {sb(s.documents_requested) ? <span style={badge('#3B82F6')}>{'DOC DEM'}</span> : null}
                   {(p && sb(p.is_suspended)) ? <span style={badge('#F59E0B')}>{'SUS'}</span> : null}
                   {sv(s.kyc_status) === 'verified' ? <span style={badge('#10B981')}>{'KYC'}</span> : <span style={badge('#F59E0B')}>{'!KYC'}</span>}
                 </div>
@@ -601,11 +601,11 @@ export default function AdminPage() {
               {/* Risk metrics */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px', marginBottom: '10px' }}>
                 {[
-                  { l: 'Revenue', v: fmtMoney(s.total_revenue), c: '#10B981' },
-                  { l: 'Orders', v: sv(rm?.total_orders || 0), c: '#3B82F6' },
+                  { l: 'CA', v: fmtMoney(s.total_revenue), c: '#10B981' },
+                  { l: 'Cmd', v: sv(rm?.total_orders || 0), c: '#3B82F6' },
                   { l: '30d', v: sv(rm?.orders_30d || 0), c: '#8B5CF6' },
-                  { l: 'Refund %', v: sv(rm?.refund_rate || 0) + '%', c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
-                  { l: 'Dispute %', v: sv(rm?.dispute_rate || 0) + '%', c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
+                  { l: 'Remb. %', v: sv(rm?.refund_rate || 0) + '%', c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
+                  { l: 'Litige %', v: sv(rm?.dispute_rate || 0) + '%', c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
                 ].map(m => (
                   <div key={m.l} style={{ textAlign: 'center', padding: '6px', backgroundColor: '#0A0A0A', borderRadius: '8px' }}>
                     <p style={{ color: m.c, fontWeight: 700, fontSize: '14px', margin: 0 }}>{m.v}</p>
@@ -617,15 +617,15 @@ export default function AdminPage() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 <button onClick={() => blockPayments(id, !sb(s.payments_blocked))} style={btn(sb(s.payments_blocked) ? '#10B981' : '#EF4444')}>
-                  {sb(s.payments_blocked) ? 'Unblock Pay' : 'Block Pay'}
+                  {sb(s.payments_blocked) ? 'Débloquer' : 'Bloquer'}
                 </button>
-                <button onClick={() => { const pInput = prompt('Reserve % (0-100)?', sv(s.reserve_percent || 0)); if (pInput !== null) setReserve(id, Number(pInput)) }} style={btn('#F59E0B')}>
-                  {'Set Reserve'}
+                <button onClick={() => { const pInput = prompt('Réserve % (0-100) ?', sv(s.reserve_percent || 0)); if (pInput !== null) setReserve(id, Number(pInput)) }} style={btn('#F59E0B')}>
+                  {'Réserve'}
                 </button>
                 {!sb(s.documents_requested) ? (
-                  <button onClick={() => requestDocuments(id)} style={btn('#3B82F6')}>{'Request Docs'}</button>
+                  <button onClick={() => requestDocuments(id)} style={btn('#3B82F6')}>{'Demander docs'}</button>
                 ) : null}
-                <button onClick={() => { setSelectedUser({ id }); fetchUserDetail(id) }} style={btn('#333')}>{'View User'}</button>
+                <button onClick={() => { setSelectedUser({ id }); fetchUserDetail(id) }} style={btn('#333')}>{'Voir profil'}</button>
               </div>
             </div>
           )
@@ -653,7 +653,7 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(ordersTotal) + ' orders'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(ordersTotal) + ' commandes'}</p>
       {Array.isArray(orders) ? orders.map((o, i) => {
         try {
           const rawBuyer = o.buyer
@@ -674,10 +674,10 @@ export default function AdminPage() {
                 </p>
                 <p style={{ color: '#F0908A', fontWeight: 700, fontSize: '14px', margin: '2px 0' }}>{fmtMoney(o.amount)}</p>
                 <p style={{ color: '#555', fontSize: '11px', margin: 0 }}>
-                  {'Buyer: ' + (buyer ? ('@' + sv(buyer.username)) : fmtId(o.buyer_id)) + ' | Seller: ' + (seller ? ('@' + sv(seller.username)) : fmtId(o.seller_id))}
+                  {'Acheteur : ' + (buyer ? ('@' + sv(buyer.username)) : fmtId(o.buyer_id)) + ' | Vendeur : ' + (seller ? ('@' + sv(seller.username)) : fmtId(o.seller_id))}
                 </p>
                 <p style={{ color: '#444', fontSize: '11px', margin: '2px 0 0' }}>
-                  {fmtDate(o.created_at) + ' | Fee: ' + fmtMoney(o.platform_fee) + ' | ' + fmtId(o.id)}
+                  {fmtDate(o.created_at) + ' | Frais : ' + fmtMoney(o.platform_fee) + ' | ' + fmtId(o.id)}
                 </p>
               </div>
               <span style={badge(statusColor[sv(o.status)] || '#666')}>{sv(o.status)}</span>
@@ -693,9 +693,9 @@ export default function AdminPage() {
       }) : null}
       {ordersTotal > 30 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
-          <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>{'Prev'}</button>
+          <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>{'Préc.'}</button>
           <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{'Page ' + sv(ordersPage) + ' / ' + sv(Math.ceil(ordersTotal / 30))}</span>
-          <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>{'Next'}</button>
+          <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>{'Suiv.'}</button>
         </div>
       ) : null}
     </div>
@@ -703,8 +703,8 @@ export default function AdminPage() {
 
   const renderDisputes = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length) + ' disputes/refunds'}</p>
-      {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'No disputes'}</p> : null}
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length) + ' litiges/remboursements'}</p>
+      {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'Aucun litige'}</p> : null}
       {Array.isArray(disputes) ? disputes.map((d, i) => {
         try {
           const rawBuyer = d.buyer
@@ -715,13 +715,13 @@ export default function AdminPage() {
             <div key={i} style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0 }}>{'Order ' + fmtId(d.id)}</p>
+                  <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0 }}>{'Commande ' + fmtId(d.id)}</p>
                   <p style={{ color: '#F0908A', fontWeight: 700, margin: '2px 0' }}>{fmtMoney(d.amount)}</p>
                   <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                    {'Buyer: ' + (buyer ? ('@' + sv(buyer.username)) : '?') + ' | Seller: ' + (seller ? ('@' + sv(seller.username)) : '?')}
+                    {'Acheteur : ' + (buyer ? ('@' + sv(buyer.username)) : '?') + ' | Vendeur : ' + (seller ? ('@' + sv(seller.username)) : '?')}
                   </p>
                   <p style={{ color: '#444', fontSize: '11px', margin: '4px 0 0' }}>
-                    {'Created: ' + fmtDate(d.created_at) + ' | Paid: ' + fmtDate(d.paid_at) + ' | Shipped: ' + fmtDate(d.shipped_at)}
+                    {'Créé : ' + fmtDate(d.created_at) + ' | Payé : ' + fmtDate(d.paid_at) + ' | Expédié : ' + fmtDate(d.shipped_at)}
                   </p>
                 </div>
                 <span style={badge(sv(d.status) === 'disputed' ? '#EF4444' : '#8B5CF6')}>{sv(d.status)}</span>
@@ -754,7 +754,7 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
-      {(Array.isArray(streams) && streams.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'No streams'}</p> : null}
+      {(Array.isArray(streams) && streams.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'Aucun live'}</p> : null}
       {Array.isArray(streams) ? streams.map((s, i) => {
         try {
           const rawSeller = s.seller
@@ -770,7 +770,7 @@ export default function AdminPage() {
                     {(seller ? sv(seller.store_name) : '?') + ' (' + (sellerProfile ? ('@' + sv(sellerProfile.username)) : '?') + ')'}
                   </p>
                   <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
-                    {'Viewers: ' + sv(s.viewer_count) + ' | Peak: ' + sv(s.peak_viewers) + ' | ' + sv(s.category) + ' | ' + fmtDate(s.started_at || s.scheduled_at)}
+                    {'Spectateurs : ' + sv(s.viewer_count) + ' | Max : ' + sv(s.peak_viewers) + ' | ' + sv(s.category) + ' | ' + fmtDate(s.started_at || s.scheduled_at)}
                   </p>
                 </div>
                 <span style={badge(sv(s.status) === 'live' ? '#E8344E' : sv(s.status) === 'scheduled' ? '#3B82F6' : '#555')}>
@@ -779,8 +779,8 @@ export default function AdminPage() {
               </div>
               {sv(s.status) === 'live' ? (
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => stopStream(String(s.id || ''))} style={btn('#EF4444')}>{'Stop Live'}</button>
-                  <button onClick={() => suspendStreamer(String(s.id || ''))} style={btn('#F59E0B')}>{'Suspend Streamer'}</button>
+                  <button onClick={() => stopStream(String(s.id || ''))} style={btn('#EF4444')}>{'Arrêter le live'}</button>
+                  <button onClick={() => suspendStreamer(String(s.id || ''))} style={btn('#F59E0B')}>{'Suspendre le vendeur'}</button>
                 </div>
               ) : null}
               {(typeof s.mux_playback_id === 'string' && s.mux_playback_id && sv(s.status) === 'ended') ? (
@@ -803,12 +803,12 @@ export default function AdminPage() {
 
   const renderAudit = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(auditTotal) + ' log entries'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(auditTotal) + ' entrées'}</p>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #222' }}>
-              {['Date', 'Admin', 'Action', 'Target', 'ID', 'Details'].map(h => (
+              {['Date', 'Admin', 'Action', 'Cible', 'ID', 'Détails'].map(h => (
                 <th key={h} style={{ color: '#888', fontWeight: 600, padding: '8px 6px', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -842,7 +842,7 @@ export default function AdminPage() {
                 return (
                   <tr key={i}>
                     <td colSpan={6} style={{ color: '#ff3333', padding: '8px 6px' }}>
-                      {'Row error: ' + String(err?.message || err)}
+                      {'Erreur ligne : ' + String(err?.message || err)}
                     </td>
                   </tr>
                 )
@@ -853,9 +853,9 @@ export default function AdminPage() {
       </div>
       {auditTotal > 50 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
-          <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>{'Prev'}</button>
+          <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>{'Préc.'}</button>
           <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{'Page ' + sv(auditPage) + ' / ' + sv(Math.ceil(auditTotal / 50))}</span>
-          <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>{'Next'}</button>
+          <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>{'Suiv.'}</button>
         </div>
       ) : null}
     </div>
@@ -889,7 +889,7 @@ export default function AdminPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
               <div>
-                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>{'Admin Panel'}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>{'Administration'}</h1>
                 <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>{'ShaPop Back-Office'}</p>
               </div>
             </div>
@@ -934,8 +934,8 @@ export default function AdminPage() {
           {pageError ? (
             <div style={{ margin: '16px', padding: '16px', backgroundColor: '#1a0a0a', border: '1px solid #E8344E', borderRadius: '12px', textAlign: 'center' }}>
               <p style={{ color: '#E8344E', fontSize: '14px', fontWeight: 600, margin: '0 0 8px' }}>{String(pageError)}</p>
-              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 12px' }}>{'Le serveur doit etre deploye avec les endpoints admin.'}</p>
-              <button onClick={() => { setPageError(null); fetchStats() }} style={btn('#333')}>{'Reessayer'}</button>
+              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 12px' }}>{'Le serveur doit être déployé avec les endpoints admin.'}</p>
+              <button onClick={() => { setPageError(null); fetchStats() }} style={btn('#333')}>{'Réessayer'}</button>
             </div>
           ) : null}
 
