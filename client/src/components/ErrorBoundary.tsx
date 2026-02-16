@@ -7,6 +7,7 @@ interface Props {
 interface State {
   hasError: boolean
   error: Error | null
+  errorInfo: string | null
 }
 
 const getErrorText = () => {
@@ -23,15 +24,21 @@ const getErrorText = () => {
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props)
-    this.state = { hasError: false, error: null }
+    this.state = { hasError: false, error: null, errorInfo: null }
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
+    return { hasError: true, error, errorInfo: null }
+  }
+
+  componentDidCatch(_error: Error, errorInfo: { componentStack?: string }) {
+    // Capture the component stack to help identify which component caused the error
+    const stack = errorInfo?.componentStack || ''
+    this.setState({ errorInfo: stack })
   }
 
   handleGoHome = () => {
-    this.setState({ hasError: false, error: null })
+    this.setState({ hasError: false, error: null, errorInfo: null })
     // Use history API to navigate without full reload (works on Capacitor)
     window.history.pushState(null, '', '/')
     window.dispatchEvent(new PopStateEvent('popstate'))
@@ -44,7 +51,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null })
+    this.setState({ hasError: false, error: null, errorInfo: null })
   }
 
   render() {
@@ -73,9 +80,19 @@ export default class ErrorBoundary extends Component<Props, State> {
           <h1 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
             {t.title}
           </h1>
-          <p style={{ fontSize: '14px', color: '#888', marginBottom: '24px', maxWidth: '300px' }}>
+          <p style={{ fontSize: '14px', color: '#888', marginBottom: '12px', maxWidth: '300px' }}>
             {t.desc}
           </p>
+          {this.state.error && (
+            <p style={{ fontSize: '11px', color: '#E8344E', marginBottom: '12px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+              {this.state.error.message || String(this.state.error)}
+            </p>
+          )}
+          {this.state.errorInfo && (
+            <p style={{ fontSize: '10px', color: '#666', marginBottom: '24px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', textAlign: 'left', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto' }}>
+              {this.state.errorInfo}
+            </p>
+          )}
           <div style={{ display: 'flex', gap: '12px', flexDirection: 'column', alignItems: 'center' }}>
             <button
               onClick={this.handleRetry}

@@ -286,8 +286,8 @@ export default function GoLivePage() {
 
       setCreating(false)
       navigate(`/prepare-live/${stream.id}`)
-    } catch (err: any) {
-      setError(err?.message || ct.createError)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : ct.createError)
       setCreating(false)
     }
   }
