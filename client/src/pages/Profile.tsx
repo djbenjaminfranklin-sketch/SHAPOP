@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { showToast } from '../lib/toast'
+import { apiFetch } from '../lib/api'
 import CartoonAvatar from '../components/CartoonAvatar'
 
 type Lang = ReturnType<typeof getLang>
@@ -34,6 +35,10 @@ export default function Profile() {
   const [mounted, setMounted] = useState(false)
   const [myStreams, setMyStreams] = useState<MyStream[]>([])
   const [streamsLoaded, setStreamsLoaded] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editDisplayName, setEditDisplayName] = useState('')
+  const [editBio, setEditBio] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true))
@@ -111,6 +116,71 @@ export default function Profile() {
       // Avatar upload failed
     }
     setUploading(false)
+  }
+
+  const handleEditStart = () => {
+    setEditDisplayName(profile?.display_name || '')
+    setEditBio(profile?.bio || '')
+    setEditMode(true)
+  }
+
+  const handleEditCancel = () => {
+    setEditMode(false)
+  }
+
+  const handleEditSave = async () => {
+    if (!user) return
+    if (!editDisplayName.trim()) {
+      showToast(tx('Le nom ne peut pas etre vide.', 'Name cannot be empty.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05D9\u05D5\u05EA \u05E8\u05D9\u05E7.', 'El nombre no puede estar vacio.', lang), 'error')
+      return
+    }
+    if (editDisplayName.length > 50) {
+      showToast(tx('Le nom ne peut pas depasser 50 caracteres.', 'Name cannot exceed 50 characters.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-50 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'El nombre no puede superar los 50 caracteres.', lang), 'error')
+      return
+    }
+    if (editBio.length > 200) {
+      showToast(tx('La bio ne peut pas depasser 200 caracteres.', 'Bio cannot exceed 200 characters.', '\u05D4\u05D1\u05D9\u05D5 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-200 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'La bio no puede superar los 200 caracteres.', lang), 'error')
+      return
+    }
+    setSaving(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (!token) throw new Error('No auth token')
+      const res = await apiFetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          display_name: editDisplayName.trim(),
+          bio: editBio.trim(),
+        }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to save')
+      }
+      // Refresh the profile from Supabase to update the local state
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      if (updatedProfile) {
+        // Force AuthContext to refetch by triggering a re-render
+        // We update local profile state indirectly via AuthContext
+        window.dispatchEvent(new Event('profile-updated'))
+      }
+      setEditMode(false)
+      showToast(tx('Profil mis a jour !', 'Profile updated!', '\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E2\u05D5\u05D3\u05DB\u05DF!', 'Perfil actualizado!', lang), 'success')
+      // Reload the page to reflect changes from AuthContext
+      window.location.reload()
+    } catch {
+      showToast(tx('Erreur lors de la mise a jour.', 'Error updating profile.', '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E2\u05D3\u05DB\u05D5\u05DF \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC.', 'Error al actualizar el perfil.', lang), 'error')
+    }
+    setSaving(false)
   }
 
   // ── Animation helper ──
@@ -421,30 +491,122 @@ export default function Profile() {
 
           {/* Name + button */}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <h1 style={{
-                fontSize: '24px', fontWeight: 700, color: '#fff', margin: 0,
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {profile?.display_name || profile?.username}
-              </h1>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 9l6 6 6-6"/>
-              </svg>
-            </div>
-            <button
-              onClick={() => navigate('/preferences')}
-              style={{
-                marginTop: '8px', padding: '8px 20px', borderRadius: '8px',
-                backgroundColor: 'transparent', border: '1.5px solid #444',
-                color: '#fff', fontSize: '13px', fontWeight: 600,
-                cursor: 'pointer', letterSpacing: '0.01em',
-              }}
-            >
-              {tx('Modifier le profil', 'Edit profile', '\u05E2\u05E8\u05D5\u05DA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', 'Editar perfil', lang)}
-            </button>
+            {!editMode && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <h1 style={{
+                    fontSize: '24px', fontWeight: 700, color: '#fff', margin: 0,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {profile?.display_name || profile?.username}
+                  </h1>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </div>
+                {profile?.bio && (
+                  <p style={{ fontSize: '14px', color: '#888', margin: '4px 0 0', lineHeight: 1.4,
+                    overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
+                    WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                  }}>
+                    {profile.bio}
+                  </p>
+                )}
+                <button
+                  onClick={handleEditStart}
+                  style={{
+                    marginTop: '8px', padding: '8px 20px', borderRadius: '8px',
+                    backgroundColor: 'transparent', border: '1.5px solid #444',
+                    color: '#fff', fontSize: '13px', fontWeight: 600,
+                    cursor: 'pointer', letterSpacing: '0.01em',
+                  }}
+                >
+                  {tx('Modifier le profil', 'Edit profile', '\u05E2\u05E8\u05D5\u05DA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', 'Editar perfil', lang)}
+                </button>
+              </>
+            )}
+            {editMode && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={e => setEditDisplayName(e.target.value)}
+                  maxLength={50}
+                  placeholder={tx('Nom', 'Name', '\u05E9\u05DD', 'Nombre', lang)}
+                  style={{
+                    width: '100%', padding: '8px 12px', borderRadius: '8px',
+                    backgroundColor: '#1A1A1A', border: '1.5px solid #333',
+                    color: '#fff', fontSize: '16px', fontWeight: 600,
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                  onFocus={e => { e.target.style.borderColor = '#F0908A' }}
+                  onBlur={e => { e.target.style.borderColor = '#333' }}
+                />
+                <span style={{ fontSize: '11px', color: '#555', textAlign: 'right' }}>
+                  {editDisplayName.length}/50
+                </span>
+              </div>
+            )}
           </div>
         </div>
+
+        {/* ── Bio edit field (only in edit mode) ──────────────────── */}
+        {editMode && (
+          <div style={{ padding: '0 20px 12px', ...entrance('20ms') }}>
+            <label style={{ fontSize: '13px', color: '#888', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+              Bio
+            </label>
+            <textarea
+              value={editBio}
+              onChange={e => setEditBio(e.target.value)}
+              maxLength={200}
+              rows={3}
+              placeholder={tx('Parle-nous de toi...', 'Tell us about yourself...', '\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DA...', 'Cuentanos sobre ti...', lang)}
+              style={{
+                width: '100%', padding: '10px 12px', borderRadius: '10px',
+                backgroundColor: '#1A1A1A', border: '1.5px solid #333',
+                color: '#fff', fontSize: '14px', lineHeight: 1.5,
+                outline: 'none', resize: 'none', boxSizing: 'border-box',
+                fontFamily: 'inherit',
+              }}
+              onFocus={e => { e.target.style.borderColor = '#F0908A' }}
+              onBlur={e => { e.target.style.borderColor = '#333' }}
+            />
+            <span style={{ fontSize: '11px', color: '#555', display: 'block', textAlign: 'right', marginTop: '2px' }}>
+              {editBio.length}/200
+            </span>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+              <button
+                onClick={handleEditCancel}
+                disabled={saving}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px',
+                  backgroundColor: 'transparent', border: '1.5px solid #333',
+                  color: '#ccc', fontSize: '14px', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {tx('Annuler', 'Cancel', '\u05D1\u05D9\u05D8\u05D5\u05DC', 'Cancelar', lang)}
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={saving}
+                style={{
+                  flex: 1, padding: '10px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+                  border: 'none',
+                  color: '#fff', fontSize: '14px', fontWeight: 600,
+                  cursor: saving ? 'not-allowed' : 'pointer',
+                  opacity: saving ? 0.6 : 1,
+                }}
+              >
+                {saving
+                  ? tx('Sauvegarde...', 'Saving...', '\u05E9\u05D5\u05DE\u05E8...', 'Guardando...', lang)
+                  : tx('Enregistrer', 'Save', '\u05E9\u05DE\u05D5\u05E8', 'Guardar', lang)}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ── "Compte" header ─────────────────────────────────────── */}
         <div style={{ padding: '4px 20px 12px', ...entrance('40ms') }}>

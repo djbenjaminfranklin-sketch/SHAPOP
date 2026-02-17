@@ -1,11 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { apiFetch } from '../lib/api'
 import OnboardingWizard from '../components/seller/OnboardingWizard'
 import OnboardingCelebration from '../components/seller/OnboardingCelebration'
 import CreateLiveWizard from '../components/seller/CreateLiveWizard'
 import EngagementSummary from '../components/EngagementSummary'
+
+interface DashboardData {
+  total_revenue: number
+  total_sales: number
+  active_streams: number
+  total_streams: number
+  total_followers: number
+  avg_viewers: number
+  recent_orders: Array<{
+    id: string
+    item_title: string
+    amount: number
+    status: string
+    created_at: string
+  }>
+  monthly_revenue: number
+}
 
 // FAQ data
 const faqItems = [
@@ -26,15 +44,39 @@ const faqItems = [
 type WizardState = 'idle' | 'onboarding' | 'celebration'
 
 export default function Dashboard() {
-  const { user, profile } = useAuth()
+  const { user, profile, session } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
   const [showFaq, setShowFaq] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [wizardState, setWizardState] = useState<WizardState>('idle')
   const [mounted, setMounted] = useState(false)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [dashboardLoading, setDashboardLoading] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
+
+  const fetchDashboard = useCallback(async () => {
+    if (!session?.access_token || !profile?.is_seller) return
+    setDashboardLoading(true)
+    try {
+      const res = await apiFetch('/api/seller/dashboard', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setDashboardData(data)
+      }
+    } catch {
+      // silently fail
+    } finally {
+      setDashboardLoading(false)
+    }
+  }, [session?.access_token, profile?.is_seller])
+
+  useEffect(() => {
+    fetchDashboard()
+  }, [fetchDashboard])
 
   if (!user) {
     navigate('/login', { replace: true })
@@ -578,7 +620,57 @@ export default function Dashboard() {
     )
   }
 
-  // ═══════════════ SELLER: Create Live Wizard + Engagement Summary ═══════════════
+  // ═══════════════ SELLER: Analytics Dashboard + Create Live Wizard ═══════════════
+
+  const tx = (fr: string, en: string, he: string, es: string) => {
+    if (lang === 'fr') return fr
+    if (lang === 'he') return he
+    if (lang === 'es') return es
+    return en
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : 'en-US', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 2,
+    }).format(amount)
+  }
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    return d.toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : 'en-US', {
+      month: 'short', day: 'numeric',
+    })
+  }
+
+  const statusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      pending_payment: tx('En attente', 'Pending', '\u05DE\u05DE\u05EA\u05D9\u05DF', 'Pendiente'),
+      paid: tx('Paye', 'Paid', '\u05E9\u05D5\u05DC\u05DD', 'Pagado'),
+      shipped: tx('Expedie', 'Shipped', '\u05E0\u05E9\u05DC\u05D7', 'Enviado'),
+      delivered: tx('Livre', 'Delivered', '\u05E0\u05DE\u05E1\u05E8', 'Entregado'),
+      completed: tx('Termine', 'Completed', '\u05D4\u05D5\u05E9\u05DC\u05DD', 'Completado'),
+      refunded: tx('Rembourse', 'Refunded', '\u05D4\u05D5\u05D7\u05D6\u05E8', 'Reembolsado'),
+      disputed: tx('Litige', 'Disputed', '\u05DE\u05D5\u05E4\u05E8\u05E2', 'Disputado'),
+    }
+    return labels[status] || status
+  }
+
+  const statusColor = (status: string) => {
+    if (status === 'paid' || status === 'delivered' || status === 'completed') return '#4ade80'
+    if (status === 'shipped') return '#60a5fa'
+    if (status === 'refunded' || status === 'disputed') return '#f87171'
+    return '#888'
+  }
+
+  const cardStyle: React.CSSProperties = {
+    padding: '18px',
+    borderRadius: '16px',
+    backgroundColor: '#1A1A1A',
+    border: '1px solid #2A2A2A',
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000' }}>
       {/* Performance en direct - Engagement Summary */}
@@ -586,6 +678,139 @@ export default function Dashboard() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <EngagementSummary />
+      </div>
+
+      {/* ─── Analytics Dashboard ─── */}
+      <div style={{ padding: '0 16px 24px' }}>
+        <h2 style={{
+          fontSize: '20px', fontWeight: 800, color: '#fff',
+          marginBottom: '16px', letterSpacing: '-0.3px',
+        }}>
+          {tx('Tableau de bord', 'Dashboard', '\u05DC\u05D5\u05D7 \u05D1\u05E7\u05E8\u05D4', 'Panel de control')}
+        </h2>
+
+        {dashboardLoading && !dashboardData ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{
+              width: '32px', height: '32px', border: '3px solid #333',
+              borderTopColor: '#F0908A', borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+              margin: '0 auto',
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : dashboardData ? (
+          <>
+            {/* ─── Stats Cards Grid ─── */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              {/* Revenue Card */}
+              <div style={cardStyle}>
+                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                  {tx('Revenus', 'Revenue', '\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA', 'Ingresos')}
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 900, color: '#4ade80', letterSpacing: '-0.5px' }}>
+                  {formatCurrency(dashboardData.total_revenue)}
+                </p>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  {tx('Ce mois', 'This month', '\u05D4\u05D7\u05D5\u05D3\u05E9', 'Este mes')}: <span style={{ color: '#F0908A', fontWeight: 700 }}>{formatCurrency(dashboardData.monthly_revenue)}</span>
+                </p>
+              </div>
+
+              {/* Sales Card */}
+              <div style={cardStyle}>
+                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                  {tx('Ventes', 'Sales', '\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA', 'Ventas')}
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                  {dashboardData.total_sales}
+                </p>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  {tx('Commandes payees', 'Paid orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05E9\u05E9\u05D5\u05DC\u05DE\u05D5', 'Pedidos pagados')}
+                </p>
+              </div>
+
+              {/* Followers Card */}
+              <div style={cardStyle}>
+                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                  {tx('Abonnes', 'Followers', '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Seguidores')}
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                  {dashboardData.total_followers}
+                </p>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  {tx('Total abonnes', 'Total followers', '\u05E1\u05D4\"\u05DB \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Total seguidores')}
+                </p>
+              </div>
+
+              {/* Avg Viewers Card */}
+              <div style={cardStyle}>
+                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                  {tx('Spectateurs moy.', 'Avg viewers', '\u05E6\u05D5\u05E4\u05D9\u05DD \u05DE\u05DE\u05D5\u05E6\u05E2', 'Espectadores prom.')}
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                  {dashboardData.avg_viewers}
+                </p>
+                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                  {tx(`${dashboardData.total_streams} lives`, `${dashboardData.total_streams} streams`, `${dashboardData.total_streams} \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD`, `${dashboardData.total_streams} directos`)}
+                  {dashboardData.active_streams > 0 && (
+                    <span style={{ color: '#4ade80', fontWeight: 700 }}> ({dashboardData.active_streams} live)</span>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            {/* ─── Recent Orders ─── */}
+            {dashboardData.recent_orders.length > 0 && (
+              <div style={{
+                ...cardStyle,
+                marginTop: '4px',
+                padding: '16px',
+              }}>
+                <p style={{
+                  fontSize: '14px', fontWeight: 700, color: '#fff',
+                  marginBottom: '14px',
+                }}>
+                  {tx('Dernieres commandes', 'Recent orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA', 'Pedidos recientes')}
+                </p>
+                {dashboardData.recent_orders.map((order, i) => (
+                  <div
+                    key={order.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 0',
+                      borderTop: i > 0 ? '1px solid #2A2A2A' : 'none',
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: '13px', fontWeight: 600, color: '#fff',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {order.item_title}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <span style={{
+                          fontSize: '10px', fontWeight: 700, color: statusColor(order.status),
+                          padding: '2px 8px', borderRadius: '6px',
+                          backgroundColor: `${statusColor(order.status)}15`,
+                          textTransform: 'uppercase', letterSpacing: '0.3px',
+                        }}>
+                          {statusLabel(order.status)}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#555' }}>
+                          {formatDate(order.created_at)}
+                        </span>
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A', marginLeft: '12px', flexShrink: 0 }}>
+                      {formatCurrency(order.amount)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        ) : null}
       </div>
 
       {/* Create Live Wizard */}

@@ -18,7 +18,7 @@ interface OrderDetail {
   platform_fee: number
   processing_fee: number
   seller_payout: number
-  status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed'
+  status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected'
   shipping_address: Record<string, string> | null
   shipping_proof_url: string | null
   tracking_number: string | null
@@ -82,6 +82,20 @@ const pageContent = {
     packingVideo: 'Video d\'emballage',
     timeline: 'Chronologie',
     proofPhotos: 'Photos de preuve',
+    requestReturn: 'Demander un retour',
+    returnReason: 'Raison du retour',
+    returnReasonPlaceholder: 'Decrivez la raison du retour...',
+    submitReturn: 'Envoyer la demande',
+    submitting: 'Envoi...',
+    approveReturn: 'Accepter le retour',
+    rejectReturn: 'Refuser le retour',
+    rejectReason: 'Raison du refus',
+    rejectReasonPlaceholder: 'Expliquez pourquoi vous refusez...',
+    confirmReject: 'Confirmer le refus',
+    returnPending: 'Retour demande',
+    statusReturnRequested: 'Retour demande',
+    statusReturnApproved: 'Retour accepte',
+    statusReturnRejected: 'Retour refuse',
   },
   en: {
     back: 'Back',
@@ -131,6 +145,20 @@ const pageContent = {
     packingVideo: 'Packing video',
     timeline: 'Timeline',
     proofPhotos: 'Proof photos',
+    requestReturn: 'Request return',
+    returnReason: 'Reason for return',
+    returnReasonPlaceholder: 'Describe the reason for the return...',
+    submitReturn: 'Submit request',
+    submitting: 'Submitting...',
+    approveReturn: 'Approve return',
+    rejectReturn: 'Reject return',
+    rejectReason: 'Rejection reason',
+    rejectReasonPlaceholder: 'Explain why you are rejecting...',
+    confirmReject: 'Confirm rejection',
+    returnPending: 'Return requested',
+    statusReturnRequested: 'Return requested',
+    statusReturnApproved: 'Return approved',
+    statusReturnRejected: 'Return rejected',
   },
   he: {
     back: '\u05D7\u05D6\u05D5\u05E8',
@@ -180,6 +208,20 @@ const pageContent = {
     packingVideo: '\u05E1\u05E8\u05D8\u05D5\u05DF \u05D0\u05E8\u05D9\u05D6\u05D4',
     timeline: '\u05E6\u05D9\u05E8 \u05D6\u05DE\u05DF',
     proofPhotos: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05D5\u05DB\u05D7\u05D4',
+    requestReturn: '\u05D1\u05E7\u05E9\u05EA \u05D4\u05D7\u05D6\u05E8\u05D4',
+    returnReason: '\u05E1\u05D9\u05D1\u05EA \u05D4\u05D4\u05D7\u05D6\u05E8\u05D4',
+    returnReasonPlaceholder: '\u05EA\u05D0\u05E8 \u05D0\u05EA \u05E1\u05D9\u05D1\u05EA \u05D4\u05D4\u05D7\u05D6\u05E8\u05D4...',
+    submitReturn: '\u05E9\u05DC\u05D7 \u05D1\u05E7\u05E9\u05D4',
+    submitting: '\u05E9\u05D5\u05DC\u05D7...',
+    approveReturn: '\u05D0\u05E9\u05E8 \u05D4\u05D7\u05D6\u05E8\u05D4',
+    rejectReturn: '\u05D3\u05D7\u05D4 \u05D4\u05D7\u05D6\u05E8\u05D4',
+    rejectReason: '\u05E1\u05D9\u05D1\u05EA \u05D3\u05D7\u05D9\u05D9\u05D4',
+    rejectReasonPlaceholder: '\u05D4\u05E1\u05D1\u05E8 \u05DE\u05D3\u05D5\u05E2 \u05D0\u05EA\u05D4 \u05D3\u05D5\u05D7\u05D4...',
+    confirmReject: '\u05D0\u05E9\u05E8 \u05D3\u05D7\u05D9\u05D9\u05D4',
+    returnPending: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05D4\u05EA\u05D1\u05E7\u05E9\u05D4',
+    statusReturnRequested: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05D4\u05EA\u05D1\u05E7\u05E9\u05D4',
+    statusReturnApproved: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05D0\u05D5\u05E9\u05E8\u05D4',
+    statusReturnRejected: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05E0\u05D3\u05D7\u05EA\u05D4',
   },
   es: {
     back: 'Volver',
@@ -229,6 +271,20 @@ const pageContent = {
     packingVideo: 'Video de embalaje',
     timeline: 'Cronologia',
     proofPhotos: 'Fotos de prueba',
+    requestReturn: 'Solicitar devolucion',
+    returnReason: 'Motivo de la devolucion',
+    returnReasonPlaceholder: 'Describe el motivo de la devolucion...',
+    submitReturn: 'Enviar solicitud',
+    submitting: 'Enviando...',
+    approveReturn: 'Aprobar devolucion',
+    rejectReturn: 'Rechazar devolucion',
+    rejectReason: 'Motivo del rechazo',
+    rejectReasonPlaceholder: 'Explica por que rechazas...',
+    confirmReject: 'Confirmar rechazo',
+    returnPending: 'Devolucion solicitada',
+    statusReturnRequested: 'Devolucion solicitada',
+    statusReturnApproved: 'Devolucion aprobada',
+    statusReturnRejected: 'Devolucion rechazada',
   },
 }
 
@@ -271,6 +327,16 @@ export default function OrderDetailPage() {
   const [confirmingDelivery, setConfirmingDelivery] = useState(false)
   const [showLabel, setShowLabel] = useState(false)
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null)
+
+  // Return request states
+  const [showReturnModal, setShowReturnModal] = useState(false)
+  const [returnReason, setReturnReason] = useState('')
+  const [submittingReturn, setSubmittingReturn] = useState(false)
+  const [returnError, setReturnError] = useState<string | null>(null)
+  const [showRejectModal, setShowRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [submittingReject, setSubmittingReject] = useState(false)
+  const [approvingReturn, setApprovingReturn] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
 
@@ -426,6 +492,73 @@ export default function OrderDetailPage() {
     }
   }
 
+  const handleRequestReturn = async () => {
+    if (!order || !session || !returnReason.trim()) return
+    setSubmittingReturn(true)
+    setReturnError(null)
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/request-return`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ reason: returnReason.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      setShowReturnModal(false)
+      setReturnReason('')
+      fetchOrder()
+    } catch (err: unknown) {
+      setReturnError(err instanceof Error ? err.message : ct.error)
+    } finally {
+      setSubmittingReturn(false)
+    }
+  }
+
+  const handleApproveReturn = async () => {
+    if (!order || !session) return
+    setApprovingReturn(true)
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/approve-return`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      fetchOrder()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setApprovingReturn(false)
+    }
+  }
+
+  const handleRejectReturn = async () => {
+    if (!order || !session) return
+    setSubmittingReject(true)
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/reject-return`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ reason: rejectReason.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      setShowRejectModal(false)
+      setRejectReason('')
+      fetchOrder()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setSubmittingReject(false)
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending_payment': return '#F59E0B'
@@ -434,6 +567,9 @@ export default function OrderDetailPage() {
       case 'delivered': return '#10B981'
       case 'refunded': return '#8B5CF6'
       case 'disputed': return '#E8344E'
+      case 'return_requested': return '#F59E0B'
+      case 'return_approved': return '#8B5CF6'
+      case 'return_rejected': return '#E8344E'
       default: return '#666'
     }
   }
@@ -446,6 +582,9 @@ export default function OrderDetailPage() {
       case 'delivered': return ct.statusDelivered
       case 'refunded': return ct.statusRefunded
       case 'disputed': return ct.statusDisputed
+      case 'return_requested': return ct.statusReturnRequested
+      case 'return_approved': return ct.statusReturnApproved
+      case 'return_rejected': return ct.statusReturnRejected
       default: return status
     }
   }
@@ -748,8 +887,62 @@ export default function OrderDetailPage() {
             </button>
           )}
 
+          {/* Buyer: Request return */}
+          {isBuyer && (order.status === 'delivered' || order.status === 'shipped') && (
+            <button
+              onClick={() => { setShowReturnModal(true); setReturnError(null) }}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              {ct.requestReturn}
+            </button>
+          )}
+
+          {/* Buyer: Return pending indicator */}
+          {isBuyer && order.status === 'return_requested' && (
+            <div style={{
+              width: '100%', padding: '14px', borderRadius: '14px',
+              background: '#1A1A1A', border: '1px solid #F59E0B30',
+              color: '#F59E0B', fontSize: '14px', fontWeight: 600, textAlign: 'center',
+              boxSizing: 'border-box',
+            }}>
+              {ct.returnPending}
+            </div>
+          )}
+
+          {/* Seller: Approve / Reject return */}
+          {isSeller && order.status === 'return_requested' && (
+            <>
+              <button
+                onClick={handleApproveReturn}
+                disabled={approvingReturn}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '14px',
+                  background: approvingReturn ? '#333' : 'linear-gradient(135deg, #10B981, #059669)',
+                  border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                  cursor: approvingReturn ? 'default' : 'pointer',
+                }}
+              >
+                {approvingReturn ? ct.submitting : ct.approveReturn}
+              </button>
+              <button
+                onClick={() => { setShowRejectModal(true); setRejectReason('') }}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #E8344E, #B91C1C)',
+                  border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                {ct.rejectReturn}
+              </button>
+            </>
+          )}
+
           {/* Contact button */}
-          {['paid', 'shipped', 'delivered'].includes(order.status) && (
+          {['paid', 'shipped', 'delivered', 'return_requested'].includes(order.status) && (
             <button
               onClick={handleContact}
               style={{
@@ -843,6 +1036,108 @@ export default function OrderDetailPage() {
 
             <button
               onClick={() => setShowShipModal(false)}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#666', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
+            >
+              {ct.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Return request modal (buyer) */}
+      {showReturnModal && (
+        <div
+          onClick={() => setShowReturnModal(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: '#111', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '380px', border: '1px solid #222' }}>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>
+              {ct.requestReturn}
+            </h3>
+
+            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
+              {ct.returnReason}
+            </p>
+            <textarea
+              value={returnReason}
+              onChange={e => setReturnReason(e.target.value.slice(0, 500))}
+              placeholder={ct.returnReasonPlaceholder}
+              rows={4}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #222',
+                backgroundColor: '#0A0A0A', color: '#fff', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit',
+              }}
+            />
+
+            {returnError && (
+              <p style={{ color: '#E8344E', fontSize: '13px', margin: '0 0 12px', textAlign: 'center' }}>{returnError}</p>
+            )}
+
+            <button
+              onClick={handleRequestReturn}
+              disabled={submittingReturn || !returnReason.trim()}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: submittingReturn || !returnReason.trim() ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: submittingReturn || !returnReason.trim() ? 'default' : 'pointer',
+              }}
+            >
+              {submittingReturn ? ct.submitting : ct.submitReturn}
+            </button>
+
+            <button
+              onClick={() => setShowReturnModal(false)}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#666', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
+            >
+              {ct.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Reject return modal (seller) */}
+      {showRejectModal && (
+        <div
+          onClick={() => setShowRejectModal(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: '#111', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '380px', border: '1px solid #222' }}>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>
+              {ct.rejectReturn}
+            </h3>
+
+            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
+              {ct.rejectReason}
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value.slice(0, 500))}
+              placeholder={ct.rejectReasonPlaceholder}
+              rows={4}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #222',
+                backgroundColor: '#0A0A0A', color: '#fff', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit',
+              }}
+            />
+
+            <button
+              onClick={handleRejectReturn}
+              disabled={submittingReject}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: submittingReject ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: submittingReject ? 'default' : 'pointer',
+              }}
+            >
+              {submittingReject ? ct.submitting : ct.confirmReject}
+            </button>
+
+            <button
+              onClick={() => setShowRejectModal(false)}
               style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#666', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
             >
               {ct.cancel}

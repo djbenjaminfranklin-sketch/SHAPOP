@@ -1488,6 +1488,68 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
 })
 
 // =============================================
+// PROFILE UPDATE (display_name + bio)
+// =============================================
+
+app.put('/api/profile', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { display_name, bio } = req.body
+
+    // Validate display_name
+    if (display_name !== undefined) {
+      if (typeof display_name !== 'string' || display_name.trim().length === 0) {
+        res.status(400).json({ error: 'display_name must be a non-empty string' })
+        return
+      }
+      if (display_name.length > 50) {
+        res.status(400).json({ error: 'display_name must be 50 characters or less' })
+        return
+      }
+    }
+
+    // Validate bio
+    if (bio !== undefined) {
+      if (typeof bio !== 'string') {
+        res.status(400).json({ error: 'bio must be a string' })
+        return
+      }
+      if (bio.length > 200) {
+        res.status(400).json({ error: 'bio must be 200 characters or less' })
+        return
+      }
+    }
+
+    const updates: Record<string, unknown> = {}
+    if (display_name !== undefined) updates.display_name = display_name.trim()
+    if (bio !== undefined) updates.bio = bio.trim() || null
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: 'No fields to update' })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('[profile-update] Error:', error.message)
+      res.status(500).json({ error: error.message })
+      return
+    }
+
+    res.json({ profile: data })
+  } catch (err) {
+    console.error('[profile-update] Exception:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // IN-APP NOTIFICATIONS FEED
 // =============================================
 
@@ -4225,6 +4287,188 @@ app.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authentica
 })
 
 // =============================================
+// RETURN / REFUND REQUESTS
+// =============================================
+
+// Buyer requests a return
+app.post('/api/orders/:id/request-return', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = req.params.id
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.slice(0, 500) : ''
+
+    if (!reason.trim()) {
+      res.status(400).json({ error: 'A reason is required' })
+      return
+    }
+
+    const { data: order, error: fetchErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+
+    if (fetchErr || !order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.buyer_id !== req.user!.id) {
+      res.status(403).json({ error: 'Only the buyer can request a return' })
+      return
+    }
+
+    if (order.status !== 'delivered' && order.status !== 'shipped') {
+      res.status(400).json({ error: 'Returns can only be requested for shipped or delivered orders' })
+      return
+    }
+
+    // Create return request record
+    await supabase.from('return_requests').insert({
+      order_id: orderId,
+      buyer_id: req.user!.id,
+      seller_id: order.seller_id,
+      reason: reason.trim(),
+      status: 'pending',
+    })
+
+    // Update order status
+    const { data: updated, error: updateErr } = await supabase
+      .from('orders')
+      .update({ status: 'return_requested' })
+      .eq('id', orderId)
+      .select('*')
+      .single()
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update order' })
+      return
+    }
+
+    // Notify seller
+    notifyUser(order.seller_id, 'return_requested', 'Return requested', `A buyer has requested a return: ${reason.trim().slice(0, 100)}`, { order_id: String(orderId) })
+
+    res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Seller approves a return (triggers Stripe refund)
+app.post('/api/orders/:id/approve-return', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = req.params.id
+
+    const { data: order, error: fetchErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+
+    if (fetchErr || !order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Only the seller can approve a return' })
+      return
+    }
+
+    if (order.status !== 'return_requested') {
+      res.status(400).json({ error: 'This order does not have a pending return request' })
+      return
+    }
+
+    // Process Stripe refund
+    if (order.stripe_payment_intent_id) {
+      try {
+        await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+        console.log(`[refund] Return refund processed for order ${orderId}, PI: ${order.stripe_payment_intent_id}`)
+      } catch (err) {
+        console.error(`[refund] Failed to refund order ${orderId}:`, err)
+        res.status(500).json({ error: 'Failed to process refund' })
+        return
+      }
+    }
+
+    // Update order status
+    const { data: updated, error: updateErr } = await supabase
+      .from('orders')
+      .update({ status: 'return_approved' })
+      .eq('id', orderId)
+      .select('*')
+      .single()
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update order' })
+      return
+    }
+
+    // Update return request record
+    await supabase.from('return_requests').update({ status: 'approved' }).eq('order_id', orderId).eq('status', 'pending')
+
+    // Notify buyer
+    notifyUser(order.buyer_id, 'return_approved', 'Return approved', 'Your return has been approved and a refund is being processed.', { order_id: String(orderId) })
+
+    res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Seller rejects a return
+app.post('/api/orders/:id/reject-return', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = req.params.id
+    const reason = typeof req.body?.reason === 'string' ? req.body.reason.slice(0, 500) : ''
+
+    const { data: order, error: fetchErr } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', orderId)
+      .single()
+
+    if (fetchErr || !order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Only the seller can reject a return' })
+      return
+    }
+
+    if (order.status !== 'return_requested') {
+      res.status(400).json({ error: 'This order does not have a pending return request' })
+      return
+    }
+
+    // Revert order status to what it was before the return request (delivered)
+    const { data: updated, error: updateErr } = await supabase
+      .from('orders')
+      .update({ status: 'return_rejected' })
+      .eq('id', orderId)
+      .select('*')
+      .single()
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update order' })
+      return
+    }
+
+    // Update return request record
+    await supabase.from('return_requests').update({ status: 'rejected', reject_reason: reason.trim() || null }).eq('order_id', orderId).eq('status', 'pending')
+
+    // Notify buyer
+    notifyUser(order.buyer_id, 'return_rejected', 'Return rejected', reason.trim() ? `Your return was rejected: ${reason.trim().slice(0, 100)}` : 'Your return request was rejected by the seller.', { order_id: String(orderId) })
+
+    res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // BLOCK & REPORT (user-to-user)
 // =============================================
 app.post('/api/users/:id/block', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
@@ -6240,6 +6484,110 @@ app.get('/api/admin/seller-trusts', requireAdmin, async (_req: AuthenticatedRequ
     res.json(data || [])
   } catch {
     res.status(500).json({ error: 'Failed to fetch seller trusts' })
+  }
+})
+
+// =============================================
+// Seller Dashboard Analytics
+// =============================================
+app.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const validStatuses = ['paid', 'shipped', 'delivered', 'completed']
+
+    // Fetch orders for this seller with valid statuses
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('seller_payout, amount, status, created_at, item_id')
+      .eq('seller_id', userId)
+      .in('status', validStatuses)
+      .order('created_at', { ascending: false })
+
+    const allOrders = orders || []
+    const total_revenue = allOrders.reduce((sum: number, o: Record<string, unknown>) => sum + ((o.seller_payout as number) || 0), 0)
+    const total_sales = allOrders.length
+
+    // Monthly revenue (current month)
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const monthly_revenue = allOrders
+      .filter((o: Record<string, unknown>) => (o.created_at as string) >= monthStart)
+      .reduce((sum: number, o: Record<string, unknown>) => sum + ((o.seller_payout as number) || 0), 0)
+
+    // Active streams (status = 'live')
+    const { count: active_streams } = await supabase
+      .from('streams')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', userId)
+      .eq('status', 'live')
+
+    // Total streams
+    const { count: total_streams } = await supabase
+      .from('streams')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', userId)
+
+    // Total followers
+    const { count: total_followers } = await supabase
+      .from('followers')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', userId)
+
+    // Average peak viewers from streams
+    const { data: streamsData } = await supabase
+      .from('streams')
+      .select('peak_viewers')
+      .eq('seller_id', userId)
+
+    const streamsArr = streamsData || []
+    const avg_viewers = streamsArr.length > 0
+      ? Math.round(streamsArr.reduce((sum: number, s: Record<string, unknown>) => sum + ((s.peak_viewers as number) || 0), 0) / streamsArr.length)
+      : 0
+
+    // Recent orders: last 5 with item title
+    const { data: recentOrdersRaw } = await supabase
+      .from('orders')
+      .select('id, amount, status, created_at, item_id')
+      .eq('seller_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5)
+
+    const recentArr = recentOrdersRaw || []
+    // Fetch item titles for recent orders
+    const itemIds = recentArr.map((o: Record<string, unknown>) => o.item_id as string).filter(Boolean)
+    let itemTitles: Record<string, string> = {}
+    if (itemIds.length > 0) {
+      const { data: items } = await supabase
+        .from('items')
+        .select('id, title')
+        .in('id', itemIds)
+      if (items) {
+        itemTitles = Object.fromEntries(items.map((i: Record<string, unknown>) => [i.id as string, i.title as string]))
+      }
+    }
+
+    const recent_orders = recentArr.map((o: Record<string, unknown>) => ({
+      id: o.id,
+      item_title: itemTitles[o.item_id as string] || 'Unknown item',
+      amount: o.amount,
+      status: o.status,
+      created_at: o.created_at,
+    }))
+
+    res.json({
+      total_revenue: Math.round(total_revenue * 100) / 100,
+      total_sales,
+      active_streams: active_streams || 0,
+      total_streams: total_streams || 0,
+      total_followers: total_followers || 0,
+      avg_viewers,
+      recent_orders,
+      monthly_revenue: Math.round(monthly_revenue * 100) / 100,
+    })
+  } catch (err) {
+    console.error('[seller/dashboard] Error:', err)
+    res.status(500).json({ error: 'Failed to fetch dashboard data' })
   }
 })
 
