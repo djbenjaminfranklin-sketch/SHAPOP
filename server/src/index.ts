@@ -1214,11 +1214,10 @@ app.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, res
       .maybeSingle()
 
     if (existing) {
-      // Update timestamp
-      await supabase.from('device_tokens').update({ updated_at: new Date().toISOString() }).eq('id', existing.id)
+      const { error: updErr } = await supabase.from('device_tokens').update({ updated_at: new Date().toISOString() }).eq('id', existing.id)
+      if (updErr) console.error('[device-token] Update error:', updErr.message)
     } else {
-      // Insert new token
-      await supabase.from('device_tokens').insert({
+      const { error: insErr } = await supabase.from('device_tokens').insert({
         user_id: userId,
         token,
         platform: plat,
@@ -1227,6 +1226,11 @@ app.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, res
         notify_messages: true,
         notify_reminders: true,
       })
+      if (insErr) {
+        console.error('[device-token] Insert error:', insErr.message)
+        res.status(500).json({ error: insErr.message })
+        return
+      }
     }
 
     console.log(`[device-token] Registered ${plat} token for user ${userId}: ${token.slice(0, 12)}...`)
