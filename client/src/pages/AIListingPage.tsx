@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { showToast } from '../lib/toast'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 type Step = 'upload' | 'analyzing' | 'results' | 'success'
@@ -357,23 +358,37 @@ export default function AIListingPage() {
         imageUrls = [urlData.publicUrl]
       }
 
-      const { error } = await supabase.from('items').insert({
-        seller_id: user.id,
-        title: editTitle,
-        description: editDescription,
-        category: editCategory,
-        starting_price: parseFloat(editPrice) || 0,
-        current_price: parseFloat(editPrice) || 0,
-        image_urls: imageUrls,
-        ai_generated: true,
-        ai_tags: editTags,
-        ai_condition: editCondition,
-        ai_confidence: aiResult.confidence,
-        status: 'draft',
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) {
+        showToast(t.listingError, 'error')
+        setSaving(false)
+        return
+      }
+
+      const resp = await apiFetch('/api/items/create-listing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          category: editCategory,
+          starting_price: parseFloat(editPrice) || 0,
+          image_urls: imageUrls,
+          ai_generated: true,
+          ai_tags: editTags,
+          ai_condition: editCondition,
+          ai_confidence: aiResult.confidence,
+        }),
       })
 
-      if (error) {
-        showToast(t.listingError, 'error')
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        console.error('Create listing error:', err)
+        showToast(err.error || t.listingError, 'error')
         setSaving(false)
         return
       }

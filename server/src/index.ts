@@ -1963,6 +1963,42 @@ app.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Authent
   }
 })
 
+// Create AI Express listing (bypasses RLS)
+app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { title, description, category, starting_price, image_urls, ai_generated, ai_tags, ai_condition, ai_confidence } = req.body
+
+    if (!title || !category) {
+      res.status(400).json({ error: 'Missing required fields (title, category)' })
+      return
+    }
+
+    const price = parseFloat(starting_price) || 0
+
+    const { data, error } = await supabase.from('items').insert({
+      seller_id: userId,
+      title,
+      description: description || '',
+      category,
+      starting_price: price,
+      current_price: price,
+      image_urls: image_urls || [],
+      ai_generated: ai_generated || false,
+      ai_tags: ai_tags || [],
+      ai_condition: ai_condition || null,
+      ai_confidence: ai_confidence || null,
+      status: 'draft',
+    }).select('id').single()
+
+    if (error) throw error
+    res.json({ success: true, item_id: data.id })
+  } catch (err: any) {
+    console.error('Create listing error:', err?.message || err)
+    res.status(500).json({ error: err?.message || 'Failed to create listing' })
+  }
+})
+
 // Activate an item (start auction) — uses service key to bypass RLS
 app.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
