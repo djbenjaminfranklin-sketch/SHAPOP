@@ -355,6 +355,7 @@ export default function PaymentsPage() {
 
   // PayPal seller state
   const [sellerBankChoice, setSellerBankChoice] = useState<string | null>(null)
+  const [bankChoiceLoaded, setBankChoiceLoaded] = useState(false)
   const [paypalEmail, setPaypalEmail] = useState('')
   const [paypalEditEmail, setPaypalEditEmail] = useState('')
   const [paypalEditing, setPaypalEditing] = useState(false)
@@ -395,10 +396,13 @@ export default function PaymentsPage() {
 
   // Fetch PayPal status for seller
   const fetchPaypalStatus = useCallback(async () => {
-    if (!profile?.is_seller) return
+    if (!profile?.is_seller) {
+      setBankChoiceLoaded(true)
+      return
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
+      if (!session) { setBankChoiceLoaded(true); return }
       // Fetch seller bank_choice from DB
       const { data: seller } = await supabase
         .from('sellers')
@@ -412,6 +416,7 @@ export default function PaymentsPage() {
           setPaypalEditEmail(seller.paypal_email)
         }
       }
+      setBankChoiceLoaded(true)
       // Fetch payouts
       if (seller?.bank_choice === 'paypal') {
         const res = await apiFetch('/api/paypal/payout-status', {
@@ -424,6 +429,7 @@ export default function PaymentsPage() {
       }
     } catch {
       console.warn('PayPal status check failed')
+      setBankChoiceLoaded(true)
     }
   }, [profile?.is_seller])
 
@@ -748,7 +754,7 @@ export default function PaymentsPage() {
         )}
 
         {/* Stripe seller section (hidden if PayPal seller) */}
-        {sellerBankChoice !== 'paypal' && (
+        {bankChoiceLoaded && sellerBankChoice !== 'paypal' && (
         <div style={{
           backgroundColor: '#111', borderRadius: '14px', padding: '24px',
           textAlign: 'center', marginBottom: '16px',
