@@ -76,11 +76,16 @@ export default function ItemDetailPage() {
   useEffect(() => {
     if (!id) return
     apiFetch(`/api/items/${id}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data && !data.error) setItem(data)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
       })
-      .catch(() => {})
+      .then(data => {
+        if (data && data.id) setItem(data)
+      })
+      .catch((err) => {
+        console.error('Failed to fetch item:', err)
+      })
       .finally(() => setLoading(false))
   }, [id])
 

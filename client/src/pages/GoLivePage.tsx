@@ -353,10 +353,13 @@ export default function GoLivePage() {
 
   const handleDeleteStream = async (streamId: string) => {
     if (!confirm(ct.deleteConfirm)) return
-    // Delete items first, then stream
-    await supabase.from('items').delete().eq('stream_id', streamId)
-    const { error: delErr } = await supabase.from('streams').delete().eq('id', streamId)
-    if (!delErr) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const res = await apiFetch(`/api/streams/${streamId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (res.ok) {
       setMyStreams(prev => prev.filter(s => s.id !== streamId))
     }
   }
@@ -364,11 +367,15 @@ export default function GoLivePage() {
   const handleBulkDelete = async () => {
     if (selectedIds.size === 0) return
     if (!confirm((ct as any).bulkDeleteConfirm || ct.deleteConfirm)) return
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const headers = { Authorization: `Bearer ${session.access_token}` }
+    const deletedIds = new Set<string>()
     for (const id of selectedIds) {
-      await supabase.from('items').delete().eq('stream_id', id)
-      await supabase.from('streams').delete().eq('id', id)
+      const res = await apiFetch(`/api/streams/${id}`, { method: 'DELETE', headers })
+      if (res.ok) deletedIds.add(id)
     }
-    setMyStreams(prev => prev.filter(s => !selectedIds.has(s.id)))
+    setMyStreams(prev => prev.filter(s => !deletedIds.has(s.id)))
     setSelectedIds(new Set())
     setSelectionMode(false)
   }

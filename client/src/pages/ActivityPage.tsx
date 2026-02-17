@@ -6,8 +6,10 @@ import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Order, Item, Stream } from '../types/database'
 import StreamCard from '../components/StreamCard'
+import ItemCard from '../components/ItemCard'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
+type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
 
 type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
@@ -77,6 +79,7 @@ export default function ActivityPage() {
 
   // Favorites states
   const [favorites, setFavorites] = useState<StreamWithSeller[]>([])
+  const [favoriteItems, setFavoriteItems] = useState<ItemWithSeller[]>([])
   const [loadingFavorites, setLoadingFavorites] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
@@ -198,19 +201,25 @@ export default function ActivityPage() {
     }
   }
 
-  // Fetch favorited streams
+  // Fetch favorited streams + items
   const fetchFavorites = useCallback(async () => {
     if (!user) return
     setLoadingFavorites(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
-      const res = await apiFetch('/api/favorites', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setFavorites(data as StreamWithSeller[])
+      const headers = { Authorization: `Bearer ${session.access_token}` }
+
+      const [streamsRes, itemsRes] = await Promise.all([
+        apiFetch('/api/favorites', { headers }),
+        apiFetch('/api/item-favorites', { headers }),
+      ])
+
+      if (streamsRes.ok) {
+        setFavorites(await streamsRes.json() as StreamWithSeller[])
+      }
+      if (itemsRes.ok) {
+        setFavoriteItems(await itemsRes.json() as ItemWithSeller[])
       }
     } catch (err) {
       console.error('Failed to fetch favorites:', err)
@@ -219,7 +228,7 @@ export default function ActivityPage() {
     }
   }, [user])
 
-  // Toggle favorite from the favorites tab
+  // Toggle stream favorite from the favorites tab
   const handleToggleFavorite = useCallback(async (streamId: string) => {
     if (!user) return
     try {
@@ -232,6 +241,22 @@ export default function ActivityPage() {
       setFavorites(prev => prev.filter(s => s.id !== streamId))
     } catch (err) {
       console.error('Unfavorite error:', err)
+    }
+  }, [user])
+
+  // Toggle item favorite from the favorites tab
+  const handleToggleItemFavorite = useCallback(async (itemId: string) => {
+    if (!user) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await apiFetch(`/api/item-favorites/${itemId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      setFavoriteItems(prev => prev.filter(i => i.id !== itemId))
+    } catch (err) {
+      console.error('Unfavorite item error:', err)
     }
   }, [user])
 
@@ -1155,7 +1180,7 @@ export default function ActivityPage() {
         </div>
       )
     }
-    if (favorites.length === 0) {
+    if (favorites.length === 0 && favoriteItems.length === 0) {
       return (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -1185,6 +1210,9 @@ export default function ActivityPage() {
       <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 12px' }}>
         {favorites.map(stream => (
           <StreamCard key={stream.id} stream={stream} isFavorited onToggleFavorite={handleToggleFavorite} />
+        ))}
+        {favoriteItems.map(item => (
+          <ItemCard key={item.id} item={item} isFavorited onToggleFavorite={handleToggleItemFavorite} />
         ))}
       </div>
     )

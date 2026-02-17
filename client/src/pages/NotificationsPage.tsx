@@ -108,20 +108,22 @@ export default function NotificationsPage() {
   // Load preferences from Supabase on mount
   useEffect(() => {
     if (!user) return
-    (async () => {
+    let cancelled = false
+    ;(async () => {
       // Check push permission status
       const granted = await checkPermission()
-      setPushEnabled(granted)
+      if (!cancelled) setPushEnabled(granted)
 
-      // Load notification preferences from DB
+      // Load notification preferences from DB — get the most recently updated record
       const { data } = await supabase
         .from('device_tokens')
         .select('notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
         .eq('user_id', user.id)
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .limit(1)
         .maybeSingle()
 
-      if (data) {
+      if (!cancelled && data) {
         setToggles({
           live: data.notify_live ?? true,
           orders: data.notify_orders ?? true,
@@ -131,9 +133,11 @@ export default function NotificationsPage() {
           community: data.notify_community ?? false,
         })
       }
-      setLoadedFromDb(true)
+      if (!cancelled) setLoadedFromDb(true)
     })()
-  }, [user, checkPermission])
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // Handle enabling push notifications
   const handleEnablePush = useCallback(async () => {
@@ -166,36 +170,33 @@ export default function NotificationsPage() {
       }
     }
 
-    // Save in Supabase — upsert to handle case where no device_token row exists yet
+    // Save in Supabase — update ALL rows for this user so every device token gets the preference
     const column = DB_COLUMNS[key]
-    const { data: existing } = await supabase
+    const now = new Date().toISOString()
+
+    // Update all existing device_token records for this user
+    const { data: updated } = await supabase
       .from('device_tokens')
-      .select('id')
+      .update({ [column]: newValue, updated_at: now })
       .eq('user_id', user.id)
-      .limit(1)
-      .maybeSingle()
+      .select('id')
 
-    // Build the full current state so INSERT never resets other toggles
-    const updatedToggles = { ...toggles, [key]: newValue }
-
-    if (existing) {
-      await supabase
-        .from('device_tokens')
-        .update({ [column]: newValue, updated_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-    } else {
+    // If no records existed, create one
+    if (!updated || updated.length === 0) {
+      const updatedToggles = { ...toggles, [key]: newValue }
       await supabase
         .from('device_tokens')
         .insert({
           user_id: user.id,
-          token: `web-prefs-${user.id}`,
-          platform: 'web',
+          token: `prefs-${user.id}`,
+          platform: Capacitor.isNativePlatform() ? (Capacitor.getPlatform() === 'ios' ? 'ios' : 'android') : 'web',
           notify_live: updatedToggles.live,
           notify_orders: updatedToggles.orders,
           notify_deals: updatedToggles.deals,
           notify_messages: updatedToggles.messages,
           notify_reminders: updatedToggles.reminders,
           notify_community: updatedToggles.community,
+          updated_at: now,
         })
     }
   }, [user, toggles, pushEnabled, requestPermission])

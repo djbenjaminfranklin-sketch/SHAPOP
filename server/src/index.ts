@@ -991,6 +991,40 @@ app.post('/api/streams', requireAuth, async (req: AuthenticatedRequest, res: Res
 })
 
 // =============================================
+// DELETE /api/streams/:id — delete a stream and its items (auth, owner only)
+// =============================================
+app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const streamId = req.params.id
+
+    // Verify ownership
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== userId) {
+      res.status(403).json({ error: 'You can only delete your own streams' })
+      return
+    }
+
+    // Delete items first, then stream
+    await supabase.from('items').delete().eq('stream_id', streamId)
+    const { error } = await supabase.from('streams').delete().eq('id', streamId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to delete stream' })
+      return
+    }
+    res.json({ status: 'deleted' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // POST /api/orders — create an order for a won auction item (auth required)
 // =============================================
 app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
