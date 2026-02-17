@@ -11,12 +11,18 @@ import { apiFetch } from '../lib/api'
 export function usePushNotifications() {
   const { user, session } = useAuth()
   const registeredRef = useRef(false)
+  const pendingTokenRef = useRef<string | null>(null)
+  const saveTokenRef = useRef<((token: string) => Promise<void>) | null>(null)
 
-  // Store or update the device token via API server (bypasses RLS)
-  const saveToken = useCallback(async (token: string) => {
-    if (!user || !session?.access_token) return
+  // Keep saveTokenRef always up-to-date with latest user/session
+  saveTokenRef.current = async (token: string) => {
+    if (!user || !session?.access_token) {
+      pendingTokenRef.current = token
+      return
+    }
+    pendingTokenRef.current = null
     try {
-      await apiFetch('/api/device-token', {
+      const res = await apiFetch('/api/device-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,8 +33,20 @@ export function usePushNotifications() {
           platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
         }),
       })
+      if (res.ok) {
+        console.log('Device token registered successfully')
+      } else {
+        console.warn('Failed to register device token:', res.status)
+      }
     } catch (err) {
       console.warn('Failed to register device token:', err)
+    }
+  }
+
+  // Retry saving pending token when session becomes available
+  useEffect(() => {
+    if (pendingTokenRef.current && user && session?.access_token) {
+      saveTokenRef.current?.(pendingTokenRef.current)
     }
   }, [user, session])
 
@@ -37,26 +55,23 @@ export function usePushNotifications() {
     if (!Capacitor.isNativePlatform() || registeredRef.current) return
     registeredRef.current = true
 
-    // When registration succeeds, save the token
     PushNotifications.addListener('registration', (token) => {
-      saveToken(token.value)
+      console.log('Push token received:', token.value.slice(0, 12) + '...')
+      // Use ref so we always call the latest version with current user/session
+      saveTokenRef.current?.(token.value)
     })
 
-    // Handle registration errors silently
     PushNotifications.addListener('registrationError', (err) => {
       console.warn('Push registration error:', err)
     })
 
-    // Handle incoming notification while app is in foreground
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       console.log('Push received in foreground:', notification.title)
     })
 
-    // Handle tap on notification
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const data = action.notification.data
       if (data?.stream_id) {
-        // Navigate to stream — will be handled by the app router
         window.location.hash = `/stream/${data.stream_id}`
       }
     })
@@ -64,12 +79,10 @@ export function usePushNotifications() {
     return () => {
       PushNotifications.removeAllListeners()
     }
-  }, [saveToken])
+  }, [])
 
-  // Request permission + register
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) return false
-
     const result = await PushNotifications.requestPermissions()
     if (result.receive === 'granted') {
       await PushNotifications.register()
@@ -78,7 +91,6 @@ export function usePushNotifications() {
     return false
   }, [])
 
-  // Check if permission is already granted
   const checkPermission = useCallback(async (): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) return false
     const result = await PushNotifications.checkPermissions()
