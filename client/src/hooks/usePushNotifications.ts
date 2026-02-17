@@ -2,34 +2,35 @@ import { useEffect, useRef, useCallback } from 'react'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 
 /**
- * Registers push notifications on iOS, stores the device token in Supabase.
+ * Registers push notifications on iOS, stores the device token via API.
  * Call `requestPermission()` to trigger the iOS permission prompt.
  */
 export function usePushNotifications() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const registeredRef = useRef(false)
 
-  // Store or update the device token in Supabase
+  // Store or update the device token via API server (bypasses RLS)
   const saveToken = useCallback(async (token: string) => {
-    if (!user) return
-    const { data: existing } = await supabase
-      .from('device_tokens')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('token', token)
-      .maybeSingle()
-
-    if (existing) return // Already registered
-
-    await supabase.from('device_tokens').upsert({
-      user_id: user.id,
-      token,
-      platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
-    }, { onConflict: 'user_id,token' })
-  }, [user])
+    if (!user || !session?.access_token) return
+    try {
+      await apiFetch('/api/device-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          token,
+          platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
+        }),
+      })
+    } catch (err) {
+      console.warn('Failed to register device token:', err)
+    }
+  }, [user, session])
 
   // Set up listeners once
   useEffect(() => {

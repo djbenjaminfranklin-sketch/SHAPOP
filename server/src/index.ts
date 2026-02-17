@@ -107,7 +107,7 @@ const APNS_KEY_ID = process.env.APNS_KEY_ID || ''
 const APNS_TEAM_ID = process.env.APNS_TEAM_ID || ''
 const APNS_BUNDLE_ID = process.env.APNS_BUNDLE_ID || 'com.shapop.app'
 const APNS_KEY_PATH = process.env.APNS_KEY_PATH || ''
-const APNS_PRODUCTION = process.env.NODE_ENV === 'production'
+const APNS_PRODUCTION = process.env.APNS_PRODUCTION === 'true'
 
 let apnsPrivateKey: string | null = null
 if (APNS_KEY_PATH && fs.existsSync(APNS_KEY_PATH)) {
@@ -1193,6 +1193,51 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
 })
 
 // =============================================
+// REGISTER DEVICE TOKEN (push notifications)
+// =============================================
+app.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { token, platform } = req.body
+    if (!token || typeof token !== 'string') {
+      res.status(400).json({ error: 'token is required' })
+      return
+    }
+    const plat = platform === 'android' ? 'android' : 'ios'
+
+    // Check if already exists
+    const { data: existing } = await supabase
+      .from('device_tokens')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('token', token)
+      .maybeSingle()
+
+    if (existing) {
+      // Update timestamp
+      await supabase.from('device_tokens').update({ updated_at: new Date().toISOString() }).eq('id', existing.id)
+    } else {
+      // Insert new token
+      await supabase.from('device_tokens').insert({
+        user_id: userId,
+        token,
+        platform: plat,
+        notify_live: true,
+        notify_orders: true,
+        notify_messages: true,
+        notify_reminders: true,
+      })
+    }
+
+    console.log(`[device-token] Registered ${plat} token for user ${userId}: ${token.slice(0, 12)}...`)
+    res.json({ status: 'registered' })
+  } catch (err) {
+    console.error('[device-token] Error:', err)
+    res.status(500).json({ error: 'Failed to register device token' })
+  }
+})
+
+// =============================================
 // POST /api/orders — create an order for a won auction item (auth required)
 // =============================================
 app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
@@ -1774,18 +1819,22 @@ app.post('/api/notifications/test', requireAuth, async (req: AuthenticatedReques
       .from('device_tokens')
       .select('token')
       .eq('user_id', userId)
+      .neq('platform', 'web') // Exclude prefs-only records
 
-    if (!tokens || tokens.length === 0) {
+    // Filter out prefs tokens
+    const realTokens = (tokens || []).filter(t => !t.token.startsWith('prefs-'))
+
+    if (realTokens.length === 0) {
       res.status(404).json({ error: 'No device token registered' })
       return
     }
 
     const results = await Promise.allSettled(
-      tokens.map(t => sendApnsPush(t.token, 'ShaPop', 'Test notification — push is working!'))
+      realTokens.map(t => sendApnsPush(t.token, 'ShaPop', 'Test notification — push is working!'))
     )
 
     const sent = results.filter(r => r.status === 'fulfilled' && r.value).length
-    res.json({ sent, total: tokens.length })
+    res.json({ sent, total: realTokens.length })
   } catch {
     res.status(500).json({ error: 'Failed to send test notification' })
   }
