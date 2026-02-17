@@ -1013,26 +1013,36 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
     }
 
     // Delete ALL dependent records before the stream
-    const tables = ['bids', 'orders', 'events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'item_favorites', 'items']
+    // Order matters: children before parents
     const errors: string[] = []
-    for (const table of tables) {
+
+    // 1) Get item IDs and order IDs for this stream
+    const { data: streamItems } = await supabase.from('items').select('id').eq('stream_id', streamId)
+    const itemIds = streamItems?.map((i: { id: string }) => i.id) || []
+
+    const { data: streamOrders } = await supabase.from('orders').select('id').eq('stream_id', streamId)
+    const orderIds = streamOrders?.map((o: { id: string }) => o.id) || []
+
+    // 2) Delete shipping_proofs (references orders)
+    if (orderIds.length > 0) {
+      const { error: err } = await supabase.from('shipping_proofs').delete().in('order_id', orderIds)
+      if (err) errors.push(`shipping_proofs: ${err.message}`)
+    }
+
+    // 3) Delete bids and item_favorites (reference items)
+    if (itemIds.length > 0) {
+      for (const table of ['bids', 'item_favorites']) {
+        const { error: err } = await supabase.from(table).delete().in('item_id', itemIds)
+        if (err) errors.push(`${table}: ${err.message}`)
+      }
+    }
+
+    // 4) Delete tables that reference stream_id directly
+    for (const table of ['orders', 'events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'items']) {
       try {
-        if (table === 'bids' || table === 'item_favorites') {
-          // bids and item_favorites reference items, not streams directly
-          // Get item IDs first, then delete
-          const { data: streamItems } = await supabase.from('items').select('id').eq('stream_id', streamId)
-          if (streamItems && streamItems.length > 0) {
-            const itemIds = streamItems.map((i: { id: string }) => i.id)
-            const col = table === 'bids' ? 'item_id' : 'item_id'
-            const { error: err } = await supabase.from(table).delete().in(col, itemIds)
-            if (err) errors.push(`${table}: ${err.message}`)
-          }
-        } else {
-          const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
-          if (err) errors.push(`${table}: ${err.message}`)
-        }
+        const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
+        if (err) errors.push(`${table}: ${err.message}`)
       } catch (e) {
-        // Table might not exist — ignore
         console.log(`[stream-delete] Table ${table} skip:`, (e as Error).message)
       }
     }

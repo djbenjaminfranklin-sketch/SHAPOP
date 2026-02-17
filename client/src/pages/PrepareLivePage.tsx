@@ -551,59 +551,57 @@ export default function PrepareLivePage() {
       {/* Stream actions: scheduled date + delete */}
       {stream && (
         <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
-          {/* Scheduled date section */}
-          {(stream.scheduled_at || editingDate || stream.status === 'scheduled') && (
-            <div style={{
-              backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '12px 14px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: editingDate ? '10px' : 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16" y1="2" x2="16" y2="6" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" strokeLinecap="round"/>
-                    <line x1="3" y1="10" x2="21" y2="10" strokeLinecap="round"/>
-                  </svg>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
-                    {ct.scheduledDate}: {stream.scheduled_at ? new Date(stream.scheduled_at).toLocaleString() : '—'}
-                  </span>
-                </div>
-                {!editingDate && (
-                  <button onClick={() => setEditingDate(true)} style={{
-                    background: 'none', border: '1px solid #333', borderRadius: '8px',
-                    padding: '4px 10px', color: '#F0908A', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                  }}>
-                    {ct.changeDate}
-                  </button>
-                )}
+          {/* Scheduled date section — always visible */}
+          <div style={{
+            backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '12px 14px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: editingDate ? '10px' : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="16" y1="2" x2="16" y2="6" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" strokeLinecap="round"/>
+                  <line x1="3" y1="10" x2="21" y2="10" strokeLinecap="round"/>
+                </svg>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                  {ct.scheduledDate}: {stream.scheduled_at ? new Date(stream.scheduled_at).toLocaleString() : '—'}
+                </span>
               </div>
-              {editingDate && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="datetime-local"
-                    value={scheduledDate}
-                    onChange={e => setScheduledDate(e.target.value)}
-                    style={{
-                      flex: 1, padding: '10px', backgroundColor: '#0D0D0D', border: '1px solid #333',
-                      borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none',
-                      colorScheme: 'dark',
-                    }}
-                  />
-                  <button onClick={handleSaveDate} style={{
-                    padding: '10px 16px', background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                    border: 'none', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                  }}>
-                    {ct.saveDate}
-                  </button>
-                  <button onClick={() => setEditingDate(false)} style={{
-                    padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
-                    color: '#888', fontSize: '13px', cursor: 'pointer',
-                  }}>
-                    ✕
-                  </button>
-                </div>
+              {!editingDate && (
+                <button onClick={() => setEditingDate(true)} style={{
+                  background: 'none', border: '1px solid #333', borderRadius: '8px',
+                  padding: '4px 10px', color: '#F0908A', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {ct.changeDate}
+                </button>
               )}
             </div>
-          )}
+            {editingDate && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="datetime-local"
+                  value={scheduledDate}
+                  onChange={e => setScheduledDate(e.target.value)}
+                  style={{
+                    flex: 1, padding: '10px', backgroundColor: '#0D0D0D', border: '1px solid #333',
+                    borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none',
+                    colorScheme: 'dark',
+                  }}
+                />
+                <button onClick={handleSaveDate} style={{
+                  padding: '10px 16px', background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  border: 'none', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                }}>
+                  {ct.saveDate}
+                </button>
+                <button onClick={() => setEditingDate(false)} style={{
+                  padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
+                  color: '#888', fontSize: '13px', cursor: 'pointer',
+                }}>
+                  ✕
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Delete stream button */}
           <button onClick={handleDeleteStream} style={{
