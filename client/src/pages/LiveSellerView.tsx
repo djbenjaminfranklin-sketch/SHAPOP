@@ -202,6 +202,8 @@ export default function LiveSellerView() {
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string } })[]>([])
   const [visibleMsgIds, setVisibleMsgIds] = useState<Set<string>>(new Set())
+  const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; x: number; startTime: number }[]>([])
+  const reactionIdRef = useRef(0)
   const [newMessage, setNewMessage] = useState('')
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const [showEndConfirm, setShowEndConfirm] = useState(false)
@@ -429,6 +431,7 @@ export default function LiveSellerView() {
         .from('chat_messages')
         .select('*, user_profile:profiles!user_id(display_name)')
         .eq('stream_id', streamId)
+        .neq('type', 'reaction')
         .order('created_at', { ascending: true })
         .limit(100)
       if (data) setMessages(data)
@@ -450,6 +453,14 @@ export default function LiveSellerView() {
       table: 'chat_messages',
       filter: `stream_id=eq.${streamId}`,
     }, async (payload) => {
+      const newMsg = payload.new as ChatMessage
+      // Handle reactions: show floating emoji, don't add to chat
+      if (newMsg.type === 'reaction') {
+        const id = ++reactionIdRef.current
+        const x = 10 + Math.random() * 80
+        setFloatingReactions(prev => [...prev, { id, emoji: newMsg.message, x, startTime: Date.now() }])
+        return
+      }
       const { data: enriched } = await supabase
         .from('chat_messages')
         .select('*, user_profile:profiles!user_id(display_name)')
@@ -471,6 +482,15 @@ export default function LiveSellerView() {
     channel.subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [streamId])
+
+  // Cleanup old floating reactions
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = Date.now()
+      setFloatingReactions(prev => prev.filter(r => now - r.startTime < 2200))
+    }, 500)
+    return () => clearInterval(timer)
+  }, [])
 
   // Simple local countdown: decrement every second
   useEffect(() => {
@@ -862,6 +882,36 @@ export default function LiveSellerView() {
         overscrollBehavior: 'none',
       }}
     >
+      {/* Floating emoji reactions from viewers */}
+      {floatingReactions.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '120px',
+          left: 0,
+          right: 0,
+          height: '250px',
+          pointerEvents: 'none',
+          zIndex: 9999,
+          overflow: 'visible',
+        }}>
+          {floatingReactions.map(r => (
+            <div
+              key={r.id}
+              style={{
+                position: 'absolute',
+                bottom: '0',
+                left: `${r.x}%`,
+                fontSize: '32px',
+                animation: 'floatUpReaction 2s ease-out forwards',
+                pointerEvents: 'none',
+              }}
+            >
+              {r.emoji}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Full-screen video */}
       <video
         ref={videoRef}
@@ -1541,6 +1591,11 @@ export default function LiveSellerView() {
         @keyframes chatMsgIn {
           0% { opacity: 0; transform: translateY(8px); }
           100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatUpReaction {
+          0% { opacity: 1; transform: translateY(0) scale(1); }
+          50% { opacity: 0.8; transform: translateY(-120px) scale(1.3); }
+          100% { opacity: 0; transform: translateY(-250px) scale(0.8); }
         }
       `}</style>
     </div>

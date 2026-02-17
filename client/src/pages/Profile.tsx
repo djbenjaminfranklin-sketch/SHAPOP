@@ -495,7 +495,7 @@ export default function Profile() {
             padding: '0 16px 20px',
             ...entrance('100ms'),
           }}>
-            <button onClick={() => navigate('/go-live')} style={{
+            <button onClick={() => navigate('/go-live?manage=true')} style={{
               width: '100%',
               backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
               padding: '16px 14px', cursor: 'pointer', textAlign: 'left',

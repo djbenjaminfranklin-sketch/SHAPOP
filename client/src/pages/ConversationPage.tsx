@@ -362,7 +362,7 @@ export default function ConversationPage() {
   }
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col">
+    <div className="h-screen bg-black text-white flex flex-col" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       {/* Header */}
       <div className="flex-shrink-0 bg-black/90 backdrop-blur-sm border-b border-white/10 z-10">
         <div className="flex items-center gap-3 px-4 py-3">
@@ -393,21 +393,29 @@ export default function ConversationPage() {
         </div>
       </div>
 
-      {/* Warning banner */}
-      <div className="flex-shrink-0 mx-4 mt-2 mb-1 p-2 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center gap-2">
-        <svg className="w-4 h-4 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-[10px] text-orange-300">
-          {ct.warningBanner}
-        </p>
+      {/* Warning banner — fixed under header */}
+      <div style={{ flexShrink: 0, padding: '8px 16px' }}>
+        <div style={{
+          padding: '8px 12px',
+          backgroundColor: 'rgba(249,115,22,0.08)',
+          border: '1px solid rgba(249,115,22,0.25)',
+          borderRadius: '10px',
+          display: 'flex', alignItems: 'center', gap: '8px',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p style={{ fontSize: '10px', color: '#FDBA74', margin: 0 }}>
+            {ct.warningBanner}
+          </p>
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-2 space-y-3">
         {messages.length === 0 && (
-          <div className="flex items-center justify-center py-10">
-            <p className="text-gray-600 text-sm">{ct.startConversation}</p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: '60px' }}>
+            <p style={{ fontSize: '14px', color: '#555' }}>{ct.startConversation}</p>
           </div>
         )}
 
@@ -515,26 +523,35 @@ export default function ConversationPage() {
       </div>
 
       {/* Input bar */}
-      <div className="flex-shrink-0 bg-black/90 backdrop-blur-sm border-t border-white/10 px-4 py-3">
-        <div className="flex items-center gap-2">
+      <div style={{
+        flexShrink: 0,
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        backdropFilter: 'blur(8px)',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        padding: '12px 16px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Attachment button */}
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="text-gray-400 hover:text-white disabled:opacity-50 p-1"
+            style={{
+              background: 'none', border: 'none', padding: '8px', cursor: 'pointer',
+              color: uploading ? '#555' : '#999', flexShrink: 0,
+            }}
           >
             {uploading ? (
-              <div className="w-5 h-5 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
+              <div style={{ width: '24px', height: '24px', border: '2px solid #555', borderTopColor: '#6366F1', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
               </svg>
             )}
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            className="hidden"
+            style={{ display: 'none' }}
             accept="image/*,.pdf,.doc,.docx"
             onChange={handleFileSelect}
           />
@@ -547,21 +564,38 @@ export default function ConversationPage() {
             onChange={e => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={ct.placeholder}
-            className="flex-1 bg-gray-900 text-white text-sm rounded-full px-4 py-2 border border-white/10 focus:border-indigo-500 focus:outline-none placeholder:text-gray-500"
             disabled={sending}
+            style={{
+              flex: 1,
+              backgroundColor: '#1A1A1A',
+              color: '#fff',
+              fontSize: '17px',
+              borderRadius: '24px',
+              padding: '14px 20px',
+              border: '1px solid rgba(255,255,255,0.1)',
+              outline: 'none',
+              minHeight: '50px',
+            }}
           />
 
           {/* Send button */}
           <button
             onClick={() => handleSend()}
             disabled={sending || (!newMessage.trim() && !uploading)}
-            className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white rounded-full p-2 transition-colors"
+            style={{
+              width: '50px', height: '50px', borderRadius: '50%',
+              backgroundColor: (sending || (!newMessage.trim() && !uploading)) ? '#333' : '#6366F1',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+              transition: 'background-color 0.2s',
+            }}
           >
             {sending ? (
-              <div className="w-5 h-5 border-2 border-gray-400 border-t-white rounded-full animate-spin" />
+              <div style={{ width: '24px', height: '24px', border: '2px solid #888', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(!newMessage.trim() && !uploading) ? '#666' : '#fff'} strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
               </svg>
             )}
           </button>

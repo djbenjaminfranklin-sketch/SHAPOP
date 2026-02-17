@@ -14,6 +14,7 @@ export default function BottomNav() {
   if (path.startsWith('/stream/')) return null
   if (path.startsWith('/live-seller/')) return null
   if (path.startsWith('/prepare-live/')) return null
+  if (path.startsWith('/conversation/')) return null
   if (path === '/go-live') return null
   if (path === '/schedule-live') return null
   if (path === '/ai-listing') return null

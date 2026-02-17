@@ -128,36 +128,50 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   const c = popupContent[lang] || popupContent.fr
 
   const isSeller = !!profile?.is_seller
-  const [stripeConnected, setStripeConnected] = useState<boolean | null>(null) // null = loading
+  const [paymentConnected, setPaymentConnected] = useState<boolean | null>(null) // null = loading
 
-  // Check Stripe connection status when popup opens and user is a seller
+  // Check payment connection status when popup opens and user is a seller
   useEffect(() => {
     if (!isOpen || !isSeller) return
-    setStripeConnected(null) // reset to loading
-    const checkStripe = async () => {
+    setPaymentConnected(null) // reset to loading
+    const checkPayment = async () => {
       try {
+        // First check if seller uses PayPal (no need to call server)
+        const { data: seller } = await supabase
+          .from('sellers')
+          .select('bank_choice, paypal_email, stripe_account_id')
+          .eq('id', profile!.id)
+          .single()
+
+        if (seller?.bank_choice === 'paypal' && seller?.paypal_email) {
+          setPaymentConnected(true)
+          return
+        }
+
+        // Otherwise check Stripe via API
         const { data: session } = await supabase.auth.getSession()
         const token = session?.session?.access_token
-        if (!token) { setStripeConnected(false); return }
+        if (!token) { setPaymentConnected(false); return }
         const resp = await apiFetch('/api/stripe/account-status', {
           headers: { 'Authorization': `Bearer ${token}` },
         })
         const data = await resp.json()
-        setStripeConnected(data.connected && data.charges_enabled)
+        setPaymentConnected(data.connected && data.charges_enabled)
       } catch {
-        setStripeConnected(false)
+        setPaymentConnected(false)
       }
     }
-    checkStripe()
+    checkPayment()
   }, [isOpen, isSeller])
 
   const actions = [
     {
-      label: c.iaExpress,
+      label: c.directSale,
       description: c.iaDescription,
       gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
       route: '/ai-listing',
       featured: true,
+      badge: c.iaExpress,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="white" stroke="white" strokeWidth="1"/>
@@ -187,31 +201,6 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
           <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
           <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
-    {
-      label: c.directSale,
-      description: c.directSaleDesc,
-      gradient: 'linear-gradient(135deg, #10B981, #059669)',
-      route: '/ai-listing?mode=direct',
-      featured: false,
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" strokeLinecap="round" strokeLinejoin="round"/>
-          <line x1="7" y1="7" x2="7.01" y2="7" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
-    {
-      label: c.createListing,
-      description: c.createListingDesc,
-      gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
-      route: '/ai-listing?mode=manual',
-      featured: false,
-      icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="none" stroke="white" strokeWidth="2"/>
         </svg>
       ),
     },
@@ -256,7 +245,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: 0 }}>
-          {!isSeller ? c.becomeSellerTitle : stripeConnected === false ? c.stripeRequiredTitle : c.createTitle}
+          {!isSeller ? c.becomeSellerTitle : paymentConnected === false ? c.stripeRequiredTitle : c.createTitle}
         </h2>
         <button
           onClick={onClose}
@@ -373,7 +362,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               {c.becomeSellerCta}
             </button>
           </>
-        ) : stripeConnected === null ? (
+        ) : paymentConnected === null ? (
           /* ═══ SELLER: Loading Stripe status ═══ */
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
             <div style={{
@@ -383,7 +372,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
             }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
-        ) : stripeConnected === false ? (
+        ) : paymentConnected === false ? (
           /* ═══ SELLER: Stripe not connected ═══ */
           <>
             <div style={{
@@ -471,14 +460,16 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     display: 'flex', alignItems: 'center', gap: '8px',
                   }}>
                     {action.label}
-                    <span style={{
-                      fontSize: '10px', fontWeight: 700, color: '#F0908A',
-                      backgroundColor: 'rgba(240,144,138,0.15)',
-                      padding: '3px 10px', borderRadius: '100px',
-                      textTransform: 'uppercase', letterSpacing: '0.5px',
-                    }}>
-                      {c.newBadge}
-                    </span>
+                    {'badge' in action && action.badge && (
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, color: '#F0908A',
+                        backgroundColor: 'rgba(240,144,138,0.15)',
+                        padding: '3px 10px', borderRadius: '100px',
+                        textTransform: 'uppercase', letterSpacing: '0.5px',
+                      }}>
+                        {action.badge}
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: '14px', color: '#999' }}>
                     {action.description}

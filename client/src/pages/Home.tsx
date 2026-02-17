@@ -10,6 +10,7 @@ import PreferencesModal, { loadPreferences, hasPreferences } from '../components
 import { sortStreamsByMatch } from '../lib/matchingAlgorithm'
 import { getBehaviorData } from '../lib/behaviorTracker'
 import { cacheGet, cacheSet } from '../lib/cache'
+import { apiFetch } from '../lib/api'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
@@ -39,6 +40,13 @@ const homeContent = {
     modify: 'Editar',
   },
 } as Record<string, { sortedByRelevance: string; basedOnPrefs: string; modify: string }>
+
+const directSalesBanner = {
+  fr: 'Acceder aux ventes directes',
+  en: 'Browse direct sales',
+  he: 'גלה מכירות ישירות',
+  es: 'Ver ventas directas',
+} as Record<string, string>
 
 // Category ID → demo category label mapping (matches CategoryIcons IDs)
 const catIdToLabel: Record<string, string> = {
@@ -108,6 +116,7 @@ export default function Home() {
     return false
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
   const { city, loading: locationLoading, setManualCity } = useLocation()
   const { user, updateCity } = useAuth()
@@ -157,6 +166,53 @@ export default function Home() {
 
     return () => { supabase.removeChannel(channel) }
   }, [fetchStreams])
+
+  // Fetch favorite IDs for heart buttons
+  useEffect(() => {
+    if (!user) return
+    const fetchFavorites = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await apiFetch('/api/favorites', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setFavoriteIds(new Set(data.map((s: { id: string }) => s.id)))
+        }
+      } catch { /* silent */ }
+    }
+    fetchFavorites()
+  }, [user])
+
+  const toggleFavorite = useCallback(async (streamId: string) => {
+    if (!user) { navigate('/login'); return }
+    const isFav = favoriteIds.has(streamId)
+    // Optimistic update
+    setFavoriteIds(prev => {
+      const next = new Set(prev)
+      if (isFav) next.delete(streamId)
+      else next.add(streamId)
+      return next
+    })
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await apiFetch(`/api/favorites/${streamId}`, {
+        method: isFav ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+    } catch {
+      // Revert on error
+      setFavoriteIds(prev => {
+        const next = new Set(prev)
+        if (isFav) next.add(streamId)
+        else next.delete(streamId)
+        return next
+      })
+    }
+  }, [user, favoriteIds, navigate])
 
   // Apply matching algorithm when "Pour toi" tab is active
   // Uses both explicit preferences AND behavioral tracking (what you actually watch)
@@ -439,6 +495,38 @@ export default function Home() {
         <CategoryScroll selected={selectedCategory} onSelect={setSelectedCategory} lang={lang} />
       </div>
 
+      {/* Direct sales banner */}
+      <Link to="/direct-sales" style={{ textDecoration: 'none' }}>
+        <div style={{
+          margin: '0 16px 12px 16px',
+          padding: '12px 16px',
+          borderRadius: '14px',
+          background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
+          border: '1px solid rgba(240,144,138,0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '32px', height: '32px', borderRadius: '8px',
+              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="none">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <p style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: 0 }}>
+              {directSalesBanner[lang] || directSalesBanner.fr}
+            </p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </div>
+      </Link>
+
       {/* "Pour toi" personalized banner */}
       {selectedCategory === 'for_you' && hasPreferences() && loadPreferences()?.favorite_categories && loadPreferences()!.favorite_categories.length > 0 && (
         <div style={{
@@ -533,7 +621,7 @@ export default function Home() {
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">
           {displayStreams.map(stream => (
-            <StreamCard key={stream.id} stream={stream} />
+            <StreamCard key={stream.id} stream={stream} isFavorited={favoriteIds.has(stream.id)} onToggleFavorite={toggleFavorite} />
           ))}
         </div>
       )}

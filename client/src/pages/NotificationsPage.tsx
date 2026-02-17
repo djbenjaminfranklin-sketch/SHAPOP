@@ -166,12 +166,36 @@ export default function NotificationsPage() {
       }
     }
 
-    // Update in Supabase
+    // Save in Supabase — upsert to handle case where no device_token row exists yet
     const column = DB_COLUMNS[key]
-    await supabase
+    const { data: existing } = await supabase
       .from('device_tokens')
-      .update({ [column]: newValue, updated_at: new Date().toISOString() })
+      .select('id')
       .eq('user_id', user.id)
+      .limit(1)
+      .maybeSingle()
+
+    if (existing) {
+      await supabase
+        .from('device_tokens')
+        .update({ [column]: newValue, updated_at: new Date().toISOString() })
+        .eq('user_id', user.id)
+    } else {
+      await supabase
+        .from('device_tokens')
+        .insert({
+          user_id: user.id,
+          token: `web-prefs-${user.id}`,
+          platform: 'web',
+          [column]: newValue,
+          notify_live: DEFAULT_TOGGLES.live,
+          notify_orders: DEFAULT_TOGGLES.orders,
+          notify_deals: DEFAULT_TOGGLES.deals,
+          notify_messages: DEFAULT_TOGGLES.messages,
+          notify_reminders: DEFAULT_TOGGLES.reminders,
+          notify_community: DEFAULT_TOGGLES.community,
+        })
+    }
   }, [user, toggles, pushEnabled, requestPermission])
 
   if (!user) {

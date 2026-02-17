@@ -171,7 +171,7 @@ export default function MessagesPage() {
   return (
     <div className={`min-h-screen bg-black text-white pb-24 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10">
+      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
           <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

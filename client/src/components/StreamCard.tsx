@@ -19,9 +19,11 @@ const COMMUNITY_NAMES: Record<string, string> = {
 
 interface StreamCardProps {
   stream: Stream & { seller?: { display_name?: string; avatar_url?: string | null; store_name?: string } }
+  isFavorited?: boolean
+  onToggleFavorite?: (streamId: string) => void
 }
 
-export default function StreamCard({ stream }: StreamCardProps) {
+export default function StreamCard({ stream, isFavorited, onToggleFavorite }: StreamCardProps) {
   const lang = getLang()
   const sellerName = stream.seller?.store_name || stream.seller?.display_name || 'Vendeur'
   const communityName = stream.community_id ? COMMUNITY_NAMES[stream.community_id] : null
@@ -105,6 +107,38 @@ export default function StreamCard({ stream }: StreamCardProps) {
               {stream.matching_score}% match
             </span>
           </div>
+        )}
+
+        {/* Favorite heart button */}
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onToggleFavorite(stream.id)
+            }}
+            style={{
+              position: 'absolute',
+              bottom: communityName ? '36px' : '10px',
+              right: '10px',
+              zIndex: 5,
+              background: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(8px)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#E8344E' : 'none'} stroke={isFavorited ? '#E8344E' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </button>
         )}
 
         {/* Community badge */}

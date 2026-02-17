@@ -314,16 +314,19 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
   return (
     <form onSubmit={handleSubmit}>
       <div style={{
-        padding: '14px', borderRadius: '10px',
+        padding: '16px', borderRadius: '10px',
         backgroundColor: '#0D0D0D', border: '1px solid #333',
+        minHeight: '48px',
       }}>
         <CardElement options={{
           style: {
             base: {
-              fontSize: '16px',
+              fontSize: '17px',
+              lineHeight: '24px',
               color: '#fff',
               '::placeholder': { color: '#555' },
               iconColor: '#F0908A',
+              fontSmoothing: 'antialiased',
             },
             invalid: { color: '#E8344E' },
           },

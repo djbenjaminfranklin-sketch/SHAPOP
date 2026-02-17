@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 
 interface ViewerReactionsProps {
   onReaction: () => void
+  sendReaction?: (emoji: string) => void
 }
 
 interface FloatingReaction {
@@ -22,7 +23,7 @@ const REACTION_EMOJIS = [
 
 let reactionIdCounter = 0
 
-export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
+export default function ViewerReactions({ onReaction, sendReaction }: ViewerReactionsProps) {
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([])
   const cleanupTimerRef = useRef<number | null>(null)
 
@@ -37,8 +38,15 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
     }
   }, [])
 
+  const lastReactionRef = useRef(0)
+
   const handleReaction = useCallback((emoji: string) => {
+    const now = Date.now()
+    if (now - lastReactionRef.current < 300) return // debounce double-tap
+    lastReactionRef.current = now
+
     onReaction()
+    if (sendReaction) sendReaction(emoji)
 
     const id = ++reactionIdCounter
     const x = 10 + Math.random() * 80 // random horizontal position (%)
@@ -47,7 +55,7 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
       ...prev,
       { id, emoji, x, startTime: Date.now() },
     ])
-  }, [onReaction])
+  }, [onReaction, sendReaction])
 
   return (
     <>

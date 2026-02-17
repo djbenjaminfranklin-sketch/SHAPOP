@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
@@ -182,6 +182,11 @@ const goLiveContent = {
     thumbnail: 'Miniature (optionnel)',
     thumbnailBtn: 'Ajouter une photo',
     thumbnailChange: 'Changer',
+    select: 'Selectionner',
+    selectAll: 'Tout selectionner',
+    deleteSelected: 'Supprimer',
+    cancel: 'Annuler',
+    bulkDeleteConfirm: 'Supprimer ces lives et leurs articles ?',
   },
   en: {
     title: 'New live',
@@ -205,6 +210,11 @@ const goLiveContent = {
     thumbnail: 'Thumbnail (optional)',
     thumbnailBtn: 'Add a photo',
     thumbnailChange: 'Change',
+    select: 'Select',
+    selectAll: 'Select all',
+    deleteSelected: 'Delete',
+    cancel: 'Cancel',
+    bulkDeleteConfirm: 'Delete these lives and their items?',
   },
   he: {
     title: 'שידור חדש',
@@ -226,8 +236,13 @@ const goLiveContent = {
     edit: 'עריכה',
     delete: 'מחק',
     thumbnail: 'תמונה ממוזערת (אופציונלי)',
-    thumbnailBtn: 'הוסף תמונה',
-    thumbnailChange: 'שנה',
+    thumbnailBtn: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D4',
+    thumbnailChange: '\u05E9\u05E0\u05D4',
+    select: '\u05D1\u05D7\u05E8',
+    selectAll: '\u05D1\u05D7\u05E8 \u05D4\u05DB\u05DC',
+    deleteSelected: '\u05DE\u05D7\u05E7',
+    cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
+    bulkDeleteConfirm: '\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05DC\u05D4\u05DD?',
   },
   es: {
     title: 'Nuevo directo',
@@ -251,11 +266,18 @@ const goLiveContent = {
     thumbnail: 'Miniatura (opcional)',
     thumbnailBtn: 'Agregar una foto',
     thumbnailChange: 'Cambiar',
+    select: 'Seleccionar',
+    selectAll: 'Seleccionar todo',
+    deleteSelected: 'Eliminar',
+    cancel: 'Cancelar',
+    bulkDeleteConfirm: '\u00BFEliminar estos directos y sus art\u00EDculos?',
   },
 }
 
 export default function GoLivePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const manageMode = searchParams.get('manage') === 'true'
   const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = goLiveContent[lang] || goLiveContent.fr
@@ -301,6 +323,8 @@ export default function GoLivePage() {
     item_count?: number
   }
   const [myStreams, setMyStreams] = useState<MyStream[]>([])
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) return
@@ -334,6 +358,35 @@ export default function GoLivePage() {
     const { error: delErr } = await supabase.from('streams').delete().eq('id', streamId)
     if (!delErr) {
       setMyStreams(prev => prev.filter(s => s.id !== streamId))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return
+    if (!confirm((ct as any).bulkDeleteConfirm || ct.deleteConfirm)) return
+    for (const id of selectedIds) {
+      await supabase.from('items').delete().eq('stream_id', id)
+      await supabase.from('streams').delete().eq('id', id)
+    }
+    setMyStreams(prev => prev.filter(s => !selectedIds.has(s.id)))
+    setSelectedIds(new Set())
+    setSelectionMode(false)
+  }
+
+  const toggleSelectStream = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === myStreams.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(myStreams.map(s => s.id)))
     }
   }
 
@@ -635,12 +688,12 @@ export default function GoLivePage() {
             <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.title}</h1>
+        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{manageMode ? ct.myLives : ct.title}</h1>
       </div>
 
       <div style={{ padding: '24px 20px' }}>
         {/* Icon */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+        {!manageMode && <><div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
             background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
@@ -833,18 +886,53 @@ export default function GoLivePage() {
           }}
         >
           {ct.cancel}
-        </button>
+        </button></>}
 
         {/* My Lives section */}
-        {myStreams.length > 0 && (
-          <div style={{ marginTop: '40px' }}>
-            <h2 style={{
-              fontSize: '16px', fontWeight: 800, color: '#fff',
-              marginBottom: '16px', letterSpacing: '0.5px',
-            }}>
-              {ct.myLives}
-            </h2>
+        {(myStreams.length > 0 || manageMode) && (
+          <div style={{ marginTop: manageMode ? '0' : '40px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h2 style={{
+                fontSize: '16px', fontWeight: 800, color: '#fff',
+                margin: 0, letterSpacing: '0.5px',
+              }}>
+                {!manageMode && ct.myLives}
+              </h2>
+              {myStreams.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {selectionMode && (
+                    <button
+                      onClick={toggleSelectAll}
+                      style={{
+                        padding: '6px 12px', borderRadius: '8px',
+                        background: 'transparent', border: '1px solid #333',
+                        color: '#ccc', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      {(ct as any).selectAll || 'Tout selectionner'}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()) }}
+                    style={{
+                      padding: '6px 12px', borderRadius: '8px',
+                      background: selectionMode ? 'rgba(232,52,78,0.1)' : 'transparent',
+                      border: selectionMode ? '1px solid rgba(232,52,78,0.3)' : '1px solid #333',
+                      color: selectionMode ? '#E8344E' : '#ccc',
+                      fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {selectionMode ? ((ct as any).cancel || 'Annuler') : ((ct as any).select || 'Selectionner')}
+                  </button>
+                </div>
+              )}
+            </div>
 
+            {myStreams.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <p style={{ fontSize: '14px', color: '#666' }}>{ct.noLives}</p>
+              </div>
+            ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {myStreams.map(stream => {
                 const isLive = stream.status === 'live'
@@ -854,18 +942,38 @@ export default function GoLivePage() {
                 const statusColor = stream.status === 'live' ? '#E8344E'
                   : stream.status === 'scheduled' ? '#F0908A'
                   : '#555'
+                const isSelected = selectedIds.has(stream.id)
 
                 return (
                   <div
                     key={stream.id}
+                    onClick={selectionMode ? () => toggleSelectStream(stream.id) : undefined}
                     style={{
                       backgroundColor: '#111',
-                      border: isLive ? '1px solid rgba(232,52,78,0.4)' : '1px solid #222',
+                      border: isSelected ? '1px solid #E8344E' : isLive ? '1px solid rgba(232,52,78,0.4)' : '1px solid #222',
                       borderRadius: '14px',
                       padding: '14px',
+                      cursor: selectionMode ? 'pointer' : undefined,
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                      {/* Selection checkbox */}
+                      {selectionMode && (
+                        <div style={{
+                          width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
+                          border: isSelected ? '2px solid #E8344E' : '2px solid #444',
+                          backgroundColor: isSelected ? '#E8344E' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          marginTop: '2px',
+                        }}>
+                          {isSelected && (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+                              <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          )}
+                        </div>
+                      )}
+
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                           <span style={{
@@ -904,7 +1012,8 @@ export default function GoLivePage() {
                         </p>
                       </div>
 
-                      {/* Actions */}
+                      {/* Actions (hidden in selection mode) */}
+                      {!selectionMode && (
                       <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                         {/* Edit — go to PrepareLivePage */}
                         <button
@@ -938,14 +1047,44 @@ export default function GoLivePage() {
                             {ct.delete}
                           </button>
                       </div>
+                      )}
                     </div>
                   </div>
                 )
               })}
             </div>
+            )}
           </div>
         )}
       </div>
+
+      {/* Bulk delete floating bar */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          padding: '16px 20px',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+          backgroundColor: '#111', borderTop: '1px solid #222',
+          zIndex: 20,
+        }}>
+          <button
+            onClick={handleBulkDelete}
+            style={{
+              width: '100%', padding: '14px',
+              background: 'linear-gradient(135deg, #E8344E, #c42040)',
+              borderRadius: '14px', border: 'none',
+              color: '#fff', fontSize: '15px', fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+            {(ct as any).deleteSelected || 'Supprimer'} ({selectedIds.size})
+          </button>
+        </div>
+      )}
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

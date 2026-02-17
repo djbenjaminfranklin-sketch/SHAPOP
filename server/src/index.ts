@@ -853,6 +853,34 @@ app.get('/api/streams', async (req: Request, res: Response) => {
   }
 })
 
+// =============================================
+// DIRECT SALES — AI Express items (public)
+// =============================================
+app.get('/api/items/direct-sales', async (req: Request, res: Response) => {
+  try {
+    const { category } = req.query
+
+    let query = supabase
+      .from('items')
+      .select('*, seller:profiles!seller_id(display_name, avatar_url)')
+      .is('stream_id', null)
+      .eq('ai_generated', true)
+      .in('status', ['draft', 'pending', 'active'])
+      .order('created_at', { ascending: false })
+
+    if (category && typeof category === 'string') query = query.eq('category', category)
+
+    const { data, error } = await query.limit(50)
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch direct sales items' })
+      return
+    }
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 app.get('/api/streams/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
@@ -1252,6 +1280,11 @@ Return ONLY the JSON, no other text.`
       return
     }
 
+    // ai_confidence comes as 0-1 from this prompt, but normalize just in case
+    const confidence = listing.confidence != null
+      ? (Number(listing.confidence) > 1 ? Number(listing.confidence) / 100 : Number(listing.confidence))
+      : null
+
     const { data: item, error } = await supabase.from('items').insert({
       seller_id,
       title: listing.title,
@@ -1266,7 +1299,7 @@ Return ONLY the JSON, no other text.`
       ai_generated: true,
       ai_tags: listing.tags,
       ai_condition: listing.condition,
-      ai_confidence: listing.confidence,
+      ai_confidence: confidence,
       status: 'draft',
     }).select().single()
 
@@ -2081,6 +2114,10 @@ app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequ
     }
 
     const price = parseFloat(starting_price) || 0
+    // ai_confidence comes as 70-98 from the AI but DB expects 0-1 (numeric(3,2))
+    const normalizedConfidence = ai_confidence != null
+      ? (ai_confidence > 1 ? ai_confidence / 100 : ai_confidence)
+      : null
 
     const { data, error } = await supabase.from('items').insert({
       seller_id: userId,
@@ -2093,7 +2130,7 @@ app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequ
       ai_generated: ai_generated || false,
       ai_tags: ai_tags || [],
       ai_condition: ai_condition || null,
-      ai_confidence: ai_confidence || null,
+      ai_confidence: normalizedConfidence,
       status: 'draft',
     }).select('id').single()
 
@@ -2375,9 +2412,15 @@ app.get('/api/stripe/account-status', requireAuth, async (req: AuthenticatedRequ
 
     const { data: seller } = await supabase
       .from('sellers')
-      .select('stripe_account_id')
+      .select('stripe_account_id, bank_choice, paypal_email')
       .eq('id', userId)
       .single()
+
+    // PayPal sellers: considered connected if they have a paypal_email
+    if (seller?.bank_choice === 'paypal' && seller?.paypal_email) {
+      res.json({ connected: true, charges_enabled: true, payouts_enabled: true, payment_method: 'paypal' })
+      return
+    }
 
     if (!seller?.stripe_account_id) {
       res.json({ connected: false })
@@ -2392,6 +2435,7 @@ app.get('/api/stripe/account-status', requireAuth, async (req: AuthenticatedRequ
       payouts_enabled: account.payouts_enabled,
       details_submitted: account.details_submitted,
       account_id: seller.stripe_account_id,
+      payment_method: 'stripe',
     })
   } catch (err) {
     console.error('Stripe status error:', err)
@@ -4123,11 +4167,13 @@ async function handleAutoSanction(userId: string, flagLabel: string): Promise<vo
 
 app.post('/api/chat/send', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { stream_id, message } = req.body
+    const { stream_id, message, type } = req.body
     if (!stream_id || !message || typeof message !== 'string') {
       res.status(400).json({ error: 'stream_id and message are required' })
       return
     }
+
+    const msgType = type === 'reaction' ? 'reaction' : 'message'
 
     const trimmed = message.trim().slice(0, 500) // Max 500 chars
     if (!trimmed) {
@@ -4135,13 +4181,15 @@ app.post('/api/chat/send', requireAuth, async (req: AuthenticatedRequest, res: R
       return
     }
 
-    const flagReason = detectContactInfo(trimmed)
+    // Skip contact-info flagging for reactions
+    const flagReason = msgType === 'reaction' ? null : detectContactInfo(trimmed)
     const isFlagged = flagReason !== null
 
     const { data, error } = await supabase.from('chat_messages').insert({
       stream_id,
       user_id: req.user!.id,
       message: trimmed,
+      type: msgType,
       is_flagged: isFlagged,
       flag_reason: flagReason,
     }).select('*').single()
@@ -4857,6 +4905,89 @@ app.get('/api/follow/:sellerId/status', requireAuth, async (req: AuthenticatedRe
       .single()
 
     res.json({ following: !!data })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// FAVORITES
+// =============================================
+
+// Add a stream to favorites (upsert)
+app.post('/api/favorites/:stream_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const streamId = req.params.stream_id
+
+    const { error } = await supabase
+      .from('stream_favorites')
+      .upsert({ user_id: userId, stream_id: streamId }, { onConflict: 'user_id,stream_id' })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to add favorite' })
+      return
+    }
+    res.json({ status: 'favorited' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Remove a stream from favorites
+app.delete('/api/favorites/:stream_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const streamId = req.params.stream_id
+
+    const { error } = await supabase
+      .from('stream_favorites')
+      .delete()
+      .eq('user_id', userId)
+      .eq('stream_id', streamId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to remove favorite' })
+      return
+    }
+    res.json({ status: 'unfavorited' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Get all favorited streams with seller info
+app.get('/api/favorites', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: favs, error } = await supabase
+      .from('stream_favorites')
+      .select('stream_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch favorites' })
+      return
+    }
+
+    if (!favs || favs.length === 0) {
+      res.json([])
+      return
+    }
+
+    const streamIds = favs.map(f => f.stream_id)
+    const { data: streams } = await supabase
+      .from('streams')
+      .select('*, seller:profiles!seller_id(display_name, avatar_url, store_name)')
+      .in('id', streamIds)
+
+    // Preserve favorites order
+    const streamMap = new Map((streams || []).map(s => [s.id, s]))
+    const ordered = streamIds.map(id => streamMap.get(id)).filter(Boolean)
+
+    res.json(ordered)
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }

@@ -653,6 +653,7 @@ export default function StreamView() {
           .from('chat_messages')
           .select('*, user_profile:profiles!user_id(display_name)')
           .eq('stream_id', id)
+          .neq('type', 'reaction')
           .order('created_at', { ascending: true })
           .limit(100)
         setMessages(data || [])
@@ -677,6 +678,9 @@ export default function StreamView() {
       table: 'chat_messages',
       filter: `stream_id=eq.${id}`,
     }, async (payload) => {
+      const newMsg = payload.new as ChatMessage
+      // Skip reactions — they don't go in the chat list
+      if (newMsg.type === 'reaction') return
       try {
         const { data: enriched } = await supabase
           .from('chat_messages')
@@ -963,6 +967,22 @@ export default function StreamView() {
   const handleViewerReaction = useCallback(() => {
     setReactionCount(prev => prev + 1)
   }, [])
+
+  const sendReactionToServer = useCallback(async (emoji: string) => {
+    if (!user || !id) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      await apiFetch('/api/chat/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ stream_id: id, message: emoji, type: 'reaction' }),
+      })
+    } catch {
+      // silently ignore reaction send failures
+    }
+  }, [user, id])
 
   // ═══ SELLER CAMERA CONTROLS ═══
   const handleFlipCamera = async () => {
@@ -1769,7 +1789,7 @@ export default function StreamView() {
 
         {/* Viewer reaction buttons — show when live OR when LiveKit viewer is connected */}
         {!isSeller && (isLive || viewerLkToken) && user && (
-          <ViewerReactions onReaction={handleViewerReaction} />
+          <ViewerReactions onReaction={handleViewerReaction} sendReaction={sendReactionToServer} />
         )}
 
         {/* Active auction + bid */}

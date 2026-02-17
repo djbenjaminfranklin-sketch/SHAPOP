@@ -4,7 +4,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
-import type { Order, Item } from '../types/database'
+import type { Order, Item, Stream } from '../types/database'
+import StreamCard from '../components/StreamCard'
+
+type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
 type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
@@ -33,7 +36,9 @@ export default function ActivityPage() {
   const lang = getLang()
   const location = useLocation()
   const navigate = useNavigate()
-  const initialTab = (location.state as { tab?: MainTab })?.tab || 'purchases'
+  const rawInitialTab = (location.state as { tab?: MainTab })?.tab || 'purchases'
+  // Messages tab is a real page now — redirect if someone navigates here with tab=messages
+  const initialTab = rawInitialTab === 'messages' ? 'purchases' : rawInitialTab
 
   const [mainTab, setMainTab] = useState<MainTab>(initialTab)
   const [subFilter, setSubFilter] = useState<SubFilter>('all')
@@ -69,6 +74,10 @@ export default function ActivityPage() {
 
   // Confirm delivery loading
   const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null)
+
+  // Favorites states
+  const [favorites, setFavorites] = useState<StreamWithSeller[]>([])
+  const [loadingFavorites, setLoadingFavorites] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
 
@@ -189,6 +198,43 @@ export default function ActivityPage() {
     }
   }
 
+  // Fetch favorited streams
+  const fetchFavorites = useCallback(async () => {
+    if (!user) return
+    setLoadingFavorites(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await apiFetch('/api/favorites', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setFavorites(data as StreamWithSeller[])
+      }
+    } catch (err) {
+      console.error('Failed to fetch favorites:', err)
+    } finally {
+      setLoadingFavorites(false)
+    }
+  }, [user])
+
+  // Toggle favorite from the favorites tab
+  const handleToggleFavorite = useCallback(async (streamId: string) => {
+    if (!user) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await apiFetch(`/api/favorites/${streamId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      setFavorites(prev => prev.filter(s => s.id !== streamId))
+    } catch (err) {
+      console.error('Unfavorite error:', err)
+    }
+  }, [user])
+
   // Fetch data on mount and when tab changes
   useEffect(() => {
     if (mainTab === 'purchases') {
@@ -197,8 +243,10 @@ export default function ActivityPage() {
       fetchSales()
     } else if (mainTab === 'following') {
       fetchFollowing()
+    } else if (mainTab === 'favorites') {
+      fetchFavorites()
     }
-  }, [mainTab, fetchPurchases, fetchSales, fetchFollowing])
+  }, [mainTab, fetchPurchases, fetchSales, fetchFollowing, fetchFavorites])
 
   // Upload shipping proofs and mark order as shipped
   const handleShipOrder = async () => {
@@ -326,6 +374,8 @@ export default function ActivityPage() {
       comingSoonFollowing: 'Le suivi de tes vendeurs preferes arrive bientot',
       comingSoonMessages: 'La messagerie directe arrive bientot',
       comingSoonFavorites: 'Les favoris arrivent bientot',
+      emptyFavorites: 'Aucun favori pour le moment',
+      emptyFavoritesDesc: 'Appuie sur le coeur d\'un live pour l\'ajouter ici',
       statusPendingPayment: 'En attente',
       statusPaid: 'Paye',
       statusShipped: 'Expedie',
@@ -381,6 +431,8 @@ export default function ActivityPage() {
       comingSoonFollowing: 'Follow your favorite sellers soon',
       comingSoonMessages: 'Direct messaging is coming soon',
       comingSoonFavorites: 'Favorites are coming soon',
+      emptyFavorites: 'No favorites yet',
+      emptyFavoritesDesc: 'Tap the heart on a live to add it here',
       statusPendingPayment: 'Pending',
       statusPaid: 'Paid',
       statusShipped: 'Shipped',
@@ -436,6 +488,8 @@ export default function ActivityPage() {
       comingSoonFollowing: '\u05DE\u05E2\u05E7\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD \u05D1\u05E7\u05E8\u05D5\u05D1',
       comingSoonMessages: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05D1\u05E7\u05E8\u05D5\u05D1',
       comingSoonFavorites: '\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD \u05D1\u05E7\u05E8\u05D5\u05D1',
+      emptyFavorites: '\u05D0\u05D9\u05DF \u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD \u05E2\u05D3\u05D9\u05D9\u05DF',
+      emptyFavoritesDesc: '\u05DC\u05D7\u05E5 \u05E2\u05DC \u05D4\u05DC\u05D1 \u05E9\u05DC \u05E9\u05D9\u05D3\u05D5\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05D5\u05EA\u05D5 \u05DC\u05DB\u05D0\u05DF',
       statusPendingPayment: '\u05DE\u05DE\u05EA\u05D9\u05DF',
       statusPaid: '\u05E9\u05D5\u05DC\u05DD',
       statusShipped: '\u05E0\u05E9\u05DC\u05D7',
@@ -491,6 +545,8 @@ export default function ActivityPage() {
       comingSoonFollowing: 'Sigue a tus vendedores favoritos pronto',
       comingSoonMessages: 'Mensajeria directa proximamente',
       comingSoonFavorites: 'Favoritos proximamente',
+      emptyFavorites: 'Sin favoritos todavia',
+      emptyFavoritesDesc: 'Pulsa el corazon de un directo para agregarlo aqui',
       statusPendingPayment: 'Pendiente',
       statusPaid: 'Pagado',
       statusShipped: 'Enviado',
@@ -1091,7 +1147,48 @@ export default function ActivityPage() {
   }
 
   const renderMessages = () => renderComingSoon('\uD83D\uDCAC', lt.comingSoonMessages)
-  const renderFavorites = () => renderComingSoon('\u2764\uFE0F', lt.comingSoonFavorites)
+  const renderFavorites = () => {
+    if (loadingFavorites) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+          <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      )
+    }
+    if (favorites.length === 0) {
+      return (
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
+          opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(15px)',
+          transition: 'all 0.5s ease 0.2s',
+        }}>
+          <div style={{
+            width: '80px', height: '80px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+            {(lt as any).emptyFavorites || 'Aucun favori'}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
+            {(lt as any).emptyFavoritesDesc || 'Appuie sur le coeur d\'un live pour l\'ajouter ici'}
+          </p>
+        </div>
+      )
+    }
+    return (
+      <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 12px' }}>
+        {favorites.map(stream => (
+          <StreamCard key={stream.id} stream={stream} isFavorited onToggleFavorite={handleToggleFavorite} />
+        ))}
+      </div>
+    )
+  }
 
   const renderContent = () => {
     switch (mainTab) {
