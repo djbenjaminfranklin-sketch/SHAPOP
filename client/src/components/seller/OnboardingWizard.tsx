@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+import { apiFetch } from '../../lib/api'
 import { getLang, t as i18nT } from '../../lib/i18n'
 import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
@@ -57,6 +58,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const [address, setAddress] = useState({ street: '', city: '', zip: '', country: '' })
   const [returnPolicy, setReturnPolicy] = useState('no_return')
   const [bankChoice, setBankChoice] = useState('')
+  const [paypalEmail, setPaypalEmail] = useState('')
   const [saving, setSaving] = useState(false)
 
   /* ─── Animated step transitions ─── */
@@ -129,6 +131,9 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Retours sous 30 jours',
       bankTitle: 'Configuration du paiement',
       bankDesc: 'Comment tu veux etre paye',
+      paypalEmailLabel: 'Ton email PayPal',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'L\'email associe a ton compte PayPal Business',
       next: 'Suivant',
       finish: 'Terminer',
       saving: 'Enregistrement...',
@@ -186,6 +191,9 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Returns within 30 days',
       bankTitle: 'Payment setup',
       bankDesc: 'How you want to get paid',
+      paypalEmailLabel: 'Your PayPal email',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'The email linked to your PayPal Business account',
       next: 'Next',
       finish: 'Finish',
       saving: 'Saving...',
@@ -243,6 +251,9 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'החזרות תוך 30 ימים',
       bankTitle: 'הגדרת תשלום',
       bankDesc: 'איך תרצה לקבל תשלום',
+      paypalEmailLabel: 'אימייל PayPal שלך',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'האימייל המקושר לחשבון PayPal Business שלך',
       next: 'הבא',
       finish: 'סיום',
       saving: '...שומר',
@@ -300,6 +311,9 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Devoluciones en 30 d\u00EDas',
       bankTitle: 'Configuraci\u00F3n de pago',
       bankDesc: '\u00BFC\u00F3mo quieres recibir los pagos?',
+      paypalEmailLabel: 'Tu email de PayPal',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'El email vinculado a tu cuenta PayPal Business',
       next: 'Siguiente',
       finish: 'Finalizar',
       saving: 'Guardando...',
@@ -325,7 +339,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       case 8: return liveHours !== ''
       case 9: return useExistingAddress || (address.street !== '' && address.city !== '' && address.zip !== '' && address.country !== '')
       case 10: return returnPolicy !== ''
-      case 11: return bankChoice !== ''
+      case 11: return bankChoice !== '' && (bankChoice !== 'paypal' || (paypalEmail.includes('@') && paypalEmail.includes('.')))
       default: return false
     }
   }
@@ -366,6 +380,25 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         await supabase.from('sellers').update(sellerData).eq('id', user.id)
       } else {
         await supabase.from('sellers').insert({ id: user.id, ...sellerData })
+      }
+
+      // If PayPal selected, save email via API
+      if (bankChoice === 'paypal' && paypalEmail) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session) {
+            await apiFetch('/api/paypal/save-email', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({ email: paypalEmail }),
+            })
+          }
+        } catch {
+          // PayPal email save failed — seller can retry from PaymentsPage
+        }
       }
 
       onComplete()
@@ -1118,6 +1151,30 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 </button>
               )
             })}
+
+            {/* PayPal email field */}
+            {bankChoice === 'paypal' && (
+              <div style={{ marginTop: '16px' }}>
+                <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
+                  {t.paypalEmailLabel}
+                </label>
+                <input
+                  type="email"
+                  value={paypalEmail}
+                  onChange={e => setPaypalEmail(e.target.value)}
+                  placeholder={t.paypalEmailPlaceholder}
+                  style={{
+                    width: '100%', padding: '14px 16px', borderRadius: '12px',
+                    backgroundColor: '#111', border: '1px solid #333',
+                    color: '#fff', fontSize: '15px', outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+                <p style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
+                  {t.paypalEmailHint}
+                </p>
+              </div>
+            )}
           </div>
         )
 

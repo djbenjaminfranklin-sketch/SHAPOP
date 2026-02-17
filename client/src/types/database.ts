@@ -52,6 +52,7 @@ export interface Seller {
   return_address: Record<string, string> | null
   return_policy: 'no_return' | 'exchange_only' | 'return_7' | 'return_14' | 'return_30'
   bank_choice: string | null
+  paypal_email: string | null
   onboarding_completed_at: string | null
   verified_at: string | null
   created_at: string
@@ -144,6 +145,7 @@ export interface Order {
   delivered_at: string | null
   claim_deadline: string | null
   payout_scheduled_at: string | null
+  payout_method: string
   holdback_percent: number
   payout_status: string
   created_at: string

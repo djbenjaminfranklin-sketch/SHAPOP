@@ -18,6 +18,11 @@ const content = {
     securePayments: 'Connectez Stripe pour recevoir vos paiements',
     secureDesc: 'Stripe gere vos paiements de maniere securisee. Les acheteurs paient, et vous recevez votre argent automatiquement.',
     setupPayment: 'Connecter avec Stripe',
+    selectCountry: 'Choisissez votre pays',
+    selectCountryDesc: 'Stripe a besoin de connaitre votre pays pour creer votre compte vendeur.',
+    confirm: 'Continuer',
+    cancel: 'Annuler',
+    countryNotSupported: 'Ce pays n\'est pas encore supporte par Stripe.',
     paymentConfigured: 'Stripe connecte',
     configuredDesc: 'Votre compte Stripe est actif. Vous pouvez recevoir des paiements et consulter votre tableau de bord.',
     openDashboard: 'Ouvrir mon dashboard Stripe',
@@ -50,6 +55,18 @@ const content = {
     buyerCardError: 'Erreur lors de l\'enregistrement',
     buyerNoCard: 'Aucune carte enregistree',
     buyerNoCardDesc: 'Ajoutez une carte bancaire pour pouvoir encherir sur les lives',
+    paypalConnected: 'PayPal connecte',
+    paypalConnectedDesc: 'Vos ventes seront versees sur votre compte PayPal.',
+    paypalEmail: 'Email PayPal',
+    paypalChangeEmail: 'Modifier l\'email',
+    paypalSaveEmail: 'Enregistrer',
+    paypalRecentPayouts: 'Versements recents',
+    paypalNoPayout: 'Aucun versement pour le moment',
+    paypalStatus_pending: 'En attente',
+    paypalStatus_ready: 'Pret',
+    paypalStatus_processing: 'En cours',
+    paypalStatus_completed: 'Complete',
+    paypalStatus_failed: 'Echoue',
   },
   en: {
     title: 'Payments & Shipping',
@@ -57,6 +74,11 @@ const content = {
     securePayments: 'Connect Stripe to receive payments',
     secureDesc: 'Stripe securely manages your payments. Buyers pay, and you receive your money automatically.',
     setupPayment: 'Connect with Stripe',
+    selectCountry: 'Choose your country',
+    selectCountryDesc: 'Stripe needs your country to create your seller account.',
+    confirm: 'Continue',
+    cancel: 'Cancel',
+    countryNotSupported: 'This country is not yet supported by Stripe.',
     paymentConfigured: 'Stripe connected',
     configuredDesc: 'Your Stripe account is active. You can receive payments and access your dashboard.',
     openDashboard: 'Open my Stripe dashboard',
@@ -89,6 +111,18 @@ const content = {
     buyerCardError: 'Error saving card',
     buyerNoCard: 'No card saved',
     buyerNoCardDesc: 'Add a payment card to bid on live streams',
+    paypalConnected: 'PayPal connected',
+    paypalConnectedDesc: 'Your sales will be paid out to your PayPal account.',
+    paypalEmail: 'PayPal email',
+    paypalChangeEmail: 'Change email',
+    paypalSaveEmail: 'Save',
+    paypalRecentPayouts: 'Recent payouts',
+    paypalNoPayout: 'No payouts yet',
+    paypalStatus_pending: 'Pending',
+    paypalStatus_ready: 'Ready',
+    paypalStatus_processing: 'Processing',
+    paypalStatus_completed: 'Completed',
+    paypalStatus_failed: 'Failed',
   },
   he: {
     title: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7',
@@ -96,6 +130,11 @@ const content = {
     securePayments: '\u05D7\u05D1\u05E8 \u05D0\u05EA Stripe \u05DC\u05E7\u05D1\u05DC\u05EA \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD',
     secureDesc: 'Stripe \u05DE\u05E0\u05D4\u05DC \u05D0\u05EA \u05D4\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D1\u05D0\u05D5\u05E4\u05DF \u05DE\u05D0\u05D5\u05D1\u05D8\u05D7.',
     setupPayment: '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05E2\u05DD Stripe',
+    selectCountry: '\u05D1\u05D7\u05E8 \u05DE\u05D3\u05D9\u05E0\u05D4',
+    selectCountryDesc: 'Stripe \u05E6\u05E8\u05D9\u05DA \u05DC\u05D3\u05E2\u05EA \u05D0\u05EA \u05D4\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA \u05DB\u05D3\u05D9 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D5\u05DB\u05E8.',
+    confirm: '\u05D4\u05DE\u05E9\u05DA',
+    cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
+    countryNotSupported: '\u05D4\u05DE\u05D3\u05D9\u05E0\u05D4 \u05D4\u05D6\u05D5 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05E0\u05EA\u05DE\u05DB\u05EA \u05E2\u05DC \u05D9\u05D3\u05D9 Stripe.',
     paymentConfigured: 'Stripe \u05DE\u05D7\u05D5\u05D1\u05E8',
     configuredDesc: '\u05D7\u05E9\u05D1\u05D5\u05DF Stripe \u05E9\u05DC\u05DA \u05E4\u05E2\u05D9\u05DC. \u05D0\u05EA\u05D4 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05D1\u05DC \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
     openDashboard: '\u05E4\u05EA\u05D7 \u05D3\u05E9\u05D1\u05D5\u05E8\u05D3 Stripe',
@@ -128,6 +167,18 @@ const content = {
     buyerCardError: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1',
     buyerNoCard: '\u05D0\u05D9\u05DF \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E9\u05DE\u05D5\u05E8',
     buyerNoCardDesc: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD',
+    paypalConnected: 'PayPal \u05DE\u05D7\u05D5\u05D1\u05E8',
+    paypalConnectedDesc: '\u05D4\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC\u05DA \u05D9\u05E9\u05D5\u05DC\u05DE\u05D5 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF PayPal \u05E9\u05DC\u05DA.',
+    paypalEmail: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC PayPal',
+    paypalChangeEmail: '\u05E9\u05E0\u05D4 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC',
+    paypalSaveEmail: '\u05E9\u05DE\u05D5\u05E8',
+    paypalRecentPayouts: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D0\u05D7\u05E8\u05D5\u05E0\u05D9\u05DD',
+    paypalNoPayout: '\u05D0\u05D9\u05DF \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05E2\u05D3\u05D9\u05D9\u05DF',
+    paypalStatus_pending: '\u05DE\u05DE\u05EA\u05D9\u05DF',
+    paypalStatus_ready: '\u05DE\u05D5\u05DB\u05DF',
+    paypalStatus_processing: '\u05D1\u05E2\u05D9\u05D1\u05D5\u05D3',
+    paypalStatus_completed: '\u05D4\u05D5\u05E9\u05DC\u05DD',
+    paypalStatus_failed: '\u05E0\u05DB\u05E9\u05DC',
   },
   es: {
     title: 'Pagos y Envio',
@@ -135,6 +186,11 @@ const content = {
     securePayments: 'Conecta Stripe para recibir pagos',
     secureDesc: 'Stripe gestiona tus pagos de forma segura. Los compradores pagan y tu recibes tu dinero automaticamente.',
     setupPayment: 'Conectar con Stripe',
+    selectCountry: 'Elige tu pais',
+    selectCountryDesc: 'Stripe necesita saber tu pais para crear tu cuenta de vendedor.',
+    confirm: 'Continuar',
+    cancel: 'Cancelar',
+    countryNotSupported: 'Este pais aun no es compatible con Stripe.',
     paymentConfigured: 'Stripe conectado',
     configuredDesc: 'Tu cuenta Stripe esta activa. Puedes recibir pagos y acceder a tu panel.',
     openDashboard: 'Abrir mi panel de Stripe',
@@ -167,6 +223,18 @@ const content = {
     buyerCardError: 'Error al guardar la tarjeta',
     buyerNoCard: 'Sin tarjeta guardada',
     buyerNoCardDesc: 'Agrega una tarjeta bancaria para poder pujar en los directos',
+    paypalConnected: 'PayPal conectado',
+    paypalConnectedDesc: 'Tus ventas se pagaran a tu cuenta PayPal.',
+    paypalEmail: 'Email de PayPal',
+    paypalChangeEmail: 'Cambiar email',
+    paypalSaveEmail: 'Guardar',
+    paypalRecentPayouts: 'Pagos recientes',
+    paypalNoPayout: 'Sin pagos por ahora',
+    paypalStatus_pending: 'Pendiente',
+    paypalStatus_ready: 'Listo',
+    paypalStatus_processing: 'Procesando',
+    paypalStatus_completed: 'Completado',
+    paypalStatus_failed: 'Fallido',
   },
 }
 
@@ -282,6 +350,17 @@ export default function PaymentsPage() {
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupSuccess, setSetupSuccess] = useState(false)
   const [setupError, setSetupError] = useState<string | null>(null)
+  const [showCountryPicker, setShowCountryPicker] = useState(false)
+  const [selectedCountry, setSelectedCountry] = useState('')
+
+  // PayPal seller state
+  const [sellerBankChoice, setSellerBankChoice] = useState<string | null>(null)
+  const [paypalEmail, setPaypalEmail] = useState('')
+  const [paypalEditEmail, setPaypalEditEmail] = useState('')
+  const [paypalEditing, setPaypalEditing] = useState(false)
+  const [paypalSaving, setPaypalSaving] = useState(false)
+  const [paypalPayouts, setPaypalPayouts] = useState<Array<{ id: string; order_id: string; amount: number; currency: string; status: string; error_message: string | null; completed_at: string | null; created_at: string }>>([])
+
   const [shippingPref, setShippingPref] = useState<number>(() => {
     const saved = localStorage.getItem('shippingPref')
     return saved !== null ? Number(saved) : 0
@@ -313,6 +392,65 @@ export default function PaymentsPage() {
     }
     setLoading(false)
   }, [profile?.is_seller])
+
+  // Fetch PayPal status for seller
+  const fetchPaypalStatus = useCallback(async () => {
+    if (!profile?.is_seller) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      // Fetch seller bank_choice from DB
+      const { data: seller } = await supabase
+        .from('sellers')
+        .select('bank_choice, paypal_email')
+        .eq('id', session.user.id)
+        .single()
+      if (seller) {
+        setSellerBankChoice(seller.bank_choice)
+        if (seller.paypal_email) {
+          setPaypalEmail(seller.paypal_email)
+          setPaypalEditEmail(seller.paypal_email)
+        }
+      }
+      // Fetch payouts
+      if (seller?.bank_choice === 'paypal') {
+        const res = await apiFetch('/api/paypal/payout-status', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setPaypalPayouts(data.payouts || [])
+        }
+      }
+    } catch {
+      console.warn('PayPal status check failed')
+    }
+  }, [profile?.is_seller])
+
+  const savePaypalEmail = async () => {
+    if (!paypalEditEmail.includes('@')) return
+    setPaypalSaving(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await apiFetch('/api/paypal/save-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ email: paypalEditEmail }),
+      })
+      if (res.ok) {
+        setPaypalEmail(paypalEditEmail)
+        setPaypalEditing(false)
+        showToast(lang === 'fr' ? 'Email PayPal sauvegarde' : 'PayPal email saved', 'success')
+      }
+    } catch {
+      showToast(lang === 'fr' ? 'Erreur' : 'Error', 'error')
+    }
+    setPaypalSaving(false)
+  }
 
   // Fetch buyer card info
   const fetchCardInfo = useCallback(async () => {
@@ -371,6 +509,10 @@ export default function PaymentsPage() {
     fetchCardInfo()
   }, [fetchCardInfo])
 
+  useEffect(() => {
+    fetchPaypalStatus()
+  }, [fetchPaypalStatus])
+
   // Handle return from Stripe onboarding
   useEffect(() => {
     if (searchParams.get('stripe') === 'success') {
@@ -387,7 +529,29 @@ export default function PaymentsPage() {
     return () => { listener?.remove() }
   }, [fetchStatus])
 
-  const handleConnect = async () => {
+  // Stripe Connect supported countries
+  const stripeCountries = [
+    { code: 'FR', flag: '\uD83C\uDDEB\uD83C\uDDF7', name: { fr: 'France', en: 'France', he: '\u05E6\u05E8\u05E4\u05EA', es: 'Francia' } },
+    { code: 'ES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: { fr: 'Espagne', en: 'Spain', he: '\u05E1\u05E4\u05E8\u05D3', es: 'Espana' } },
+    { code: 'US', flag: '\uD83C\uDDFA\uD83C\uDDF8', name: { fr: 'Etats-Unis', en: 'United States', he: '\u05D0\u05E8\u05D4"\u05D1', es: 'Estados Unidos' } },
+    { code: 'GB', flag: '\uD83C\uDDEC\uD83C\uDDE7', name: { fr: 'Royaume-Uni', en: 'United Kingdom', he: '\u05D1\u05E8\u05D9\u05D8\u05E0\u05D9\u05D4', es: 'Reino Unido' } },
+    { code: 'DE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: { fr: 'Allemagne', en: 'Germany', he: '\u05D2\u05E8\u05DE\u05E0\u05D9\u05D4', es: 'Alemania' } },
+    { code: 'IT', flag: '\uD83C\uDDEE\uD83C\uDDF9', name: { fr: 'Italie', en: 'Italy', he: '\u05D0\u05D9\u05D8\u05DC\u05D9\u05D4', es: 'Italia' } },
+    { code: 'PT', flag: '\uD83C\uDDF5\uD83C\uDDF9', name: { fr: 'Portugal', en: 'Portugal', he: '\u05E4\u05D5\u05E8\u05D8\u05D5\u05D2\u05DC', es: 'Portugal' } },
+    { code: 'BR', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: { fr: 'Bresil', en: 'Brazil', he: '\u05D1\u05E8\u05D6\u05D9\u05DC', es: 'Brasil' } },
+    { code: 'JP', flag: '\uD83C\uDDEF\uD83C\uDDF5', name: { fr: 'Japon', en: 'Japan', he: '\u05D9\u05E4\u05DF', es: 'Japon' } },
+    { code: 'CA', flag: '\uD83C\uDDE8\uD83C\uDDE6', name: { fr: 'Canada', en: 'Canada', he: '\u05E7\u05E0\u05D3\u05D4', es: 'Canada' } },
+    { code: 'MA', flag: '\uD83C\uDDF2\uD83C\uDDE6', name: { fr: 'Maroc', en: 'Morocco', he: '\u05DE\u05E8\u05D5\u05E7\u05D5', es: 'Marruecos' } },
+  ]
+
+  const handleConnect = async (country?: string) => {
+    const countryToUse = country || selectedCountry
+    if (!countryToUse) {
+      // Show country picker first
+      setShowCountryPicker(true)
+      return
+    }
+    setShowCountryPicker(false)
     setConnecting(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -398,7 +562,7 @@ export default function PaymentsPage() {
           Authorization: `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ country: profile?.country || 'FR' }),
+        body: JSON.stringify({ country: countryToUse }),
       })
       const data = await res.json()
       if (data.url) {
@@ -457,6 +621,134 @@ export default function PaymentsPage() {
         {/* Payment Methods */}
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{c.payTitle}</h2>
 
+        {/* PayPal seller section */}
+        {profile?.is_seller && sellerBankChoice === 'paypal' && (
+          <div style={{
+            backgroundColor: '#111', borderRadius: '14px', padding: '24px',
+            marginBottom: '16px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, #003087, #009CDE)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '16px', fontWeight: 700, color: '#009CDE', margin: '0 0 2px' }}>
+                  {c.paypalConnected}
+                </p>
+                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                  {c.paypalConnectedDesc}
+                </p>
+              </div>
+            </div>
+
+            {/* PayPal email */}
+            <div style={{
+              backgroundColor: '#0A0A0A', borderRadius: '10px', padding: '14px',
+              marginBottom: '12px',
+            }}>
+              <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px' }}>{c.paypalEmail}</p>
+              {paypalEditing ? (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="email"
+                    value={paypalEditEmail}
+                    onChange={e => setPaypalEditEmail(e.target.value)}
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: '8px',
+                      backgroundColor: '#111', border: '1px solid #333',
+                      color: '#fff', fontSize: '14px', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={savePaypalEmail}
+                    disabled={paypalSaving}
+                    style={{
+                      padding: '10px 16px', borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #003087, #009CDE)',
+                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                      cursor: 'pointer', opacity: paypalSaving ? 0.6 : 1,
+                    }}
+                  >
+                    {c.paypalSaveEmail}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontSize: '15px', color: '#fff', fontWeight: 600, margin: 0 }}>
+                    {paypalEmail || '—'}
+                  </p>
+                  <button
+                    onClick={() => setPaypalEditing(true)}
+                    style={{
+                      padding: '6px 12px', borderRadius: '8px',
+                      background: 'transparent', border: '1px solid #333',
+                      color: '#888', fontSize: '12px', cursor: 'pointer',
+                    }}
+                  >
+                    {c.paypalChangeEmail}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Recent payouts */}
+            {paypalPayouts.length > 0 && (
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#888', margin: '16px 0 8px' }}>
+                  {c.paypalRecentPayouts}
+                </p>
+                {paypalPayouts.slice(0, 5).map(p => {
+                  const statusColors: Record<string, string> = {
+                    pending: '#F59E0B',
+                    ready: '#3B82F6',
+                    processing: '#8B5CF6',
+                    completed: '#22C55E',
+                    failed: '#E8344E',
+                  }
+                  const statusKey = `paypalStatus_${p.status}` as keyof typeof c
+                  return (
+                    <div key={p.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 0', borderBottom: '1px solid #1A1A1A',
+                    }}>
+                      <div>
+                        <p style={{ fontSize: '14px', color: '#fff', margin: '0 0 2px', fontWeight: 600 }}>
+                          {p.amount.toFixed(2)} {p.currency}
+                        </p>
+                        <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>
+                          {new Date(p.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <span style={{
+                        fontSize: '12px', fontWeight: 600,
+                        color: statusColors[p.status] || '#888',
+                        padding: '4px 10px', borderRadius: '6px',
+                        backgroundColor: `${statusColors[p.status] || '#888'}15`,
+                      }}>
+                        {c[statusKey] || p.status}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {paypalPayouts.length === 0 && paypalEmail && (
+              <p style={{ fontSize: '13px', color: '#555', textAlign: 'center', margin: '8px 0 0' }}>
+                {c.paypalNoPayout}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Stripe seller section (hidden if PayPal seller) */}
+        {sellerBankChoice !== 'paypal' && (
         <div style={{
           backgroundColor: '#111', borderRadius: '14px', padding: '24px',
           textAlign: 'center', marginBottom: '16px',
@@ -572,6 +864,7 @@ export default function PaymentsPage() {
             </>
           )}
         </div>
+        )}
 
         {/* Buyer card section */}
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px', marginTop: '24px' }}>
@@ -767,6 +1060,78 @@ export default function PaymentsPage() {
           <p style={{ fontSize: '11px', color: '#555', padding: '8px 16px 12px', textAlign: 'right' }}>{c.savedLocally}</p>
         </div>
       </div>
+
+      {/* Country picker modal */}
+      {showCountryPicker && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '20px',
+        }}
+          onClick={() => setShowCountryPicker(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#111', borderRadius: '16px',
+              padding: '24px', width: '100%', maxWidth: '360px',
+              maxHeight: '80vh', display: 'flex', flexDirection: 'column',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '8px', textAlign: 'center' }}>
+              {c.selectCountry}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#888', textAlign: 'center', marginBottom: '20px', lineHeight: 1.5 }}>
+              {c.selectCountryDesc}
+            </p>
+            <div style={{ overflowY: 'auto', flex: 1, marginBottom: '16px' }}>
+              {stripeCountries.map(ct => (
+                <button
+                  key={ct.code}
+                  onClick={() => setSelectedCountry(ct.code)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '12px 14px', marginBottom: '4px',
+                    borderRadius: '10px', border: 'none', cursor: 'pointer',
+                    backgroundColor: selectedCountry === ct.code ? 'rgba(99,102,241,0.15)' : 'transparent',
+                    outline: selectedCountry === ct.code ? '2px solid #6366F1' : '2px solid transparent',
+                  }}
+                >
+                  <span style={{ fontSize: '22px' }}>{ct.flag}</span>
+                  <span style={{ fontSize: '15px', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400 }}>
+                    {ct.name[lang] || ct.name.en}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => { if (selectedCountry) handleConnect(selectedCountry) }}
+              disabled={!selectedCountry || connecting}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                background: selectedCountry ? 'linear-gradient(135deg, #6772E5, #4F46E5)' : '#333',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: selectedCountry ? 'pointer' : 'not-allowed',
+                opacity: connecting ? 0.6 : 1,
+                marginBottom: '8px',
+              }}
+            >
+              {connecting ? c.connecting : c.confirm}
+            </button>
+            <button
+              onClick={() => setShowCountryPicker(false)}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '10px',
+                backgroundColor: 'transparent', border: '1px solid #333',
+                color: '#888', fontSize: '14px', cursor: 'pointer',
+              }}
+            >
+              {c.cancel}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

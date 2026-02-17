@@ -69,6 +69,36 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_missing', {
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 // =============================================
+// PayPal Payouts config
+// =============================================
+const PAYPAL_MODE = process.env.PAYPAL_MODE || 'sandbox'
+const PAYPAL_BASE_URL = PAYPAL_MODE === 'live'
+  ? 'https://api-m.paypal.com'
+  : 'https://api-m.sandbox.paypal.com'
+
+async function getPaypalAccessToken(): Promise<string> {
+  const clientId = process.env.PAYPAL_CLIENT_ID
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET
+  if (!clientId || !clientSecret) throw new Error('PayPal credentials not configured')
+
+  const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+  const resp = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: 'grant_type=client_credentials',
+  })
+  if (!resp.ok) {
+    const text = await resp.text()
+    throw new Error(`PayPal OAuth failed: ${resp.status} ${text}`)
+  }
+  const data = await resp.json() as { access_token: string }
+  return data.access_token
+}
+
+// =============================================
 // APNs Push Notifications (iOS)
 // =============================================
 const APNS_KEY_ID = process.env.APNS_KEY_ID || ''
@@ -257,6 +287,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
 
           let holdbackPercent = 0
           let payoutScheduledAt: string | null = null
+          let payoutMethod = 'stripe'
 
           if (orderData) {
             const { data: trust } = await supabase
@@ -271,6 +302,17 @@ async function stripeWebhookHandler(req: Request, res: Response) {
               payoutDate.setDate(payoutDate.getDate() + trust.payout_delay_days)
               payoutScheduledAt = payoutDate.toISOString()
             }
+
+            // Check if seller uses PayPal
+            const { data: sellerInfo } = await supabase
+              .from('sellers')
+              .select('bank_choice, paypal_email')
+              .eq('id', orderData.seller_id)
+              .single()
+
+            if (sellerInfo?.bank_choice === 'paypal' && sellerInfo?.paypal_email) {
+              payoutMethod = 'paypal'
+            }
           }
 
           await supabase
@@ -280,8 +322,31 @@ async function stripeWebhookHandler(req: Request, res: Response) {
               paid_at: new Date().toISOString(),
               holdback_percent: holdbackPercent,
               payout_scheduled_at: payoutScheduledAt,
+              payout_method: payoutMethod,
             })
             .eq('id', orderId)
+
+          // If PayPal seller, create a paypal_payouts record
+          if (payoutMethod === 'paypal' && orderData) {
+            const { data: sellerInfo } = await supabase
+              .from('sellers')
+              .select('paypal_email')
+              .eq('id', orderData.seller_id)
+              .single()
+
+            if (sellerInfo?.paypal_email) {
+              const fees = calculateFees(pi.amount / 100)
+              await supabase.from('paypal_payouts').insert({
+                order_id: orderId,
+                seller_id: orderData.seller_id,
+                paypal_email: sellerInfo.paypal_email,
+                amount: fees.sellerPayout,
+                currency: 'EUR',
+                status: 'pending',
+              })
+              console.log(`[PayPal] Created payout record for order ${orderId} (${fees.sellerPayout} EUR)`)
+            }
+          }
 
           // Auto-create conversation between buyer and seller
           if (orderData) {
@@ -302,7 +367,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
             }
           }
 
-          console.log(`[Stripe] Order ${orderId} marked as paid (holdback: ${holdbackPercent}%)`)
+          console.log(`[Stripe] Order ${orderId} marked as paid (holdback: ${holdbackPercent}%, payout: ${payoutMethod})`)
         }
         break
       }
@@ -2498,23 +2563,28 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
       return
     }
 
-    // Get seller's Stripe account
+    // Get seller info (Stripe account + PayPal choice)
     const { data: seller } = await supabase
       .from('sellers')
-      .select('stripe_account_id')
+      .select('stripe_account_id, bank_choice, paypal_email')
       .eq('id', order.seller_id)
       .single()
 
-    if (!seller?.stripe_account_id) {
-      res.status(400).json({ error: 'Seller has not connected Stripe' })
-      return
-    }
+    const isPaypalSeller = seller?.bank_choice === 'paypal' && seller?.paypal_email
 
-    // Verify seller's Stripe account can accept payments
-    const sellerAccount = await stripe.accounts.retrieve(seller.stripe_account_id)
-    if (!sellerAccount.charges_enabled) {
-      res.status(400).json({ error: 'Seller Stripe account is not fully onboarded' })
-      return
+    if (!isPaypalSeller) {
+      // Stripe seller: must have a connected Stripe account
+      if (!seller?.stripe_account_id) {
+        res.status(400).json({ error: 'Seller has not connected Stripe' })
+        return
+      }
+
+      // Verify seller's Stripe account can accept payments
+      const sellerAccount = await stripe.accounts.retrieve(seller.stripe_account_id)
+      if (!sellerAccount.charges_enabled) {
+        res.status(400).json({ error: 'Seller Stripe account is not fully onboarded' })
+        return
+      }
     }
 
     // Recalculate fees server-side (don't trust client values)
@@ -2544,10 +2614,6 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
     const piParams: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
       currency: 'eur',
-      application_fee_amount: feeCents,
-      transfer_data: {
-        destination: seller.stripe_account_id,
-      },
       metadata: {
         order_id: order.id,
         buyer_id: buyerId,
@@ -2555,6 +2621,18 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
         item_id: order.item_id,
       },
       description: `ShaPop - Order ${order.id}`,
+    }
+
+    if (isPaypalSeller) {
+      // PayPal seller: money stays on ShaPop's Stripe account (no transfer_data)
+      // We'll pay the seller later via PayPal Payouts
+      console.log(`[Stripe] PayPal seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
+    } else {
+      // Stripe seller: direct transfer with application fee
+      piParams.application_fee_amount = feeCents
+      piParams.transfer_data = {
+        destination: seller!.stripe_account_id!,
+      }
     }
 
     // If buyer has a saved card, attach it and try to auto-charge
@@ -2595,6 +2673,7 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
     const updateData: Record<string, unknown> = {
       stripe_payment_intent_id: paymentIntent.id,
       status: autoCharged ? 'paid' : 'pending_payment',
+      payout_method: isPaypalSeller ? 'paypal' : 'stripe',
     }
     if (autoCharged) {
       updateData.paid_at = new Date().toISOString()
@@ -2604,6 +2683,20 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
       .from('orders')
       .update(updateData)
       .eq('id', order_id)
+
+    // If auto-charged + PayPal seller, create payout record immediately
+    if (autoCharged && isPaypalSeller && seller?.paypal_email) {
+      const fees = calculateFees(order.amount)
+      await supabase.from('paypal_payouts').insert({
+        order_id: order_id,
+        seller_id: order.seller_id,
+        paypal_email: seller.paypal_email,
+        amount: fees.sellerPayout,
+        currency: 'EUR',
+        status: 'pending',
+      })
+      console.log(`[PayPal] Auto-charged: created payout record for order ${order_id}`)
+    }
 
     if (dbUpdateError) {
       console.error('DB update failed after PaymentIntent creation, cancelling PaymentIntent:', dbUpdateError)
@@ -2662,6 +2755,8 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
       // Look up seller trust for holdback
       let holdbackPercent = 0
       let payoutScheduledAt: string | null = null
+      let payoutMethod = 'stripe'
+
       const { data: trust } = await supabase
         .from('seller_trust')
         .select('holdback_percent, payout_delay_days')
@@ -2674,6 +2769,17 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
         payoutScheduledAt = payoutDate.toISOString()
       }
 
+      // Check if seller uses PayPal
+      const { data: sellerInfo } = await supabase
+        .from('sellers')
+        .select('bank_choice, paypal_email')
+        .eq('id', order.seller_id)
+        .single()
+
+      if (sellerInfo?.bank_choice === 'paypal' && sellerInfo?.paypal_email) {
+        payoutMethod = 'paypal'
+      }
+
       await supabase
         .from('orders')
         .update({
@@ -2681,8 +2787,32 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
           paid_at: new Date().toISOString(),
           holdback_percent: holdbackPercent,
           payout_scheduled_at: payoutScheduledAt,
+          payout_method: payoutMethod,
         })
         .eq('id', order_id)
+
+      // If PayPal seller, create a paypal_payouts record
+      if (payoutMethod === 'paypal' && sellerInfo?.paypal_email) {
+        const fees = calculateFees(order.amount)
+        // Check if payout record already exists (webhook may have created it)
+        const { data: existingPayout } = await supabase
+          .from('paypal_payouts')
+          .select('id')
+          .eq('order_id', order_id)
+          .single()
+
+        if (!existingPayout) {
+          await supabase.from('paypal_payouts').insert({
+            order_id: order_id,
+            seller_id: order.seller_id,
+            paypal_email: sellerInfo.paypal_email,
+            amount: fees.sellerPayout,
+            currency: 'EUR',
+            status: 'pending',
+          })
+          console.log(`[PayPal] Created payout record for order ${order_id} (${fees.sellerPayout} EUR)`)
+        }
+      }
 
       // Auto-create conversation
       const { data: existingConv } = await supabase
@@ -2721,7 +2851,7 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
         await supabase.from('buyer_scores').insert({ user_id: order.buyer_id })
       }
 
-      console.log(`[Stripe] Order ${order_id} confirmed paid via direct check`)
+      console.log(`[Stripe] Order ${order_id} confirmed paid via direct check (payout: ${payoutMethod})`)
       res.json({ success: true, status: 'paid' })
     } else if (paymentIntent.status === 'requires_action' || paymentIntent.status === 'requires_confirmation') {
       res.json({ success: false, status: paymentIntent.status, message: '3D Secure or additional action required' })
@@ -2738,6 +2868,315 @@ app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRe
 app.get('/api/stripe/config', (_req: Request, res: Response) => {
   res.json({ publishable_key: process.env.STRIPE_PUBLISHABLE_KEY })
 })
+
+// =============================================
+// PAYPAL PAYOUTS
+// =============================================
+
+// Save PayPal email for seller
+app.post('/api/paypal/save-email', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { email } = req.body
+    const userId = req.user!.id
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      res.status(400).json({ error: 'Invalid PayPal email' })
+      return
+    }
+
+    // Verify user is a seller
+    const { data: seller } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('id', userId)
+      .single()
+
+    if (!seller) {
+      res.status(403).json({ error: 'Not a seller' })
+      return
+    }
+
+    await supabase
+      .from('sellers')
+      .update({ paypal_email: email, bank_choice: 'paypal' })
+      .eq('id', userId)
+
+    console.log(`[PayPal] Seller ${userId.slice(0, 8)} saved PayPal email`)
+    res.json({ success: true })
+  } catch (err) {
+    console.error('PayPal save-email error:', err)
+    res.status(500).json({ error: 'Failed to save PayPal email' })
+  }
+})
+
+// Get PayPal payout status for seller
+app.get('/api/paypal/payout-status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: seller } = await supabase
+      .from('sellers')
+      .select('paypal_email, bank_choice')
+      .eq('id', userId)
+      .single()
+
+    if (!seller) {
+      res.status(404).json({ error: 'Seller not found' })
+      return
+    }
+
+    // Get recent payouts
+    const { data: payouts } = await supabase
+      .from('paypal_payouts')
+      .select('id, order_id, amount, currency, status, error_message, completed_at, created_at')
+      .eq('seller_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    res.json({
+      paypal_email: seller.paypal_email,
+      bank_choice: seller.bank_choice,
+      payouts: payouts || [],
+    })
+  } catch (err) {
+    console.error('PayPal payout-status error:', err)
+    res.status(500).json({ error: 'Failed to get payout status' })
+  }
+})
+
+// PayPal Webhook handler
+app.post('/api/paypal/webhook', express.json(), async (req: Request, res: Response) => {
+  try {
+    // Verify webhook signature
+    const webhookId = process.env.PAYPAL_WEBHOOK_ID
+    if (webhookId) {
+      const transmissionId = req.headers['paypal-transmission-id'] as string
+      const transmissionTime = req.headers['paypal-transmission-time'] as string
+      const certUrl = req.headers['paypal-cert-url'] as string
+      const transmissionSig = req.headers['paypal-transmission-sig'] as string
+      const authAlgo = req.headers['paypal-auth-algo'] as string
+
+      if (!transmissionId || !transmissionSig) {
+        console.warn('[PayPal Webhook] Missing signature headers')
+        res.status(400).json({ error: 'Missing signature' })
+        return
+      }
+
+      // Verify via PayPal API
+      try {
+        const token = await getPaypalAccessToken()
+        const verifyResp = await fetch(`${PAYPAL_BASE_URL}/v1/notifications/verify-webhook-signature`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            auth_algo: authAlgo,
+            cert_url: certUrl,
+            transmission_id: transmissionId,
+            transmission_sig: transmissionSig,
+            transmission_time: transmissionTime,
+            webhook_id: webhookId,
+            webhook_event: req.body,
+          }),
+        })
+        const verifyData = await verifyResp.json() as { verification_status: string }
+        if (verifyData.verification_status !== 'SUCCESS') {
+          console.warn('[PayPal Webhook] Signature verification failed')
+          res.status(400).json({ error: 'Invalid signature' })
+          return
+        }
+      } catch (verifyErr) {
+        console.error('[PayPal Webhook] Verification error:', verifyErr)
+        // In sandbox, continue even if verification fails
+        if (PAYPAL_MODE === 'live') {
+          res.status(400).json({ error: 'Verification failed' })
+          return
+        }
+      }
+    }
+
+    const eventType = req.body.event_type
+    const resource = req.body.resource
+
+    if (eventType === 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED') {
+      const payoutItemId = resource?.payout_item_id
+      if (payoutItemId) {
+        await supabase
+          .from('paypal_payouts')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('paypal_item_id', payoutItemId)
+        console.log(`[PayPal Webhook] Payout item ${payoutItemId} completed`)
+      }
+    } else if (eventType === 'PAYMENT.PAYOUTS-ITEM.FAILED' || eventType === 'PAYMENT.PAYOUTS-ITEM.DENIED') {
+      const payoutItemId = resource?.payout_item_id
+      const errorMsg = resource?.errors?.message || resource?.transaction_status || 'Payout failed'
+      if (payoutItemId) {
+        await supabase
+          .from('paypal_payouts')
+          .update({
+            status: 'failed',
+            error_message: errorMsg,
+          })
+          .eq('paypal_item_id', payoutItemId)
+        console.log(`[PayPal Webhook] Payout item ${payoutItemId} failed: ${errorMsg}`)
+      }
+    } else if (eventType === 'PAYMENT.PAYOUTS-ITEM.BLOCKED' || eventType === 'PAYMENT.PAYOUTS-ITEM.RETURNED' || eventType === 'PAYMENT.PAYOUTS-ITEM.REFUNDED') {
+      const payoutItemId = resource?.payout_item_id
+      if (payoutItemId) {
+        await supabase
+          .from('paypal_payouts')
+          .update({
+            status: 'failed',
+            error_message: `Payout ${eventType.split('.').pop()?.toLowerCase()}`,
+          })
+          .eq('paypal_item_id', payoutItemId)
+        console.log(`[PayPal Webhook] Payout item ${payoutItemId} - ${eventType}`)
+      }
+    }
+
+    res.json({ received: true })
+  } catch (err) {
+    console.error('[PayPal Webhook] Error:', err)
+    res.status(500).json({ error: 'Webhook processing failed' })
+  }
+})
+
+// Process PayPal payouts - called from run-automations and setInterval
+async function processPaypalPayouts(): Promise<number> {
+  let processed = 0
+
+  // Step 1: Transition pending → ready when conditions are met
+  // Conditions: order delivered + claim window closed (payout_status = 'released') + payout_scheduled_at passed
+  const { data: pendingPayouts } = await supabase
+    .from('paypal_payouts')
+    .select('id, order_id')
+    .eq('status', 'pending')
+
+  for (const payout of (pendingPayouts || [])) {
+    const { data: order } = await supabase
+      .from('orders')
+      .select('status, payout_status, claim_deadline, payout_scheduled_at')
+      .eq('id', payout.order_id)
+      .single()
+
+    if (!order) continue
+
+    const now = new Date()
+    const claimClosed = order.payout_status === 'released'
+    const payoutTimeReached = !order.payout_scheduled_at || new Date(order.payout_scheduled_at) <= now
+
+    if (claimClosed && payoutTimeReached) {
+      await supabase
+        .from('paypal_payouts')
+        .update({ status: 'ready' })
+        .eq('id', payout.id)
+    }
+  }
+
+  // Step 2: Batch-send ready payouts via PayPal Payouts API
+  const { data: readyPayouts } = await supabase
+    .from('paypal_payouts')
+    .select('*')
+    .eq('status', 'ready')
+    .lt('attempts', 3)
+    .limit(50)
+
+  if (!readyPayouts || readyPayouts.length === 0) return 0
+
+  try {
+    const token = await getPaypalAccessToken()
+
+    const items = readyPayouts.map(p => ({
+      recipient_type: 'EMAIL',
+      amount: {
+        value: p.amount.toFixed(2),
+        currency: p.currency || 'EUR',
+      },
+      receiver: p.paypal_email,
+      note: `ShaPop payout for order ${p.order_id.slice(0, 8)}`,
+      sender_item_id: p.id,
+    }))
+
+    const batchId = `ShaPop_${Date.now()}`
+
+    const payoutResp = await fetch(`${PAYPAL_BASE_URL}/v1/payments/payouts`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender_batch_header: {
+          sender_batch_id: batchId,
+          email_subject: 'You have a payment from ShaPop',
+          email_message: 'You received a payout for your sale on ShaPop.',
+        },
+        items,
+      }),
+    })
+
+    if (!payoutResp.ok) {
+      const errText = await payoutResp.text()
+      console.error(`[PayPal Payouts] Batch send failed: ${payoutResp.status} ${errText}`)
+      // Mark all as failed with incremented attempts
+      for (const p of readyPayouts) {
+        await supabase
+          .from('paypal_payouts')
+          .update({ attempts: p.attempts + 1, error_message: `Batch failed: ${payoutResp.status}` })
+          .eq('id', p.id)
+      }
+      return 0
+    }
+
+    const payoutData = await payoutResp.json() as {
+      batch_header?: { payout_batch_id?: string }
+      items?: Array<{ payout_item_id?: string; payout_item?: { sender_item_id?: string } }>
+    }
+    const batchHeader = payoutData.batch_header
+
+    // Update payouts with batch info
+    for (const p of readyPayouts) {
+      await supabase
+        .from('paypal_payouts')
+        .update({
+          status: 'processing',
+          paypal_batch_id: batchHeader?.payout_batch_id || batchId,
+          attempts: p.attempts + 1,
+        })
+        .eq('id', p.id)
+      processed++
+    }
+
+    // Try to get individual item IDs from the response
+    if (payoutData.items) {
+      for (const item of payoutData.items) {
+        if (item.payout_item_id && item.payout_item?.sender_item_id) {
+          await supabase
+            .from('paypal_payouts')
+            .update({ paypal_item_id: item.payout_item_id })
+            .eq('id', item.payout_item.sender_item_id)
+        }
+      }
+    }
+
+    console.log(`[PayPal Payouts] Batch ${batchId} sent with ${readyPayouts.length} items`)
+  } catch (err) {
+    console.error('[PayPal Payouts] Error:', err)
+    for (const p of readyPayouts) {
+      await supabase
+        .from('paypal_payouts')
+        .update({ attempts: p.attempts + 1, error_message: String(err) })
+        .eq('id', p.id)
+    }
+  }
+
+  return processed
+}
 
 // =============================================
 // ORDERS — Ship & confirm delivery
@@ -4579,6 +5018,7 @@ app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRe
       auto_confirmed: 0,
       claim_windows_closed: 0,
       trust_recalculated: 0,
+      paypal_payouts_processed: 0,
     }
 
     // 1. Auto-confirm delivery if shipped > 14 days without dispute
@@ -4623,6 +5063,13 @@ app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRe
     for (const seller of (sellers || [])) {
       await recalculateTrustLevel(seller.seller_id)
       results.trust_recalculated++
+    }
+
+    // 4. Process PayPal payouts
+    try {
+      results.paypal_payouts_processed = await processPaypalPayouts()
+    } catch (ppErr) {
+      console.error('[Automations] PayPal payouts error:', ppErr)
     }
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'run_automations', 'system', 'global', results)
@@ -4834,5 +5281,20 @@ server.listen(PORT, () => {
     console.log('Mux client initialized')
   } else {
     console.warn('Warning: MUX_TOKEN_ID not set — Mux features will not work')
+  }
+
+  // Process PayPal payouts every 4 hours
+  if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
+    console.log(`[PayPal] Payouts processing enabled (mode: ${PAYPAL_MODE})`)
+    setInterval(async () => {
+      try {
+        const count = await processPaypalPayouts()
+        if (count > 0) {
+          console.log(`[PayPal] Auto-processed ${count} payouts`)
+        }
+      } catch (err) {
+        console.error('[PayPal] Auto-processing error:', err)
+      }
+    }, 4 * 60 * 60 * 1000) // 4 hours
   }
 })

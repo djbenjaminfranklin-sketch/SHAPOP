@@ -24,5 +24,13 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_MODE
+        value: sandbox
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
       - key: ALLOWED_ORIGINS
         sync: false
