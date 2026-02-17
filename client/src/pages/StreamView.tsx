@@ -652,7 +652,7 @@ export default function StreamView() {
     try {
       const { data } = await supabase
         .from('streams')
-        .select('*')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name')
         .eq('id', id)
         .single()
       setStream(data)
