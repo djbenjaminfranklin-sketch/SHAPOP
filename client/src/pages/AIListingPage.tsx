@@ -236,9 +236,23 @@ export default function AIListingPage() {
   const imageDataRef = useRef<string | null>(null)
   const imageFileRef = useRef<File | null>(null)
 
+  // Clean up blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+
+    // Revoke old blob URL before creating new one
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview)
+    }
 
     imageFileRef.current = file
     setImagePreview(URL.createObjectURL(file))
@@ -317,6 +331,9 @@ export default function AIListingPage() {
       : "L'analyse a echoue. Veuillez reessayer."
     setAnalysisError(errorMsg)
     setStep('upload')
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview)
+    }
     setImagePreview(null)
   }
 

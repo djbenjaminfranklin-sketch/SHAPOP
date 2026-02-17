@@ -2,8 +2,689 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
+import { getLang } from '../lib/i18n'
 
 const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
+
+type Lang = 'fr' | 'en' | 'he' | 'es'
+
+const adminContent = {
+  fr: {
+    pageTitle: 'Administration',
+    backOffice: 'ShaPop Back-Office',
+    loading: 'Chargement...',
+    serverUnreachable: 'Serveur injoignable. Vérifie que le serveur est déployé.',
+    error: 'Erreur',
+    errorPrefix: 'Erreur',
+    invalidResponse: 'Réponse invalide du serveur',
+    loadingError: 'Erreur de chargement',
+    saveError: 'Erreur de sauvegarde',
+    resolutionError: 'Erreur lors de la résolution',
+    updateError: 'Erreur lors de la mise à jour',
+    serverRequired: 'Le serveur doit être déployé avec les endpoints admin.',
+    retry: 'Réessayer',
+    close: 'Fermer',
+    noData: 'Aucune donnée',
+    errorLabel: 'ERREUR : ',
+    noTrace: 'Pas de trace',
+    errorLinePrefix: 'Erreur ligne : ',
+    // Tabs
+    tabOverview: 'Vue d\'ensemble',
+    tabUsers: 'Utilisateurs',
+    tabSellers: 'Vendeurs',
+    tabPayments: 'Paiements',
+    tabDisputes: 'Litiges',
+    tabLives: 'Lives',
+    tabAudit: 'Journal',
+    // Overview
+    statUsers: 'Utilisateurs',
+    statSellers: 'Vendeurs',
+    statOrders: 'Commandes',
+    statOrders30d: 'Commandes (30j)',
+    statLivesNow: 'Lives en cours',
+    statDisputes: 'Litiges',
+    statRevenue: 'Chiffre d\'affaires',
+    statFees: 'Frais plateforme',
+    statSuspended: 'Suspendus',
+    statBanned: 'Bannis',
+    statOpenDisputes: 'Litiges ouverts',
+    // Users
+    searchPlaceholder: 'Rechercher...',
+    filterAll: 'Tous',
+    filterSellers: 'Vendeurs',
+    filterSuspended: 'Suspendus',
+    filterBanned: 'Bannis',
+    search: 'Chercher',
+    users: 'utilisateurs',
+    prev: 'Préc.',
+    next: 'Suiv.',
+    page: 'Page',
+    // User badges
+    badgeSeller: 'S',
+    badgeSuspended: 'SUS',
+    badgeBanned: 'BAN',
+    // Buyer scores
+    riskLow: 'Faible',
+    riskMedium: 'Moyen',
+    riskHigh: 'Elevé',
+    riskBlocked: 'Bloqué',
+    scoreLabel: 'Score: ',
+    // Sellers
+    sellers: 'vendeurs',
+    registered: 'Inscrit : ',
+    blocked: 'BLOCKED',
+    reserveLabel: 'RES',
+    docRequested: 'DOC DEM',
+    kycVerified: 'KYC',
+    kycMissing: '!KYC',
+    // Seller trust
+    trustNew: 'Nouveau',
+    trustStandard: 'Standard',
+    trustTrusted: 'Confiance',
+    trustPremium: 'Premium',
+    retentionLabel: 'Rétention: ',
+    payoutDelayLabel: 'Délai paiement: ',
+    changeTrustLevel: 'Changer le niveau',
+    // Seller metrics
+    metricRevenue: 'CA',
+    metricOrders: 'Cmd',
+    metric30d: '30d',
+    metricRefundRate: 'Remb. %',
+    metricDisputeRate: 'Litige %',
+    // Seller actions
+    unblock: 'Débloquer',
+    block: 'Bloquer',
+    reserve: 'Réserve',
+    requestDocs: 'Demander docs',
+    viewProfile: 'Voir profil',
+    reservePrompt: 'Réserve % (0-100) ?',
+    // Payments
+    allOrders: 'All',
+    orders: 'commandes',
+    buyerLabel: 'Acheteur : ',
+    sellerLabel: 'Vendeur : ',
+    feesLabel: 'Frais : ',
+    // Disputes
+    disputesLabel: 'litiges/remboursements',
+    noDisputes: 'Aucun litige',
+    autoRefunded: 'Auto-remboursé',
+    orderLabel: 'Commande ',
+    openedAt: 'Ouvert : ',
+    createdAt: 'Créé : ',
+    paidAt: 'Payé : ',
+    shippedAt: 'Expédié : ',
+    resolvedAt: 'Résolu : ',
+    reasonPrefix: 'Motif : ',
+    resolutionNotePrefix: 'Note de résolution : ',
+    resolutionNotePlaceholder: 'Note de résolution (optionnel)...',
+    resolveForBuyer: 'Résoudre en faveur de l\'acheteur',
+    resolveForSeller: 'Résoudre en faveur du vendeur',
+    buyer: 'Acheteur',
+    seller: 'Vendeur',
+    shippingProofAlt: 'Preuve expédition',
+    // Dispute statuses
+    statusOpen: 'Ouvert',
+    statusUnderReview: 'En examen',
+    statusResolvedBuyer: 'Résolu (acheteur)',
+    statusResolvedSeller: 'Résolu (vendeur)',
+    statusEscalated: 'Escaladé',
+    statusDisputed: 'En litige',
+    statusRefunded: 'Remboursé',
+    // Lives
+    noLives: 'Aucun live',
+    viewersLabel: 'Spectateurs : ',
+    maxLabel: 'Max : ',
+    stopLive: 'Arrêter le live',
+    suspendSeller: 'Suspendre le vendeur',
+    replayLabel: 'Replay: mux.com/playback/',
+    // Audit
+    entries: 'entrées',
+    auditDate: 'Date',
+    auditAdmin: 'Admin',
+    auditAction: 'Action',
+    auditTarget: 'Cible',
+    auditId: 'ID',
+    auditDetails: 'Détails',
+    // User detail modal
+    suspendedBadge: 'SUSPENDU',
+    bannedBadge: 'BANNI',
+    sellerBadge: 'VENDEUR',
+    kycVerifiedBadge: 'KYC VÉRIFIÉ',
+    purchasesLabel: 'Achats : ',
+    salesLabel: 'Ventes : ',
+    storeLabel: 'Boutique : ',
+    revenueLabel: 'Revenu : ',
+    salesMetricLabel: 'Ventes : ',
+    stripeLabel: 'Stripe : ',
+    stripeConnected: 'Connecté',
+    stripeNo: 'Non',
+    paymentsBlocked: 'PAIEMENTS BLOQUÉS',
+    reserveBadge: 'RÉSERVE ',
+    // User actions
+    suspend: 'Suspendre',
+    reactivate: 'Réactiver',
+    ban: 'Bannir',
+    unban: 'Débannir',
+    reasonPrompt: 'Motif ?',
+    // Notes
+    internalNotes: 'Notes internes',
+    addNotePlaceholder: 'Ajouter une note...',
+    addNote: 'Ajouter',
+    // Action messages
+    userSuspended: 'Utilisateur suspendu',
+    userReactivated: 'Utilisateur réactivé',
+    userBanned: 'Utilisateur banni',
+    userUnbanned: 'Utilisateur débanni',
+    noteAdded: 'Note ajoutée',
+    paymentsBlockedMsg: 'Paiements bloqués',
+    paymentsUnblockedMsg: 'Paiements débloqués',
+    reserveSetMsg: 'Réserve fixée à ',
+    docsRequested: 'Documents demandés',
+    liveStopped: 'Live arrêté',
+    sellerSuspendedLive: 'Vendeur suspendu et live arrêté',
+    resolvedBuyerMsg: 'Litige résolu en faveur de l\'acheteur',
+    resolvedSellerMsg: 'Litige résolu en faveur du vendeur',
+    trustUpdated: 'Niveau de confiance mis à jour',
+    // Trust modal
+    changeTrustTitle: 'Changer le niveau de confiance',
+    trustLevelLabel: 'Niveau de confiance',
+    retentionPercentLabel: 'Rétention (%)',
+    payoutDelayDaysLabel: 'Délai de paiement (jours)',
+    save: 'Enregistrer',
+  },
+  en: {
+    pageTitle: 'Administration',
+    backOffice: 'ShaPop Back-Office',
+    loading: 'Loading...',
+    serverUnreachable: 'Server unreachable. Make sure the server is deployed.',
+    error: 'Error',
+    errorPrefix: 'Error',
+    invalidResponse: 'Invalid server response',
+    loadingError: 'Loading error',
+    saveError: 'Save error',
+    resolutionError: 'Error during resolution',
+    updateError: 'Error during update',
+    serverRequired: 'The server must be deployed with admin endpoints.',
+    retry: 'Retry',
+    close: 'Close',
+    noData: 'No data',
+    errorLabel: 'ERROR: ',
+    noTrace: 'No trace',
+    errorLinePrefix: 'Row error: ',
+    tabOverview: 'Overview',
+    tabUsers: 'Users',
+    tabSellers: 'Sellers',
+    tabPayments: 'Payments',
+    tabDisputes: 'Disputes',
+    tabLives: 'Lives',
+    tabAudit: 'Audit log',
+    statUsers: 'Users',
+    statSellers: 'Sellers',
+    statOrders: 'Orders',
+    statOrders30d: 'Orders (30d)',
+    statLivesNow: 'Lives now',
+    statDisputes: 'Disputes',
+    statRevenue: 'Revenue',
+    statFees: 'Platform fees',
+    statSuspended: 'Suspended',
+    statBanned: 'Banned',
+    statOpenDisputes: 'Open disputes',
+    searchPlaceholder: 'Search...',
+    filterAll: 'All',
+    filterSellers: 'Sellers',
+    filterSuspended: 'Suspended',
+    filterBanned: 'Banned',
+    search: 'Search',
+    users: 'users',
+    prev: 'Prev',
+    next: 'Next',
+    page: 'Page',
+    badgeSeller: 'S',
+    badgeSuspended: 'SUS',
+    badgeBanned: 'BAN',
+    riskLow: 'Low',
+    riskMedium: 'Medium',
+    riskHigh: 'High',
+    riskBlocked: 'Blocked',
+    scoreLabel: 'Score: ',
+    sellers: 'sellers',
+    registered: 'Registered: ',
+    blocked: 'BLOCKED',
+    reserveLabel: 'RES',
+    docRequested: 'DOC REQ',
+    kycVerified: 'KYC',
+    kycMissing: '!KYC',
+    trustNew: 'New',
+    trustStandard: 'Standard',
+    trustTrusted: 'Trusted',
+    trustPremium: 'Premium',
+    retentionLabel: 'Retention: ',
+    payoutDelayLabel: 'Payout delay: ',
+    changeTrustLevel: 'Change level',
+    metricRevenue: 'Rev',
+    metricOrders: 'Ord',
+    metric30d: '30d',
+    metricRefundRate: 'Refund %',
+    metricDisputeRate: 'Dispute %',
+    unblock: 'Unblock',
+    block: 'Block',
+    reserve: 'Reserve',
+    requestDocs: 'Request docs',
+    viewProfile: 'View profile',
+    reservePrompt: 'Reserve % (0-100)?',
+    allOrders: 'All',
+    orders: 'orders',
+    buyerLabel: 'Buyer: ',
+    sellerLabel: 'Seller: ',
+    feesLabel: 'Fees: ',
+    disputesLabel: 'disputes/refunds',
+    noDisputes: 'No disputes',
+    autoRefunded: 'Auto-refunded',
+    orderLabel: 'Order ',
+    openedAt: 'Opened: ',
+    createdAt: 'Created: ',
+    paidAt: 'Paid: ',
+    shippedAt: 'Shipped: ',
+    resolvedAt: 'Resolved: ',
+    reasonPrefix: 'Reason: ',
+    resolutionNotePrefix: 'Resolution note: ',
+    resolutionNotePlaceholder: 'Resolution note (optional)...',
+    resolveForBuyer: 'Resolve for buyer',
+    resolveForSeller: 'Resolve for seller',
+    buyer: 'Buyer',
+    seller: 'Seller',
+    shippingProofAlt: 'Shipping proof',
+    statusOpen: 'Open',
+    statusUnderReview: 'Under review',
+    statusResolvedBuyer: 'Resolved (buyer)',
+    statusResolvedSeller: 'Resolved (seller)',
+    statusEscalated: 'Escalated',
+    statusDisputed: 'Disputed',
+    statusRefunded: 'Refunded',
+    noLives: 'No lives',
+    viewersLabel: 'Viewers: ',
+    maxLabel: 'Max: ',
+    stopLive: 'Stop live',
+    suspendSeller: 'Suspend seller',
+    replayLabel: 'Replay: mux.com/playback/',
+    entries: 'entries',
+    auditDate: 'Date',
+    auditAdmin: 'Admin',
+    auditAction: 'Action',
+    auditTarget: 'Target',
+    auditId: 'ID',
+    auditDetails: 'Details',
+    suspendedBadge: 'SUSPENDED',
+    bannedBadge: 'BANNED',
+    sellerBadge: 'SELLER',
+    kycVerifiedBadge: 'KYC VERIFIED',
+    purchasesLabel: 'Purchases: ',
+    salesLabel: 'Sales: ',
+    storeLabel: 'Store: ',
+    revenueLabel: 'Revenue: ',
+    salesMetricLabel: 'Sales: ',
+    stripeLabel: 'Stripe: ',
+    stripeConnected: 'Connected',
+    stripeNo: 'No',
+    paymentsBlocked: 'PAYMENTS BLOCKED',
+    reserveBadge: 'RESERVE ',
+    suspend: 'Suspend',
+    reactivate: 'Reactivate',
+    ban: 'Ban',
+    unban: 'Unban',
+    reasonPrompt: 'Reason?',
+    internalNotes: 'Internal notes',
+    addNotePlaceholder: 'Add a note...',
+    addNote: 'Add',
+    userSuspended: 'User suspended',
+    userReactivated: 'User reactivated',
+    userBanned: 'User banned',
+    userUnbanned: 'User unbanned',
+    noteAdded: 'Note added',
+    paymentsBlockedMsg: 'Payments blocked',
+    paymentsUnblockedMsg: 'Payments unblocked',
+    reserveSetMsg: 'Reserve set to ',
+    docsRequested: 'Documents requested',
+    liveStopped: 'Live stopped',
+    sellerSuspendedLive: 'Seller suspended and live stopped',
+    resolvedBuyerMsg: 'Dispute resolved for buyer',
+    resolvedSellerMsg: 'Dispute resolved for seller',
+    trustUpdated: 'Trust level updated',
+    changeTrustTitle: 'Change trust level',
+    trustLevelLabel: 'Trust level',
+    retentionPercentLabel: 'Retention (%)',
+    payoutDelayDaysLabel: 'Payout delay (days)',
+    save: 'Save',
+  },
+  he: {
+    pageTitle: 'ניהול',
+    backOffice: 'ShaPop Back-Office',
+    loading: '...טוען',
+    serverUnreachable: 'השרת לא זמין. ודא שהשרת מופעל.',
+    error: 'שגיאה',
+    errorPrefix: 'שגיאה',
+    invalidResponse: 'תגובה לא תקינה מהשרת',
+    loadingError: 'שגיאת טעינה',
+    saveError: 'שגיאת שמירה',
+    resolutionError: 'שגיאה בפתרון',
+    updateError: 'שגיאה בעדכון',
+    serverRequired: 'השרת חייב להיות מופעל עם נקודות קצה של אדמין.',
+    retry: 'נסה שנית',
+    close: 'סגור',
+    noData: 'אין נתונים',
+    errorLabel: 'שגיאה: ',
+    noTrace: 'אין מעקב',
+    errorLinePrefix: 'שגיאת שורה: ',
+    tabOverview: 'סקירה',
+    tabUsers: 'משתמשים',
+    tabSellers: 'מוכרים',
+    tabPayments: 'תשלומים',
+    tabDisputes: 'סכסוכים',
+    tabLives: 'שידורים',
+    tabAudit: 'יומן',
+    statUsers: 'משתמשים',
+    statSellers: 'מוכרים',
+    statOrders: 'הזמנות',
+    statOrders30d: 'הזמנות (30י)',
+    statLivesNow: 'שידורים כעת',
+    statDisputes: 'סכסוכים',
+    statRevenue: 'מחזור',
+    statFees: 'עמלות פלטפורמה',
+    statSuspended: 'מושהים',
+    statBanned: 'חסומים',
+    statOpenDisputes: 'סכסוכים פתוחים',
+    searchPlaceholder: '...חפש',
+    filterAll: 'הכל',
+    filterSellers: 'מוכרים',
+    filterSuspended: 'מושהים',
+    filterBanned: 'חסומים',
+    search: 'חפש',
+    users: 'משתמשים',
+    prev: 'הקודם',
+    next: 'הבא',
+    page: 'עמוד',
+    badgeSeller: 'מ',
+    badgeSuspended: 'מושהה',
+    badgeBanned: 'חסום',
+    riskLow: 'נמוך',
+    riskMedium: 'בינוני',
+    riskHigh: 'גבוה',
+    riskBlocked: 'חסום',
+    scoreLabel: 'ציון: ',
+    sellers: 'מוכרים',
+    registered: 'רשום: ',
+    blocked: 'חסום',
+    reserveLabel: 'רזרבה',
+    docRequested: 'מסמכים',
+    kycVerified: 'KYC',
+    kycMissing: '!KYC',
+    trustNew: 'חדש',
+    trustStandard: 'רגיל',
+    trustTrusted: 'מהימן',
+    trustPremium: 'פרימיום',
+    retentionLabel: 'עיכוב: ',
+    payoutDelayLabel: 'עיכוב תשלום: ',
+    changeTrustLevel: 'שנה רמה',
+    metricRevenue: 'הכנסה',
+    metricOrders: 'הזמנות',
+    metric30d: '30י',
+    metricRefundRate: 'החזר %',
+    metricDisputeRate: 'סכסוך %',
+    unblock: 'בטל חסימה',
+    block: 'חסום',
+    reserve: 'רזרבה',
+    requestDocs: 'בקש מסמכים',
+    viewProfile: 'צפה בפרופיל',
+    reservePrompt: 'רזרבה % (0-100)?',
+    allOrders: 'הכל',
+    orders: 'הזמנות',
+    buyerLabel: 'קונה: ',
+    sellerLabel: 'מוכר: ',
+    feesLabel: 'עמלות: ',
+    disputesLabel: 'סכסוכים/החזרים',
+    noDisputes: 'אין סכסוכים',
+    autoRefunded: 'הוחזר אוטומטית',
+    orderLabel: 'הזמנה ',
+    openedAt: 'נפתח: ',
+    createdAt: 'נוצר: ',
+    paidAt: 'שולם: ',
+    shippedAt: 'נשלח: ',
+    resolvedAt: 'נפתר: ',
+    reasonPrefix: 'סיבה: ',
+    resolutionNotePrefix: 'הערת פתרון: ',
+    resolutionNotePlaceholder: '...הערת פתרון (אופציונלי)',
+    resolveForBuyer: 'פתור לטובת הקונה',
+    resolveForSeller: 'פתור לטובת המוכר',
+    buyer: 'קונה',
+    seller: 'מוכר',
+    shippingProofAlt: 'הוכחת משלוח',
+    statusOpen: 'פתוח',
+    statusUnderReview: 'בבדיקה',
+    statusResolvedBuyer: 'נפתר (קונה)',
+    statusResolvedSeller: 'נפתר (מוכר)',
+    statusEscalated: 'הוסלם',
+    statusDisputed: 'בסכסוך',
+    statusRefunded: 'הוחזר',
+    noLives: 'אין שידורים',
+    viewersLabel: 'צופים: ',
+    maxLabel: 'מקסימום: ',
+    stopLive: 'עצור שידור',
+    suspendSeller: 'השהה מוכר',
+    replayLabel: 'Replay: mux.com/playback/',
+    entries: 'רשומות',
+    auditDate: 'תאריך',
+    auditAdmin: 'אדמין',
+    auditAction: 'פעולה',
+    auditTarget: 'יעד',
+    auditId: 'מזהה',
+    auditDetails: 'פרטים',
+    suspendedBadge: 'מושהה',
+    bannedBadge: 'חסום',
+    sellerBadge: 'מוכר',
+    kycVerifiedBadge: 'KYC מאומת',
+    purchasesLabel: 'רכישות: ',
+    salesLabel: 'מכירות: ',
+    storeLabel: 'חנות: ',
+    revenueLabel: 'הכנסה: ',
+    salesMetricLabel: 'מכירות: ',
+    stripeLabel: 'Stripe: ',
+    stripeConnected: 'מחובר',
+    stripeNo: 'לא',
+    paymentsBlocked: 'תשלומים חסומים',
+    reserveBadge: 'רזרבה ',
+    suspend: 'השהה',
+    reactivate: 'הפעל מחדש',
+    ban: 'חסום',
+    unban: 'בטל חסימה',
+    reasonPrompt: 'סיבה?',
+    internalNotes: 'הערות פנימיות',
+    addNotePlaceholder: '...הוסף הערה',
+    addNote: 'הוסף',
+    userSuspended: 'משתמש הושהה',
+    userReactivated: 'משתמש הופעל מחדש',
+    userBanned: 'משתמש נחסם',
+    userUnbanned: 'חסימת משתמש בוטלה',
+    noteAdded: 'הערה נוספה',
+    paymentsBlockedMsg: 'תשלומים נחסמו',
+    paymentsUnblockedMsg: 'תשלומים שוחררו',
+    reserveSetMsg: 'רזרבה נקבעה ל-',
+    docsRequested: 'מסמכים התבקשו',
+    liveStopped: 'שידור נעצר',
+    sellerSuspendedLive: 'מוכר הושהה ושידור נעצר',
+    resolvedBuyerMsg: 'סכסוך נפתר לטובת הקונה',
+    resolvedSellerMsg: 'סכסוך נפתר לטובת המוכר',
+    trustUpdated: 'רמת אמון עודכנה',
+    changeTrustTitle: 'שנה רמת אמון',
+    trustLevelLabel: 'רמת אמון',
+    retentionPercentLabel: '(%עיכוב (אחוז',
+    payoutDelayDaysLabel: 'עיכוב תשלום (ימים)',
+    save: 'שמור',
+  },
+  es: {
+    pageTitle: 'Administración',
+    backOffice: 'ShaPop Back-Office',
+    loading: 'Cargando...',
+    serverUnreachable: 'Servidor inaccesible. Verifica que el servidor esté desplegado.',
+    error: 'Error',
+    errorPrefix: 'Error',
+    invalidResponse: 'Respuesta inválida del servidor',
+    loadingError: 'Error de carga',
+    saveError: 'Error al guardar',
+    resolutionError: 'Error durante la resolución',
+    updateError: 'Error durante la actualización',
+    serverRequired: 'El servidor debe estar desplegado con los endpoints de admin.',
+    retry: 'Reintentar',
+    close: 'Cerrar',
+    noData: 'Sin datos',
+    errorLabel: 'ERROR: ',
+    noTrace: 'Sin traza',
+    errorLinePrefix: 'Error en fila: ',
+    tabOverview: 'Resumen',
+    tabUsers: 'Usuarios',
+    tabSellers: 'Vendedores',
+    tabPayments: 'Pagos',
+    tabDisputes: 'Disputas',
+    tabLives: 'Directos',
+    tabAudit: 'Registro',
+    statUsers: 'Usuarios',
+    statSellers: 'Vendedores',
+    statOrders: 'Pedidos',
+    statOrders30d: 'Pedidos (30d)',
+    statLivesNow: 'Directos ahora',
+    statDisputes: 'Disputas',
+    statRevenue: 'Ingresos',
+    statFees: 'Comisiones',
+    statSuspended: 'Suspendidos',
+    statBanned: 'Baneados',
+    statOpenDisputes: 'Disputas abiertas',
+    searchPlaceholder: 'Buscar...',
+    filterAll: 'Todos',
+    filterSellers: 'Vendedores',
+    filterSuspended: 'Suspendidos',
+    filterBanned: 'Baneados',
+    search: 'Buscar',
+    users: 'usuarios',
+    prev: 'Ant.',
+    next: 'Sig.',
+    page: 'Página',
+    badgeSeller: 'V',
+    badgeSuspended: 'SUS',
+    badgeBanned: 'BAN',
+    riskLow: 'Bajo',
+    riskMedium: 'Medio',
+    riskHigh: 'Alto',
+    riskBlocked: 'Bloqueado',
+    scoreLabel: 'Puntuación: ',
+    sellers: 'vendedores',
+    registered: 'Registrado: ',
+    blocked: 'BLOQUEADO',
+    reserveLabel: 'RES',
+    docRequested: 'DOC SOL',
+    kycVerified: 'KYC',
+    kycMissing: '!KYC',
+    trustNew: 'Nuevo',
+    trustStandard: 'Estándar',
+    trustTrusted: 'Confiable',
+    trustPremium: 'Premium',
+    retentionLabel: 'Retención: ',
+    payoutDelayLabel: 'Retraso pago: ',
+    changeTrustLevel: 'Cambiar nivel',
+    metricRevenue: 'Ingr.',
+    metricOrders: 'Ped.',
+    metric30d: '30d',
+    metricRefundRate: 'Reemb. %',
+    metricDisputeRate: 'Disp. %',
+    unblock: 'Desbloquear',
+    block: 'Bloquear',
+    reserve: 'Reserva',
+    requestDocs: 'Pedir docs',
+    viewProfile: 'Ver perfil',
+    reservePrompt: 'Reserva % (0-100)?',
+    allOrders: 'Todos',
+    orders: 'pedidos',
+    buyerLabel: 'Comprador: ',
+    sellerLabel: 'Vendedor: ',
+    feesLabel: 'Comisiones: ',
+    disputesLabel: 'disputas/reembolsos',
+    noDisputes: 'Sin disputas',
+    autoRefunded: 'Reembolso automático',
+    orderLabel: 'Pedido ',
+    openedAt: 'Abierto: ',
+    createdAt: 'Creado: ',
+    paidAt: 'Pagado: ',
+    shippedAt: 'Enviado: ',
+    resolvedAt: 'Resuelto: ',
+    reasonPrefix: 'Motivo: ',
+    resolutionNotePrefix: 'Nota de resolución: ',
+    resolutionNotePlaceholder: 'Nota de resolución (opcional)...',
+    resolveForBuyer: 'Resolver a favor del comprador',
+    resolveForSeller: 'Resolver a favor del vendedor',
+    buyer: 'Comprador',
+    seller: 'Vendedor',
+    shippingProofAlt: 'Prueba de envío',
+    statusOpen: 'Abierto',
+    statusUnderReview: 'En revisión',
+    statusResolvedBuyer: 'Resuelto (comprador)',
+    statusResolvedSeller: 'Resuelto (vendedor)',
+    statusEscalated: 'Escalado',
+    statusDisputed: 'En disputa',
+    statusRefunded: 'Reembolsado',
+    noLives: 'Sin directos',
+    viewersLabel: 'Espectadores: ',
+    maxLabel: 'Máx: ',
+    stopLive: 'Detener directo',
+    suspendSeller: 'Suspender vendedor',
+    replayLabel: 'Replay: mux.com/playback/',
+    entries: 'entradas',
+    auditDate: 'Fecha',
+    auditAdmin: 'Admin',
+    auditAction: 'Acción',
+    auditTarget: 'Objetivo',
+    auditId: 'ID',
+    auditDetails: 'Detalles',
+    suspendedBadge: 'SUSPENDIDO',
+    bannedBadge: 'BANEADO',
+    sellerBadge: 'VENDEDOR',
+    kycVerifiedBadge: 'KYC VERIFICADO',
+    purchasesLabel: 'Compras: ',
+    salesLabel: 'Ventas: ',
+    storeLabel: 'Tienda: ',
+    revenueLabel: 'Ingresos: ',
+    salesMetricLabel: 'Ventas: ',
+    stripeLabel: 'Stripe: ',
+    stripeConnected: 'Conectado',
+    stripeNo: 'No',
+    paymentsBlocked: 'PAGOS BLOQUEADOS',
+    reserveBadge: 'RESERVA ',
+    suspend: 'Suspender',
+    reactivate: 'Reactivar',
+    ban: 'Banear',
+    unban: 'Desbanear',
+    reasonPrompt: 'Motivo?',
+    internalNotes: 'Notas internas',
+    addNotePlaceholder: 'Agregar nota...',
+    addNote: 'Agregar',
+    userSuspended: 'Usuario suspendido',
+    userReactivated: 'Usuario reactivado',
+    userBanned: 'Usuario baneado',
+    userUnbanned: 'Usuario desbaneado',
+    noteAdded: 'Nota agregada',
+    paymentsBlockedMsg: 'Pagos bloqueados',
+    paymentsUnblockedMsg: 'Pagos desbloqueados',
+    reserveSetMsg: 'Reserva fijada en ',
+    docsRequested: 'Documentos solicitados',
+    liveStopped: 'Directo detenido',
+    sellerSuspendedLive: 'Vendedor suspendido y directo detenido',
+    resolvedBuyerMsg: 'Disputa resuelta a favor del comprador',
+    resolvedSellerMsg: 'Disputa resuelta a favor del vendedor',
+    trustUpdated: 'Nivel de confianza actualizado',
+    changeTrustTitle: 'Cambiar nivel de confianza',
+    trustLevelLabel: 'Nivel de confianza',
+    retentionPercentLabel: 'Retención (%)',
+    payoutDelayDaysLabel: 'Retraso de pago (días)',
+    save: 'Guardar',
+  },
+}
 
 type Tab = 'overview' | 'users' | 'sellers' | 'payments' | 'disputes' | 'lives' | 'audit'
 
@@ -16,6 +697,8 @@ interface Stats {
 export default function AdminPage() {
   const { user, session, loading: authContextLoading } = useAuth()
   const navigate = useNavigate()
+  const lang = (getLang() || 'fr') as Lang
+  const ct = adminContent[lang] || adminContent.fr
   const [tab, setTab] = useState<Tab>('overview')
 
   // Overview
@@ -106,17 +789,17 @@ export default function AdminPage() {
     try {
       res = await apiFetch(path, { headers, ...opts })
     } catch {
-      throw new Error('Serveur injoignable. Vérifie que le serveur est déployé.')
+      throw new Error(ct.serverUnreachable)
     }
     if (!res.ok) {
-      let msg = `Erreur ${res.status}`
+      let msg = `${ct.errorPrefix} ${res.status}`
       try { const body = await res.json(); msg = body.error || msg } catch { /* non-JSON response */ }
       throw new Error(msg)
     }
     try {
       return await res.json()
     } catch {
-      throw new Error('Réponse invalide du serveur')
+      throw new Error(ct.invalidResponse)
     }
   }
 
@@ -145,7 +828,7 @@ export default function AdminPage() {
         banned_users: Number(raw.banned_users) || 0,
       })
       setPageError(null)
-    } catch (e: any) { setPageError(String(e?.message || 'Erreur de chargement')); showToast(String(e?.message || 'Erreur de chargement')) }
+    } catch (e: any) { setPageError(String(e?.message || ct.loadingError)); showToast(String(e?.message || ct.loadingError)) }
     setLoading(false)
   }
 
@@ -165,7 +848,7 @@ export default function AdminPage() {
         scoresArr.forEach((s: Record<string, unknown>) => { if (s.user_id) scoresMap[String(s.user_id)] = s })
         setBuyerScores(scoresMap)
       } catch { /* buyer scores not available, non-blocking */ }
-    } catch { showToast('Erreur de chargement') }
+    } catch { showToast(ct.loadingError) }
     setLoading(false)
   }
 
@@ -174,7 +857,7 @@ export default function AdminPage() {
     try {
       const data = await adminFetch(`/api/admin/users/${id}`)
       setUserDetail(data)
-    } catch { showToast('Erreur de chargement') }
+    } catch { showToast(ct.loadingError) }
   }
 
   const fetchSellers = async () => {
@@ -191,7 +874,7 @@ export default function AdminPage() {
         trustArr.forEach((t: Record<string, unknown>) => { if (t.seller_id) trustMap[String(t.seller_id)] = t })
         setSellerTrusts(trustMap)
       } catch { /* seller trusts not available, non-blocking */ }
-    } catch { showToast('Erreur de chargement') }
+    } catch { showToast(ct.loadingError) }
     setLoading(false)
   }
 
@@ -203,7 +886,7 @@ export default function AdminPage() {
       if (ordersStatus) q.set('status', ordersStatus)
       const data = await adminFetch(`/api/admin/orders?${q}`)
       setOrders(Array.isArray(data.orders) ? data.orders : []); setOrdersTotal(Number(data.total) || 0); setOrdersPage(page)
-    } catch { showToast('Erreur de chargement') }
+    } catch { showToast(ct.loadingError) }
     setLoading(false)
   }
 
@@ -212,7 +895,7 @@ export default function AdminPage() {
     setLoading(true)
     try { const raw = await adminFetch('/api/admin/disputes-enhanced'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch {
       // Fallback to original endpoint if enhanced is not available
-      try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast('Erreur de chargement') }
+      try { const raw = await adminFetch('/api/admin/disputes'); setDisputes(Array.isArray(raw) ? raw : Array.isArray(raw?.disputes) ? raw.disputes : []) } catch { showToast(ct.loadingError) }
     }
     setLoading(false)
   }
@@ -220,7 +903,7 @@ export default function AdminPage() {
   const fetchStreams = async () => {
     if (!token) return
     setLoading(true)
-    try { const raw = await adminFetch(`/api/admin/streams?status=${streamsFilter}`); setStreams(Array.isArray(raw) ? raw : Array.isArray(raw?.streams) ? raw.streams : []) } catch { showToast('Erreur de chargement') }
+    try { const raw = await adminFetch(`/api/admin/streams?status=${streamsFilter}`); setStreams(Array.isArray(raw) ? raw : Array.isArray(raw?.streams) ? raw.streams : []) } catch { showToast(ct.loadingError) }
     setLoading(false)
   }
 
@@ -230,7 +913,7 @@ export default function AdminPage() {
     try {
       const data = await adminFetch(`/api/admin/audit-log?page=${page}&limit=50`)
       setAuditLogs(Array.isArray(data.logs) ? data.logs : []); setAuditTotal(Number(data.total) || 0); setAuditPage(page)
-    } catch { showToast('Erreur de chargement') }
+    } catch { showToast(ct.loadingError) }
     setLoading(false)
   }
 
@@ -239,33 +922,33 @@ export default function AdminPage() {
   const suspendUser = async (id: string, reason: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ reason }) })
-      showAction('Utilisateur suspendu'); fetchUsers(usersPage)
+      showAction(ct.userSuspended); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Erreur') }
+    } catch { showToast(ct.error) }
   }
 
   const unsuspendUser = async (id: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/unsuspend`, { method: 'POST' })
-      showAction('Utilisateur réactivé'); fetchUsers(usersPage)
+      showAction(ct.userReactivated); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Erreur') }
+    } catch { showToast(ct.error) }
   }
 
   const banUser = async (id: string, reason: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/ban`, { method: 'POST', body: JSON.stringify({ reason }) })
-      showAction('Utilisateur banni'); fetchUsers(usersPage)
+      showAction(ct.userBanned); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Erreur') }
+    } catch { showToast(ct.error) }
   }
 
   const unbanUser = async (id: string) => {
     try {
       await adminFetch(`/api/admin/users/${id}/unban`, { method: 'POST' })
-      showAction('Utilisateur débanni'); fetchUsers(usersPage)
+      showAction(ct.userUnbanned); fetchUsers(usersPage)
       if (userDetail) fetchUserDetail(id)
-    } catch { showToast('Erreur') }
+    } catch { showToast(ct.error) }
   }
 
   const addNote = async (id: string) => {
@@ -273,53 +956,53 @@ export default function AdminPage() {
     try {
       await adminFetch(`/api/admin/users/${id}/note`, { method: 'POST', body: JSON.stringify({ note: noteText }) })
       setNoteText('')
-      showAction('Note ajoutée'); fetchUserDetail(id)
-    } catch { showToast('Erreur de sauvegarde') }
+      showAction(ct.noteAdded); fetchUserDetail(id)
+    } catch { showToast(ct.saveError) }
   }
 
   const blockPayments = async (id: string, block: boolean) => {
     try {
       await adminFetch(`/api/admin/sellers/${id}/block-payments`, { method: 'POST', body: JSON.stringify({ block }) })
-      showAction(block ? 'Paiements bloqués' : 'Paiements débloqués'); fetchSellers()
-    } catch { showToast('Erreur') }
+      showAction(block ? ct.paymentsBlockedMsg : ct.paymentsUnblockedMsg); fetchSellers()
+    } catch { showToast(ct.error) }
   }
 
   const setReserve = async (id: string, percent: number) => {
     try {
       await adminFetch(`/api/admin/sellers/${id}/reserve`, { method: 'POST', body: JSON.stringify({ percent }) })
-      showAction(`Réserve fixée à ${percent}%`); fetchSellers()
-    } catch { showToast('Erreur') }
+      showAction(`${ct.reserveSetMsg}${percent}%`); fetchSellers()
+    } catch { showToast(ct.error) }
   }
 
   const requestDocuments = async (id: string) => {
     try {
       await adminFetch(`/api/admin/sellers/${id}/request-documents`, { method: 'POST' })
-      showAction('Documents demandés'); fetchSellers()
-    } catch { showToast('Erreur') }
+      showAction(ct.docsRequested); fetchSellers()
+    } catch { showToast(ct.error) }
   }
 
   const stopStream = async (id: string) => {
     try {
       await adminFetch(`/api/admin/streams/${id}/stop`, { method: 'POST' })
-      showAction('Live arrêté'); fetchStreams()
-    } catch { showToast('Erreur') }
+      showAction(ct.liveStopped); fetchStreams()
+    } catch { showToast(ct.error) }
   }
 
   const suspendStreamer = async (id: string) => {
     try {
       await adminFetch(`/api/admin/streams/${id}/suspend-streamer`, { method: 'POST', body: JSON.stringify({ reason: 'Suspended during live by admin' }) })
-      showAction('Vendeur suspendu et live arrêté'); fetchStreams()
-    } catch { showToast('Erreur') }
+      showAction(ct.sellerSuspendedLive); fetchStreams()
+    } catch { showToast(ct.error) }
   }
 
   const resolveDispute = async (disputeId: string, resolution: 'buyer' | 'seller') => {
     const note = disputeNotes[disputeId] || ''
     try {
       await adminFetch(`/api/admin/disputes/${disputeId}/resolve`, { method: 'POST', body: JSON.stringify({ resolution, note }) })
-      showAction(resolution === 'buyer' ? 'Litige résolu en faveur de l\'acheteur' : 'Litige résolu en faveur du vendeur')
+      showAction(resolution === 'buyer' ? ct.resolvedBuyerMsg : ct.resolvedSellerMsg)
       setDisputeNotes(prev => { const copy = { ...prev }; delete copy[disputeId]; return copy })
       fetchDisputes()
-    } catch { showToast('Erreur lors de la résolution') }
+    } catch { showToast(ct.resolutionError) }
   }
 
   const updateSellerTrust = async () => {
@@ -333,10 +1016,10 @@ export default function AdminPage() {
           payout_delay_days: trustModal.payout_delay_days,
         }),
       })
-      showAction('Niveau de confiance mis à jour')
+      showAction(ct.trustUpdated)
       setTrustModal(null)
       fetchSellers()
-    } catch { showToast('Erreur lors de la mise à jour') }
+    } catch { showToast(ct.updateError) }
   }
 
   // ======== STYLES ========
@@ -390,7 +1073,8 @@ export default function AdminPage() {
   const fmtDate = (d: unknown) => {
     if (!d || typeof d !== 'string') return '-'
     try {
-      return new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      const localeMap: Record<string, string> = { fr: 'fr-FR', en: 'en-US', he: 'he-IL', es: 'es-ES' }
+      return new Date(d).toLocaleDateString(localeMap[lang] || 'fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     } catch {
       return '-'
     }
@@ -400,13 +1084,13 @@ export default function AdminPage() {
 
   // ======== TABS ========
   const tabs: { id: Tab; label: string }[] = [
-    { id: 'overview', label: 'Vue d\'ensemble' },
-    { id: 'users', label: 'Utilisateurs' },
-    { id: 'sellers', label: 'Vendeurs' },
-    { id: 'payments', label: 'Paiements' },
-    { id: 'disputes', label: 'Litiges' },
-    { id: 'lives', label: 'Lives' },
-    { id: 'audit', label: 'Journal' },
+    { id: 'overview', label: ct.tabOverview },
+    { id: 'users', label: ct.tabUsers },
+    { id: 'sellers', label: ct.tabSellers },
+    { id: 'payments', label: ct.tabPayments },
+    { id: 'disputes', label: ct.tabDisputes },
+    { id: 'lives', label: ct.tabLives },
+    { id: 'audit', label: ct.tabAudit },
   ]
 
   // ======== ERROR DISPLAY ========
@@ -417,7 +1101,7 @@ export default function AdminPage() {
       border: '2px solid #ff3333', borderRadius: '12px',
     }}>
       <p style={{ color: '#ff3333', fontSize: '16px', fontWeight: 900, margin: '0 0 8px' }}>
-        {'ERREUR : ' + String(label)}
+        {ct.errorLabel + String(label)}
       </p>
       <p style={{ color: '#ff8888', fontSize: '13px', margin: '0 0 12px', wordBreak: 'break-word' }}>
         {String(err.message || 'Unknown error')}
@@ -428,13 +1112,13 @@ export default function AdminPage() {
         maxHeight: '300px', overflow: 'auto',
         padding: '10px', backgroundColor: '#0a0000', borderRadius: '8px',
       }}>
-        {String(err.stack || 'Pas de trace')}
+        {String(err.stack || ct.noTrace)}
       </pre>
       <button
         onClick={() => window.location.reload()}
         style={{ ...btn('#333'), marginTop: '12px' }}
       >
-        {'Fermer'}
+        {ct.close}
       </button>
     </div>
   )
@@ -442,19 +1126,19 @@ export default function AdminPage() {
   // ======== RENDER ========
 
   const renderOverview = () => {
-    if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>{'Chargement...'}</p>
+    if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>{ct.loading}</p>
     const statCards: { label: string; value: string; color: string }[] = [
-      { label: 'Utilisateurs', value: sv(stats.users), color: '#3B82F6' },
-      { label: 'Vendeurs', value: sv(stats.sellers), color: '#10B981' },
-      { label: 'Commandes', value: sv(stats.orders), color: '#F59E0B' },
-      { label: 'Commandes (30j)', value: sv(stats.orders_30d), color: '#8B5CF6' },
-      { label: 'Lives en cours', value: sv(stats.lives_now), color: '#E8344E' },
-      { label: 'Litiges', value: sv(stats.disputes), color: '#EF4444' },
-      { label: 'Chiffre d\'affaires', value: fmtMoney(stats.total_revenue), color: '#10B981' },
-      { label: 'Frais plateforme', value: fmtMoney(stats.total_fees), color: '#F0908A' },
-      { label: 'Suspendus', value: sv(stats.suspended_users), color: '#F59E0B' },
-      { label: 'Bannis', value: sv(stats.banned_users), color: '#EF4444' },
-      { label: 'Litiges ouverts', value: sv(disputes.filter(d => sv(d.status) === 'open' || sv(d.status) === 'disputed' || sv(d.status) === 'under_review').length || stats.disputes), color: '#F97316' },
+      { label: ct.statUsers, value: sv(stats.users), color: '#3B82F6' },
+      { label: ct.statSellers, value: sv(stats.sellers), color: '#10B981' },
+      { label: ct.statOrders, value: sv(stats.orders), color: '#F59E0B' },
+      { label: ct.statOrders30d, value: sv(stats.orders_30d), color: '#8B5CF6' },
+      { label: ct.statLivesNow, value: sv(stats.lives_now), color: '#E8344E' },
+      { label: ct.statDisputes, value: sv(stats.disputes), color: '#EF4444' },
+      { label: ct.statRevenue, value: fmtMoney(stats.total_revenue), color: '#10B981' },
+      { label: ct.statFees, value: fmtMoney(stats.total_fees), color: '#F0908A' },
+      { label: ct.statSuspended, value: sv(stats.suspended_users), color: '#F59E0B' },
+      { label: ct.statBanned, value: sv(stats.banned_users), color: '#EF4444' },
+      { label: ct.statOpenDisputes, value: sv(disputes.filter(d => sv(d.status) === 'open' || sv(d.status) === 'disputed' || sv(d.status) === 'under_review').length || stats.disputes), color: '#F97316' },
     ]
     return (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px', padding: '0 16px' }}>
@@ -476,7 +1160,7 @@ export default function AdminPage() {
           value={usersSearch}
           onChange={e => setUsersSearch(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && fetchUsers(1)}
-          placeholder="Rechercher..."
+          placeholder={ct.searchPlaceholder}
           style={{ ...inputStyle, flex: 1, minWidth: '150px' }}
         />
         <select
@@ -484,14 +1168,14 @@ export default function AdminPage() {
           onChange={e => { setUsersFilter(e.target.value); setTimeout(() => fetchUsers(1), 0) }}
           style={{ ...inputStyle, width: 'auto', minWidth: '120px' }}
         >
-          <option value="all">{'Tous'}</option>
-          <option value="sellers">{'Vendeurs'}</option>
-          <option value="suspended">{'Suspendus'}</option>
-          <option value="banned">{'Bannis'}</option>
+          <option value="all">{ct.filterAll}</option>
+          <option value="sellers">{ct.filterSellers}</option>
+          <option value="suspended">{ct.filterSuspended}</option>
+          <option value="banned">{ct.filterBanned}</option>
         </select>
-        <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>{'Chercher'}</button>
+        <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>{ct.search}</button>
       </div>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(usersTotal) + ' utilisateurs'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(usersTotal) + ' ' + ct.users}</p>
 
       {/* User list */}
       {Array.isArray(users) ? users.map((u, i) => (
@@ -513,20 +1197,20 @@ export default function AdminPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0, alignItems: 'center' }}>
-            {sb(u.is_seller) ? <span style={badge('#10B981')}>{'S'}</span> : null}
-            {sb(u.is_suspended) ? <span style={badge('#F59E0B')}>{'SUS'}</span> : null}
-            {sb(u.is_banned) ? <span style={badge('#EF4444')}>{'BAN'}</span> : null}
+            {sb(u.is_seller) ? <span style={badge('#10B981')}>{ct.badgeSeller}</span> : null}
+            {sb(u.is_suspended) ? <span style={badge('#F59E0B')}>{ct.badgeSuspended}</span> : null}
+            {sb(u.is_banned) ? <span style={badge('#EF4444')}>{ct.badgeBanned}</span> : null}
             {(() => {
               const bs = buyerScores[String(u.id || '')]
               if (!bs) return null
               const score = Number(bs.buyer_score) || 0
               const risk = sv(bs.risk_level)
               const riskColors: Record<string, string> = { low: '#10B981', medium: '#F59E0B', high: '#F97316', blocked: '#EF4444' }
-              const riskLabels: Record<string, string> = { low: 'Faible', medium: 'Moyen', high: 'Elevé', blocked: 'Bloqué' }
+              const riskLabels: Record<string, string> = { low: ct.riskLow, medium: ct.riskMedium, high: ct.riskHigh, blocked: ct.riskBlocked }
               return (
                 <>
                   <span style={{ ...badge(riskColors[risk] || '#666'), fontSize: '10px' }}>{riskLabels[risk] || risk}</span>
-                  <span style={{ color: '#888', fontSize: '10px', fontWeight: 600 }}>{'Score: ' + sv(score)}</span>
+                  <span style={{ color: '#888', fontSize: '10px', fontWeight: 600 }}>{ct.scoreLabel + sv(score)}</span>
                 </>
               )
             })()}
@@ -537,9 +1221,9 @@ export default function AdminPage() {
       {/* Pagination */}
       {usersTotal > 30 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
-          <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>{'Préc.'}</button>
-          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{'Page ' + sv(usersPage) + ' / ' + sv(Math.ceil(usersTotal / 30))}</span>
-          <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>{'Suiv.'}</button>
+          <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>{ct.prev}</button>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{ct.page + ' ' + sv(usersPage) + ' / ' + sv(Math.ceil(usersTotal / 30))}</span>
+          <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>{ct.next}</button>
         </div>
       ) : null}
     </div>
@@ -547,7 +1231,7 @@ export default function AdminPage() {
 
   const renderSellers = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(sellersTotal) + ' vendeurs'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(sellersTotal) + ' ' + ct.sellers}</p>
       {Array.isArray(sellers) ? sellers.map((s, i) => {
         try {
           const rawProfiles = s.profiles
@@ -561,15 +1245,15 @@ export default function AdminPage() {
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{sv(s.store_name)}</p>
                   <p style={{ color: '#666', fontSize: '12px', margin: '2px 0 0' }}>
-                    {(p ? ('@' + sv(p.username) + ' | ' + sv(p.country)) : '') + ' | ' + fmtId(id) + ' | Inscrit : ' + fmtDate(p ? p.created_at : null)}
+                    {(p ? ('@' + sv(p.username) + ' | ' + sv(p.country)) : '') + ' | ' + fmtId(id) + ' | ' + ct.registered + fmtDate(p ? p.created_at : null)}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                  {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'BLOCKED'}</span> : null}
-                  {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{sv(s.reserve_percent) + '% RES'}</span> : null}
-                  {sb(s.documents_requested) ? <span style={badge('#3B82F6')}>{'DOC DEM'}</span> : null}
-                  {(p && sb(p.is_suspended)) ? <span style={badge('#F59E0B')}>{'SUS'}</span> : null}
-                  {sv(s.kyc_status) === 'verified' ? <span style={badge('#10B981')}>{'KYC'}</span> : <span style={badge('#F59E0B')}>{'!KYC'}</span>}
+                  {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{ct.blocked}</span> : null}
+                  {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{sv(s.reserve_percent) + '% ' + ct.reserveLabel}</span> : null}
+                  {sb(s.documents_requested) ? <span style={badge('#3B82F6')}>{ct.docRequested}</span> : null}
+                  {(p && sb(p.is_suspended)) ? <span style={badge('#F59E0B')}>{ct.badgeSuspended}</span> : null}
+                  {sv(s.kyc_status) === 'verified' ? <span style={badge('#10B981')}>{ct.kycVerified}</span> : <span style={badge('#F59E0B')}>{ct.kycMissing}</span>}
                 </div>
               </div>
 
@@ -579,18 +1263,18 @@ export default function AdminPage() {
                 if (!trust) return null
                 const trustLevel = sv(trust.trust_level)
                 const trustColors: Record<string, string> = { new: '#888', standard: '#3B82F6', trusted: '#10B981', premium: '#EAB308' }
-                const trustLabels: Record<string, string> = { new: 'Nouveau', standard: 'Standard', trusted: 'Confiance', premium: 'Premium' }
+                const trustLabels: Record<string, string> = { new: ct.trustNew, standard: ct.trustStandard, trusted: ct.trustTrusted, premium: ct.trustPremium }
                 return (
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={badge(trustColors[trustLevel] || '#666')}>{trustLabels[trustLevel] || trustLevel}</span>
-                    {Number(trust.holdback_percent) > 0 ? <span style={{ color: '#F59E0B', fontSize: '11px', fontWeight: 600 }}>{'Rétention: ' + sv(trust.holdback_percent) + '%'}</span> : null}
-                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#8B5CF6', fontSize: '11px', fontWeight: 600 }}>{'Délai paiement: ' + sv(trust.payout_delay_days) + 'j'}</span> : null}
+                    {Number(trust.holdback_percent) > 0 ? <span style={{ color: '#F59E0B', fontSize: '11px', fontWeight: 600 }}>{ct.retentionLabel + sv(trust.holdback_percent) + '%'}</span> : null}
+                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#8B5CF6', fontSize: '11px', fontWeight: 600 }}>{ct.payoutDelayLabel + sv(trust.payout_delay_days) + 'j'}</span> : null}
                     <button onClick={() => setTrustModal({
                       sellerId: id,
                       trust_level: trustLevel || 'new',
                       holdback_percent: Number(trust.holdback_percent) || 0,
                       payout_delay_days: Number(trust.payout_delay_days) || 0,
-                    })} style={{ ...btn('#555'), fontSize: '10px', padding: '3px 8px', marginBottom: 0 }}>{'Changer le niveau'}</button>
+                    })} style={{ ...btn('#555'), fontSize: '10px', padding: '3px 8px', marginBottom: 0 }}>{ct.changeTrustLevel}</button>
                   </div>
                 )
               })()}
@@ -598,11 +1282,11 @@ export default function AdminPage() {
               {/* Risk metrics */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px', marginBottom: '10px' }}>
                 {[
-                  { l: 'CA', v: fmtMoney(s.total_revenue), c: '#10B981' },
-                  { l: 'Cmd', v: sv(rm?.total_orders || 0), c: '#3B82F6' },
-                  { l: '30d', v: sv(rm?.orders_30d || 0), c: '#8B5CF6' },
-                  { l: 'Remb. %', v: sv(rm?.refund_rate || 0) + '%', c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
-                  { l: 'Litige %', v: sv(rm?.dispute_rate || 0) + '%', c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
+                  { l: ct.metricRevenue, v: fmtMoney(s.total_revenue), c: '#10B981' },
+                  { l: ct.metricOrders, v: sv(rm?.total_orders || 0), c: '#3B82F6' },
+                  { l: ct.metric30d, v: sv(rm?.orders_30d || 0), c: '#8B5CF6' },
+                  { l: ct.metricRefundRate, v: sv(rm?.refund_rate || 0) + '%', c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
+                  { l: ct.metricDisputeRate, v: sv(rm?.dispute_rate || 0) + '%', c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
                 ].map(m => (
                   <div key={m.l} style={{ textAlign: 'center', padding: '6px', backgroundColor: '#0A0A0A', borderRadius: '8px' }}>
                     <p style={{ color: m.c, fontWeight: 700, fontSize: '14px', margin: 0 }}>{m.v}</p>
@@ -614,15 +1298,15 @@ export default function AdminPage() {
               {/* Actions */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 <button onClick={() => blockPayments(id, !sb(s.payments_blocked))} style={btn(sb(s.payments_blocked) ? '#10B981' : '#EF4444')}>
-                  {sb(s.payments_blocked) ? 'Débloquer' : 'Bloquer'}
+                  {sb(s.payments_blocked) ? ct.unblock : ct.block}
                 </button>
-                <button onClick={() => { const pInput = prompt('Réserve % (0-100) ?', sv(s.reserve_percent || 0)); if (pInput !== null) setReserve(id, Number(pInput)) }} style={btn('#F59E0B')}>
-                  {'Réserve'}
+                <button onClick={() => { const pInput = prompt(ct.reservePrompt, sv(s.reserve_percent || 0)); if (pInput !== null) setReserve(id, Number(pInput)) }} style={btn('#F59E0B')}>
+                  {ct.reserve}
                 </button>
                 {!sb(s.documents_requested) ? (
-                  <button onClick={() => requestDocuments(id)} style={btn('#3B82F6')}>{'Demander docs'}</button>
+                  <button onClick={() => requestDocuments(id)} style={btn('#3B82F6')}>{ct.requestDocs}</button>
                 ) : null}
-                <button onClick={() => { setSelectedUser({ id }); fetchUserDetail(id) }} style={btn('#333')}>{'Voir profil'}</button>
+                <button onClick={() => { setSelectedUser({ id }); fetchUserDetail(id) }} style={btn('#333')}>{ct.viewProfile}</button>
               </div>
             </div>
           )
@@ -646,11 +1330,11 @@ export default function AdminPage() {
               ...btn(ordersStatus === s ? '#F0908A' : '#222'),
               fontSize: '11px', padding: '5px 10px',
             }}>
-            {s || 'All'}
+            {s || ct.allOrders}
           </button>
         ))}
       </div>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(ordersTotal) + ' commandes'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(ordersTotal) + ' ' + ct.orders}</p>
       {Array.isArray(orders) ? orders.map((o, i) => {
         try {
           const rawBuyer = o.buyer
@@ -671,10 +1355,10 @@ export default function AdminPage() {
                 </p>
                 <p style={{ color: '#F0908A', fontWeight: 700, fontSize: '14px', margin: '2px 0' }}>{fmtMoney(o.amount)}</p>
                 <p style={{ color: '#555', fontSize: '11px', margin: 0 }}>
-                  {'Acheteur : ' + (buyer ? ('@' + sv(buyer.username)) : fmtId(o.buyer_id)) + ' | Vendeur : ' + (seller ? ('@' + sv(seller.username)) : fmtId(o.seller_id))}
+                  {ct.buyerLabel + (buyer ? ('@' + sv(buyer.username)) : fmtId(o.buyer_id)) + ' | ' + ct.sellerLabel + (seller ? ('@' + sv(seller.username)) : fmtId(o.seller_id))}
                 </p>
                 <p style={{ color: '#444', fontSize: '11px', margin: '2px 0 0' }}>
-                  {fmtDate(o.created_at) + ' | Frais : ' + fmtMoney(o.platform_fee) + ' | ' + fmtId(o.id)}
+                  {fmtDate(o.created_at) + ' | ' + ct.feesLabel + fmtMoney(o.platform_fee) + ' | ' + fmtId(o.id)}
                 </p>
               </div>
               <span style={badge(statusColor[sv(o.status)] || '#666')}>{sv(o.status)}</span>
@@ -690,9 +1374,9 @@ export default function AdminPage() {
       }) : null}
       {ordersTotal > 30 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
-          <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>{'Préc.'}</button>
-          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{'Page ' + sv(ordersPage) + ' / ' + sv(Math.ceil(ordersTotal / 30))}</span>
-          <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>{'Suiv.'}</button>
+          <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>{ct.prev}</button>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{ct.page + ' ' + sv(ordersPage) + ' / ' + sv(Math.ceil(ordersTotal / 30))}</span>
+          <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>{ct.next}</button>
         </div>
       ) : null}
     </div>
@@ -704,15 +1388,15 @@ export default function AdminPage() {
       resolved_seller: '#3B82F6', escalated: '#EF4444', disputed: '#EF4444', refunded: '#8B5CF6',
     }
     const statusLabels: Record<string, string> = {
-      open: 'Ouvert', under_review: 'En examen', resolved_buyer: 'Résolu (acheteur)',
-      resolved_seller: 'Résolu (vendeur)', escalated: 'Escaladé', disputed: 'En litige', refunded: 'Remboursé',
+      open: ct.statusOpen, under_review: ct.statusUnderReview, resolved_buyer: ct.statusResolvedBuyer,
+      resolved_seller: ct.statusResolvedSeller, escalated: ct.statusEscalated, disputed: ct.statusDisputed, refunded: ct.statusRefunded,
     }
     const isResolved = (status: string) => ['resolved_buyer', 'resolved_seller', 'refunded'].includes(status)
 
     return (
       <div style={{ padding: '0 16px' }}>
-        <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length) + ' litiges/remboursements'}</p>
-        {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'Aucun litige'}</p> : null}
+        <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(disputes.length) + ' ' + ct.disputesLabel}</p>
+        {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{ct.noDisputes}</p> : null}
         {Array.isArray(disputes) ? disputes.map((d, i) => {
           try {
             const rawBuyer = d.buyer
@@ -733,7 +1417,7 @@ export default function AdminPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <span style={badge(statusColors[status] || '#666')}>{statusLabels[status] || status}</span>
-                    {sb(d.auto_refund) ? <span style={badge('#10B981')}>{'Auto-remboursé'}</span> : null}
+                    {sb(d.auto_refund) ? <span style={badge('#10B981')}>{ct.autoRefunded}</span> : null}
                   </div>
                   <p style={{ color: '#F0908A', fontWeight: 700, fontSize: '16px', margin: 0 }}>{fmtMoney(d.amount)}</p>
                 </div>
@@ -742,14 +1426,14 @@ export default function AdminPage() {
                 {item ? (
                   <p style={{ color: '#ddd', fontWeight: 600, fontSize: '14px', margin: '0 0 8px' }}>{sv(item.title)}</p>
                 ) : (
-                  <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>{'Commande ' + fmtId(d.order_id || d.id)}</p>
+                  <p style={{ color: '#888', fontSize: '13px', margin: '0 0 8px' }}>{ct.orderLabel + fmtId(d.order_id || d.id)}</p>
                 )}
 
                 {/* Buyer + Seller info side by side */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   {/* Buyer */}
                   <div style={{ padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                    <p style={{ color: '#888', fontSize: '10px', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{'Acheteur'}</p>
+                    <p style={{ color: '#888', fontSize: '10px', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.buyer}</p>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <div style={{
                         width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#222',
@@ -779,14 +1463,14 @@ export default function AdminPage() {
 
                   {/* Seller */}
                   <div style={{ padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                    <p style={{ color: '#888', fontSize: '10px', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{'Vendeur'}</p>
+                    <p style={{ color: '#888', fontSize: '10px', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller}</p>
                     <p style={{ color: '#fff', fontSize: '13px', fontWeight: 600, margin: 0 }}>{seller ? (sv(seller.display_name) || '@' + sv(seller.username)) : '?'}</p>
                     {seller ? <p style={{ color: '#555', fontSize: '11px', margin: '1px 0 0' }}>{'@' + sv(seller.username)}</p> : null}
                     {/* Shipping proofs */}
                     {(shippingProofs.length > 0 || shippingProofUrl) ? (
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
                         {shippingProofUrl ? (
-                          <img src={shippingProofUrl} alt="Preuve expédition"
+                          <img src={shippingProofUrl} alt={ct.shippingProofAlt}
                             onClick={() => setEnlargedImage(shippingProofUrl)}
                             style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
                         ) : null}
@@ -802,18 +1486,18 @@ export default function AdminPage() {
 
                 {/* Timeline */}
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  {d.opened_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Ouvert : ' + fmtDate(d.opened_at)}</span> : null}
-                  {d.created_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Créé : ' + fmtDate(d.created_at)}</span> : null}
-                  {d.paid_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Payé : ' + fmtDate(d.paid_at)}</span> : null}
-                  {d.shipped_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Expédié : ' + fmtDate(d.shipped_at)}</span> : null}
-                  {d.resolved_at ? <span style={{ color: '#666', fontSize: '11px' }}>{'Résolu : ' + fmtDate(d.resolved_at)}</span> : null}
+                  {d.opened_at ? <span style={{ color: '#666', fontSize: '11px' }}>{ct.openedAt + fmtDate(d.opened_at)}</span> : null}
+                  {d.created_at ? <span style={{ color: '#666', fontSize: '11px' }}>{ct.createdAt + fmtDate(d.created_at)}</span> : null}
+                  {d.paid_at ? <span style={{ color: '#666', fontSize: '11px' }}>{ct.paidAt + fmtDate(d.paid_at)}</span> : null}
+                  {d.shipped_at ? <span style={{ color: '#666', fontSize: '11px' }}>{ct.shippedAt + fmtDate(d.shipped_at)}</span> : null}
+                  {d.resolved_at ? <span style={{ color: '#666', fontSize: '11px' }}>{ct.resolvedAt + fmtDate(d.resolved_at)}</span> : null}
                 </div>
 
                 {/* Dispute reason */}
-                {d.reason ? <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 10px', fontStyle: 'italic' }}>{'Motif : ' + sv(d.reason)}</p> : null}
+                {d.reason ? <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 10px', fontStyle: 'italic' }}>{ct.reasonPrefix + sv(d.reason)}</p> : null}
 
                 {/* Resolution note (if already resolved) */}
-                {d.resolution_note ? <p style={{ color: '#888', fontSize: '12px', margin: '0 0 10px' }}>{'Note de résolution : ' + sv(d.resolution_note)}</p> : null}
+                {d.resolution_note ? <p style={{ color: '#888', fontSize: '12px', margin: '0 0 10px' }}>{ct.resolutionNotePrefix + sv(d.resolution_note)}</p> : null}
 
                 {/* Resolution controls (only if not already resolved) */}
                 {!isResolved(status) ? (
@@ -821,15 +1505,15 @@ export default function AdminPage() {
                     <textarea
                       value={disputeNotes[disputeId] || ''}
                       onChange={e => setDisputeNotes(prev => ({ ...prev, [disputeId]: e.target.value }))}
-                      placeholder="Note de résolution (optionnel)..."
+                      placeholder={ct.resolutionNotePlaceholder}
                       style={{ ...inputStyle, minHeight: '60px', resize: 'vertical', marginBottom: '8px' }}
                     />
                     <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <button onClick={() => resolveDispute(disputeId, 'buyer')} style={btn('#10B981')}>
-                        {'Résoudre en faveur de l\'acheteur'}
+                        {ct.resolveForBuyer}
                       </button>
                       <button onClick={() => resolveDispute(disputeId, 'seller')} style={btn('#3B82F6')}>
-                        {'Résoudre en faveur du vendeur'}
+                        {ct.resolveForSeller}
                       </button>
                     </div>
                   </div>
@@ -858,7 +1542,7 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
-      {(Array.isArray(streams) && streams.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{'Aucun live'}</p> : null}
+      {(Array.isArray(streams) && streams.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{ct.noLives}</p> : null}
       {Array.isArray(streams) ? streams.map((s, i) => {
         try {
           const rawSeller = s.seller
@@ -874,7 +1558,7 @@ export default function AdminPage() {
                     {(seller ? sv(seller.store_name) : '?') + ' (' + (sellerProfile ? ('@' + sv(sellerProfile.username)) : '?') + ')'}
                   </p>
                   <p style={{ color: '#555', fontSize: '11px', margin: '2px 0 0' }}>
-                    {'Spectateurs : ' + sv(s.viewer_count) + ' | Max : ' + sv(s.peak_viewers) + ' | ' + sv(s.category) + ' | ' + fmtDate(s.started_at || s.scheduled_at)}
+                    {ct.viewersLabel + sv(s.viewer_count) + ' | ' + ct.maxLabel + sv(s.peak_viewers) + ' | ' + sv(s.category) + ' | ' + fmtDate(s.started_at || s.scheduled_at)}
                   </p>
                 </div>
                 <span style={badge(sv(s.status) === 'live' ? '#E8344E' : sv(s.status) === 'scheduled' ? '#3B82F6' : '#555')}>
@@ -883,13 +1567,13 @@ export default function AdminPage() {
               </div>
               {sv(s.status) === 'live' ? (
                 <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => stopStream(String(s.id || ''))} style={btn('#EF4444')}>{'Arrêter le live'}</button>
-                  <button onClick={() => suspendStreamer(String(s.id || ''))} style={btn('#F59E0B')}>{'Suspendre le vendeur'}</button>
+                  <button onClick={() => stopStream(String(s.id || ''))} style={btn('#EF4444')}>{ct.stopLive}</button>
+                  <button onClick={() => suspendStreamer(String(s.id || ''))} style={btn('#F59E0B')}>{ct.suspendSeller}</button>
                 </div>
               ) : null}
               {(typeof s.mux_playback_id === 'string' && s.mux_playback_id && sv(s.status) === 'ended') ? (
                 <p style={{ color: '#3B82F6', fontSize: '12px', margin: '8px 0 0' }}>
-                  {'Replay: mux.com/playback/' + sv(s.mux_playback_id)}
+                  {ct.replayLabel + sv(s.mux_playback_id)}
                 </p>
               ) : null}
             </div>
@@ -907,12 +1591,12 @@ export default function AdminPage() {
 
   const renderAudit = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(auditTotal) + ' entrées'}</p>
+      <p style={{ color: '#666', fontSize: '12px', marginBottom: '8px' }}>{sv(auditTotal) + ' ' + ct.entries}</p>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #222' }}>
-              {['Date', 'Admin', 'Action', 'Cible', 'ID', 'Détails'].map(h => (
+              {[ct.auditDate, ct.auditAdmin, ct.auditAction, ct.auditTarget, ct.auditId, ct.auditDetails].map(h => (
                 <th key={h} style={{ color: '#888', fontWeight: 600, padding: '8px 6px', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
@@ -946,7 +1630,7 @@ export default function AdminPage() {
                 return (
                   <tr key={i}>
                     <td colSpan={6} style={{ color: '#ff3333', padding: '8px 6px' }}>
-                      {'Erreur ligne : ' + String(err?.message || err)}
+                      {ct.errorLinePrefix + String(err?.message || err)}
                     </td>
                   </tr>
                 )
@@ -957,9 +1641,9 @@ export default function AdminPage() {
       </div>
       {auditTotal > 50 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
-          <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>{'Préc.'}</button>
-          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{'Page ' + sv(auditPage) + ' / ' + sv(Math.ceil(auditTotal / 50))}</span>
-          <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>{'Suiv.'}</button>
+          <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>{ct.prev}</button>
+          <span style={{ color: '#666', fontSize: '13px', padding: '6px' }}>{ct.page + ' ' + sv(auditPage) + ' / ' + sv(Math.ceil(auditTotal / 50))}</span>
+          <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>{ct.next}</button>
         </div>
       ) : null}
     </div>
@@ -993,8 +1677,8 @@ export default function AdminPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>
               <div>
-                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>{'Administration'}</h1>
-                <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>{'ShaPop Back-Office'}</p>
+                <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>{ct.pageTitle}</h1>
+                <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>{ct.backOffice}</p>
               </div>
             </div>
             {loading ? <div className="admin-spinner" style={{ width: '20px', height: '20px' }} /> : null}
@@ -1038,8 +1722,8 @@ export default function AdminPage() {
           {pageError ? (
             <div style={{ margin: '16px', padding: '16px', backgroundColor: '#1a0a0a', border: '1px solid #E8344E', borderRadius: '12px', textAlign: 'center' }}>
               <p style={{ color: '#E8344E', fontSize: '14px', fontWeight: 600, margin: '0 0 8px' }}>{String(pageError)}</p>
-              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 12px' }}>{'Le serveur doit être déployé avec les endpoints admin.'}</p>
-              <button onClick={() => { setPageError(null); fetchStats() }} style={btn('#333')}>{'Réessayer'}</button>
+              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 12px' }}>{ct.serverRequired}</p>
+              <button onClick={() => { setPageError(null); fetchStats() }} style={btn('#333')}>{ct.retry}</button>
             </div>
           ) : null}
 
@@ -1068,7 +1752,7 @@ export default function AdminPage() {
                   const s = (rawSeller && typeof rawSeller === 'object') ? rawSeller as Record<string, unknown> : null
                   const notes = Array.isArray(rawNotes) ? rawNotes as Record<string, unknown>[] : []
                   const st = (rawStats && typeof rawStats === 'object') ? rawStats as Record<string, number> : null
-                  if (!p) return <p style={{ color: '#666' }}>{'Aucune donnée'}</p>
+                  if (!p) return <p style={{ color: '#666' }}>{ct.noData}</p>
                   const uid = String(p.id || '')
                   return (
                     <>
@@ -1081,49 +1765,49 @@ export default function AdminPage() {
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                        {sb(p.is_suspended) ? <span style={badge('#F59E0B')}>{'SUSPENDU'}</span> : null}
-                        {sb(p.is_banned) ? <span style={badge('#EF4444')}>{'BANNI'}</span> : null}
-                        {sb(p.is_seller) ? <span style={badge('#10B981')}>{'VENDEUR'}</span> : null}
-                        {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{'KYC VÉRIFIÉ'}</span> : null}
+                        {sb(p.is_suspended) ? <span style={badge('#F59E0B')}>{ct.suspendedBadge}</span> : null}
+                        {sb(p.is_banned) ? <span style={badge('#EF4444')}>{ct.bannedBadge}</span> : null}
+                        {sb(p.is_seller) ? <span style={badge('#10B981')}>{ct.sellerBadge}</span> : null}
+                        {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{ct.kycVerifiedBadge}</span> : null}
                       </div>
 
                       <p style={{ color: '#666', fontSize: '12px' }}>
-                        {'Inscrit : ' + fmtDate(p.created_at) + ' | Achats : ' + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | Ventes : ' + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
+                        {ct.registered + fmtDate(p.created_at) + ' | ' + ct.purchasesLabel + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | ' + ct.salesLabel + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
                       </p>
 
                       {s ? (
                         <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                          <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>{'Boutique : ' + sv(s.store_name)}</p>
+                          <p style={{ color: '#aaa', fontSize: '13px', fontWeight: 600, margin: '0 0 4px' }}>{ct.storeLabel + sv(s.store_name)}</p>
                           <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
-                            {'Revenu : ' + fmtMoney(s.total_revenue) + ' | Ventes : ' + sv(s.total_sales) + ' | Stripe : ' + (s.stripe_account_id ? 'Connecté' : 'Non')}
+                            {ct.revenueLabel + fmtMoney(s.total_revenue) + ' | ' + ct.salesMetricLabel + sv(s.total_sales) + ' | ' + ct.stripeLabel + (s.stripe_account_id ? ct.stripeConnected : ct.stripeNo)}
                           </p>
-                          {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{'PAIEMENTS BLOQUÉS'}</span> : null}
-                          {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{'RÉSERVE ' + sv(s.reserve_percent) + '%'}</span> : null}
+                          {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{ct.paymentsBlocked}</span> : null}
+                          {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{ct.reserveBadge + sv(s.reserve_percent) + '%'}</span> : null}
                         </div>
                       ) : null}
 
                       {/* Actions */}
                       <div style={{ marginTop: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {(!sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                          <button onClick={() => { const r = prompt('Motif ?'); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{'Suspendre'}</button>
+                          <button onClick={() => { const r = prompt(ct.reasonPrompt); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{ct.suspend}</button>
                         ) : null}
                         {(sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                          <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{'Réactiver'}</button>
+                          <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{ct.reactivate}</button>
                         ) : null}
                         {!sb(p.is_banned) ? (
-                          <button onClick={() => { const r = prompt('Motif ?'); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{'Bannir'}</button>
+                          <button onClick={() => { const r = prompt(ct.reasonPrompt); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{ct.ban}</button>
                         ) : null}
                         {sb(p.is_banned) ? (
-                          <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{'Débannir'}</button>
+                          <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{ct.unban}</button>
                         ) : null}
                       </div>
 
                       {/* Notes */}
                       <div style={{ marginTop: '20px' }}>
-                        <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>{'Notes internes (' + sv(notes.length) + ')'}</p>
+                        <p style={{ color: '#aaa', fontWeight: 700, fontSize: '14px', marginBottom: '8px' }}>{ct.internalNotes + ' (' + sv(notes.length) + ')'}</p>
                         <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                          <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Ajouter une note..." style={{ ...inputStyle, flex: 1 }} />
-                          <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{'Ajouter'}</button>
+                          <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder={ct.addNotePlaceholder} style={{ ...inputStyle, flex: 1 }} />
+                          <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{ct.addNote}</button>
                         </div>
                         {notes.map((n, i) => (
                           <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
@@ -1152,26 +1836,26 @@ export default function AdminPage() {
               ...card, maxWidth: '400px', width: '100%', padding: '24px',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <p style={{ color: '#fff', fontWeight: 700, fontSize: '16px', margin: 0 }}>{'Changer le niveau de confiance'}</p>
+                <p style={{ color: '#fff', fontWeight: 700, fontSize: '16px', margin: 0 }}>{ct.changeTrustTitle}</p>
                 <button onClick={() => setTrustModal(null)} style={{ ...btn('#333'), marginRight: 0 }}>{'X'}</button>
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{'Niveau de confiance'}</label>
+                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.trustLevelLabel}</label>
                 <select
                   value={trustModal.trust_level}
                   onChange={e => setTrustModal({ ...trustModal, trust_level: e.target.value })}
                   style={{ ...inputStyle }}
                 >
-                  <option value="new">{'Nouveau'}</option>
-                  <option value="standard">{'Standard'}</option>
-                  <option value="trusted">{'Confiance'}</option>
-                  <option value="premium">{'Premium'}</option>
+                  <option value="new">{ct.trustNew}</option>
+                  <option value="standard">{ct.trustStandard}</option>
+                  <option value="trusted">{ct.trustTrusted}</option>
+                  <option value="premium">{ct.trustPremium}</option>
                 </select>
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{'Rétention (%)'}</label>
+                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.retentionPercentLabel}</label>
                 <input
                   type="number"
                   min={0}
@@ -1183,7 +1867,7 @@ export default function AdminPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{'Délai de paiement (jours)'}</label>
+                <label style={{ color: '#888', fontSize: '12px', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.payoutDelayDaysLabel}</label>
                 <input
                   type="number"
                   min={0}
@@ -1194,7 +1878,7 @@ export default function AdminPage() {
               </div>
 
               <button onClick={updateSellerTrust} style={{ ...btn('#10B981'), width: '100%', padding: '10px', fontSize: '14px' }}>
-                {'Enregistrer'}
+                {ct.save}
               </button>
             </div>
           </div>

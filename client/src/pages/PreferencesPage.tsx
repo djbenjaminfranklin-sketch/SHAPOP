@@ -225,6 +225,7 @@ export default function PreferencesPage() {
             type="text"
             value={displayName}
             onChange={e => setDisplayName(e.target.value)}
+            onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             style={{
               width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222',
               borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px',
@@ -235,6 +236,7 @@ export default function PreferencesPage() {
             type="text"
             value={username}
             onChange={e => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+            onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             style={{
               width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222',
               borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box', marginBottom: '12px',
@@ -246,6 +248,7 @@ export default function PreferencesPage() {
             onChange={e => setBio(e.target.value)}
             placeholder={c.bioPlaceholder}
             rows={3}
+            onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             style={{
               width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222',
               borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', resize: 'none', boxSizing: 'border-box', marginBottom: '12px',
@@ -479,7 +482,7 @@ export default function PreferencesPage() {
                 outline: 'none', boxSizing: 'border-box',
                 fontFamily: 'inherit',
               }}
-              onFocus={(e) => { e.currentTarget.style.borderColor = '#E8344E' }}
+              onFocus={(e) => { e.currentTarget.style.borderColor = '#E8344E'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               onBlur={(e) => { e.currentTarget.style.borderColor = '#333' }}
             />
 

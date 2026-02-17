@@ -10,7 +10,9 @@ import { categories } from '../components/CategoryIcons'
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
     img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
       let { width, height } = img
       if (width > maxSize || height > maxSize) {
         const ratio = Math.min(maxSize / width, maxSize / height)
@@ -29,8 +31,11 @@ function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> 
         quality,
       )
     }
-    img.onerror = () => reject(new Error('Failed to load image'))
-    img.src = URL.createObjectURL(file)
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Failed to load image'))
+    }
+    img.src = objectUrl
   })
 }
 
@@ -261,6 +266,13 @@ export default function GoLivePage() {
       navigate('/dashboard', { replace: true })
     }
   }, [profile, navigate])
+
+  // Clean up blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const [showTips, setShowTips] = useState(() => {
     // Only show tips the first time

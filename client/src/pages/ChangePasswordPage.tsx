@@ -148,7 +148,7 @@ export default function ChangePasswordPage() {
             onChange={e => setCurrentPassword(e.target.value)}
             placeholder={tx('Entrez votre mot de passe actuel', 'Enter your current password', 'הזן את סיסמתך הנוכחית', 'Ingrese su contrasena actual', lang)}
             style={{ ...inputStyle, paddingRight: '48px' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
           />
           <button
@@ -179,7 +179,7 @@ export default function ChangePasswordPage() {
             onChange={e => setNewPassword(e.target.value)}
             placeholder={tx('Entrez votre nouveau mot de passe', 'Enter your new password', 'הזן סיסמה חדשה', 'Ingrese su nueva contrasena', lang)}
             style={{ ...inputStyle, paddingRight: '48px' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
           />
           <button
@@ -231,7 +231,7 @@ export default function ChangePasswordPage() {
             onChange={e => setConfirmPassword(e.target.value)}
             placeholder={tx('Confirmez votre nouveau mot de passe', 'Confirm your new password', 'אשר את סיסמתך החדשה', 'Confirme su nueva contrasena', lang)}
             style={{ ...inputStyle, paddingRight: '48px' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
           />
           <button

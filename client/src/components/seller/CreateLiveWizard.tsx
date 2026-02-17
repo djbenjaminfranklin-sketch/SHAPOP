@@ -55,6 +55,18 @@ export default function CreateLiveWizard() {
     }
   }, [profile, navigate])
 
+  // Clean up blob URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview && thumbnailPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(thumbnailPreview)
+      }
+      if (trimVideoUrl) {
+        URL.revokeObjectURL(trimVideoUrl)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Swipe gesture state
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)

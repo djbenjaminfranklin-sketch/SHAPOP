@@ -34,6 +34,8 @@ const detailContent = {
     streamLive: 'En direct',
     streamScheduled: 'Programme',
     loadingActivity: 'Chargement...',
+    liveSingular: 'live',
+    livePlural: 'lives',
   },
   en: {
     members: 'Members',
@@ -51,6 +53,8 @@ const detailContent = {
     streamLive: 'Live',
     streamScheduled: 'Scheduled',
     loadingActivity: 'Loading...',
+    liveSingular: 'live',
+    livePlural: 'lives',
   },
   he: {
     members: '\u05D7\u05D1\u05E8\u05D9\u05DD',
@@ -68,6 +72,8 @@ const detailContent = {
     streamLive: '\u05E9\u05D9\u05D3\u05D5\u05E8',
     streamScheduled: '\u05DE\u05EA\u05D5\u05DB\u05E0\u05DF',
     loadingActivity: '\u05D8\u05D5\u05E2\u05DF...',
+    liveSingular: '\u05E9\u05D9\u05D3\u05D5\u05E8',
+    livePlural: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
   },
   es: {
     members: 'Miembros',
@@ -85,6 +91,8 @@ const detailContent = {
     streamLive: 'En directo',
     streamScheduled: 'Programado',
     loadingActivity: 'Cargando...',
+    liveSingular: 'directo',
+    livePlural: 'directos',
   },
 }
 
@@ -393,7 +401,7 @@ export default function CommunityDetailPage() {
               </h2>
             </div>
             <span style={{ fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
-              {activeStreams.length} live{activeStreams.length > 1 ? 's' : ''}
+              {activeStreams.length} {activeStreams.length > 1 ? ct.livePlural : ct.liveSingular}
             </span>
           </div>
 

@@ -448,6 +448,7 @@ export default function Register() {
               onChange={e => setUsername(e.target.value)}
               placeholder={c.usernamePlaceholder}
               required
+              onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
@@ -466,6 +467,7 @@ export default function Register() {
               onChange={e => setDisplayName(e.target.value)}
               placeholder={c.displayNamePlaceholder}
               required
+              onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
@@ -486,6 +488,7 @@ export default function Register() {
             onChange={e => setEmail(e.target.value)}
             placeholder={c.emailPlaceholder}
             required
+            onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             style={inputStyle}
           />
         </div>
@@ -502,6 +505,7 @@ export default function Register() {
               placeholder={c.passwordPlaceholder}
               minLength={6}
               required
+              onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               style={{ ...inputStyle, paddingRight: '48px' }}
             />
             <button
@@ -548,6 +552,7 @@ export default function Register() {
               onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder={c.phonePlaceholder}
               required
+              onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               style={{ ...inputStyle, flex: 1 }}
             />
           </div>

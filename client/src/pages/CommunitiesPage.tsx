@@ -30,6 +30,8 @@ const pageContent = {
     join: 'Rejoindre',
     memberCheck: 'Membre \u2713',
     yourCountry: 'Ton pays',
+    liveSingular: 'live',
+    livePlural: 'lives',
   },
   en: {
     localCommunities: 'Local communities',
@@ -46,6 +48,8 @@ const pageContent = {
     join: 'Join',
     memberCheck: 'Member \u2713',
     yourCountry: 'Your country',
+    liveSingular: 'live',
+    livePlural: 'lives',
   },
   he: {
     localCommunities: '\u05E7\u05D4\u05D9\u05DC\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA',
@@ -62,6 +66,8 @@ const pageContent = {
     join: '\u05D4\u05E6\u05D8\u05E8\u05E4\u05D5',
     memberCheck: '\u05D7\u05D1\u05E8 \u2713',
     yourCountry: '\u05D4\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA',
+    liveSingular: '\u05E9\u05D9\u05D3\u05D5\u05E8',
+    livePlural: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
   },
   es: {
     localCommunities: 'Comunidades locales',
@@ -78,6 +84,8 @@ const pageContent = {
     join: 'Unirse',
     memberCheck: 'Miembro \u2713',
     yourCountry: 'Tu pais',
+    liveSingular: 'directo',
+    livePlural: 'directos',
   },
 }
 
@@ -473,7 +481,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
               animation: 'pulse-dot 1.5s ease-in-out infinite',
             }} />
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>
-              {community.live_count} live{community.live_count > 1 ? 's' : ''}
+              {community.live_count} {community.live_count > 1 ? ct.livePlural : ct.liveSingular}
             </span>
           </div>
         )}

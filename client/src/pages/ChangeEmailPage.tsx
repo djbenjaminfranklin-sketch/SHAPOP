@@ -128,7 +128,7 @@ export default function ChangeEmailPage() {
           onChange={e => setNewEmail(e.target.value)}
           placeholder={tx('Entrez votre nouvelle adresse', 'Enter your new email', 'הזן כתובת חדשה', 'Ingrese su nuevo correo', lang)}
           style={{ ...inputStyle, marginBottom: '20px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
           onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
         />
 
@@ -142,7 +142,7 @@ export default function ChangeEmailPage() {
           onChange={e => setPassword(e.target.value)}
           placeholder={tx('Entrez votre mot de passe', 'Enter your password', 'הזן את סיסמתך', 'Ingrese su contrasena', lang)}
           style={{ ...inputStyle, marginBottom: '32px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
           onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
         />
 

@@ -202,6 +202,7 @@ export default function Login() {
             onChange={e => setEmail(e.target.value)}
             placeholder={c.emailPlaceholder}
             required
+            onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             style={{
               width: '100%', padding: '16px 18px', borderRadius: '14px',
               backgroundColor: '#111', border: '1.5px solid #222',
@@ -222,6 +223,7 @@ export default function Login() {
               onChange={e => setPassword(e.target.value)}
               placeholder={c.passwordPlaceholder}
               required
+              onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               style={{
                 width: '100%', padding: '16px 18px', paddingRight: '48px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',

@@ -132,7 +132,7 @@ export default function ForgotPasswordPage() {
               onChange={e => setEmail(e.target.value)}
               placeholder={tx('Entrez votre adresse e-mail', 'Enter your email', 'הזן את האימייל שלך', 'Ingrese su correo', lang)}
               style={{ ...inputStyle, marginBottom: '24px' }}
-              onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+              onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
             />
 
