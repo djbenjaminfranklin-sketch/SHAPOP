@@ -6,6 +6,7 @@ import { Browser } from '@capacitor/browser'
 import { App as CapApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { cacheSet, cacheGet, cacheClearAll } from '../lib/cache'
+import { getLang } from '../lib/i18n'
 
 interface AuthContextType {
   user: User | null
@@ -48,7 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         setSession(null)
         setProfile(null)
-        alert('Votre compte a ete banni.')
+        const bannedMsgs = { fr: 'Votre compte a ete banni.', en: 'Your account has been banned.', he: 'החשבון שלך נחסם.', es: 'Tu cuenta ha sido suspendida.' }
+        alert(bannedMsgs[getLang()] || bannedMsgs.fr)
         return
       }
       setProfile(data)

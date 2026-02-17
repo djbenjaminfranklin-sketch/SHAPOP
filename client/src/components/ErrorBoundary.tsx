@@ -43,7 +43,7 @@ export default class ErrorBoundary extends Component<Props, State> {
     // Fallback: if React router doesn't pick up the change, force reload
     setTimeout(() => {
       if (this.state.hasError) {
-        window.location.href = '/'
+        window.location.replace('/')
       }
     }, 500)
   }

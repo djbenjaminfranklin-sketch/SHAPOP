@@ -53,6 +53,12 @@ const streamContent = {
     paymentError: 'Erreur de paiement',
     total: 'Total',
     close: 'Fermer',
+    unmuteViewer: 'Reactiver le son',
+    messageFlagged: '[Message masque]',
+    bidError: 'Enchere echouee',
+    orderNotFound: 'Commande introuvable. Veuillez contacter le support.',
+    paymentTimeout: 'Le paiement a expire. Veuillez fermer et reessayer.',
+    paymentFailed: 'Paiement echoue',
   },
   en: {
     viewers: 'viewers',
@@ -92,6 +98,12 @@ const streamContent = {
     paymentError: 'Payment error',
     total: 'Total',
     close: 'Close',
+    unmuteViewer: 'Unmute',
+    messageFlagged: '[Hidden message]',
+    bidError: 'Bid failed',
+    orderNotFound: 'Could not find your order. Please contact support.',
+    paymentTimeout: 'Payment setup timed out. Please close and try again.',
+    paymentFailed: 'Payment failed',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -131,6 +143,12 @@ const streamContent = {
     paymentError: 'שגיאת תשלום',
     total: 'סה"כ',
     close: 'סגור',
+    unmuteViewer: 'בטל השתקה',
+    messageFlagged: '[הודעה מוסתרת]',
+    bidError: 'ההצעה נכשלה',
+    orderNotFound: 'לא ניתן למצוא את ההזמנה שלך. אנא צור קשר עם התמיכה.',
+    paymentTimeout: 'זמן התשלום פג. אנא סגור ונסה שוב.',
+    paymentFailed: 'התשלום נכשל',
   },
   es: {
     viewers: 'espectadores',
@@ -170,6 +188,12 @@ const streamContent = {
     paymentError: 'Error de pago',
     total: 'Total',
     close: 'Cerrar',
+    unmuteViewer: 'Activar sonido',
+    messageFlagged: '[Mensaje oculto]',
+    bidError: 'Puja fallida',
+    orderNotFound: 'No se pudo encontrar tu pedido. Por favor contacta soporte.',
+    paymentTimeout: 'El pago ha expirado. Por favor cierra e intenta de nuevo.',
+    paymentFailed: 'Pago fallido',
   },
 }
 
@@ -186,11 +210,13 @@ function getStripePromise() {
 }
 
 // Inner payment form rendered inside <Elements>
-function PaymentFormInner({ onSuccess, onError, loading, setLoading }: {
+function PaymentFormInner({ onSuccess, onError, loading, setLoading, payNowLabel, paymentFailedLabel }: {
   onSuccess: (paymentIntentId: string) => void
   onError: (msg: string) => void
   loading: boolean
   setLoading: (v: boolean) => void
+  payNowLabel: string
+  paymentFailedLabel: string
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -207,7 +233,7 @@ function PaymentFormInner({ onSuccess, onError, loading, setLoading }: {
     })
 
     if (error) {
-      onError(error.message || 'Payment failed')
+      onError(error.message || paymentFailedLabel)
       setLoading(false)
     } else if (paymentIntent) {
       onSuccess(paymentIntent.id)
@@ -229,7 +255,7 @@ function PaymentFormInner({ onSuccess, onError, loading, setLoading }: {
           opacity: loading ? 0.7 : 1,
         }}
       >
-        {loading ? '...' : 'Pay now'}
+        {loading ? '...' : payNowLabel}
       </button>
     </form>
   )
@@ -350,7 +376,7 @@ export default function StreamView() {
 
     const timeout = setTimeout(() => {
       if (!clientSecret) {
-        setPaymentError('Payment setup timed out. Please close and try again.')
+        setPaymentError(ct.paymentTimeout)
       }
     }, 10000)
 
@@ -615,7 +641,7 @@ export default function StreamView() {
 
             if (!order) {
               console.error('Order not found after 10 retries')
-              setPaymentError('Could not find your order. Please contact support.')
+              setPaymentError(ct.orderNotFound)
               setShowPaymentModal(true)
               return
             }
@@ -754,7 +780,7 @@ export default function StreamView() {
       })
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
-        throw new Error(err.error || 'Bid failed')
+        throw new Error(err.error || ct.bidError)
       }
       // Update local bid amount for next bid
       setBidAmount(String(amount + 10))
@@ -1007,7 +1033,7 @@ export default function StreamView() {
                           <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        Unmute
+                        {ct.unmuteViewer}
                       </button>
                     )}
                   </>
@@ -1051,7 +1077,7 @@ export default function StreamView() {
                           <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
                           <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
-                        Unmute
+                        {ct.unmuteViewer}
                       </button>
                     )}
                   </>
@@ -1128,11 +1154,11 @@ export default function StreamView() {
                               if (!s || !stream) return
                               try {
                                 if (isFollowing) {
-                                  await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
-                                  setIsFollowing(false)
+                                  const res = await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
+                                  if (res.ok) setIsFollowing(false)
                                 } else {
-                                  await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'POST', headers: { Authorization: `Bearer ${s.access_token}` } })
-                                  setIsFollowing(true)
+                                  const res = await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'POST', headers: { Authorization: `Bearer ${s.access_token}` } })
+                                  if (res.ok) setIsFollowing(true)
                                 }
                               } catch { /* ignore */ }
                             }}
@@ -1529,7 +1555,7 @@ export default function StreamView() {
                 {msg.user_profile?.display_name || ct.anonymous}
               </span>
               <span style={{ fontSize: '12px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
-                {msg.is_flagged ? '[Message masqué]' : msg.message}
+                {msg.is_flagged ? ct.messageFlagged : msg.message}
               </span>
             </div>
           ))}
@@ -1911,6 +1937,8 @@ export default function StreamView() {
                       onError={(msg) => setPaymentError(msg)}
                       loading={paymentLoading}
                       setLoading={setPaymentLoading}
+                      payNowLabel={ct.payNow}
+                      paymentFailedLabel={ct.paymentFailed}
                     />
                   </Elements>
                 ) : (

@@ -31,6 +31,12 @@ const content = {
     email: 'Email',
     password: 'Mot de passe',
     phone: 'Telephone',
+    usernamePlaceholder: "nom d'utilisateur",
+    displayNamePlaceholder: 'Alex',
+    emailPlaceholder: 'ton@email.com',
+    passwordPlaceholder: '••••••••',
+    phonePlaceholder: '612345678',
+    photoLabel: 'Photo',
     sendCode: 'Envoyer le code',
     sendingCode: 'Envoi...',
     otpCode: 'Code de verification',
@@ -47,6 +53,7 @@ const content = {
     errorEmailTaken: 'Cet email est deja utilise',
     errorUsernameTaken: "Ce nom d'utilisateur est deja pris",
     errorPhoneRequired: 'Le numero de telephone est obligatoire',
+    errorBlocked: 'Inscription bloquee',
     checkEmail: 'Verifie ton email',
     checkEmailDesc: 'Un lien de confirmation a ete envoye a ton adresse email.',
   },
@@ -61,6 +68,12 @@ const content = {
     email: 'Email',
     password: 'Password',
     phone: 'Phone number',
+    usernamePlaceholder: 'username',
+    displayNamePlaceholder: 'Alex',
+    emailPlaceholder: 'you@email.com',
+    passwordPlaceholder: '••••••••',
+    phonePlaceholder: '612345678',
+    photoLabel: 'Photo',
     sendCode: 'Send code',
     sendingCode: 'Sending...',
     otpCode: 'Verification code',
@@ -77,6 +90,7 @@ const content = {
     errorEmailTaken: 'This email is already registered',
     errorUsernameTaken: 'This username is already taken',
     errorPhoneRequired: 'Phone number is required',
+    errorBlocked: 'Registration blocked',
     checkEmail: 'Check your email',
     checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
@@ -91,6 +105,12 @@ const content = {
     email: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC',
     password: '\u05E1\u05D9\u05E1\u05DE\u05D4',
     phone: '\u05DE\u05E1\u05E4\u05E8 \u05D8\u05DC\u05E4\u05D5\u05DF',
+    usernamePlaceholder: '\u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9',
+    displayNamePlaceholder: 'Alex',
+    emailPlaceholder: 'you@email.com',
+    passwordPlaceholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
+    phonePlaceholder: '612345678',
+    photoLabel: '\u05EA\u05DE\u05D5\u05E0\u05D4',
     sendCode: '\u05E9\u05DC\u05D7 \u05E7\u05D5\u05D3',
     sendingCode: '...\u05E9\u05D5\u05DC\u05D7',
     otpCode: '\u05E7\u05D5\u05D3 \u05D0\u05D9\u05DE\u05D5\u05EA',
@@ -107,6 +127,7 @@ const content = {
     errorEmailTaken: '\u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05E8\u05E9\u05D5\u05DD',
     errorUsernameTaken: '\u05E9\u05DD \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9 \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05EA\u05E4\u05D5\u05E1',
     errorPhoneRequired: '\u05D0\u05DE\u05EA \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05D8\u05DC\u05E4\u05D5\u05DF \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05E9\u05DA',
+    errorBlocked: '\u05D4\u05D4\u05E8\u05E9\u05DE\u05D4 \u05E0\u05D7\u05E1\u05DE\u05D4',
     checkEmail: '\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA',
     checkEmailDesc: '\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.',
   },
@@ -121,6 +142,12 @@ const content = {
     email: 'Correo electr\u00F3nico',
     password: 'Contrase\u00F1a',
     phone: 'Telefono',
+    usernamePlaceholder: 'nombre de usuario',
+    displayNamePlaceholder: 'Alex',
+    emailPlaceholder: 'tu@email.com',
+    passwordPlaceholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
+    phonePlaceholder: '612345678',
+    photoLabel: 'Foto',
     sendCode: 'Enviar codigo',
     sendingCode: 'Enviando...',
     otpCode: 'Codigo de verificacion',
@@ -137,6 +164,7 @@ const content = {
     errorEmailTaken: 'Este correo ya esta registrado',
     errorUsernameTaken: 'Este nombre de usuario ya esta en uso',
     errorPhoneRequired: 'Verifica tu numero de telefono antes de continuar',
+    errorBlocked: 'Registro bloqueado',
     checkEmail: 'Revisa tu correo',
     checkEmailDesc: 'Se ha enviado un enlace de confirmacion a tu correo electronico.',
   },
@@ -222,7 +250,7 @@ export default function Register() {
       })
       const banData = await banRes.json()
       if (banData.banned) {
-        setError(banData.reason || 'Inscription bloquee')
+        setError(banData.reason || c.errorBlocked)
         setLoading(false)
         return
       }
@@ -392,7 +420,7 @@ export default function Register() {
                   <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <div style={{ fontSize: '11px', color: '#555', marginTop: '4px' }}>Photo</div>
+                <div style={{ fontSize: '11px', color: '#555', marginTop: '4px' }}>{c.photoLabel}</div>
               </div>
             )}
             {/* Camera badge */}
@@ -418,7 +446,7 @@ export default function Register() {
               type="text"
               value={username}
               onChange={e => setUsername(e.target.value)}
-              placeholder="username"
+              placeholder={c.usernamePlaceholder}
               required
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
@@ -436,7 +464,7 @@ export default function Register() {
               type="text"
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              placeholder="Alex"
+              placeholder={c.displayNamePlaceholder}
               required
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
@@ -456,7 +484,7 @@ export default function Register() {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            placeholder="ton@email.com"
+            placeholder={c.emailPlaceholder}
             required
             style={inputStyle}
           />
@@ -471,7 +499,7 @@ export default function Register() {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={c.passwordPlaceholder}
               minLength={6}
               required
               style={{ ...inputStyle, paddingRight: '48px' }}
@@ -518,7 +546,7 @@ export default function Register() {
               type="tel"
               value={phoneLocal}
               onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="612345678"
+              placeholder={c.phonePlaceholder}
               required
               style={{ ...inputStyle, flex: 1 }}
             />

@@ -3,7 +3,96 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
+import { getLang } from '../lib/i18n'
 import type { Conversation, ConversationMessage } from '../types/database'
+
+type Lang = 'fr' | 'en' | 'he' | 'es'
+
+const pageContent = {
+  fr: {
+    placeholder: 'Votre message...',
+    loading: 'Chargement...',
+    loginRequired: 'Connectez-vous pour voir cette conversation.',
+    back: 'Retour',
+    startConversation: 'Commencez la conversation',
+    attachment: 'Piece jointe',
+    warningBanner: 'Toute communication hors plateforme est interdite',
+    messages: 'Messages',
+    order: 'Commande #',
+    messageFlagged: '[Message masque]',
+    defaultUser: 'Utilisateur',
+    notFound: 'Conversation introuvable',
+    unknownError: 'Erreur inconnue',
+    sendError: 'Erreur lors de l\'envoi',
+    uploadError: 'Erreur lors du chargement',
+    contactWarning: 'Partager des coordonnees personnelles est interdit sur Shapop. Les recidives entrainent une suspension de compte.',
+    yesterday: 'Hier',
+  },
+  en: {
+    placeholder: 'Your message...',
+    loading: 'Loading...',
+    loginRequired: 'Log in to view this conversation.',
+    back: 'Back',
+    startConversation: 'Start the conversation',
+    attachment: 'Attachment',
+    warningBanner: 'All communication outside the platform is prohibited',
+    messages: 'Messages',
+    order: 'Order #',
+    messageFlagged: '[Hidden message]',
+    defaultUser: 'User',
+    notFound: 'Conversation not found',
+    unknownError: 'Unknown error',
+    sendError: 'Failed to send',
+    uploadError: 'Upload failed',
+    contactWarning: 'Sharing personal contact information is prohibited on Shapop. Repeat offenses will result in account suspension.',
+    yesterday: 'Yesterday',
+  },
+  he: {
+    placeholder: '...ההודעה שלך',
+    loading: '...טוען',
+    loginRequired: 'התחבר כדי לצפות בשיחה זו.',
+    back: 'חזור',
+    startConversation: 'התחל את השיחה',
+    attachment: 'קובץ מצורף',
+    warningBanner: 'כל תקשורת מחוץ לפלטפורמה אסורה',
+    messages: 'הודעות',
+    order: '# הזמנה',
+    messageFlagged: '[הודעה מוסתרת]',
+    defaultUser: 'משתמש',
+    notFound: 'השיחה לא נמצאה',
+    unknownError: 'שגיאה לא ידועה',
+    sendError: 'השליחה נכשלה',
+    uploadError: 'ההעלאה נכשלה',
+    contactWarning: 'שיתוף פרטי קשר אישיים אסור ב-Shapop. עבירות חוזרות יובילו להשעיית חשבון.',
+    yesterday: 'אתמול',
+  },
+  es: {
+    placeholder: 'Tu mensaje...',
+    loading: 'Cargando...',
+    loginRequired: 'Inicia sesion para ver esta conversacion.',
+    back: 'Volver',
+    startConversation: 'Comienza la conversacion',
+    attachment: 'Archivo adjunto',
+    warningBanner: 'Toda comunicacion fuera de la plataforma esta prohibida',
+    messages: 'Mensajes',
+    order: 'Pedido #',
+    messageFlagged: '[Mensaje oculto]',
+    defaultUser: 'Usuario',
+    notFound: 'Conversacion no encontrada',
+    unknownError: 'Error desconocido',
+    sendError: 'Error al enviar',
+    uploadError: 'Error al cargar',
+    contactWarning: 'Compartir informacion de contacto personal esta prohibido en Shapop. Las reincidencias resultaran en la suspension de la cuenta.',
+    yesterday: 'Ayer',
+  },
+}
+
+const langLocaleMap: Record<Lang, string> = {
+  fr: 'fr-FR',
+  en: 'en-US',
+  he: 'he-IL',
+  es: 'es-ES',
+}
 
 function getInitials(name: string): string {
   return name
@@ -14,7 +103,7 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-function formatTime(dateStr: string): string {
+function formatTime(dateStr: string, locale: string, yesterdayLabel: string): string {
   const date = new Date(dateStr)
   const now = new Date()
   const isToday =
@@ -29,17 +118,20 @@ function formatTime(dateStr: string): string {
     date.getMonth() === yesterday.getMonth() &&
     date.getFullYear() === yesterday.getFullYear()
 
-  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 
   if (isToday) return time
-  if (isYesterday) return `Hier ${time}`
-  return `${date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })} ${time}`
+  if (isYesterday) return `${yesterdayLabel} ${time}`
+  return `${date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' })} ${time}`
 }
 
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, session } = useAuth()
+  const lang = (getLang() || 'fr') as Lang
+  const ct = pageContent[lang] || pageContent.fr
+  const locale = langLocaleMap[lang] || 'fr-FR'
 
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<ConversationMessage[]>([])
@@ -71,7 +163,7 @@ export default function ConversationPage() {
         .single()
 
       if (convErr) throw convErr
-      if (!convData) throw new Error('Conversation introuvable')
+      if (!convData) throw new Error(ct.notFound)
 
       const conv = convData as Conversation
 
@@ -99,12 +191,12 @@ export default function ConversationPage() {
       if (msgErr) throw msgErr
       setMessages((msgData || []) as ConversationMessage[])
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      const message = err instanceof Error ? err.message : ct.unknownError
       setError(message)
     } finally {
       setLoading(false)
     }
-  }, [user, id])
+  }, [user, id, ct.notFound, ct.unknownError])
 
   useEffect(() => {
     fetchData()
@@ -182,18 +274,18 @@ export default function ConversationPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Erreur lors de l\'envoi')
+        throw new Error(data.error || ct.sendError)
       }
 
       const result = await res.json().catch(() => ({}))
       if (result.warning === 'contact_blocked') {
-        alert('Partager des coordonnees personnelles est interdit sur Shapop. Les recidives entrainent une suspension de compte.')
+        alert(ct.contactWarning)
       }
 
       setNewMessage('')
       inputRef.current?.focus()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      const message = err instanceof Error ? err.message : ct.unknownError
       alert(message)
     } finally {
       setSending(false)
@@ -222,7 +314,7 @@ export default function ConversationPage() {
 
       await handleSend([urlData.publicUrl])
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur lors du chargement'
+      const message = err instanceof Error ? err.message : ct.uploadError
       alert(message)
     } finally {
       setUploading(false)
@@ -238,13 +330,13 @@ export default function ConversationPage() {
     }
   }
 
-  const otherName = conversation?.other_participant?.display_name || 'Utilisateur'
+  const otherName = conversation?.other_participant?.display_name || ct.defaultUser
   const otherAvatar = conversation?.other_participant?.avatar_url
 
   if (!user) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-        <p className="text-gray-400">Connectez-vous pour voir cette conversation.</p>
+        <p className="text-gray-400">{ct.loginRequired}</p>
       </div>
     )
   }
@@ -253,7 +345,7 @@ export default function ConversationPage() {
     return (
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">
         <div className="w-8 h-8 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
-        <p className="text-gray-500 text-sm mt-3">Chargement...</p>
+        <p className="text-gray-500 text-sm mt-3">{ct.loading}</p>
       </div>
     )
   }
@@ -263,7 +355,7 @@ export default function ConversationPage() {
       <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
         <p className="text-red-400 text-sm">{error}</p>
         <button onClick={() => navigate(-1)} className="mt-3 text-indigo-400 text-sm underline">
-          Retour
+          {ct.back}
         </button>
       </div>
     )
@@ -293,7 +385,7 @@ export default function ConversationPage() {
               <p className="text-sm font-medium truncate">{otherName}</p>
               {conversation?.order_id && (
                 <p className="text-[10px] text-gray-500 truncate">
-                  Commande #{conversation.order_id.slice(0, 8)}
+                  {ct.order}{conversation.order_id.slice(0, 8)}
                 </p>
               )}
             </div>
@@ -307,7 +399,7 @@ export default function ConversationPage() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
         <p className="text-[10px] text-orange-300">
-          Toute communication hors plateforme est interdite
+          {ct.warningBanner}
         </p>
       </div>
 
@@ -315,7 +407,7 @@ export default function ConversationPage() {
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-3">
         {messages.length === 0 && (
           <div className="flex items-center justify-center py-10">
-            <p className="text-gray-600 text-sm">Commencez la conversation</p>
+            <p className="text-gray-600 text-sm">{ct.startConversation}</p>
           </div>
         )}
 
@@ -329,7 +421,7 @@ export default function ConversationPage() {
             return (
               <div key={msg.id} className="flex justify-center">
                 <p className="text-xs text-gray-500 italic text-center max-w-[80%] py-1">
-                  {isFlagged ? '[Message masque]' : msg.message}
+                  {isFlagged ? ct.messageFlagged : msg.message}
                 </p>
               </div>
             )
@@ -345,10 +437,10 @@ export default function ConversationPage() {
                       ? 'bg-gray-700 rounded-br-md'
                       : 'bg-gray-800 rounded-bl-md'
                   }`}>
-                    <p className="text-sm text-gray-500 italic">[Message masque]</p>
+                    <p className="text-sm text-gray-500 italic">{ct.messageFlagged}</p>
                   </div>
                   <p className={`text-[10px] text-gray-600 mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
-                    {formatTime(msg.created_at)}
+                    {formatTime(msg.created_at, locale, ct.yesterday)}
                   </p>
                 </div>
               </div>
@@ -386,7 +478,7 @@ export default function ConversationPage() {
                             <a key={i} href={url} target="_blank" rel="noopener noreferrer">
                               <img
                                 src={url}
-                                alt="Piece jointe"
+                                alt={ct.attachment}
                                 className="max-w-full rounded-lg max-h-48 object-cover"
                               />
                             </a>
@@ -403,7 +495,7 @@ export default function ConversationPage() {
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
-                            Piece jointe
+                            {ct.attachment}
                           </a>
                         )
                       })}
@@ -412,7 +504,7 @@ export default function ConversationPage() {
                 </div>
 
                 <p className={`text-[10px] text-gray-600 mt-1 ${isOwn ? 'text-right' : 'text-left'}`}>
-                  {formatTime(msg.created_at)}
+                  {formatTime(msg.created_at, locale, ct.yesterday)}
                 </p>
               </div>
             </div>
@@ -454,7 +546,7 @@ export default function ConversationPage() {
             value={newMessage}
             onChange={e => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Votre message..."
+            placeholder={ct.placeholder}
             className="flex-1 bg-gray-900 text-white text-sm rounded-full px-4 py-2 border border-white/10 focus:border-indigo-500 focus:outline-none placeholder:text-gray-500"
             disabled={sending}
           />

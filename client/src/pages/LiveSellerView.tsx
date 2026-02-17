@@ -45,6 +45,9 @@ const pageContent = {
     addItemPrice: 'Prix de depart (€)',
     addItemAdd: 'Ajouter',
     addItemCancel: 'Annuler',
+    messageFlagged: '[Message masque]',
+    auctionLive: 'Enchere en cours',
+    resolving: 'Resolution...',
   },
   en: {
     live: 'LIVE',
@@ -81,6 +84,9 @@ const pageContent = {
     addItemPrice: 'Starting price (€)',
     addItemAdd: 'Add',
     addItemCancel: 'Cancel',
+    messageFlagged: '[Hidden message]',
+    auctionLive: 'Auction live',
+    resolving: 'Resolving...',
   },
   he: {
     live: 'שידור',
@@ -117,6 +123,9 @@ const pageContent = {
     addItemPrice: 'מחיר התחלתי (€)',
     addItemAdd: 'הוסף',
     addItemCancel: 'ביטול',
+    messageFlagged: '[הודעה מוסתרת]',
+    auctionLive: 'מכירה בעיצומה',
+    resolving: '...פותר',
   },
   es: {
     live: 'EN VIVO',
@@ -153,6 +162,9 @@ const pageContent = {
     addItemPrice: 'Precio inicial (€)',
     addItemAdd: 'Agregar',
     addItemCancel: 'Cancelar',
+    messageFlagged: '[Mensaje oculto]',
+    auctionLive: 'Subasta en curso',
+    resolving: 'Resolviendo...',
   },
 }
 
@@ -1044,7 +1056,7 @@ export default function LiveSellerView() {
                 {msg.user_profile?.display_name || ct.anonymous || '?'}
               </span>
               <span style={{ fontSize: '11px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
-                {msg.is_flagged ? '[Message masqué]' : msg.message}
+                {msg.is_flagged ? ct.messageFlagged : msg.message}
               </span>
             </div>
           ))}
@@ -1200,9 +1212,7 @@ export default function LiveSellerView() {
                 textAlign: 'center',
               }}>
                 <span style={{ fontSize: '11px', color: '#F0908A', fontWeight: 600 }}>
-                  {timeLeft > 0
-                    ? (lang === 'fr' ? 'Enchère en cours' : lang === 'es' ? 'Subasta en curso' : lang === 'he' ? 'מכירה בעיצומה' : 'Auction live')
-                    : (lang === 'fr' ? 'Résolution...' : lang === 'es' ? 'Resolviendo...' : lang === 'he' ? '...פותר' : 'Resolving...')}
+                  {timeLeft > 0 ? ct.auctionLive : ct.resolving}
                 </span>
                 {currentItem.min_price != null && currentItem.min_price > 0 && (
                   <span style={{ fontSize: '9px', color: '#666', marginLeft: '6px' }}>

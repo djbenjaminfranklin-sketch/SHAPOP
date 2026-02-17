@@ -4035,6 +4035,12 @@ app.post('/api/conversations/:id/messages', requireAuth, async (req: Authenticat
       return
     }
 
+    // Validate attachment URLs - only allow Supabase storage URLs
+    const validatedUrls = (attachment_urls || []).filter((url: string) => {
+      if (typeof url !== 'string') return false
+      return url.startsWith(process.env.SUPABASE_URL + '/storage/') || url.startsWith('https://jscmqcjornseiclxvvqv.supabase.co/storage/')
+    })
+
     // Verify participant
     const { data: conv } = await supabase
       .from('conversations')
@@ -4062,7 +4068,7 @@ app.post('/api/conversations/:id/messages', requireAuth, async (req: Authenticat
       message: trimmed,
       is_flagged: isFlagged,
       flag_reason: flagReason,
-      attachment_urls: attachment_urls || [],
+      attachment_urls: validatedUrls,
     }).select('*, sender:profiles!sender_id(display_name, avatar_url)').single()
 
     if (error) {

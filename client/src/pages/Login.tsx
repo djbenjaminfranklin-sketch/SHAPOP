@@ -12,12 +12,15 @@ const content = {
     or: 'ou',
     email: 'Email',
     password: 'Mot de passe',
+    emailPlaceholder: 'ton@email.com',
+    passwordPlaceholder: '••••••••',
     signIn: 'Se connecter',
     signingIn: 'Connexion...',
     noAccount: 'Pas de compte ?',
     createAccount: "S'inscrire",
     forgotPassword: 'Mot de passe oublie ?',
     errorDefault: 'Erreur de connexion',
+    errorInvalidCredentials: 'Email ou mot de passe incorrect',
   },
   en: {
     title: 'Sign In',
@@ -27,12 +30,15 @@ const content = {
     or: 'or',
     email: 'Email',
     password: 'Password',
+    emailPlaceholder: 'you@email.com',
+    passwordPlaceholder: '••••••••',
     signIn: 'Sign in',
     signingIn: 'Signing in...',
     noAccount: 'No account?',
     createAccount: 'Create account',
     forgotPassword: 'Forgot password?',
     errorDefault: 'Sign in error',
+    errorInvalidCredentials: 'Invalid email or password',
   },
   he: {
     title: 'התחברות',
@@ -42,12 +48,15 @@ const content = {
     or: 'או',
     email: 'אימייל',
     password: 'סיסמה',
+    emailPlaceholder: 'you@email.com',
+    passwordPlaceholder: '••••••••',
     signIn: 'התחבר',
     signingIn: '...מתחבר',
     noAccount: 'אין חשבון?',
     createAccount: 'צור חשבון',
     forgotPassword: 'שכחת סיסמה?',
     errorDefault: 'שגיאת התחברות',
+    errorInvalidCredentials: 'אימייל או סיסמה שגויים',
   },
   es: {
     title: 'Iniciar sesión',
@@ -57,12 +66,15 @@ const content = {
     or: 'o',
     email: 'Correo electrónico',
     password: 'Contraseña',
+    emailPlaceholder: 'tu@email.com',
+    passwordPlaceholder: '••••••••',
     signIn: 'Iniciar sesión',
     signingIn: 'Iniciando sesión...',
     noAccount: '¿Sin cuenta?',
     createAccount: 'Crear cuenta',
-    forgotPassword: 'Olvido su contrasena?',
+    forgotPassword: '¿Olvidó su contraseña?',
     errorDefault: 'Error de inicio de sesión',
+    errorInvalidCredentials: 'Email o contraseña incorrectos',
   },
 }
 
@@ -94,7 +106,12 @@ export default function Login() {
       sessionStorage.setItem('shapop_fresh_login', '1')
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : c.errorDefault)
+      const msg = err instanceof Error ? err.message : ''
+      if (/invalid login credentials/i.test(msg)) {
+        setError(c.errorInvalidCredentials)
+      } else {
+        setError(msg || c.errorDefault)
+      }
     } finally {
       setLoading(false)
     }
@@ -183,7 +200,7 @@ export default function Login() {
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            placeholder="ton@email.com"
+            placeholder={c.emailPlaceholder}
             required
             style={{
               width: '100%', padding: '16px 18px', borderRadius: '14px',
@@ -203,7 +220,7 @@ export default function Login() {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={c.passwordPlaceholder}
               required
               style={{
                 width: '100%', padding: '16px 18px', paddingRight: '48px', borderRadius: '14px',

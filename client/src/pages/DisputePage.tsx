@@ -3,26 +3,253 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
+import { getLang } from '../lib/i18n'
 import type { Order, Dispute } from '../types/database'
 
 interface OrderWithItem extends Order {
   item?: { title: string; image_urls: string[]; category: string }
 }
 
-const REASON_OPTIONS = [
-  { value: 'not_received', label: 'Non reçu' },
-  { value: 'wrong_item', label: 'Mauvais article' },
-  { value: 'damaged', label: 'Endommagé' },
-  { value: 'not_as_described', label: 'Non conforme à la description' },
-  { value: 'counterfeit', label: 'Contrefaçon' },
+const pageContent = {
+  fr: {
+    // Header
+    dispute: 'Litige',
+    open_dispute: 'Ouvrir un litige',
+    // Reason options
+    reason_not_received: 'Non reçu',
+    reason_wrong_item: 'Mauvais article',
+    reason_damaged: 'Endommagé',
+    reason_not_as_described: 'Non conforme à la description',
+    reason_counterfeit: 'Contrefaçon',
+    // Status labels
+    status_open: 'Ouvert',
+    status_under_review: 'En cours d\'examen',
+    status_resolved_buyer: 'Résolu (remboursé)',
+    status_resolved_seller: 'Résolu (rejeté)',
+    status_escalated: 'Escaladé',
+    // Loading / errors
+    loading: 'Chargement...',
+    back: 'Retour',
+    error_order_not_found: 'Commande introuvable',
+    error_unknown: 'Erreur inconnue',
+    error_not_authenticated: 'Non authentifié',
+    error_upload: 'Erreur d\'upload',
+    error_submit_failed: 'Échec de la soumission du litige',
+    // Success
+    dispute_submitted_success: 'Litige soumis avec succès',
+    dispute_submitted_desc: 'Nous examinerons votre demande dans les plus brefs délais.',
+    // Order context
+    related_order: 'Commande concernée',
+    article: 'Article',
+    // Seller return policy
+    seller_return_policy: 'Politique de retour du vendeur',
+    policy_no_return: 'Aucun retour',
+    policy_exchange_only: 'Échanges uniquement',
+    policy_return_7: 'Retours sous 7 jours',
+    policy_return_14: 'Retours sous 14 jours',
+    policy_return_30: 'Retours sous 30 jours',
+    policy_no_return_notice: 'Ce vendeur n\'accepte pas les retours. Vous pouvez tout de même contester si l\'article est non conforme ou contrefait.',
+    // Dispute status card
+    dispute_status: 'Statut du litige',
+    reason_label: 'Motif',
+    description_label: 'Description',
+    amount_label: 'Montant',
+    opened_at: 'Ouvert le',
+    resolved_at: 'Résolu le',
+    resolution_note: 'Note de résolution',
+    auto_refund_approved: 'Remboursement automatique approuvé',
+    evidence_provided: 'Preuves fournies',
+    evidence_alt: 'Preuve',
+    // Form
+    dispute_reason: 'Motif du litige',
+    description_form_label: 'Description',
+    description_placeholder: 'Décrivez le problème en détail (minimum 20 caractères)',
+    chars_minimum: 'caractères minimum',
+    evidence_label: 'Preuves (photos/vidéos, max 5)',
+    add_file: 'Ajouter un fichier',
+    submitting: 'Envoi en cours...',
+    submit_dispute: 'Soumettre le litige',
+    date_locale: 'fr-FR',
+  },
+  en: {
+    dispute: 'Dispute',
+    open_dispute: 'Open a dispute',
+    reason_not_received: 'Not received',
+    reason_wrong_item: 'Wrong item',
+    reason_damaged: 'Damaged',
+    reason_not_as_described: 'Not as described',
+    reason_counterfeit: 'Counterfeit',
+    status_open: 'Open',
+    status_under_review: 'Under review',
+    status_resolved_buyer: 'Resolved (refunded)',
+    status_resolved_seller: 'Resolved (rejected)',
+    status_escalated: 'Escalated',
+    loading: 'Loading...',
+    back: 'Back',
+    error_order_not_found: 'Order not found',
+    error_unknown: 'Unknown error',
+    error_not_authenticated: 'Not authenticated',
+    error_upload: 'Upload error',
+    error_submit_failed: 'Failed to submit dispute',
+    dispute_submitted_success: 'Dispute submitted successfully',
+    dispute_submitted_desc: 'We will review your request as soon as possible.',
+    related_order: 'Related order',
+    article: 'Item',
+    seller_return_policy: 'Seller return policy',
+    policy_no_return: 'No returns',
+    policy_exchange_only: 'Exchanges only',
+    policy_return_7: 'Returns within 7 days',
+    policy_return_14: 'Returns within 14 days',
+    policy_return_30: 'Returns within 30 days',
+    policy_no_return_notice: 'This seller does not accept returns. You can still dispute if the item is not as described or counterfeit.',
+    dispute_status: 'Dispute status',
+    reason_label: 'Reason',
+    description_label: 'Description',
+    amount_label: 'Amount',
+    opened_at: 'Opened on',
+    resolved_at: 'Resolved on',
+    resolution_note: 'Resolution note',
+    auto_refund_approved: 'Automatic refund approved',
+    evidence_provided: 'Evidence provided',
+    evidence_alt: 'Evidence',
+    dispute_reason: 'Dispute reason',
+    description_form_label: 'Description',
+    description_placeholder: 'Describe the issue in detail (minimum 20 characters)',
+    chars_minimum: 'characters minimum',
+    evidence_label: 'Evidence (photos/videos, max 5)',
+    add_file: 'Add a file',
+    submitting: 'Submitting...',
+    submit_dispute: 'Submit dispute',
+    date_locale: 'en-US',
+  },
+  he: {
+    dispute: '\u05E1\u05DB\u05E1\u05D5\u05DA',
+    open_dispute: '\u05E4\u05EA\u05D9\u05D7\u05EA \u05E1\u05DB\u05E1\u05D5\u05DA',
+    reason_not_received: '\u05DC\u05D0 \u05D4\u05EA\u05E7\u05D1\u05DC',
+    reason_wrong_item: '\u05E4\u05E8\u05D9\u05D8 \u05E9\u05D2\u05D5\u05D9',
+    reason_damaged: '\u05E4\u05D2\u05D5\u05DD',
+    reason_not_as_described: '\u05DC\u05D0 \u05EA\u05D5\u05D0\u05DD \u05DC\u05EA\u05D9\u05D0\u05D5\u05E8',
+    reason_counterfeit: '\u05DE\u05D6\u05D5\u05D9\u05E3',
+    status_open: '\u05E4\u05EA\u05D5\u05D7',
+    status_under_review: '\u05D1\u05D1\u05D3\u05D9\u05E7\u05D4',
+    status_resolved_buyer: '\u05E0\u05E4\u05EA\u05E8 (\u05D4\u05D5\u05D7\u05D6\u05E8)',
+    status_resolved_seller: '\u05E0\u05E4\u05EA\u05E8 (\u05E0\u05D3\u05D7\u05D4)',
+    status_escalated: '\u05D4\u05D5\u05E2\u05DC\u05D4',
+    loading: '\u05D8\u05D5\u05E2\u05DF...',
+    back: '\u05D7\u05D6\u05E8\u05D4',
+    error_order_not_found: '\u05D4\u05D6\u05DE\u05E0\u05D4 \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4',
+    error_unknown: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05DC\u05D0 \u05D9\u05D3\u05D5\u05E2\u05D4',
+    error_not_authenticated: '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8',
+    error_upload: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05D4\u05E2\u05DC\u05D0\u05D4',
+    error_submit_failed: '\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA \u05E0\u05DB\u05E9\u05DC\u05D4',
+    dispute_submitted_success: '\u05D4\u05E1\u05DB\u05E1\u05D5\u05DA \u05E0\u05E9\u05DC\u05D7 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4',
+    dispute_submitted_desc: '\u05E0\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D1\u05E7\u05E9\u05EA\u05DA \u05D1\u05D4\u05E7\u05D3\u05DD \u05D4\u05D0\u05E4\u05E9\u05E8\u05D9.',
+    related_order: '\u05D4\u05D6\u05DE\u05E0\u05D4 \u05E7\u05E9\u05D5\u05E8\u05D4',
+    article: '\u05E4\u05E8\u05D9\u05D8',
+    seller_return_policy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05D7\u05D6\u05E8\u05D4 \u05E9\u05DC \u05D4\u05DE\u05D5\u05DB\u05E8',
+    policy_no_return: '\u05DC\u05DC\u05D0 \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA',
+    policy_exchange_only: '\u05D4\u05D7\u05DC\u05E4\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3',
+    policy_return_7: '\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA \u05EA\u05D5\u05DA 7 \u05D9\u05DE\u05D9\u05DD',
+    policy_return_14: '\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA \u05EA\u05D5\u05DA 14 \u05D9\u05DE\u05D9\u05DD',
+    policy_return_30: '\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA \u05EA\u05D5\u05DA 30 \u05D9\u05DE\u05D9\u05DD',
+    policy_no_return_notice: '\u05DE\u05D5\u05DB\u05E8 \u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05E7\u05D1\u05DC \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA. \u05E2\u05D3\u05D9\u05D9\u05DF \u05E0\u05D9\u05EA\u05DF \u05DC\u05E2\u05E8\u05E2\u05E8 \u05D0\u05DD \u05D4\u05E4\u05E8\u05D9\u05D8 \u05DC\u05D0 \u05EA\u05D5\u05D0\u05DD \u05DC\u05EA\u05D9\u05D0\u05D5\u05E8 \u05D0\u05D5 \u05DE\u05D6\u05D5\u05D9\u05E3.',
+    dispute_status: '\u05E1\u05D8\u05D8\u05D5\u05E1 \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA',
+    reason_label: '\u05E1\u05D9\u05D1\u05D4',
+    description_label: '\u05EA\u05D9\u05D0\u05D5\u05E8',
+    amount_label: '\u05E1\u05DB\u05D5\u05DD',
+    opened_at: '\u05E0\u05E4\u05EA\u05D7 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA',
+    resolved_at: '\u05E0\u05E4\u05EA\u05E8 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA',
+    resolution_note: '\u05D4\u05E2\u05E8\u05EA \u05E4\u05EA\u05E8\u05D5\u05DF',
+    auto_refund_approved: '\u05D4\u05D7\u05D6\u05E8 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05D0\u05D5\u05E9\u05E8',
+    evidence_provided: '\u05E8\u05D0\u05D9\u05D5\u05EA \u05E9\u05E1\u05D5\u05E4\u05E7\u05D5',
+    evidence_alt: '\u05E8\u05D0\u05D9\u05D4',
+    dispute_reason: '\u05E1\u05D9\u05D1\u05EA \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA',
+    description_form_label: '\u05EA\u05D9\u05D0\u05D5\u05E8',
+    description_placeholder: '\u05EA\u05D0\u05E8 \u05D0\u05EA \u05D4\u05D1\u05E2\u05D9\u05D4 \u05D1\u05E4\u05D9\u05E8\u05D5\u05D8 (\u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD 20 \u05EA\u05D5\u05D5\u05D9\u05DD)',
+    chars_minimum: '\u05EA\u05D5\u05D5\u05D9\u05DD \u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD',
+    evidence_label: '\u05E8\u05D0\u05D9\u05D5\u05EA (\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA/\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD, \u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD 5)',
+    add_file: '\u05D4\u05D5\u05E1\u05E3 \u05E7\u05D5\u05D1\u05E5',
+    submitting: '\u05E9\u05D5\u05DC\u05D7...',
+    submit_dispute: '\u05E9\u05DC\u05D7 \u05E1\u05DB\u05E1\u05D5\u05DA',
+    date_locale: 'he-IL',
+  },
+  es: {
+    dispute: 'Disputa',
+    open_dispute: 'Abrir una disputa',
+    reason_not_received: 'No recibido',
+    reason_wrong_item: 'Art\u00edculo incorrecto',
+    reason_damaged: 'Da\u00f1ado',
+    reason_not_as_described: 'No conforme a la descripci\u00f3n',
+    reason_counterfeit: 'Falsificaci\u00f3n',
+    status_open: 'Abierto',
+    status_under_review: 'En revisi\u00f3n',
+    status_resolved_buyer: 'Resuelto (reembolsado)',
+    status_resolved_seller: 'Resuelto (rechazado)',
+    status_escalated: 'Escalado',
+    loading: 'Cargando...',
+    back: 'Volver',
+    error_order_not_found: 'Pedido no encontrado',
+    error_unknown: 'Error desconocido',
+    error_not_authenticated: 'No autenticado',
+    error_upload: 'Error de carga',
+    error_submit_failed: 'Error al enviar la disputa',
+    dispute_submitted_success: 'Disputa enviada con \u00e9xito',
+    dispute_submitted_desc: 'Revisaremos su solicitud lo antes posible.',
+    related_order: 'Pedido relacionado',
+    article: 'Art\u00edculo',
+    seller_return_policy: 'Pol\u00edtica de devoluci\u00f3n del vendedor',
+    policy_no_return: 'Sin devoluciones',
+    policy_exchange_only: 'Solo cambios',
+    policy_return_7: 'Devoluciones en 7 d\u00edas',
+    policy_return_14: 'Devoluciones en 14 d\u00edas',
+    policy_return_30: 'Devoluciones en 30 d\u00edas',
+    policy_no_return_notice: 'Este vendedor no acepta devoluciones. A\u00fan puede disputar si el art\u00edculo no es conforme o es falsificado.',
+    dispute_status: 'Estado de la disputa',
+    reason_label: 'Motivo',
+    description_label: 'Descripci\u00f3n',
+    amount_label: 'Monto',
+    opened_at: 'Abierto el',
+    resolved_at: 'Resuelto el',
+    resolution_note: 'Nota de resoluci\u00f3n',
+    auto_refund_approved: 'Reembolso autom\u00e1tico aprobado',
+    evidence_provided: 'Pruebas proporcionadas',
+    evidence_alt: 'Prueba',
+    dispute_reason: 'Motivo de la disputa',
+    description_form_label: 'Descripci\u00f3n',
+    description_placeholder: 'Describa el problema en detalle (m\u00ednimo 20 caracteres)',
+    chars_minimum: 'caracteres m\u00ednimo',
+    evidence_label: 'Pruebas (fotos/v\u00eddeos, m\u00e1x. 5)',
+    add_file: 'A\u00f1adir un archivo',
+    submitting: 'Enviando...',
+    submit_dispute: 'Enviar disputa',
+    date_locale: 'es-ES',
+  },
+}
+
+type Lang = keyof typeof pageContent
+
+const REASON_KEYS = [
+  { value: 'not_received', key: 'reason_not_received' },
+  { value: 'wrong_item', key: 'reason_wrong_item' },
+  { value: 'damaged', key: 'reason_damaged' },
+  { value: 'not_as_described', key: 'reason_not_as_described' },
+  { value: 'counterfeit', key: 'reason_counterfeit' },
 ] as const
 
-const STATUS_LABELS: Record<string, string> = {
-  open: 'Ouvert',
-  under_review: 'En cours d\'examen',
-  resolved_buyer: 'Résolu (remboursé)',
-  resolved_seller: 'Résolu (rejeté)',
-  escalated: 'Escaladé',
+const STATUS_KEYS: Record<string, string> = {
+  open: 'status_open',
+  under_review: 'status_under_review',
+  resolved_buyer: 'status_resolved_buyer',
+  resolved_seller: 'status_resolved_seller',
+  escalated: 'status_escalated',
+}
+
+const POLICY_KEYS: Record<string, string> = {
+  no_return: 'policy_no_return',
+  exchange_only: 'policy_exchange_only',
+  return_7: 'policy_return_7',
+  return_14: 'policy_return_14',
+  return_30: 'policy_return_30',
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -38,6 +265,9 @@ export default function DisputePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const lang = (getLang() || 'fr') as Lang
+  const ct = pageContent[lang] || pageContent.fr
 
   // Order data
   const [order, setOrder] = useState<OrderWithItem | null>(null)
@@ -85,10 +315,10 @@ export default function DisputePage() {
           .single()
 
         if (error) throw error
-        if (!data) throw new Error('Commande introuvable')
+        if (!data) throw new Error(ct.error_order_not_found)
         setOrder(data as OrderWithItem)
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Erreur inconnue'
+        const message = err instanceof Error ? err.message : ct.error_unknown
         setOrderError(message)
       } finally {
         setLoadingOrder(false)
@@ -184,7 +414,7 @@ export default function DisputePage() {
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Non authentifié')
+      if (!session) throw new Error(ct.error_not_authenticated)
 
       // Upload evidence files to Supabase Storage
       const urls: string[] = []
@@ -194,7 +424,7 @@ export default function DisputePage() {
           .from('dispute-evidence')
           .upload(filePath, file)
 
-        if (uploadError) throw new Error(`Erreur d'upload: ${uploadError.message}`)
+        if (uploadError) throw new Error(`${ct.error_upload}: ${uploadError.message}`)
 
         const { data: urlData } = supabase.storage
           .from('dispute-evidence')
@@ -222,18 +452,36 @@ export default function DisputePage() {
 
       if (!res.ok) {
         const err = await res.json()
-        throw new Error(err.error || 'Échec de la soumission du litige')
+        throw new Error(err.error || ct.error_submit_failed)
       }
 
       const disputeData = await res.json()
       setSubmittedDispute(disputeData)
       setSubmitted(true)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      const message = err instanceof Error ? err.message : ct.error_unknown
       setSubmitError(message)
     } finally {
       setSubmitting(false)
     }
+  }
+
+  // Helper to get translated status label
+  const getStatusLabel = (status: string) => {
+    const key = STATUS_KEYS[status]
+    return key ? (ct as Record<string, string>)[key] || status : status
+  }
+
+  // Helper to get translated reason label
+  const getReasonLabel = (reasonValue: string) => {
+    const found = REASON_KEYS.find(r => r.value === reasonValue)
+    return found ? (ct as Record<string, string>)[found.key] || reasonValue : reasonValue
+  }
+
+  // Helper to get translated policy label
+  const getPolicyLabel = (policy: string) => {
+    const key = POLICY_KEYS[policy]
+    return key ? (ct as Record<string, string>)[key] || policy : policy
   }
 
   if (!user) return null
@@ -242,7 +490,7 @@ export default function DisputePage() {
   if (loadingOrder || checkingDispute) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#888', fontSize: '15px' }}>Chargement...</p>
+        <p style={{ color: '#888', fontSize: '15px' }}>{ct.loading}</p>
       </div>
     )
   }
@@ -256,7 +504,7 @@ export default function DisputePage() {
           onClick={() => navigate(-1)}
           style={{ padding: '12px 24px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
         >
-          Retour
+          {ct.back}
         </button>
       </div>
     )
@@ -273,7 +521,7 @@ export default function DisputePage() {
           <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>Litige</h1>
+          <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.dispute}</h1>
         </div>
 
         <div style={{ padding: '20px' }}>
@@ -284,8 +532,8 @@ export default function DisputePage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>
               <div>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#4ade80' }}>Litige soumis avec succès</p>
-                <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>Nous examinerons votre demande dans les plus brefs délais.</p>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: '#4ade80' }}>{ct.dispute_submitted_success}</p>
+                <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{ct.dispute_submitted_desc}</p>
               </div>
             </div>
           )}
@@ -293,7 +541,7 @@ export default function DisputePage() {
           {/* Order context card */}
           {order && (
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Commande concernée</p>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.related_order}</p>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {order.item?.image_urls?.[0] && (
                   <img
@@ -303,7 +551,7 @@ export default function DisputePage() {
                   />
                 )}
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || 'Article'}</p>
+                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
                   <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{order.amount.toFixed(2)} EUR</p>
                 </div>
               </div>
@@ -315,7 +563,7 @@ export default function DisputePage() {
             <div style={{
               backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px',
             }}>
-              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Politique de retour du vendeur</p>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller_return_policy}</p>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                 padding: '6px 14px', borderRadius: '8px',
@@ -326,7 +574,7 @@ export default function DisputePage() {
                   fontSize: '13px', fontWeight: 600,
                   color: sellerReturnPolicy === 'no_return' ? '#f87171' : sellerReturnPolicy === 'exchange_only' ? '#fb923c' : '#4ade80',
                 }}>
-                  {{ no_return: 'Aucun retour', exchange_only: 'Echanges uniquement', return_7: 'Retours sous 7 jours', return_14: 'Retours sous 14 jours', return_30: 'Retours sous 30 jours' }[sellerReturnPolicy] || sellerReturnPolicy}
+                  {getPolicyLabel(sellerReturnPolicy)}
                 </span>
               </div>
             </div>
@@ -335,7 +583,7 @@ export default function DisputePage() {
           {/* Dispute status card */}
           <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>Statut du litige</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{ct.dispute_status}</p>
               <span style={{
                 padding: '4px 12px',
                 borderRadius: '9999px',
@@ -344,38 +592,38 @@ export default function DisputePage() {
                 backgroundColor: statusColor.bg,
                 color: statusColor.text,
               }}>
-                {STATUS_LABELS[dispute.status] || dispute.status}
+                {getStatusLabel(dispute.status)}
               </span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Motif</p>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.reason_label}</p>
                 <p style={{ fontSize: '14px', color: '#ccc' }}>
-                  {REASON_OPTIONS.find(r => r.value === dispute.reason)?.label || dispute.reason}
+                  {getReasonLabel(dispute.reason)}
                 </p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Description</p>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.description_label}</p>
                 <p style={{ fontSize: '14px', color: '#ccc', lineHeight: 1.5 }}>{dispute.description}</p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Montant</p>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.amount_label}</p>
                 <p style={{ fontSize: '14px', color: '#ccc' }}>{dispute.amount.toFixed(2)} EUR</p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Ouvert le</p>
-                <p style={{ fontSize: '14px', color: '#ccc' }}>{new Date(dispute.opened_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.opened_at}</p>
+                <p style={{ fontSize: '14px', color: '#ccc' }}>{new Date(dispute.opened_at).toLocaleDateString(ct.date_locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
               </div>
               {dispute.resolved_at && (
                 <div>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Résolu le</p>
-                  <p style={{ fontSize: '14px', color: '#ccc' }}>{new Date(dispute.resolved_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.resolved_at}</p>
+                  <p style={{ fontSize: '14px', color: '#ccc' }}>{new Date(dispute.resolved_at).toLocaleDateString(ct.date_locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                 </div>
               )}
               {dispute.resolution_note && (
                 <div>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>Note de résolution</p>
+                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.resolution_note}</p>
                   <p style={{ fontSize: '14px', color: '#ccc', lineHeight: 1.5 }}>{dispute.resolution_note}</p>
                 </div>
               )}
@@ -385,7 +633,7 @@ export default function DisputePage() {
             {dispute.auto_refund && (
               <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#1a2a1a', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                <p style={{ fontSize: '13px', color: '#4ade80', fontWeight: 500 }}>Remboursement automatique approuvé</p>
+                <p style={{ fontSize: '13px', color: '#4ade80', fontWeight: 500 }}>{ct.auto_refund_approved}</p>
               </div>
             )}
           </div>
@@ -393,13 +641,13 @@ export default function DisputePage() {
           {/* Evidence images */}
           {dispute.evidence_urls && dispute.evidence_urls.length > 0 && (
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>Preuves fournies</p>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{ct.evidence_provided}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {dispute.evidence_urls.map((url, i) => (
                   <img
                     key={i}
                     src={url}
-                    alt={`Preuve ${i + 1}`}
+                    alt={`${ct.evidence_alt} ${i + 1}`}
                     style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222' }}
                   />
                 ))}
@@ -431,14 +679,14 @@ export default function DisputePage() {
         <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>Ouvrir un litige</h1>
+        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.open_dispute}</h1>
       </div>
 
       <div style={{ padding: '20px' }}>
         {/* Order context card */}
         {order && (
           <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Commande concernée</p>
+            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.related_order}</p>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {order.item?.image_urls?.[0] && (
                 <img
@@ -448,7 +696,7 @@ export default function DisputePage() {
                 />
               )}
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || 'Article'}</p>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
                 <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{order.amount.toFixed(2)} EUR</p>
               </div>
             </div>
@@ -460,15 +708,8 @@ export default function DisputePage() {
           <div style={{
             backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px',
           }}>
-            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Politique de retour du vendeur</p>
+            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller_return_policy}</p>
             {(() => {
-              const policyLabels: Record<string, string> = {
-                no_return: 'Aucun retour accepte',
-                exchange_only: 'Echanges uniquement',
-                return_7: 'Retours sous 7 jours',
-                return_14: 'Retours sous 14 jours',
-                return_30: 'Retours sous 30 jours',
-              }
               const policyColors: Record<string, { bg: string; border: string; color: string }> = {
                 no_return: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#f87171' },
                 exchange_only: { bg: 'rgba(249,115,22,0.1)', border: 'rgba(249,115,22,0.3)', color: '#fb923c' },
@@ -476,7 +717,7 @@ export default function DisputePage() {
                 return_14: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80' },
                 return_30: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#4ade80' },
               }
-              const label = policyLabels[sellerReturnPolicy] || sellerReturnPolicy
+              const label = getPolicyLabel(sellerReturnPolicy)
               const colors = policyColors[sellerReturnPolicy] || policyColors.no_return
               return (
                 <>
@@ -489,7 +730,7 @@ export default function DisputePage() {
                   </div>
                   {sellerReturnPolicy === 'no_return' && (
                     <p style={{ fontSize: '12px', color: '#f97316', marginTop: '8px', lineHeight: 1.5 }}>
-                      Ce vendeur n'accepte pas les retours. Vous pouvez tout de meme contester si l'article est non conforme ou contrefait.
+                      {ct.policy_no_return_notice}
                     </p>
                   )}
                 </>
@@ -501,10 +742,10 @@ export default function DisputePage() {
         {/* Reason select */}
         <div style={{ marginBottom: '20px' }}>
           <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
-            Motif du litige
+            {ct.dispute_reason}
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {REASON_OPTIONS.map(opt => (
+            {REASON_KEYS.map(opt => (
               <button
                 key={opt.value}
                 onClick={() => setReason(opt.value)}
@@ -519,7 +760,7 @@ export default function DisputePage() {
                   border: reason === opt.value ? '1px solid #F0908A' : '1px solid #333',
                 }}
               >
-                {opt.label}
+                {(ct as Record<string, string>)[opt.key]}
               </button>
             ))}
           </div>
@@ -528,12 +769,12 @@ export default function DisputePage() {
         {/* Description textarea */}
         <div style={{ marginBottom: '20px' }}>
           <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
-            Description
+            {ct.description_form_label}
           </label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
-            placeholder="Décrivez le problème en détail (minimum 20 caractères)"
+            placeholder={ct.description_placeholder}
             rows={5}
             style={{
               width: '100%',
@@ -549,14 +790,14 @@ export default function DisputePage() {
             }}
           />
           <p style={{ fontSize: '12px', color: description.trim().length >= 20 ? '#666' : '#f97316', marginTop: '4px' }}>
-            {description.trim().length}/20 caractères minimum
+            {description.trim().length}/20 {ct.chars_minimum}
           </p>
         </div>
 
         {/* Evidence upload */}
         <div style={{ marginBottom: '20px' }}>
           <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
-            Preuves (photos/vidéos, max 5)
+            {ct.evidence_label}
           </label>
 
           {/* Preview thumbnails */}
@@ -566,7 +807,7 @@ export default function DisputePage() {
                 <div key={i} style={{ position: 'relative' }}>
                   <img
                     src={preview}
-                    alt={`Preuve ${i + 1}`}
+                    alt={`${ct.evidence_alt} ${i + 1}`}
                     style={{ width: '72px', height: '72px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333' }}
                   />
                   <button
@@ -613,7 +854,7 @@ export default function DisputePage() {
               }}
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" /><polyline points="17,8 12,3 7,8" strokeLinecap="round" strokeLinejoin="round" /><line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              Ajouter un fichier ({files.length}/5)
+              {ct.add_file} ({files.length}/5)
             </button>
           )}
           <input
@@ -648,7 +889,7 @@ export default function DisputePage() {
             opacity: submitting ? 0.7 : 1,
           }}
         >
-          {submitting ? 'Envoi en cours...' : 'Soumettre le litige'}
+          {submitting ? ct.submitting : ct.submit_dispute}
         </button>
       </div>
     </div>
