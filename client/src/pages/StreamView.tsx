@@ -1374,7 +1374,7 @@ export default function StreamView() {
                           </span>
                         )}
                         </p>
-                        {user && !isSeller && (
+                        {user && stream && user.id !== stream.seller_id && (
                           <button
                             onClick={async () => {
                               const { data: { session: s } } = await supabase.auth.getSession()

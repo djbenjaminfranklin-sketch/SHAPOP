@@ -2780,6 +2780,26 @@ app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequ
   }
 })
 
+// Delete an item (owner only)
+app.delete('/api/items/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const itemId = req.params.id
+
+    // Verify ownership
+    const { data: item } = await supabase.from('items').select('id, seller_id, status').eq('id', itemId).single()
+    if (!item) { res.status(404).json({ error: 'Item not found' }); return }
+    if (item.seller_id !== userId) { res.status(403).json({ error: 'Not your item' }); return }
+    if (item.status === 'sold') { res.status(400).json({ error: 'Cannot delete sold item' }); return }
+
+    const { error } = await supabase.from('items').delete().eq('id', itemId)
+    if (error) { res.status(500).json({ error: error.message }); return }
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // Activate an item (start auction) — uses service key to bypass RLS
 app.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {

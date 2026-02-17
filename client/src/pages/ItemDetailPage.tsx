@@ -20,6 +20,10 @@ const content = {
     contact: 'Contacter le vendeur',
     follow: 'Suivre',
     following: 'Suivi',
+    deleteItem: 'Supprimer l\'annonce',
+    deleteConfirm: 'Supprimer cette annonce ?',
+    myItem: 'Mon annonce',
+    editPrice: 'Modifier le prix',
   },
   en: {
     notFound: 'Item not found',
@@ -34,6 +38,10 @@ const content = {
     contact: 'Contact seller',
     follow: 'Follow',
     following: 'Following',
+    deleteItem: 'Delete listing',
+    deleteConfirm: 'Delete this listing?',
+    myItem: 'My listing',
+    editPrice: 'Edit price',
   },
   he: {
     notFound: 'הפריט לא נמצא',
@@ -48,6 +56,10 @@ const content = {
     contact: 'צור קשר עם המוכר',
     follow: 'עקוב',
     following: 'עוקב',
+    deleteItem: 'מחק מודעה',
+    deleteConfirm: 'למחוק את המודעה?',
+    myItem: 'המודעה שלי',
+    editPrice: 'ערוך מחיר',
   },
   es: {
     notFound: 'Articulo no encontrado',
@@ -62,6 +74,10 @@ const content = {
     contact: 'Contactar al vendedor',
     follow: 'Seguir',
     following: 'Siguiendo',
+    deleteItem: 'Eliminar anuncio',
+    deleteConfirm: 'Eliminar este anuncio?',
+    myItem: 'Mi anuncio',
+    editPrice: 'Editar precio',
   },
 } as Record<string, Record<string, string>>
 
@@ -301,18 +317,40 @@ export default function ItemDetailPage() {
               </div>
             )}
 
-            {/* Contact seller button */}
-            <button
-              onClick={() => navigate(`/conversation/${item.seller_id}`)}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '14px',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {t.contact}
-            </button>
+            {/* Owner actions vs buyer actions */}
+            {user && item.seller_id === user.id ? (
+              <button
+                onClick={async () => {
+                  if (!confirm(t.deleteConfirm)) return
+                  if (!session?.access_token) return
+                  const res = await apiFetch(`/api/items/${item.id}`, {
+                    method: 'DELETE',
+                    headers: { Authorization: `Bearer ${session.access_token}` },
+                  })
+                  if (res.ok) navigate(-1)
+                }}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '14px',
+                  background: 'none', border: '1px solid #E8344E',
+                  color: '#E8344E', fontSize: '16px', fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.deleteItem}
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate(`/conversation/${item.seller_id}`)}
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '14px',
+                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {t.contact}
+              </button>
+            )}
           </div>
         </>
       )}
