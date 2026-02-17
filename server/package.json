@@ -13,7 +13,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@mux/mux-node": "^12.8.1",
     "@supabase/supabase-js": "^2.49.4",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.18",

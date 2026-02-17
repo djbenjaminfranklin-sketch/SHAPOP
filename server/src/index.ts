@@ -11,9 +11,6 @@ import http2 from 'http2'
 import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { WebSocketServer, type WebSocket } from 'ws'
-import { spawn, type ChildProcess } from 'child_process'
-import Mux from '@mux/mux-node'
 import Stripe from 'stripe'
 import { Resend } from 'resend'
 import { AccessToken, RoomServiceClient, WebhookReceiver } from 'livekit-server-sdk'
@@ -37,8 +34,7 @@ const VAT_RATE = 0.20               // 20% TVA (France)
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
 const APP_BASE_URL = process.env.APP_BASE_URL || 'https://shapop.app'
 
-// Safe column list for streams table — excludes mux_stream_key (RTMP secret).
-// Only the WebSocket broadcast endpoint (seller-only, auth-checked) may read mux_stream_key.
+// Safe column list for streams table (mux_stream_id/playback_id/asset_id kept for historical data).
 const STREAMS_SAFE_COLUMNS = 'id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name'
 
 // Helper: escape HTML special characters to prevent injection
@@ -339,17 +335,6 @@ async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, 
 }
 
 // =============================================
-// Mux client
-// =============================================
-if (!process.env.MUX_TOKEN_ID || !process.env.MUX_TOKEN_SECRET) {
-  console.warn('WARNING: MUX_TOKEN_ID or MUX_TOKEN_SECRET not set — Mux features will fail')
-}
-const muxClient = new Mux({
-  tokenId: process.env.MUX_TOKEN_ID || '',
-  tokenSecret: process.env.MUX_TOKEN_SECRET || '',
-})
-
-// =============================================
 // LiveKit client (WebRTC low-latency streaming)
 // =============================================
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || ''
@@ -636,63 +621,6 @@ async function stripeWebhookHandler(req: Request, res: Response) {
   }
 }
 
-async function muxWebhookHandler(req: Request, res: Response) {
-  try {
-    // Verify Mux webhook signature if secret is configured
-    const muxWebhookSecret = process.env.MUX_WEBHOOK_SECRET
-    if (muxWebhookSecret) {
-      const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
-      const signature = req.headers['mux-signature'] as string
-      if (!signature) {
-        res.status(401).json({ error: 'Missing Mux signature header' })
-        return
-      }
-      try {
-        muxClient.webhooks.verifySignature(rawBody.toString(), { 'mux-signature': signature }, muxWebhookSecret)
-      } catch {
-        console.error('[Mux Webhook] Signature verification failed')
-        res.status(401).json({ error: 'Invalid Mux webhook signature' })
-        return
-      }
-    }
-
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : (Buffer.isBuffer(req.body) ? JSON.parse(req.body.toString()) : req.body)
-    const type = body?.type as string
-    const data = body?.data as Record<string, unknown>
-
-    if (type === 'video.live_stream.active' && data?.id) {
-      // Update stream status
-      const { data: streams } = await supabase
-        .from('streams')
-        .update({ status: 'live' })
-        .eq('mux_stream_id', data.id as string)
-        .select('id, title, seller_id')
-
-      // Send push notifications to followers
-      if (streams && streams.length > 0) {
-        const stream = streams[0]
-        notifyFollowersSellerLive(stream.seller_id, stream.title, stream.id).catch(err =>
-          console.error('Push notification error:', err)
-        )
-      }
-    }
-
-    if (type === 'video.asset.ready' && data?.id) {
-      const liveStreamId = (data as { live_stream_id?: string }).live_stream_id
-      if (liveStreamId) {
-        await supabase
-          .from('streams')
-          .update({ mux_asset_id: data.id as string })
-          .eq('mux_stream_id', liveStreamId)
-      }
-    }
-
-    res.json({ received: true })
-  } catch {
-    res.status(400).json({ error: 'Invalid webhook' })
-  }
-}
-
 async function livekitWebhookHandler(req: Request, res: Response) {
   try {
     if (!livekitWebhookReceiver) {
@@ -897,7 +825,6 @@ const webhookLimiter = rateLimit({
 
 // Webhooks need raw body for signature verification — MUST be before express.json()
 app.post('/api/webhooks/stripe', webhookLimiter, express.raw({ type: 'application/json' }), stripeWebhookHandler as express.RequestHandler)
-app.post('/api/webhooks/mux', webhookLimiter, express.raw({ type: 'application/json' }), muxWebhookHandler as express.RequestHandler)
 app.post('/api/webhooks/livekit', webhookLimiter, express.raw({ type: 'application/json' }), livekitWebhookHandler as express.RequestHandler)
 
 app.use(express.json({ limit: '10mb' }))
@@ -2741,112 +2668,6 @@ Retourne UNIQUEMENT le JSON, rien d'autre.`
     res.status(500).json({ error: 'Banner generation failed' })
   }
 })
-
-// =============================================
-// MUX LIVE STREAMING
-// =============================================
-
-// Create a Mux live stream for a given stream
-app.post('/api/streams/:id/create-mux-stream', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const streamId = req.params.id
-
-    // Verify ownership
-    const { data: stream } = await supabase
-      .from('streams')
-      .select('seller_id, mux_stream_id')
-      .eq('id', streamId)
-      .single()
-
-    if (!stream || stream.seller_id !== req.user!.id) {
-      res.status(403).json({ error: 'You can only create Mux streams for your own streams' })
-      return
-    }
-
-    // Don't create duplicate Mux streams
-    if (stream.mux_stream_id) {
-      const { data: existing } = await supabase
-        .from('streams')
-        .select('mux_stream_id, mux_playback_id')
-        .eq('id', streamId)
-        .single()
-      res.json({
-        mux_stream_id: existing?.mux_stream_id,
-        mux_playback_id: existing?.mux_playback_id,
-      })
-      return
-    }
-
-    const muxStream = await muxClient.video.liveStreams.create({
-      playback_policy: ['public'],
-      new_asset_settings: { playback_policy: ['public'] },
-      latency_mode: 'low',
-      reconnect_window: 30,
-    })
-
-    const muxStreamId = muxStream.id
-    const muxPlaybackId = muxStream.playback_ids?.[0]?.id || null
-    const muxStreamKey = muxStream.stream_key || null
-
-    await supabase
-      .from('streams')
-      .update({
-        mux_stream_id: muxStreamId,
-        mux_playback_id: muxPlaybackId,
-        mux_stream_key: muxStreamKey,
-      })
-      .eq('id', streamId)
-
-    // Return only safe fields (never the stream_key)
-    res.json({
-      mux_stream_id: muxStreamId,
-      mux_playback_id: muxPlaybackId,
-    })
-  } catch (err: any) {
-    console.error('Mux stream creation error:', err?.message || err, err?.response?.data)
-    res.status(500).json({ error: 'Failed to create Mux stream', details: err?.message })
-  }
-})
-
-// End a Mux live stream
-app.post('/api/streams/:id/end-mux-stream', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const streamId = req.params.id
-
-    const { data: stream } = await supabase
-      .from('streams')
-      .select('seller_id, mux_stream_id')
-      .eq('id', streamId)
-      .single()
-
-    if (!stream || stream.seller_id !== req.user!.id) {
-      res.status(403).json({ error: 'You can only end your own Mux streams' })
-      return
-    }
-
-    if (stream.mux_stream_id) {
-      try {
-        await muxClient.video.liveStreams.complete(stream.mux_stream_id)
-      } catch {
-        // Stream may already be idle/complete — ignore
-      }
-    }
-
-    await supabase
-      .from('streams')
-      .update({
-        status: 'ended',
-        ended_at: new Date().toISOString(),
-      })
-      .eq('id', streamId)
-
-    res.json({ success: true })
-  } catch {
-    res.status(500).json({ error: 'Failed to end Mux stream' })
-  }
-})
-
-// Mux Webhooks — registered early (before express.json)
 
 // =============================================
 // LIVEKIT LIVE STREAMING (WebRTC, sub-300ms latency)
@@ -5205,22 +5026,13 @@ app.post('/api/admin/streams/:id/stop', requireAdmin, async (req: AuthenticatedR
 
     const { data: stream } = await supabase
       .from('streams')
-      .select('mux_stream_id, livekit_room_name, seller_id')
+      .select('livekit_room_name, seller_id')
       .eq('id', streamId)
       .single()
 
     if (!stream) {
       res.status(404).json({ error: 'Stream not found' })
       return
-    }
-
-    // End on Mux if active
-    if (stream.mux_stream_id) {
-      try {
-        await muxClient.video.liveStreams.complete(stream.mux_stream_id)
-      } catch {
-        // May already be ended
-      }
     }
 
     // End on LiveKit if active
@@ -5254,7 +5066,7 @@ app.post('/api/admin/streams/:id/suspend-streamer', requireAdmin, async (req: Au
 
     const { data: stream } = await supabase
       .from('streams')
-      .select('seller_id, mux_stream_id, livekit_room_name')
+      .select('seller_id, livekit_room_name')
       .eq('id', streamId)
       .single()
 
@@ -5263,10 +5075,6 @@ app.post('/api/admin/streams/:id/suspend-streamer', requireAdmin, async (req: Au
       return
     }
 
-    // Stop stream on Mux
-    if (stream.mux_stream_id) {
-      try { await muxClient.video.liveStreams.complete(stream.mux_stream_id) } catch { /* ignore */ }
-    }
     // Stop stream on LiveKit
     if (stream.livekit_room_name && livekitRoomService) {
       try { await livekitRoomService.deleteRoom(stream.livekit_room_name) } catch { /* ignore */ }
@@ -6804,135 +6612,12 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 })
 
 // =============================================
-// START SERVER with WebSocket support
+// START SERVER
 // =============================================
 const server = createServer(app)
 
-// Track active FFmpeg processes per stream
-const activeStreams = new Map<string, { ffmpeg: ChildProcess; ws: WebSocket }>()
-
-const wss = new WebSocketServer({ server, path: '/ws/video' })
-
-wss.on('connection', async (ws: WebSocket, req) => {
-  const url = new URL(req.url || '', `http://localhost:${PORT}`)
-  const streamId = url.searchParams.get('streamId')
-  const token = url.searchParams.get('token')
-
-  if (!streamId || !token) {
-    ws.close(4001, 'Missing streamId or token')
-    return
-  }
-
-  // Authenticate via Supabase JWT
-  const { data: authData, error: authError } = await supabase.auth.getUser(token)
-  if (authError || !authData.user) {
-    ws.close(4002, 'Authentication failed')
-    return
-  }
-
-  const userId = authData.user.id
-
-  // Verify the user is the seller of this stream
-  const { data: stream } = await supabase
-    .from('streams')
-    .select('seller_id, mux_stream_key')
-    .eq('id', streamId)
-    .single()
-
-  if (!stream || stream.seller_id !== userId) {
-    ws.close(4003, 'Not authorized to broadcast this stream')
-    return
-  }
-
-  if (!stream.mux_stream_key) {
-    ws.close(4004, 'Mux stream not provisioned')
-    return
-  }
-
-  const rtmpUrl = `rtmp://global-live.mux.com:5222/app/${stream.mux_stream_key}`
-
-  // Spawn FFmpeg: pipe WebM chunks from stdin → RTMP to Mux
-  const ffmpeg = spawn('ffmpeg', [
-    '-fflags', 'nobuffer',
-    '-flags', 'low_delay',
-    '-i', 'pipe:0',
-    '-c:v', 'libx264',
-    '-preset', 'veryfast',
-    '-tune', 'zerolatency',
-    '-g', '30',           // Keyframe every 1s (at 30fps) — helps LL-HLS segmenting
-    '-c:a', 'aac',
-    '-ar', '44100',
-    '-b:a', '128k',
-    '-f', 'flv',
-    '-flvflags', 'no_duration_filesize',
-    rtmpUrl,
-  ], {
-    stdio: ['pipe', 'ignore', 'pipe'],
-  })
-
-  ffmpeg.stderr?.on('data', (data: Buffer) => {
-    const msg = data.toString()
-    // Only log important FFmpeg messages (errors or key info)
-    if (msg.includes('Error') || msg.includes('error') || msg.includes('Output #0')) {
-      if (process.env.NODE_ENV !== 'production') console.log(`[FFmpeg ${streamId.slice(0, 8)}] ${msg.trim()}`)
-    }
-  })
-
-  ffmpeg.on('close', (code) => {
-    if (process.env.NODE_ENV !== 'production') console.log(`[FFmpeg ${streamId.slice(0, 8)}] exited with code ${code}`)
-    activeStreams.delete(streamId)
-  })
-
-  activeStreams.set(streamId, { ffmpeg, ws })
-
-  if (process.env.NODE_ENV !== 'production') console.log(`[WS] Broadcast started for stream ${streamId.slice(0, 8)} by user ${userId.slice(0, 8)}`)
-
-  // Prevent unhandled errors on ffmpeg stdin
-  ffmpeg.stdin?.on('error', (err) => {
-    console.error(`[FFmpeg ${streamId.slice(0, 8)}] stdin error:`, err.message)
-  })
-
-  ws.on('message', (data: Buffer) => {
-    // Forward binary video chunks to FFmpeg stdin
-    if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
-      try {
-        ffmpeg.stdin.write(data)
-      } catch (err) {
-        console.error(`[FFmpeg ${streamId.slice(0, 8)}] write error:`, (err as Error).message)
-        ws.close(4005, 'FFmpeg write failed')
-      }
-    }
-  })
-
-  ws.on('close', () => {
-    if (process.env.NODE_ENV !== 'production') console.log(`[WS] Broadcast ended for stream ${streamId.slice(0, 8)}`)
-    // Gracefully close FFmpeg
-    if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
-      ffmpeg.stdin.end()
-    }
-    setTimeout(() => {
-      if (!ffmpeg.killed) ffmpeg.kill('SIGTERM')
-    }, 3000)
-    activeStreams.delete(streamId)
-  })
-
-  ws.on('error', (err) => {
-    console.error(`[WS] Error for stream ${streamId.slice(0, 8)}:`, err.message)
-    if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
-      ffmpeg.stdin.end()
-    }
-    if (!ffmpeg.killed) ffmpeg.kill('SIGTERM')
-    activeStreams.delete(streamId)
-  })
-})
-
 server.listen(PORT, () => {
-  console.log(`ShaPop API + WebSocket running on http://localhost:${PORT}`)
-  if (process.env.MUX_TOKEN_ID) {
-    console.log('Mux client initialized')
-  } else {
-    console.warn('Warning: MUX_TOKEN_ID not set — Mux features will not work')
-  }
+  console.log(`ShaPop API running on http://localhost:${PORT}`)
 
   // Process PayPal payouts every 4 hours
   if (process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET) {
