@@ -600,10 +600,24 @@ export default function OrderDetailPage() {
   }
 
   if (error || !order) {
+    const retryLabel: Record<string, string> = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '20px' }}>
         <p style={{ color: '#E8344E', fontSize: '16px', fontWeight: 700, marginBottom: '12px' }}>{error || ct.notFound}</p>
-        <button onClick={() => navigate(-1)} style={{ color: '#F0908A', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>{ct.back}</button>
+        <button
+          onClick={fetchOrder}
+          style={{
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            color: '#E8344E', fontSize: '14px', fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {retryLabel[lang] || retryLabel.fr}
+        </button>
+        <button onClick={() => navigate(-1)} style={{ color: '#F0908A', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: '8px' }}>{ct.back}</button>
       </div>
     )
   }
@@ -638,7 +652,7 @@ export default function OrderDetailPage() {
       minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
       opacity: mounted ? 1 : 0, transition: 'opacity 0.4s ease',
     }}>
-      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px',

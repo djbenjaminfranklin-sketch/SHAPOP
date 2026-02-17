@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
@@ -97,11 +97,16 @@ export default function ItemDetailPage() {
 
   const [item, setItem] = useState<ItemWithSeller | null>(null)
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
 
-  useEffect(() => {
+  const retryLabel = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Reessayer'
+
+  const fetchItem = useCallback(() => {
     if (!id) return
+    setLoading(true)
+    setFetchError(false)
     apiFetch(`/api/items/${id}`)
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
@@ -112,9 +117,14 @@ export default function ItemDetailPage() {
       })
       .catch((err) => {
         console.error('Failed to fetch item:', err)
+        setFetchError(true)
       })
       .finally(() => setLoading(false))
   }, [id])
+
+  useEffect(() => {
+    fetchItem()
+  }, [fetchItem])
 
   // Check follow status when item loads
   useEffect(() => {
@@ -146,7 +156,7 @@ export default function ItemDetailPage() {
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '16px', paddingTop: 'max(16px, env(safe-area-inset-top))',
+        padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <button aria-label="Back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -167,9 +177,24 @@ export default function ItemDetailPage() {
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
-      ) : !item ? (
+      ) : fetchError || !item ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', textAlign: 'center' }}>
-          <p style={{ fontSize: '16px', color: '#888' }}>{t.notFound}</p>
+          <p style={{ fontSize: '16px', color: '#888', marginBottom: '16px' }}>{t.notFound}</p>
+          {fetchError && (
+            <button
+              onClick={fetchItem}
+              style={{
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: '#E8344E', fontSize: '14px', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              {retryLabel}
+            </button>
+          )}
         </div>
       ) : (
         <>

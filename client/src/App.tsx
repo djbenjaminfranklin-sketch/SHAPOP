@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react'
+import { useState, useEffect, lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { hapticTap } from './lib/haptics'
@@ -81,6 +81,8 @@ function PushAutoRegister() {
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
+  const lang = useMemo(() => localStorage.getItem('shapop_lang') || 'fr', [])
+  const dir = lang === 'he' ? 'rtl' : 'ltr'
 
   useEffect(() => {
     // Use touchstart (fires ~40ms before pointerdown on iOS) for instant feedback
@@ -134,7 +136,7 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <PushAutoRegister />
-          <div className="min-h-screen bg-black" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
+          <div dir={dir} className="min-h-screen bg-black" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
             <HomeButton />
             <Suspense fallback={<PageLoader />}>
               <Routes>

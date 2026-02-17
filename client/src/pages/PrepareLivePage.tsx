@@ -833,6 +833,7 @@ export default function PrepareLivePage() {
             {/* Price */}
             <input
               type="number"
+              inputMode="decimal"
               value={formPrice}
               onChange={e => setFormPrice(e.target.value)}
               placeholder={ct.startingPrice}
@@ -853,6 +854,7 @@ export default function PrepareLivePage() {
             <div style={{ marginBottom: '10px' }}>
               <input
                 type="number"
+                inputMode="decimal"
                 value={formMinPrice}
                 onChange={e => setFormMinPrice(e.target.value)}
                 placeholder={ct.minPrice}

@@ -642,20 +642,24 @@ export default function StreamView() {
   }, [isSeller, isLive])
 
   // Charger les donnees du stream
+  const retryFetchStream = useCallback(async () => {
+    if (!id) return
+    setLoading(true)
+    try {
+      const { data } = await supabase
+        .from('streams')
+        .select('*')
+        .eq('id', id)
+        .single()
+      setStream(data)
+    } catch (err) { console.error('Failed to fetch stream:', err) }
+    setLoading(false)
+  }, [id])
+
   useEffect(() => {
     if (!id) return
 
-    const fetchStream = async () => {
-      try {
-        const { data } = await supabase
-          .from('streams')
-          .select('*')
-          .eq('id', id)
-          .single()
-        setStream(data)
-      } catch (err) { console.error('Failed to fetch stream:', err) }
-      setLoading(false)
-    }
+    retryFetchStream()
 
     const fetchActiveAuction = async () => {
       try {
@@ -685,10 +689,9 @@ export default function StreamView() {
       } catch (err) { console.error('Failed to fetch chat messages:', err) }
     }
 
-    fetchStream()
     fetchActiveAuction()
     fetchMessages()
-  }, [id])
+  }, [id, retryFetchStream])
 
   // Ecouter les mises a jour en temps reel
   useEffect(() => {
@@ -1172,13 +1175,27 @@ export default function StreamView() {
   }
 
   if (!stream) {
+    const retryLabel: Record<string, string> = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', padding: '20px' }}>
         <p style={{ fontSize: '18px', color: '#666' }}>{ct.streamNotFound}</p>
         <button
+          onClick={retryFetchStream}
+          style={{
+            marginTop: '16px', background: 'transparent', border: 'none', cursor: 'pointer',
+            color: '#E8344E', fontSize: '14px', fontWeight: 600,
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          {retryLabel[lang] || retryLabel.fr}
+        </button>
+        <button
           onClick={() => navigate(-1)}
           style={{
-            marginTop: '16px', padding: '12px 24px', borderRadius: '100px',
+            marginTop: '8px', padding: '12px 24px', borderRadius: '100px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
             border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
           }}
@@ -1870,6 +1887,7 @@ export default function StreamView() {
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <input
                     type="number"
+                    inputMode="decimal"
                     value={bidAmount}
                     onChange={e => setBidAmount(e.target.value)}
                     min={activeAuction.current_price + 1}
@@ -2080,6 +2098,7 @@ export default function StreamView() {
                 </div>
                 <input
                   type="tel"
+                  inputMode="tel"
                   value={addressForm.phone}
                   onChange={e => setAddressForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder={ct.phonePlaceholder}

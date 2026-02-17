@@ -150,7 +150,7 @@ export default function DirectSalesPage() {
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '16px', paddingTop: 'max(16px, env(safe-area-inset-top))',
+        padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

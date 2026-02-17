@@ -724,6 +724,7 @@ export default function PaymentsPage() {
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="email"
+                    inputMode="email"
                     value={paypalEditEmail}
                     onChange={e => setPaypalEditEmail(e.target.value)}
                     style={{
@@ -1171,6 +1172,7 @@ export default function PaymentsPage() {
                 </p>
                 <input
                   type="email"
+                  inputMode="email"
                   value={countryPaypalEmail}
                   onChange={e => setCountryPaypalEmail(e.target.value)}
                   placeholder={c.paypalCountryPlaceholder}

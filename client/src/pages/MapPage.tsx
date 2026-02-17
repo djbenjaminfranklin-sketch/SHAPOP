@@ -163,8 +163,8 @@ export default function MapPage() {
   return (
     <div style={{
       minHeight: '100vh', backgroundColor: '#000',
-      paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+      paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
     }}>
       {/* Header */}
       <div style={{ padding: '16px 20px 0' }}>

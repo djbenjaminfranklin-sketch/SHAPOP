@@ -1359,6 +1359,7 @@ export default function LiveSellerView() {
               />
               <input
                 type="number"
+                inputMode="decimal"
                 value={addItemPrice}
                 onChange={e => setAddItemPrice(e.target.value)}
                 placeholder={ct.addItemPrice}

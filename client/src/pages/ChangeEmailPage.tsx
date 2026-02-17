@@ -124,6 +124,7 @@ export default function ChangeEmailPage() {
         </label>
         <input
           type="email"
+          inputMode="email"
           value={newEmail}
           onChange={e => setNewEmail(e.target.value)}
           placeholder={tx('Entrez votre nouvelle adresse', 'Enter your new email', 'הזן כתובת חדשה', 'Ingrese su nuevo correo', lang)}

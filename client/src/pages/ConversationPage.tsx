@@ -412,8 +412,8 @@ export default function ConversationPage() {
       color: '#fff',
       display: 'flex',
       flexDirection: 'column',
-      paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)',
+      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
     }}>
       {/* Header */}
       <div style={{

@@ -484,6 +484,7 @@ export default function Register() {
           </label>
           <input
             type="email"
+            inputMode="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder={c.emailPlaceholder}
@@ -548,6 +549,7 @@ export default function Register() {
             </select>
             <input
               type="tel"
+              inputMode="tel"
               value={phoneLocal}
               onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder={c.phonePlaceholder}

@@ -869,6 +869,7 @@ export default function AIListingPage() {
             <div style={{ position: 'relative' }}>
               <input
                 type="number"
+                inputMode="decimal"
                 value={editPrice}
                 onChange={(e) => setEditPrice(e.target.value)}
                 style={{
@@ -946,7 +947,7 @@ export default function AIListingPage() {
     }}>
       {/* Header */}
       <div style={{
-        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',

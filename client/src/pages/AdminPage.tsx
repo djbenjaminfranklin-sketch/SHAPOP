@@ -1669,7 +1669,7 @@ export default function AdminPage() {
   try {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '40px' }}>
-        <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
           {/* Header */}
           <div style={{ padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

@@ -233,18 +233,38 @@ async function sendApnsPush(deviceToken: string, title: string, body: string, da
 
 /** Send push + in-app notification to a specific user */
 async function notifyUser(userId: string, type: string, title: string, body: string, data?: Record<string, string>) {
-  // Push notification
+  // Determine which preference column to check based on notification type
+  const prefColumnMap: Record<string, string> = {
+    live: 'notify_live',
+    message: 'notify_messages',
+    auction_won: 'notify_orders',
+    return_requested: 'notify_orders',
+    return_approved: 'notify_orders',
+    return_rejected: 'notify_orders',
+    order_shipped: 'notify_orders',
+    order_delivered: 'notify_orders',
+    deal: 'notify_deals',
+    reminder: 'notify_reminders',
+    community: 'notify_community',
+  }
+  const prefColumn = prefColumnMap[type] || 'notify_orders'
+
+  // Push notification — check user preference before sending
   const { data: tokens } = await supabase
     .from('device_tokens')
-    .select('token')
+    .select('token, notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
     .eq('user_id', userId)
     .neq('token', `prefs-${userId}`)
   if (tokens) {
     for (const t of tokens) {
-      await sendApnsPush(t.token, title, body, data)
+      // Only send push if the user has the relevant notification preference enabled
+      const prefs = t as Record<string, unknown>
+      if (prefs[prefColumn] !== false) {
+        await sendApnsPush(t.token, title, body, data)
+      }
     }
   }
-  // In-app notification
+  // In-app notification (always insert regardless of push preferences)
   await supabase.from('notifications').insert({
     user_id: userId, type, title, body, data: data || {},
   })
@@ -698,7 +718,7 @@ async function livekitWebhookHandler(req: Request, res: Response) {
 
         await supabase
           .from('streams')
-          .update({ status: 'ended', ended_at: new Date().toISOString() })
+          .update({ status: 'ended', ended_at: new Date().toISOString(), viewer_count: 0 })
           .eq('livekit_room_name', roomName)
           .eq('status', 'live')
 
@@ -797,7 +817,20 @@ const PORT = process.env.PORT || 4000
 type AuthenticatedRequest = Request & { user?: { id: string; email?: string } }
 
 // Security headers
-app.use(helmet())
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https:"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
+    }
+  }
+}))
 
 // CORS - accept configured origins + Capacitor
 app.use(cors({
@@ -876,6 +909,16 @@ const bidLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
   message: { error: 'Too many bids, please try again later' },
+})
+
+const reportLimiter = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many reports, please try again later' },
+  keyGenerator: (req: Request) => {
+    const auth = req.headers.authorization
+    return auth ? auth.split('Bearer ')[1]?.slice(0, 20) || req.ip || 'unknown' : req.ip || 'unknown'
+  },
 })
 
 app.use(globalLimiter)
@@ -1259,6 +1302,10 @@ app.post('/api/streams', requireAuth, async (req: AuthenticatedRequest, res: Res
 
     if (!title || typeof title !== 'string' || !title.trim()) {
       res.status(400).json({ error: 'title is required' })
+      return
+    }
+    if (title.trim().length < 3) {
+      res.status(400).json({ error: 'Title must be at least 3 characters' })
       return
     }
     if (!category || typeof category !== 'string') {
@@ -1876,7 +1923,7 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
       .eq('item_id', req.params.id)
       .order('amount', { ascending: false })
       .limit(1)
-      .single()
+      .maybeSingle()
 
     // Only mark sold if bid meets reserve price
     const meetsReserve = topBid && topBid.amount >= minPrice
@@ -2884,6 +2931,10 @@ app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequ
     }
 
     const price = parseFloat(starting_price) || 0
+    if (price < 0.01) {
+      res.status(400).json({ error: 'Price must be at least 0.01€' })
+      return
+    }
     // ai_confidence comes as 70-98 from the AI but DB expects 0-1 (numeric(3,2))
     const normalizedConfidence = ai_confidence != null
       ? (ai_confidence > 1 ? ai_confidence / 100 : ai_confidence)
@@ -3018,10 +3069,10 @@ app.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReques
 app.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const itemId = req.params.id
-    const { amount } = req.body
+    const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
     const userId = req.user!.id
 
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0) {
       res.status(400).json({ error: 'Invalid bid amount' })
       return
     }
@@ -3047,6 +3098,10 @@ app.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authenticate
     }
     if (amount <= item.current_price) {
       res.status(400).json({ error: 'Bid must be higher than current price' })
+      return
+    }
+    if (amount - item.current_price < 0.50) {
+      res.status(400).json({ error: 'Minimum bid increment is 0.50€' })
       return
     }
 
@@ -3098,9 +3153,14 @@ app.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authenticate
 app.post('/api/streams/:id/viewer-join', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const streamId = req.params.id
-    const { data } = await supabase.from('streams').select('viewer_count').eq('id', streamId).single()
-    if (data) {
-      await supabase.from('streams').update({ viewer_count: (data.viewer_count || 0) + 1 }).eq('id', streamId)
+    // Atomic increment to avoid race conditions
+    const { error } = await supabase.rpc('increment_viewer_count', { stream_id: streamId })
+    if (error) {
+      // Fallback: read-then-update with GREATEST to stay non-negative
+      const { data } = await supabase.from('streams').select('viewer_count').eq('id', streamId).single()
+      if (data) {
+        await supabase.from('streams').update({ viewer_count: Math.max((data.viewer_count || 0) + 1, 0) }).eq('id', streamId)
+      }
     }
     res.json({ success: true })
   } catch {
@@ -3111,9 +3171,14 @@ app.post('/api/streams/:id/viewer-join', requireAuth, async (req: AuthenticatedR
 app.post('/api/streams/:id/viewer-leave', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const streamId = req.params.id
-    const { data } = await supabase.from('streams').select('viewer_count').eq('id', streamId).single()
-    if (data) {
-      await supabase.from('streams').update({ viewer_count: Math.max(0, (data.viewer_count || 0) - 1) }).eq('id', streamId)
+    // Atomic decrement to avoid race conditions
+    const { error } = await supabase.rpc('decrement_viewer_count', { stream_id: streamId })
+    if (error) {
+      // Fallback: read-then-update with GREATEST to stay non-negative
+      const { data } = await supabase.from('streams').select('viewer_count').eq('id', streamId).single()
+      if (data) {
+        await supabase.from('streams').update({ viewer_count: Math.max((data.viewer_count || 0) - 1, 0) }).eq('id', streamId)
+      }
     }
     res.json({ success: true })
   } catch {
@@ -4105,6 +4170,11 @@ app.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, 
       return
     }
 
+    if (!order.shipping_address) {
+      res.status(400).json({ error: 'Shipping address required before shipping' })
+      return
+    }
+
     if (order.status !== 'paid') {
       res.status(400).json({ error: 'Only paid orders can be shipped' })
       return
@@ -4394,7 +4464,7 @@ app.post('/api/orders/:id/approve-return', requireAuth, async (req: Authenticate
     // Update order status
     const { data: updated, error: updateErr } = await supabase
       .from('orders')
-      .update({ status: 'return_approved' })
+      .update({ status: 'refunded' })
       .eq('id', orderId)
       .select('*')
       .single()
@@ -4492,7 +4562,7 @@ app.delete('/api/users/:id/block', requireAuth, async (req: AuthenticatedRequest
   }
 })
 
-app.post('/api/report', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/report', reportLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { reported_id, reason, context } = req.body
     if (!reported_id || !reason) { res.status(400).json({ error: 'reported_id and reason required' }); return }
@@ -5774,11 +5844,27 @@ app.get('/api/conversations/:id/messages', requireAuth, async (req: Authenticate
       return
     }
 
-    const { data, error } = await supabase
+    // Get blocked user IDs to filter out their messages
+    const { data: blockedUsers } = await supabase
+      .from('user_blocks')
+      .select('blocked_id')
+      .eq('blocker_id', userId)
+    const blockedIds = (blockedUsers || []).map((b: { blocked_id: string }) => b.blocked_id)
+
+    let query = supabase
       .from('conversation_messages')
       .select('*, sender:profiles!sender_id(display_name, avatar_url)')
       .eq('conversation_id', convId)
       .order('created_at', { ascending: true })
+
+    if (blockedIds.length > 0) {
+      // Filter out messages from blocked users
+      for (const blockedId of blockedIds) {
+        query = query.neq('sender_id', blockedId)
+      }
+    }
+
+    const { data, error } = await query
 
     if (error) {
       res.status(500).json({ error: 'Failed to fetch messages' })

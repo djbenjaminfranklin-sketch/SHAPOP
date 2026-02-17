@@ -214,8 +214,8 @@ export default function Profile() {
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))', paddingLeft: '32px', paddingRight: '32px',
-        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', paddingLeft: '32px', paddingRight: '32px',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ height: '40px', marginBottom: '32px', objectFit: 'contain' }} />
         <div style={{
@@ -440,8 +440,8 @@ export default function Profile() {
   // LOGGED IN RENDER
   // ════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
-      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
+      <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
 
         {/* ── HEADER: Avatar + Username + "Afficher le profil" ──────── */}
         <div style={{

@@ -105,6 +105,15 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* RTL support for Hebrew */
+[dir="rtl"] {
+  text-align: right;
+}
+[dir="rtl"] input,
+[dir="rtl"] textarea {
+  text-align: right;
+}
+
 /* Admin page spinner */
 @keyframes spin {
   to { transform: rotate(360deg); }

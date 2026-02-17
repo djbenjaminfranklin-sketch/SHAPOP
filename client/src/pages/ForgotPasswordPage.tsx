@@ -128,6 +128,7 @@ export default function ForgotPasswordPage() {
             </label>
             <input
               type="email"
+              inputMode="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder={tx('Entrez votre adresse e-mail', 'Enter your email', 'הזן את האימייל שלך', 'Ingrese su correo', lang)}

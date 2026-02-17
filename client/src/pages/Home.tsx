@@ -66,6 +66,13 @@ const emptyStateText: Record<string, { title: string; subtitle: string }> = {
   es: { title: 'No hay directos ahora', subtitle: 'Vuelve pronto o empieza tu propio directo!' },
 }
 
+const retryText: Record<string, string> = {
+  fr: 'Reessayer',
+  en: 'Retry',
+  he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
+  es: 'Reintentar',
+}
+
 const welcomeContent = {
   fr: {
     tagline: 'Le shopping en live,\nreinvente.',
@@ -116,6 +123,7 @@ export default function Home() {
     return false
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [fetchError, setFetchError] = useState(false)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
   const { city, loading: locationLoading, setManualCity } = useLocation()
@@ -129,6 +137,7 @@ export default function Home() {
   }, [city, user, updateCity])
 
   const fetchStreams = useCallback(async () => {
+    setFetchError(false)
     try {
       let query = supabase
         .from('streams')
@@ -147,7 +156,8 @@ export default function Home() {
       setStreams(fresh)
       cacheSet('home_streams', fresh)
     } catch {
-      // Fetch failed silently — cached data still displayed
+      // Fetch failed — show retry if no cached data
+      if (streams.length === 0) setFetchError(true)
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -267,8 +277,8 @@ export default function Home() {
         minHeight: '100vh', backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', padding: '0 32px',
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ width: '60%', maxWidth: '260px', marginBottom: '40px', objectFit: 'contain' }} />
         <h1 style={{
@@ -312,7 +322,7 @@ export default function Home() {
       style={{ overflowX: 'hidden', maxWidth: '100vw' }}
     >
       {/* Top bar — logo + search + icons */}
-      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)', backgroundColor: '#000', position: 'sticky', top: 0, zIndex: 40 }}>
+      <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)', backgroundColor: '#000', position: 'sticky', top: 0, zIndex: 40 }}>
         {/* Logo + home icon + language flag */}
         <div style={{ padding: '0px 16px 0px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           <button
@@ -602,6 +612,28 @@ export default function Home() {
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-2 border-[#333] border-t-accent rounded-full animate-spin" />
+        </div>
+      ) : fetchError ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <button
+            onClick={() => fetchStreams()}
+            style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: '#E8344E', fontSize: '14px', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            {retryText[lang] || retryText.fr}
+          </button>
         </div>
       ) : displayStreams.length === 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>

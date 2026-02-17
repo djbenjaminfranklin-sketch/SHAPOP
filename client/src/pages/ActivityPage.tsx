@@ -724,23 +724,28 @@ export default function ActivityPage() {
     }}>
       <div style={{
         width: '80px', height: '80px', borderRadius: '50%',
-        background: 'linear-gradient(135deg, #E8344E 0%, #991B1B 100%)',
+        background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '36px', marginBottom: '20px',
+        marginBottom: '20px',
       }}>
-        !
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
+          <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
       </div>
       <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.error}</p>
       <p style={{ fontSize: '13px', color: '#666', maxWidth: '260px', marginBottom: '16px' }}>{errorMsg}</p>
       <button
         onClick={onRetry}
         style={{
-          padding: '10px 24px', borderRadius: '12px',
-          background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-          border: 'none', color: '#fff', fontSize: '14px',
-          fontWeight: 700, cursor: 'pointer',
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: '#E8344E', fontSize: '14px', fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
         }}
       >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
         {lt.retry}
       </button>
     </div>
@@ -1232,7 +1237,7 @@ export default function ActivityPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
-      <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         {/* Header */}
         <div style={{
           padding: '16px 20px 0px',
