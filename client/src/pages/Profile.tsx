@@ -112,8 +112,8 @@ export default function Profile() {
       const newUrl = urlData.publicUrl + '?t=' + Date.now()
       await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', user.id)
       setAvatarUrl(newUrl)
-    } catch {
-      // Avatar upload failed
+    } catch (err) {
+      console.error('Avatar upload failed:', err)
     }
     setUploading(false)
   }
@@ -641,11 +641,22 @@ export default function Profile() {
                 <p style={{ color: '#fff', fontSize: '15px', fontWeight: 600, margin: 0 }}>
                   {tx('Mes lives', 'My lives', 'השידורים שלי', 'Mis directos', lang)}
                 </p>
-                {streamsLoaded && myStreams.length > 0 && (
+                {!streamsLoaded ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
+                    <div style={{
+                      width: '12px', height: '12px',
+                      border: '2px solid #333', borderTopColor: '#F0908A',
+                      borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                    }} />
+                    <span style={{ color: '#666', fontSize: '12px' }}>
+                      {tx('Chargement...', 'Loading...', '...טוען', 'Cargando...', lang)}
+                    </span>
+                  </div>
+                ) : myStreams.length > 0 ? (
                   <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>
                     {myStreams.length} {tx('lives', 'lives', 'שידורים', 'directos', lang)}
                   </p>
-                )}
+                ) : null}
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M9 18l6-6-6-6"/>

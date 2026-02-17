@@ -135,7 +135,7 @@ export default function ItemDetailPage() {
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => { if (d) setIsFollowing(d.following) })
-      .catch(() => {})
+      .catch((err) => { console.error('fetchFollowStatus failed:', err) })
   }, [item, session, user])
 
   const toggleFollow = async () => {

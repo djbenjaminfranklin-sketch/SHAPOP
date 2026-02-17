@@ -420,6 +420,15 @@ export default function GoLivePage() {
   const touchStartY = useRef<number | null>(null)
   const isSwiping = useRef(false)
 
+  // Reset touch refs on unmount to prevent stale values when navigating back
+  useEffect(() => {
+    return () => {
+      touchStartX.current = null
+      touchStartY.current = null
+      isSwiping.current = false
+    }
+  }, [])
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY

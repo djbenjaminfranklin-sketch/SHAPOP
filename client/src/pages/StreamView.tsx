@@ -367,6 +367,11 @@ export default function StreamView() {
   const chatEndRef = useRef<HTMLDivElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const auctionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const isMountedRef = useRef(true)
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => { isMountedRef.current = false }
+  }, [])
 
   const [stream, setStream] = useState<Stream | null>(null)
   const [activeAuction, setActiveAuction] = useState<Item | null>(null)
@@ -499,7 +504,7 @@ export default function StreamView() {
     if (!showPaymentModal || addressStep || clientSecret || paymentError) return
 
     const timeout = setTimeout(() => {
-      if (!clientSecret) {
+      if (!clientSecret && isMountedRef.current) {
         setPaymentError(ct.paymentTimeout)
       }
     }, 10000)
@@ -631,13 +636,15 @@ export default function StreamView() {
   useEffect(() => {
     if (!isSeller || !isLive) return
     const interval = setInterval(() => {
+      if (!isMountedRef.current) return
       setEngageBtnPulse(true)
-      setTimeout(() => setEngageBtnPulse(false), 1200)
+      setTimeout(() => { if (isMountedRef.current) setEngageBtnPulse(false) }, 1200)
     }, 30000)
     // Initial pulse after 5s
     const initialTimeout = setTimeout(() => {
+      if (!isMountedRef.current) return
       setEngageBtnPulse(true)
-      setTimeout(() => setEngageBtnPulse(false), 1200)
+      setTimeout(() => { if (isMountedRef.current) setEngageBtnPulse(false) }, 1200)
     }, 5000)
     return () => {
       clearInterval(interval)
@@ -751,7 +758,7 @@ export default function StreamView() {
           winnerName = wp?.display_name || wp?.username || ''
         }
         setSoldAnimation({ winner: winnerName, price: item.current_price })
-        setTimeout(() => setSoldAnimation(null), 3000)
+        setTimeout(() => { if (isMountedRef.current) setSoldAnimation(null) }, 3000)
         // Show payment modal if current user is the winner
         if (userRef.current && item.winner_id === userRef.current.id) {
           setPaymentItem(item)

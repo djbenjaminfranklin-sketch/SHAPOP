@@ -155,7 +155,8 @@ export default function Home() {
       const fresh = (data as StreamWithSeller[]) || []
       setStreams(fresh)
       cacheSet('home_streams', fresh)
-    } catch {
+    } catch (err) {
+      console.error('fetchStreams failed:', err)
       // Fetch failed — show retry if no cached data
       if (streams.length === 0) setFetchError(true)
     } finally {
@@ -191,18 +192,19 @@ export default function Home() {
           const data = await res.json()
           setFavoriteIds(new Set(data.map((s: { id: string }) => s.id)))
         }
-      } catch { /* silent */ }
+      } catch (err) { console.error('fetchFavorites failed:', err) }
     }
     fetchFavorites()
   }, [user])
 
   const toggleFavorite = useCallback(async (streamId: string) => {
     if (!user) { navigate('/login'); return }
-    const isFav = favoriteIds.has(streamId)
-    // Optimistic update
+    let wasFav = false
+    // Optimistic update using functional state to avoid stale closure
     setFavoriteIds(prev => {
+      wasFav = prev.has(streamId)
       const next = new Set(prev)
-      if (isFav) next.delete(streamId)
+      if (wasFav) next.delete(streamId)
       else next.add(streamId)
       return next
     })
@@ -210,19 +212,20 @@ export default function Home() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
       await apiFetch(`/api/favorites/${streamId}`, {
-        method: isFav ? 'DELETE' : 'POST',
+        method: wasFav ? 'DELETE' : 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
-    } catch {
+    } catch (err) {
+      console.error('toggleFavorite failed:', err)
       // Revert on error
       setFavoriteIds(prev => {
         const next = new Set(prev)
-        if (isFav) next.add(streamId)
+        if (wasFav) next.add(streamId)
         else next.delete(streamId)
         return next
       })
     }
-  }, [user, favoriteIds, navigate])
+  }, [user, navigate])
 
   // Apply matching algorithm when "Pour toi" tab is active
   // Uses both explicit preferences AND behavioral tracking (what you actually watch)
@@ -338,6 +341,7 @@ export default function Home() {
           <div style={{ position: 'absolute', right: '16px' }}>
             <button
               onClick={() => setShowLangPicker(!showLangPicker)}
+              aria-label="Language"
               style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', padding: '4px' }}
             >
               {lang === 'fr' ? '🇫🇷' : lang === 'he' ? '🇮🇱' : lang === 'es' ? '🇪🇸' : '🇬🇧'}
@@ -373,6 +377,7 @@ export default function Home() {
         <div style={{ textAlign: 'center', paddingBottom: '4px' }}>
           <button
             onClick={() => setShowCityPicker(!showCityPicker)}
+            aria-label="City"
             style={{
               background: 'transparent',
               border: '1px solid #333',

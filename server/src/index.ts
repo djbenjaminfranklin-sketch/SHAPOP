@@ -755,7 +755,8 @@ async function livekitWebhookHandler(req: Request, res: Response) {
                   })
                   if (process.env.NODE_ENV !== 'production') console.log(`[room_finished] Order created for item ${item.id} — winner: ${winnerId}, amount: ${topBid.amount}`)
                   // Notify winner
-                  const { data: wonItem } = await supabase.from('items').select('title').eq('id', item.id).single()
+                  const { data: wonItem, error: wonItemError } = await supabase.from('items').select('title').eq('id', item.id).maybeSingle()
+                  if (wonItemError) console.error(`[room_finished] Failed to fetch item title for ${item.id}:`, wonItemError)
                   await notifyUser(winnerId, 'auction_won', 'Tu as gagné !', `${wonItem?.title || 'Article'} — ${topBid.amount}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
                 }
               } else {
@@ -1062,7 +1063,7 @@ app.post('/api/auth/send-otp', otpLimiter, async (req: Request, res: Response) =
       })
     } else {
       if (process.env.NODE_ENV !== 'production') {
-        if (process.env.NODE_ENV !== 'production') console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
+        console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
       }
     }
 
@@ -2292,7 +2293,7 @@ app.delete('/api/communities/:id/leave', requireAuth, async (req: AuthenticatedR
     }
 
     // Decrement member count (safe: won't go below 0)
-    try { await supabase.rpc('decrement_community_members', { community_id: communityId }) } catch { /* ignore */ }
+    try { await supabase.rpc('decrement_community_members', { community_id: communityId }) } catch (err) { if (process.env.NODE_ENV !== 'production') console.error('decrement_community_members failed:', err) }
 
     res.json({ success: true })
   } catch {
@@ -3638,7 +3639,7 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
           .from('paypal_payouts')
           .select('id')
           .eq('order_id', order_id)
-          .single()
+          .maybeSingle()
 
         if (!existingPayout) {
           await supabase.from('paypal_payouts').insert({
@@ -3658,8 +3659,7 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
         .from('conversations')
         .select('id')
         .eq('order_id', order_id)
-        .limit(1)
-        .single()
+        .maybeSingle()
 
       if (!existingConv) {
         await supabase.from('conversations').insert({
@@ -3675,7 +3675,7 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
         .from('seller_trust')
         .select('seller_id')
         .eq('seller_id', order.seller_id)
-        .single()
+        .maybeSingle()
       if (!existingTrust) {
         await supabase.from('seller_trust').insert({ seller_id: order.seller_id })
       }
@@ -3685,7 +3685,7 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
         .from('buyer_scores')
         .select('user_id')
         .eq('user_id', order.buyer_id)
-        .single()
+        .maybeSingle()
       if (!existingScore) {
         await supabase.from('buyer_scores').insert({ user_id: order.buyer_id })
       }
@@ -5254,7 +5254,7 @@ app.post('/api/chat/send', messageLimiter, requireAuth, async (req: Authenticate
 
     // Auto-sanction if flagged
     if (isFlagged) {
-      handleAutoSanction(req.user!.id, flagReason!).catch(() => {})
+      handleAutoSanction(req.user!.id, flagReason!).catch(err => { if (process.env.NODE_ENV !== 'production') console.error('handleAutoSanction failed:', err) })
     }
 
     res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
@@ -5318,8 +5318,7 @@ app.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authenticated
       .from('disputes')
       .select('id')
       .eq('order_id', order_id)
-      .limit(1)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       res.status(409).json({ error: 'Un litige existe déjà pour cette commande' })
@@ -5331,7 +5330,7 @@ app.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authenticated
       .from('buyer_scores')
       .select('score')
       .eq('user_id', buyerId)
-      .single()
+      .maybeSingle()
 
     const score = buyerScore?.score ?? 10
     const autoRefund = order.amount < 30 && score > 7
@@ -5626,6 +5625,15 @@ app.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authentica
 app.get('/api/sellers/:id/trust', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const sellerId = req.params.id
+
+    // Only the seller themselves or an admin can view trust data
+    const isOwner = req.user?.id === sellerId
+    const isAdmin = req.user?.email && ADMIN_EMAILS.includes(req.user.email)
+    if (!isOwner && !isAdmin) {
+      res.status(403).json({ error: 'Forbidden: you can only view your own trust data' })
+      return
+    }
+
     const { data: trust } = await supabase
       .from('seller_trust')
       .select('*')
@@ -5818,7 +5826,7 @@ app.post('/api/conversations/:id/messages', messageLimiter, requireAuth, async (
     // Validate attachment URLs - only allow Supabase storage URLs
     const validatedUrls = (attachment_urls || []).filter((url: string) => {
       if (typeof url !== 'string') return false
-      return url.startsWith(process.env.SUPABASE_URL + '/storage/') || url.startsWith('https://jscmqcjornseiclxvvqv.supabase.co/storage/')
+      return url.startsWith(supabaseUrl + '/storage/')
     })
 
     // Verify participant
@@ -5858,7 +5866,7 @@ app.post('/api/conversations/:id/messages', messageLimiter, requireAuth, async (
 
     // Auto-sanction if flagged
     if (isFlagged) {
-      handleAutoSanction(userId, flagReason!).catch(() => {})
+      handleAutoSanction(userId, flagReason!).catch(err => { if (process.env.NODE_ENV !== 'production') console.error('handleAutoSanction failed:', err) })
     }
 
     res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })

@@ -167,6 +167,7 @@ export default function ConversationPage() {
   const [newMessage, setNewMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -287,6 +288,13 @@ export default function ConversationPage() {
     }
   }, [id])
 
+  // Auto-dismiss send error after 3 seconds
+  useEffect(() => {
+    if (!sendError) return
+    const timer = setTimeout(() => setSendError(null), 3000)
+    return () => clearTimeout(timer)
+  }, [sendError])
+
   // Send message
   const handleSend = async (attachmentUrls?: string[]) => {
     if (!user || !id || !session) return
@@ -314,14 +322,14 @@ export default function ConversationPage() {
 
       const result = await res.json().catch(() => ({}))
       if (result.warning === 'contact_blocked') {
-        alert(ct.contactWarning)
+        setSendError(ct.contactWarning)
       }
 
       setNewMessage('')
       inputRef.current?.focus()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ct.unknownError
-      alert(message)
+      setSendError(message)
     } finally {
       setSending(false)
     }
@@ -350,7 +358,7 @@ export default function ConversationPage() {
       await handleSend([urlData.publicUrl])
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ct.uploadError
-      alert(message)
+      setSendError(message)
     } finally {
       setUploading(false)
       // Reset input
@@ -675,6 +683,20 @@ export default function ConversationPage() {
 
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Inline send error */}
+      {sendError && (
+        <div style={{
+          flexShrink: 0,
+          padding: '8px 16px',
+          backgroundColor: 'rgba(239,68,68,0.1)',
+          borderTop: '1px solid rgba(239,68,68,0.25)',
+        }}>
+          <p style={{ fontSize: '13px', color: '#EF4444', margin: 0, textAlign: 'center' }}>
+            {sendError}
+          </p>
+        </div>
+      )}
 
       {/* Input bar - fixed at bottom */}
       <div style={{
