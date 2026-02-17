@@ -64,31 +64,48 @@ export default function ShippingLabel({
   const ct = pageContent[lang] || pageContent.fr
 
   const handlePrint = async () => {
-    // window.print() works on both web and iOS Capacitor (WKWebView opens AirPrint dialog)
-    try {
-      window.print()
-    } catch {
-      // Fallback: share as text if print fails
-      if (navigator.share) {
-        const text = [
-          `SHAPOP - ${ct.order}: ${orderRef}`,
-          '',
-          `${ct.sender}:`,
-          sellerName,
-          sellerAddress,
-          '',
-          `${ct.recipient}:`,
-          buyerName,
-          buyerAddress,
-          buyerPhone ? `Tel: ${buyerPhone}` : '',
-          '',
-          `${ct.lot}: ${lotRef}`,
-        ].filter(Boolean).join('\n')
+    const isCapacitor = !!(window as unknown as Record<string, unknown>).Capacitor
 
+    const shareAsText = async () => {
+      const text = [
+        `SHAPOP - ${ct.order}: ${orderRef}`,
+        '',
+        `${ct.sender}:`,
+        sellerName,
+        sellerAddress,
+        '',
+        `${ct.recipient}:`,
+        buyerName,
+        buyerAddress,
+        buyerPhone ? `Tel: ${buyerPhone}` : '',
+        '',
+        `${ct.lot}: ${lotRef}`,
+      ].filter(Boolean).join('\n')
+
+      if (navigator.share) {
         try {
           await navigator.share({ title: `ShaPop - ${ct.order} ${orderRef}`, text })
         } catch { /* user cancelled */ }
+      } else {
+        // Copy to clipboard as last resort
+        try {
+          await navigator.clipboard.writeText(text)
+          alert(lang === 'fr' ? 'Étiquette copiée !' : lang === 'he' ? 'התווית הועתקה!' : lang === 'es' ? '¡Etiqueta copiada!' : 'Label copied!')
+        } catch { /* ignore */ }
       }
+    }
+
+    // On iOS Capacitor, window.print() silently fails — use share instead
+    if (isCapacitor) {
+      await shareAsText()
+      return
+    }
+
+    // Desktop/web: use native print
+    try {
+      window.print()
+    } catch {
+      await shareAsText()
     }
   }
 
