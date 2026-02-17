@@ -805,33 +805,54 @@ export default function StreamView() {
   }
 
   const handleConfirmAddress = async () => {
-    if (!user || !paymentOrder) return
+    if (!user) return
+    // Always move to payment step — save address in background
+    setAddressStep(false)
+
+    // Try API server first, then direct Supabase fallback
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) {
-        alert('Authentication error. Please log in again.')
-        return
+
+      if (paymentOrder && token) {
+        const resp = await apiFetch(`/api/orders/${paymentOrder.id}/address`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(addressForm),
+        })
+        if (resp.ok) return // success
+        console.warn('API address save failed, trying direct Supabase')
       }
 
-      const resp = await apiFetch(`/api/orders/${paymentOrder.id}/address`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(addressForm),
-      })
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}))
-        throw new Error(err.error || 'Failed to save address')
+      // Fallback: save directly via Supabase
+      const addr = { ...addressForm }
+      const { data: existing } = await supabase
+        .from('addresses')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .single()
+
+      if (existing) {
+        await supabase.from('addresses').update({
+          name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone,
+        }).eq('id', existing.id)
+      } else {
+        await supabase.from('addresses').insert({
+          user_id: user.id, name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, is_default: true,
+        })
       }
 
-      // Move to payment step
-      setAddressStep(false)
+      if (paymentOrder) {
+        await supabase.from('orders').update({
+          shipping_address: { name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone },
+        }).eq('id', paymentOrder.id)
+      }
     } catch (err) {
-      console.error('Failed to save address:', err)
-      alert('Failed to save address. Please try again.')
+      console.error('Address save error (non-blocking):', err)
     }
   }
 

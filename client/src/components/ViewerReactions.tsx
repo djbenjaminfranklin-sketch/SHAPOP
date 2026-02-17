@@ -94,6 +94,7 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
         {REACTION_EMOJIS.map(({ emoji, label }) => (
           <button
             key={label}
+            onTouchEnd={(e) => { e.preventDefault(); handleReaction(emoji) }}
             onClick={() => handleReaction(emoji)}
             aria-label={label}
             style={{
@@ -107,9 +108,13 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'none',
+              transition: 'transform 0.1s',
+              WebkitTapHighlightColor: 'transparent',
+              touchAction: 'manipulation',
+              WebkitUserSelect: 'none',
+              userSelect: 'none',
             }}
-            onPointerDown={e => {
+            onTouchStart={e => {
               const el = e.currentTarget
               el.style.transform = 'scale(1.3)'
               el.style.backgroundColor = 'rgba(240,144,138,0.2)'
