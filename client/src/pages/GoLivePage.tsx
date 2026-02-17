@@ -289,13 +289,6 @@ export default function GoLivePage() {
     }
   }, [profile, navigate])
 
-  // Clean up blob URL on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview)
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
   const [showTips, setShowTips] = useState(() => {
     // Only show tips the first time
     const seen = localStorage.getItem('shapop_live_tips_seen')
@@ -310,7 +303,20 @@ export default function GoLivePage() {
   const [error, setError] = useState('')
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const thumbnailPreviewRef = useRef<string | null>(null)
   const thumbnailInputRef = useRef<HTMLInputElement>(null)
+
+  // Keep ref in sync for unmount cleanup
+  useEffect(() => {
+    thumbnailPreviewRef.current = thumbnailPreview
+  }, [thumbnailPreview])
+
+  // Clean up blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreviewRef.current) URL.revokeObjectURL(thumbnailPreviewRef.current)
+    }
+  }, [])
 
   // My lives
   interface MyStream {
@@ -323,29 +329,35 @@ export default function GoLivePage() {
     item_count?: number
   }
   const [myStreams, setMyStreams] = useState<MyStream[]>([])
+  const [streamsLoading, setStreamsLoading] = useState(true)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (!user) return
     const fetchMyStreams = async () => {
-      const { data } = await supabase
-        .from('streams')
-        .select('id, title, category, status, created_at, scheduled_at')
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
-      if (data) {
-        // Fetch item counts for each stream
-        const streamsWithCounts = await Promise.all(
-          data.map(async (s) => {
-            const { count } = await supabase
-              .from('items')
-              .select('*', { count: 'exact', head: true })
-              .eq('stream_id', s.id)
-            return { ...s, item_count: count || 0 } as MyStream
-          })
-        )
-        setMyStreams(streamsWithCounts)
+      setStreamsLoading(true)
+      try {
+        const { data } = await supabase
+          .from('streams')
+          .select('id, title, category, status, created_at, scheduled_at')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false })
+        if (data) {
+          // Fetch item counts for each stream
+          const streamsWithCounts = await Promise.all(
+            data.map(async (s) => {
+              const { count } = await supabase
+                .from('items')
+                .select('*', { count: 'exact', head: true })
+                .eq('stream_id', s.id)
+              return { ...s, item_count: count || 0 } as MyStream
+            })
+          )
+          setMyStreams(streamsWithCounts)
+        }
+      } finally {
+        setStreamsLoading(false)
       }
     }
     fetchMyStreams()
@@ -559,6 +571,7 @@ export default function GoLivePage() {
         }}>
           <button
             onClick={() => navigate(-1)}
+            aria-label="Back"
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -692,6 +705,7 @@ export default function GoLivePage() {
       }}>
         <button
           onClick={() => navigate(-1)}
+          aria-label="Back"
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -938,7 +952,15 @@ export default function GoLivePage() {
               )}
             </div>
 
-            {myStreams.length === 0 ? (
+            {streamsLoading ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+                <div style={{
+                  width: '32px', height: '32px', border: '3px solid #333',
+                  borderTopColor: '#F0908A', borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                }} />
+              </div>
+            ) : myStreams.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
                 <p style={{ fontSize: '14px', color: '#666' }}>{ct.noLives}</p>
               </div>

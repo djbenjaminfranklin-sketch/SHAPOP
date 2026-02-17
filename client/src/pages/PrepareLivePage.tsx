@@ -10,7 +10,9 @@ import type { Item, Stream } from '../types/database'
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
     img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
       let { width, height } = img
       if (width > maxSize || height > maxSize) {
         const ratio = Math.min(maxSize / width, maxSize / height)
@@ -29,8 +31,11 @@ function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> 
         quality,
       )
     }
-    img.onerror = () => reject(new Error('Failed to load image'))
-    img.src = URL.createObjectURL(file)
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new Error('Failed to load image'))
+    }
+    img.src = objectUrl
   })
 }
 
@@ -275,6 +280,13 @@ export default function PrepareLivePage() {
     }
   }, [user, navigate])
 
+  // Clean up blob URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (formImage) URL.revokeObjectURL(formImage)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!user) {
     return null
   }
@@ -282,6 +294,8 @@ export default function PrepareLivePage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    // Revoke old preview URL to prevent memory leak
+    if (formImage) URL.revokeObjectURL(formImage)
     setFormImageFile(file)
     setFormImage(URL.createObjectURL(file))
   }
@@ -527,6 +541,7 @@ export default function PrepareLivePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => navigate(-1)}
+            aria-label="Back"
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
             }}
@@ -593,7 +608,7 @@ export default function PrepareLivePage() {
                 }}>
                   {ct.saveDate}
                 </button>
-                <button onClick={() => setEditingDate(false)} style={{
+                <button onClick={() => setEditingDate(false)} aria-label="Cancel date edit" style={{
                   padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
                   color: '#888', fontSize: '13px', cursor: 'pointer',
                 }}>
@@ -715,6 +730,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
+                aria-label="Move up"
                 style={{
                   width: '28px', height: '28px', borderRadius: '6px',
                   backgroundColor: index === 0 ? '#1A1A1A' : '#222',
@@ -730,6 +746,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => handleMoveDown(index)}
                 disabled={index === items.length - 1}
+                aria-label="Move down"
                 style={{
                   width: '28px', height: '28px', borderRadius: '6px',
                   backgroundColor: index === items.length - 1 ? '#1A1A1A' : '#222',
@@ -747,6 +764,7 @@ export default function PrepareLivePage() {
             {/* Delete */}
             <button
               onClick={() => handleDeleteItem(index)}
+              aria-label="Delete item"
               style={{
                 width: '28px', height: '28px', borderRadius: '6px',
                 backgroundColor: 'rgba(232,52,78,0.15)',
@@ -957,6 +975,7 @@ export default function PrepareLivePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
                     onClick={() => setFormQuantity(q => Math.max(1, q - 1))}
+                    aria-label="Decrease quantity"
                     style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       backgroundColor: formQuantity <= 1 ? '#1A1A1A' : '#222',
@@ -977,6 +996,7 @@ export default function PrepareLivePage() {
                   </span>
                   <button
                     onClick={() => setFormQuantity(q => Math.min(99, q + 1))}
+                    aria-label="Increase quantity"
                     style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       backgroundColor: '#222',

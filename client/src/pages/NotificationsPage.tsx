@@ -61,6 +61,7 @@ const content = {
     noNotifs: 'Aucune notification',
     feedTitle: 'Recentes',
     prefsTitle: 'Preferences',
+    clearAll: 'Tout effacer',
     items: [
       { id: 'live' as NotifKey, label: 'Vendeurs en direct', desc: 'Sois notifie quand un vendeur que tu suis lance un live' },
       { id: 'orders' as NotifKey, label: 'Suivi de commandes', desc: 'Expedition, livraison et retours' },
@@ -81,6 +82,7 @@ const content = {
     noNotifs: 'No notifications',
     feedTitle: 'Recent',
     prefsTitle: 'Preferences',
+    clearAll: 'Clear all',
     items: [
       { id: 'live' as NotifKey, label: 'Sellers go live', desc: 'Get notified when sellers you follow start a stream' },
       { id: 'orders' as NotifKey, label: 'Order updates', desc: 'Shipping, delivery, and return notifications' },
@@ -101,6 +103,7 @@ const content = {
     noNotifs: '\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA',
     feedTitle: '\u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA',
     prefsTitle: '\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA',
+    clearAll: '\u05E0\u05E7\u05D4 \u05D4\u05DB\u05DC',
     items: [
       { id: 'live' as NotifKey, label: '\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8', desc: '\u05E7\u05D1\u05DC\u05D5 \u05D4\u05EA\u05E8\u05D0\u05D4 \u05DB\u05E9\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E9\u05D0\u05EA\u05DD \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD \u05E9\u05D9\u05D3\u05D5\u05E8' },
       { id: 'orders' as NotifKey, label: '\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9 \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA', desc: '\u05DE\u05E9\u05DC\u05D5\u05D7, \u05DE\u05E1\u05D9\u05E8\u05D4 \u05D5\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA' },
@@ -121,6 +124,7 @@ const content = {
     noNotifs: 'Sin notificaciones',
     feedTitle: 'Recientes',
     prefsTitle: 'Preferencias',
+    clearAll: 'Borrar todo',
     items: [
       { id: 'live' as NotifKey, label: 'Vendedores en vivo', desc: 'Aviso cuando vendedores que sigues inician una transmision' },
       { id: 'orders' as NotifKey, label: 'Actualizaciones de pedidos', desc: 'Envio, entrega y devoluciones' },
@@ -253,7 +257,7 @@ export default function NotificationsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -273,7 +277,7 @@ export default function NotificationsPage() {
               }}
               style={{ background: 'none', border: 'none', fontSize: '12px', color: '#666', cursor: 'pointer', padding: 0 }}
             >
-              {lang === 'en' ? 'Clear all' : lang === 'he' ? 'נקה הכל' : lang === 'es' ? 'Borrar todo' : 'Tout effacer'}
+              {c.clearAll}
             </button>
           )}
         </div>

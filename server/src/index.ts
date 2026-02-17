@@ -366,6 +366,20 @@ if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
 // =============================================
 // Webhook handlers (defined early, registered before express.json)
 // =============================================
+
+// Idempotency: track processed Stripe event IDs to avoid double-processing
+const processedStripeEvents = new Set<string>()
+const MAX_PROCESSED_EVENTS = 1000
+setInterval(() => {
+  if (processedStripeEvents.size > MAX_PROCESSED_EVENTS) {
+    const toDelete = processedStripeEvents.size - MAX_PROCESSED_EVENTS
+    const iter = processedStripeEvents.values()
+    for (let i = 0; i < toDelete; i++) {
+      processedStripeEvents.delete(iter.next().value as string)
+    }
+  }
+}, 60 * 1000)
+
 async function stripeWebhookHandler(req: Request, res: Response) {
   try {
     let event: Stripe.Event
@@ -387,6 +401,12 @@ async function stripeWebhookHandler(req: Request, res: Response) {
     } catch (err: any) {
       console.error('[Stripe Webhook] Signature verification failed:', err.message)
       res.status(400).json({ error: 'Invalid signature' })
+      return
+    }
+
+    // Idempotency: skip already-processed events
+    if (processedStripeEvents.has(event.id)) {
+      res.json({ received: true, duplicate: true })
       return
     }
 
@@ -590,6 +610,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
       }
     }
 
+    processedStripeEvents.add(event.id)
     res.json({ received: true })
   } catch (err) {
     console.error('Stripe webhook error:', err)
@@ -849,10 +870,17 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }))
 
+// Webhook-specific rate limiter
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Too many webhook requests' },
+})
+
 // Webhooks need raw body for signature verification — MUST be before express.json()
-app.post('/api/webhooks/stripe', express.raw({ type: 'application/json' }), stripeWebhookHandler as express.RequestHandler)
-app.post('/api/webhooks/mux', express.raw({ type: 'application/json' }), muxWebhookHandler as express.RequestHandler)
-app.post('/api/webhooks/livekit', express.raw({ type: 'application/json' }), livekitWebhookHandler as express.RequestHandler)
+app.post('/api/webhooks/stripe', webhookLimiter, express.raw({ type: 'application/json' }), stripeWebhookHandler as express.RequestHandler)
+app.post('/api/webhooks/mux', webhookLimiter, express.raw({ type: 'application/json' }), muxWebhookHandler as express.RequestHandler)
+app.post('/api/webhooks/livekit', webhookLimiter, express.raw({ type: 'application/json' }), livekitWebhookHandler as express.RequestHandler)
 
 app.use(express.json({ limit: '10mb' }))
 
@@ -1081,7 +1109,9 @@ app.post('/api/auth/send-otp', otpLimiter, async (req: Request, res: Response) =
         body,
       })
     } else {
-      console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
+      }
     }
 
     res.json({ sent: true })
@@ -1741,11 +1771,24 @@ app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Resp
       return
     }
 
-    // Check for existing order (idempotency)
+    // Authorization: only the winner can create the order
+    if (item.winner_id && item.winner_id !== userId) {
+      res.status(403).json({ error: 'You are not the winner of this auction' })
+      return
+    }
+
+    // Prevent buying your own item
+    if (item.seller_id === userId) {
+      res.status(400).json({ error: 'Cannot buy your own item' })
+      return
+    }
+
+    // Check for existing active order (idempotency + race condition prevention)
     const { data: existingOrder } = await supabase
       .from('orders')
       .select('*')
       .eq('item_id', item_id)
+      .not('status', 'in', '("refunded","cancelled")')
       .maybeSingle()
 
     if (existingOrder) {
@@ -4449,8 +4492,8 @@ app.post('/api/orders/:id/approve-return', requireAuth, async (req: Authenticate
       return
     }
 
-    // Process Stripe refund
-    if (order.stripe_payment_intent_id) {
+    // Process Stripe refund (skip if already refunded)
+    if (order.stripe_payment_intent_id && order.status !== 'refunded') {
       try {
         await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
         console.log(`[refund] Return refund processed for order ${orderId}, PI: ${order.stripe_payment_intent_id}`)
@@ -5434,8 +5477,8 @@ app.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authenticated
       return
     }
 
-    // Process actual Stripe refund if auto-refund
-    if (autoRefund && order.stripe_payment_intent_id) {
+    // Process actual Stripe refund if auto-refund (skip if already refunded)
+    if (autoRefund && order.stripe_payment_intent_id && order.status !== 'refunded') {
       try {
         await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
         console.log(`[refund] Auto-refund processed for order ${order_id}, PI: ${order.stripe_payment_intent_id}`)
@@ -5606,15 +5649,15 @@ app.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authentica
 
     // Update order
     if (resolution === 'buyer') {
-      // Fetch order to get Stripe payment intent ID
+      // Fetch order to get Stripe payment intent ID and status
       const { data: order } = await supabase
         .from('orders')
-        .select('stripe_payment_intent_id')
+        .select('stripe_payment_intent_id, status')
         .eq('id', dispute.order_id)
         .single()
 
-      // Process actual Stripe refund
-      if (order?.stripe_payment_intent_id) {
+      // Process actual Stripe refund (skip if already refunded)
+      if (order?.stripe_payment_intent_id && order.status !== 'refunded') {
         try {
           await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
           console.log(`[refund] Admin refund processed for order ${dispute.order_id}, PI: ${order.stripe_payment_intent_id}`)
@@ -6431,14 +6474,14 @@ app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRe
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
     const { data: noAddressOrders } = await supabase
       .from('orders')
-      .select('id, buyer_id, stripe_payment_intent_id')
+      .select('id, buyer_id, stripe_payment_intent_id, status')
       .eq('status', 'paid')
       .is('shipping_address', null)
       .lt('paid_at', threeDaysAgo)
 
     for (const order of (noAddressOrders || [])) {
-      // Refund the buyer since they paid but never provided address
-      if (order.stripe_payment_intent_id) {
+      // Refund the buyer since they paid but never provided address (skip if already refunded)
+      if (order.stripe_payment_intent_id && order.status !== 'refunded') {
         try { await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id }) } catch { /* ignore */ }
       }
       await supabase.from('orders').update({ status: 'refunded', payout_status: 'cancelled' }).eq('id', order.id)

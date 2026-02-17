@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import StreamCard from '../components/StreamCard'
@@ -226,8 +226,7 @@ export default function Home() {
 
   // Apply matching algorithm when "Pour toi" tab is active
   // Uses both explicit preferences AND behavioral tracking (what you actually watch)
-  const getDisplayStreams = (): StreamWithSeller[] => {
-    const allStreams = streams
+  const filteredStreams = useMemo((): StreamWithSeller[] => {
     if (selectedCategory === 'for_you') {
       const prefs = loadPreferences()
       const behavior = getBehaviorData()
@@ -236,29 +235,30 @@ export default function Home() {
 
       if (hasExplicitPrefs || hasBehaviorData) {
         const defaultPrefs = prefs || { favorite_categories: [], preferred_cities: [], price_range_min: 0, price_range_max: 10000, favorite_sellers: [] }
-        return sortStreamsByMatch(allStreams, defaultPrefs)
+        return sortStreamsByMatch(streams, defaultPrefs)
       }
-      return allStreams
+      return streams
     }
-    if (selectedCategory === 'following') return allStreams
+    if (selectedCategory === 'following') return streams
     // Filter by category label
     const expectedLabel = catIdToLabel[selectedCategory]
     if (expectedLabel) {
-      const filtered = allStreams.filter(s => s.category === expectedLabel)
+      const filtered = streams.filter(s => s.category === expectedLabel)
       if (filtered.length > 0) return filtered
     }
-    return allStreams
-  }
-  const allStreams = getDisplayStreams()
-  const displayStreams = searchQuery.trim()
-    ? allStreams.filter(s => {
-        const q = searchQuery.toLowerCase()
-        return s.title.toLowerCase().includes(q)
-          || s.category.toLowerCase().includes(q)
-          || (s.seller?.store_name || s.seller?.display_name || '').toLowerCase().includes(q)
-          || (s.city || '').toLowerCase().includes(q)
-      })
-    : allStreams
+    return streams
+  }, [streams, selectedCategory])
+
+  const displayStreams = useMemo(() => {
+    if (!searchQuery.trim()) return filteredStreams
+    const q = searchQuery.toLowerCase()
+    return filteredStreams.filter(s =>
+      s.title.toLowerCase().includes(q)
+      || s.category.toLowerCase().includes(q)
+      || (s.seller?.store_name || s.seller?.display_name || '').toLowerCase().includes(q)
+      || (s.city || '').toLowerCase().includes(q)
+    )
+  }, [filteredStreams, searchQuery])
 
   const handleCitySelect = (selectedCity: string) => {
     setManualCity(selectedCity)
@@ -327,6 +327,7 @@ export default function Home() {
         <div style={{ padding: '0px 16px 0px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
           <button
             onClick={() => { setSelectedCategory('for_you'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+            aria-label="Home"
             style={{ position: 'absolute', left: '16px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1.5">
@@ -477,13 +478,13 @@ export default function Home() {
             />
           </div>
           {/* Chat icon */}
-          <button onClick={() => navigate('/activity', { state: { tab: 'messages' } })} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/activity', { state: { tab: 'messages' } })} aria-label="Messages" style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer' }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           {/* Notifications */}
-          <button onClick={() => navigate('/notifications')} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/notifications')} aria-label="Notifications" style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer' }}>
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>

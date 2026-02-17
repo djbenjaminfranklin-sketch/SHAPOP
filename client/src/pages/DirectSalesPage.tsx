@@ -58,9 +58,17 @@ const content = {
   },
 } as Record<string, { title: string; subtitle: string; searchPlaceholder: string; emptyTitle: string; emptySubtitle: string; noResults: string; noResultsSub: string }>
 
+const retryTranslations: Record<string, string> = {
+  fr: 'Reessayer',
+  en: 'Retry',
+  he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
+  es: 'Reintentar',
+}
+
 export default function DirectSalesPage() {
   const [items, setItems] = useState<ItemWithSeller[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState('for_you')
   const [searchQuery, setSearchQuery] = useState('')
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
@@ -115,6 +123,7 @@ export default function DirectSalesPage() {
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
+    setFetchError(false)
     try {
       const cat = categories.find(c => c.id === selectedCategory)
       const categoryLabel = cat && cat.id !== 'for_you' && cat.id !== 'following' ? catIdToLabel[cat.id] : null
@@ -123,7 +132,7 @@ export default function DirectSalesPage() {
       const data = await res.json()
       setItems(data || [])
     } catch {
-      // silent
+      setFetchError(true)
     } finally {
       setLoading(false)
     }
@@ -152,7 +161,7 @@ export default function DirectSalesPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
         padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+        <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -190,7 +199,7 @@ export default function DirectSalesPage() {
             }}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            <button onClick={() => setSearchQuery('')} aria-label="Clear search" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
@@ -213,6 +222,33 @@ export default function DirectSalesPage() {
             animation: 'spin 0.8s linear infinite',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      ) : fetchError ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
+          <div style={{
+            width: '80px', height: '80px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <button
+            onClick={() => fetchItems()}
+            aria-label={retryTranslations[lang] || retryTranslations.fr}
+            style={{
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: '#E8344E', fontSize: '14px', fontWeight: 600,
+              display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+            </svg>
+            {retryTranslations[lang] || retryTranslations.fr}
+          </button>
         </div>
       ) : displayItems.length === 0 && items.length > 0 ? (
         // Search returned no matches but items exist

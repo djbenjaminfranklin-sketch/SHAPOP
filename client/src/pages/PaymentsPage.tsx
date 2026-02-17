@@ -38,6 +38,7 @@ const content = {
     feesTitle: 'Vos frais',
     feesDesc: 'Commission 8% + Stripe 2,9% + 0,30\u20AC + TVA 20%',
     feesExample: 'Exemple : vente de 50\u20AC \u2192 vous recevez 43,10\u20AC',
+    close: 'Fermer',
     pending: 'En attente',
     notSellerMsg: 'Devenez vendeur pour connecter Stripe et recevoir des paiements.',
     savedLocally: 'Sauvegarde sur cet appareil',
@@ -98,6 +99,7 @@ const content = {
     feesTitle: 'Your fees',
     feesDesc: 'Commission 8% + Stripe 2.9% + \u20AC0.30 + VAT 20%',
     feesExample: 'Example: \u20AC50 sale \u2192 you receive \u20AC43.10',
+    close: 'Close',
     pending: 'Pending',
     notSellerMsg: 'Become a seller to connect Stripe and receive payments.',
     savedLocally: 'Saved on this device',
@@ -158,6 +160,7 @@ const content = {
     feesTitle: '\u05D4\u05E2\u05DE\u05DC\u05D5\u05EA \u05E9\u05DC\u05DA',
     feesDesc: '\u05E2\u05DE\u05DC\u05D4 8% + Stripe 2.9% + 0.30\u20AC + \u05DE\u05E2"\u05DE 20%',
     feesExample: '\u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DB\u05D9\u05E8\u05D4 50\u20AC \u2192 \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC',
+    close: '\u05E1\u05D2\u05D5\u05E8',
     pending: '\u05D1\u05D4\u05DE\u05EA\u05E0\u05D4',
     notSellerMsg: '\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 Stripe \u05D5\u05DC\u05E7\u05D1\u05DC \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
     savedLocally: '\u05E0\u05E9\u05DE\u05E8 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D6\u05D4',
@@ -218,6 +221,7 @@ const content = {
     feesTitle: 'Tus comisiones',
     feesDesc: 'Comision 8% + Stripe 2,9% + 0,30\u20AC + IVA 20%',
     feesExample: 'Ejemplo: venta de 50\u20AC \u2192 recibes 43,10\u20AC',
+    close: 'Cerrar',
     pending: 'Pendiente',
     notSellerMsg: 'Conviertete en vendedor para conectar Stripe y recibir pagos.',
     savedLocally: 'Guardado en este dispositivo',
@@ -677,7 +681,7 @@ export default function PaymentsPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -1018,7 +1022,7 @@ export default function PaymentsPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    {lang === 'fr' ? 'Fermer' : lang === 'es' ? 'Cerrar' : lang === 'he' ? '\u05E1\u05D2\u05D5\u05E8' : 'Close'}
+                    {c.close}
                   </button>
                 </>
               )}
