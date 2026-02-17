@@ -1083,266 +1083,269 @@ export default function LiveSellerView() {
           </button>
         </div>
 
-        {/* Item info row */}
-        {currentItem && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '8px',
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            backdropFilter: 'blur(12px)',
-            borderRadius: '14px',
-            padding: '10px 12px',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}>
+        {/* Item + controls panel with solid background */}
+        <div style={{
+          backgroundColor: 'rgba(0,0,0,0.88)',
+          backdropFilter: 'blur(16px)',
+          borderRadius: '14px',
+          padding: '8px',
+          display: 'flex', flexDirection: 'column', gap: '6px',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          {/* Item info row */}
+          {currentItem && (
             <div style={{
-              width: '40px', height: '40px', borderRadius: '10px',
-              backgroundColor: '#1A1A1A',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0, overflow: 'hidden',
+              display: 'flex', alignItems: 'center', gap: '8px',
+              padding: '4px',
             }}>
-              {currentItem.image_urls?.[0] ? (
-                <img src={currentItem.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <span style={{ fontSize: '10px', fontWeight: 800, color: '#F0908A' }}>
-                  {formatLot(currentIndex + 1)}
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '8px',
+                backgroundColor: '#1A1A1A',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, overflow: 'hidden',
+              }}>
+                {currentItem.image_urls?.[0] ? (
+                  <img src={currentItem.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: '9px', fontWeight: 800, color: '#F0908A' }}>
+                    {formatLot(currentIndex + 1)}
+                  </span>
+                )}
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ fontSize: '9px', fontWeight: 700, color: '#F0908A' }}>
+                  {ct.lot} {formatLot(currentIndex + 1)}
                 </span>
-              )}
-            </div>
-
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#F0908A' }}>
-                {ct.lot} {formatLot(currentIndex + 1)}
-              </span>
-              <p style={{
-                fontSize: '14px', fontWeight: 600, color: '#fff', margin: '2px 0 0',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
-                {currentItem.title}
-              </p>
-            </div>
-
-            {/* Timer */}
-            {currentItem.status === 'active' && timeLeft > 0 ? (
-              <div style={{
-                flexShrink: 0,
-                backgroundColor: timeLeft <= 10 ? 'rgba(232,52,78,0.4)' : 'rgba(240,144,138,0.25)',
-                border: timeLeft <= 10 ? '2px solid #E8344E' : '2px solid #F0908A',
-                borderRadius: '12px',
-                padding: '6px 12px',
-                textAlign: 'center',
-                animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
-              }}>
-                <div style={{
-                  fontSize: '22px', fontWeight: 900,
-                  color: '#fff',
-                  fontVariantNumeric: 'tabular-nums',
-                  lineHeight: 1,
-                  textShadow: '0 1px 4px rgba(0,0,0,0.5)',
+                <p style={{
+                  fontSize: '12px', fontWeight: 600, color: '#fff', margin: '1px 0 0',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
-                  {timeLeft}
-                </div>
-                <div style={{ fontSize: '9px', color: timeLeft <= 10 ? '#ff8888' : '#ccc', fontWeight: 700 }}>
-                  {ct.seconds}
-                </div>
+                  {currentItem.title}
+                </p>
               </div>
-            ) : currentItem.status === 'draft' ? (
+
+              {/* Timer */}
+              {currentItem.status === 'active' && timeLeft > 0 ? (
+                <div style={{
+                  flexShrink: 0,
+                  backgroundColor: timeLeft <= 10 ? 'rgba(232,52,78,0.4)' : 'rgba(240,144,138,0.25)',
+                  border: timeLeft <= 10 ? '2px solid #E8344E' : '1px solid #F0908A',
+                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  textAlign: 'center',
+                  animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
+                }}>
+                  <div style={{
+                    fontSize: '18px', fontWeight: 900,
+                    color: '#fff',
+                    fontVariantNumeric: 'tabular-nums',
+                    lineHeight: 1,
+                  }}>
+                    {timeLeft}
+                  </div>
+                  <div style={{ fontSize: '8px', color: timeLeft <= 10 ? '#ff8888' : '#ccc', fontWeight: 700 }}>
+                    {ct.seconds}
+                  </div>
+                </div>
+              ) : currentItem.status === 'draft' ? (
+                <div style={{
+                  flexShrink: 0,
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: '10px',
+                  padding: '4px 10px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                    {currentItem.duration_seconds || 60}
+                  </div>
+                  <div style={{ fontSize: '8px', color: '#aaa', fontWeight: 600 }}>
+                    {ct.seconds}
+                  </div>
+                </div>
+              ) : null}
+
+              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                <p style={{
+                  fontSize: '16px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
+                }}>
+                  {currentItem.current_price} <span style={{ color: '#F0908A' }}>€</span>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ACTION BUTTONS — compact row */}
+          {currentItem?.status === 'draft' && (
+            <button
+              onClick={handleActivateItem}
+              style={{
+                width: '100%', padding: '10px',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                borderRadius: '10px', border: 'none',
+                color: '#fff', fontSize: '14px', fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              ▶ {ct.startAuction}
+            </button>
+          )}
+
+          {currentItem?.status === 'active' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{
-                flexShrink: 0,
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: '12px',
-                padding: '6px 12px',
+                flex: 1, padding: '6px 10px', borderRadius: '8px',
+                backgroundColor: 'rgba(240,144,138,0.1)',
+                border: '1px solid rgba(240,144,138,0.15)',
                 textAlign: 'center',
               }}>
-                <div style={{ fontSize: '20px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
-                  {currentItem.duration_seconds || 60}
-                </div>
-                <div style={{ fontSize: '9px', color: '#aaa', fontWeight: 600 }}>
-                  {ct.seconds}
-                </div>
+                <span style={{ fontSize: '11px', color: '#F0908A', fontWeight: 600 }}>
+                  {timeLeft > 0
+                    ? (lang === 'fr' ? 'Enchère en cours' : lang === 'es' ? 'Subasta en curso' : lang === 'he' ? 'מכירה בעיצומה' : 'Auction live')
+                    : (lang === 'fr' ? 'Résolution...' : lang === 'es' ? 'Resolviendo...' : lang === 'he' ? '...פותר' : 'Resolving...')}
+                </span>
+                {currentItem.min_price != null && currentItem.min_price > 0 && (
+                  <span style={{ fontSize: '9px', color: '#666', marginLeft: '6px' }}>
+                    min: {currentItem.min_price}€
+                  </span>
+                )}
               </div>
-            ) : null}
-
-            <div style={{ flexShrink: 0, textAlign: 'right' }}>
-              <p style={{
-                fontSize: '18px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
-                textShadow: '0 1px 4px rgba(0,0,0,0.5)',
-              }}>
-                {currentItem.current_price} <span style={{ color: '#F0908A' }}>€</span>
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ACTION BUTTON */}
-        {currentItem?.status === 'draft' && (
-          <button
-            onClick={handleActivateItem}
-            style={{
-              width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              borderRadius: '14px', border: 'none',
-              color: '#fff', fontSize: '17px', fontWeight: 800,
-              cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(240,144,138,0.4)',
-            }}
-          >
-            ▶ {ct.startAuction}
-          </button>
-        )}
-
-        {currentItem?.status === 'active' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{
-              padding: '14px', borderRadius: '14px',
-              background: 'linear-gradient(135deg, rgba(240,144,138,0.1), rgba(232,52,78,0.05))',
-              border: '1px solid rgba(240,144,138,0.2)',
-              textAlign: 'center',
-            }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
-                {timeLeft > 0
-                  ? (lang === 'fr' ? 'Enchere en cours...' : lang === 'es' ? 'Subasta en curso...' : lang === 'he' ? '...מכירה פומבית בעיצומה' : 'Auction in progress...')
-                  : (lang === 'fr' ? 'Resolution...' : lang === 'es' ? 'Resolviendo...' : lang === 'he' ? '...פותר' : 'Resolving...')}
-              </p>
-              {currentItem.min_price != null && currentItem.min_price > 0 && (
-                <p style={{ margin: '4px 0 0', fontSize: '11px', color: '#666' }}>
-                  {lang === 'fr' ? `Prix minimum : ${currentItem.min_price} €` : lang === 'es' ? `Precio minimo: ${currentItem.min_price} €` : lang === 'he' ? `מחיר מינימום: ${currentItem.min_price} €` : `Reserve: ${currentItem.min_price} €`}
-                </p>
+              {timeLeft > 0 && (
+                <button
+                  onClick={handleEndAuctionEarly}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    color: '#aaa', fontSize: '11px', fontWeight: 600,
+                    cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {ct.endAuction}
+                </button>
               )}
             </div>
-            {timeLeft > 0 && (
-              <button
-                onClick={handleEndAuctionEarly}
-                style={{
-                  width: '100%', padding: '12px',
-                  backgroundColor: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '12px',
-                  color: '#ccc', fontSize: '14px', fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {ct.endAuction}
-              </button>
-            )}
-          </div>
-        )}
+          )}
 
-        {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && hasMoreItems && (
-          <button
-            onClick={handleNextItem}
-            style={{
-              width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              borderRadius: '14px', border: 'none',
-              color: '#fff', fontSize: '15px', fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {ct.nextItem}
-          </button>
-        )}
-
-        {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && !hasMoreItems && (
-          <p style={{
-            padding: '8px', textAlign: 'center',
-            fontSize: '12px', color: '#888', margin: 0,
-          }}>
-            {ct.noMoreItems}
-          </p>
-        )}
-
-        {/* Add item button — always visible */}
-        {!showAddItem && (
-          <button
-            onClick={() => setShowAddItem(true)}
-            style={{
-              width: '100%', padding: '10px',
-              backgroundColor: 'rgba(255,255,255,0.06)',
-              border: '1px dashed rgba(255,255,255,0.2)',
-              borderRadius: '12px',
-              color: '#888', fontSize: '13px', fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round"/>
-              <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round"/>
-            </svg>
-            {ct.addItem}
-          </button>
-        )}
-
-        {/* Add item quick form */}
-        {showAddItem && (
-          <div style={{
-            padding: '12px', borderRadius: '14px',
-            backgroundColor: 'rgba(0,0,0,0.9)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            display: 'flex', flexDirection: 'column', gap: '8px',
-          }}>
-            <input
-              type="text"
-              value={addItemTitle}
-              onChange={e => setAddItemTitle(e.target.value)}
-              placeholder={ct.addItemTitle}
+          {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && hasMoreItems && (
+            <button
+              onClick={handleNextItem}
               style={{
-                width: '100%', padding: '10px 12px',
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: '10px',
-                color: '#fff', fontSize: '14px',
-                outline: 'none', boxSizing: 'border-box',
+                width: '100%', padding: '10px',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                borderRadius: '10px', border: 'none',
+                color: '#fff', fontSize: '13px', fontWeight: 700,
+                cursor: 'pointer',
               }}
-            />
-            <input
-              type="number"
-              value={addItemPrice}
-              onChange={e => setAddItemPrice(e.target.value)}
-              placeholder={ct.addItemPrice}
-              min="0"
-              step="0.01"
+            >
+              {ct.nextItem}
+            </button>
+          )}
+
+          {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && !hasMoreItems && (
+            <p style={{
+              padding: '4px', textAlign: 'center',
+              fontSize: '11px', color: '#888', margin: 0,
+            }}>
+              {ct.noMoreItems}
+            </p>
+          )}
+
+          {/* Add item button — compact */}
+          {!showAddItem && (
+            <button
+              onClick={() => setShowAddItem(true)}
               style={{
-                width: '100%', padding: '10px 12px',
-                backgroundColor: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: '10px',
-                color: '#fff', fontSize: '14px',
-                outline: 'none', boxSizing: 'border-box',
+                width: '100%', padding: '7px',
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                border: '1px dashed rgba(255,255,255,0.15)',
+                borderRadius: '8px',
+                color: '#666', fontSize: '11px', fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
               }}
-            />
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => { setShowAddItem(false); setAddItemTitle(''); setAddItemPrice('') }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round"/>
+                <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round"/>
+              </svg>
+              {ct.addItem}
+            </button>
+          )}
+
+          {/* Add item quick form */}
+          {showAddItem && (
+            <div style={{
+              padding: '8px', borderRadius: '10px',
+              backgroundColor: 'rgba(0,0,0,0.95)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              display: 'flex', flexDirection: 'column', gap: '6px',
+            }}>
+              <input
+                type="text"
+                value={addItemTitle}
+                onChange={e => setAddItemTitle(e.target.value)}
+                placeholder={ct.addItemTitle}
                 style={{
-                  flex: 1, padding: '10px',
+                  width: '100%', padding: '8px 10px',
                   backgroundColor: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  borderRadius: '10px',
-                  color: '#888', fontSize: '13px', fontWeight: 600,
-                  cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '8px',
+                  color: '#fff', fontSize: '12px',
+                  outline: 'none', boxSizing: 'border-box',
                 }}
-              >
-                {ct.addItemCancel}
-              </button>
-              <button
-                onClick={handleAddItemDuringLive}
-                disabled={addingItem || !addItemTitle.trim() || !addItemPrice}
+              />
+              <input
+                type="number"
+                value={addItemPrice}
+                onChange={e => setAddItemPrice(e.target.value)}
+                placeholder={ct.addItemPrice}
+                min="0"
+                step="0.01"
                 style={{
-                  flex: 1, padding: '10px',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  border: 'none',
-                  borderRadius: '10px',
-                  color: '#fff', fontSize: '13px', fontWeight: 700,
-                  cursor: 'pointer',
-                  opacity: addingItem || !addItemTitle.trim() || !addItemPrice ? 0.5 : 1,
+                  width: '100%', padding: '8px 10px',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  borderRadius: '8px',
+                  color: '#fff', fontSize: '12px',
+                  outline: 'none', boxSizing: 'border-box',
                 }}
-              >
-                {ct.addItemAdd}
-              </button>
+              />
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button
+                  onClick={() => { setShowAddItem(false); setAddItemTitle(''); setAddItemPrice('') }}
+                  style={{
+                    flex: 1, padding: '8px',
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '8px',
+                    color: '#888', fontSize: '11px', fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ct.addItemCancel}
+                </button>
+                <button
+                  onClick={handleAddItemDuringLive}
+                  disabled={addingItem || !addItemTitle.trim() || !addItemPrice}
+                  style={{
+                    flex: 1, padding: '8px',
+                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff', fontSize: '11px', fontWeight: 700,
+                    cursor: 'pointer',
+                    opacity: addingItem || !addItemTitle.trim() || !addItemPrice ? 0.5 : 1,
+                  }}
+                >
+                  {ct.addItemAdd}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* End confirm modal */}

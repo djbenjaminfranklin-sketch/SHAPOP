@@ -1991,6 +1991,60 @@ app.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReques
   }
 })
 
+// Save shipping address + update order (bypasses RLS)
+app.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = req.params.id
+    const userId = req.user!.id
+    const { name, street, city, zip, phone } = req.body
+
+    if (!name || !street || !city || !zip) {
+      res.status(400).json({ error: 'Missing required address fields' })
+      return
+    }
+
+    // Verify order belongs to buyer
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, buyer_id')
+      .eq('id', orderId)
+      .eq('buyer_id', userId)
+      .single()
+
+    if (!order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    const addr = { name, street, city, zip, phone: phone || '' }
+
+    // Save/update default address
+    const { data: existing } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .single()
+
+    if (existing) {
+      await supabase.from('addresses').update(addr).eq('id', existing.id)
+    } else {
+      await supabase.from('addresses').insert({ ...addr, user_id: userId, is_default: true })
+    }
+
+    // Save shipping address on order
+    await supabase
+      .from('orders')
+      .update({ shipping_address: addr })
+      .eq('id', orderId)
+
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('Save address error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to save address' })
+  }
+})
+
 // Place a bid on an item (bypasses RLS)
 app.post('/api/items/:id/bid', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
