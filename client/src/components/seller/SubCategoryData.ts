@@ -91,9 +91,8 @@ export const liveFormats = [
   { id: 'bundle', fr: 'Lots & packs', en: 'Bundle deals', he: 'חבילות', es: 'Ofertas en lote' },
 ]
 
-// Bank account options
+// Bank account options (PayPal is handled via country picker in PaymentsPage)
 export const bankOptions = [
   { id: 'stripe', fr: 'Connecter avec Stripe', en: 'Connect with Stripe', he: 'חבר עם Stripe', es: 'Conectar con Stripe' },
-  { id: 'paypal', fr: 'Connecter avec PayPal', en: 'Connect with PayPal', he: 'חבר עם PayPal', es: 'Conectar con PayPal' },
   { id: 'later', fr: 'Configurer plus tard', en: 'Set up later', he: 'הגדר מאוחר יותר', es: 'Configurar mas tarde' },
 ]

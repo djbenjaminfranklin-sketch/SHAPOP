@@ -67,6 +67,10 @@ const content = {
     paypalStatus_processing: 'En cours',
     paypalStatus_completed: 'Complete',
     paypalStatus_failed: 'Echoue',
+    paypalCountryTitle: 'Paiement via PayPal',
+    paypalCountryDesc: 'Stripe n\'est pas disponible dans votre pays. Entrez votre email PayPal pour recevoir vos paiements.',
+    paypalCountryPlaceholder: 'email@paypal.com',
+    paypalCountrySave: 'Connecter PayPal',
   },
   en: {
     title: 'Payments & Shipping',
@@ -123,6 +127,10 @@ const content = {
     paypalStatus_processing: 'Processing',
     paypalStatus_completed: 'Completed',
     paypalStatus_failed: 'Failed',
+    paypalCountryTitle: 'Payment via PayPal',
+    paypalCountryDesc: 'Stripe is not available in your country. Enter your PayPal email to receive payments.',
+    paypalCountryPlaceholder: 'email@paypal.com',
+    paypalCountrySave: 'Connect PayPal',
   },
   he: {
     title: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7',
@@ -179,6 +187,10 @@ const content = {
     paypalStatus_processing: '\u05D1\u05E2\u05D9\u05D1\u05D5\u05D3',
     paypalStatus_completed: '\u05D4\u05D5\u05E9\u05DC\u05DD',
     paypalStatus_failed: '\u05E0\u05DB\u05E9\u05DC',
+    paypalCountryTitle: '\u05EA\u05E9\u05DC\u05D5\u05DD \u05D3\u05E8\u05DA PayPal',
+    paypalCountryDesc: 'Stripe \u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA. \u05D4\u05D6\u05DF \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC PayPal \u05DC\u05E7\u05D1\u05DC\u05EA \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
+    paypalCountryPlaceholder: 'email@paypal.com',
+    paypalCountrySave: '\u05D7\u05D1\u05E8 PayPal',
   },
   es: {
     title: 'Pagos y Envio',
@@ -235,6 +247,10 @@ const content = {
     paypalStatus_processing: 'Procesando',
     paypalStatus_completed: 'Completado',
     paypalStatus_failed: 'Fallido',
+    paypalCountryTitle: 'Pago via PayPal',
+    paypalCountryDesc: 'Stripe no esta disponible en tu pais. Ingresa tu email de PayPal para recibir pagos.',
+    paypalCountryPlaceholder: 'email@paypal.com',
+    paypalCountrySave: 'Conectar PayPal',
   },
 }
 
@@ -535,9 +551,11 @@ export default function PaymentsPage() {
     return () => { listener?.remove() }
   }, [fetchStatus])
 
-  // Stripe Connect supported countries
-  const stripeCountries = [
+  // Countries list (Stripe + PayPal-only)
+  const PAYPAL_ONLY_COUNTRIES = ['IL']
+  const allCountries = [
     { code: 'FR', flag: '\uD83C\uDDEB\uD83C\uDDF7', name: { fr: 'France', en: 'France', he: '\u05E6\u05E8\u05E4\u05EA', es: 'Francia' } },
+    { code: 'IL', flag: '\uD83C\uDDEE\uD83C\uDDF1', name: { fr: 'Israel', en: 'Israel', he: '\u05D9\u05E9\u05E8\u05D0\u05DC', es: 'Israel' } },
     { code: 'ES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: { fr: 'Espagne', en: 'Spain', he: '\u05E1\u05E4\u05E8\u05D3', es: 'Espana' } },
     { code: 'US', flag: '\uD83C\uDDFA\uD83C\uDDF8', name: { fr: 'Etats-Unis', en: 'United States', he: '\u05D0\u05E8\u05D4"\u05D1', es: 'Estados Unidos' } },
     { code: 'GB', flag: '\uD83C\uDDEC\uD83C\uDDE7', name: { fr: 'Royaume-Uni', en: 'United Kingdom', he: '\u05D1\u05E8\u05D9\u05D8\u05E0\u05D9\u05D4', es: 'Reino Unido' } },
@@ -549,14 +567,25 @@ export default function PaymentsPage() {
     { code: 'CA', flag: '\uD83C\uDDE8\uD83C\uDDE6', name: { fr: 'Canada', en: 'Canada', he: '\u05E7\u05E0\u05D3\u05D4', es: 'Canada' } },
     { code: 'MA', flag: '\uD83C\uDDF2\uD83C\uDDE6', name: { fr: 'Maroc', en: 'Morocco', he: '\u05DE\u05E8\u05D5\u05E7\u05D5', es: 'Marruecos' } },
   ]
+  const [showPaypalForm, setShowPaypalForm] = useState(false)
+  const [countryPaypalEmail, setCountryPaypalEmail] = useState('')
+  const [countryPaypalSaving, setCountryPaypalSaving] = useState(false)
 
   const handleConnect = async (country?: string) => {
     const countryToUse = country || selectedCountry
     if (!countryToUse) {
       // Show country picker first
+      setShowPaypalForm(false)
       setShowCountryPicker(true)
       return
     }
+
+    // If PayPal-only country, show PayPal form
+    if (PAYPAL_ONLY_COUNTRIES.includes(countryToUse)) {
+      setShowPaypalForm(true)
+      return
+    }
+
     setShowCountryPicker(false)
     setConnecting(true)
     try {
@@ -581,6 +610,34 @@ export default function PaymentsPage() {
       showToast(c.errorConnect, 'error')
     }
     setConnecting(false)
+  }
+
+  const handleCountryPaypalSave = async () => {
+    if (!countryPaypalEmail.includes('@') || !countryPaypalEmail.includes('.')) return
+    setCountryPaypalSaving(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await apiFetch('/api/paypal/save-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ email: countryPaypalEmail }),
+      })
+      if (res.ok) {
+        setPaypalEmail(countryPaypalEmail)
+        setPaypalEditEmail(countryPaypalEmail)
+        setSellerBankChoice('paypal')
+        setShowCountryPicker(false)
+        setShowPaypalForm(false)
+        showToast(lang === 'fr' ? 'PayPal connecte !' : 'PayPal connected!', 'success')
+      }
+    } catch {
+      showToast(lang === 'fr' ? 'Erreur' : 'Error', 'error')
+    }
+    setCountryPaypalSaving(false)
   }
 
   const handleDashboard = async () => {
@@ -810,7 +867,7 @@ export default function PaymentsPage() {
                 {c.pendingDesc}
               </p>
               <button
-                onClick={handleConnect}
+                onClick={() => handleConnect()}
                 disabled={connecting}
                 style={{
                   padding: '12px 24px', borderRadius: '10px',
@@ -842,7 +899,7 @@ export default function PaymentsPage() {
               </p>
               {profile?.is_seller ? (
                 <button
-                  onClick={handleConnect}
+                  onClick={() => handleConnect()}
                   disabled={connecting}
                   style={{
                     padding: '14px 28px', borderRadius: '12px',
@@ -1091,40 +1148,111 @@ export default function PaymentsPage() {
             <p style={{ fontSize: '13px', color: '#888', textAlign: 'center', marginBottom: '20px', lineHeight: 1.5 }}>
               {c.selectCountryDesc}
             </p>
-            <div style={{ overflowY: 'auto', flex: 1, marginBottom: '16px' }}>
-              {stripeCountries.map(ct => (
-                <button
-                  key={ct.code}
-                  onClick={() => setSelectedCountry(ct.code)}
+            {showPaypalForm ? (
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(0,48,135,0.2), rgba(0,156,222,0.1))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#009CDE" strokeWidth="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                </div>
+                <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#009CDE', textAlign: 'center', marginBottom: '8px' }}>
+                  {c.paypalCountryTitle}
+                </h4>
+                <p style={{ fontSize: '13px', color: '#888', textAlign: 'center', marginBottom: '16px', lineHeight: 1.5 }}>
+                  {c.paypalCountryDesc}
+                </p>
+                <input
+                  type="email"
+                  value={countryPaypalEmail}
+                  onChange={e => setCountryPaypalEmail(e.target.value)}
+                  placeholder={c.paypalCountryPlaceholder}
                   style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '12px 14px', marginBottom: '4px',
-                    borderRadius: '10px', border: 'none', cursor: 'pointer',
-                    backgroundColor: selectedCountry === ct.code ? 'rgba(99,102,241,0.15)' : 'transparent',
-                    outline: selectedCountry === ct.code ? '2px solid #6366F1' : '2px solid transparent',
+                    width: '100%', padding: '14px 16px', borderRadius: '12px',
+                    backgroundColor: '#0A0A0A', border: '1px solid #333',
+                    color: '#fff', fontSize: '15px', outline: 'none',
+                    boxSizing: 'border-box', marginBottom: '12px',
+                  }}
+                />
+                <button
+                  onClick={handleCountryPaypalSave}
+                  disabled={countryPaypalSaving || !countryPaypalEmail.includes('@')}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px',
+                    background: countryPaypalEmail.includes('@') ? 'linear-gradient(135deg, #003087, #009CDE)' : '#333',
+                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                    cursor: countryPaypalEmail.includes('@') ? 'pointer' : 'not-allowed',
+                    opacity: countryPaypalSaving ? 0.6 : 1,
+                    marginBottom: '8px',
                   }}
                 >
-                  <span style={{ fontSize: '22px' }}>{ct.flag}</span>
-                  <span style={{ fontSize: '15px', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400 }}>
-                    {ct.name[lang] || ct.name.en}
-                  </span>
+                  {countryPaypalSaving ? '...' : c.paypalCountrySave}
                 </button>
-              ))}
-            </div>
-            <button
-              onClick={() => { if (selectedCountry) handleConnect(selectedCountry) }}
-              disabled={!selectedCountry || connecting}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '12px',
-                background: selectedCountry ? 'linear-gradient(135deg, #6772E5, #4F46E5)' : '#333',
-                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
-                cursor: selectedCountry ? 'pointer' : 'not-allowed',
-                opacity: connecting ? 0.6 : 1,
-                marginBottom: '8px',
-              }}
-            >
-              {connecting ? c.connecting : c.confirm}
-            </button>
+                <button
+                  onClick={() => { setShowPaypalForm(false); setSelectedCountry('') }}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: '10px',
+                    backgroundColor: 'transparent', border: '1px solid #333',
+                    color: '#888', fontSize: '13px', cursor: 'pointer',
+                  }}
+                >
+                  {c.cancel}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ overflowY: 'auto', flex: 1, marginBottom: '16px' }}>
+                  {allCountries.map(ct => {
+                    const isPaypalOnly = PAYPAL_ONLY_COUNTRIES.includes(ct.code)
+                    return (
+                      <button
+                        key={ct.code}
+                        onClick={() => setSelectedCountry(ct.code)}
+                        style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
+                          padding: '12px 14px', marginBottom: '4px',
+                          borderRadius: '10px', border: 'none', cursor: 'pointer',
+                          backgroundColor: selectedCountry === ct.code ? 'rgba(99,102,241,0.15)' : 'transparent',
+                          outline: selectedCountry === ct.code ? '2px solid #6366F1' : '2px solid transparent',
+                        }}
+                      >
+                        <span style={{ fontSize: '22px' }}>{ct.flag}</span>
+                        <span style={{ fontSize: '15px', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400, flex: 1 }}>
+                          {ct.name[lang] || ct.name.en}
+                        </span>
+                        {isPaypalOnly && (
+                          <span style={{ fontSize: '11px', color: '#009CDE', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(0,156,222,0.1)' }}>
+                            PayPal
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <button
+                  onClick={() => { if (selectedCountry) handleConnect(selectedCountry) }}
+                  disabled={!selectedCountry || connecting}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px',
+                    background: selectedCountry
+                      ? PAYPAL_ONLY_COUNTRIES.includes(selectedCountry)
+                        ? 'linear-gradient(135deg, #003087, #009CDE)'
+                        : 'linear-gradient(135deg, #6772E5, #4F46E5)'
+                      : '#333',
+                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                    cursor: selectedCountry ? 'pointer' : 'not-allowed',
+                    opacity: connecting ? 0.6 : 1,
+                    marginBottom: '8px',
+                  }}
+                >
+                  {connecting ? c.connecting : c.confirm}
+                </button>
+              </>
+            )}
             <button
               onClick={() => setShowCountryPicker(false)}
               style={{
