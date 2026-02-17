@@ -53,7 +53,9 @@ function calculateFees(amount: number) {
   return { platformFee, processingFee, totalFees, sellerPayout }
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+})
 
 // =============================================
 // Stripe client
@@ -1010,14 +1012,19 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
       return
     }
 
-    // Delete items first (bids cascade automatically), then stream (favorites cascade)
-    const { error: itemsErr } = await supabase.from('items').delete().eq('stream_id', streamId)
-    if (itemsErr) console.error('Delete items error:', itemsErr)
-    const { error } = await supabase.from('streams').delete().eq('id', streamId)
-    if (error) console.error('Delete stream error:', error)
+    // Delete ALL dependent records before the stream
+    // Tables with NO CASCADE: orders, events
+    // Tables with CASCADE but safer to delete explicitly: stream_favorites, engagement_metrics, chat_messages, items (→ bids cascade)
+    const tables = ['orders', 'events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'items']
+    for (const table of tables) {
+      const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
+      if (err) console.error(`Delete ${table} error:`, err.message)
+    }
 
+    const { error } = await supabase.from('streams').delete().eq('id', streamId)
     if (error) {
-      res.status(500).json({ error: 'Failed to delete stream' })
+      console.error('Delete stream error:', error.message)
+      res.status(500).json({ error: `Failed to delete stream: ${error.message}` })
       return
     }
     res.json({ status: 'deleted' })
@@ -1034,12 +1041,12 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
 app.get('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
+    // Must filter by the exact prefs token to avoid fetching a real push token record
     const { data } = await supabase
       .from('device_tokens')
       .select('notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
       .eq('user_id', userId)
-      .order('updated_at', { ascending: false, nullsFirst: false })
-      .limit(1)
+      .eq('token', `prefs-${userId}`)
       .maybeSingle()
 
     res.json(data || {
@@ -1064,31 +1071,32 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
     }
 
     const now = new Date().toISOString()
+    const prefsToken = `prefs-${userId}`
 
-    // Try to update all existing records for this user
-    const { data: updated } = await supabase
+    // Always UPSERT into the specific prefs record (not real push tokens)
+    const prefs = {
+      user_id: userId,
+      token: prefsToken,
+      platform: 'web',
+      notify_live: allPrefs?.live ?? true,
+      notify_orders: allPrefs?.orders ?? true,
+      notify_deals: allPrefs?.deals ?? false,
+      notify_messages: allPrefs?.messages ?? true,
+      notify_reminders: allPrefs?.reminders ?? true,
+      notify_community: allPrefs?.community ?? false,
+      [column]: !!value,
+      updated_at: now,
+    }
+
+    const { error: upsertErr } = await supabase
       .from('device_tokens')
-      .update({ [column]: !!value, updated_at: now })
-      .eq('user_id', userId)
-      .select('id')
+      .upsert(prefs, { onConflict: 'user_id,token' })
 
-    // If no records existed, create one with all prefs
-    if (!updated || updated.length === 0) {
-      await supabase
-        .from('device_tokens')
-        .insert({
-          user_id: userId,
-          token: `prefs-${userId}`,
-          platform: 'web',
-          notify_live: allPrefs?.live ?? true,
-          notify_orders: allPrefs?.orders ?? true,
-          notify_deals: allPrefs?.deals ?? false,
-          notify_messages: allPrefs?.messages ?? true,
-          notify_reminders: allPrefs?.reminders ?? true,
-          notify_community: allPrefs?.community ?? false,
-          [column]: !!value,
-          updated_at: now,
-        })
+    console.log(`[notif-prefs] UPSERT user=${userId} column=${column} value=${value} error=${upsertErr?.message || 'none'}`)
+
+    if (upsertErr) {
+      res.status(500).json({ error: upsertErr.message })
+      return
     }
 
     res.json({ status: 'updated' })
