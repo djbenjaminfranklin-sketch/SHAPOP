@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import ItemCard from '../components/ItemCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
-import { t } from '../lib/i18n'
 import type { Item } from '../types/database'
 
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }

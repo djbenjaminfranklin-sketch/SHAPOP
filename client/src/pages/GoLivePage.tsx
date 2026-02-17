@@ -185,7 +185,7 @@ const goLiveContent = {
     select: 'Selectionner',
     selectAll: 'Tout selectionner',
     deleteSelected: 'Supprimer',
-    cancel: 'Annuler',
+    bulkCancel: 'Annuler',
     bulkDeleteConfirm: 'Supprimer ces lives et leurs articles ?',
   },
   en: {
@@ -213,7 +213,7 @@ const goLiveContent = {
     select: 'Select',
     selectAll: 'Select all',
     deleteSelected: 'Delete',
-    cancel: 'Cancel',
+    bulkCancel: 'Cancel',
     bulkDeleteConfirm: 'Delete these lives and their items?',
   },
   he: {
@@ -241,7 +241,7 @@ const goLiveContent = {
     select: '\u05D1\u05D7\u05E8',
     selectAll: '\u05D1\u05D7\u05E8 \u05D4\u05DB\u05DC',
     deleteSelected: '\u05DE\u05D7\u05E7',
-    cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
+    bulkCancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
     bulkDeleteConfirm: '\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05DC\u05D4\u05DD?',
   },
   es: {
@@ -269,7 +269,7 @@ const goLiveContent = {
     select: 'Seleccionar',
     selectAll: 'Seleccionar todo',
     deleteSelected: 'Eliminar',
-    cancel: 'Cancelar',
+    bulkCancel: 'Cancelar',
     bulkDeleteConfirm: '\u00BFEliminar estos directos y sus art\u00EDculos?',
   },
 }
