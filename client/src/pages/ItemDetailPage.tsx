@@ -148,7 +148,7 @@ export default function ItemDetailPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
         padding: '16px', paddingTop: 'max(16px, env(safe-area-inset-top))',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+        <button aria-label="Back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>

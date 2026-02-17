@@ -38,7 +38,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           fontSize: '11px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0
         }}>
           {stream.seller?.avatar_url ? (
-            <img src={stream.seller.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={stream.seller.avatar_url} alt={sellerName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
             sellerName.charAt(0).toUpperCase()
           )}
@@ -124,6 +124,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         {/* Favorite heart button */}
         {onToggleFavorite && (
           <button
+            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()

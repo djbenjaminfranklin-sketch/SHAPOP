@@ -261,7 +261,22 @@ export default function NotificationsPage() {
 
       <div style={{ padding: '20px' }}>
         {/* Notifications feed */}
-        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.feedTitle}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>{c.feedTitle}</p>
+          {notifications.length > 0 && (
+            <button
+              onClick={async () => {
+                const { data: { session: s } } = await (await import('../lib/supabase')).supabase.auth.getSession()
+                if (!s) return
+                await apiFetch('/api/notifications', { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
+                setNotifications([])
+              }}
+              style={{ background: 'none', border: 'none', fontSize: '12px', color: '#666', cursor: 'pointer', padding: 0 }}
+            >
+              {lang === 'en' ? 'Clear all' : lang === 'he' ? 'נקה הכל' : lang === 'es' ? 'Borrar todo' : 'Tout effacer'}
+            </button>
+          )}
+        </div>
 
         {loadingNotifs ? (
           <div style={{ padding: '20px 0', textAlign: 'center' }}>
@@ -276,15 +291,17 @@ export default function NotificationsPage() {
               <button
                 key={n.id}
                 onClick={() => {
-                  if (n.type === 'live' && n.data?.stream_id) {
+                  if (n.data?.stream_id) {
                     navigate(`/stream/${n.data.stream_id}`)
+                  } else if (n.data?.item_id) {
+                    navigate(`/item/${n.data.item_id}`)
                   }
                 }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
                   padding: '14px 0', borderBottom: '1px solid #1A1A1A',
                   background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
-                  cursor: n.type === 'live' && n.data?.stream_id ? 'pointer' : 'default',
+                  cursor: (n.data?.stream_id || n.data?.item_id) ? 'pointer' : 'default',
                   textAlign: 'left',
                 }}
               >

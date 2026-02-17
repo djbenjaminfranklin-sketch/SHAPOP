@@ -231,6 +231,25 @@ async function sendApnsPush(deviceToken: string, title: string, body: string, da
   })
 }
 
+/** Send push + in-app notification to a specific user */
+async function notifyUser(userId: string, type: string, title: string, body: string, data?: Record<string, string>) {
+  // Push notification
+  const { data: tokens } = await supabase
+    .from('device_tokens')
+    .select('token')
+    .eq('user_id', userId)
+    .neq('token', `prefs-${userId}`)
+  if (tokens) {
+    for (const t of tokens) {
+      await sendApnsPush(t.token, title, body, data)
+    }
+  }
+  // In-app notification
+  await supabase.from('notifications').insert({
+    user_id: userId, type, title, body, data: data || {},
+  })
+}
+
 /** Send push notification to all followers of a seller who have notify_live enabled */
 async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, streamId: string) {
   // Step 1: Get follower user IDs
@@ -748,6 +767,9 @@ async function livekitWebhookHandler(req: Request, res: Response) {
                     seller_payout: fees.sellerPayout,
                   })
                   console.log(`[room_finished] Order created for item ${item.id} — winner: ${winnerId}, amount: ${topBid.amount}`)
+                  // Notify winner
+                  const { data: wonItem } = await supabase.from('items').select('title').eq('id', item.id).single()
+                  await notifyUser(winnerId, 'auction_won', 'Tu as gagné !', `${wonItem?.title || 'Article'} — ${topBid.amount}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
                 }
               } else {
                 console.log(`[room_finished] Item ${item.id} ended as ${status} (no qualifying bid)`)
@@ -832,6 +854,10 @@ const paymentLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   message: { error: 'Too many payment requests, please try again later' },
+  keyGenerator: (req: Request) => {
+    const auth = req.headers.authorization
+    return auth ? auth.split('Bearer ')[1]?.slice(0, 20) || req.ip || 'unknown' : req.ip || 'unknown'
+  },
 })
 
 const disputeLimiter = rateLimit({
@@ -844,6 +870,12 @@ const messageLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 30,
   message: { error: 'Too many messages, slow down' },
+})
+
+const bidLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many bids, please try again later' },
 })
 
 app.use(globalLimiter)
@@ -1479,6 +1511,16 @@ app.get('/api/notifications', requireAuth, async (req: AuthenticatedRequest, res
   }
 })
 
+// Clear all notifications for user
+app.delete('/api/notifications', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await supabase.from('notifications').delete().eq('user_id', req.user!.id)
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // =============================================
 // GET /api/my-score — buyer sees their own score
 // =============================================
@@ -1828,6 +1870,8 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
           processing_fee: fees.processingFee,
           seller_payout: fees.sellerPayout,
         })
+        // Notify winner
+        await notifyUser(winnerId, 'auction_won', 'Tu as gagné !', `${item.title} — ${topBid.amount}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
       }
     }
 
@@ -2100,6 +2144,32 @@ app.post('/api/communities/:id/join', requireAuth, async (req: AuthenticatedRequ
     }
 
     await supabase.rpc('increment_community_members', { community_id: communityId })
+
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Leave community
+app.delete('/api/communities/:id/leave', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const communityId = req.params.id
+    const userId = req.user!.id
+
+    const { error } = await supabase
+      .from('community_members')
+      .delete()
+      .eq('community_id', communityId)
+      .eq('user_id', userId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to leave community' })
+      return
+    }
+
+    // Decrement member count (safe: won't go below 0)
+    try { await supabase.rpc('decrement_community_members', { community_id: communityId }) } catch { /* ignore */ }
 
     res.json({ success: true })
   } catch {
@@ -2883,7 +2953,7 @@ app.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReques
 })
 
 // Place a bid on an item (bypasses RLS)
-app.post('/api/items/:id/bid', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const itemId = req.params.id
     const { amount } = req.body
@@ -3239,6 +3309,21 @@ app.get('/api/stripe/card-info', requireAuth, async (req: AuthenticatedRequest, 
   }
 })
 
+// Delete saved card
+app.delete('/api/stripe/card', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data: profile } = await supabase.from('profiles').select('stripe_customer_id').eq('id', req.user!.id).single()
+    if (!profile?.stripe_customer_id) { res.json({ success: true }); return }
+    const pms = await stripe.paymentMethods.list({ customer: profile.stripe_customer_id, type: 'card' })
+    for (const pm of pms.data) {
+      await stripe.paymentMethods.detach(pm.id)
+    }
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to delete card' })
+  }
+})
+
 // Create a PaymentIntent when a buyer wins an auction
 app.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -3447,6 +3532,12 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
 
     if (!order) {
       res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    // Idempotency: prevent double confirmation
+    if (order.status !== 'pending_payment') {
+      res.json({ success: true, message: 'Order already processed' })
       return
     }
 
@@ -3780,21 +3871,28 @@ async function processPaypalPayouts(): Promise<number> {
     }
   }
 
-  // Step 1b: Retry failed payouts with < 3 attempts (re-queue as ready)
+  // Step 1b: Retry failed payouts with < 3 attempts (exponential backoff)
   const { data: failedPayouts } = await supabase
     .from('paypal_payouts')
-    .select('id')
+    .select('id, attempts, updated_at')
     .eq('status', 'failed')
     .lt('attempts', 3)
 
   if (failedPayouts && failedPayouts.length > 0) {
-    for (const p of failedPayouts) {
+    const now = Date.now()
+    let requeued = 0
+    for (const p of failedPayouts as { id: string; attempts: number; updated_at: string }[]) {
+      // Exponential backoff: 5min, 30min, 2h based on attempt count
+      const delayMs = [5 * 60_000, 30 * 60_000, 2 * 3600_000][p.attempts] || 2 * 3600_000
+      const lastAttempt = new Date(p.updated_at).getTime()
+      if (now - lastAttempt < delayMs) continue // Too early to retry
       await supabase
         .from('paypal_payouts')
         .update({ status: 'ready', error_message: null })
         .eq('id', p.id)
+      requeued++
     }
-    console.log(`[PayPal Payouts] Re-queued ${failedPayouts.length} failed payout(s) for retry`)
+    if (requeued > 0) console.log(`[PayPal Payouts] Re-queued ${requeued} failed payout(s) for retry (exponential backoff)`)
   }
 
   // Step 2: Batch-send ready payouts via PayPal Payouts API
@@ -4121,6 +4219,46 @@ app.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authentica
     }
 
     res.json(updated)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// BLOCK & REPORT (user-to-user)
+// =============================================
+app.post('/api/users/:id/block', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const blockerId = req.user!.id
+    const blockedId = req.params.id
+    if (blockerId === blockedId) { res.status(400).json({ error: 'Cannot block yourself' }); return }
+    await supabase.from('user_blocks').upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' })
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+app.delete('/api/users/:id/block', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await supabase.from('user_blocks').delete().eq('blocker_id', req.user!.id).eq('blocked_id', req.params.id)
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+app.post('/api/report', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { reported_id, reason, context } = req.body
+    if (!reported_id || !reason) { res.status(400).json({ error: 'reported_id and reason required' }); return }
+    await supabase.from('reports').insert({
+      reporter_id: req.user!.id,
+      reported_id,
+      reason: String(reason).slice(0, 500),
+      context: context ? String(context).slice(0, 200) : null,
+    })
+    res.json({ success: true })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }
@@ -4850,7 +4988,7 @@ app.post('/api/chat/send', messageLimiter, requireAuth, async (req: Authenticate
 
     const msgType = type === 'reaction' ? 'reaction' : 'message'
 
-    const trimmed = message.trim().slice(0, 500) // Max 500 chars
+    const trimmed = escapeHtml(message.trim().slice(0, 500)) // Max 500 chars, XSS-safe
     if (!trimmed) {
       res.status(400).json({ error: 'Message cannot be empty' })
       return
@@ -5444,7 +5582,7 @@ app.post('/api/conversations/:id/messages', messageLimiter, requireAuth, async (
       return
     }
 
-    const trimmed = message.trim().slice(0, 2000)
+    const trimmed = escapeHtml(message.trim().slice(0, 2000))
     const flagReason = detectContactInfo(trimmed)
     const isFlagged = flagReason !== null
 

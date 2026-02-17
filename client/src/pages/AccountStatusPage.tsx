@@ -65,7 +65,7 @@ export default function AccountStatusPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button aria-label="Back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -95,6 +95,12 @@ export default function AccountStatusPage() {
               </div>
             </div>
           </div>
+          <p style={{ fontSize: '11px', color: '#444', marginTop: '12px', lineHeight: 1.5 }}>
+            {lang === 'en' ? 'Your score is calculated automatically based on your buying behavior: completed orders, payment delays, and disputes.' :
+             lang === 'he' ? 'הציון שלך מחושב אוטומטית על סמך התנהגות הקנייה שלך: הזמנות שהושלמו, עיכובי תשלום ומחלוקות.' :
+             lang === 'es' ? 'Tu puntuacion se calcula automaticamente segun tu comportamiento de compra: pedidos completados, retrasos de pago y disputas.' :
+             'Ta note est calculee automatiquement selon ton comportement d\'achat : commandes completees, delais de paiement et litiges.'}
+          </p>
         </div>
       )}
 
