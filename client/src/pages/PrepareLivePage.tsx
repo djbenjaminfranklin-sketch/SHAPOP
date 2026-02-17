@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
 
@@ -63,6 +64,12 @@ const pageContent = {
     muxError: 'La configuration du streaming video a echoue. Les spectateurs pourraient ne pas voir votre video.',
     minPrice: 'Prix minimum (optionnel)',
     minPriceHint: 'Si aucune enchere n\'atteint ce prix, l\'article sera invendu',
+    deleteStream: 'Supprimer ce live',
+    deleteStreamConfirm: 'Supprimer ce live et tous ses articles ? Cette action est irreversible.',
+    scheduledDate: 'Date programmee',
+    changeDate: 'Modifier la date',
+    saveDate: 'Enregistrer',
+    deleteError: 'Echec de la suppression',
   },
   en: {
     title: 'Prepare your live',
@@ -91,6 +98,12 @@ const pageContent = {
     muxError: 'Video streaming setup failed. Viewers may not see your video.',
     minPrice: 'Minimum price (optional)',
     minPriceHint: 'If no bid reaches this price, the item will be unsold',
+    deleteStream: 'Delete this live',
+    deleteStreamConfirm: 'Delete this live and all its items? This action cannot be undone.',
+    scheduledDate: 'Scheduled date',
+    changeDate: 'Change date',
+    saveDate: 'Save',
+    deleteError: 'Failed to delete',
   },
   he: {
     title: 'הכנת השידור',
@@ -119,6 +132,12 @@ const pageContent = {
     muxError: 'הגדרת הזרמת הווידאו נכשלה. הצופים עלולים לא לראות את הווידאו שלך.',
     minPrice: '(מחיר מינימום (אופציונלי',
     minPriceHint: 'אם אף הצעה לא מגיעה למחיר זה, הפריט יהיה לא נמכר',
+    deleteStream: 'מחק שידור זה',
+    deleteStreamConfirm: 'למחוק את השידור ואת כל הפריטים? פעולה זו בלתי הפיכה.',
+    scheduledDate: 'תאריך מתוזמן',
+    changeDate: 'שנה תאריך',
+    saveDate: 'שמור',
+    deleteError: 'המחיקה נכשלה',
   },
   es: {
     title: 'Preparar el directo',
@@ -147,6 +166,12 @@ const pageContent = {
     muxError: 'La configuracion del streaming de video fallo. Los espectadores podrian no ver tu video.',
     minPrice: 'Precio minimo (opcional)',
     minPriceHint: 'Si ninguna puja alcanza este precio, el articulo no se vendera',
+    deleteStream: 'Eliminar este directo',
+    deleteStreamConfirm: 'Eliminar este directo y todos sus articulos? Esta accion es irreversible.',
+    scheduledDate: 'Fecha programada',
+    changeDate: 'Cambiar fecha',
+    saveDate: 'Guardar',
+    deleteError: 'Error al eliminar',
   },
 }
 
@@ -185,6 +210,9 @@ export default function PrepareLivePage() {
   const [formDuration, setFormDuration] = useState(60)
   const [formMinPrice, setFormMinPrice] = useState('')
   const [formError, setFormError] = useState('')
+  const [editingDate, setEditingDate] = useState(false)
+  const [scheduledDate, setScheduledDate] = useState('')
+  const [deleteError, setDeleteError] = useState('')
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -204,7 +232,12 @@ export default function PrepareLivePage() {
         .select('*')
         .eq('id', streamId)
         .single()
-      if (data) setStream(data)
+      if (data) {
+        setStream(data)
+        if (data.scheduled_at) {
+          setScheduledDate(new Date(data.scheduled_at).toISOString().slice(0, 16))
+        }
+      }
     }
 
     const fetchItems = async () => {
@@ -405,6 +438,35 @@ export default function PrepareLivePage() {
     setItems(prev => prev.filter((_, i) => i !== index).map((it, i) => ({ ...it, lot_number: i + 1 })))
   }
 
+  const handleDeleteStream = async () => {
+    if (!streamId || !confirm(ct.deleteStreamConfirm)) return
+    setDeleteError('')
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const res = await apiFetch(`/api/streams/${streamId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (res.ok) {
+      navigate('/go-live', { replace: true })
+    } else {
+      const body = await res.json().catch(() => ({ error: ct.deleteError }))
+      setDeleteError(body.error || ct.deleteError)
+    }
+  }
+
+  const handleSaveDate = async () => {
+    if (!streamId || !scheduledDate) return
+    const { error } = await supabase
+      .from('streams')
+      .update({ scheduled_at: new Date(scheduledDate).toISOString() })
+      .eq('id', streamId)
+    if (!error) {
+      setStream(prev => prev ? { ...prev, scheduled_at: new Date(scheduledDate).toISOString() } : prev)
+      setEditingDate(false)
+    }
+  }
+
   const handleGoLive = async () => {
     if (!streamId || items.length === 0) return
     setGoingLive(true)
@@ -485,6 +547,81 @@ export default function PrepareLivePage() {
           </div>
         </div>
       </div>
+
+      {/* Stream actions: scheduled date + delete */}
+      {stream && (
+        <div style={{ padding: '12px 16px 0', display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
+          {/* Scheduled date section */}
+          {(stream.scheduled_at || editingDate || stream.status === 'scheduled') && (
+            <div style={{
+              backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '12px 14px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: editingDate ? '10px' : 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16" y1="2" x2="16" y2="6" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" strokeLinecap="round"/>
+                    <line x1="3" y1="10" x2="21" y2="10" strokeLinecap="round"/>
+                  </svg>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                    {ct.scheduledDate}: {stream.scheduled_at ? new Date(stream.scheduled_at).toLocaleString() : '—'}
+                  </span>
+                </div>
+                {!editingDate && (
+                  <button onClick={() => setEditingDate(true)} style={{
+                    background: 'none', border: '1px solid #333', borderRadius: '8px',
+                    padding: '4px 10px', color: '#F0908A', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    {ct.changeDate}
+                  </button>
+                )}
+              </div>
+              {editingDate && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="datetime-local"
+                    value={scheduledDate}
+                    onChange={e => setScheduledDate(e.target.value)}
+                    style={{
+                      flex: 1, padding: '10px', backgroundColor: '#0D0D0D', border: '1px solid #333',
+                      borderRadius: '8px', color: '#fff', fontSize: '14px', outline: 'none',
+                      colorScheme: 'dark',
+                    }}
+                  />
+                  <button onClick={handleSaveDate} style={{
+                    padding: '10px 16px', background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    border: 'none', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  }}>
+                    {ct.saveDate}
+                  </button>
+                  <button onClick={() => setEditingDate(false)} style={{
+                    padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
+                    color: '#888', fontSize: '13px', cursor: 'pointer',
+                  }}>
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Delete stream button */}
+          <button onClick={handleDeleteStream} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            padding: '10px', backgroundColor: 'rgba(232,52,78,0.08)', border: '1px solid rgba(232,52,78,0.2)',
+            borderRadius: '12px', color: '#E8344E', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+            </svg>
+            {ct.deleteStream}
+          </button>
+
+          {deleteError && (
+            <p style={{ fontSize: '12px', color: '#E8344E', margin: 0, textAlign: 'center' }}>{deleteError}</p>
+          )}
+        </div>
+      )}
 
       {/* Items list */}
       <div style={{

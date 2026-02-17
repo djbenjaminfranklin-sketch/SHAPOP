@@ -361,6 +361,9 @@ export default function GoLivePage() {
     })
     if (res.ok) {
       setMyStreams(prev => prev.filter(s => s.id !== streamId))
+    } else {
+      const body = await res.json().catch(() => ({ error: 'Delete failed' }))
+      alert(body.error || 'Delete failed')
     }
   }
 

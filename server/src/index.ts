@@ -1013,22 +1013,44 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
     }
 
     // Delete ALL dependent records before the stream
-    // Tables with NO CASCADE: orders, events
-    // Tables with CASCADE but safer to delete explicitly: stream_favorites, engagement_metrics, chat_messages, items (→ bids cascade)
-    const tables = ['orders', 'events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'items']
+    const tables = ['bids', 'orders', 'events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'item_favorites', 'items']
+    const errors: string[] = []
     for (const table of tables) {
-      const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
-      if (err) console.error(`Delete ${table} error:`, err.message)
+      try {
+        if (table === 'bids' || table === 'item_favorites') {
+          // bids and item_favorites reference items, not streams directly
+          // Get item IDs first, then delete
+          const { data: streamItems } = await supabase.from('items').select('id').eq('stream_id', streamId)
+          if (streamItems && streamItems.length > 0) {
+            const itemIds = streamItems.map((i: { id: string }) => i.id)
+            const col = table === 'bids' ? 'item_id' : 'item_id'
+            const { error: err } = await supabase.from(table).delete().in(col, itemIds)
+            if (err) errors.push(`${table}: ${err.message}`)
+          }
+        } else {
+          const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
+          if (err) errors.push(`${table}: ${err.message}`)
+        }
+      } catch (e) {
+        // Table might not exist — ignore
+        console.log(`[stream-delete] Table ${table} skip:`, (e as Error).message)
+      }
     }
 
-    const { error } = await supabase.from('streams').delete().eq('id', streamId)
+    if (errors.length > 0) {
+      console.error(`[stream-delete] Dependency errors for ${streamId}:`, errors)
+    }
+
+    const { error, count } = await supabase.from('streams').delete().eq('id', streamId).select('id')
+    console.log(`[stream-delete] stream=${streamId} deleted=${count ?? 'unknown'} error=${error?.message || 'none'}`)
+
     if (error) {
-      console.error('Delete stream error:', error.message)
       res.status(500).json({ error: `Failed to delete stream: ${error.message}` })
       return
     }
     res.json({ status: 'deleted' })
-  } catch {
+  } catch (err) {
+    console.error('[stream-delete] Exception:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1073,34 +1095,54 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
     const now = new Date().toISOString()
     const prefsToken = `prefs-${userId}`
 
-    // Always UPSERT into the specific prefs record (not real push tokens)
-    const prefs = {
-      user_id: userId,
-      token: prefsToken,
-      platform: 'web',
-      notify_live: allPrefs?.live ?? true,
-      notify_orders: allPrefs?.orders ?? true,
-      notify_deals: allPrefs?.deals ?? false,
-      notify_messages: allPrefs?.messages ?? true,
-      notify_reminders: allPrefs?.reminders ?? true,
-      notify_community: allPrefs?.community ?? false,
-      [column]: !!value,
-      updated_at: now,
-    }
-
-    const { error: upsertErr } = await supabase
+    // Check if prefs record already exists
+    const { data: existing } = await supabase
       .from('device_tokens')
-      .upsert(prefs, { onConflict: 'user_id,token' })
+      .select('id')
+      .eq('user_id', userId)
+      .eq('token', prefsToken)
+      .maybeSingle()
 
-    console.log(`[notif-prefs] UPSERT user=${userId} column=${column} value=${value} error=${upsertErr?.message || 'none'}`)
+    if (existing) {
+      // UPDATE existing record
+      const { error: updateErr } = await supabase
+        .from('device_tokens')
+        .update({ [column]: !!value, updated_at: now })
+        .eq('id', existing.id)
 
-    if (upsertErr) {
-      res.status(500).json({ error: upsertErr.message })
-      return
+      console.log(`[notif-prefs] UPDATE id=${existing.id} user=${userId} column=${column} value=${value} error=${updateErr?.message || 'none'}`)
+      if (updateErr) {
+        res.status(500).json({ error: updateErr.message })
+        return
+      }
+    } else {
+      // INSERT new record with all prefs
+      const { error: insertErr } = await supabase
+        .from('device_tokens')
+        .insert({
+          user_id: userId,
+          token: prefsToken,
+          platform: 'web',
+          notify_live: allPrefs?.live ?? true,
+          notify_orders: allPrefs?.orders ?? true,
+          notify_deals: allPrefs?.deals ?? false,
+          notify_messages: allPrefs?.messages ?? true,
+          notify_reminders: allPrefs?.reminders ?? true,
+          notify_community: allPrefs?.community ?? false,
+          [column]: !!value,
+          updated_at: now,
+        })
+
+      console.log(`[notif-prefs] INSERT user=${userId} column=${column} value=${value} error=${insertErr?.message || 'none'}`)
+      if (insertErr) {
+        res.status(500).json({ error: insertErr.message })
+        return
+      }
     }
 
     res.json({ status: 'updated' })
-  } catch {
+  } catch (err) {
+    console.error('[notif-prefs] Exception:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
