@@ -374,17 +374,43 @@ export default function DisputePage() {
     checkDispute()
   }, [user, orderId])
 
+  // File size error translations
+  const fileSizeErrorMessages: Record<Lang, string> = {
+    fr: 'Le fichier dépasse la taille maximale de 5 Mo',
+    en: 'File exceeds the maximum size of 5 MB',
+    he: 'הקובץ חורג מהגודל המרבי של 5 מ"ב',
+    es: 'El archivo supera el tamaño máximo de 5 MB',
+  }
+
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files
     if (!selected) return
 
-    const newFiles = Array.from(selected).slice(0, 5 - files.length)
-    const updatedFiles = [...files, ...newFiles]
+    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5 MB
+
+    const candidates = Array.from(selected).slice(0, 5 - files.length)
+
+    // Validate file sizes before proceeding
+    for (const file of candidates) {
+      if (file.size > MAX_FILE_SIZE) {
+        setSubmitError(fileSizeErrorMessages[lang] || fileSizeErrorMessages.fr)
+        // Reset input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+        return
+      }
+    }
+
+    // Clear any previous size error
+    setSubmitError(null)
+
+    const updatedFiles = [...files, ...candidates]
     setFiles(updatedFiles)
 
     // Generate previews
-    newFiles.forEach(file => {
+    candidates.forEach(file => {
       const reader = new FileReader()
       reader.onload = (ev) => {
         if (ev.target?.result) {

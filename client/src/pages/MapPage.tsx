@@ -135,6 +135,14 @@ export default function MapPage() {
   })
   const [detecting, setDetecting] = useState(true)
   const [selectedCity, setSelectedCity] = useState<string | null>(null)
+  const [locationUnavailable, setLocationUnavailable] = useState(false)
+
+  const locationUnavailableMessages: Record<Lang, string> = {
+    fr: 'Localisation indisponible, affichage par défaut',
+    en: 'Location unavailable, showing default',
+    he: 'המיקום אינו זמין, מציג ברירת מחדל',
+    es: 'Ubicación no disponible, mostrando predeterminado',
+  }
 
   const { cityData, loading } = useCityStreamCounts(selectedCountry)
 
@@ -146,6 +154,10 @@ export default function MapPage() {
         if (user) {
           supabase.from('profiles').update({ country }).eq('id', user.id)
         }
+      } else {
+        // GPS permission denied or timed out — fallback to Paris / France
+        setSelectedCountry('FR')
+        setLocationUnavailable(true)
       }
       setDetecting(false)
     })
@@ -176,6 +188,11 @@ export default function MapPage() {
             <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
               {detecting ? ct.detecting : ct.subtitle}
             </p>
+            {locationUnavailable && !detecting && (
+              <p style={{ fontSize: '12px', color: '#f97316', margin: '4px 0 0' }}>
+                {locationUnavailableMessages[lang]}
+              </p>
+            )}
           </div>
           <button
             onClick={() => navigate('/communities')}

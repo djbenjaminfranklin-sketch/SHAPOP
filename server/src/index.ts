@@ -1,4 +1,5 @@
 import express, { type Request, type Response, type NextFunction } from 'express'
+import compression from 'compression'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
@@ -376,6 +377,19 @@ setInterval(() => {
     const iter = processedStripeEvents.values()
     for (let i = 0; i < toDelete; i++) {
       processedStripeEvents.delete(iter.next().value as string)
+    }
+  }
+}, 60 * 1000)
+
+// Idempotency: track processed PayPal event IDs to avoid double-processing
+const processedPaypalEvents = new Set<string>()
+const MAX_PROCESSED_PAYPAL_EVENTS = 1000
+setInterval(() => {
+  if (processedPaypalEvents.size > MAX_PROCESSED_PAYPAL_EVENTS) {
+    const toDelete = processedPaypalEvents.size - MAX_PROCESSED_PAYPAL_EVENTS
+    const iter = processedPaypalEvents.values()
+    for (let i = 0; i < toDelete; i++) {
+      processedPaypalEvents.delete(iter.next().value as string)
     }
   }
 }, 60 * 1000)
@@ -883,6 +897,7 @@ app.post('/api/webhooks/mux', webhookLimiter, express.raw({ type: 'application/j
 app.post('/api/webhooks/livekit', webhookLimiter, express.raw({ type: 'application/json' }), livekitWebhookHandler as express.RequestHandler)
 
 app.use(express.json({ limit: '10mb' }))
+app.use(compression())
 
 // Rate limiting
 const globalLimiter = rateLimit({
@@ -947,6 +962,12 @@ const reportLimiter = rateLimit({
     const auth = req.headers.authorization
     return auth ? auth.split('Bearer ')[1]?.slice(0, 20) || req.ip || 'unknown' : req.ip || 'unknown'
   },
+})
+
+const createLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { error: 'Too many create requests, please try again later' },
 })
 
 app.use(globalLimiter)
@@ -1323,9 +1344,21 @@ app.get('/api/streams/:id', async (req: Request, res: Response) => {
 // =============================================
 // POST /api/streams — create a new stream (auth required)
 // =============================================
-app.post('/api/streams', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/streams', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
+
+    // Check stream creation limit per seller
+    const { count: activeStreamCount } = await supabase
+      .from('streams')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', userId)
+      .in('status', ['scheduled', 'live'])
+
+    if (activeStreamCount != null && activeStreamCount >= 15) {
+      res.status(429).json({ error: 'Too many active streams. Please end or delete existing streams first.' })
+      return
+    }
 
     // Validate request body
     const { title, category, scheduled_at, thumbnail_url, city } = req.body
@@ -1739,6 +1772,17 @@ app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Resp
   try {
     const userId = req.user!.id
 
+    // Check if buyer is blocked
+    const { data: buyerScoreData } = await supabase
+      .from('buyer_scores')
+      .select('risk_level')
+      .eq('user_id', userId)
+      .single()
+    if (buyerScoreData?.risk_level === 'blocked') {
+      res.status(403).json({ error: 'Your account is blocked from making purchases' })
+      return
+    }
+
     // Validate request body
     const { item_id } = req.body
     if (!item_id || typeof item_id !== 'string') {
@@ -2101,6 +2145,13 @@ Return ONLY the JSON, no other text.`
       return
     }
 
+    // Max price validation on AI-generated starting_price
+    const aiPrice = Number(listing.estimated_price_low) || 0
+    if (aiPrice > 50000) {
+      res.status(400).json({ error: 'Price exceeds maximum allowed' })
+      return
+    }
+
     // ai_confidence comes as 0-1 from this prompt, but normalize just in case
     const confidence = listing.confidence != null
       ? (Number(listing.confidence) > 1 ? Number(listing.confidence) / 100 : Number(listing.confidence))
@@ -2136,22 +2187,11 @@ Return ONLY the JSON, no other text.`
 })
 
 // =============================================
-// MATCHING — Lives personnalisés (public)
+// MATCHING — Lives personnalisés (auth required for personalized results)
 // =============================================
-app.get('/api/matching/personalized-lives', async (req: Request, res: Response) => {
+app.get('/api/matching/personalized-lives', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.query.user_id as string
-
-    if (!userId) {
-      const { data } = await supabase
-        .from('streams')
-        .select('*, seller:sellers!seller_id(store_name)')
-        .eq('status', 'live')
-        .order('engagement_score', { ascending: false })
-        .limit(20)
-      res.json(data || [])
-      return
-    }
+    const userId = req.user!.id
 
     const { data: prefs } = await supabase
       .from('user_preferences')
@@ -2963,7 +3003,7 @@ app.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Authent
 })
 
 // Create AI Express listing (bypasses RLS)
-app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/items/create-listing', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
     const { title, description, category, starting_price, image_urls, ai_generated, ai_tags, ai_condition, ai_confidence } = req.body
@@ -2976,6 +3016,10 @@ app.post('/api/items/create-listing', requireAuth, async (req: AuthenticatedRequ
     const price = parseFloat(starting_price) || 0
     if (price < 0.01) {
       res.status(400).json({ error: 'Price must be at least 0.01€' })
+      return
+    }
+    if (price > 50000) {
+      res.status(400).json({ error: 'Price exceeds maximum allowed' })
       return
     }
     // ai_confidence comes as 70-98 from the AI but DB expects 0-1 (numeric(3,2))
@@ -3179,11 +3223,18 @@ app.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authenticate
     })
     if (bidError) throw bidError
 
-    // Update item current price
-    await supabase
+    // Update item current price only if our bid is still the highest (race condition guard)
+    const { data: updatedItem } = await supabase
       .from('items')
       .update({ current_price: amount })
       .eq('id', itemId)
+      .lt('current_price', amount)
+      .select('id')
+
+    if (!updatedItem || updatedItem.length === 0) {
+      // A higher concurrent bid already updated the price — bid is recorded but price not overwritten
+      console.log(`[Bid] Concurrent bid detected: item ${itemId}, amount ${amount} not applied (higher bid exists)`)
+    }
 
     res.json({ success: true })
   } catch (err: any) {
@@ -3585,8 +3636,8 @@ app.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async
       // We'll pay the seller later via PayPal Payouts
       console.log(`[Stripe] PayPal seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
     } else {
-      // Stripe seller: direct transfer with application fee
-      piParams.application_fee_amount = feeCents
+      // Stripe seller: direct transfer with application fee (minimum 50 centimes)
+      piParams.application_fee_amount = Math.max(50, feeCents)
       piParams.transfer_data = {
         destination: seller!.stripe_account_id!,
       }
@@ -3960,6 +4011,13 @@ app.post('/api/paypal/webhook', express.json(), async (req: Request, res: Respon
       }
     }
 
+    // Idempotency: deduplicate using transmission_id or event id
+    const paypalEventId = (req.headers['paypal-transmission-id'] as string) || req.body.id
+    if (paypalEventId && processedPaypalEvents.has(paypalEventId)) {
+      res.json({ received: true, duplicate: true })
+      return
+    }
+
     const eventType = req.body.event_type
     const resource = req.body.resource
 
@@ -4002,6 +4060,7 @@ app.post('/api/paypal/webhook', express.json(), async (req: Request, res: Respon
       }
     }
 
+    if (paypalEventId) processedPaypalEvents.add(paypalEventId)
     res.json({ received: true })
   } catch (err) {
     console.error('[PayPal Webhook] Error:', err)
@@ -6038,7 +6097,7 @@ app.get('/api/following', requireAuth, async (req: AuthenticatedRequest, res: Re
 })
 
 // Follow a seller
-app.post('/api/follow/:sellerId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/follow/:sellerId', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
     const sellerId = req.params.sellerId
@@ -6131,7 +6190,7 @@ app.get('/api/follow/:sellerId/status', requireAuth, async (req: AuthenticatedRe
 // =============================================
 
 // Add a stream to favorites (upsert)
-app.post('/api/favorites/:stream_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/favorites/:stream_id', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
     const streamId = req.params.stream_id
@@ -6498,6 +6557,7 @@ app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRe
       .from('orders')
       .select('id, seller_id, buyer_id, shipped_at')
       .eq('status', 'shipped')
+      .neq('status', 'disputed')
       .lt('shipped_at', fourteenDaysAgo)
 
     for (const order of (autoConfirmOrders || [])) {

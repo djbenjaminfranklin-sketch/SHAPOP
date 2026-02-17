@@ -32,6 +32,15 @@ export default function SecurityPage() {
   }
 
   const handleSignOutAll = async () => {
+    const confirmMessage = tx(
+      'Êtes-vous sûr de vouloir vous déconnecter de toutes les sessions ?',
+      'Are you sure you want to sign out of all sessions?',
+      'האם אתה בטוח שברצונך להתנתק מכל ההפעלות?',
+      '¿Está seguro de que desea cerrar sesión en todos los dispositivos?',
+      lang
+    )
+    if (!window.confirm(confirmMessage)) return
+
     setSigningOut(true)
     try {
       const { error } = await supabase.auth.signOut({ scope: 'global' })

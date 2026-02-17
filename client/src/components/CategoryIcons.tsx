@@ -31,6 +31,7 @@ export const categories: { id: string; label: string; image: string }[] = [
   { id: 'tools', label: 'Bricolage', image: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=150&h=150&fit=crop&q=80' },
 ]
 
+import { useState } from 'react'
 import CartoonAvatar from './CartoonAvatar'
 
 // "Suivis" icon — two connected people
@@ -65,10 +66,13 @@ interface CategoryScrollProps {
 }
 
 export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScrollProps) {
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
+
   return (
     <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '6px 16px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
       {categories.map(cat => {
         const isActive = selected === cat.id
+        const imageFailed = failedImages.has(cat.id)
 
         return (
           <button
@@ -80,19 +84,28 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
               width: '78px', height: '78px', borderRadius: '18px', overflow: 'hidden',
               border: isActive ? '2.5px solid #F0908A' : '1px solid #333',
               backgroundColor: '#151515',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              ...(imageFailed ? { background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)' } : {})
             }}>
               {cat.id === 'for_you' ? (
                 <CartoonAvatar seed="shapop_pour_toi" size={72} />
               ) : cat.id === 'following' ? (
                 <FollowingIcon size={52} />
+              ) : imageFailed ? (
+                <span style={{
+                  fontSize: '30px', fontWeight: 800, color: '#fff',
+                  fontStyle: 'italic', textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                  fontFamily: 'Georgia, serif',
+                }}>
+                  {cat.label.charAt(0).toUpperCase()}
+                </span>
               ) : (
                 <img
                   src={cat.image}
                   alt={cat.label}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement!.style.background = 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)'; (e.target as HTMLImageElement).parentElement!.innerHTML = '<span style="font-size:30px;font-weight:800;color:#fff;font-style:italic;text-shadow:0 2px 4px rgba(0,0,0,0.3);font-family:Georgia,serif">' + cat.label.charAt(0).toUpperCase() + '</span>'; }}
+                  onError={() => { setFailedImages(prev => new Set(prev).add(cat.id)) }}
                 />
               )}
             </div>
