@@ -5012,6 +5012,89 @@ app.get('/api/favorites', requireAuth, async (req: AuthenticatedRequest, res: Re
 })
 
 // =============================================
+// ITEM FAVORITES
+// =============================================
+
+// Add an item to favorites
+app.post('/api/item-favorites/:item_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const itemId = req.params.item_id
+
+    const { error } = await supabase
+      .from('item_favorites')
+      .upsert({ user_id: userId, item_id: itemId }, { onConflict: 'user_id,item_id' })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to add item favorite' })
+      return
+    }
+    res.json({ status: 'favorited' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Remove an item from favorites
+app.delete('/api/item-favorites/:item_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const itemId = req.params.item_id
+
+    const { error } = await supabase
+      .from('item_favorites')
+      .delete()
+      .eq('user_id', userId)
+      .eq('item_id', itemId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to remove item favorite' })
+      return
+    }
+    res.json({ status: 'unfavorited' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Get all favorited items with seller info
+app.get('/api/item-favorites', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: favs, error } = await supabase
+      .from('item_favorites')
+      .select('item_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch item favorites' })
+      return
+    }
+
+    if (!favs || favs.length === 0) {
+      res.json([])
+      return
+    }
+
+    const itemIds = favs.map(f => f.item_id)
+    const { data: items } = await supabase
+      .from('items')
+      .select('*, seller:profiles!seller_id(display_name, avatar_url)')
+      .in('id', itemIds)
+
+    // Preserve favorites order
+    const itemMap = new Map((items || []).map(i => [i.id, i]))
+    const ordered = itemIds.map(id => itemMap.get(id)).filter(Boolean)
+
+    res.json(ordered)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // GET OR CREATE CONVERSATION BY ORDER
 // =============================================
 

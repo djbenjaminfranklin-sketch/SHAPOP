@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 import ItemCard from '../components/ItemCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
 import type { Item } from '../types/database'
@@ -62,9 +63,55 @@ export default function DirectSalesPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState('for_you')
   const [searchQuery, setSearchQuery] = useState('')
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const navigate = useNavigate()
+  const { user, session } = useAuth()
   const lang = localStorage.getItem('shapop_lang') || 'fr'
   const tx = content[lang] || content.fr
+
+  // Fetch item favorites
+  useEffect(() => {
+    if (!user || !session?.access_token) return
+    apiFetch('/api/item-favorites', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setFavoriteIds(new Set(data.map((i: any) => i.id)))
+        }
+      })
+      .catch(() => {})
+  }, [user, session])
+
+  const toggleFavorite = useCallback(async (itemId: string) => {
+    if (!user || !session?.access_token) {
+      navigate('/login')
+      return
+    }
+    const isFav = favoriteIds.has(itemId)
+    // Optimistic update
+    setFavoriteIds(prev => {
+      const next = new Set(prev)
+      if (isFav) next.delete(itemId)
+      else next.add(itemId)
+      return next
+    })
+    try {
+      await apiFetch(`/api/item-favorites/${itemId}`, {
+        method: isFav ? 'DELETE' : 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+    } catch {
+      // Revert on error
+      setFavoriteIds(prev => {
+        const next = new Set(prev)
+        if (isFav) next.add(itemId)
+        else next.delete(itemId)
+        return next
+      })
+    }
+  }, [user, session, favoriteIds, navigate])
 
   const fetchItems = useCallback(async () => {
     setLoading(true)
@@ -200,7 +247,7 @@ export default function DirectSalesPage() {
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">
           {displayItems.map(item => (
-            <ItemCard key={item.id} item={item} />
+            <ItemCard key={item.id} item={item} isFavorited={favoriteIds.has(item.id)} onToggleFavorite={toggleFavorite} />
           ))}
         </div>
       )}

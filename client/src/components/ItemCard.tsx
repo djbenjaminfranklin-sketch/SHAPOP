@@ -4,9 +4,11 @@ import { getLang } from '../lib/i18n'
 
 interface ItemCardProps {
   item: Item & { seller?: { display_name?: string; avatar_url?: string | null } }
+  isFavorited?: boolean
+  onToggleFavorite?: (itemId: string) => void
 }
 
-export default function ItemCard({ item }: ItemCardProps) {
+export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCardProps) {
   const lang = getLang()
   const sellerName = item.seller?.display_name || 'Vendeur'
   const price = item.current_price ?? item.starting_price
@@ -79,6 +81,38 @@ export default function ItemCard({ item }: ItemCardProps) {
               {conditionLabels[item.ai_condition]?.[lang] || item.ai_condition}
             </span>
           </div>
+        )}
+
+        {/* Favorite heart button */}
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              onToggleFavorite(item.id)
+            }}
+            style={{
+              position: 'absolute',
+              bottom: '10px',
+              right: '10px',
+              zIndex: 5,
+              background: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(8px)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '34px',
+              height: '34px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#E8344E' : 'none'} stroke={isFavorited ? '#E8344E' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+            </svg>
+          </button>
         )}
 
         {/* Price badge — bottom left */}
