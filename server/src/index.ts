@@ -2522,10 +2522,28 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
     const amountCents = Math.round(order.amount * 100)
     const feeCents = Math.round(fees.totalFees * 100)
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Check if buyer has a saved card — try to auto-charge
+    const { data: buyerProfile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', buyerId)
+      .single()
+
+    let defaultPaymentMethod: string | undefined
+    if (buyerProfile?.stripe_customer_id) {
+      const pms = await stripe.paymentMethods.list({
+        customer: buyerProfile.stripe_customer_id,
+        type: 'card',
+        limit: 1,
+      })
+      if (pms.data.length > 0) {
+        defaultPaymentMethod = pms.data[0].id
+      }
+    }
+
+    const piParams: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
       currency: 'eur',
-      automatic_payment_methods: { enabled: true },
       application_fee_amount: feeCents,
       transfer_data: {
         destination: seller.stripe_account_id,
@@ -2537,19 +2555,57 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
         item_id: order.item_id,
       },
       description: `ShaPop - Order ${order.id}`,
-    })
+    }
 
-    // Update order with real PaymentIntent ID
+    // If buyer has a saved card, attach it and try to auto-charge
+    if (buyerProfile?.stripe_customer_id && defaultPaymentMethod) {
+      piParams.customer = buyerProfile.stripe_customer_id
+      piParams.payment_method = defaultPaymentMethod
+      piParams.off_session = true
+      piParams.confirm = true
+      piParams.payment_method_types = ['card']
+    } else {
+      piParams.automatic_payment_methods = { enabled: true }
+    }
+
+    let paymentIntent: Stripe.PaymentIntent
+    let autoCharged = false
+
+    try {
+      paymentIntent = await stripe.paymentIntents.create(piParams)
+      autoCharged = paymentIntent.status === 'succeeded'
+    } catch (stripeErr: any) {
+      // If auto-charge fails (e.g. 3D Secure required, card declined),
+      // fall back to manual payment
+      if (stripeErr.type === 'StripeCardError' && stripeErr.payment_intent) {
+        paymentIntent = stripeErr.payment_intent as Stripe.PaymentIntent
+      } else {
+        // Create without auto-charge as fallback
+        delete piParams.customer
+        delete piParams.payment_method
+        delete piParams.off_session
+        delete piParams.confirm
+        delete piParams.payment_method_types
+        piParams.automatic_payment_methods = { enabled: true }
+        paymentIntent = await stripe.paymentIntents.create(piParams)
+      }
+    }
+
+    // Update order with PaymentIntent ID (+ mark paid if auto-charged)
+    const updateData: Record<string, unknown> = {
+      stripe_payment_intent_id: paymentIntent.id,
+      status: autoCharged ? 'paid' : 'pending_payment',
+    }
+    if (autoCharged) {
+      updateData.paid_at = new Date().toISOString()
+    }
+
     const { error: dbUpdateError } = await supabase
       .from('orders')
-      .update({
-        stripe_payment_intent_id: paymentIntent.id,
-        status: 'pending_payment',
-      })
+      .update(updateData)
       .eq('id', order_id)
 
     if (dbUpdateError) {
-      // DB update failed after PaymentIntent was created — cancel the PaymentIntent to stay consistent
       console.error('DB update failed after PaymentIntent creation, cancelling PaymentIntent:', dbUpdateError)
       try {
         await stripe.paymentIntents.cancel(paymentIntent.id)
@@ -2564,6 +2620,7 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
       client_secret: paymentIntent.client_secret,
       payment_intent_id: paymentIntent.id,
       publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
+      auto_charged: autoCharged,
     })
   } catch (err: any) {
     console.error('Stripe PaymentIntent error:', err)

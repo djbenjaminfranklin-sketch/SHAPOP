@@ -800,7 +800,11 @@ export default function StreamView() {
               return
             }
             const piData = await resp.json()
-            if (piData.client_secret) {
+            if (piData.auto_charged) {
+              // Card was charged automatically — show success directly
+              setPaymentSuccess(true)
+              setShowPaymentModal(true)
+            } else if (piData.client_secret) {
               setClientSecret(piData.client_secret)
               setShowPaymentModal(true)
             }
