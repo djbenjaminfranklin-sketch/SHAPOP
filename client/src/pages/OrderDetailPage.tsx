@@ -468,7 +468,7 @@ export default function OrderDetailPage() {
       }
       fetchOrder()
     } catch (err) {
-      console.error(err)
+      if (process.env.NODE_ENV !== 'production') console.error(err)
     } finally {
       setConfirmingDelivery(false)
     }
@@ -530,7 +530,7 @@ export default function OrderDetailPage() {
       }
       fetchOrder()
     } catch (err) {
-      console.error(err)
+      if (process.env.NODE_ENV !== 'production') console.error(err)
     } finally {
       setApprovingReturn(false)
     }
@@ -553,7 +553,7 @@ export default function OrderDetailPage() {
       setRejectReason('')
       fetchOrder()
     } catch (err) {
-      console.error(err)
+      if (process.env.NODE_ENV !== 'production') console.error(err)
     } finally {
       setSubmittingReject(false)
     }

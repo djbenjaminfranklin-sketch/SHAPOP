@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext'
 import type { Stream, Item, ChatMessage, Order } from '../types/database'
 import EngagementDashboard from '../components/EngagementDashboard'
 import ViewerReactions from '../components/ViewerReactions'
-import MuxPlayer from '@mux/mux-player-react'
 import LiveKitViewer from '../components/LiveKitViewer'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
@@ -830,7 +829,7 @@ export default function StreamView() {
             })
             if (!resp.ok) {
               const err = await resp.json().catch(() => ({}))
-              console.error('PaymentIntent error:', err)
+              if (process.env.NODE_ENV !== 'production') console.error('PaymentIntent error:', err)
               setPaymentError(err.error || 'Failed to initialize payment. Please try again.')
               return
             }
@@ -960,7 +959,7 @@ export default function StreamView() {
         setSetupClientSecret(data.client_secret)
       }
     } catch (err) {
-      console.error('Setup intent error:', err)
+      if (process.env.NODE_ENV !== 'production') console.error('Setup intent error:', err)
       setCardError('Failed to initialize card setup')
     }
   }
@@ -1159,7 +1158,7 @@ export default function StreamView() {
       }
     } catch (err) {
       // Even if server confirm fails, Stripe already processed the payment
-      console.error('Server payment confirmation failed (Stripe already processed):', err)
+      if (process.env.NODE_ENV !== 'production') console.error('Server payment confirmation failed (Stripe already processed):', err)
     }
     setPaymentSuccess(true)
     setPaymentLoading(false)
@@ -1284,52 +1283,8 @@ export default function StreamView() {
                       </button>
                     )}
                   </>
-                ) : stream.mux_playback_id ? (
-                  <>
-                    {/* Mux HLS Player — fallback for older streams */}
-                    <MuxPlayer
-                      playbackId={stream.mux_playback_id}
-                      streamType="ll-live"
-                      autoPlay="muted"
-                      muted={viewerMuted}
-                      targetLiveWindow={3}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        // @ts-ignore Mux CSS custom property
-                        '--media-object-fit': 'cover',
-                      }}
-                    />
-                    {/* Unmute button */}
-                    {viewerMuted && (
-                      <button
-                        onClick={() => setViewerMuted(false)}
-                        style={{
-                          position: 'absolute',
-                          bottom: '16px', left: '16px',
-                          padding: '8px 16px',
-                          borderRadius: '100px',
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          backdropFilter: 'blur(8px)',
-                          WebkitBackdropFilter: 'blur(8px)',
-                          border: '1px solid rgba(255,255,255,0.2)',
-                          color: '#fff', fontSize: '13px', fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '6px',
-                          zIndex: 15,
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                          <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        {ct.unmuteViewer}
-                      </button>
-                    )}
-                  </>
                 ) : (
-                  /* Fallback: Simulated live experience (no Mux playback available) */
+                  /* Fallback: thumbnail or animated placeholder */
                   <>
                     {stream.thumbnail_url ? (
                       <img

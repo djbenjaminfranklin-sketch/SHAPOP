@@ -613,7 +613,7 @@ export default function PaymentsPage() {
         showToast(data.error, 'error')
       }
     } catch (err) {
-      console.error('Stripe connect error:', err)
+      if (process.env.NODE_ENV !== 'production') console.error('Stripe connect error:', err)
       showToast(c.errorConnect, 'error')
     }
     setConnecting(false)

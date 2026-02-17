@@ -37,6 +37,10 @@ const VAT_RATE = 0.20               // 20% TVA (France)
 const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
 const APP_BASE_URL = process.env.APP_BASE_URL || 'https://shapop.app'
 
+// Safe column list for streams table — excludes mux_stream_key (RTMP secret).
+// Only the WebSocket broadcast endpoint (seller-only, auth-checked) may read mux_stream_key.
+const STREAMS_SAFE_COLUMNS = 'id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name'
+
 // Helper: escape HTML special characters to prevent injection
 function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -91,7 +95,7 @@ async function penalizeBuyerScore(buyerId: string, penalty: number, reason: stri
       risk_level: riskLevel,
       updated_at: new Date().toISOString(),
     }).eq('user_id', buyerId)
-    console.log(`[buyer-score] ${buyerId} penalized -${penalty} (${reason}): ${currentScore} → ${newScore}/10 (${riskLevel})`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[buyer-score] ${buyerId} penalized -${penalty} (${reason}): ${currentScore} → ${newScore}/10 (${riskLevel})`)
   } else {
     const newScore = Math.round(Math.max(0, 10 - penalty) * 100) / 100
     let riskLevel = 'low'
@@ -101,7 +105,7 @@ async function penalizeBuyerScore(buyerId: string, penalty: number, reason: stri
       score: newScore,
       risk_level: riskLevel,
     })
-    console.log(`[buyer-score] ${buyerId} new score created with -${penalty} (${reason}): ${newScore}/10`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[buyer-score] ${buyerId} new score created with -${penalty} (${reason}): ${newScore}/10`)
   }
 }
 
@@ -313,7 +317,7 @@ async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, 
     ? `${streamTitle} — ${category}. Rejoins maintenant !`
     : `${streamTitle}. Rejoins maintenant !`
 
-  console.log(`[push] Sending live notification to ${tokens.length} followers of ${sellerName}`)
+  if (process.env.NODE_ENV !== 'production') console.log(`[push] Sending live notification to ${tokens.length} followers of ${sellerName}`)
 
   // Send in parallel (safety cap at 200)
   const batch = tokens.slice(0, 200)
@@ -331,7 +335,7 @@ async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, 
   }))
   const { error: insertErr } = await supabase.from('notifications').insert(notifRows)
   if (insertErr) console.error('[notifications] insert error:', insertErr.message)
-  else console.log(`[notifications] inserted ${notifRows.length} in-app notifications`)
+  else if (process.env.NODE_ENV !== 'production') console.log(`[notifications] inserted ${notifRows.length} in-app notifications`)
 }
 
 // =============================================
@@ -495,7 +499,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
                 currency: 'EUR',
                 status: 'pending',
               })
-              console.log(`[PayPal] Created payout record for order ${orderId} (${fees.sellerPayout} EUR)`)
+              if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${orderId} (${fees.sellerPayout} EUR)`)
             }
           }
 
@@ -518,7 +522,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
             }
           }
 
-          console.log(`[Stripe] Order ${orderId} marked as paid (holdback: ${holdbackPercent}%, payout: ${payoutMethod})`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${orderId} marked as paid (holdback: ${holdbackPercent}%, payout: ${payoutMethod})`)
         }
         break
       }
@@ -531,7 +535,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
             .from('orders')
             .update({ status: 'pending_payment' })
             .eq('id', orderId)
-          console.log(`[Stripe] Order ${orderId} payment failed`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${orderId} payment failed`)
         }
         break
       }
@@ -543,7 +547,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
             .from('sellers')
             .update({ kyc_status: 'verified' })
             .eq('stripe_account_id', account.id)
-          console.log(`[Stripe] Account ${account.id} verified`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Account ${account.id} verified`)
         }
         break
       }
@@ -563,7 +567,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
               .from('orders')
               .update({ status: 'refunded', payout_status: 'cancelled' })
               .eq('id', order.id)
-            console.log(`[Stripe] Refund confirmed for order ${order.id} (PI: ${piId})`)
+            if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Refund confirmed for order ${order.id} (PI: ${piId})`)
           }
         }
         break
@@ -586,7 +590,7 @@ async function stripeWebhookHandler(req: Request, res: Response) {
               .update({ status: 'disputed', payout_status: 'cancelled' })
               .eq('id', order.id)
 
-            console.log(`[Stripe] Chargeback opened for order ${order.id} — payout cancelled. Dispute ID: ${dispute.id}`)
+            if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Chargeback opened for order ${order.id} — payout cancelled. Dispute ID: ${dispute.id}`)
           }
         }
         break
@@ -609,14 +613,14 @@ async function stripeWebhookHandler(req: Request, res: Response) {
                 .from('orders')
                 .update({ status: 'delivered', payout_status: 'pending' })
                 .eq('id', order.id)
-              console.log(`[Stripe] Chargeback WON for order ${order.id} — payout restored`)
+              if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Chargeback WON for order ${order.id} — payout restored`)
             } else {
               // Merchant lost — mark as refunded
               await supabase
                 .from('orders')
                 .update({ status: 'refunded', payout_status: 'cancelled' })
                 .eq('id', order.id)
-              console.log(`[Stripe] Chargeback LOST for order ${order.id} — refunded`)
+              if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Chargeback LOST for order ${order.id} — refunded`)
             }
           }
         }
@@ -735,7 +739,7 @@ async function livekitWebhookHandler(req: Request, res: Response) {
         if (roomStream && roomStream.seller_id !== viewerUserId) {
           await supabase.from('followers')
             .upsert({ user_id: viewerUserId, seller_id: roomStream.seller_id }, { onConflict: 'user_id,seller_id' })
-            .then(({ error }) => { if (error) console.log('[auto-follow] error:', error.message) })
+            .then(({ error }) => { if (error && process.env.NODE_ENV !== 'production') console.log('[auto-follow] error:', error.message) })
         }
       }
     }
@@ -765,7 +769,7 @@ async function livekitWebhookHandler(req: Request, res: Response) {
             .eq('type', 'live')
             .filter('data->>stream_id', 'eq', finishedStream.id)
           if (delErr) console.error('[notifications] cleanup error:', delErr.message)
-          else console.log(`[notifications] cleaned up live notifs for stream ${finishedStream.id}`)
+          else if (process.env.NODE_ENV !== 'production') console.log(`[notifications] cleaned up live notifs for stream ${finishedStream.id}`)
 
           // Auto-end all active auctions for this stream
           const { data: activeItems } = await supabase
@@ -775,7 +779,7 @@ async function livekitWebhookHandler(req: Request, res: Response) {
             .eq('status', 'active')
 
           if (activeItems && activeItems.length > 0) {
-            console.log(`[room_finished] Auto-ending ${activeItems.length} active auction(s) for stream ${finishedStream.id}`)
+            if (process.env.NODE_ENV !== 'production') console.log(`[room_finished] Auto-ending ${activeItems.length} active auction(s) for stream ${finishedStream.id}`)
 
             for (const item of activeItems) {
               const { data: topBid } = await supabase
@@ -821,13 +825,13 @@ async function livekitWebhookHandler(req: Request, res: Response) {
                     processing_fee: fees.processingFee,
                     seller_payout: fees.sellerPayout,
                   })
-                  console.log(`[room_finished] Order created for item ${item.id} — winner: ${winnerId}, amount: ${topBid.amount}`)
+                  if (process.env.NODE_ENV !== 'production') console.log(`[room_finished] Order created for item ${item.id} — winner: ${winnerId}, amount: ${topBid.amount}`)
                   // Notify winner
                   const { data: wonItem } = await supabase.from('items').select('title').eq('id', item.id).single()
                   await notifyUser(winnerId, 'auction_won', 'Tu as gagné !', `${wonItem?.title || 'Article'} — ${topBid.amount}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
                 }
               } else {
-                console.log(`[room_finished] Item ${item.id} ended as ${status} (no qualifying bid)`)
+                if (process.env.NODE_ENV !== 'production') console.log(`[room_finished] Item ${item.id} ended as ${status} (no qualifying bid)`)
               }
             }
           }
@@ -1131,7 +1135,7 @@ app.post('/api/auth/send-otp', otpLimiter, async (req: Request, res: Response) =
       })
     } else {
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
+        if (process.env.NODE_ENV !== 'production') console.log(`[DEV OTP] Code for ${normalized}: ${code}`)
       }
     }
 
@@ -1233,7 +1237,7 @@ app.get('/api/streams', async (req: Request, res: Response) => {
 
     let query = supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))')
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))`)
       .in('status', status ? [status as string] : ['live', 'scheduled'])
       .order('engagement_score', { ascending: false })
 
@@ -1317,7 +1321,7 @@ app.get('/api/streams/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))')
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))`)
       .eq('id', req.params.id)
       .single()
 
@@ -1414,7 +1418,7 @@ app.post('/api/streams', createLimiter, requireAuth, async (req: AuthenticatedRe
         thumbnail_url: thumbnail_url || null,
         city: city || null,
       })
-      .select()
+      .select(STREAMS_SAFE_COLUMNS)
       .single()
 
     if (streamError) {
@@ -1483,7 +1487,7 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
         const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
         if (err) errors.push(`${table}: ${err.message}`)
       } catch (e) {
-        console.log(`[stream-delete] Table ${table} skip:`, (e as Error).message)
+        if (process.env.NODE_ENV !== 'production') console.log(`[stream-delete] Table ${table} skip:`, (e as Error).message)
       }
     }
 
@@ -1492,7 +1496,7 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
     }
 
     const { error, count } = await supabase.from('streams').delete().eq('id', streamId).select('id')
-    console.log(`[stream-delete] stream=${streamId} deleted=${count ?? 'unknown'} error=${error?.message || 'none'}`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[stream-delete] stream=${streamId} deleted=${count ?? 'unknown'} error=${error?.message || 'none'}`)
 
     if (error) {
       res.status(500).json({ error: `Failed to delete stream: ${error.message}` })
@@ -1560,7 +1564,7 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
         .update({ [column]: !!value, updated_at: now })
         .eq('id', existing.id)
 
-      console.log(`[notif-prefs] UPDATE id=${existing.id} user=${userId} column=${column} value=${value} error=${updateErr?.message || 'none'}`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[notif-prefs] UPDATE id=${existing.id} user=${userId} column=${column} value=${value} error=${updateErr?.message || 'none'}`)
       if (updateErr) {
         res.status(500).json({ error: updateErr.message })
         return
@@ -1583,7 +1587,7 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
           updated_at: now,
         })
 
-      console.log(`[notif-prefs] INSERT user=${userId} column=${column} value=${value} error=${insertErr?.message || 'none'}`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[notif-prefs] INSERT user=${userId} column=${column} value=${value} error=${insertErr?.message || 'none'}`)
       if (insertErr) {
         res.status(500).json({ error: insertErr.message })
         return
@@ -1757,7 +1761,7 @@ app.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, res
       }
     }
 
-    console.log(`[device-token] Registered ${plat} token for user ${userId}: ${token.slice(0, 12)}...`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[device-token] Registered ${plat} token for user ${userId}: ${token.slice(0, 12)}...`)
     res.json({ status: 'registered' })
   } catch (err) {
     console.error('[device-token] Error:', err)
@@ -1913,7 +1917,7 @@ app.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequest
       .update({ status: 'cancelled' })
       .eq('id', orderId)
 
-    console.log(`[orders] Order ${orderId} cancelled by user ${userId}`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[orders] Order ${orderId} cancelled by user ${userId}`)
     res.json({ success: true })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
@@ -2208,7 +2212,7 @@ app.get('/api/matching/personalized-lives', requireAuth, async (req: Authenticat
 
     const { data: lives } = await supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, categories)')
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, categories)`)
       .eq('status', 'live')
       .limit(50)
 
@@ -3233,7 +3237,7 @@ app.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authenticate
 
     if (!updatedItem || updatedItem.length === 0) {
       // A higher concurrent bid already updated the price — bid is recorded but price not overwritten
-      console.log(`[Bid] Concurrent bid detected: item ${itemId}, amount ${amount} not applied (higher bid exists)`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Bid] Concurrent bid detected: item ${itemId}, amount ${amount} not applied (higher bid exists)`)
     }
 
     res.json({ success: true })
@@ -3634,7 +3638,7 @@ app.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async
     if (isPaypalSeller) {
       // PayPal seller: money stays on ShaPop's Stripe account (no transfer_data)
       // We'll pay the seller later via PayPal Payouts
-      console.log(`[Stripe] PayPal seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] PayPal seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
     } else {
       // Stripe seller: direct transfer with application fee (minimum 50 centimes)
       piParams.application_fee_amount = Math.max(50, feeCents)
@@ -3703,7 +3707,7 @@ app.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async
         currency: 'EUR',
         status: 'pending',
       })
-      console.log(`[PayPal] Auto-charged: created payout record for order ${order_id}`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Auto-charged: created payout record for order ${order_id}`)
     }
 
     if (dbUpdateError) {
@@ -3824,7 +3828,7 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
             currency: 'EUR',
             status: 'pending',
           })
-          console.log(`[PayPal] Created payout record for order ${order_id} (${fees.sellerPayout} EUR)`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${order_id} (${fees.sellerPayout} EUR)`)
         }
       }
 
@@ -3865,7 +3869,7 @@ app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req:
         await supabase.from('buyer_scores').insert({ user_id: order.buyer_id })
       }
 
-      console.log(`[Stripe] Order ${order_id} confirmed paid via direct check (payout: ${payoutMethod})`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${order_id} confirmed paid via direct check (payout: ${payoutMethod})`)
       res.json({ success: true, status: 'paid' })
     } else if (paymentIntent.status === 'requires_action' || paymentIntent.status === 'requires_confirmation') {
       res.json({ success: false, status: paymentIntent.status, message: '3D Secure or additional action required' })
@@ -3915,7 +3919,7 @@ app.post('/api/paypal/save-email', requireAuth, async (req: AuthenticatedRequest
       .update({ paypal_email: email, bank_choice: 'paypal' })
       .eq('id', userId)
 
-    console.log(`[PayPal] Seller ${userId.slice(0, 8)} saved PayPal email`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Seller ${userId.slice(0, 8)} saved PayPal email`)
     res.json({ success: true })
   } catch (err) {
     console.error('PayPal save-email error:', err)
@@ -4031,7 +4035,7 @@ app.post('/api/paypal/webhook', express.json(), async (req: Request, res: Respon
             completed_at: new Date().toISOString(),
           })
           .eq('paypal_item_id', payoutItemId)
-        console.log(`[PayPal Webhook] Payout item ${payoutItemId} completed`)
+        if (process.env.NODE_ENV !== 'production') console.log(`[PayPal Webhook] Payout item ${payoutItemId} completed`)
       }
     } else if (eventType === 'PAYMENT.PAYOUTS-ITEM.FAILED' || eventType === 'PAYMENT.PAYOUTS-ITEM.DENIED') {
       const payoutItemId = resource?.payout_item_id
@@ -4044,7 +4048,7 @@ app.post('/api/paypal/webhook', express.json(), async (req: Request, res: Respon
             error_message: errorMsg,
           })
           .eq('paypal_item_id', payoutItemId)
-        console.log(`[PayPal Webhook] Payout item ${payoutItemId} failed: ${errorMsg}`)
+        if (process.env.NODE_ENV !== 'production') console.log(`[PayPal Webhook] Payout item ${payoutItemId} failed: ${errorMsg}`)
       }
     } else if (eventType === 'PAYMENT.PAYOUTS-ITEM.BLOCKED' || eventType === 'PAYMENT.PAYOUTS-ITEM.RETURNED' || eventType === 'PAYMENT.PAYOUTS-ITEM.REFUNDED') {
       const payoutItemId = resource?.payout_item_id
@@ -4056,7 +4060,7 @@ app.post('/api/paypal/webhook', express.json(), async (req: Request, res: Respon
             error_message: `Payout ${eventType.split('.').pop()?.toLowerCase()}`,
           })
           .eq('paypal_item_id', payoutItemId)
-        console.log(`[PayPal Webhook] Payout item ${payoutItemId} - ${eventType}`)
+        if (process.env.NODE_ENV !== 'production') console.log(`[PayPal Webhook] Payout item ${payoutItemId} - ${eventType}`)
       }
     }
 
@@ -4121,7 +4125,7 @@ async function processPaypalPayouts(): Promise<number> {
         .eq('id', p.id)
       requeued++
     }
-    if (requeued > 0) console.log(`[PayPal Payouts] Re-queued ${requeued} failed payout(s) for retry (exponential backoff)`)
+    if (requeued > 0 && process.env.NODE_ENV !== 'production') console.log(`[PayPal Payouts] Re-queued ${requeued} failed payout(s) for retry (exponential backoff)`)
   }
 
   // Step 2: Batch-send ready payouts via PayPal Payouts API
@@ -4210,7 +4214,7 @@ async function processPaypalPayouts(): Promise<number> {
       }
     }
 
-    console.log(`[PayPal Payouts] Batch ${batchId} sent with ${readyPayouts.length} items`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[PayPal Payouts] Batch ${batchId} sent with ${readyPayouts.length} items`)
   } catch (err) {
     console.error('[PayPal Payouts] Error:', err)
     for (const p of readyPayouts) {
@@ -4489,8 +4493,20 @@ app.post('/api/orders/:id/request-return', requireAuth, async (req: Authenticate
       return
     }
 
-    if (order.status !== 'delivered' && order.status !== 'shipped') {
-      res.status(400).json({ error: 'Returns can only be requested for shipped or delivered orders' })
+    if (order.status !== 'delivered') {
+      res.status(400).json({ error: 'Returns can only be requested for delivered orders' })
+      return
+    }
+
+    // Enforce return deadline (claim_deadline or delivered_at + 48h)
+    const deadline = order.claim_deadline
+      ? new Date(order.claim_deadline)
+      : order.delivered_at
+        ? new Date(new Date(order.delivered_at).getTime() + 48 * 60 * 60 * 1000)
+        : null
+
+    if (deadline && new Date() > deadline) {
+      res.status(400).json({ error: 'Return deadline has passed' })
       return
     }
 
@@ -4555,7 +4571,7 @@ app.post('/api/orders/:id/approve-return', requireAuth, async (req: Authenticate
     if (order.stripe_payment_intent_id && order.status !== 'refunded') {
       try {
         await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
-        console.log(`[refund] Return refund processed for order ${orderId}, PI: ${order.stripe_payment_intent_id}`)
+        if (process.env.NODE_ENV !== 'production') console.log(`[refund] Return refund processed for order ${orderId}, PI: ${order.stripe_payment_intent_id}`)
       } catch (err) {
         console.error(`[refund] Failed to refund order ${orderId}:`, err)
         res.status(500).json({ error: 'Failed to process refund' })
@@ -4745,7 +4761,7 @@ app.get('/api/admin/stats', requireAdmin, async (_req: AuthenticatedRequest, res
       supabase.from('profiles').select('*', { count: 'exact', head: true }).then(r => ({ count: r.count || 0 })),
       supabase.from('sellers').select('*', { count: 'exact', head: true }).then(r => ({ count: r.count || 0 })),
       supabase.from('orders').select('*', { count: 'exact', head: true }).then(r => ({ count: r.count || 0 })),
-      supabase.from('streams').select('*', { count: 'exact', head: true }).eq('status', 'live').then(r => ({ count: r.count || 0 })),
+      supabase.from('streams').select('id', { count: 'exact', head: true }).eq('status', 'live').then(r => ({ count: r.count || 0 })),
       supabase.from('orders').select('*', { count: 'exact', head: true }).eq('status', 'disputed').then(r => ({ count: r.count || 0 })),
     ])
 
@@ -5150,7 +5166,7 @@ app.get('/api/admin/streams', requireAdmin, async (req: AuthenticatedRequest, re
 
     const { data, error } = await supabase
       .from('streams')
-      .select('*, seller:sellers!seller_id(store_name, id)')
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id)`)
       .eq('status', status)
       .order('created_at', { ascending: false })
       .limit(100)
@@ -5374,7 +5390,7 @@ async function handleAutoSanction(userId: string, flagLabel: string): Promise<vo
     ])
 
     const totalFlags = (chatFlags.count || 0) + (convFlags.count || 0)
-    console.log(`[Moderation] User ${userId} — flag #${totalFlags} (${flagLabel})`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[Moderation] User ${userId} — flag #${totalFlags} (${flagLabel})`)
 
     if (totalFlags >= FLAG_SUSPEND_THRESHOLD) {
       // Auto-suspend
@@ -5383,11 +5399,11 @@ async function handleAutoSanction(userId: string, flagLabel: string): Promise<vo
         suspension_reason: `Auto-suspended: ${totalFlags} messages flagged for sharing contact info`,
         suspended_at: new Date().toISOString(),
       }).eq('id', userId)
-      console.log(`[Moderation] User ${userId} AUTO-SUSPENDED after ${totalFlags} flags`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Moderation] User ${userId} AUTO-SUSPENDED after ${totalFlags} flags`)
 
     } else if (totalFlags === FLAG_WARN_THRESHOLD) {
       // Log warning (could send push notification in the future)
-      console.log(`[Moderation] User ${userId} WARNING: ${totalFlags} flagged messages`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Moderation] User ${userId} WARNING: ${totalFlags} flagged messages`)
     }
   } catch (err) {
     console.error('[Moderation] Auto-sanction error:', err)
@@ -5540,7 +5556,7 @@ app.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authenticated
     if (autoRefund && order.stripe_payment_intent_id && order.status !== 'refunded') {
       try {
         await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
-        console.log(`[refund] Auto-refund processed for order ${order_id}, PI: ${order.stripe_payment_intent_id}`)
+        if (process.env.NODE_ENV !== 'production') console.log(`[refund] Auto-refund processed for order ${order_id}, PI: ${order.stripe_payment_intent_id}`)
       } catch (refundErr: unknown) {
         console.error(`[refund] Auto-refund failed for order ${order_id}:`, (refundErr as Error).message)
       }
@@ -5719,7 +5735,7 @@ app.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authentica
       if (order?.stripe_payment_intent_id && order.status !== 'refunded') {
         try {
           await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
-          console.log(`[refund] Admin refund processed for order ${dispute.order_id}, PI: ${order.stripe_payment_intent_id}`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[refund] Admin refund processed for order ${dispute.order_id}, PI: ${order.stripe_payment_intent_id}`)
         } catch (refundErr: unknown) {
           console.error(`[refund] Admin refund failed for order ${dispute.order_id}:`, (refundErr as Error).message)
         }
@@ -6255,7 +6271,7 @@ app.get('/api/favorites', requireAuth, async (req: AuthenticatedRequest, res: Re
     const streamIds = favs.map(f => f.stream_id)
     const { data: streams } = await supabase
       .from('streams')
-      .select('*, seller:profiles!seller_id(display_name, avatar_url, store_name)')
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:profiles!seller_id(display_name, avatar_url, store_name)`)
       .in('id', streamIds)
 
     // Preserve favorites order
@@ -6548,8 +6564,8 @@ app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRe
       results.no_address_cancelled++
     }
 
-    if (results.stale_orders_cancelled > 0) console.log(`[automations] Cancelled ${results.stale_orders_cancelled} stale pending_payment orders`)
-    if (results.no_address_cancelled > 0) console.log(`[automations] Refunded ${results.no_address_cancelled} paid orders without address`)
+    if (results.stale_orders_cancelled > 0 && process.env.NODE_ENV !== 'production') console.log(`[automations] Cancelled ${results.stale_orders_cancelled} stale pending_payment orders`)
+    if (results.no_address_cancelled > 0 && process.env.NODE_ENV !== 'production') console.log(`[automations] Refunded ${results.no_address_cancelled} paid orders without address`)
 
     // 1. Auto-confirm delivery if shipped > 14 days without dispute
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
@@ -6858,18 +6874,18 @@ wss.on('connection', async (ws: WebSocket, req) => {
     const msg = data.toString()
     // Only log important FFmpeg messages (errors or key info)
     if (msg.includes('Error') || msg.includes('error') || msg.includes('Output #0')) {
-      console.log(`[FFmpeg ${streamId.slice(0, 8)}] ${msg.trim()}`)
+      if (process.env.NODE_ENV !== 'production') console.log(`[FFmpeg ${streamId.slice(0, 8)}] ${msg.trim()}`)
     }
   })
 
   ffmpeg.on('close', (code) => {
-    console.log(`[FFmpeg ${streamId.slice(0, 8)}] exited with code ${code}`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[FFmpeg ${streamId.slice(0, 8)}] exited with code ${code}`)
     activeStreams.delete(streamId)
   })
 
   activeStreams.set(streamId, { ffmpeg, ws })
 
-  console.log(`[WS] Broadcast started for stream ${streamId.slice(0, 8)} by user ${userId.slice(0, 8)}`)
+  if (process.env.NODE_ENV !== 'production') console.log(`[WS] Broadcast started for stream ${streamId.slice(0, 8)} by user ${userId.slice(0, 8)}`)
 
   // Prevent unhandled errors on ffmpeg stdin
   ffmpeg.stdin?.on('error', (err) => {
@@ -6889,7 +6905,7 @@ wss.on('connection', async (ws: WebSocket, req) => {
   })
 
   ws.on('close', () => {
-    console.log(`[WS] Broadcast ended for stream ${streamId.slice(0, 8)}`)
+    if (process.env.NODE_ENV !== 'production') console.log(`[WS] Broadcast ended for stream ${streamId.slice(0, 8)}`)
     // Gracefully close FFmpeg
     if (ffmpeg.stdin && !ffmpeg.stdin.destroyed) {
       ffmpeg.stdin.end()
@@ -6925,7 +6941,7 @@ server.listen(PORT, () => {
       try {
         const count = await processPaypalPayouts()
         if (count > 0) {
-          console.log(`[PayPal] Auto-processed ${count} payouts`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Auto-processed ${count} payouts`)
         }
       } catch (err) {
         console.error('[PayPal] Auto-processing error:', err)

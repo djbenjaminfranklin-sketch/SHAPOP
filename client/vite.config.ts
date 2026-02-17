@@ -4,6 +4,17 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'stripe': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+          'livekit': ['livekit-client', '@livekit/components-react'],
+          'supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     proxy: {
