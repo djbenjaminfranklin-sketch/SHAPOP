@@ -229,6 +229,18 @@ async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, 
   await Promise.allSettled(
     batch.map(t => sendApnsPush(t.token, title, body, { stream_id: streamId }))
   )
+
+  // Insert in-app notifications for all followers
+  const notifRows = followerIds.map(uid => ({
+    user_id: uid,
+    type: 'live',
+    title,
+    body,
+    data: { stream_id: streamId },
+  }))
+  const { error: insertErr } = await supabase.from('notifications').insert(notifRows)
+  if (insertErr) console.error('[notifications] insert error:', insertErr.message)
+  else console.log(`[notifications] inserted ${notifRows.length} in-app notifications`)
 }
 
 // =============================================
@@ -531,11 +543,30 @@ async function livekitWebhookHandler(req: Request, res: Response) {
     if (event.event === 'room_finished') {
       const roomName = event.room?.name
       if (roomName) {
+        // Get the stream ID before updating status
+        const { data: finishedStream } = await supabase
+          .from('streams')
+          .select('id')
+          .eq('livekit_room_name', roomName)
+          .eq('status', 'live')
+          .maybeSingle()
+
         await supabase
           .from('streams')
           .update({ status: 'ended', ended_at: new Date().toISOString() })
           .eq('livekit_room_name', roomName)
           .eq('status', 'live')
+
+        // Clean up in-app live notifications for this stream
+        if (finishedStream) {
+          const { error: delErr } = await supabase
+            .from('notifications')
+            .delete()
+            .eq('type', 'live')
+            .filter('data->>stream_id', 'eq', finishedStream.id)
+          if (delErr) console.error('[notifications] cleanup error:', delErr.message)
+          else console.log(`[notifications] cleaned up live notifs for stream ${finishedStream.id}`)
+        }
       }
     }
 
@@ -1193,6 +1224,30 @@ app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest
 })
 
 // =============================================
+// IN-APP NOTIFICATIONS FEED
+// =============================================
+
+app.get('/api/notifications', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { data, error } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (error) {
+      res.status(500).json({ error: error.message })
+      return
+    }
+    res.json(data || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // REGISTER DEVICE TOKEN (push notifications)
 // =============================================
 app.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
@@ -1836,6 +1891,15 @@ app.post('/api/notifications/test', requireAuth, async (req: AuthenticatedReques
     const results = await Promise.allSettled(
       realTokens.map(t => sendApnsPush(t.token, 'ShaPop', 'Test notification — push is working!'))
     )
+
+    // Also insert an in-app notification for testing
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: 'test',
+      title: 'ShaPop',
+      body: 'Test notification — push is working!',
+      data: {},
+    })
 
     const sent = results.filter(r => r.status === 'fulfilled' && r.value).length
     res.json({ sent, total: realTokens.length })

@@ -8,6 +8,15 @@ import { usePushNotifications } from '../hooks/usePushNotifications'
 
 type NotifKey = 'live' | 'orders' | 'deals' | 'messages' | 'reminders' | 'community'
 
+interface InAppNotification {
+  id: string
+  type: string
+  title: string
+  body: string
+  data: { stream_id?: string; [key: string]: unknown }
+  created_at: string
+}
+
 const DB_COLUMNS: Record<NotifKey, string> = {
   live: 'notify_live',
   orders: 'notify_orders',
@@ -21,6 +30,25 @@ const DEFAULT_TOGGLES: Record<NotifKey, boolean> = {
   live: true, orders: true, deals: false, messages: true, reminders: true, community: false,
 }
 
+function timeAgo(dateStr: string, lang: string): string {
+  const now = Date.now()
+  const then = new Date(dateStr).getTime()
+  const diffSec = Math.floor((now - then) / 1000)
+  if (diffSec < 60) {
+    return lang === 'fr' ? 'maintenant' : lang === 'es' ? 'ahora' : lang === 'he' ? '\u05E2\u05DB\u05E9\u05D9\u05D5' : 'now'
+  }
+  const diffMin = Math.floor(diffSec / 60)
+  if (diffMin < 60) {
+    return lang === 'fr' ? `il y a ${diffMin}min` : lang === 'es' ? `hace ${diffMin}min` : lang === 'he' ? `\u05DC\u05E4\u05E0\u05D9 ${diffMin} \u05D3\u05E7\u05F3` : `${diffMin}m ago`
+  }
+  const diffH = Math.floor(diffMin / 60)
+  if (diffH < 24) {
+    return lang === 'fr' ? `il y a ${diffH}h` : lang === 'es' ? `hace ${diffH}h` : lang === 'he' ? `\u05DC\u05E4\u05E0\u05D9 ${diffH} \u05E9\u05E2\u05D5\u05EA` : `${diffH}h ago`
+  }
+  const diffD = Math.floor(diffH / 24)
+  return lang === 'fr' ? `il y a ${diffD}j` : lang === 'es' ? `hace ${diffD}d` : lang === 'he' ? `\u05DC\u05E4\u05E0\u05D9 ${diffD} \u05D9\u05DE\u05D9\u05DD` : `${diffD}d ago`
+}
+
 const content = {
   fr: {
     title: 'Notifications',
@@ -30,6 +58,9 @@ const content = {
     enable: 'Activer',
     enabled: 'Activees',
     denied: 'Notifications refusees. Active-les dans Reglages > ShaPop > Notifications.',
+    noNotifs: 'Aucune notification',
+    feedTitle: 'Recentes',
+    prefsTitle: 'Preferences',
     items: [
       { id: 'live' as NotifKey, label: 'Vendeurs en direct', desc: 'Sois notifie quand un vendeur que tu suis lance un live' },
       { id: 'orders' as NotifKey, label: 'Suivi de commandes', desc: 'Expedition, livraison et retours' },
@@ -47,6 +78,9 @@ const content = {
     enable: 'Enable',
     enabled: 'Enabled',
     denied: 'Notifications denied. Enable them in Settings > ShaPop > Notifications.',
+    noNotifs: 'No notifications',
+    feedTitle: 'Recent',
+    prefsTitle: 'Preferences',
     items: [
       { id: 'live' as NotifKey, label: 'Sellers go live', desc: 'Get notified when sellers you follow start a stream' },
       { id: 'orders' as NotifKey, label: 'Order updates', desc: 'Shipping, delivery, and return notifications' },
@@ -64,6 +98,9 @@ const content = {
     enable: '\u05D4\u05E4\u05E2\u05DC',
     enabled: '\u05DE\u05D5\u05E4\u05E2\u05DC',
     denied: '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E0\u05D3\u05D7\u05D5. \u05D4\u05E4\u05E2\u05DC \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA > ShaPop > \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA.',
+    noNotifs: '\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA',
+    feedTitle: '\u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA',
+    prefsTitle: '\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA',
     items: [
       { id: 'live' as NotifKey, label: '\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8', desc: '\u05E7\u05D1\u05DC\u05D5 \u05D4\u05EA\u05E8\u05D0\u05D4 \u05DB\u05E9\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E9\u05D0\u05EA\u05DD \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD \u05E9\u05D9\u05D3\u05D5\u05E8' },
       { id: 'orders' as NotifKey, label: '\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9 \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA', desc: '\u05DE\u05E9\u05DC\u05D5\u05D7, \u05DE\u05E1\u05D9\u05E8\u05D4 \u05D5\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA' },
@@ -81,6 +118,9 @@ const content = {
     enable: 'Activar',
     enabled: 'Activadas',
     denied: 'Notificaciones denegadas. Activalas en Ajustes > ShaPop > Notificaciones.',
+    noNotifs: 'Sin notificaciones',
+    feedTitle: 'Recientes',
+    prefsTitle: 'Preferencias',
     items: [
       { id: 'live' as NotifKey, label: 'Vendedores en vivo', desc: 'Aviso cuando vendedores que sigues inician una transmision' },
       { id: 'orders' as NotifKey, label: 'Actualizaciones de pedidos', desc: 'Envio, entrega y devoluciones' },
@@ -104,6 +144,28 @@ export default function NotificationsPage() {
   const [pushDenied, setPushDenied] = useState(false)
   const [loadingPush, setLoadingPush] = useState(false)
   const [loadedFromDb, setLoadedFromDb] = useState(false)
+  const [notifications, setNotifications] = useState<InAppNotification[]>([])
+  const [loadingNotifs, setLoadingNotifs] = useState(true)
+
+  // Load notifications feed
+  useEffect(() => {
+    if (!user || !session?.access_token) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await apiFetch('/api/notifications', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          setNotifications(data)
+        }
+      } catch { /* silent */ }
+      if (!cancelled) setLoadingNotifs(false)
+    })()
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, session])
 
   // Load preferences via server API on mount
   useEffect(() => {
@@ -198,6 +260,68 @@ export default function NotificationsPage() {
       </div>
 
       <div style={{ padding: '20px' }}>
+        {/* Notifications feed */}
+        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.feedTitle}</p>
+
+        {loadingNotifs ? (
+          <div style={{ padding: '20px 0', textAlign: 'center' }}>
+            <div style={{ width: '24px', height: '24px', border: '2px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
+          </div>
+        ) : notifications.length === 0 ? (
+          <p style={{ fontSize: '14px', color: '#555', padding: '16px 0', textAlign: 'center' }}>{c.noNotifs}</p>
+        ) : (
+          <div style={{ marginBottom: '24px' }}>
+            {notifications.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => {
+                  if (n.type === 'live' && n.data?.stream_id) {
+                    navigate(`/stream/${n.data.stream_id}`)
+                  }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
+                  padding: '14px 0', borderBottom: '1px solid #1A1A1A',
+                  background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
+                  cursor: n.type === 'live' && n.data?.stream_id ? 'pointer' : 'default',
+                  textAlign: 'left',
+                }}
+              >
+                {/* Live pulse icon */}
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '50%',
+                  backgroundColor: n.type === 'live' ? '#2a0a0a' : '#1A1A1A',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  position: 'relative',
+                }}>
+                  {n.type === 'live' && (
+                    <div style={{
+                      position: 'absolute', top: '4px', right: '4px',
+                      width: '8px', height: '8px', borderRadius: '50%',
+                      backgroundColor: '#E8344E',
+                      animation: 'pulse 1.5s ease-in-out infinite',
+                    }} />
+                  )}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={n.type === 'live' ? '#E8344E' : '#888'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+                  </svg>
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '14px', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</p>
+                  <p style={{ fontSize: '13px', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</p>
+                </div>
+
+                <span style={{ fontSize: '12px', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at, lang)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Preferences section */}
+        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', marginTop: '8px' }}>{c.prefsTitle}</p>
+
         {/* Push notification activation card (native only, not yet enabled) */}
         {isNative && !pushEnabled && !pushDenied && (
           <div style={{
