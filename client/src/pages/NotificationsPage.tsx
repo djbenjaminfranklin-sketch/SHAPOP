@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
-import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import { usePushNotifications } from '../hooks/usePushNotifications'
@@ -94,7 +93,7 @@ const content = {
 }
 
 export default function NotificationsPage() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
@@ -108,14 +107,11 @@ export default function NotificationsPage() {
 
   // Load preferences via server API on mount
   useEffect(() => {
-    if (!user) return
+    if (!user || !session?.access_token) return
     let cancelled = false
     ;(async () => {
       const granted = await checkPermission()
       if (!cancelled) setPushEnabled(granted)
-
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session || cancelled) { if (!cancelled) setLoadedFromDb(true); return }
 
       try {
         const res = await apiFetch('/api/notification-prefs', {
@@ -137,7 +133,7 @@ export default function NotificationsPage() {
     })()
     return () => { cancelled = true }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [user, session])
 
   // Handle enabling push notifications
   const handleEnablePush = useCallback(async () => {
@@ -172,8 +168,7 @@ export default function NotificationsPage() {
 
     // Save via server API (service key bypasses RLS)
     const column = DB_COLUMNS[key]
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    if (!session?.access_token) return
 
     const updatedToggles = { ...toggles, [key]: newValue }
     await apiFetch('/api/notification-prefs', {
@@ -184,7 +179,7 @@ export default function NotificationsPage() {
       },
       body: JSON.stringify({ column, value: newValue, allPrefs: updatedToggles }),
     })
-  }, [user, toggles, pushEnabled, requestPermission])
+  }, [user, session, toggles, pushEnabled, requestPermission])
 
   if (!user) {
     navigate('/login', { replace: true })
