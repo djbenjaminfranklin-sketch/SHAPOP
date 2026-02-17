@@ -7,7 +7,7 @@ import { apiFetch } from '../lib/api'
 import { showToast } from '../lib/toast'
 import { Browser } from '@capacitor/browser'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -197,7 +197,8 @@ function getStripePromise() {
   return stripePromise
 }
 
-function SetupCardFormInner({ onSuccess, onError, loading, setLoading, saveLabel }: {
+function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoading, saveLabel }: {
+  clientSecret: string
   onSuccess: () => void
   onError: (msg: string) => void
   loading: boolean
@@ -210,12 +211,12 @@ function SetupCardFormInner({ onSuccess, onError, loading, setLoading, saveLabel
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!stripe || !elements) return
+    const cardElement = elements.getElement(CardElement)
+    if (!cardElement) return
     setLoading(true)
 
-    const { error } = await stripe.confirmSetup({
-      elements,
-      confirmParams: { return_url: 'https://shapop.app/card-saved' },
-      redirect: 'if_required',
+    const { error } = await stripe.confirmCardSetup(clientSecret, {
+      payment_method: { card: cardElement },
     })
 
     if (error) {
@@ -228,7 +229,22 @@ function SetupCardFormInner({ onSuccess, onError, loading, setLoading, saveLabel
 
   return (
     <form onSubmit={handleSubmit}>
-      <PaymentElement options={{ layout: 'tabs' }} />
+      <div style={{
+        padding: '14px', borderRadius: '10px',
+        backgroundColor: '#0D0D0D', border: '1px solid #333',
+      }}>
+        <CardElement options={{
+          style: {
+            base: {
+              fontSize: '16px',
+              color: '#fff',
+              '::placeholder': { color: '#555' },
+              iconColor: '#F0908A',
+            },
+            invalid: { color: '#E8344E' },
+          },
+        }} />
+      </div>
       <button
         type="submit"
         disabled={!stripe || loading}
@@ -612,23 +628,9 @@ export default function PaymentsPage() {
                   )}
 
                   {setupClientSecret ? (
-                    <Elements
-                      stripe={getStripePromise()}
-                      options={{
-                        clientSecret: setupClientSecret,
-                        appearance: {
-                          theme: 'night',
-                          variables: {
-                            colorPrimary: '#F0908A',
-                            colorBackground: '#0D0D0D',
-                            colorText: '#fff',
-                            borderRadius: '10px',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-                          },
-                        },
-                      }}
-                    >
+                    <Elements stripe={getStripePromise()}>
                       <SetupCardFormInner
+                        clientSecret={setupClientSecret}
                         onSuccess={() => { setSetupSuccess(true); setSetupLoading(false) }}
                         onError={(msg) => { setSetupError(msg); setSetupLoading(false) }}
                         loading={setupLoading}
