@@ -272,6 +272,26 @@ export default function LiveSellerView() {
     }
   }, [livekitUrl, livekitToken, startBroadcast])
 
+  // Mark stream as 'live' when broadcasting starts (fallback if webhook doesn't fire)
+  const markedLiveRef = useRef(false)
+  useEffect(() => {
+    if (!isBroadcasting || !streamId || !sessionToken || markedLiveRef.current) return
+    markedLiveRef.current = true
+    supabase
+      .from('streams')
+      .update({ status: 'live', started_at: new Date().toISOString() })
+      .eq('id', streamId)
+      .then(({ error }) => {
+        if (error) {
+          // Fallback via API
+          apiFetch(`/api/streams/${streamId}/mark-live`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${sessionToken}` },
+          }).catch(() => {})
+        }
+      })
+  }, [isBroadcasting, streamId, sessionToken])
+
   const currentItem = currentIndex >= 0 && currentIndex < items.length ? items[currentIndex] : null
   const formatLot = (n: number) => `#${String(n).padStart(3, '0')}`
 
@@ -484,71 +504,50 @@ export default function LiveSellerView() {
     autoResolvedRef.current = currentItem.id
 
     const autoResolve = async () => {
-      // Check for bids
-      const { data: bids } = await supabase
-        .from('bids')
-        .select('*')
-        .eq('item_id', currentItem.id)
-        .order('amount', { ascending: false })
-        .limit(1)
+      // Use server API to resolve auction (bypasses RLS for reading bids + updating item)
+      if (!sessionToken) return
 
-      const hasBids = bids && bids.length > 0
-      const now = new Date().toISOString()
+      try {
+        const resp = await apiFetch(`/api/items/${currentItem.id}/end-auction`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionToken}`,
+          },
+        })
 
-      const minPrice = currentItem.min_price || 0
+        const result = await resp.json().catch(() => ({}))
 
-      if (hasBids && bids[0].amount >= minPrice) {
-        // Auto-sell to highest bidder (bid meets reserve price)
-        const winnerId = bids[0].bidder_id
-        const finalPrice = bids[0].amount
+        if (result.status === 'sold' && result.winner_id) {
+          const winnerId = result.winner_id
+          const finalPrice = result.final_price || currentItem.current_price
 
-        await supabase
-          .from('items')
-          .update({
-            status: 'sold' as const,
-            winner_id: winnerId,
-            current_price: finalPrice,
-            ended_at: now,
-          })
-          .eq('id', currentItem.id)
+          // Fetch winner name
+          const { data: winnerProfile } = await supabase
+            .from('profiles')
+            .select('display_name, username')
+            .eq('id', winnerId)
+            .single()
 
-        // Create order via server API (server calculates fees)
-        if (sessionToken) {
-          await apiFetch('/api/orders', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${sessionToken}`,
-            },
-            body: JSON.stringify({ item_id: currentItem.id }),
-          })
+          const winnerName = winnerProfile?.display_name || winnerProfile?.username || winnerId.slice(0, 8).toUpperCase()
+          showSoldOverlay(formatLot(currentIndex + 1), `@${winnerName}`, finalPrice)
+          showToast(`${ct.paymentAccepted} — ${ct.addressOk}`)
+
+          setItems(prev => prev.map((it, i) =>
+            i === currentIndex ? { ...it, status: 'sold' as const, winner_id: winnerId, current_price: finalPrice } : it
+          ))
+        } else {
+          // No bids or unsold
+          showSoldOverlay(formatLot(currentIndex + 1), '', 0, true)
+
+          setItems(prev => prev.map((it, i) =>
+            i === currentIndex ? { ...it, status: 'unsold' as const } : it
+          ))
         }
-
-        const { data: winnerProfile } = await supabase
-          .from('profiles')
-          .select('display_name, username')
-          .eq('id', winnerId)
-          .single()
-
-        const winnerName = winnerProfile?.display_name || winnerProfile?.username || winnerId.slice(0, 8).toUpperCase()
-        showSoldOverlay(formatLot(currentIndex + 1), `@${winnerName}`, finalPrice)
-        showToast(`${ct.paymentAccepted} — ${ct.addressOk}`)
-
-        setItems(prev => prev.map((it, i) =>
-          i === currentIndex ? { ...it, status: 'sold' as const, winner_id: winnerId, current_price: finalPrice } : it
-        ))
-      } else {
-        // No bids — mark unsold
-        await supabase
-          .from('items')
-          .update({
-            status: 'unsold' as const,
-            ended_at: now,
-          })
-          .eq('id', currentItem.id)
-
+      } catch (err) {
+        console.error('Auto-resolve error:', err)
+        // Fallback: mark unsold locally
         showSoldOverlay(formatLot(currentIndex + 1), '', 0, true)
-
         setItems(prev => prev.map((it, i) =>
           i === currentIndex ? { ...it, status: 'unsold' as const } : it
         ))

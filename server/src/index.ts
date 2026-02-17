@@ -1039,6 +1039,15 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
       return
     }
 
+    // Get full item for min_price check
+    const { data: fullItem } = await supabase
+      .from('items')
+      .select('min_price')
+      .eq('id', req.params.id)
+      .single()
+
+    const minPrice = fullItem?.min_price || 0
+
     const { data: topBid } = await supabase
       .from('bids')
       .select('*')
@@ -1047,8 +1056,10 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
       .limit(1)
       .single()
 
-    const status = topBid ? 'sold' : 'unsold'
-    const winnerId = topBid?.bidder_id || null
+    // Only mark sold if bid meets reserve price
+    const meetsReserve = topBid && topBid.amount >= minPrice
+    const status = meetsReserve ? 'sold' : 'unsold'
+    const winnerId = meetsReserve ? topBid.bidder_id : null
 
     const { error } = await supabase
       .from('items')
@@ -1102,7 +1113,7 @@ app.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedReq
       }
     }
 
-    res.json({ success: true, status, winner_id: winnerId })
+    res.json({ success: true, status, winner_id: winnerId, final_price: topBid?.amount || 0 })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }
@@ -1924,6 +1935,36 @@ app.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authenticate
   } catch (err: any) {
     console.error('LiveKit token error:', err?.message || err)
     res.status(500).json({ error: 'Failed to generate LiveKit token' })
+  }
+})
+
+// Mark stream as live (fallback when webhook doesn't fire)
+app.post('/api/streams/:id/mark-live', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, status')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Not your stream' })
+      return
+    }
+    if (stream.status === 'live') {
+      res.json({ success: true, already_live: true })
+      return
+    }
+
+    await supabase
+      .from('streams')
+      .update({ status: 'live', started_at: new Date().toISOString() })
+      .eq('id', streamId)
+
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Failed to mark stream as live' })
   }
 })
 
