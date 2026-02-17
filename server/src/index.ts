@@ -1023,10 +1023,12 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
     const { data: streamOrders } = await supabase.from('orders').select('id').eq('stream_id', streamId)
     const orderIds = streamOrders?.map((o: { id: string }) => o.id) || []
 
-    // 2) Delete shipping_proofs (references orders)
+    // 2) Delete shipping_proofs and conversations (reference orders)
     if (orderIds.length > 0) {
-      const { error: err } = await supabase.from('shipping_proofs').delete().in('order_id', orderIds)
-      if (err) errors.push(`shipping_proofs: ${err.message}`)
+      for (const table of ['shipping_proofs', 'conversations']) {
+        const { error: err } = await supabase.from(table).delete().in('order_id', orderIds)
+        if (err) errors.push(`${table}: ${err.message}`)
+      }
     }
 
     // 3) Delete bids and item_favorites (reference items)
