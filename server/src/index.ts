@@ -1010,15 +1010,88 @@ app.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest, re
       return
     }
 
-    // Delete items first, then stream
-    await supabase.from('items').delete().eq('stream_id', streamId)
+    // Delete items first (bids cascade automatically), then stream (favorites cascade)
+    const { error: itemsErr } = await supabase.from('items').delete().eq('stream_id', streamId)
+    if (itemsErr) console.error('Delete items error:', itemsErr)
     const { error } = await supabase.from('streams').delete().eq('id', streamId)
+    if (error) console.error('Delete stream error:', error)
 
     if (error) {
       res.status(500).json({ error: 'Failed to delete stream' })
       return
     }
     res.json({ status: 'deleted' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// NOTIFICATION PREFERENCES (auth required)
+// =============================================
+
+// Get notification preferences
+app.get('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { data } = await supabase
+      .from('device_tokens')
+      .select('notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
+      .eq('user_id', userId)
+      .order('updated_at', { ascending: false, nullsFirst: false })
+      .limit(1)
+      .maybeSingle()
+
+    res.json(data || {
+      notify_live: true, notify_orders: true, notify_deals: false,
+      notify_messages: true, notify_reminders: true, notify_community: false,
+    })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Update a single notification preference
+app.put('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { column, value, allPrefs } = req.body
+
+    const validColumns = ['notify_live', 'notify_orders', 'notify_deals', 'notify_messages', 'notify_reminders', 'notify_community']
+    if (!column || !validColumns.includes(column)) {
+      res.status(400).json({ error: 'Invalid column' })
+      return
+    }
+
+    const now = new Date().toISOString()
+
+    // Try to update all existing records for this user
+    const { data: updated } = await supabase
+      .from('device_tokens')
+      .update({ [column]: !!value, updated_at: now })
+      .eq('user_id', userId)
+      .select('id')
+
+    // If no records existed, create one with all prefs
+    if (!updated || updated.length === 0) {
+      await supabase
+        .from('device_tokens')
+        .insert({
+          user_id: userId,
+          token: `prefs-${userId}`,
+          platform: 'web',
+          notify_live: allPrefs?.live ?? true,
+          notify_orders: allPrefs?.orders ?? true,
+          notify_deals: allPrefs?.deals ?? false,
+          notify_messages: allPrefs?.messages ?? true,
+          notify_reminders: allPrefs?.reminders ?? true,
+          notify_community: allPrefs?.community ?? false,
+          [column]: !!value,
+          updated_at: now,
+        })
+    }
+
+    res.json({ status: 'updated' })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }

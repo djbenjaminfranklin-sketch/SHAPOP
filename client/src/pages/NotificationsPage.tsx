@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 
@@ -105,34 +106,33 @@ export default function NotificationsPage() {
   const [loadingPush, setLoadingPush] = useState(false)
   const [loadedFromDb, setLoadedFromDb] = useState(false)
 
-  // Load preferences from Supabase on mount
+  // Load preferences via server API on mount
   useEffect(() => {
     if (!user) return
     let cancelled = false
     ;(async () => {
-      // Check push permission status
       const granted = await checkPermission()
       if (!cancelled) setPushEnabled(granted)
 
-      // Load notification preferences from DB — get the most recently updated record
-      const { data } = await supabase
-        .from('device_tokens')
-        .select('notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false, nullsFirst: false })
-        .limit(1)
-        .maybeSingle()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || cancelled) { if (!cancelled) setLoadedFromDb(true); return }
 
-      if (!cancelled && data) {
-        setToggles({
-          live: data.notify_live ?? true,
-          orders: data.notify_orders ?? true,
-          deals: data.notify_deals ?? false,
-          messages: data.notify_messages ?? true,
-          reminders: data.notify_reminders ?? true,
-          community: data.notify_community ?? false,
+      try {
+        const res = await apiFetch('/api/notification-prefs', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
         })
-      }
+        if (res.ok && !cancelled) {
+          const data = await res.json()
+          setToggles({
+            live: data.notify_live ?? true,
+            orders: data.notify_orders ?? true,
+            deals: data.notify_deals ?? false,
+            messages: data.notify_messages ?? true,
+            reminders: data.notify_reminders ?? true,
+            community: data.notify_community ?? false,
+          })
+        }
+      } catch { /* silent */ }
       if (!cancelled) setLoadedFromDb(true)
     })()
     return () => { cancelled = true }
@@ -170,35 +170,20 @@ export default function NotificationsPage() {
       }
     }
 
-    // Save in Supabase — update ALL rows for this user so every device token gets the preference
+    // Save via server API (service key bypasses RLS)
     const column = DB_COLUMNS[key]
-    const now = new Date().toISOString()
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
 
-    // Update all existing device_token records for this user
-    const { data: updated } = await supabase
-      .from('device_tokens')
-      .update({ [column]: newValue, updated_at: now })
-      .eq('user_id', user.id)
-      .select('id')
-
-    // If no records existed, create one
-    if (!updated || updated.length === 0) {
-      const updatedToggles = { ...toggles, [key]: newValue }
-      await supabase
-        .from('device_tokens')
-        .insert({
-          user_id: user.id,
-          token: `prefs-${user.id}`,
-          platform: Capacitor.isNativePlatform() ? (Capacitor.getPlatform() === 'ios' ? 'ios' : 'android') : 'web',
-          notify_live: updatedToggles.live,
-          notify_orders: updatedToggles.orders,
-          notify_deals: updatedToggles.deals,
-          notify_messages: updatedToggles.messages,
-          notify_reminders: updatedToggles.reminders,
-          notify_community: updatedToggles.community,
-          updated_at: now,
-        })
-    }
+    const updatedToggles = { ...toggles, [key]: newValue }
+    await apiFetch('/api/notification-prefs', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ column, value: newValue, allPrefs: updatedToggles }),
+    })
   }, [user, toggles, pushEnabled, requestPermission])
 
   if (!user) {
