@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import type { Conversation } from '../types/database'
 
 function getInitials(name: string): string {
@@ -37,7 +38,6 @@ export default function MessagesPage() {
   const navigate = useNavigate()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [orderTitlesMap, setOrderTitlesMap] = useState<Record<string, string | undefined>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
@@ -51,107 +51,24 @@ export default function MessagesPage() {
     setLoading(true)
     setError(null)
     try {
-      // Fetch conversations where user is a participant
-      const { data, error: fetchErr } = await supabase
-        .from('conversations')
-        .select('*')
-        .or(`participant_1.eq.${user.id},participant_2.eq.${user.id}`)
-        .order('created_at', { ascending: false })
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Non connecte')
 
-      if (fetchErr) throw fetchErr
-
-      const convs = (data || []) as Conversation[]
-
-      // Gather IDs of other participants
-      const otherIds = convs.map(c =>
-        c.participant_1 === user.id ? c.participant_2 : c.participant_1
-      )
-      const uniqueOtherIds = [...new Set(otherIds)]
-
-      // Fetch other participants' profiles
-      let profilesMap: Record<string, { display_name: string; avatar_url: string | null }> = {}
-      if (uniqueOtherIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, display_name, avatar_url')
-          .in('id', uniqueOtherIds)
-        if (profiles) {
-          profilesMap = Object.fromEntries(profiles.map(p => [p.id, p]))
-        }
-      }
-
-      // Fetch last message for each conversation
-      const convIds = convs.map(c => c.id)
-      let lastMessagesMap: Record<string, { message: string; created_at: string }> = {}
-      if (convIds.length > 0) {
-        // For each conversation, get the most recent message
-        const { data: messages } = await supabase
-          .from('conversation_messages')
-          .select('conversation_id, message, created_at')
-          .in('conversation_id', convIds)
-          .order('created_at', { ascending: false })
-
-        if (messages) {
-          // Keep only the first (most recent) message per conversation
-          for (const msg of messages) {
-            if (!lastMessagesMap[msg.conversation_id]) {
-              lastMessagesMap[msg.conversation_id] = msg
-            }
-          }
-        }
-      }
-
-      // Fetch order info for order-type conversations
-      const orderIds = convs.filter(c => c.order_id).map(c => c.order_id!)
-      let ordersMap: Record<string, { item_title?: string }> = {}
-      if (orderIds.length > 0) {
-        const { data: orders } = await supabase
-          .from('orders')
-          .select('id, item:items(title)')
-          .in('id', orderIds)
-        if (orders) {
-          ordersMap = Object.fromEntries(
-            orders.map((o: Record<string, unknown>) => [
-              o.id,
-              { item_title: (o.item as { title?: string } | null)?.title },
-            ])
-          )
-        }
-      }
-
-      // Build order titles map
-      const titlesMap: Record<string, string | undefined> = {}
-      for (const c of convs) {
-        if (c.order_id && ordersMap[c.order_id]) {
-          titlesMap[c.id] = ordersMap[c.order_id].item_title
-        }
-      }
-      setOrderTitlesMap(titlesMap)
-
-      // Enrich conversations
-      const enriched = convs.map(c => {
-        const otherId = c.participant_1 === user.id ? c.participant_2 : c.participant_1
-        const otherProfile = profilesMap[otherId]
-        const lastMsg = lastMessagesMap[c.id]
-        return {
-          ...c,
-          other_participant: otherProfile
-            ? { id: otherId, display_name: otherProfile.display_name, avatar_url: otherProfile.avatar_url } as Conversation['other_participant']
-            : undefined,
-          last_message: lastMsg
-            ? { message: lastMsg.message, created_at: lastMsg.created_at } as Conversation['last_message']
-            : undefined,
-        }
+      const res = await apiFetch('/api/conversations', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
       })
+      if (!res.ok) throw new Error('Erreur serveur')
 
-      // Sort by last message time (most recent first), fallback to conversation created_at
-      enriched.sort((a, b) => {
+      const data = await res.json()
+
+      // Sort by last message time (most recent first)
+      data.sort((a: any, b: any) => {
         const timeA = a.last_message?.created_at || a.created_at
         const timeB = b.last_message?.created_at || b.created_at
         return new Date(timeB).getTime() - new Date(timeA).getTime()
       })
 
-      setConversations(enriched)
+      setConversations(data)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erreur inconnue'
       setError(message)
@@ -221,7 +138,7 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {conversations.map(conv => {
+            {conversations.map((conv: any) => {
               const other = conv.other_participant
               const displayName = other?.display_name || 'Utilisateur'
               const avatarUrl = other?.avatar_url
@@ -233,7 +150,7 @@ export default function MessagesPage() {
                   : lastMsg.message
                 : 'Aucun message'
               const lastTime = lastMsg?.created_at || conv.created_at
-              const orderTitle = orderTitlesMap[conv.id]
+              const orderTitle = conv.order?.item?.title
 
               return (
                 <button

@@ -83,7 +83,7 @@ export function useMuxBroadcast({ streamId, token, mediaStream }: UseMuxBroadcas
           }
         }
 
-        recorder.start(1000) // Send chunks every 1 second
+        recorder.start(250) // Send chunks every 250ms for low-latency streaming
         recorderRef.current = recorder
         setIsBroadcasting(true)
       } catch (err) {

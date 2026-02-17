@@ -42,6 +42,8 @@ export default function ActivityPage() {
   // Data states
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([])
   const [sales, setSales] = useState<SaleOrder[]>([])
+  const [followedSellers, setFollowedSellers] = useState<any[]>([])
+  const [loadingFollowing, setLoadingFollowing] = useState(false)
   const [loadingPurchases, setLoadingPurchases] = useState(false)
   const [loadingSales, setLoadingSales] = useState(false)
   const [errorPurchases, setErrorPurchases] = useState<string | null>(null)
@@ -58,7 +60,7 @@ export default function ActivityPage() {
 
   // Multi-proof upload states (seller)
   const [, setProofLevel] = useState<ProofLevel>('basic')
-  const [proofFiles, setProofFiles] = useState<{ type: string; file: File | null }[]>([{ type: 'package_photo', file: null }])
+  const [proofFiles, setProofFiles] = useState<{ type: string; file: File | null }[]>([{ type: 'photo_package', file: null }])
   const [loadingProofLevel, setLoadingProofLevel] = useState(false)
   const proofFileInputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -86,17 +88,17 @@ export default function ActivityPage() {
         setProofLevel(level)
         // Initialize proof file slots based on level
         if (level === 'basic') {
-          setProofFiles([{ type: 'package_photo', file: null }])
+          setProofFiles([{ type: 'photo_package', file: null }])
         } else if (level === 'standard') {
           setProofFiles([
-            { type: 'package_photo', file: null },
-            { type: 'content_photo', file: null },
+            { type: 'photo_package', file: null },
+            { type: 'photo_content', file: null },
           ])
         } else if (level === 'enhanced') {
           setProofFiles([
-            { type: 'package_photo', file: null },
-            { type: 'content_photo', file: null },
-            { type: 'packing_video', file: null },
+            { type: 'photo_package', file: null },
+            { type: 'photo_content', file: null },
+            { type: 'video_packing', file: null },
           ])
         }
       }
@@ -151,14 +153,52 @@ export default function ActivityPage() {
     }
   }, [user, profile?.is_seller])
 
+  // Fetch followed sellers
+  const fetchFollowing = useCallback(async () => {
+    if (!user) return
+    setLoadingFollowing(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const res = await apiFetch('/api/following', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setFollowedSellers(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch following:', err)
+    } finally {
+      setLoadingFollowing(false)
+    }
+  }, [user])
+
+  // Unfollow a seller
+  const handleUnfollow = async (sellerId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      await apiFetch(`/api/follow/${sellerId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      setFollowedSellers(prev => prev.filter(s => s.id !== sellerId))
+    } catch (err) {
+      console.error('Unfollow error:', err)
+    }
+  }
+
   // Fetch data on mount and when tab changes
   useEffect(() => {
     if (mainTab === 'purchases') {
       fetchPurchases()
     } else if (mainTab === 'sales') {
       fetchSales()
+    } else if (mainTab === 'following') {
+      fetchFollowing()
     }
-  }, [mainTab, fetchPurchases, fetchSales])
+  }, [mainTab, fetchPurchases, fetchSales, fetchFollowing])
 
   // Upload shipping proofs and mark order as shipped
   const handleShipOrder = async () => {
@@ -181,7 +221,7 @@ export default function ActivityPage() {
       // Upload each proof file
       for (const proof of proofFiles) {
         if (!proof.file) continue
-        const ext = proof.type === 'packing_video' ? 'mp4' : 'jpg'
+        const ext = proof.type === 'video_packing' ? 'mp4' : 'jpg'
         const filePath = `shipping-proofs/${shippingOrderId}_${proof.type}_${Date.now()}.${ext}`
         const { error: uploadError } = await supabase.storage
           .from('shipping-proofs')
@@ -194,7 +234,7 @@ export default function ActivityPage() {
           .getPublicUrl(filePath)
 
         proofs.push({ type: proof.type, url: urlData.publicUrl })
-        if (proof.type === 'package_photo') {
+        if (proof.type === 'photo_package') {
           firstProofUrl = urlData.publicUrl
         }
       }
@@ -224,7 +264,7 @@ export default function ActivityPage() {
       // Reset and refresh
       setShippingOrderId(null)
       setSelectedFile(null)
-      setProofFiles([{ type: 'package_photo', file: null }])
+      setProofFiles([{ type: 'photo_package', file: null }])
       setTrackingNumber('')
       fetchSales()
     } catch (err: unknown) {
@@ -316,6 +356,12 @@ export default function ActivityPage() {
       packagePhoto: 'Photo du colis',
       contentPhoto: 'Photo du contenu',
       packingVideo: 'Video d\'emballage',
+      emptyFollowing: 'Tu ne suis aucun vendeur',
+      emptyFollowingDesc: 'Suis tes vendeurs preferes pour etre notifie quand ils passent en live',
+      unfollow: 'Ne plus suivre',
+      liveNow: 'EN DIRECT',
+      scheduled: 'Planifie',
+      noUpcoming: 'Aucun live prevu',
     },
     en: {
       title: 'Activity',
@@ -364,6 +410,12 @@ export default function ActivityPage() {
       packagePhoto: 'Package photo',
       contentPhoto: 'Content photo',
       packingVideo: 'Packing video',
+      emptyFollowing: 'You don\'t follow any sellers yet',
+      emptyFollowingDesc: 'Follow your favorite sellers to get notified when they go live',
+      unfollow: 'Unfollow',
+      liveNow: 'LIVE',
+      scheduled: 'Scheduled',
+      noUpcoming: 'No upcoming lives',
     },
     he: {
       title: '\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA',
@@ -412,6 +464,12 @@ export default function ActivityPage() {
       packagePhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05D7\u05D1\u05D9\u05DC\u05D4',
       contentPhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05EA\u05D5\u05DB\u05DF',
       packingVideo: '\u05E1\u05E8\u05D8\u05D5\u05DF \u05D0\u05E8\u05D9\u05D6\u05D4',
+      emptyFollowing: '\u05D0\u05EA\u05D4 \u05DC\u05D0 \u05E2\u05D5\u05E7\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD',
+      emptyFollowingDesc: '\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05E7\u05D1\u05DC \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA',
+      unfollow: '\u05D4\u05E4\u05E1\u05E7 \u05DE\u05E2\u05E7\u05D1',
+      liveNow: '\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9',
+      scheduled: '\u05DE\u05EA\u05D5\u05DB\u05E0\u05DF',
+      noUpcoming: '\u05D0\u05D9\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05E7\u05E8\u05D5\u05D1\u05D9\u05DD',
     },
     es: {
       title: 'Actividad',
@@ -460,6 +518,12 @@ export default function ActivityPage() {
       packagePhoto: 'Foto del paquete',
       contentPhoto: 'Foto del contenido',
       packingVideo: 'Video de embalaje',
+      emptyFollowing: 'No sigues a ningun vendedor',
+      emptyFollowingDesc: 'Sigue a tus vendedores favoritos para recibir notificaciones',
+      unfollow: 'Dejar de seguir',
+      liveNow: 'EN VIVO',
+      scheduled: 'Programado',
+      noUpcoming: 'Sin lives programados',
     },
   }
 
@@ -626,11 +690,12 @@ export default function ActivityPage() {
     const saleOrder = order as SaleOrder
 
     return (
-      <div key={order.id} style={{
+      <div key={order.id} onClick={() => navigate(`/order/${order.id}`)} style={{
         padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
         border: '1px solid #1A1A1A', marginBottom: '10px',
         opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
         transition: `all 0.4s ease ${0.1 + index * 0.05}s`,
+        cursor: 'pointer',
       }}>
         {/* Main order row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -698,7 +763,7 @@ export default function ActivityPage() {
         {isSale && order.status === 'paid' && (
           <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
             <button
-              onClick={() => { setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null); fetchProofLevel() }}
+              onClick={(e) => { e.stopPropagation(); setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null); fetchProofLevel() }}
               style={{
                 padding: '8px 18px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
@@ -717,7 +782,7 @@ export default function ActivityPage() {
             <img
               src={order.shipping_proof_url}
               alt="Shipping proof"
-              onClick={() => setProofImageUrl(order.shipping_proof_url)}
+              onClick={(e) => { e.stopPropagation(); setProofImageUrl(order.shipping_proof_url) }}
               style={{
                 width: '48px', height: '48px', borderRadius: '8px',
                 objectFit: 'cover', cursor: 'pointer', border: '1px solid #333',
@@ -754,7 +819,7 @@ export default function ActivityPage() {
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {order.shipping_proof_url && (
                 <button
-                  onClick={() => setProofImageUrl(order.shipping_proof_url)}
+                  onClick={(e) => { e.stopPropagation(); setProofImageUrl(order.shipping_proof_url) }}
                   style={{
                     padding: '7px 14px', borderRadius: '8px',
                     background: 'transparent', border: '1px solid #333',
@@ -766,7 +831,7 @@ export default function ActivityPage() {
                 </button>
               )}
               <button
-                onClick={() => handleConfirmDelivery(order.id)}
+                onClick={(e) => { e.stopPropagation(); handleConfirmDelivery(order.id) }}
                 disabled={confirmingDelivery === order.id}
                 style={{
                   padding: '7px 14px', borderRadius: '8px',
@@ -794,7 +859,7 @@ export default function ActivityPage() {
             {order.claim_deadline && new Date(order.claim_deadline) > new Date() ? (
               <div>
                 <button
-                  onClick={() => navigate(`/dispute/${order.id}`)}
+                  onClick={(e) => { e.stopPropagation(); navigate(`/dispute/${order.id}`) }}
                   style={{
                     padding: '8px 16px', borderRadius: '10px',
                     background: 'linear-gradient(135deg, #F97316, #E8344E)',
@@ -829,7 +894,25 @@ export default function ActivityPage() {
         {['paid', 'shipped', 'delivered'].includes(order.status) && (
           <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-start' }}>
             <button
-              onClick={() => navigate('/messages')}
+              onClick={async (e) => {
+                e.stopPropagation()
+                try {
+                  const { data: { session } } = await supabase.auth.getSession()
+                  if (!session) { navigate('/messages'); return }
+                  const res = await apiFetch(`/api/orders/${order.id}/conversation`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${session.access_token}` },
+                  })
+                  if (res.ok) {
+                    const data = await res.json()
+                    navigate(`/conversation/${data.id}`)
+                  } else {
+                    navigate('/messages')
+                  }
+                } catch {
+                  navigate('/messages')
+                }
+              }}
               style={{
                 padding: '7px 14px', borderRadius: '8px',
                 background: 'transparent', border: '1px solid #333',
@@ -896,7 +979,83 @@ export default function ActivityPage() {
     )
   }
 
-  const renderFollowing = () => renderComingSoon('\uD83D\uDC65', lt.comingSoonFollowing)
+  const renderFollowing = () => {
+    if (loadingFollowing) return renderLoading()
+
+    if (followedSellers.length === 0) {
+      return renderEmpty(
+        '\uD83D\uDC65',
+        (lt as any).emptyFollowing || 'Tu ne suis aucun vendeur',
+        (lt as any).emptyFollowingDesc || 'Suis tes vendeurs preferes pour etre notifie',
+        'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+      )
+    }
+
+    return (
+      <div style={{ padding: '0 16px' }}>
+        {followedSellers.map((seller: any, i: number) => {
+          const profile = seller.profiles
+          const displayName = profile?.display_name || seller.store_name || 'Vendeur'
+          const avatarUrl = profile?.avatar_url
+          const hasLive = seller.upcoming_streams?.some((s: any) => s.status === 'live')
+          const nextScheduled = seller.upcoming_streams?.find((s: any) => s.status === 'scheduled')
+
+          return (
+            <div key={seller.id} style={{
+              padding: '14px', backgroundColor: '#0D0D0D', borderRadius: '14px',
+              border: '1px solid #1A1A1A', marginBottom: '10px',
+              opacity: mounted ? 1 : 0, transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
+              transition: `all 0.4s ease ${0.1 + i * 0.05}s`,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '50%', flexShrink: 0,
+                  backgroundColor: '#111', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: hasLive ? '2px solid #E8344E' : '2px solid #222',
+                }}>
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <span style={{ fontSize: '18px', color: '#666', fontWeight: 700 }}>{displayName[0]}</span>
+                  )}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {displayName}
+                  </p>
+                  {seller.store_name && seller.store_name !== displayName && (
+                    <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{seller.store_name}</p>
+                  )}
+                  {hasLive ? (
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#E8344E', backgroundColor: 'rgba(232,52,78,0.1)', padding: '3px 8px', borderRadius: '6px' }}>
+                      {(lt as any).liveNow || 'EN DIRECT'}
+                    </span>
+                  ) : nextScheduled ? (
+                    <span style={{ fontSize: '11px', color: '#8B5CF6' }}>
+                      {(lt as any).scheduled || 'Planifie'} - {new Date(nextScheduled.scheduled_at).toLocaleDateString()}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '11px', color: '#444' }}>{(lt as any).noUpcoming || 'Aucun live prevu'}</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleUnfollow(seller.id)}
+                  style={{
+                    padding: '6px 12px', borderRadius: '8px',
+                    background: 'transparent', border: '1px solid #333',
+                    color: '#888', fontSize: '11px', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  {(lt as any).unfollow || 'Ne plus suivre'}
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   const renderMessages = () => renderComingSoon('\uD83D\uDCAC', lt.comingSoonMessages)
   const renderFavorites = () => renderComingSoon('\u2764\uFE0F', lt.comingSoonFavorites)
 
@@ -1029,10 +1188,10 @@ export default function ActivityPage() {
               </div>
             ) : (
               proofFiles.map((proof, idx) => {
-                const proofLabel = proof.type === 'package_photo' ? lt.packagePhoto
-                  : proof.type === 'content_photo' ? lt.contentPhoto
+                const proofLabel = proof.type === 'photo_package' ? lt.packagePhoto
+                  : proof.type === 'photo_content' ? lt.contentPhoto
                   : lt.packingVideo
-                const isVideo = proof.type === 'packing_video'
+                const isVideo = proof.type === 'video_packing'
                 return (
                   <div key={proof.type} style={{ marginBottom: '12px' }}>
                     <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>

@@ -269,6 +269,7 @@ export default function StreamView() {
   const [sellerName, setSellerName] = useState('')
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
   const [viewerMuted, setViewerMuted] = useState(true)
+  const [isFollowing, setIsFollowing] = useState(false)
 
   // LiveKit viewer state
   const [viewerLkUrl, setViewerLkUrl] = useState<string | null>(null)
@@ -417,7 +418,24 @@ export default function StreamView() {
     }
     fetchSellerProfile()
     fetchSellerReturnPolicy()
-  }, [isSeller, stream])
+
+    // Check follow status
+    const checkFollow = async () => {
+      if (!user) return
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s) return
+      try {
+        const res = await apiFetch(`/api/follow/${stream.seller_id}/status`, {
+          headers: { Authorization: `Bearer ${s.access_token}` },
+        })
+        if (res.ok) {
+          const d = await res.json()
+          setIsFollowing(d.following)
+        }
+      } catch { /* ignore */ }
+    }
+    checkFollow()
+  }, [isSeller, stream, user])
 
   // ═══ SELLER: Fetch own return policy ═══
   useEffect(() => {
@@ -696,7 +714,7 @@ export default function StreamView() {
       const token = session.session?.access_token
       if (!token) return
 
-      await apiFetch('/api/chat/send', {
+      const resp = await apiFetch('/api/chat/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -704,7 +722,13 @@ export default function StreamView() {
         },
         body: JSON.stringify({ stream_id: id, message: newMessage.trim() }),
       })
+      const result = await resp.json().catch(() => ({}))
       setNewMessage('')
+      if (result.warning === 'contact_blocked') {
+        alert(lang === 'fr'
+          ? 'Partager des coordonnees personnelles est interdit sur Shapop. Les recidives entrainent une suspension de compte.'
+          : 'Sharing personal contact information is forbidden on Shapop. Repeated violations will result in account suspension.')
+      }
     } catch (err) {
       console.error('Failed to send chat message:', err)
     }
@@ -1093,9 +1117,37 @@ export default function StreamView() {
                           />
                         ))}
                       </div>
-                      <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>
-                        {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', fontWeight: 500, margin: 0 }}>
+                          {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
+                        </p>
+                        {user && !isSeller && (
+                          <button
+                            onClick={async () => {
+                              const { data: { session: s } } = await supabase.auth.getSession()
+                              if (!s || !stream) return
+                              try {
+                                if (isFollowing) {
+                                  await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
+                                  setIsFollowing(false)
+                                } else {
+                                  await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'POST', headers: { Authorization: `Bearer ${s.access_token}` } })
+                                  setIsFollowing(true)
+                                }
+                              } catch { /* ignore */ }
+                            }}
+                            style={{
+                              padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                              border: isFollowing ? '1px solid #333' : 'none',
+                              background: isFollowing ? 'transparent' : 'rgba(240,144,138,0.2)',
+                              color: isFollowing ? '#666' : '#F0908A',
+                              cursor: 'pointer', flexShrink: 0,
+                            }}
+                          >
+                            {isFollowing ? '\u2713' : '+'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}

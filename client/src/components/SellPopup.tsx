@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 
 interface SellPopupProps {
   isOpen: boolean
@@ -22,7 +25,7 @@ const popupContent = {
     createListing: 'Creer une annonce',
     createListingDesc: 'Vends un produit',
     becomeSellerTitle: 'Devenir vendeur',
-    becomeSellerDesc: 'Pour vendre sur WhatFor, tu dois d\'abord completer ton profil vendeur.',
+    becomeSellerDesc: 'Pour vendre sur Shapop, tu dois d\'abord completer ton profil vendeur.',
     becomeSellerStep1: 'Accepter les regles de la communaute',
     becomeSellerStep2: 'Choisir ta categorie de vente',
     becomeSellerStep3: 'Configurer ton adresse de retour',
@@ -30,6 +33,10 @@ const popupContent = {
     becomeSellerStep5: 'Configurer ton moyen de paiement',
     becomeSellerCta: 'Commencer l\'inscription',
     becomeSellerTime: 'Environ 2 minutes',
+    stripeRequiredTitle: 'Connecte ton compte Stripe',
+    stripeRequiredDesc: 'Pour vendre sur Shapop, tu dois d\'abord connecter ton compte Stripe pour recevoir tes paiements.',
+    stripeRequiredCta: 'Connecter Stripe',
+    stripeRequiredLoading: 'Verification...',
   },
   en: {
     createTitle: 'Create',
@@ -45,7 +52,7 @@ const popupContent = {
     createListing: 'Create a listing',
     createListingDesc: 'Sell a product',
     becomeSellerTitle: 'Become a seller',
-    becomeSellerDesc: 'To sell on WhatFor, you need to complete your seller profile first.',
+    becomeSellerDesc: 'To sell on Shapop, you need to complete your seller profile first.',
     becomeSellerStep1: 'Accept community rules',
     becomeSellerStep2: 'Choose your selling category',
     becomeSellerStep3: 'Set up your return address',
@@ -53,6 +60,10 @@ const popupContent = {
     becomeSellerStep5: 'Set up your payment method',
     becomeSellerCta: 'Start registration',
     becomeSellerTime: 'About 2 minutes',
+    stripeRequiredTitle: 'Connect your Stripe account',
+    stripeRequiredDesc: 'To sell on Shapop, you must first connect your Stripe account to receive payments.',
+    stripeRequiredCta: 'Connect Stripe',
+    stripeRequiredLoading: 'Checking...',
   },
   he: {
     createTitle: 'יצירה',
@@ -68,7 +79,7 @@ const popupContent = {
     createListing: 'צור מודעה',
     createListingDesc: 'מכור מוצר',
     becomeSellerTitle: 'הפוך למוכר',
-    becomeSellerDesc: 'כדי למכור ב-WhatFor, עליך להשלים את פרופיל המוכר שלך.',
+    becomeSellerDesc: 'כדי למכור ב-Shapop, עליך להשלים את פרופיל המוכר שלך.',
     becomeSellerStep1: 'קבל את כללי הקהילה',
     becomeSellerStep2: 'בחר את קטגוריית המכירה',
     becomeSellerStep3: 'הגדר כתובת החזרה',
@@ -76,6 +87,10 @@ const popupContent = {
     becomeSellerStep5: 'הגדר אמצעי תשלום',
     becomeSellerCta: 'התחל הרשמה',
     becomeSellerTime: 'כ-2 דקות',
+    stripeRequiredTitle: 'חבר את חשבון Stripe שלך',
+    stripeRequiredDesc: 'כדי למכור ב-Shapop, עליך לחבר את חשבון Stripe שלך כדי לקבל תשלומים.',
+    stripeRequiredCta: 'חבר Stripe',
+    stripeRequiredLoading: '...בודק',
   },
   es: {
     createTitle: 'Crear',
@@ -91,7 +106,7 @@ const popupContent = {
     createListing: 'Crear un anuncio',
     createListingDesc: 'Vende un producto',
     becomeSellerTitle: 'Convertirte en vendedor',
-    becomeSellerDesc: 'Para vender en WhatFor, primero debes completar tu perfil de vendedor.',
+    becomeSellerDesc: 'Para vender en Shapop, primero debes completar tu perfil de vendedor.',
     becomeSellerStep1: 'Aceptar las reglas de la comunidad',
     becomeSellerStep2: 'Elegir tu categoria de venta',
     becomeSellerStep3: 'Configurar tu direccion de devolucion',
@@ -99,6 +114,10 @@ const popupContent = {
     becomeSellerStep5: 'Configurar tu metodo de pago',
     becomeSellerCta: 'Empezar el registro',
     becomeSellerTime: 'Aproximadamente 2 minutos',
+    stripeRequiredTitle: 'Conecta tu cuenta Stripe',
+    stripeRequiredDesc: 'Para vender en Shapop, primero debes conectar tu cuenta Stripe para recibir pagos.',
+    stripeRequiredCta: 'Conectar Stripe',
+    stripeRequiredLoading: 'Verificando...',
   },
 }
 
@@ -109,6 +128,28 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   const c = popupContent[lang] || popupContent.fr
 
   const isSeller = !!profile?.is_seller
+  const [stripeConnected, setStripeConnected] = useState<boolean | null>(null) // null = loading
+
+  // Check Stripe connection status when popup opens and user is a seller
+  useEffect(() => {
+    if (!isOpen || !isSeller) return
+    setStripeConnected(null) // reset to loading
+    const checkStripe = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session?.session?.access_token
+        if (!token) { setStripeConnected(false); return }
+        const resp = await apiFetch('/api/stripe/account-status', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        })
+        const data = await resp.json()
+        setStripeConnected(data.connected && data.charges_enabled)
+      } catch {
+        setStripeConnected(false)
+      }
+    }
+    checkStripe()
+  }, [isOpen, isSeller])
 
   const actions = [
     {
@@ -215,7 +256,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: 0 }}>
-          {isSeller ? c.createTitle : c.becomeSellerTitle}
+          {!isSeller ? c.becomeSellerTitle : stripeConnected === false ? c.stripeRequiredTitle : c.createTitle}
         </h2>
         <button
           onClick={onClose}
@@ -330,6 +371,59 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
               }} />
               {c.becomeSellerCta}
+            </button>
+          </>
+        ) : stripeConnected === null ? (
+          /* ═══ SELLER: Loading Stripe status ═══ */
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
+            <div style={{
+              width: '32px', height: '32px',
+              border: '3px solid #333', borderTopColor: '#F0908A',
+              borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : stripeConnected === false ? (
+          /* ═══ SELLER: Stripe not connected ═══ */
+          <>
+            <div style={{
+              display: 'flex', justifyContent: 'center', marginTop: '8px', marginBottom: '4px',
+            }}>
+              <div style={{
+                width: '88px', height: '88px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 60%, #0A2540 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '40px',
+                boxShadow: '0 8px 32px rgba(99,91,255,0.25), 0 0 0 6px rgba(99,91,255,0.08)',
+              }}>
+                {'\u{1F4B3}'}
+              </div>
+            </div>
+            <p style={{
+              fontSize: '15px', color: '#888', textAlign: 'center',
+              lineHeight: 1.6, margin: '0 0 16px',
+            }}>
+              {c.stripeRequiredDesc}
+            </p>
+            <button
+              onClick={() => { onClose(); navigate('/payments') }}
+              style={{
+                width: '100%', padding: '18px', marginTop: '8px',
+                background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 50%, #0A2540 100%)',
+                borderRadius: '16px', border: 'none',
+                color: '#fff', fontSize: '17px', fontWeight: 800,
+                cursor: 'pointer',
+                boxShadow: '0 6px 24px rgba(99,91,255,0.35), 0 2px 8px rgba(99,91,255,0.3)',
+                letterSpacing: '0.3px',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+            >
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
+              }} />
+              {c.stripeRequiredCta}
             </button>
           </>
         ) : (

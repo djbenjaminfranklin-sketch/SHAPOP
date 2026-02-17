@@ -43,6 +43,7 @@ const LiveSellerView = lazy(() => import('./pages/LiveSellerView'))
 const LiveRecapPage = lazy(() => import('./pages/LiveRecapPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const DisputePage = lazy(() => import('./pages/DisputePage'))
+const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
 const MessagesPage = lazy(() => import('./pages/MessagesPage'))
 const ConversationPage = lazy(() => import('./pages/ConversationPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
@@ -172,6 +173,7 @@ export default function App() {
                 <Route path="/live-recap/:streamId" element={<LiveRecapPage />} />
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/dispute/:orderId" element={<DisputePage />} />
+                <Route path="/order/:id" element={<OrderDetailPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/conversation/:id" element={<ConversationPage />} />
                 <Route path="*" element={<NotFoundPage />} />

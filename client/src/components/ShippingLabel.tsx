@@ -64,33 +64,31 @@ export default function ShippingLabel({
   const ct = pageContent[lang] || pageContent.fr
 
   const handlePrint = async () => {
-    const isCapacitor = !!(window as any).Capacitor?.isNativePlatform?.()
-
-    if (!isCapacitor) {
+    // window.print() works on both web and iOS Capacitor (WKWebView opens AirPrint dialog)
+    try {
       window.print()
-      return
-    }
+    } catch {
+      // Fallback: share as text if print fails
+      if (navigator.share) {
+        const text = [
+          `SHAPOP - ${ct.order}: ${orderRef}`,
+          '',
+          `${ct.sender}:`,
+          sellerName,
+          sellerAddress,
+          '',
+          `${ct.recipient}:`,
+          buyerName,
+          buyerAddress,
+          buyerPhone ? `Tel: ${buyerPhone}` : '',
+          '',
+          `${ct.lot}: ${lotRef}`,
+        ].filter(Boolean).join('\n')
 
-    // On iOS Capacitor, use share sheet (includes Print option)
-    if (navigator.share) {
-      const text = [
-        `SHAPOP - ${ct.order}: ${orderRef}`,
-        '',
-        `${ct.sender}:`,
-        sellerName,
-        sellerAddress,
-        '',
-        `${ct.recipient}:`,
-        buyerName,
-        buyerAddress,
-        buyerPhone ? `Tel: ${buyerPhone}` : '',
-        '',
-        `${ct.lot}: ${lotRef}`,
-      ].filter(Boolean).join('\n')
-
-      try {
-        await navigator.share({ title: `ShaPop - ${ct.order} ${orderRef}`, text })
-      } catch { /* user cancelled */ }
+        try {
+          await navigator.share({ title: `ShaPop - ${ct.order} ${orderRef}`, text })
+        } catch { /* user cancelled */ }
+      }
     }
   }
 

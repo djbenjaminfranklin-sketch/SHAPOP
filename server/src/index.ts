@@ -2273,9 +2273,10 @@ app.post('/api/stripe/create-connect-account', requireAuth, async (req: Authenti
     })
 
     res.json({ url: accountLink.url, account_id: account.id })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Stripe Connect error:', err)
-    res.status(500).json({ error: 'Failed to create Stripe account' })
+    const msg = err?.message || err?.raw?.message || 'Failed to create Stripe account'
+    res.status(500).json({ error: msg })
   }
 })
 
@@ -3391,23 +3392,100 @@ app.get('/api/admin/audit-log', requireAdmin, async (req: AuthenticatedRequest, 
 // =============================================
 // CHAT FILTERING (Priority #1 — replaces direct Supabase insert)
 // =============================================
-const CONTACT_PATTERNS = [
-  /[\w.-]+@[\w.-]+\.\w{2,}/i,                          // Email
-  /\+?\d{10,14}/,                                       // International phone
-  /0[0-9]{1,2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}/,  // French phone
-  /0[0-9]{1,2}[-.\s]?[0-9]{6,8}/,                      // Generic local phone
-  /@[\w]{3,}/,                                          // @handle
-  /\b(instagram|insta|telegram|whatsapp|whats\s?app|snapchat|snap|signal|discord)\b/i, // Social keywords
-  /\b(dm\s+me|message\s+me|contact\s+me|text\s+me|call\s+me|appelle[\s-]moi|ecris[\s-]moi|contacte[\s-]moi)\b/i, // Contact solicitation
+const CONTACT_PATTERNS: { pattern: RegExp; label: string }[] = [
+  // --- Emails ---
+  { pattern: /[\w.-]+@[\w.-]+\.\w{2,}/i, label: 'email' },
+  { pattern: /[\w.-]+\s*\[\s*at\s*\]\s*[\w.-]+/i, label: 'email_obfuscated' }, // user [at] domain
+  { pattern: /[\w.-]+\s*arobase\s*[\w.-]+/i, label: 'email_arobase' },
+
+  // --- Phone numbers ---
+  { pattern: /\+?\d{10,14}/, label: 'phone_international' },
+  { pattern: /0[0-9]{1,2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}[-.\s]?[0-9]{2}/, label: 'phone_french' },
+  { pattern: /0[0-9]{1,2}[-.\s]?[0-9]{6,8}/, label: 'phone_local' },
+  // Phone with dots/spaces separating each digit: 0 6 1 2 3 4 5 6 7 8
+  { pattern: /0\s*[0-9]\s+[0-9][\s.]{1,2}[0-9][\s.]{1,2}[0-9][\s.]{1,2}[0-9][\s.]{1,2}[0-9]/, label: 'phone_spaced' },
+  // Phone numbers written as words (French)
+  { pattern: /\b(z[eé]ro)\s*(six|sept|cinq|un|deux|trois|quatre|huit|neuf)\b/i, label: 'phone_words_fr' },
+
+  // --- Social handles ---
+  { pattern: /@[\w]{3,}/, label: 'handle' },
+
+  // --- Social platforms ---
+  { pattern: /\b(instagram|insta|ig)\b/i, label: 'social_instagram' },
+  { pattern: /\b(telegram|tele?gram|tg)\b/i, label: 'social_telegram' },
+  { pattern: /\b(whatsapp|whats\s?app|wh?atsap)\b/i, label: 'social_whatsapp' },
+  { pattern: /\b(snapchat|snap)\b/i, label: 'social_snapchat' },
+  { pattern: /\b(signal)\b/i, label: 'social_signal' },
+  { pattern: /\b(discord)\b/i, label: 'social_discord' },
+  { pattern: /\b(facebook|fb|messenger)\b/i, label: 'social_facebook' },
+  { pattern: /\b(tiktok|tik\s?tok)\b/i, label: 'social_tiktok' },
+  { pattern: /\b(twitter|x\.com)\b/i, label: 'social_twitter' },
+  { pattern: /\b(viber|wechat|line)\b/i, label: 'social_other' },
+
+  // --- URLs ---
+  { pattern: /https?:\/\/[^\s]+/i, label: 'url' },
+  { pattern: /\b[\w-]+\.(com|fr|net|org|io|co|app|me|link|ly)\b/i, label: 'url_domain' },
+
+  // --- Contact solicitation (FR + EN) ---
+  { pattern: /\b(dm\s+me|message\s+me|contact\s+me|text\s+me|call\s+me|hit\s+me\s+up|hmu)\b/i, label: 'solicitation_en' },
+  { pattern: /\b(appelle[\s-]?moi|ecris[\s-]?moi|contacte[\s-]?moi|envoie[\s-]?moi|ajoute[\s-]?moi|rejoins[\s-]?moi)\b/i, label: 'solicitation_fr' },
+  { pattern: /\b(mon\s+(num[eé]ro|tel|t[eé]l[eé]phone|mail|adresse|compte|profil|insta|snap|whatsapp))\b/i, label: 'solicitation_possessive_fr' },
+  { pattern: /\b(en\s+priv[eé]|en\s+dm|en\s+mp|hors\s+(de\s+)?la\s+plateforme|hors\s+appli|en\s+dehors)\b/i, label: 'solicitation_offplatform_fr' },
+
+  // --- IBAN / financial ---
+  { pattern: /\b[A-Z]{2}\d{2}[\s]?[\dA-Z]{4}[\s]?[\dA-Z]{4}[\s]?[\dA-Z]{4}/i, label: 'iban' },
+  { pattern: /\b(paypal\.me|revolut\.me|lydia)\b/i, label: 'payment_link' },
 ]
 
 function detectContactInfo(message: string): string | null {
-  for (const pattern of CONTACT_PATTERNS) {
-    if (pattern.test(message)) {
-      return pattern.source
+  // Normalize: remove zero-width chars, replace common obfuscation
+  const normalized = message
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // zero-width chars
+    .replace(/\(/g, '').replace(/\)/g, '')  // parentheses around digits
+    .replace(/\b(dot|point|punto)\b/gi, '.') // "dot" → "."
+    .replace(/\b(at|arobase|arroba)\b/gi, '@') // "at" → "@"
+
+  for (const { pattern, label } of CONTACT_PATTERNS) {
+    if (pattern.test(normalized)) {
+      return label
     }
   }
   return null
+}
+
+// Auto-sanction system: track flags per user, warn then suspend
+const FLAG_WARN_THRESHOLD = 3   // Warning after 3 flagged messages
+const FLAG_SUSPEND_THRESHOLD = 5 // Auto-suspend after 5 flagged messages
+
+async function handleAutoSanction(userId: string, flagLabel: string): Promise<void> {
+  try {
+    // Count total flagged messages (chat + conversations)
+    const [chatFlags, convFlags] = await Promise.all([
+      supabase.from('chat_messages').select('id', { count: 'exact', head: true })
+        .eq('user_id', userId).eq('is_flagged', true),
+      supabase.from('conversation_messages').select('id', { count: 'exact', head: true })
+        .eq('sender_id', userId).eq('is_flagged', true),
+    ])
+
+    const totalFlags = (chatFlags.count || 0) + (convFlags.count || 0)
+    console.log(`[Moderation] User ${userId} — flag #${totalFlags} (${flagLabel})`)
+
+    if (totalFlags >= FLAG_SUSPEND_THRESHOLD) {
+      // Auto-suspend
+      await supabase.from('profiles').update({
+        is_suspended: true,
+        suspension_reason: `Auto-suspended: ${totalFlags} messages flagged for sharing contact info`,
+        suspended_at: new Date().toISOString(),
+      }).eq('id', userId)
+      console.log(`[Moderation] User ${userId} AUTO-SUSPENDED after ${totalFlags} flags`)
+
+    } else if (totalFlags === FLAG_WARN_THRESHOLD) {
+      // Log warning (could send push notification in the future)
+      console.log(`[Moderation] User ${userId} WARNING: ${totalFlags} flagged messages`)
+    }
+  } catch (err) {
+    console.error('[Moderation] Auto-sanction error:', err)
+  }
 }
 
 app.post('/api/chat/send', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
@@ -3440,7 +3518,12 @@ app.post('/api/chat/send', requireAuth, async (req: AuthenticatedRequest, res: R
       return
     }
 
-    res.json(data)
+    // Auto-sanction if flagged
+    if (isFlagged) {
+      handleAutoSanction(req.user!.id, flagReason!).catch(() => {})
+    }
+
+    res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }
@@ -3987,7 +4070,212 @@ app.post('/api/conversations/:id/messages', requireAuth, async (req: Authenticat
       return
     }
 
-    res.json(data)
+    // Auto-sanction if flagged
+    if (isFlagged) {
+      handleAutoSanction(userId, flagReason!).catch(() => {})
+    }
+
+    res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// FOLLOW / UNFOLLOW SELLERS
+// =============================================
+
+// Get followed sellers for current user
+app.get('/api/following', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data, error } = await supabase
+      .from('followers')
+      .select('seller_id, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch following' })
+      return
+    }
+
+    if (!data || data.length === 0) {
+      res.json([])
+      return
+    }
+
+    // Enrich with seller + profile info
+    const sellerIds = data.map(f => f.seller_id)
+    const { data: sellers } = await supabase
+      .from('sellers')
+      .select('id, store_name, store_description, categories, profiles:profiles!sellers_id_fkey(display_name, avatar_url, username)')
+      .in('id', sellerIds)
+
+    // Get upcoming/recent streams for each seller
+    const { data: streams } = await supabase
+      .from('streams')
+      .select('id, seller_id, title, thumbnail_url, status, scheduled_at')
+      .in('seller_id', sellerIds)
+      .in('status', ['scheduled', 'live'])
+      .order('scheduled_at', { ascending: true })
+      .limit(20)
+
+    const enriched = (sellers || []).map(seller => ({
+      ...seller,
+      followed_at: data.find(f => f.seller_id === seller.id)?.created_at,
+      upcoming_streams: (streams || []).filter(s => s.seller_id === seller.id),
+    }))
+
+    res.json(enriched)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Follow a seller
+app.post('/api/follow/:sellerId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const sellerId = req.params.sellerId
+
+    if (userId === sellerId) {
+      res.status(400).json({ error: 'Cannot follow yourself' })
+      return
+    }
+
+    // Check seller exists
+    const { data: seller } = await supabase.from('sellers').select('id').eq('id', sellerId).single()
+    if (!seller) {
+      res.status(404).json({ error: 'Seller not found' })
+      return
+    }
+
+    // Check if already following
+    const { data: existing } = await supabase
+      .from('followers')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('seller_id', sellerId)
+      .single()
+
+    if (existing) {
+      res.json({ status: 'already_following' })
+      return
+    }
+
+    const { error } = await supabase.from('followers').insert({
+      user_id: userId,
+      seller_id: sellerId,
+    })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to follow seller' })
+      return
+    }
+
+    res.json({ status: 'followed' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Unfollow a seller
+app.delete('/api/follow/:sellerId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const sellerId = req.params.sellerId
+
+    const { error } = await supabase
+      .from('followers')
+      .delete()
+      .eq('user_id', userId)
+      .eq('seller_id', sellerId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to unfollow' })
+      return
+    }
+
+    res.json({ status: 'unfollowed' })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Check if user follows a seller
+app.get('/api/follow/:sellerId/status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const sellerId = req.params.sellerId
+
+    const { data } = await supabase
+      .from('followers')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('seller_id', sellerId)
+      .single()
+
+    res.json({ following: !!data })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// GET OR CREATE CONVERSATION BY ORDER
+// =============================================
+
+app.post('/api/orders/:id/conversation', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const orderId = req.params.id
+
+    // Verify user is buyer or seller of this order
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, buyer_id, seller_id')
+      .eq('id', orderId)
+      .single()
+
+    if (!order || (order.buyer_id !== userId && order.seller_id !== userId)) {
+      res.status(403).json({ error: 'Access denied' })
+      return
+    }
+
+    // Check existing conversation
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('order_id', orderId)
+      .eq('type', 'order')
+      .single()
+
+    if (existing) {
+      res.json(existing)
+      return
+    }
+
+    // Create conversation
+    const { data: conv, error } = await supabase
+      .from('conversations')
+      .insert({
+        type: 'order',
+        order_id: orderId,
+        participant_1: order.buyer_id,
+        participant_2: order.seller_id,
+        status: 'active',
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to create conversation' })
+      return
+    }
+
+    res.json(conv)
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }

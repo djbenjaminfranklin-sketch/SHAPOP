@@ -5,6 +5,7 @@ import { getLang } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { showToast } from '../lib/toast'
+import { Browser } from '@capacitor/browser'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -183,6 +184,15 @@ export default function PaymentsPage() {
     }
   }, [searchParams, fetchStatus])
 
+  // Refetch Stripe status when in-app browser closes (user returns from Stripe onboarding)
+  useEffect(() => {
+    let listener: { remove: () => void } | undefined
+    Browser.addListener('browserFinished', () => {
+      fetchStatus()
+    }).then(l => { listener = l })
+    return () => { listener?.remove() }
+  }, [fetchStatus])
+
   const handleConnect = async () => {
     setConnecting(true)
     try {
@@ -198,11 +208,12 @@ export default function PaymentsPage() {
       })
       const data = await res.json()
       if (data.url) {
-        window.location.href = data.url
+        await Browser.open({ url: data.url })
       } else if (data.error) {
         showToast(data.error, 'error')
       }
-    } catch {
+    } catch (err) {
+      console.error('Stripe connect error:', err)
       showToast(c.errorConnect, 'error')
     }
     setConnecting(false)
@@ -221,7 +232,7 @@ export default function PaymentsPage() {
       })
       const data = await res.json()
       if (data.url) {
-        window.open(data.url, '_blank')
+        await Browser.open({ url: data.url })
       } else if (data.error) {
         showToast(data.error, 'error')
       }

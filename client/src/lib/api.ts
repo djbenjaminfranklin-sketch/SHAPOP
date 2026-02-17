@@ -1,7 +1,7 @@
 // Base URL for the API server
 // In dev: empty (Vite proxy handles /api → localhost:4000)
 // In production (Capacitor): the deployed server URL
-export const API_URL = import.meta.env.VITE_API_URL || 'https://shapop.onrender.com'
+export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
 // Helper for API fetch calls
 export function apiFetch(path: string, options?: RequestInit): Promise<Response> {

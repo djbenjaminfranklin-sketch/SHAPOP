@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 
 interface ViewerReactionsProps {
   onReaction: () => void
@@ -23,7 +24,6 @@ let reactionIdCounter = 0
 
 export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
   const [floatingReactions, setFloatingReactions] = useState<FloatingReaction[]>([])
-  const containerRef = useRef<HTMLDivElement>(null)
   const cleanupTimerRef = useRef<number | null>(null)
 
   // Cleanup old floating reactions periodically
@@ -41,7 +41,7 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
     onReaction()
 
     const id = ++reactionIdCounter
-    const x = 20 + Math.random() * 60 // random horizontal position (%)
+    const x = 10 + Math.random() * 80 // random horizontal position (%)
 
     setFloatingReactions(prev => [
       ...prev,
@@ -50,33 +50,37 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
   }, [onReaction])
 
   return (
-    <div ref={containerRef} style={{ position: 'relative' }}>
-      {/* Floating reactions animation area */}
-      <div style={{
-        position: 'absolute',
-        bottom: '100%',
-        left: 0,
-        right: 0,
-        height: '200px',
-        pointerEvents: 'none',
-        overflow: 'hidden',
-      }}>
-        {floatingReactions.map(reaction => (
-          <div
-            key={reaction.id}
-            style={{
-              position: 'absolute',
-              bottom: '0',
-              left: `${reaction.x}%`,
-              fontSize: '28px',
-              animation: 'floatUp 2s ease-out forwards',
-              pointerEvents: 'none',
-            }}
-          >
-            {reaction.emoji}
-          </div>
-        ))}
-      </div>
+    <>
+      {/* Floating reactions — rendered via portal at document.body to avoid iOS clipping */}
+      {floatingReactions.length > 0 && createPortal(
+        <div style={{
+          position: 'fixed',
+          bottom: '120px',
+          left: 0,
+          right: 0,
+          height: '250px',
+          pointerEvents: 'none',
+          zIndex: 9999,
+          overflow: 'visible',
+        }}>
+          {floatingReactions.map(reaction => (
+            <div
+              key={reaction.id}
+              style={{
+                position: 'absolute',
+                bottom: '0',
+                left: `${reaction.x}%`,
+                fontSize: '32px',
+                animation: 'floatUpReaction 2s ease-out forwards',
+                pointerEvents: 'none',
+              }}
+            >
+              {reaction.emoji}
+            </div>
+          ))}
+        </div>,
+        document.body
+      )}
 
       {/* Reaction buttons bar */}
       <div style={{
@@ -136,21 +140,21 @@ export default function ViewerReactions({ onReaction }: ViewerReactionsProps) {
       </div>
 
       <style>{`
-        @keyframes floatUp {
+        @keyframes floatUpReaction {
           0% {
             opacity: 1;
             transform: translateY(0) scale(1);
           }
           50% {
             opacity: 0.8;
-            transform: translateY(-100px) scale(1.2);
+            transform: translateY(-120px) scale(1.3);
           }
           100% {
             opacity: 0;
-            transform: translateY(-200px) scale(0.8);
+            transform: translateY(-250px) scale(0.8);
           }
         }
       `}</style>
-    </div>
+    </>
   )
 }

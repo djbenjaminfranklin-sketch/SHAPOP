@@ -149,6 +149,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
           await Browser.close()
+        } else if (url.includes('/payments')) {
+          // Stripe Connect return — just close the browser, PaymentsPage will refetch
+          await Browser.close()
         }
       }).then(listener => {
         appUrlListener = listener

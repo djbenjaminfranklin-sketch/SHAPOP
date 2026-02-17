@@ -79,12 +79,12 @@ export default function ConversationPage() {
       const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
       const { data: otherProfile } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, username, bio, is_seller, city, country, language, joined_communities, phone_number, phone_verified, created_at')
+        .select('id, display_name, avatar_url, username, bio, is_seller, city, country, language, joined_communities, created_at')
         .eq('id', otherId)
         .single()
 
       if (otherProfile) {
-        conv.other_participant = otherProfile
+        conv.other_participant = otherProfile as any
       }
 
       setConversation(conv)
@@ -183,6 +183,11 @@ export default function ConversationPage() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Erreur lors de l\'envoi')
+      }
+
+      const result = await res.json().catch(() => ({}))
+      if (result.warning === 'contact_blocked') {
+        alert('Partager des coordonnees personnelles est interdit sur Shapop. Les recidives entrainent une suspension de compte.')
       }
 
       setNewMessage('')
