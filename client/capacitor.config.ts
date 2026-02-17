@@ -11,7 +11,12 @@ const config: CapacitorConfig = {
   },
   server: {
     allowNavigation: ['*.supabase.co', '*.stripe.com', '*.onrender.com']
-  }
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
+  },
 };
 
 export default config;

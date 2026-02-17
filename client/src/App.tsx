@@ -67,17 +67,15 @@ function PageLoader() {
   )
 }
 
-/** Auto-register push token if user is logged in and permission was already granted */
+/** Auto-register push token if user is logged in */
 function PushAutoRegister() {
   const { user } = useAuth()
-  const { checkPermission, requestPermission } = usePushNotifications()
+  const { requestPermission } = usePushNotifications()
   useEffect(() => {
     if (!user) return
-    // If permission was already granted, re-register (ensures token is current)
-    checkPermission().then(granted => {
-      if (granted) requestPermission()
-    })
-  }, [user, checkPermission, requestPermission])
+    // Request permission (shows prompt if not yet granted, then registers for push)
+    requestPermission()
+  }, [user, requestPermission])
   return null
 }
 
