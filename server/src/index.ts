@@ -2158,6 +2158,29 @@ app.post('/api/items/:id/bid', requireAuth, async (req: AuthenticatedRequest, re
       return
     }
 
+    // Verify bidder has a saved payment method (card on file)
+    const { data: bidderProfile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!bidderProfile?.stripe_customer_id) {
+      res.status(403).json({ error: 'card_required' })
+      return
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: bidderProfile.stripe_customer_id,
+      type: 'card',
+      limit: 1,
+    })
+
+    if (paymentMethods.data.length === 0) {
+      res.status(403).json({ error: 'card_required' })
+      return
+    }
+
     // Insert bid
     const { error: bidError } = await supabase.from('bids').insert({
       item_id: itemId,
@@ -2335,6 +2358,79 @@ app.post('/api/stripe/dashboard-link', requireAuth, async (req: AuthenticatedReq
   }
 })
 
+// Create a SetupIntent so a buyer can save a card before bidding
+app.post('/api/stripe/create-setup-intent', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    // Check if user already has a Stripe customer
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    let customerId = profile?.stripe_customer_id
+
+    if (!customerId) {
+      // Create a new Stripe Customer
+      const customer = await stripe.customers.create({
+        metadata: { user_id: userId },
+      })
+      customerId = customer.id
+
+      // Save customer ID in profiles
+      await supabase
+        .from('profiles')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', userId)
+    }
+
+    // Create SetupIntent
+    const setupIntent = await stripe.setupIntents.create({
+      customer: customerId,
+      automatic_payment_methods: { enabled: true },
+    })
+
+    res.json({
+      client_secret: setupIntent.client_secret,
+      customer_id: customerId,
+    })
+  } catch (err: any) {
+    console.error('Stripe SetupIntent error:', err)
+    res.status(500).json({ error: err?.message || 'Failed to create setup intent' })
+  }
+})
+
+// Check if a buyer has a saved payment method (card on file)
+app.get('/api/stripe/check-card', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!profile?.stripe_customer_id) {
+      res.json({ has_card: false })
+      return
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id,
+      type: 'card',
+      limit: 1,
+    })
+
+    res.json({ has_card: paymentMethods.data.length > 0 })
+  } catch (err: any) {
+    console.error('Check card error:', err)
+    res.status(500).json({ error: err?.message || 'Failed to check card' })
+  }
+})
+
 // Create a PaymentIntent when a buyer wins an auction
 app.post('/api/stripe/create-payment-intent', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -2428,9 +2524,9 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
       payment_intent_id: paymentIntent.id,
       publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
     })
-  } catch (err) {
+  } catch (err: any) {
     console.error('Stripe PaymentIntent error:', err)
-    res.status(500).json({ error: 'Failed to create payment' })
+    res.status(500).json({ error: err?.message || 'Failed to create payment' })
   }
 })
 

@@ -775,6 +775,7 @@ export default function LiveSellerView() {
         seller_id: user.id,
         stream_id: streamId,
         title: addItemTitle.trim(),
+        category: 'other',
         starting_price: price,
         current_price: price,
         status: 'draft' as const,

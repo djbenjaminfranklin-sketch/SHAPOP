@@ -59,6 +59,12 @@ const streamContent = {
     orderNotFound: 'Commande introuvable. Veuillez contacter le support.',
     paymentTimeout: 'Le paiement a expire. Veuillez fermer et reessayer.',
     paymentFailed: 'Paiement echoue',
+    addCardTitle: 'Ajoute ta carte pour encherir',
+    addCardDesc: 'Une carte est requise pour garantir tes encheres',
+    cardSaved: 'Carte enregistree !',
+    cardSavedDesc: 'Tu peux maintenant encherir',
+    saveCard: 'Enregistrer la carte',
+    cardRequired: 'Ajoute ta carte pour encherir',
   },
   en: {
     viewers: 'viewers',
@@ -104,6 +110,12 @@ const streamContent = {
     orderNotFound: 'Could not find your order. Please contact support.',
     paymentTimeout: 'Payment setup timed out. Please close and try again.',
     paymentFailed: 'Payment failed',
+    addCardTitle: 'Add your card to bid',
+    addCardDesc: 'A card is required to guarantee your bids',
+    cardSaved: 'Card saved!',
+    cardSavedDesc: 'You can now place bids',
+    saveCard: 'Save card',
+    cardRequired: 'Add your card to bid',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -149,6 +161,12 @@ const streamContent = {
     orderNotFound: 'לא ניתן למצוא את ההזמנה שלך. אנא צור קשר עם התמיכה.',
     paymentTimeout: 'זמן התשלום פג. אנא סגור ונסה שוב.',
     paymentFailed: 'התשלום נכשל',
+    addCardTitle: 'הוסף כרטיס כדי להציע',
+    addCardDesc: 'כרטיס נדרש כדי להבטיח את ההצעות שלך',
+    cardSaved: '!הכרטיס נשמר',
+    cardSavedDesc: 'אתה יכול עכשיו להציע',
+    saveCard: 'שמור כרטיס',
+    cardRequired: 'הוסף כרטיס כדי להציע',
   },
   es: {
     viewers: 'espectadores',
@@ -194,6 +212,12 @@ const streamContent = {
     orderNotFound: 'No se pudo encontrar tu pedido. Por favor contacta soporte.',
     paymentTimeout: 'El pago ha expirado. Por favor cierra e intenta de nuevo.',
     paymentFailed: 'Pago fallido',
+    addCardTitle: 'Agrega tu tarjeta para pujar',
+    addCardDesc: 'Se requiere una tarjeta para garantizar tus pujas',
+    cardSaved: 'Tarjeta guardada!',
+    cardSavedDesc: 'Ya puedes pujar',
+    saveCard: 'Guardar tarjeta',
+    cardRequired: 'Agrega tu tarjeta para pujar',
   },
 }
 
@@ -261,6 +285,57 @@ function PaymentFormInner({ onSuccess, onError, loading, setLoading, payNowLabel
   )
 }
 
+// Inner form for card setup (SetupIntent mode)
+function SetupCardFormInner({ onSuccess, onError, loading, setLoading, saveLabel }: {
+  onSuccess: () => void
+  onError: (msg: string) => void
+  loading: boolean
+  setLoading: (v: boolean) => void
+  saveLabel: string
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stripe || !elements) return
+    setLoading(true)
+
+    const { error } = await stripe.confirmSetup({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: 'if_required',
+    })
+
+    if (error) {
+      onError(error.message || 'Failed to save card')
+      setLoading(false)
+    } else {
+      onSuccess()
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <button
+        type="submit"
+        disabled={!stripe || loading}
+        style={{
+          width: '100%', marginTop: '16px', padding: '16px',
+          background: loading ? '#555' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+          borderRadius: '14px', border: 'none',
+          color: '#fff', fontSize: '16px', fontWeight: 700,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? '...' : saveLabel}
+      </button>
+    </form>
+  )
+}
+
 export default function StreamView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -313,9 +388,37 @@ export default function StreamView() {
   const [addressForm, setAddressForm] = useState({ name: '', street: '', city: '', zip: '', phone: '' })
   const [addressStep, setAddressStep] = useState(true) // true = show address first, false = show payment
 
+  // Card setup modal (required before bidding)
+  const [hasCard, setHasCard] = useState<boolean | null>(null) // null = not checked yet
+  const [showCardModal, setShowCardModal] = useState(false)
+  const [setupClientSecret, setSetupClientSecret] = useState<string | null>(null)
+  const [cardLoading, setCardLoading] = useState(false)
+  const [cardSuccess, setCardSuccess] = useState(false)
+  const [cardError, setCardError] = useState<string | null>(null)
+
   // Determine if user is the seller of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
   const isLive = stream?.status === 'live'
+
+  // Check if user has a saved card (for bidding)
+  useEffect(() => {
+    if (!user || isSeller) return
+    const checkCard = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session.session?.access_token
+        if (!token) return
+        const resp = await apiFetch('/api/stripe/check-card', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (resp.ok) {
+          const data = await resp.json()
+          setHasCard(data.has_card)
+        }
+      } catch { /* ignore */ }
+    }
+    checkCard()
+  }, [user, isSeller])
 
   // Fetch LiveKit viewer token when stream has a livekit room and is live
   useEffect(() => {
@@ -760,10 +863,51 @@ export default function StreamView() {
     }
   }
 
+  // Open card setup modal
+  const openCardSetup = async () => {
+    setCardError(null)
+    setCardSuccess(false)
+    setCardLoading(false)
+    setSetupClientSecret(null)
+    setShowCardModal(true)
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+
+      const resp = await apiFetch('/api/stripe/create-setup-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        setCardError(err.error || 'Failed to initialize card setup')
+        return
+      }
+      const data = await resp.json()
+      if (data.client_secret) {
+        setSetupClientSecret(data.client_secret)
+      }
+    } catch (err) {
+      console.error('Setup intent error:', err)
+      setCardError('Failed to initialize card setup')
+    }
+  }
+
   const handlePlaceBid = async () => {
     if (!activeAuction || !user) return
     const amount = parseFloat(bidAmount)
     if (isNaN(amount) || amount <= activeAuction.current_price) return
+
+    // Check if user has a card on file
+    if (hasCard === false) {
+      openCardSetup()
+      return
+    }
 
     try {
       const { data: session } = await supabase.auth.getSession()
@@ -780,6 +924,12 @@ export default function StreamView() {
       })
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
+        // Server returns 'card_required' if no card on file
+        if (err.error === 'card_required') {
+          setHasCard(false)
+          openCardSetup()
+          return
+        }
         throw new Error(err.error || ct.bidError)
       }
       // Update local bid amount for next bid
@@ -1597,8 +1747,8 @@ export default function StreamView() {
           <p style={{ fontSize: '12px', color: '#666', margin: 0, textAlign: 'center' }}>{ct.loginToChat}</p>
         )}
 
-        {/* Viewer reaction buttons */}
-        {!isSeller && isLive && user && (
+        {/* Viewer reaction buttons — show when live OR when LiveKit viewer is connected */}
+        {!isSeller && (isLive || viewerLkToken) && user && (
           <ViewerReactions onReaction={handleViewerReaction} />
         )}
 
@@ -1962,6 +2112,153 @@ export default function StreamView() {
                   }}
                 >
                   ← {ct.confirmAddress}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Card setup modal */}
+      {showCardModal && (
+        <div
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.85)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 300,
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'flex-end',
+          }}
+        >
+          <div style={{
+            backgroundColor: '#111',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+          }}>
+            {cardSuccess ? (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <div style={{
+                  width: '64px', height: '64px', borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
+                  border: '2px solid rgba(34,197,94,0.4)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px',
+                }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>
+                  {ct.cardSaved}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>
+                  {ct.cardSavedDesc}
+                </p>
+                <button
+                  onClick={() => { setShowCardModal(false); setCardSuccess(false) }}
+                  style={{
+                    width: '100%', padding: '16px',
+                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    borderRadius: '14px', border: 'none',
+                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ct.close}
+                </button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(240,144,138,0.2), rgba(240,144,138,0.05))',
+                    border: '1px solid rgba(240,144,138,0.3)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+                      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                      {ct.addCardTitle}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                      {ct.addCardDesc}
+                    </p>
+                  </div>
+                </div>
+
+                {cardError && (
+                  <div style={{
+                    padding: '10px 14px', marginBottom: '12px',
+                    backgroundColor: 'rgba(232,52,78,0.1)',
+                    border: '1px solid rgba(232,52,78,0.3)',
+                    borderRadius: '10px',
+                  }}>
+                    <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{cardError}</p>
+                  </div>
+                )}
+
+                {setupClientSecret ? (
+                  <Elements
+                    stripe={getStripePromise()}
+                    options={{
+                      clientSecret: setupClientSecret,
+                      appearance: {
+                        theme: 'night',
+                        variables: {
+                          colorPrimary: '#F0908A',
+                          colorBackground: '#0D0D0D',
+                          colorText: '#fff',
+                          borderRadius: '10px',
+                          fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                        },
+                      },
+                    }}
+                  >
+                    <SetupCardFormInner
+                      onSuccess={() => {
+                        setCardSuccess(true)
+                        setHasCard(true)
+                        setCardLoading(false)
+                      }}
+                      onError={(msg) => { setCardError(msg); setCardLoading(false) }}
+                      loading={cardLoading}
+                      setLoading={setCardLoading}
+                      saveLabel={ct.saveCard}
+                    />
+                  </Elements>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px' }}>
+                    <div style={{
+                      width: '32px', height: '32px', margin: '0 auto',
+                      border: '3px solid #333', borderTopColor: '#F0908A',
+                      borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                    }} />
+                  </div>
+                )}
+
+                <button
+                  onClick={() => { setShowCardModal(false); setCardError(null) }}
+                  style={{
+                    width: '100%', marginTop: '12px', padding: '12px',
+                    backgroundColor: 'transparent',
+                    border: '1px solid #333', borderRadius: '12px',
+                    color: '#888', fontSize: '13px', fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ct.close}
                 </button>
               </>
             )}

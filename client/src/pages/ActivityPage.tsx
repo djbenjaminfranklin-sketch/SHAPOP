@@ -353,6 +353,7 @@ export default function ActivityPage() {
       disputeOpen: 'Litige ouvert',
       contactSeller: 'Contacter le vendeur',
       contactBuyer: 'Contacter l\'acheteur',
+      shippingLabel: 'Etiquette d\'envoi',
       packagePhoto: 'Photo du colis',
       contentPhoto: 'Photo du contenu',
       packingVideo: 'Video d\'emballage',
@@ -407,6 +408,7 @@ export default function ActivityPage() {
       disputeOpen: 'Dispute open',
       contactSeller: 'Contact seller',
       contactBuyer: 'Contact buyer',
+      shippingLabel: 'Shipping label',
       packagePhoto: 'Package photo',
       contentPhoto: 'Content photo',
       packingVideo: 'Packing video',
@@ -461,6 +463,7 @@ export default function ActivityPage() {
       disputeOpen: '\u05DE\u05D7\u05DC\u05D5\u05E7\u05EA \u05E4\u05EA\u05D5\u05D7\u05D4',
       contactSeller: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05DE\u05D5\u05DB\u05E8',
       contactBuyer: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05E7\u05D5\u05E0\u05D4',
+      shippingLabel: '\u05EA\u05D5\u05D5\u05D9\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
       packagePhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05D7\u05D1\u05D9\u05DC\u05D4',
       contentPhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05EA\u05D5\u05DB\u05DF',
       packingVideo: '\u05E1\u05E8\u05D8\u05D5\u05DF \u05D0\u05E8\u05D9\u05D6\u05D4',
@@ -515,6 +518,7 @@ export default function ActivityPage() {
       disputeOpen: 'Disputa abierta',
       contactSeller: 'Contactar al vendedor',
       contactBuyer: 'Contactar al comprador',
+      shippingLabel: 'Etiqueta de envio',
       packagePhoto: 'Foto del paquete',
       contentPhoto: 'Foto del contenido',
       packingVideo: 'Video de embalaje',
@@ -759,9 +763,22 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {/* Seller: "Ship" button for paid orders */}
+        {/* Seller: "Ship" button + "Shipping label" for paid orders */}
         {isSale && order.status === 'paid' && (
-          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            {order.shipping_address && (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+                style={{
+                  padding: '8px 14px', borderRadius: '10px',
+                  background: 'transparent', border: '1px solid #333',
+                  color: '#aaa', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}
+              >
+                {'\uD83C\uDFF7\uFE0F'} {(lt as any).shippingLabel || 'Etiquette'}
+              </button>
+            )}
             <button
               onClick={(e) => { e.stopPropagation(); setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null); fetchProofLevel() }}
               style={{
@@ -772,6 +789,23 @@ export default function ActivityPage() {
               }}
             >
               {lt.shipOrder}
+            </button>
+          </div>
+        )}
+
+        {/* Seller: "Shipping label" button for shipped orders */}
+        {isSale && order.status === 'shipped' && order.shipping_address && (
+          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-start' }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+              style={{
+                padding: '7px 14px', borderRadius: '8px',
+                background: 'transparent', border: '1px solid #333',
+                color: '#aaa', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px',
+              }}
+            >
+              {'\uD83C\uDFF7\uFE0F'} {(lt as any).shippingLabel || 'Etiquette'}
             </button>
           </div>
         )}

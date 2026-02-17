@@ -11,6 +11,7 @@ export interface Profile {
   joined_communities: string[]
   phone_number: string | null
   phone_verified: boolean
+  stripe_customer_id: string | null
   created_at: string
 }
 
