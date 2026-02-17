@@ -384,6 +384,7 @@ export default function StreamView() {
   const [cameraActive, setCameraActive] = useState(false)
 
   const [sellerName, setSellerName] = useState('')
+  const [sellerScore, setSellerScore] = useState<number | null>(null)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
   const [viewerMuted, setViewerMuted] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
@@ -563,6 +564,30 @@ export default function StreamView() {
     }
     fetchSellerProfile()
     fetchSellerReturnPolicy()
+
+    // Fetch seller trust score
+    const fetchSellerScore = async () => {
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s) return
+      try {
+        const res = await apiFetch(`/api/sellers/${stream.seller_id}/trust`, {
+          headers: { Authorization: `Bearer ${s.access_token}` },
+        })
+        if (res.ok) {
+          const trust = await res.json()
+          // Compute score client-side from trust data
+          const baseScores: Record<string, number> = { new: 8.0, standard: 8.5, trusted: 9.0, premium: 9.5 }
+          let sc = baseScores[trust.trust_level] ?? 8.0
+          const dr = (trust.positive_delivery_rate ?? 1.0)
+          sc += (dr - 0.9) * 2
+          const completed = trust.total_completed_orders || 1
+          const lost = trust.disputes_lost || 0
+          sc -= (lost / completed) * 5
+          setSellerScore(Math.round(Math.max(0, Math.min(10, sc)) * 10) / 10)
+        }
+      } catch { /* ignore */ }
+    }
+    fetchSellerScore()
 
     // Check follow status
     const checkFollow = async () => {
@@ -1336,6 +1361,18 @@ export default function StreamView() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', fontWeight: 500, margin: 0 }}>
                           {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
+                        {sellerScore != null && (
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '6px',
+                            backgroundColor: 'rgba(240,144,138,0.15)', padding: '2px 6px', borderRadius: '6px',
+                            fontSize: '12px', fontWeight: 700, color: '#F0908A',
+                          }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
+                              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                            </svg>
+                            {sellerScore.toFixed(1)}
+                          </span>
+                        )}
                         </p>
                         {user && !isSeller && (
                           <button

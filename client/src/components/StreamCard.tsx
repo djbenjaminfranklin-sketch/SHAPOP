@@ -18,7 +18,7 @@ const COMMUNITY_NAMES: Record<string, string> = {
 }
 
 interface StreamCardProps {
-  stream: Stream & { seller?: { display_name?: string; avatar_url?: string | null; store_name?: string } }
+  stream: Stream & { seller?: { display_name?: string; avatar_url?: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string }
   isFavorited?: boolean
   onToggleFavorite?: (streamId: string) => void
 }
@@ -46,6 +46,18 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {sellerName}
         </span>
+        {stream.seller_score != null && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: '3px',
+            backgroundColor: '#1A1A1A', padding: '2px 6px', borderRadius: '6px',
+            fontSize: '11px', fontWeight: 700, color: '#F0908A', flexShrink: 0,
+          }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            {stream.seller_score.toFixed(1)}
+          </span>
+        )}
       </div>
 
       {/* Thumbnail */}

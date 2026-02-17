@@ -53,6 +53,57 @@ function calculateFees(amount: number) {
   return { platformFee, processingFee, totalFees, sellerPayout }
 }
 
+// Compute a seller score out of 10 from their trust data
+function computeSellerScore(trust: Record<string, unknown>): number {
+  const baseScores: Record<string, number> = { new: 8.0, standard: 8.5, trusted: 9.0, premium: 9.5 }
+  let score = baseScores[(trust.trust_level as string) || 'new'] ?? 8.0
+  // Bonus for delivery rate
+  const deliveryRate = (trust.positive_delivery_rate as number) ?? 1.0
+  score += (deliveryRate - 0.9) * 2 // +0.2 if 100%, -0.2 if 80%
+  // Penalty for disputes
+  const completed = (trust.total_completed_orders as number) || 1
+  const disputesLost = (trust.disputes_lost as number) || 0
+  const disputeRate = disputesLost / completed
+  score -= disputeRate * 5 // -0.5 per 10% dispute rate
+  return Math.round(Math.max(0, Math.min(10, score)) * 10) / 10
+}
+
+// Penalize buyer score on a 0-10 scale (automatic, behavior-based only)
+// Penalties: -1.0 abandoned order, -1.5 no address, -2.0 lost dispute
+async function penalizeBuyerScore(buyerId: string, penalty: number, reason: string) {
+  const { data: bs } = await supabase
+    .from('buyer_scores')
+    .select('*')
+    .eq('user_id', buyerId)
+    .single()
+
+  if (bs) {
+    const currentScore = (bs as Record<string, unknown>).score as number ?? 10
+    const newScore = Math.round(Math.max(0, currentScore - penalty) * 100) / 100
+    let riskLevel = 'low'
+    if (newScore < 3) riskLevel = 'blocked'
+    else if (newScore < 5) riskLevel = 'high'
+    else if (newScore < 7) riskLevel = 'medium'
+
+    await supabase.from('buyer_scores').update({
+      score: newScore,
+      risk_level: riskLevel,
+      updated_at: new Date().toISOString(),
+    }).eq('user_id', buyerId)
+    console.log(`[buyer-score] ${buyerId} penalized -${penalty} (${reason}): ${currentScore} → ${newScore}/10 (${riskLevel})`)
+  } else {
+    const newScore = Math.round(Math.max(0, 10 - penalty) * 100) / 100
+    let riskLevel = 'low'
+    if (newScore < 7) riskLevel = 'medium'
+    await supabase.from('buyer_scores').insert({
+      user_id: buyerId,
+      score: newScore,
+      risk_level: riskLevel,
+    })
+    console.log(`[buyer-score] ${buyerId} new score created with -${penalty} (${reason}): ${newScore}/10`)
+  }
+}
+
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
@@ -423,6 +474,81 @@ async function stripeWebhookHandler(req: Request, res: Response) {
         }
         break
       }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge
+        const piId = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id
+        if (piId) {
+          const { data: order } = await supabase
+            .from('orders')
+            .select('id, status')
+            .eq('stripe_payment_intent_id', piId)
+            .single()
+
+          if (order && order.status !== 'refunded') {
+            await supabase
+              .from('orders')
+              .update({ status: 'refunded', payout_status: 'cancelled' })
+              .eq('id', order.id)
+            console.log(`[Stripe] Refund confirmed for order ${order.id} (PI: ${piId})`)
+          }
+        }
+        break
+      }
+
+      case 'charge.dispute.created': {
+        const dispute = event.data.object as Stripe.Dispute
+        const piId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id
+        if (piId) {
+          const { data: order } = await supabase
+            .from('orders')
+            .select('id, seller_id')
+            .eq('stripe_payment_intent_id', piId)
+            .single()
+
+          if (order) {
+            // Mark order as disputed and freeze payout
+            await supabase
+              .from('orders')
+              .update({ status: 'disputed', payout_status: 'cancelled' })
+              .eq('id', order.id)
+
+            console.log(`[Stripe] Chargeback opened for order ${order.id} — payout cancelled. Dispute ID: ${dispute.id}`)
+          }
+        }
+        break
+      }
+
+      case 'charge.dispute.closed': {
+        const dispute = event.data.object as Stripe.Dispute
+        const piId = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent?.id
+        if (piId) {
+          const { data: order } = await supabase
+            .from('orders')
+            .select('id')
+            .eq('stripe_payment_intent_id', piId)
+            .single()
+
+          if (order) {
+            if (dispute.status === 'won') {
+              // Merchant won — restore order to delivered, allow payout
+              await supabase
+                .from('orders')
+                .update({ status: 'delivered', payout_status: 'pending' })
+                .eq('id', order.id)
+              console.log(`[Stripe] Chargeback WON for order ${order.id} — payout restored`)
+            } else {
+              // Merchant lost — mark as refunded
+              await supabase
+                .from('orders')
+                .update({ status: 'refunded', payout_status: 'cancelled' })
+                .eq('id', order.id)
+              console.log(`[Stripe] Chargeback LOST for order ${order.id} — refunded`)
+            }
+          }
+        }
+        break
+      }
     }
 
     res.json({ received: true })
@@ -566,6 +692,68 @@ async function livekitWebhookHandler(req: Request, res: Response) {
             .filter('data->>stream_id', 'eq', finishedStream.id)
           if (delErr) console.error('[notifications] cleanup error:', delErr.message)
           else console.log(`[notifications] cleaned up live notifs for stream ${finishedStream.id}`)
+
+          // Auto-end all active auctions for this stream
+          const { data: activeItems } = await supabase
+            .from('items')
+            .select('id, min_price, seller_id, stream_id')
+            .eq('stream_id', finishedStream.id)
+            .eq('status', 'active')
+
+          if (activeItems && activeItems.length > 0) {
+            console.log(`[room_finished] Auto-ending ${activeItems.length} active auction(s) for stream ${finishedStream.id}`)
+
+            for (const item of activeItems) {
+              const { data: topBid } = await supabase
+                .from('bids')
+                .select('*')
+                .eq('item_id', item.id)
+                .order('amount', { ascending: false })
+                .limit(1)
+                .maybeSingle()
+
+              const minPrice = item.min_price || 0
+              const meetsReserve = topBid && topBid.amount >= minPrice
+              const status = meetsReserve ? 'sold' : 'unsold'
+              const winnerId = meetsReserve ? topBid.bidder_id : null
+
+              await supabase
+                .from('items')
+                .update({
+                  status,
+                  winner_id: winnerId,
+                  current_price: topBid?.amount || undefined,
+                  ended_at: new Date().toISOString(),
+                })
+                .eq('id', item.id)
+
+              // Create order if sold
+              if (topBid && winnerId) {
+                const { data: existingOrder } = await supabase
+                  .from('orders')
+                  .select('id')
+                  .eq('item_id', item.id)
+                  .maybeSingle()
+
+                if (!existingOrder) {
+                  const fees = calculateFees(topBid.amount)
+                  await supabase.from('orders').insert({
+                    buyer_id: winnerId,
+                    seller_id: item.seller_id,
+                    item_id: item.id,
+                    stream_id: item.stream_id,
+                    amount: topBid.amount,
+                    platform_fee: fees.platformFee,
+                    processing_fee: fees.processingFee,
+                    seller_payout: fees.sellerPayout,
+                  })
+                  console.log(`[room_finished] Order created for item ${item.id} — winner: ${winnerId}, amount: ${topBid.amount}`)
+                }
+              } else {
+                console.log(`[room_finished] Item ${item.id} ended as ${status} (no qualifying bid)`)
+              }
+            }
+          }
         }
       }
     }
@@ -638,6 +826,24 @@ const otpLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: { error: 'Trop de tentatives, reessayez plus tard' },
+})
+
+const paymentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: { error: 'Too many payment requests, please try again later' },
+})
+
+const disputeLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many dispute requests, please try again later' },
+})
+
+const messageLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { error: 'Too many messages, slow down' },
 })
 
 app.use(globalLimiter)
@@ -913,6 +1119,22 @@ app.get('/api/streams', async (req: Request, res: Response) => {
       res.status(500).json({ error: 'Failed to fetch streams' })
       return
     }
+
+    // Enrich with seller trust scores
+    if (data && data.length > 0) {
+      const sellerIds = [...new Set(data.map((s: Record<string, unknown>) => s.seller_id as string))]
+      const { data: trusts } = await supabase
+        .from('seller_trust')
+        .select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost')
+        .in('seller_id', sellerIds)
+      const trustMap = new Map((trusts || []).map((t: Record<string, unknown>) => [t.seller_id, t]))
+      for (const stream of data as Record<string, unknown>[]) {
+        const trust = trustMap.get(stream.seller_id as string) as Record<string, unknown> | undefined
+        stream.seller_score = trust ? computeSellerScore(trust) : 8.0
+        stream.seller_trust_level = trust ? trust.trust_level : 'new'
+      }
+    }
+
     res.json(data)
   } catch {
     res.status(500).json({ error: 'Internal server error' })
@@ -977,6 +1199,16 @@ app.get('/api/streams/:id', async (req: Request, res: Response) => {
       res.status(404).json({ error: 'Stream not found' })
       return
     }
+
+    // Enrich with seller trust score
+    const { data: trust } = await supabase
+      .from('seller_trust')
+      .select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost')
+      .eq('seller_id', data.seller_id)
+      .single()
+    ;(data as Record<string, unknown>).seller_score = trust ? computeSellerScore(trust as Record<string, unknown>) : 8.0
+    ;(data as Record<string, unknown>).seller_trust_level = trust ? trust.trust_level : 'new'
+
     res.json(data)
   } catch {
     res.status(500).json({ error: 'Internal server error' })
@@ -1248,6 +1480,29 @@ app.get('/api/notifications', requireAuth, async (req: AuthenticatedRequest, res
 })
 
 // =============================================
+// GET /api/my-score — buyer sees their own score
+// =============================================
+app.get('/api/my-score', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { data: bs } = await supabase
+      .from('buyer_scores')
+      .select('score, total_orders, total_disputes, risk_level')
+      .eq('user_id', userId)
+      .single()
+
+    if (!bs) {
+      // New buyer — default 10/10
+      res.json({ score: 10.0, total_orders: 0, total_disputes: 0, risk_level: 'low' })
+      return
+    }
+    res.json(bs)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // REGISTER DEVICE TOKEN (push notifications)
 // =============================================
 app.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
@@ -1377,6 +1632,52 @@ app.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Resp
     res.json(order)
   } catch (err) {
     console.error('POST /api/orders error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Cancel an order (only pending_payment, buyer or seller)
+app.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const orderId = req.params.id
+
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, status, buyer_id, seller_id, stripe_payment_intent_id')
+      .eq('id', orderId)
+      .single()
+
+    if (!order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.buyer_id !== userId && order.seller_id !== userId) {
+      res.status(403).json({ error: 'Not your order' })
+      return
+    }
+
+    if (order.status !== 'pending_payment') {
+      res.status(400).json({ error: 'Only pending_payment orders can be cancelled' })
+      return
+    }
+
+    // Cancel Stripe payment intent if exists
+    if (order.stripe_payment_intent_id) {
+      try {
+        await stripe.paymentIntents.cancel(order.stripe_payment_intent_id)
+      } catch { /* PI may already be cancelled or expired */ }
+    }
+
+    await supabase
+      .from('orders')
+      .update({ status: 'cancelled' })
+      .eq('id', orderId)
+
+    console.log(`[orders] Order ${orderId} cancelled by user ${userId}`)
+    res.json({ success: true })
+  } catch {
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -2919,7 +3220,7 @@ app.get('/api/stripe/card-info', requireAuth, async (req: AuthenticatedRequest, 
 })
 
 // Create a PaymentIntent when a buyer wins an auction
-app.post('/api/stripe/create-payment-intent', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { order_id } = req.body
     const buyerId = req.user!.id
@@ -3106,7 +3407,7 @@ app.post('/api/stripe/create-payment-intent', requireAuth, async (req: Authentic
 
 // Confirm payment — client calls this after stripe.confirmPayment() succeeds
 // This is the reliable "pull" approach: we check the PaymentIntent status directly with Stripe
-app.post('/api/stripe/confirm-payment', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { order_id, payment_intent_id } = req.body
     const buyerId = req.user!.id
@@ -3457,6 +3758,23 @@ async function processPaypalPayouts(): Promise<number> {
         .update({ status: 'ready' })
         .eq('id', payout.id)
     }
+  }
+
+  // Step 1b: Retry failed payouts with < 3 attempts (re-queue as ready)
+  const { data: failedPayouts } = await supabase
+    .from('paypal_payouts')
+    .select('id')
+    .eq('status', 'failed')
+    .lt('attempts', 3)
+
+  if (failedPayouts && failedPayouts.length > 0) {
+    for (const p of failedPayouts) {
+      await supabase
+        .from('paypal_payouts')
+        .update({ status: 'ready', error_message: null })
+        .eq('id', p.id)
+    }
+    console.log(`[PayPal Payouts] Re-queued ${failedPayouts.length} failed payout(s) for retry`)
   }
 
   // Step 2: Batch-send ready payouts via PayPal Payouts API
@@ -4502,7 +4820,7 @@ async function handleAutoSanction(userId: string, flagLabel: string): Promise<vo
   }
 }
 
-app.post('/api/chat/send', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/chat/send', messageLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { stream_id, message, type } = req.body
     if (!stream_id || !message || typeof message !== 'string') {
@@ -4558,7 +4876,7 @@ const DisputeBody = z.object({
 })
 
 // Buyer opens a dispute
-app.post('/api/disputes', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/disputes', disputeLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parsed = DisputeBody.safeParse(req.body)
     if (!parsed.success) {
@@ -4617,8 +4935,8 @@ app.post('/api/disputes', requireAuth, async (req: AuthenticatedRequest, res: Re
       .eq('user_id', buyerId)
       .single()
 
-    const score = buyerScore?.score ?? 100
-    const autoRefund = order.amount < 30 && score > 70
+    const score = buyerScore?.score ?? 10
+    const autoRefund = order.amount < 30 && score > 7
 
     const disputeData = {
       order_id,
@@ -4644,10 +4962,23 @@ app.post('/api/disputes', requireAuth, async (req: AuthenticatedRequest, res: Re
       return
     }
 
-    // Update order status
+    // Process actual Stripe refund if auto-refund
+    if (autoRefund && order.stripe_payment_intent_id) {
+      try {
+        await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+        console.log(`[refund] Auto-refund processed for order ${order_id}, PI: ${order.stripe_payment_intent_id}`)
+      } catch (refundErr: unknown) {
+        console.error(`[refund] Auto-refund failed for order ${order_id}:`, (refundErr as Error).message)
+      }
+    }
+
+    // Update order status + cancel payout if refunded
     await supabase
       .from('orders')
-      .update({ status: autoRefund ? 'refunded' : 'disputed' })
+      .update({
+        status: autoRefund ? 'refunded' : 'disputed',
+        ...(autoRefund ? { payout_status: 'cancelled' } : {}),
+      })
       .eq('id', order_id)
 
     // Update buyer scores
@@ -4803,9 +5134,26 @@ app.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authentica
 
     // Update order
     if (resolution === 'buyer') {
+      // Fetch order to get Stripe payment intent ID
+      const { data: order } = await supabase
+        .from('orders')
+        .select('stripe_payment_intent_id')
+        .eq('id', dispute.order_id)
+        .single()
+
+      // Process actual Stripe refund
+      if (order?.stripe_payment_intent_id) {
+        try {
+          await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+          console.log(`[refund] Admin refund processed for order ${dispute.order_id}, PI: ${order.stripe_payment_intent_id}`)
+        } catch (refundErr: unknown) {
+          console.error(`[refund] Admin refund failed for order ${dispute.order_id}:`, (refundErr as Error).message)
+        }
+      }
+
       await supabase
         .from('orders')
-        .update({ status: 'refunded' })
+        .update({ status: 'refunded', payout_status: 'cancelled' })
         .eq('id', dispute.order_id)
 
       // Update buyer score (won)
@@ -4848,11 +5196,11 @@ app.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authentica
         .eq('user_id', dispute.buyer_id)
         .single()
       if (bs) {
-        const newScore = Math.max(0, bs.score - 20)
+        const newScore = Math.round(Math.max(0, bs.score - 2.0) * 100) / 100
         let riskLevel = 'low'
-        if (newScore < 30) riskLevel = 'blocked'
-        else if (newScore < 50) riskLevel = 'high'
-        else if (newScore < 70) riskLevel = 'medium'
+        if (newScore < 3) riskLevel = 'blocked'
+        else if (newScore < 5) riskLevel = 'high'
+        else if (newScore < 7) riskLevel = 'medium'
 
         await supabase.from('buyer_scores').update({
           disputes_lost: bs.disputes_lost + 1,
@@ -5042,7 +5390,7 @@ app.get('/api/conversations/:id/messages', requireAuth, async (req: Authenticate
 })
 
 // Send message in conversation (with filtering)
-app.post('/api/conversations/:id/messages', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+app.post('/api/conversations/:id/messages', messageLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const convId = req.params.id
     const userId = req.user!.id
@@ -5570,7 +5918,48 @@ app.post('/api/admin/run-automations', requireAdmin, async (req: AuthenticatedRe
       claim_windows_closed: 0,
       trust_recalculated: 0,
       paypal_payouts_processed: 0,
+      stale_orders_cancelled: 0,
+      no_address_cancelled: 0,
     }
+
+    // 0a. Auto-cancel pending_payment orders older than 7 days (-10 buyer score)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: staleOrders } = await supabase
+      .from('orders')
+      .select('id, buyer_id, stripe_payment_intent_id')
+      .eq('status', 'pending_payment')
+      .lt('created_at', sevenDaysAgo)
+
+    for (const order of (staleOrders || [])) {
+      if (order.stripe_payment_intent_id) {
+        try { await stripe.paymentIntents.cancel(order.stripe_payment_intent_id) } catch { /* ignore */ }
+      }
+      await supabase.from('orders').update({ status: 'cancelled' }).eq('id', order.id)
+      await penalizeBuyerScore(order.buyer_id, 1.0, 'abandoned_order_no_payment')
+      results.stale_orders_cancelled++
+    }
+
+    // 0b. Auto-cancel paid orders without shipping address after 3 days (-15 buyer score + refund)
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    const { data: noAddressOrders } = await supabase
+      .from('orders')
+      .select('id, buyer_id, stripe_payment_intent_id')
+      .eq('status', 'paid')
+      .is('shipping_address', null)
+      .lt('paid_at', threeDaysAgo)
+
+    for (const order of (noAddressOrders || [])) {
+      // Refund the buyer since they paid but never provided address
+      if (order.stripe_payment_intent_id) {
+        try { await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id }) } catch { /* ignore */ }
+      }
+      await supabase.from('orders').update({ status: 'refunded', payout_status: 'cancelled' }).eq('id', order.id)
+      await penalizeBuyerScore(order.buyer_id, 1.5, 'no_address_timeout')
+      results.no_address_cancelled++
+    }
+
+    if (results.stale_orders_cancelled > 0) console.log(`[automations] Cancelled ${results.stale_orders_cancelled} stale pending_payment orders`)
+    if (results.no_address_cancelled > 0) console.log(`[automations] Refunded ${results.no_address_cancelled} paid orders without address`)
 
     // 1. Auto-confirm delivery if shipped > 14 days without dispute
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
