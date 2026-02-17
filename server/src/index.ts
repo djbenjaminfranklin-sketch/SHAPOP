@@ -2386,10 +2386,10 @@ app.post('/api/stripe/create-setup-intent', requireAuth, async (req: Authenticat
         .eq('id', userId)
     }
 
-    // Create SetupIntent
+    // Create SetupIntent (card only — avoids redirect-based methods that break on Capacitor)
     const setupIntent = await stripe.setupIntents.create({
       customer: customerId,
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ['card'],
     })
 
     res.json({
@@ -2428,6 +2428,47 @@ app.get('/api/stripe/check-card', requireAuth, async (req: AuthenticatedRequest,
   } catch (err: any) {
     console.error('Check card error:', err)
     res.status(500).json({ error: err?.message || 'Failed to check card' })
+  }
+})
+
+// Get buyer's saved card details (brand + last4)
+app.get('/api/stripe/card-info', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!profile?.stripe_customer_id) {
+      res.json({ has_card: false })
+      return
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id,
+      type: 'card',
+      limit: 1,
+    })
+
+    if (paymentMethods.data.length === 0) {
+      res.json({ has_card: false })
+      return
+    }
+
+    const pm = paymentMethods.data[0]
+    res.json({
+      has_card: true,
+      brand: pm.card?.brand || 'card',
+      last4: pm.card?.last4 || '****',
+      exp_month: pm.card?.exp_month,
+      exp_year: pm.card?.exp_year,
+    })
+  } catch (err: any) {
+    console.error('Card info error:', err)
+    res.status(500).json({ error: err?.message || 'Failed to get card info' })
   }
 })
 

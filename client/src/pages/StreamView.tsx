@@ -303,7 +303,7 @@ function SetupCardFormInner({ onSuccess, onError, loading, setLoading, saveLabel
 
     const { error } = await stripe.confirmSetup({
       elements,
-      confirmParams: { return_url: window.location.href },
+      confirmParams: { return_url: 'https://shapop.app/card-saved' },
       redirect: 'if_required',
     })
 
@@ -903,8 +903,8 @@ export default function StreamView() {
     const amount = parseFloat(bidAmount)
     if (isNaN(amount) || amount <= activeAuction.current_price) return
 
-    // Check if user has a card on file
-    if (hasCard === false) {
+    // Check if user has a card on file (null = not checked yet, treat as no card)
+    if (hasCard !== true) {
       openCardSetup()
       return
     }

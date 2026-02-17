@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { showToast } from '../lib/toast'
 import { Browser } from '@capacitor/browser'
+import { loadStripe, type Stripe } from '@stripe/stripe-js'
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -37,6 +39,17 @@ const content = {
     errorConnect: 'Erreur de connexion a Stripe',
     errorDashboard: 'Impossible d\'ouvrir le dashboard Stripe',
     errorLoad: 'Erreur de chargement du statut Stripe',
+    buyerCardTitle: 'Carte bancaire',
+    buyerCardDesc: 'Ajoutez une carte pour encherir en live',
+    buyerCardSaved: 'Carte enregistree',
+    buyerCardLast4: 'se terminant par',
+    buyerChangeCard: 'Changer de carte',
+    buyerAddCard: 'Ajouter une carte',
+    buyerSaveCard: 'Enregistrer la carte',
+    buyerCardSuccess: 'Carte enregistree avec succes !',
+    buyerCardError: 'Erreur lors de l\'enregistrement',
+    buyerNoCard: 'Aucune carte enregistree',
+    buyerNoCardDesc: 'Ajoutez une carte bancaire pour pouvoir encherir sur les lives',
   },
   en: {
     title: 'Payments & Shipping',
@@ -65,6 +78,17 @@ const content = {
     errorConnect: 'Failed to connect to Stripe',
     errorDashboard: 'Failed to open Stripe dashboard',
     errorLoad: 'Failed to load Stripe status',
+    buyerCardTitle: 'Payment card',
+    buyerCardDesc: 'Add a card to bid on live streams',
+    buyerCardSaved: 'Card saved',
+    buyerCardLast4: 'ending in',
+    buyerChangeCard: 'Change card',
+    buyerAddCard: 'Add a card',
+    buyerSaveCard: 'Save card',
+    buyerCardSuccess: 'Card saved successfully!',
+    buyerCardError: 'Error saving card',
+    buyerNoCard: 'No card saved',
+    buyerNoCardDesc: 'Add a payment card to bid on live streams',
   },
   he: {
     title: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7',
@@ -93,6 +117,17 @@ const content = {
     errorConnect: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05DC-Stripe',
     errorDashboard: '\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA \u05D3\u05E9\u05D1\u05D5\u05E8\u05D3 Stripe',
     errorLoad: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D8\u05E2\u05D9\u05E0\u05EA \u05E1\u05D8\u05D8\u05D5\u05E1 Stripe',
+    buyerCardTitle: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05EA\u05E9\u05DC\u05D5\u05DD',
+    buyerCardDesc: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD',
+    buyerCardSaved: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05E0\u05E9\u05DE\u05E8',
+    buyerCardLast4: '\u05DE\u05E1\u05EA\u05D9\u05D9\u05DD \u05D1',
+    buyerChangeCard: '\u05D4\u05D7\u05DC\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1',
+    buyerAddCard: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1',
+    buyerSaveCard: '\u05E9\u05DE\u05D5\u05E8 \u05DB\u05E8\u05D8\u05D9\u05E1',
+    buyerCardSuccess: '!\u05DB\u05E8\u05D8\u05D9\u05E1 \u05E0\u05E9\u05DE\u05E8 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4',
+    buyerCardError: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1',
+    buyerNoCard: '\u05D0\u05D9\u05DF \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E9\u05DE\u05D5\u05E8',
+    buyerNoCardDesc: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD',
   },
   es: {
     title: 'Pagos y Envio',
@@ -121,6 +156,17 @@ const content = {
     errorConnect: 'Error al conectar con Stripe',
     errorDashboard: 'No se pudo abrir el panel de Stripe',
     errorLoad: 'Error al cargar el estado de Stripe',
+    buyerCardTitle: 'Tarjeta bancaria',
+    buyerCardDesc: 'Agrega una tarjeta para pujar en directo',
+    buyerCardSaved: 'Tarjeta guardada',
+    buyerCardLast4: 'terminada en',
+    buyerChangeCard: 'Cambiar tarjeta',
+    buyerAddCard: 'Agregar tarjeta',
+    buyerSaveCard: 'Guardar tarjeta',
+    buyerCardSuccess: 'Tarjeta guardada correctamente!',
+    buyerCardError: 'Error al guardar la tarjeta',
+    buyerNoCard: 'Sin tarjeta guardada',
+    buyerNoCardDesc: 'Agrega una tarjeta bancaria para poder pujar en los directos',
   },
 }
 
@@ -129,6 +175,76 @@ interface StripeStatus {
   charges_enabled?: boolean
   payouts_enabled?: boolean
   details_submitted?: boolean
+}
+
+interface CardInfo {
+  has_card: boolean
+  brand?: string
+  last4?: string
+  exp_month?: number
+  exp_year?: number
+}
+
+// Stripe Elements loader
+let stripePromise: Promise<Stripe | null> | null = null
+function getStripePromise() {
+  if (!stripePromise) {
+    stripePromise = apiFetch('/api/stripe/config')
+      .then(r => r.json())
+      .then(({ publishable_key }) => loadStripe(publishable_key))
+      .catch(() => null)
+  }
+  return stripePromise
+}
+
+function SetupCardFormInner({ onSuccess, onError, loading, setLoading, saveLabel }: {
+  onSuccess: () => void
+  onError: (msg: string) => void
+  loading: boolean
+  setLoading: (v: boolean) => void
+  saveLabel: string
+}) {
+  const stripe = useStripe()
+  const elements = useElements()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stripe || !elements) return
+    setLoading(true)
+
+    const { error } = await stripe.confirmSetup({
+      elements,
+      confirmParams: { return_url: 'https://shapop.app/card-saved' },
+      redirect: 'if_required',
+    })
+
+    if (error) {
+      onError(error.message || 'Failed to save card')
+      setLoading(false)
+    } else {
+      onSuccess()
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <button
+        type="submit"
+        disabled={!stripe || loading}
+        style={{
+          width: '100%', marginTop: '16px', padding: '16px',
+          background: loading ? '#555' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+          borderRadius: '14px', border: 'none',
+          color: '#fff', fontSize: '16px', fontWeight: 700,
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.7 : 1,
+        }}
+      >
+        {loading ? '...' : saveLabel}
+      </button>
+    </form>
+  )
 }
 
 export default function PaymentsPage() {
@@ -141,6 +257,15 @@ export default function PaymentsPage() {
   const [status, setStatus] = useState<StripeStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [connecting, setConnecting] = useState(false)
+
+  // Buyer card state
+  const [cardInfo, setCardInfo] = useState<CardInfo | null>(null)
+  const [cardLoading, setCardLoading] = useState(true)
+  const [showCardSetup, setShowCardSetup] = useState(false)
+  const [setupClientSecret, setSetupClientSecret] = useState<string | null>(null)
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [setupSuccess, setSetupSuccess] = useState(false)
+  const [setupError, setSetupError] = useState<string | null>(null)
   const [shippingPref, setShippingPref] = useState<number>(() => {
     const saved = localStorage.getItem('shippingPref')
     return saved !== null ? Number(saved) : 0
@@ -173,9 +298,62 @@ export default function PaymentsPage() {
     setLoading(false)
   }, [profile?.is_seller])
 
+  // Fetch buyer card info
+  const fetchCardInfo = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setCardLoading(false); return }
+      const res = await apiFetch('/api/stripe/card-info', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCardInfo(data)
+      }
+    } catch {
+      console.warn('Card info check failed')
+    }
+    setCardLoading(false)
+  }, [])
+
+  const openCardSetup = async () => {
+    setSetupError(null)
+    setSetupSuccess(false)
+    setSetupLoading(false)
+    setSetupClientSecret(null)
+    setShowCardSetup(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const resp = await apiFetch('/api/stripe/create-setup-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        setSetupError(err.error || c.buyerCardError)
+        return
+      }
+      const data = await resp.json()
+      if (data.client_secret) {
+        setSetupClientSecret(data.client_secret)
+      }
+    } catch {
+      setSetupError(c.buyerCardError)
+    }
+  }
+
   useEffect(() => {
     fetchStatus()
   }, [fetchStatus])
+
+  useEffect(() => {
+    fetchCardInfo()
+  }, [fetchCardInfo])
 
   // Handle return from Stripe onboarding
   useEffect(() => {
@@ -376,6 +554,179 @@ export default function PaymentsPage() {
                 </button>
               )}
             </>
+          )}
+        </div>
+
+        {/* Buyer card section */}
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px', marginTop: '24px' }}>
+          {c.buyerCardTitle}
+        </h2>
+        <div style={{
+          backgroundColor: '#111', borderRadius: '14px', padding: '20px',
+          marginBottom: '16px',
+        }}>
+          {cardLoading ? (
+            <p style={{ fontSize: '14px', color: '#888', textAlign: 'center' }}>{c.loading}</p>
+          ) : showCardSetup ? (
+            <div>
+              {setupSuccess ? (
+                <div style={{ textAlign: 'center', padding: '12px 0' }}>
+                  <div style={{
+                    width: '56px', height: '56px', borderRadius: '50%',
+                    background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
+                    border: '2px solid rgba(34,197,94,0.4)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 12px',
+                  }}>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5">
+                      <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E', margin: '0 0 8px' }}>
+                    {c.buyerCardSuccess}
+                  </p>
+                  <button
+                    onClick={() => { setShowCardSetup(false); setSetupSuccess(false); fetchCardInfo() }}
+                    style={{
+                      padding: '12px 24px', marginTop: '12px',
+                      background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                      borderRadius: '12px', border: 'none',
+                      color: '#fff', fontSize: '14px', fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    OK
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {setupError && (
+                    <div style={{
+                      padding: '10px 14px', marginBottom: '12px',
+                      backgroundColor: 'rgba(232,52,78,0.1)',
+                      border: '1px solid rgba(232,52,78,0.3)',
+                      borderRadius: '10px',
+                    }}>
+                      <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{setupError}</p>
+                    </div>
+                  )}
+
+                  {setupClientSecret ? (
+                    <Elements
+                      stripe={getStripePromise()}
+                      options={{
+                        clientSecret: setupClientSecret,
+                        appearance: {
+                          theme: 'night',
+                          variables: {
+                            colorPrimary: '#F0908A',
+                            colorBackground: '#0D0D0D',
+                            colorText: '#fff',
+                            borderRadius: '10px',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+                          },
+                        },
+                      }}
+                    >
+                      <SetupCardFormInner
+                        onSuccess={() => { setSetupSuccess(true); setSetupLoading(false) }}
+                        onError={(msg) => { setSetupError(msg); setSetupLoading(false) }}
+                        loading={setupLoading}
+                        setLoading={setSetupLoading}
+                        saveLabel={c.buyerSaveCard}
+                      />
+                    </Elements>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '24px' }}>
+                      <div style={{
+                        width: '32px', height: '32px', margin: '0 auto',
+                        border: '3px solid #333', borderTopColor: '#F0908A',
+                        borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                      }} />
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => { setShowCardSetup(false); setSetupError(null) }}
+                    style={{
+                      width: '100%', marginTop: '12px', padding: '10px',
+                      backgroundColor: 'transparent',
+                      border: '1px solid #333', borderRadius: '10px',
+                      color: '#888', fontSize: '13px', fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {lang === 'fr' ? 'Fermer' : lang === 'es' ? 'Cerrar' : lang === 'he' ? '\u05E1\u05D2\u05D5\u05E8' : 'Close'}
+                  </button>
+                </>
+              )}
+            </div>
+          ) : cardInfo?.has_card ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '12px',
+                background: 'linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05))',
+                border: '1px solid rgba(34,197,94,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '15px', fontWeight: 700, color: '#22C55E', margin: '0 0 2px' }}>
+                  {c.buyerCardSaved}
+                </p>
+                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                  {(cardInfo.brand || 'Card').toUpperCase()} {c.buyerCardLast4} {cardInfo.last4}
+                </p>
+              </div>
+              <button
+                onClick={openCardSetup}
+                style={{
+                  padding: '8px 16px', borderRadius: '10px',
+                  background: 'transparent', border: '1px solid #333',
+                  color: '#aaa', fontSize: '12px', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {c.buyerChangeCard}
+              </button>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(240,144,138,0.05))',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 12px',
+              }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+                  <rect x="1" y="4" width="22" height="16" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
+                {c.buyerNoCard}
+              </p>
+              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 16px', maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                {c.buyerNoCardDesc}
+              </p>
+              <button
+                onClick={openCardSetup}
+                style={{
+                  padding: '14px 28px', borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
+                }}
+              >
+                {c.buyerAddCard}
+              </button>
+            </div>
           )}
         </div>
 
