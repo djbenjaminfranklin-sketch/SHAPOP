@@ -4,9 +4,15 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 
+const PENDING_DEEPLINK_KEY = 'shapop_pending_deeplink'
+
 /**
  * Registers push notifications on iOS, stores the device token via API.
  * Call `requestPermission()` to trigger the iOS permission prompt.
+ *
+ * On cold start, deep links from push notifications are stored in localStorage
+ * and consumed once React Router is mounted, since window.location.hash changes
+ * that happen before the router is ready are silently lost.
  */
 export function usePushNotifications() {
   const { user, session } = useAuth()
@@ -50,6 +56,18 @@ export function usePushNotifications() {
     }
   }, [user, session])
 
+  // On mount, check for a pending deep link stored during cold start
+  useEffect(() => {
+    const pending = localStorage.getItem(PENDING_DEEPLINK_KEY)
+    if (pending) {
+      localStorage.removeItem(PENDING_DEEPLINK_KEY)
+      // Small delay to ensure React Router is fully mounted
+      setTimeout(() => {
+        window.location.hash = pending
+      }, 100)
+    }
+  }, [])
+
   // Set up listeners once
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || registeredRef.current) return
@@ -72,7 +90,11 @@ export function usePushNotifications() {
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const data = action.notification.data
       if (data?.stream_id) {
-        window.location.hash = `/stream/${data.stream_id}`
+        const deepLink = `/stream/${data.stream_id}`
+        // Store in localStorage for cold start (React Router may not be mounted yet)
+        localStorage.setItem(PENDING_DEEPLINK_KEY, deepLink)
+        // Also set hash immediately as fallback for warm start (app already open)
+        window.location.hash = deepLink
       }
     })
 

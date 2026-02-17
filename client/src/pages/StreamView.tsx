@@ -56,6 +56,7 @@ const streamContent = {
     unmuteViewer: 'Reactiver le son',
     messageFlagged: '[Message masque]',
     bidError: 'Enchere echouee',
+    creatingOrder: 'Creation de ta commande...',
     orderNotFound: 'Commande introuvable. Veuillez contacter le support.',
     paymentTimeout: 'Le paiement a expire. Veuillez fermer et reessayer.',
     paymentFailed: 'Paiement echoue',
@@ -107,6 +108,7 @@ const streamContent = {
     unmuteViewer: 'Unmute',
     messageFlagged: '[Hidden message]',
     bidError: 'Bid failed',
+    creatingOrder: 'Creating your order...',
     orderNotFound: 'Could not find your order. Please contact support.',
     paymentTimeout: 'Payment setup timed out. Please close and try again.',
     paymentFailed: 'Payment failed',
@@ -158,6 +160,7 @@ const streamContent = {
     unmuteViewer: 'בטל השתקה',
     messageFlagged: '[הודעה מוסתרת]',
     bidError: 'ההצעה נכשלה',
+    creatingOrder: '...יוצר את ההזמנה שלך',
     orderNotFound: 'לא ניתן למצוא את ההזמנה שלך. אנא צור קשר עם התמיכה.',
     paymentTimeout: 'זמן התשלום פג. אנא סגור ונסה שוב.',
     paymentFailed: 'התשלום נכשל',
@@ -209,6 +212,7 @@ const streamContent = {
     unmuteViewer: 'Activar sonido',
     messageFlagged: '[Mensaje oculto]',
     bidError: 'Puja fallida',
+    creatingOrder: 'Creando tu pedido...',
     orderNotFound: 'No se pudo encontrar tu pedido. Por favor contacta soporte.',
     paymentTimeout: 'El pago ha expirado. Por favor cierra e intenta de nuevo.',
     paymentFailed: 'Pago fallido',
@@ -363,6 +367,7 @@ export default function StreamView() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
+  const auctionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const [stream, setStream] = useState<Stream | null>(null)
   const [activeAuction, setActiveAuction] = useState<Item | null>(null)
@@ -751,6 +756,8 @@ export default function StreamView() {
         // Show payment modal if current user is the winner
         if (userRef.current && item.winner_id === userRef.current.id) {
           setPaymentItem(item)
+          // Show modal immediately with loading state while order is being created
+          setShowPaymentModal(true)
           // Fetch the order with retry (seller may still be creating it)
           const initPayment = async () => {
             // Fix #6: Null check for session
@@ -758,21 +765,19 @@ export default function StreamView() {
             if (sessionError || !session.session) {
               console.error('Failed to get auth session:', sessionError || 'session is null')
               setPaymentError('Authentication error. Please log in again.')
-              setShowPaymentModal(true)
               return
             }
             const token = session.session.access_token
             if (!token) {
               console.error('No access token in session')
               setPaymentError('Authentication error. Please log in again.')
-              setShowPaymentModal(true)
               return
             }
 
-            // Poll for the order (retry up to 10 times, 1s apart)
+            // Poll for the order (retry up to 15 times, 1.5s apart)
             let order: Order | null = null
-            for (let attempt = 0; attempt < 10; attempt++) {
-              await new Promise(r => setTimeout(r, 1000))
+            for (let attempt = 0; attempt < 15; attempt++) {
+              await new Promise(r => setTimeout(r, 1500))
               try {
                 const { data } = await supabase
                   .from('orders')
@@ -785,15 +790,14 @@ export default function StreamView() {
                   break
                 }
               } catch (err) {
-                console.error(`Order polling attempt ${attempt + 1} failed:`, err)
+                console.error(`Order polling attempt ${attempt + 1}/15 failed:`, err)
                 // Continue to next attempt
               }
             }
 
             if (!order) {
-              console.error('Order not found after 10 retries')
+              console.error('Order not found after 15 retries')
               setPaymentError(ct.orderNotFound)
-              setShowPaymentModal(true)
               return
             }
             setPaymentOrder(order)
@@ -828,17 +832,14 @@ export default function StreamView() {
               const err = await resp.json().catch(() => ({}))
               console.error('PaymentIntent error:', err)
               setPaymentError(err.error || 'Failed to initialize payment. Please try again.')
-              setShowPaymentModal(true)
               return
             }
             const piData = await resp.json()
             if (piData.auto_charged) {
               // Card was charged automatically — show success directly
               setPaymentSuccess(true)
-              setShowPaymentModal(true)
             } else if (piData.client_secret) {
               setClientSecret(piData.client_secret)
-              setShowPaymentModal(true)
             }
           }
           initPayment()
@@ -867,19 +868,33 @@ export default function StreamView() {
 
   // Timer pour l'enchere
   useEffect(() => {
+    // Clear any existing interval before creating a new one
+    if (auctionTimerRef.current) {
+      clearInterval(auctionTimerRef.current)
+      auctionTimerRef.current = null
+    }
+
     if (!activeAuction?.started_at) return
 
-    const interval = setInterval(() => {
+    auctionTimerRef.current = setInterval(() => {
       const elapsed = (Date.now() - new Date(activeAuction.started_at!).getTime()) / 1000
       const remaining = Math.max(0, activeAuction.duration_seconds - elapsed)
       setTimeLeft(Math.ceil(remaining))
 
       if (remaining <= 0) {
-        clearInterval(interval)
+        if (auctionTimerRef.current) {
+          clearInterval(auctionTimerRef.current)
+          auctionTimerRef.current = null
+        }
       }
     }, 1000)
 
-    return () => clearInterval(interval)
+    return () => {
+      if (auctionTimerRef.current) {
+        clearInterval(auctionTimerRef.current)
+        auctionTimerRef.current = null
+      }
+    }
   }, [activeAuction])
 
   // Auto-scroll du chat
@@ -2004,6 +2019,45 @@ export default function StreamView() {
                 <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>
                   {ct.paymentSuccessDesc}
                 </p>
+                <button
+                  onClick={handleClosePayment}
+                  style={{
+                    width: '100%', padding: '16px',
+                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    borderRadius: '14px', border: 'none',
+                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {ct.close}
+                </button>
+              </div>
+            ) : !paymentOrder && !paymentError ? (
+              /* Order is being created — show loading state */
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <div style={{
+                  width: '40px', height: '40px', margin: '0 auto 20px',
+                  border: '3px solid #333', borderTopColor: '#F0908A',
+                  borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+                }} />
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+                  {ct.youWon}
+                </h3>
+                <p style={{ fontSize: '14px', color: '#888', margin: 0 }}>
+                  {ct.creatingOrder}
+                </p>
+              </div>
+            ) : paymentError ? (
+              /* Error state — shown only after retries exhausted */
+              <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+                <div style={{
+                  padding: '12px 16px', marginBottom: '20px',
+                  backgroundColor: 'rgba(232,52,78,0.1)',
+                  border: '1px solid rgba(232,52,78,0.3)',
+                  borderRadius: '12px',
+                }}>
+                  <p style={{ fontSize: '14px', color: '#E8344E', margin: 0 }}>{paymentError}</p>
+                </div>
                 <button
                   onClick={handleClosePayment}
                   style={{

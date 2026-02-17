@@ -26,8 +26,10 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
     const room = roomRef.current
     if (room) {
       try {
+        // Stop tracks synchronously first (track.stop() is sync)
         room.localParticipant.trackPublications.forEach((pub: LocalTrackPublication) => {
           if (pub.track) {
+            pub.track.stop()
             room.localParticipant.unpublishTrack(pub.track)
           }
         })
@@ -37,8 +39,11 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
       }
       roomRef.current = null
     }
-    setIsConnected(false)
-    setIsBroadcasting(false)
+    // Guard against state updates after unmount
+    if (!stoppedRef.current) {
+      setIsConnected(false)
+      setIsBroadcasting(false)
+    }
   }, [])
 
   const startBroadcast = useCallback(async () => {
@@ -100,13 +105,26 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
   const stopBroadcast = useCallback(async () => {
     stoppedRef.current = true
     await cleanup()
+    // Explicitly update state since component is still mounted when user calls stop
+    stoppedRef.current = false
+    setIsConnected(false)
+    setIsBroadcasting(false)
   }, [cleanup])
 
-  // Cleanup on unmount
+  // Cleanup on unmount — fire-and-forget since useEffect cleanup must be sync
   useEffect(() => {
     return () => {
       stoppedRef.current = true
-      cleanup()
+      // Stop tracks synchronously for immediate resource release
+      const room = roomRef.current
+      if (room) {
+        room.localParticipant.trackPublications.forEach((pub: LocalTrackPublication) => {
+          if (pub.track) {
+            pub.track.stop()
+          }
+        })
+      }
+      void cleanup()
     }
   }, [cleanup])
 

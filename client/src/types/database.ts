@@ -135,7 +135,7 @@ export interface Order {
   platform_fee: number
   processing_fee: number
   seller_payout: number
-  status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed'
+  status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected' | 'cancelled'
   shipping_address: Record<string, string> | null
   shipping_proof_url: string | null
   tracking_number: string | null
