@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import type { Item } from '../types/database'
 
@@ -17,6 +18,8 @@ const content = {
     aiGenerated: 'Genere par IA',
     noDescription: 'Aucune description disponible.',
     contact: 'Contacter le vendeur',
+    follow: 'Suivre',
+    following: 'Suivi',
   },
   en: {
     notFound: 'Item not found',
@@ -29,6 +32,8 @@ const content = {
     aiGenerated: 'AI generated',
     noDescription: 'No description available.',
     contact: 'Contact seller',
+    follow: 'Follow',
+    following: 'Following',
   },
   he: {
     notFound: 'הפריט לא נמצא',
@@ -41,6 +46,8 @@ const content = {
     aiGenerated: 'נוצר על ידי AI',
     noDescription: 'אין תיאור זמין.',
     contact: 'צור קשר עם המוכר',
+    follow: 'עקוב',
+    following: 'עוקב',
   },
   es: {
     notFound: 'Articulo no encontrado',
@@ -53,6 +60,8 @@ const content = {
     aiGenerated: 'Generado por IA',
     noDescription: 'Sin descripcion disponible.',
     contact: 'Contactar al vendedor',
+    follow: 'Seguir',
+    following: 'Siguiendo',
   },
 } as Record<string, Record<string, string>>
 
@@ -66,11 +75,13 @@ const conditionLabels: Record<string, Record<string, string>> = {
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user, session } = useAuth()
   const lang = localStorage.getItem('shapop_lang') || 'fr'
   const t = content[lang] || content.fr
 
   const [item, setItem] = useState<ItemWithSeller | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isFollowing, setIsFollowing] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
 
   useEffect(() => {
@@ -88,6 +99,28 @@ export default function ItemDetailPage() {
       })
       .finally(() => setLoading(false))
   }, [id])
+
+  // Check follow status when item loads
+  useEffect(() => {
+    if (!item?.seller_id || !session?.access_token || !user) return
+    if (item.seller_id === user.id) return
+    apiFetch(`/api/follow/${item.seller_id}/status`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setIsFollowing(d.following) })
+      .catch(() => {})
+  }, [item, session, user])
+
+  const toggleFollow = async () => {
+    if (!item?.seller_id || !session?.access_token) return
+    const method = isFollowing ? 'DELETE' : 'POST'
+    const res = await apiFetch(`/api/follow/${item.seller_id}`, {
+      method,
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (res.ok) setIsFollowing(!isFollowing)
+  }
 
   const price = item ? (item.current_price ?? item.starting_price) : 0
   const sellerName = item?.seller?.display_name || 'Vendeur'
@@ -230,6 +263,20 @@ export default function ItemDetailPage() {
                 <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{sellerName}</p>
                 <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>{t.seller}</p>
               </div>
+              {user && item.seller_id !== user.id && (
+                <button
+                  onClick={toggleFollow}
+                  style={{
+                    padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
+                    border: isFollowing ? '1px solid #333' : 'none',
+                    background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    color: isFollowing ? '#888' : '#fff',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  {isFollowing ? t.following : t.follow}
+                </button>
+              )}
             </div>
 
             {/* Description */}

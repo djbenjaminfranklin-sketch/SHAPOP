@@ -200,16 +200,29 @@ async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, 
 
   if (!tokens || tokens.length === 0) return
 
-  // Get seller name
+  // Get seller name and stream category
   const { data: seller } = await supabase
     .from('profiles')
     .select('display_name')
     .eq('id', sellerId)
     .single()
 
-  const sellerName = seller?.display_name || 'A seller'
-  const title = `${sellerName} is live!`
-  const body = streamTitle
+  const { data: streamData } = await supabase
+    .from('streams')
+    .select('category')
+    .eq('id', streamId)
+    .single()
+
+  const sellerName = seller?.display_name || 'Un vendeur'
+  const category = streamData?.category || ''
+
+  // Engaging notification messages
+  const title = `${sellerName} est en live !`
+  const body = category
+    ? `${streamTitle} — ${category}. Rejoins maintenant !`
+    : `${streamTitle}. Rejoins maintenant !`
+
+  console.log(`[push] Sending live notification to ${tokens.length} followers of ${sellerName}`)
 
   // Send in parallel (safety cap at 200)
   const batch = tokens.slice(0, 200)
@@ -491,6 +504,26 @@ async function livekitWebhookHandler(req: Request, res: Response) {
           notifyFollowersSellerLive(stream.seller_id, stream.title, stream.id).catch(err =>
             console.error('Push notification error:', err)
           )
+        }
+      }
+    }
+
+    // Auto-follow seller when a viewer joins the stream
+    if (event.event === 'participant_joined' && event.participant?.identity && !event.participant.identity.startsWith('seller-')) {
+      const viewerIdentity = event.participant.identity
+      // Identity format: "viewer-{userId}" or just the userId
+      const viewerUserId = viewerIdentity.startsWith('viewer-') ? viewerIdentity.replace('viewer-', '') : viewerIdentity
+      const roomName = event.room?.name
+      if (roomName && viewerUserId) {
+        const { data: roomStream } = await supabase
+          .from('streams')
+          .select('seller_id')
+          .eq('livekit_room_name', roomName)
+          .single()
+        if (roomStream && roomStream.seller_id !== viewerUserId) {
+          await supabase.from('followers')
+            .upsert({ user_id: viewerUserId, seller_id: roomStream.seller_id }, { onConflict: 'user_id,seller_id' })
+            .then(({ error }) => { if (error) console.log('[auto-follow] error:', error.message) })
         }
       }
     }
