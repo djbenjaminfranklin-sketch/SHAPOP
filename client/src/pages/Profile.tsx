@@ -308,7 +308,6 @@ export default function Profile() {
 
   const accountItems: MenuItem[] = [
     { icon: ico.shield, label: tx('Etat du compte', 'Account status', '\u05DE\u05E6\u05D1 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Estado de cuenta', lang), to: '/account-status' },
-    { icon: ico.affiliate, label: tx("Programme d'affiliation : gagne de l'argent", 'Referral program: earn money', '\u05EA\u05D5\u05DB\u05E0\u05D9\u05EA \u05E9\u05D5\u05EA\u05E4\u05D9\u05DD', 'Programa de afiliados', lang), to: '/referrals' },
     { icon: ico.card, label: tx('Paiements et livraison', 'Payments & shipping', '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7', 'Pagos y envio', lang), to: '/payments' },
     { icon: ico.pin, label: tx('Adresses', 'Addresses', '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', 'Direcciones', lang), to: '/addresses' },
     { icon: ico.bell, label: tx('Notifications', 'Notifications', '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA', 'Notificaciones', lang), to: '/notifications' },
@@ -452,41 +451,6 @@ export default function Profile() {
           <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', margin: 0 }}>
             {tx('Compte', 'Account', '\u05D7\u05E9\u05D1\u05D5\u05DF', 'Cuenta', lang)}
           </h2>
-        </div>
-
-        {/* ── Two feature cards ───────────────────────────────────── */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
-          padding: '0 16px 20px',
-          ...entrance('80ms'),
-        }}>
-          {/* Parrainages et credits */}
-          <button onClick={() => navigate('/referrals')} style={{
-            backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
-            padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
-          }}>
-            <div style={{ marginBottom: '10px' }}>{ico.affiliate}</div>
-            <p style={{ color: '#fff', fontSize: '14px', fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
-              {tx('Parrainages et credits', 'Referrals & credits', '\u05E9\u05D5\u05EA\u05E4\u05D9\u05DD \u05D5\u05E7\u05E8\u05D3\u05D9\u05D8\u05D9\u05DD', 'Referidos y creditos', lang)}
-            </p>
-            <p style={{ color: '#888', fontSize: '13px', fontWeight: 500, margin: '4px 0 0', fontStyle: 'italic' }}>
-              {tx('Bientot disponible', 'Coming soon', '\u05D1\u05E7\u05E8\u05D5\u05D1', 'Proximamente', lang)}
-            </p>
-          </button>
-
-          {/* Mes recompenses */}
-          <button onClick={() => navigate('/referrals')} style={{
-            backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
-            padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
-          }}>
-            <div style={{ marginBottom: '10px' }}>{ico.crown}</div>
-            <p style={{ color: '#fff', fontSize: '14px', fontWeight: 600, margin: 0, lineHeight: 1.3 }}>
-              {tx('Mes recompenses', 'My rewards', '\u05D4\u05EA\u05D2\u05DE\u05D5\u05DC\u05D9\u05DD \u05E9\u05DC\u05D9', 'Mis recompensas', lang)}
-            </p>
-            <p style={{ color: '#888', fontSize: '13px', fontWeight: 500, margin: '4px 0 0', fontStyle: 'italic' }}>
-              {tx('Bientot disponible', 'Coming soon', '\u05D1\u05E7\u05E8\u05D5\u05D1', 'Proximamente', lang)}
-            </p>
-          </button>
         </div>
 
         {/* ── Mes lives card (seller only) ──────────────────────── */}

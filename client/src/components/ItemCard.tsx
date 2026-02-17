@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import type { Item } from '../types/database'
 import { getLang } from '../lib/i18n'
 
@@ -19,7 +20,7 @@ export default function ItemCard({ item }: ItemCardProps) {
   }
 
   return (
-    <div style={{ display: 'block', textDecoration: 'none' }}>
+    <Link to={`/item/${item.id}`} style={{ display: 'block', textDecoration: 'none' }}>
       {/* Seller info above card */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
         <div style={{
@@ -102,6 +103,6 @@ export default function ItemCard({ item }: ItemCardProps) {
           {item.category}
         </p>
       </div>
-    </div>
+    </Link>
   )
 }

@@ -34,6 +34,7 @@ const CommunitiesPage = lazy(() => import('./pages/CommunitiesPage'))
 const CommunityDetailPage = lazy(() => import('./pages/CommunityDetailPage'))
 const AIListingPage = lazy(() => import('./pages/AIListingPage'))
 const DirectSalesPage = lazy(() => import('./pages/DirectSalesPage'))
+const ItemDetailPage = lazy(() => import('./pages/ItemDetailPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const ChangeEmailPage = lazy(() => import('./pages/ChangeEmailPage'))
@@ -164,6 +165,7 @@ export default function App() {
                 <Route path="/community/:id" element={<CommunityDetailPage />} />
                 <Route path="/ai-listing" element={<AIListingPage />} />
                 <Route path="/direct-sales" element={<DirectSalesPage />} />
+                <Route path="/item/:id" element={<ItemDetailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/change-email" element={<ChangeEmailPage />} />

@@ -881,6 +881,24 @@ app.get('/api/items/direct-sales', async (req: Request, res: Response) => {
   }
 })
 
+app.get('/api/items/:id', async (req: Request, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('items')
+      .select('*, seller:profiles!seller_id(display_name, avatar_url)')
+      .eq('id', req.params.id)
+      .single()
+
+    if (error || !data) {
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 app.get('/api/streams/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase

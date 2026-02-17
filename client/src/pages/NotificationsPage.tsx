@@ -175,6 +175,9 @@ export default function NotificationsPage() {
       .limit(1)
       .maybeSingle()
 
+    // Build the full current state so INSERT never resets other toggles
+    const updatedToggles = { ...toggles, [key]: newValue }
+
     if (existing) {
       await supabase
         .from('device_tokens')
@@ -187,13 +190,12 @@ export default function NotificationsPage() {
           user_id: user.id,
           token: `web-prefs-${user.id}`,
           platform: 'web',
-          [column]: newValue,
-          notify_live: DEFAULT_TOGGLES.live,
-          notify_orders: DEFAULT_TOGGLES.orders,
-          notify_deals: DEFAULT_TOGGLES.deals,
-          notify_messages: DEFAULT_TOGGLES.messages,
-          notify_reminders: DEFAULT_TOGGLES.reminders,
-          notify_community: DEFAULT_TOGGLES.community,
+          notify_live: updatedToggles.live,
+          notify_orders: updatedToggles.orders,
+          notify_deals: updatedToggles.deals,
+          notify_messages: updatedToggles.messages,
+          notify_reminders: updatedToggles.reminders,
+          notify_community: updatedToggles.community,
         })
     }
   }, [user, toggles, pushEnabled, requestPermission])
