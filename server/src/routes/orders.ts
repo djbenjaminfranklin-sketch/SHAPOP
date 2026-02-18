@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateFees, notifyUser } from '../utils'
+import { calculateFees, calculateShippingCost, notifyUser } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -225,6 +225,67 @@ router.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReq
   } catch (err: any) {
     console.error('Save address error:', err?.message || err)
     res.status(500).json({ error: 'Failed to save address' })
+  }
+})
+
+// Buyer selects a carrier for their order
+router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = req.params.id
+    const userId = req.user!.id
+    const { carrier } = req.body
+
+    const validCarriers = ['mondial_relay', 'colissimo', 'chronopost', 'laposte']
+    if (!carrier || !validCarriers.includes(carrier)) {
+      res.status(400).json({ error: `carrier must be one of: ${validCarriers.join(', ')}` })
+      return
+    }
+
+    // Verify order belongs to buyer
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, buyer_id, item_id, status')
+      .eq('id', orderId)
+      .eq('buyer_id', userId)
+      .single()
+
+    if (!order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    if (order.status !== 'pending_payment') {
+      res.status(400).json({ error: 'Carrier can only be set before payment' })
+      return
+    }
+
+    // Get item weight to calculate shipping cost
+    let shippingCost = 0
+    if (order.item_id) {
+      const { data: item } = await supabase
+        .from('items')
+        .select('weight_grams')
+        .eq('id', order.item_id)
+        .single()
+
+      if (item?.weight_grams) {
+        shippingCost = calculateShippingCost(item.weight_grams, carrier)
+      }
+    }
+
+    await supabase
+      .from('orders')
+      .update({
+        carrier,
+        shipping_cost: shippingCost,
+        total_amount: Math.round(((order as Record<string, unknown>).amount as number + shippingCost) * 100) / 100,
+      })
+      .eq('id', orderId)
+
+    res.json({ success: true, carrier, shipping_cost: shippingCost })
+  } catch (err: any) {
+    console.error('Set carrier error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to set carrier' })
   }
 })
 

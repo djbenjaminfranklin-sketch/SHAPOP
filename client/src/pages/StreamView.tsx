@@ -69,6 +69,8 @@ const streamContent = {
     cardSavedDesc: 'Tu peux maintenant encherir',
     saveCard: 'Enregistrer la carte',
     cardRequired: 'Ajoute ta carte pour encherir',
+    shipping: 'Livraison',
+    itemPrice: 'Prix article',
   },
   en: {
     viewers: 'viewers',
@@ -121,6 +123,8 @@ const streamContent = {
     cardSavedDesc: 'You can now place bids',
     saveCard: 'Save card',
     cardRequired: 'Add your card to bid',
+    shipping: 'Shipping',
+    itemPrice: 'Item price',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -173,6 +177,8 @@ const streamContent = {
     cardSavedDesc: 'אתה יכול עכשיו להציע',
     saveCard: 'שמור כרטיס',
     cardRequired: 'הוסף כרטיס כדי להציע',
+    shipping: 'משלוח',
+    itemPrice: 'מחיר פריט',
   },
   es: {
     viewers: 'espectadores',
@@ -225,6 +231,8 @@ const streamContent = {
     cardSavedDesc: 'Ya puedes pujar',
     saveCard: 'Guardar tarjeta',
     cardRequired: 'Agrega tu tarjeta para pujar',
+    shipping: 'Envio',
+    itemPrice: 'Precio articulo',
   },
 }
 
@@ -424,6 +432,9 @@ export default function StreamView() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [addressForm, setAddressForm] = useState({ name: '', street: '', city: '', zip: '', phone: '' })
   const [addressStep, setAddressStep] = useState(true) // true = show address first, false = show payment
+
+  // Carrier selection for shipping
+  const [selectedCarrier, setSelectedCarrier] = useState('mondial_relay')
 
   // Card setup modal (required before bidding)
   const [hasCard, setHasCard] = useState<boolean | null>(null) // null = not checked yet
@@ -851,6 +862,16 @@ export default function StreamView() {
                 phone: savedAddr.phone || '',
               })
             }
+
+            // Set carrier on the order before payment (for shipping cost calculation)
+            await apiFetch(`/api/orders/${order.id}/carrier`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ carrier: selectedCarrier }),
+            }).catch(() => { /* non-blocking */ })
 
             // Create PaymentIntent via server
             const resp = await apiFetch('/api/stripe/create-payment-intent', {
@@ -2001,6 +2022,8 @@ export default function StreamView() {
               onAddCard={openCardSetup}
               disabled={timeLeft <= 0}
               lang={lang}
+              selectedCarrier={selectedCarrier}
+              onCarrierChange={setSelectedCarrier}
             />
           </div>
         )}
@@ -2165,6 +2188,9 @@ export default function StreamView() {
                     {paymentItem && (
                       <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
                         {paymentItem.title} — <span style={{ color: '#22C55E', fontWeight: 700 }}>{paymentOrder?.amount} €</span>
+                        {paymentOrder?.shipping_cost != null && paymentOrder.shipping_cost > 0 && (
+                          <span style={{ color: '#F0908A' }}> + {ct.shipping}: {paymentOrder.shipping_cost.toFixed(2)} €</span>
+                        )}
                       </p>
                     )}
                   </div>
@@ -2265,24 +2291,50 @@ export default function StreamView() {
             ) : (
               /* Step 2: Payment */
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>
-                      {ct.payToClaim}
-                    </h3>
-                    {paymentItem && (
-                      <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>{paymentItem.title}</p>
-                    )}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <div>
+                      <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>
+                        {ct.payToClaim}
+                      </h3>
+                      {paymentItem && (
+                        <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>{paymentItem.title}</p>
+                      )}
+                    </div>
+                    <div style={{
+                      padding: '8px 16px', borderRadius: '12px',
+                      backgroundColor: 'rgba(34,197,94,0.1)',
+                      border: '1px solid rgba(34,197,94,0.2)',
+                    }}>
+                      <p style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
+                        {paymentOrder?.total_amount ?? paymentOrder?.amount} €
+                      </p>
+                    </div>
                   </div>
-                  <div style={{
-                    padding: '8px 16px', borderRadius: '12px',
-                    backgroundColor: 'rgba(34,197,94,0.1)',
-                    border: '1px solid rgba(34,197,94,0.2)',
-                  }}>
-                    <p style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
-                      {paymentOrder?.amount} €
-                    </p>
-                  </div>
+                  {/* Shipping cost breakdown */}
+                  {paymentOrder && (paymentOrder.shipping_cost > 0 || paymentOrder.total_amount) && (
+                    <div style={{
+                      padding: '8px 12px',
+                      backgroundColor: 'rgba(255,255,255,0.04)',
+                      borderRadius: '10px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', color: '#888' }}>{ct.itemPrice}</span>
+                        <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{paymentOrder.amount} €</span>
+                      </div>
+                      {paymentOrder.shipping_cost > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '12px', color: '#888' }}>{ct.shipping}</span>
+                          <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>{paymentOrder.shipping_cost.toFixed(2)} €</span>
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '4px' }}>
+                        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>{ct.total}</span>
+                        <span style={{ fontSize: '13px', color: '#22C55E', fontWeight: 700 }}>{paymentOrder.total_amount ?? paymentOrder.amount} €</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {paymentError && (

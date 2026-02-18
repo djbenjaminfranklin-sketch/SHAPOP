@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import type { Item } from '../../types/database'
+import { apiFetch } from '../../lib/api'
 
 interface ActiveItemBarProps {
   item: Item | null
@@ -9,13 +11,72 @@ interface ActiveItemBarProps {
   onAddCard: () => void
   disabled?: boolean
   lang: 'fr' | 'en' | 'he' | 'es'
+  selectedCarrier?: string
+  onCarrierChange?: (carrier: string) => void
 }
 
-const LABELS: Record<string, { bid: string; currentPrice: string; unavailable: string; addCard: string }> = {
-  fr: { bid: 'Enchérir', currentPrice: 'Prix actuel', unavailable: 'Article non disponible', addCard: 'Ajoute ta carte pour enchérir' },
-  en: { bid: 'Bid', currentPrice: 'Current price', unavailable: 'Item unavailable', addCard: 'Add your card to bid' },
-  he: { bid: 'הצע', currentPrice: 'מחיר נוכחי', unavailable: 'פריט לא זמין', addCard: 'הוסף כרטיס כדי להציע' },
-  es: { bid: 'Pujar', currentPrice: 'Precio actual', unavailable: 'Artículo no disponible', addCard: 'Agrega tu tarjeta para pujar' },
+const LABELS: Record<string, {
+  bid: string
+  currentPrice: string
+  unavailable: string
+  addCard: string
+  shipping: string
+  shippingFrom: string
+  total: string
+  selectCarrier: string
+}> = {
+  fr: {
+    bid: 'Encherir',
+    currentPrice: 'Prix actuel',
+    unavailable: 'Article non disponible',
+    addCard: 'Ajoute ta carte pour encherir',
+    shipping: 'Livraison',
+    shippingFrom: 'Livraison des',
+    total: 'Total estime',
+    selectCarrier: 'Transporteur',
+  },
+  en: {
+    bid: 'Bid',
+    currentPrice: 'Current price',
+    unavailable: 'Item unavailable',
+    addCard: 'Add your card to bid',
+    shipping: 'Shipping',
+    shippingFrom: 'Shipping from',
+    total: 'Estimated total',
+    selectCarrier: 'Carrier',
+  },
+  he: {
+    bid: 'הצע',
+    currentPrice: 'מחיר נוכחי',
+    unavailable: 'פריט לא זמין',
+    addCard: 'הוסף כרטיס כדי להציע',
+    shipping: 'משלוח',
+    shippingFrom: 'משלוח מ',
+    total: 'סה"כ משוער',
+    selectCarrier: 'חברת משלוח',
+  },
+  es: {
+    bid: 'Pujar',
+    currentPrice: 'Precio actual',
+    unavailable: 'Articulo no disponible',
+    addCard: 'Agrega tu tarjeta para pujar',
+    shipping: 'Envio',
+    shippingFrom: 'Envio desde',
+    total: 'Total estimado',
+    selectCarrier: 'Transportista',
+  },
+}
+
+const CARRIER_NAMES: Record<string, string> = {
+  mondial_relay: 'Mondial Relay',
+  colissimo: 'Colissimo',
+  chronopost: 'Chronopost',
+  laposte: 'La Poste',
+}
+
+interface ShippingOption {
+  carrier: string
+  cost: number
 }
 
 export default function ActiveItemBar({
@@ -27,11 +88,44 @@ export default function ActiveItemBar({
   onAddCard,
   disabled,
   lang,
+  selectedCarrier,
+  onCarrierChange,
 }: ActiveItemBarProps) {
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
+  const [showCarrierPicker, setShowCarrierPicker] = useState(false)
+
+  // Fetch shipping options when item changes and has weight
+  useEffect(() => {
+    if (!item?.weight_grams) {
+      setShippingOptions([])
+      return
+    }
+    const fetchOptions = async () => {
+      try {
+        const resp = await apiFetch(`/api/shipping/options?weight_grams=${item.weight_grams}`)
+        if (resp.ok) {
+          const data = await resp.json()
+          setShippingOptions(data.options || [])
+        }
+      } catch { /* ignore */ }
+    }
+    fetchOptions()
+  }, [item?.id, item?.weight_grams])
+
   if (!item) return null
 
   const labels = LABELS[lang] || LABELS.en
   const isActive = item.status === 'active'
+  const hasWeight = item.weight_grams != null && item.weight_grams > 0
+
+  // Find cheapest shipping cost for display
+  const cheapestShipping = shippingOptions.length > 0
+    ? Math.min(...shippingOptions.map(o => o.cost))
+    : 0
+
+  // Find selected carrier cost
+  const selectedOption = shippingOptions.find(o => o.carrier === selectedCarrier)
+  const displayShippingCost = selectedOption?.cost ?? cheapestShipping
 
   return (
     <div style={{
@@ -53,7 +147,7 @@ export default function ActiveItemBar({
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: '12px',
-        marginBottom: '10px',
+        marginBottom: hasWeight && shippingOptions.length > 0 ? '4px' : '10px',
       }}>
         <div style={{ minWidth: 0, flex: 1 }}>
           <span style={{
@@ -78,15 +172,113 @@ export default function ActiveItemBar({
           </span>
         </div>
 
-        <span style={{
-          fontSize: '18px',
-          fontWeight: 800,
-          color: '#F0908A',
-          flexShrink: 0,
-        }}>
-          {item.current_price}€
-        </span>
+        <div style={{ flexShrink: 0, textAlign: 'right' }}>
+          <span style={{
+            fontSize: '18px',
+            fontWeight: 800,
+            color: '#F0908A',
+            display: 'block',
+          }}>
+            {item.current_price}€
+          </span>
+        </div>
       </div>
+
+      {/* Shipping cost row (only if item has weight) */}
+      {hasWeight && shippingOptions.length > 0 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '10px',
+          padding: '6px 10px',
+          backgroundColor: 'rgba(240,144,138,0.08)',
+          borderRadius: '8px',
+          border: '1px solid rgba(240,144,138,0.15)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13" rx="1" />
+              <path d="M16 8h4l3 3v5h-7V8z" />
+              <circle cx="5.5" cy="18.5" r="2.5" />
+              <circle cx="18.5" cy="18.5" r="2.5" />
+            </svg>
+            <button
+              onClick={() => setShowCarrierPicker(!showCarrierPicker)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#F0908A',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: 0,
+                textDecoration: 'underline',
+                textDecorationStyle: 'dotted' as const,
+              }}
+            >
+              {selectedCarrier ? CARRIER_NAMES[selectedCarrier] || selectedCarrier : labels.selectCarrier}
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+              {selectedCarrier ? labels.shipping : labels.shippingFrom}
+            </span>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
+              {displayShippingCost.toFixed(2)}€
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Carrier picker dropdown */}
+      {showCarrierPicker && shippingOptions.length > 0 && (
+        <div style={{
+          marginBottom: '10px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '4px',
+        }}>
+          {shippingOptions.map(opt => (
+            <button
+              key={opt.carrier}
+              onClick={() => {
+                onCarrierChange?.(opt.carrier)
+                setShowCarrierPicker(false)
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                borderRadius: '10px',
+                border: selectedCarrier === opt.carrier
+                  ? '1px solid rgba(240,144,138,0.4)'
+                  : '1px solid rgba(255,255,255,0.1)',
+                backgroundColor: selectedCarrier === opt.carrier
+                  ? 'rgba(240,144,138,0.1)'
+                  : 'rgba(255,255,255,0.04)',
+                cursor: 'pointer',
+              }}
+            >
+              <span style={{
+                fontSize: '13px',
+                fontWeight: 600,
+                color: selectedCarrier === opt.carrier ? '#F0908A' : '#fff',
+              }}>
+                {CARRIER_NAMES[opt.carrier] || opt.carrier}
+              </span>
+              <span style={{
+                fontSize: '14px',
+                fontWeight: 700,
+                color: selectedCarrier === opt.carrier ? '#F0908A' : 'rgba(255,255,255,0.7)',
+              }}>
+                {opt.cost.toFixed(2)}€
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Action area */}
       {!isActive ? (

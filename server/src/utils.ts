@@ -24,6 +24,66 @@ export function calculateFees(amount: number) {
   return { platformFee, processingFee, totalFees, sellerPayout }
 }
 
+// =============================================
+// Shipping cost calculation (French carriers)
+// =============================================
+
+type ShippingRate = { maxGrams: number; cost: number }[]
+
+const SHIPPING_RATES: Record<string, ShippingRate> = {
+  mondial_relay: [
+    { maxGrams: 500, cost: 3.99 },
+    { maxGrams: 1000, cost: 4.99 },
+    { maxGrams: 2000, cost: 5.99 },
+    { maxGrams: 5000, cost: 6.99 },
+    { maxGrams: 10000, cost: 9.99 },
+    { maxGrams: 30000, cost: 14.99 },
+  ],
+  colissimo: [
+    { maxGrams: 250, cost: 4.95 },
+    { maxGrams: 500, cost: 6.35 },
+    { maxGrams: 1000, cost: 7.25 },
+    { maxGrams: 2000, cost: 8.55 },
+    { maxGrams: 5000, cost: 13.75 },
+    { maxGrams: 10000, cost: 20.05 },
+  ],
+  chronopost: [
+    { maxGrams: 500, cost: 13.19 },
+    { maxGrams: 1000, cost: 14.49 },
+    { maxGrams: 2000, cost: 16.49 },
+    { maxGrams: 5000, cost: 22.49 },
+  ],
+  laposte: [
+    { maxGrams: 250, cost: 4.95 },
+    { maxGrams: 500, cost: 6.35 },
+    { maxGrams: 1000, cost: 7.25 },
+    { maxGrams: 2000, cost: 8.55 },
+  ],
+}
+
+/** Calculate shipping cost in EUR based on weight and carrier */
+export function calculateShippingCost(weightGrams: number, carrier: string): number {
+  const rates = SHIPPING_RATES[carrier]
+  if (!rates) return 0
+
+  for (const tier of rates) {
+    if (weightGrams <= tier.maxGrams) {
+      return tier.cost
+    }
+  }
+
+  // Weight exceeds max tier — return highest tier price
+  return rates[rates.length - 1].cost
+}
+
+/** Get all available carriers and their costs for a given weight */
+export function getShippingOptions(weightGrams: number): { carrier: string; cost: number }[] {
+  return Object.keys(SHIPPING_RATES).map(carrier => ({
+    carrier,
+    cost: calculateShippingCost(weightGrams, carrier),
+  }))
+}
+
 // Compute a seller score out of 10 from their trust data
 export function computeSellerScore(trust: Record<string, unknown>): number {
   const baseScores: Record<string, number> = { new: 8.0, standard: 8.5, trusted: 9.0, premium: 9.5 }

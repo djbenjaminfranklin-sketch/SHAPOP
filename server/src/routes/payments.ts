@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { supabase, stripe, APP_BASE_URL, PAYPAL_BASE_URL, PAYPAL_MODE, ADMIN_EMAILS } from '../config'
 import { requireAuth, paymentLimiter } from '../middleware'
-import { calculateFees, getPaypalAccessToken } from '../utils'
+import { calculateFees, calculateShippingCost, getPaypalAccessToken } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -338,9 +338,25 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       }
     }
 
+    // Calculate shipping cost if item has weight and order has a carrier
+    let shippingCost = 0
+    if (order.item_id) {
+      const { data: item } = await supabase
+        .from('items')
+        .select('weight_grams')
+        .eq('id', order.item_id)
+        .single()
+
+      if (item?.weight_grams && order.carrier) {
+        shippingCost = calculateShippingCost(item.weight_grams, order.carrier)
+      }
+    }
+
     // Recalculate fees server-side (don't trust client values)
+    // Fees are calculated on item price only, not on shipping
     const fees = calculateFees(order.amount)
-    const amountCents = Math.round(order.amount * 100)
+    const totalAmount = Math.round((order.amount + shippingCost) * 100) / 100
+    const amountCents = Math.round(totalAmount * 100)
     const feeCents = Math.round(fees.totalFees * 100)
 
     // Check if buyer has a saved card — try to auto-charge
@@ -419,11 +435,13 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       }
     }
 
-    // Update order with PaymentIntent ID (+ mark paid if auto-charged)
+    // Update order with PaymentIntent ID, shipping cost, and total amount (+ mark paid if auto-charged)
     const updateData: Record<string, unknown> = {
       stripe_payment_intent_id: paymentIntent.id,
       status: autoCharged ? 'paid' : 'pending_payment',
       payout_method: isPaypalSeller ? 'paypal' : 'stripe',
+      shipping_cost: shippingCost,
+      total_amount: totalAmount,
     }
     if (autoCharged) {
       updateData.paid_at = new Date().toISOString()
@@ -466,6 +484,8 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       payment_intent_id: paymentIntent.id,
       publishable_key: process.env.STRIPE_PUBLISHABLE_KEY,
       auto_charged: autoCharged,
+      shipping_cost: shippingCost,
+      total_amount: totalAmount,
     })
   } catch (err: any) {
     console.error('Stripe PaymentIntent error:', err)

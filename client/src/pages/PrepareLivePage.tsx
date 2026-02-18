@@ -82,6 +82,8 @@ const pageContent = {
     shippingDelayHint: 'Delai maximum avant expedition',
     day: 'jour',
     days: 'jours',
+    weight: 'Poids (grammes)',
+    weightHint: 'Poids de l\'article pour le calcul des frais de port',
   },
   en: {
     title: 'Prepare your live',
@@ -122,6 +124,8 @@ const pageContent = {
     shippingDelayHint: 'Maximum time before shipping',
     day: 'day',
     days: 'days',
+    weight: 'Weight (grams)',
+    weightHint: 'Item weight for shipping cost calculation',
   },
   he: {
     title: 'הכנת השידור',
@@ -162,6 +166,8 @@ const pageContent = {
     shippingDelayHint: 'זמן מקסימלי לפני משלוח',
     day: 'יום',
     days: 'ימים',
+    weight: '(משקל (גרם',
+    weightHint: 'משקל הפריט לחישוב עלות משלוח',
   },
   es: {
     title: 'Preparar el directo',
@@ -202,6 +208,8 @@ const pageContent = {
     shippingDelayHint: 'Tiempo maximo antes del envio',
     day: 'dia',
     days: 'dias',
+    weight: 'Peso (gramos)',
+    weightHint: 'Peso del articulo para calcular el envio',
   },
 }
 
@@ -214,6 +222,7 @@ interface DraftItem {
   image_url: string | null
   lot_number: number
   duration_seconds: number
+  weight_grams: number | null
 }
 
 export default function PrepareLivePage() {
@@ -239,6 +248,7 @@ export default function PrepareLivePage() {
   const [formQuantity, setFormQuantity] = useState(1)
   const [formDuration, setFormDuration] = useState(60)
   const [formMinPrice, setFormMinPrice] = useState('')
+  const [formWeight, setFormWeight] = useState('')
   const [formError, setFormError] = useState('')
   const [editingDate, setEditingDate] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
@@ -288,6 +298,7 @@ export default function PrepareLivePage() {
           image_url: item.image_urls?.[0] || null,
           lot_number: i + 1,
           duration_seconds: item.duration_seconds || 60,
+          weight_grams: item.weight_grams || null,
         })))
       }
     }
@@ -412,6 +423,7 @@ export default function PrepareLivePage() {
       const lotNumber = items.length + newItems.length + 1
 
       const minPrice = formMinPrice ? parseFloat(formMinPrice) : null
+      const weightGrams = formWeight ? parseInt(formWeight, 10) : null
       const { data, error } = await supabase
         .from('items')
         .insert({
@@ -425,6 +437,7 @@ export default function PrepareLivePage() {
           status: 'draft' as const,
           image_urls: imageUrls,
           duration_seconds: formDuration,
+          weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
         })
         .select()
         .single()
@@ -445,6 +458,7 @@ export default function PrepareLivePage() {
           image_url: imageUrls[0] || null,
           lot_number: lotNumber,
           duration_seconds: formDuration,
+          weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
         })
       }
     }
@@ -462,6 +476,7 @@ export default function PrepareLivePage() {
     setFormQuantity(1)
     setFormDuration(60)
     setFormMinPrice('')
+    setFormWeight('')
     setShowForm(false)
     setSaving(false)
   }
@@ -835,6 +850,13 @@ export default function PrepareLivePage() {
                     min {item.min_price} €
                   </span>
                 )}
+                {item.weight_grams != null && item.weight_grams > 0 && (
+                  <span style={{ fontSize: '11px', color: '#888' }}>
+                    {item.weight_grams >= 1000
+                      ? `${(item.weight_grams / 1000).toFixed(1)}kg`
+                      : `${item.weight_grams}g`}
+                  </span>
+                )}
                 <span style={{ fontSize: '11px', color: '#666' }}>
                   {item.duration_seconds}s
                 </span>
@@ -1008,6 +1030,85 @@ export default function PrepareLivePage() {
               </p>
             </div>
 
+            {/* Weight (grams) */}
+            <div style={{
+              backgroundColor: '#0D0D0D',
+              border: '1px solid #222',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3v18M3 12h18" />
+                    <circle cx="12" cy="12" r="9" />
+                  </svg>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                    {ct.weight}
+                  </p>
+                </div>
+                {formWeight && (
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
+                    {parseInt(formWeight, 10) >= 1000
+                      ? `${(parseInt(formWeight, 10) / 1000).toFixed(1)}kg`
+                      : `${formWeight}g`}
+                  </span>
+                )}
+              </div>
+              <input
+                type="number"
+                inputMode="numeric"
+                value={formWeight}
+                onChange={e => setFormWeight(e.target.value)}
+                placeholder="500"
+                min="1"
+                style={{
+                  width: '100%', padding: '10px 12px',
+                  backgroundColor: '#111',
+                  border: '1px solid #222',
+                  borderRadius: '8px',
+                  color: '#fff', fontSize: '15px',
+                  outline: 'none', boxSizing: 'border-box',
+                  marginBottom: '8px',
+                }}
+              />
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  { label: '100g', value: 100 },
+                  { label: '250g', value: 250 },
+                  { label: '500g', value: 500 },
+                  { label: '1kg', value: 1000 },
+                  { label: '2kg', value: 2000 },
+                  { label: '5kg', value: 5000 },
+                ].map(preset => (
+                  <button
+                    key={preset.value}
+                    onClick={() => setFormWeight(String(preset.value))}
+                    style={{
+                      flex: 1,
+                      minWidth: '48px',
+                      padding: '7px 0',
+                      borderRadius: '8px',
+                      background: formWeight === String(preset.value)
+                        ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                        : '#111',
+                      border: formWeight === String(preset.value) ? 'none' : '1px solid #222',
+                      color: formWeight === String(preset.value) ? '#fff' : '#888',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: '11px', color: '#666', margin: '6px 0 0 2px' }}>
+                {ct.weightHint}
+              </p>
+            </div>
+
             {/* Category (optional) */}
             <input
               type="text"
@@ -1175,6 +1276,7 @@ export default function PrepareLivePage() {
                   setFormTitle('')
                   setFormPrice('')
                   setFormCategory('')
+                  setFormWeight('')
                   if (formImage) URL.revokeObjectURL(formImage)
                   setFormImage(null)
                   setFormImageFile(null)

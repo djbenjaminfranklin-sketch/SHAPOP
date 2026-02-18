@@ -22,6 +22,7 @@ import userRoutes from './routes/users'
 import disputeRoutes from './routes/disputes'
 import trackingRoutes from './routes/tracking'
 import { checkTrackingStatuses } from './routes/tracking'
+import shippingRoutes from './routes/shipping'
 import adminRoutes from './routes/admin'
 import analyticsRoutes from './routes/analytics'
 
@@ -101,6 +102,7 @@ app.use(notificationRoutes)
 app.use(userRoutes)
 app.use(disputeRoutes)
 app.use(trackingRoutes)
+app.use(shippingRoutes)
 app.use(adminRoutes)
 app.use(analyticsRoutes)
 

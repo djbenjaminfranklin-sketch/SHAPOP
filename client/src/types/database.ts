@@ -108,6 +108,7 @@ export interface Item {
   ai_tags: string[]
   ai_condition: string | null
   ai_confidence: number | null
+  weight_grams: number | null
   status: 'draft' | 'pending' | 'active' | 'sold' | 'unsold'
   winner_id: string | null
   duration_seconds: number
@@ -135,6 +136,9 @@ export interface Order {
   platform_fee: number
   processing_fee: number
   seller_payout: number
+  shipping_cost: number
+  total_amount: number | null
+  carrier: string | null
   status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected' | 'cancelled'
   shipping_address: Record<string, string> | null
   shipping_proof_url: string | null
