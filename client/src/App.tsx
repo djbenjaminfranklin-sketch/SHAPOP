@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { hapticTap } from './lib/haptics'
 import { usePushNotifications } from './hooks/usePushNotifications'
+import { useOnlineStatus } from './hooks/useOnlineStatus'
 import BottomNav from './components/BottomNav'
 import HomeButton from './components/HomeButton'
 import SplashScreen from './components/SplashScreen'
@@ -79,6 +80,21 @@ function PushAutoRegister() {
   return null
 }
 
+function OfflineBanner() {
+  const isOnline = useOnlineStatus()
+  if (isOnline) return null
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+      backgroundColor: '#1A1A1A', color: '#f59e0b',
+      textAlign: 'center', padding: '8px 16px',
+      fontSize: '14px', fontWeight: 600,
+    }}>
+      Pas de connexion internet
+    </div>
+  )
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
   const lang = useMemo(() => localStorage.getItem('shapop_lang') || 'fr', [])
@@ -137,6 +153,7 @@ export default function App() {
         <AuthProvider>
           <PushAutoRegister />
           <div dir={dir} className="min-h-screen bg-black" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
+            <OfflineBanner />
             <HomeButton />
             <Suspense fallback={<PageLoader />}>
               <Routes>
