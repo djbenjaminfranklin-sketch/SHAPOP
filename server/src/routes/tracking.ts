@@ -8,7 +8,6 @@ import type { AuthenticatedRequest } from '../types'
 const router = Router()
 
 const VALID_CARRIERS = ['laposte', 'mondial_relay', 'chronopost', 'colissimo', 'other']
-const AUTO_RELEASE_DAYS = 14
 
 // =============================================
 // POST /api/orders/:id/tracking — Seller adds tracking info
@@ -317,15 +316,8 @@ export async function checkTrackingStatuses(): Promise<number> {
         }
       }
 
-      // Fallback: auto-release after 14 days from shipped_at
-      if (!isDelivered && order.shipped_at) {
-        const shippedAt = new Date(order.shipped_at)
-        const daysSinceShipped = (now.getTime() - shippedAt.getTime()) / (1000 * 60 * 60 * 24)
-        if (daysSinceShipped >= AUTO_RELEASE_DAYS) {
-          isDelivered = true
-          if (process.env.NODE_ENV !== 'production') console.log(`[tracking-check] Order ${order.id} auto-releasing after ${AUTO_RELEASE_DAYS} days`)
-        }
-      }
+      // No auto-release fallback: payment is ONLY released when tracking confirms delivery
+      // or when the buyer manually confirms receipt
 
       // Release payment if delivered
       if (isDelivered) {
