@@ -13,6 +13,11 @@ const DisputeBody = z.object({
   reason: z.enum(['not_received', 'wrong_item', 'damaged', 'not_as_described', 'counterfeit']),
   description: z.string().min(20).max(2000),
   evidence_urls: z.array(z.string().url()).max(5).optional(),
+  photo_urls: z.array(z.string().url()).min(1, 'At least one photo is required').max(5),
+})
+
+const SellerPhotosBody = z.object({
+  seller_photo_urls: z.array(z.string().url()).min(1, 'At least one photo is required').max(5),
 })
 
 // Buyer opens a dispute
@@ -24,8 +29,13 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       return
     }
 
-    const { order_id, reason, description, evidence_urls } = parsed.data
+    const { order_id, reason, description, evidence_urls, photo_urls } = parsed.data
     const buyerId = req.user!.id
+
+    if (!photo_urls || photo_urls.length === 0) {
+      res.status(400).json({ error: 'At least one photo is required to open a dispute' })
+      return
+    }
 
     // Fetch order
     const { data: order } = await supabase
@@ -84,6 +94,8 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       reason,
       description,
       evidence_urls: evidence_urls || [],
+      photo_urls: photo_urls,
+      seller_photo_urls: [],
       status: autoRefund ? 'resolved_buyer' : 'under_review',
       auto_refund: autoRefund,
       amount: order.amount,
@@ -226,6 +238,56 @@ router.get('/api/disputes/order/:orderId', requireAuth, async (req: Authenticate
     }
 
     res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Seller uploads proof photos for a dispute
+router.post('/api/disputes/:id/seller-photos', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parsed = SellerPhotosBody.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid data', details: parsed.error.flatten().fieldErrors })
+      return
+    }
+
+    const { seller_photo_urls } = parsed.data
+    const userId = req.user!.id
+    const disputeId = req.params.id
+
+    // Fetch dispute
+    const { data: dispute, error: fetchErr } = await supabase
+      .from('disputes')
+      .select('*')
+      .eq('id', disputeId)
+      .single()
+
+    if (fetchErr || !dispute) {
+      res.status(404).json({ error: 'Dispute not found' })
+      return
+    }
+
+    // Only the seller can upload seller photos
+    if (dispute.seller_id !== userId) {
+      res.status(403).json({ error: 'Only the seller can upload proof photos for this dispute' })
+      return
+    }
+
+    // Update dispute with seller photos
+    const { data: updated, error: updateErr } = await supabase
+      .from('disputes')
+      .update({ seller_photo_urls })
+      .eq('id', disputeId)
+      .select('*')
+      .single()
+
+    if (updateErr) {
+      res.status(500).json({ error: 'Failed to update dispute with seller photos' })
+      return
+    }
+
+    res.json(updated)
   } catch {
     res.status(500).json({ error: 'Internal server error' })
   }

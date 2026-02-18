@@ -20,6 +20,8 @@ import messageRoutes from './routes/messages'
 import notificationRoutes from './routes/notifications'
 import userRoutes from './routes/users'
 import disputeRoutes from './routes/disputes'
+import trackingRoutes from './routes/tracking'
+import { checkTrackingStatuses } from './routes/tracking'
 import adminRoutes from './routes/admin'
 import analyticsRoutes from './routes/analytics'
 
@@ -98,6 +100,7 @@ app.use(messageRoutes)
 app.use(notificationRoutes)
 app.use(userRoutes)
 app.use(disputeRoutes)
+app.use(trackingRoutes)
 app.use(adminRoutes)
 app.use(analyticsRoutes)
 
@@ -135,4 +138,17 @@ server.listen(PORT, () => {
       }
     }, 4 * 60 * 60 * 1000) // 4 hours
   }
+
+  // Check tracking statuses every 2 hours (La Poste API + auto-release fallback)
+  console.log('[Tracking] Periodic tracking check enabled (every 2h)')
+  setInterval(async () => {
+    try {
+      const count = await checkTrackingStatuses()
+      if (count > 0) {
+        if (process.env.NODE_ENV !== 'production') console.log(`[Tracking] Auto-updated ${count} order(s)`)
+      }
+    } catch (err) {
+      console.error('[Tracking] Auto-check error:', err)
+    }
+  }, 2 * 60 * 60 * 1000) // 2 hours
 })

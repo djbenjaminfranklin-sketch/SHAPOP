@@ -78,6 +78,10 @@ const pageContent = {
     deleteError: 'Echec de la suppression',
     confirmDelete: 'Supprimer',
     confirmCancel: 'Annuler',
+    shippingDelay: 'Delai d\'expedition',
+    shippingDelayHint: 'Delai maximum avant expedition',
+    day: 'jour',
+    days: 'jours',
   },
   en: {
     title: 'Prepare your live',
@@ -114,6 +118,10 @@ const pageContent = {
     deleteError: 'Failed to delete',
     confirmDelete: 'Delete',
     confirmCancel: 'Cancel',
+    shippingDelay: 'Shipping delay',
+    shippingDelayHint: 'Maximum time before shipping',
+    day: 'day',
+    days: 'days',
   },
   he: {
     title: 'הכנת השידור',
@@ -150,6 +158,10 @@ const pageContent = {
     deleteError: 'המחיקה נכשלה',
     confirmDelete: 'מחק',
     confirmCancel: 'ביטול',
+    shippingDelay: 'זמן משלוח',
+    shippingDelayHint: 'זמן מקסימלי לפני משלוח',
+    day: 'יום',
+    days: 'ימים',
   },
   es: {
     title: 'Preparar el directo',
@@ -186,6 +198,10 @@ const pageContent = {
     deleteError: 'Error al eliminar',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
+    shippingDelay: 'Plazo de envio',
+    shippingDelayHint: 'Tiempo maximo antes del envio',
+    day: 'dia',
+    days: 'dias',
   },
 }
 
@@ -228,6 +244,7 @@ export default function PrepareLivePage() {
   const [scheduledDate, setScheduledDate] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
+  const [shippingDelay, setShippingDelay] = useState(2)
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -278,6 +295,45 @@ export default function PrepareLivePage() {
     fetchStream()
     fetchItems()
   }, [streamId])
+
+  // Fetch seller's current shipping delay
+  useEffect(() => {
+    if (!user) return
+    const fetchShippingDelay = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session?.session?.access_token
+        if (!token) return
+        const resp = await apiFetch('/api/seller/shipping-delay', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (resp.ok) {
+          const data = await resp.json()
+          if (data.shipping_delay_days != null) {
+            setShippingDelay(data.shipping_delay_days)
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    fetchShippingDelay()
+  }, [user])
+
+  const handleShippingDelayChange = async (days: number) => {
+    setShippingDelay(days)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session?.session?.access_token
+      if (!token) return
+      await apiFetch('/api/seller/shipping-delay', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ shipping_delay_days: days }),
+      })
+    } catch { /* ignore */ }
+  }
 
   const handleImagePick = () => {
     fileInputRef.current?.click()
@@ -633,6 +689,49 @@ export default function PrepareLivePage() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Shipping delay selector */}
+          <div style={{
+            backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '12px 14px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13" rx="1" />
+                <path d="M16 8h4l3 3v5h-7V8z" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+                {ct.shippingDelay}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {[1, 2, 3, 5, 7].map(d => (
+                <button
+                  key={d}
+                  onClick={() => handleShippingDelayChange(d)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 0',
+                    borderRadius: '8px',
+                    background: shippingDelay === d
+                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                      : '#0D0D0D',
+                    border: shippingDelay === d ? 'none' : '1px solid #222',
+                    color: shippingDelay === d ? '#fff' : '#888',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {d} {d === 1 ? ct.day : ct.days}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: '#666', margin: '6px 0 0 2px' }}>
+              {ct.shippingDelayHint}
+            </p>
           </div>
 
           {/* Delete stream button */}

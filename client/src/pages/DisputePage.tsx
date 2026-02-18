@@ -69,6 +69,15 @@ const pageContent = {
     add_file: 'Ajouter un fichier',
     submitting: 'Envoi en cours...',
     submit_dispute: 'Soumettre le litige',
+    photo_proof_title: 'Ajoute des photos comme preuve',
+    photo_required: 'Photo obligatoire',
+    submit_btn: 'Envoyer',
+    seller_photos: 'Photos du vendeur',
+    buyer_photos: 'Photos de l\'acheteur',
+    upload_seller_photos: 'Ajouter vos photos de preuve',
+    seller_photos_submitted: 'Photos envoy\u00e9es',
+    view_fullscreen: 'Voir en plein \u00e9cran',
+    close: 'Fermer',
     date_locale: 'fr-FR',
   },
   en: {
@@ -120,6 +129,15 @@ const pageContent = {
     add_file: 'Add a file',
     submitting: 'Submitting...',
     submit_dispute: 'Submit dispute',
+    photo_proof_title: 'Add photos as proof',
+    photo_required: 'Photo required',
+    submit_btn: 'Submit',
+    seller_photos: 'Seller photos',
+    buyer_photos: 'Buyer photos',
+    upload_seller_photos: 'Add your proof photos',
+    seller_photos_submitted: 'Photos submitted',
+    view_fullscreen: 'View fullscreen',
+    close: 'Close',
     date_locale: 'en-US',
   },
   he: {
@@ -171,6 +189,15 @@ const pageContent = {
     add_file: '\u05D4\u05D5\u05E1\u05E3 \u05E7\u05D5\u05D1\u05E5',
     submitting: '\u05E9\u05D5\u05DC\u05D7...',
     submit_dispute: '\u05E9\u05DC\u05D7 \u05E1\u05DB\u05E1\u05D5\u05DA',
+    photo_proof_title: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05DB\u05D4\u05D5\u05DB\u05D7\u05D4',
+    photo_required: '\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D5\u05D1\u05D4',
+    submit_btn: '\u05E9\u05DC\u05D7',
+    seller_photos: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05DE\u05D5\u05DB\u05E8',
+    buyer_photos: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05E7\u05D5\u05E0\u05D4',
+    upload_seller_photos: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05D5\u05DB\u05D7\u05D4 \u05E9\u05DC\u05DA',
+    seller_photos_submitted: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E0\u05E9\u05DC\u05D7\u05D5',
+    view_fullscreen: '\u05E6\u05E4\u05D4 \u05D1\u05DE\u05E1\u05DA \u05DE\u05DC\u05D0',
+    close: '\u05E1\u05D2\u05D5\u05E8',
     date_locale: 'he-IL',
   },
   es: {
@@ -222,6 +249,15 @@ const pageContent = {
     add_file: 'A\u00f1adir un archivo',
     submitting: 'Enviando...',
     submit_dispute: 'Enviar disputa',
+    photo_proof_title: 'A\u00f1ade fotos como prueba',
+    photo_required: 'Foto obligatoria',
+    submit_btn: 'Enviar',
+    seller_photos: 'Fotos del vendedor',
+    buyer_photos: 'Fotos del comprador',
+    upload_seller_photos: 'A\u00f1ade tus fotos de prueba',
+    seller_photos_submitted: 'Fotos enviadas',
+    view_fullscreen: 'Ver en pantalla completa',
+    close: 'Cerrar',
     date_locale: 'es-ES',
   },
 }
@@ -289,6 +325,17 @@ export default function DisputePage() {
 
   // Seller return policy
   const [sellerReturnPolicy, setSellerReturnPolicy] = useState<string | null>(null)
+
+  // Fullscreen photo viewer
+  const [fullscreenPhoto, setFullscreenPhoto] = useState<string | null>(null)
+
+  // Seller photo upload state
+  const sellerFileInputRef = useRef<HTMLInputElement>(null)
+  const [sellerFiles, setSellerFiles] = useState<File[]>([])
+  const [sellerPreviews, setSellerPreviews] = useState<string[]>([])
+  const [sellerUploading, setSellerUploading] = useState(false)
+  const [sellerUploadError, setSellerUploadError] = useState<string | null>(null)
+  const [sellerPhotosSubmitted, setSellerPhotosSubmitted] = useState(false)
 
   // Success state
   const [submitted, setSubmitted] = useState(false)
@@ -434,7 +481,7 @@ export default function DisputePage() {
 
   // Submit dispute
   const handleSubmit = async () => {
-    if (!reason || description.trim().length < 20 || !orderId || !order) return
+    if (!reason || description.trim().length < 20 || !orderId || !order || files.length === 0) return
     setSubmitting(true)
     setSubmitError(null)
 
@@ -442,23 +489,25 @@ export default function DisputePage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error(ct.error_not_authenticated)
 
-      // Upload evidence files to Supabase Storage
-      const urls: string[] = []
+      const userId = user!.id
+
+      // Upload photo proof files to Supabase Storage (dispute-photos bucket)
+      const photoUrls: string[] = []
       for (const file of files) {
-        const filePath = `${orderId}/${Date.now()}_${file.name}`
+        const filePath = `${userId}/${Date.now()}_${file.name}`
         const { error: uploadError } = await supabase.storage
-          .from('dispute-evidence')
+          .from('dispute-photos')
           .upload(filePath, file)
 
         if (uploadError) throw new Error(`${ct.error_upload}: ${uploadError.message}`)
 
         const { data: urlData } = supabase.storage
-          .from('dispute-evidence')
+          .from('dispute-photos')
           .getPublicUrl(filePath)
 
-        urls.push(urlData.publicUrl)
+        photoUrls.push(urlData.publicUrl)
       }
-      setUploadedUrls(urls)
+      setUploadedUrls(photoUrls)
 
       // Submit dispute via API
       const res = await apiFetch('/api/disputes', {
@@ -471,7 +520,8 @@ export default function DisputePage() {
           order_id: orderId,
           reason,
           description: description.trim(),
-          evidence_urls: urls,
+          evidence_urls: photoUrls,
+          photo_urls: photoUrls,
           amount: order.amount,
         }),
       })
@@ -489,6 +539,100 @@ export default function DisputePage() {
       setSubmitError(message)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  // Handle seller file selection
+  const handleSellerFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files
+    if (!selected) return
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024
+    const candidates = Array.from(selected).slice(0, 5 - sellerFiles.length)
+
+    for (const file of candidates) {
+      if (file.size > MAX_FILE_SIZE) {
+        setSellerUploadError(fileSizeErrorMessages[lang] || fileSizeErrorMessages.fr)
+        if (sellerFileInputRef.current) sellerFileInputRef.current.value = ''
+        return
+      }
+    }
+
+    setSellerUploadError(null)
+    const updatedFiles = [...sellerFiles, ...candidates]
+    setSellerFiles(updatedFiles)
+
+    candidates.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        if (ev.target?.result) {
+          setSellerPreviews(prev => [...prev, ev.target!.result as string])
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+
+    if (sellerFileInputRef.current) sellerFileInputRef.current.value = ''
+  }
+
+  // Remove a seller file
+  const removeSellerFile = (index: number) => {
+    setSellerFiles(prev => prev.filter((_, i) => i !== index))
+    setSellerPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // Submit seller photos
+  const handleSellerPhotoSubmit = async (disputeId: string) => {
+    if (sellerFiles.length === 0) return
+    setSellerUploading(true)
+    setSellerUploadError(null)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error(ct.error_not_authenticated)
+
+      const userId = user!.id
+      const urls: string[] = []
+
+      for (const file of sellerFiles) {
+        const filePath = `${userId}/${Date.now()}_${file.name}`
+        const { error: uploadError } = await supabase.storage
+          .from('dispute-photos')
+          .upload(filePath, file)
+
+        if (uploadError) throw new Error(`${ct.error_upload}: ${uploadError.message}`)
+
+        const { data: urlData } = supabase.storage
+          .from('dispute-photos')
+          .getPublicUrl(filePath)
+
+        urls.push(urlData.publicUrl)
+      }
+
+      const res = await apiFetch(`/api/disputes/${disputeId}/seller-photos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ seller_photo_urls: urls }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || ct.error_submit_failed)
+      }
+
+      const updated = await res.json()
+      setExistingDispute(updated)
+      setSellerPhotosSubmitted(true)
+      setSellerFiles([])
+      setSellerPreviews([])
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : ct.error_unknown
+      setSellerUploadError(message)
+    } finally {
+      setSellerUploading(false)
     }
   }
 
@@ -664,23 +808,192 @@ export default function DisputePage() {
             )}
           </div>
 
-          {/* Evidence images */}
-          {dispute.evidence_urls && dispute.evidence_urls.length > 0 && (
-            <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{ct.evidence_provided}</p>
+          {/* Buyer photo proof */}
+          {dispute.photo_urls && dispute.photo_urls.length > 0 && (
+            <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{(ct as Record<string, string>).buyer_photos}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {dispute.evidence_urls.map((url, i) => (
+                {dispute.photo_urls.map((url, i) => (
                   <img
-                    key={i}
+                    key={`bp-${i}`}
                     src={url}
                     alt={`${ct.evidence_alt} ${i + 1}`}
-                    style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222' }}
+                    style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222', cursor: 'pointer' }}
+                    onClick={() => setFullscreenPhoto(url)}
                   />
                 ))}
               </div>
             </div>
           )}
+
+          {/* Legacy evidence images (for older disputes without photo_urls) */}
+          {(!dispute.photo_urls || dispute.photo_urls.length === 0) && dispute.evidence_urls && dispute.evidence_urls.length > 0 && (
+            <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{ct.evidence_provided}</p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {dispute.evidence_urls.map((url, i) => (
+                  <img
+                    key={`ev-${i}`}
+                    src={url}
+                    alt={`${ct.evidence_alt} ${i + 1}`}
+                    style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222', cursor: 'pointer' }}
+                    onClick={() => setFullscreenPhoto(url)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Seller photo proof */}
+          {dispute.seller_photo_urls && dispute.seller_photo_urls.length > 0 && (
+            <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{(ct as Record<string, string>).seller_photos}</p>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {dispute.seller_photo_urls.map((url, i) => (
+                  <img
+                    key={`sp-${i}`}
+                    src={url}
+                    alt={`${(ct as Record<string, string>).seller_photos} ${i + 1}`}
+                    style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222', cursor: 'pointer' }}
+                    onClick={() => setFullscreenPhoto(url)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Seller photo upload section (only for the seller, when no seller photos yet) */}
+          {user && dispute.seller_id === user.id && (!dispute.seller_photo_urls || dispute.seller_photo_urls.length === 0) && !sellerPhotosSubmitted && (
+            <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px', border: '1px solid rgba(240, 144, 138, 0.3)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="8.5" r="1.5" fill="#F0908A" /><polyline points="21,15 16,10 5,21" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{(ct as Record<string, string>).upload_seller_photos}</p>
+              </div>
+
+              {/* Seller preview thumbnails */}
+              {sellerPreviews.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                  {sellerPreviews.map((preview, i) => (
+                    <div key={i} style={{ position: 'relative' }}>
+                      <img
+                        src={preview}
+                        alt={`${(ct as Record<string, string>).seller_photos} ${i + 1}`}
+                        style={{ width: '72px', height: '72px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }}
+                        onClick={() => setFullscreenPhoto(preview)}
+                      />
+                      <button
+                        onClick={() => removeSellerFile(i)}
+                        style={{
+                          position: 'absolute', top: '-6px', right: '-6px',
+                          width: '22px', height: '22px', borderRadius: '50%',
+                          backgroundColor: '#E8344E', color: '#fff', border: 'none',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center',
+                          justifyContent: 'center', fontSize: '12px', fontWeight: 700,
+                        }}
+                      >
+                        x
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {sellerFiles.length < 5 && (
+                <button
+                  onClick={() => sellerFileInputRef.current?.click()}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: 'rgba(240, 144, 138, 0.1)',
+                    color: '#F0908A',
+                    border: '1px dashed #F0908A',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    width: '100%',
+                    justifyContent: 'center',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  {ct.add_file} ({sellerFiles.length}/5)
+                </button>
+              )}
+              <input
+                ref={sellerFileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                multiple
+                onChange={handleSellerFileSelect}
+                style={{ display: 'none' }}
+              />
+
+              {sellerUploadError && (
+                <p style={{ fontSize: '13px', color: '#E8344E', marginBottom: '12px' }}>{sellerUploadError}</p>
+              )}
+
+              {sellerFiles.length > 0 && (
+                <button
+                  onClick={() => handleSellerPhotoSubmit(dispute.id)}
+                  disabled={sellerUploading}
+                  style={{
+                    width: '100%', padding: '12px',
+                    backgroundColor: sellerUploading ? '#333' : '#F0908A',
+                    color: '#fff', border: 'none', borderRadius: '12px',
+                    fontSize: '14px', fontWeight: 600,
+                    cursor: sellerUploading ? 'default' : 'pointer',
+                    opacity: sellerUploading ? 0.7 : 1,
+                  }}
+                >
+                  {sellerUploading ? ct.submitting : (ct as Record<string, string>).submit_btn}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Seller photos submitted success */}
+          {sellerPhotosSubmitted && (
+            <div style={{ backgroundColor: '#1a2a1a', border: '1px solid #2a3a2a', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <p style={{ fontSize: '13px', color: '#4ade80', fontWeight: 500 }}>{(ct as Record<string, string>).seller_photos_submitted}</p>
+            </div>
+          )}
         </div>
+
+        {/* Fullscreen photo viewer */}
+        {fullscreenPhoto && (
+          <div
+            onClick={() => setFullscreenPhoto(null)}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.95)', zIndex: 9999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '20px',
+            }}
+          >
+            <button
+              onClick={() => setFullscreenPhoto(null)}
+              style={{
+                position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: '16px',
+                width: '36px', height: '36px', borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.15)', border: 'none',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                zIndex: 10000,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" /><line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" /></svg>
+            </button>
+            <img
+              src={fullscreenPhoto}
+              alt=""
+              style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '8px', objectFit: 'contain' }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     )
   }
@@ -696,7 +1009,7 @@ export default function DisputePage() {
   }
 
   // Dispute form
-  const canSubmit = reason && description.trim().length >= 20 && !submitting
+  const canSubmit = reason && description.trim().length >= 20 && !submitting && files.length >= 1
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
@@ -820,11 +1133,17 @@ export default function DisputePage() {
           </p>
         </div>
 
-        {/* Evidence upload */}
-        <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
-            {ct.evidence_label}
-          </label>
+        {/* Photo proof upload (MANDATORY) */}
+        <div style={{ marginBottom: '20px', backgroundColor: '#111', borderRadius: '12px', padding: '16px', border: files.length === 0 ? '1px solid rgba(232, 52, 78, 0.4)' : '1px solid #222' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="8.5" r="1.5" fill="#F0908A" /><polyline points="21,15 16,10 5,21" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+              {(ct as Record<string, string>).photo_proof_title}
+            </label>
+          </div>
+          <p style={{ fontSize: '12px', color: files.length === 0 ? '#E8344E' : '#666', marginBottom: '12px', fontWeight: files.length === 0 ? 600 : 400 }}>
+            {(ct as Record<string, string>).photo_required} (1-5)
+          </p>
 
           {/* Preview thumbnails */}
           {previews.length > 0 && (
@@ -834,7 +1153,8 @@ export default function DisputePage() {
                   <img
                     src={preview}
                     alt={`${ct.evidence_alt} ${i + 1}`}
-                    style={{ width: '72px', height: '72px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333' }}
+                    style={{ width: '72px', height: '72px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }}
+                    onClick={() => setFullscreenPhoto(preview)}
                   />
                   <button
                     onClick={() => removeFile(i)}
@@ -868,25 +1188,28 @@ export default function DisputePage() {
               onClick={() => fileInputRef.current?.click()}
               style={{
                 padding: '12px 20px',
-                backgroundColor: '#1A1A1A',
-                color: '#aaa',
-                border: '1px dashed #333',
+                backgroundColor: files.length === 0 ? 'rgba(240, 144, 138, 0.1)' : '#1A1A1A',
+                color: files.length === 0 ? '#F0908A' : '#aaa',
+                border: files.length === 0 ? '1px dashed #F0908A' : '1px dashed #333',
                 borderRadius: '12px',
                 fontSize: '14px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
+                width: '100%',
+                justifyContent: 'center',
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" strokeLinecap="round" strokeLinejoin="round" /><polyline points="17,8 12,3 7,8" strokeLinecap="round" strokeLinejoin="round" /><line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={files.length === 0 ? '#F0908A' : '#888'} strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" /><circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               {ct.add_file} ({files.length}/5)
             </button>
           )}
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*,video/*"
+            accept="image/*"
+            capture="environment"
             multiple
             onChange={handleFileSelect}
             style={{ display: 'none' }}
@@ -918,6 +1241,38 @@ export default function DisputePage() {
           {submitting ? ct.submitting : ct.submit_dispute}
         </button>
       </div>
+
+      {/* Fullscreen photo viewer */}
+      {fullscreenPhoto && (
+        <div
+          onClick={() => setFullscreenPhoto(null)}
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.95)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <button
+            onClick={() => setFullscreenPhoto(null)}
+            style={{
+              position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: '16px',
+              width: '36px', height: '36px', borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.15)', border: 'none',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              zIndex: 10000,
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" /><line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" /></svg>
+          </button>
+          <img
+            src={fullscreenPhoto}
+            alt=""
+            style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '8px', objectFit: 'contain' }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   )
 }

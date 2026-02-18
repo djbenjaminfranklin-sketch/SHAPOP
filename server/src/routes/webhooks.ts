@@ -101,6 +101,7 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
             }
           }
 
+          // Escrow: payment is held until delivery is confirmed
           await supabase
             .from('orders')
             .update({
@@ -109,10 +110,12 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
               holdback_percent: holdbackPercent,
               payout_scheduled_at: payoutScheduledAt,
               payout_method: payoutMethod,
+              payout_status: 'held',
+              tracking_status: 'pending',
             })
             .eq('id', orderId)
 
-          // If PayPal seller, create a paypal_payouts record
+          // If PayPal seller, create a paypal_payouts record (held until delivery)
           if (payoutMethod === 'paypal' && orderData) {
             const { data: sellerInfo } = await supabase
               .from('sellers')

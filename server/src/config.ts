@@ -71,6 +71,11 @@ if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
 }
 
 // =============================================
+// La Poste Tracking API (optional — graceful fallback to auto-release after 14 days)
+// =============================================
+export const LAPOSTE_API_KEY = process.env.LAPOSTE_API_KEY || ''
+
+// =============================================
 // Admin config
 // =============================================
 export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'djbenjaminfranklin@gmail.com').split(',').map(e => e.trim())

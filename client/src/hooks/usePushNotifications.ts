@@ -68,6 +68,16 @@ export function usePushNotifications() {
     }
   }, [])
 
+  // Clear badge count when app opens
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    PushNotifications.checkPermissions().then(result => {
+      if (result.receive === 'granted') {
+        PushNotifications.removeAllDeliveredNotifications()
+      }
+    }).catch(() => {})
+  }, [])
+
   // Set up listeners once
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || registeredRef.current) return

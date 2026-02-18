@@ -174,7 +174,7 @@ export interface ChatMessage {
   is_flagged: boolean
   flag_reason: string | null
   created_at: string
-  user_profile?: { display_name: string }
+  user_profile?: { display_name: string; avatar_url?: string | null }
 }
 
 export interface EngagementMetrics {
@@ -209,6 +209,8 @@ export interface Dispute {
   reason: 'not_received' | 'wrong_item' | 'damaged' | 'not_as_described' | 'counterfeit'
   description: string
   evidence_urls: string[]
+  photo_urls: string[]
+  seller_photo_urls: string[]
   status: 'open' | 'under_review' | 'resolved_buyer' | 'resolved_seller' | 'escalated'
   resolution_note: string | null
   auto_refund: boolean

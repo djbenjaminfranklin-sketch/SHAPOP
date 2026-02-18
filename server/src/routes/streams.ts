@@ -26,7 +26,7 @@ router.get('/api/streams', async (req: Request, res: Response) => {
 
     let query = supabase
       .from('streams')
-      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))`)
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, shipping_delay_days, profiles:profiles!id(display_name, avatar_url))`)
       .in('status', status ? [status as string] : ['live', 'scheduled'])
       .order('engagement_score', { ascending: false })
 
@@ -64,7 +64,7 @@ router.get('/api/streams/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('streams')
-      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, profiles:profiles!id(display_name, avatar_url))`)
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, shipping_delay_days, profiles:profiles!id(display_name, avatar_url))`)
       .eq('id', req.params.id)
       .single()
 
@@ -424,6 +424,8 @@ router.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authen
 router.post('/api/streams/:id/viewer-join', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const streamId = req.params.id
+    const userId = req.user!.id
+
     // Atomic increment to avoid race conditions
     const { error } = await supabase.rpc('increment_viewer_count', { stream_id: streamId })
     if (error) {
@@ -433,6 +435,30 @@ router.post('/api/streams/:id/viewer-join', requireAuth, async (req: Authenticat
         await supabase.from('streams').update({ viewer_count: Math.max((data.viewer_count || 0) + 1, 0) }).eq('id', streamId)
       }
     }
+
+    // Insert a system "joined" chat message (one per user per stream to avoid spam)
+    try {
+      const { data: existingJoin } = await supabase
+        .from('chat_messages')
+        .select('id')
+        .eq('stream_id', streamId)
+        .eq('user_id', userId)
+        .eq('message', '__system:join__')
+        .limit(1)
+        .maybeSingle()
+
+      if (!existingJoin) {
+        await supabase.from('chat_messages').insert({
+          stream_id: streamId,
+          user_id: userId,
+          message: '__system:join__',
+        })
+      }
+    } catch (chatErr) {
+      // Non-blocking: don't fail the join if chat message insert fails
+      console.error('[viewer-join] Failed to insert join chat message:', chatErr)
+    }
+
     res.json({ success: true })
   } catch {
     res.status(500).json({ error: 'Failed to update viewer count' })

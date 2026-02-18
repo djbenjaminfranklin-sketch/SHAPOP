@@ -590,4 +590,107 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
   }
 })
 
+// =============================================
+// SELLER SHIPPING DELAY
+// =============================================
+
+// GET /api/seller/shipping-delay — get the seller's shipping delay
+router.get('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { data, error } = await supabase
+      .from('sellers')
+      .select('shipping_delay_days')
+      .eq('id', userId)
+      .single()
+
+    if (error && error.code === 'PGRST116') {
+      // Seller record not found — return default
+      res.json({ shipping_delay_days: 2 })
+      return
+    }
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch shipping delay' })
+      return
+    }
+
+    res.json({ shipping_delay_days: data.shipping_delay_days ?? 2 })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// PUT /api/seller/shipping-delay — update the seller's shipping delay
+router.put('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { shipping_delay_days } = req.body
+
+    if (shipping_delay_days === undefined || typeof shipping_delay_days !== 'number') {
+      res.status(400).json({ error: 'shipping_delay_days must be a number' })
+      return
+    }
+
+    const allowed = [1, 2, 3, 5, 7]
+    if (!allowed.includes(shipping_delay_days)) {
+      res.status(400).json({ error: `shipping_delay_days must be one of: ${allowed.join(', ')}` })
+      return
+    }
+
+    // Upsert: update if exists, create seller record if not
+    const { data: existing } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('id', userId)
+      .single()
+
+    if (!existing) {
+      const { error: insertErr } = await supabase
+        .from('sellers')
+        .insert({ id: userId, shipping_delay_days })
+      if (insertErr) {
+        console.error('[shipping-delay] Insert error:', insertErr.message)
+        res.status(500).json({ error: 'Failed to save shipping delay' })
+        return
+      }
+    } else {
+      const { error: updateErr } = await supabase
+        .from('sellers')
+        .update({ shipping_delay_days })
+        .eq('id', userId)
+      if (updateErr) {
+        console.error('[shipping-delay] Update error:', updateErr.message)
+        res.status(500).json({ error: 'Failed to save shipping delay' })
+        return
+      }
+    }
+
+    res.json({ shipping_delay_days })
+  } catch (err) {
+    console.error('[shipping-delay] Exception:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// GET /api/seller/:id/shipping-delay — public: get any seller's shipping delay
+router.get('/api/seller/:id/shipping-delay', async (req: Request, res: Response) => {
+  try {
+    const sellerId = req.params.id
+    const { data, error } = await supabase
+      .from('sellers')
+      .select('shipping_delay_days')
+      .eq('id', sellerId)
+      .single()
+
+    if (error || !data) {
+      res.json({ shipping_delay_days: 2 })
+      return
+    }
+
+    res.json({ shipping_delay_days: data.shipping_delay_days ?? 2 })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router

@@ -22,6 +22,10 @@ interface OrderDetail {
   shipping_address: Record<string, string> | null
   shipping_proof_url: string | null
   tracking_number: string | null
+  carrier: string | null
+  tracking_status: 'pending' | 'shipped' | 'in_transit' | 'delivered' | 'returned' | null
+  buyer_confirmed_at: string | null
+  payout_status: string | null
   paid_at: string | null
   shipped_at: string | null
   delivered_at: string | null
@@ -96,6 +100,30 @@ const pageContent = {
     statusReturnRequested: 'Retour demande',
     statusReturnApproved: 'Retour accepte',
     statusReturnRejected: 'Retour refuse',
+    // Tracking & Escrow
+    addTracking: 'Ajouter le suivi',
+    trackingNumberLabel: 'Numero de suivi',
+    trackingNumberPlaceholder: 'Entrez le numero de suivi',
+    carrierLabel: 'Transporteur',
+    carrierLaposte: 'La Poste',
+    carrierMondialRelay: 'Mondial Relay',
+    carrierChronopost: 'Chronopost',
+    carrierColissimo: 'Colissimo',
+    carrierOther: 'Autre',
+    submitTracking: 'Envoyer le suivi',
+    submittingTracking: 'Envoi...',
+    confirmReceipt: 'J\'ai recu mon colis',
+    confirmingReceipt: 'Confirmation...',
+    paymentHeld: 'Paiement en attente de livraison',
+    paymentReleased: 'Paiement libere',
+    trackingStatusPending: 'En attente d\'expedition',
+    trackingStatusShipped: 'Expedie',
+    trackingStatusInTransit: 'En transit',
+    trackingStatusDelivered: 'Livre',
+    trackingStatusReturned: 'Retourne',
+    escrowInfo: 'Le paiement est securise. Il sera libere quand vous confirmerez la reception.',
+    escrowInfoSeller: 'Le paiement est bloque jusqu\'a confirmation de livraison.',
+    selectCarrier: 'Selectionnez un transporteur',
   },
   en: {
     back: 'Back',
@@ -159,6 +187,30 @@ const pageContent = {
     statusReturnRequested: 'Return requested',
     statusReturnApproved: 'Return approved',
     statusReturnRejected: 'Return rejected',
+    // Tracking & Escrow
+    addTracking: 'Add tracking',
+    trackingNumberLabel: 'Tracking number',
+    trackingNumberPlaceholder: 'Enter tracking number',
+    carrierLabel: 'Carrier',
+    carrierLaposte: 'La Poste',
+    carrierMondialRelay: 'Mondial Relay',
+    carrierChronopost: 'Chronopost',
+    carrierColissimo: 'Colissimo',
+    carrierOther: 'Other',
+    submitTracking: 'Submit tracking',
+    submittingTracking: 'Submitting...',
+    confirmReceipt: 'I received my package',
+    confirmingReceipt: 'Confirming...',
+    paymentHeld: 'Payment held until delivery',
+    paymentReleased: 'Payment released',
+    trackingStatusPending: 'Pending shipment',
+    trackingStatusShipped: 'Shipped',
+    trackingStatusInTransit: 'In transit',
+    trackingStatusDelivered: 'Delivered',
+    trackingStatusReturned: 'Returned',
+    escrowInfo: 'Payment is secured. It will be released when you confirm receipt.',
+    escrowInfoSeller: 'Payment is held until delivery is confirmed.',
+    selectCarrier: 'Select a carrier',
   },
   he: {
     back: '\u05D7\u05D6\u05D5\u05E8',
@@ -222,6 +274,30 @@ const pageContent = {
     statusReturnRequested: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05D4\u05EA\u05D1\u05E7\u05E9\u05D4',
     statusReturnApproved: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05D0\u05D5\u05E9\u05E8\u05D4',
     statusReturnRejected: '\u05D4\u05D7\u05D6\u05E8\u05D4 \u05E0\u05D3\u05D7\u05EA\u05D4',
+    // Tracking & Escrow
+    addTracking: '\u05D4\u05D5\u05E1\u05E3 \u05DE\u05E2\u05E7\u05D1',
+    trackingNumberLabel: '\u05DE\u05E1\u05E4\u05E8 \u05DE\u05E2\u05E7\u05D1',
+    trackingNumberPlaceholder: '\u05D4\u05D6\u05DF \u05DE\u05E1\u05E4\u05E8 \u05DE\u05E2\u05E7\u05D1',
+    carrierLabel: '\u05D7\u05D1\u05E8\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
+    carrierLaposte: 'La Poste',
+    carrierMondialRelay: 'Mondial Relay',
+    carrierChronopost: 'Chronopost',
+    carrierColissimo: 'Colissimo',
+    carrierOther: '\u05D0\u05D7\u05E8',
+    submitTracking: '\u05E9\u05DC\u05D7 \u05DE\u05E2\u05E7\u05D1',
+    submittingTracking: '\u05E9\u05D5\u05DC\u05D7...',
+    confirmReceipt: '\u05E7\u05D9\u05D1\u05DC\u05EA\u05D9 \u05D0\u05EA \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4',
+    confirmingReceipt: '\u05DE\u05D0\u05E9\u05E8...',
+    paymentHeld: '\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05DE\u05EA\u05D9\u05DF \u05DC\u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7',
+    paymentReleased: '\u05EA\u05E9\u05DC\u05D5\u05DD \u05E9\u05D5\u05D7\u05E8\u05E8',
+    trackingStatusPending: '\u05DE\u05DE\u05EA\u05D9\u05DF \u05DC\u05DE\u05E9\u05DC\u05D5\u05D7',
+    trackingStatusShipped: '\u05E0\u05E9\u05DC\u05D7',
+    trackingStatusInTransit: '\u05D1\u05DE\u05E2\u05D1\u05E8',
+    trackingStatusDelivered: '\u05E0\u05DE\u05E1\u05E8',
+    trackingStatusReturned: '\u05D4\u05D5\u05D7\u05D6\u05E8',
+    escrowInfo: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D0\u05D5\u05D1\u05D8\u05D7. \u05D4\u05D5\u05D0 \u05D9\u05E9\u05D5\u05D7\u05E8\u05E8 \u05DB\u05E9\u05EA\u05D0\u05E9\u05E8 \u05E7\u05D1\u05DC\u05D4.',
+    escrowInfoSeller: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D5\u05E7\u05E4\u05D0 \u05E2\u05D3 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7.',
+    selectCarrier: '\u05D1\u05D7\u05E8 \u05D7\u05D1\u05E8\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
   },
   es: {
     back: 'Volver',
@@ -285,6 +361,30 @@ const pageContent = {
     statusReturnRequested: 'Devolucion solicitada',
     statusReturnApproved: 'Devolucion aprobada',
     statusReturnRejected: 'Devolucion rechazada',
+    // Tracking & Escrow
+    addTracking: 'Agregar seguimiento',
+    trackingNumberLabel: 'Numero de seguimiento',
+    trackingNumberPlaceholder: 'Ingrese el numero de seguimiento',
+    carrierLabel: 'Transportista',
+    carrierLaposte: 'La Poste',
+    carrierMondialRelay: 'Mondial Relay',
+    carrierChronopost: 'Chronopost',
+    carrierColissimo: 'Colissimo',
+    carrierOther: 'Otro',
+    submitTracking: 'Enviar seguimiento',
+    submittingTracking: 'Enviando...',
+    confirmReceipt: 'Recibi mi paquete',
+    confirmingReceipt: 'Confirmando...',
+    paymentHeld: 'Pago retenido hasta la entrega',
+    paymentReleased: 'Pago liberado',
+    trackingStatusPending: 'Pendiente de envio',
+    trackingStatusShipped: 'Enviado',
+    trackingStatusInTransit: 'En transito',
+    trackingStatusDelivered: 'Entregado',
+    trackingStatusReturned: 'Devuelto',
+    escrowInfo: 'El pago esta asegurado. Se liberara cuando confirmes la recepcion.',
+    escrowInfoSeller: 'El pago esta retenido hasta que se confirme la entrega.',
+    selectCarrier: 'Seleccione un transportista',
   },
 }
 
@@ -327,6 +427,16 @@ export default function OrderDetailPage() {
   const [confirmingDelivery, setConfirmingDelivery] = useState(false)
   const [showLabel, setShowLabel] = useState(false)
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null)
+
+  // Tracking states
+  const [showTrackingModal, setShowTrackingModal] = useState(false)
+  const [trackingInput, setTrackingInput] = useState('')
+  const [carrierInput, setCarrierInput] = useState('')
+  const [submittingTracking, setSubmittingTracking] = useState(false)
+  const [trackingError, setTrackingError] = useState<string | null>(null)
+
+  // Confirm receipt state
+  const [confirmingReceipt, setConfirmingReceipt] = useState(false)
 
   // Return request states
   const [showReturnModal, setShowReturnModal] = useState(false)
@@ -557,6 +667,81 @@ export default function OrderDetailPage() {
     } finally {
       setSubmittingReject(false)
     }
+  }
+
+  const handleSubmitTracking = async () => {
+    if (!order || !session || !trackingInput.trim() || !carrierInput) return
+    setSubmittingTracking(true)
+    setTrackingError(null)
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/tracking`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ tracking_number: trackingInput.trim(), carrier: carrierInput }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      setShowTrackingModal(false)
+      setTrackingInput('')
+      setCarrierInput('')
+      fetchOrder()
+    } catch (err: unknown) {
+      setTrackingError(err instanceof Error ? err.message : ct.error)
+    } finally {
+      setSubmittingTracking(false)
+    }
+  }
+
+  const handleConfirmReceipt = async () => {
+    if (!order || !session) return
+    setConfirmingReceipt(true)
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/confirm-receipt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      fetchOrder()
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.error(err)
+    } finally {
+      setConfirmingReceipt(false)
+    }
+  }
+
+  const getTrackingStatusLabel = (ts: string | null) => {
+    switch (ts) {
+      case 'pending': return ct.trackingStatusPending
+      case 'shipped': return ct.trackingStatusShipped
+      case 'in_transit': return ct.trackingStatusInTransit
+      case 'delivered': return ct.trackingStatusDelivered
+      case 'returned': return ct.trackingStatusReturned
+      default: return ts || ''
+    }
+  }
+
+  const getTrackingStatusColor = (ts: string | null) => {
+    switch (ts) {
+      case 'pending': return '#F59E0B'
+      case 'shipped': return '#3B82F6'
+      case 'in_transit': return '#3B82F6'
+      case 'delivered': return '#10B981'
+      case 'returned': return '#E8344E'
+      default: return '#666'
+    }
+  }
+
+  const carrierLabels: Record<string, string> = {
+    laposte: ct.carrierLaposte,
+    mondial_relay: ct.carrierMondialRelay,
+    chronopost: ct.carrierChronopost,
+    colissimo: ct.carrierColissimo,
+    other: ct.carrierOther,
   }
 
   const getStatusColor = (status: string) => {
@@ -808,13 +993,71 @@ export default function OrderDetailPage() {
           </div>
         )}
 
-        {/* Tracking number */}
-        {order.tracking_number && (
+        {/* Escrow info banner */}
+        {order.status === 'paid' && order.payout_status === 'held' && (
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #111', backgroundColor: '#F59E0B10' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              <p style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 600, margin: 0 }}>
+                {ct.paymentHeld}
+              </p>
+            </div>
+            <p style={{ fontSize: '12px', color: '#999', margin: '6px 0 0 24px' }}>
+              {isBuyer ? ct.escrowInfo : ct.escrowInfoSeller}
+            </p>
+          </div>
+        )}
+
+        {/* Payment released banner */}
+        {order.payout_status === 'released' && (
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #111', backgroundColor: '#10B98110' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <p style={{ fontSize: '13px', color: '#10B981', fontWeight: 600, margin: 0 }}>
+                {ct.paymentReleased}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Tracking info */}
+        {(order.tracking_number || order.tracking_status) && (
           <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {ct.tracking}
             </p>
-            <p style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>{order.tracking_number}</p>
+            <div style={{ backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '12px', border: '1px solid #1A1A1A' }}>
+              {order.tracking_number && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: order.carrier || order.tracking_status ? '8px' : 0 }}>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{ct.trackingNumberLabel}</span>
+                  <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600, fontFamily: 'monospace' }}>{order.tracking_number}</span>
+                </div>
+              )}
+              {order.carrier && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: order.tracking_status ? '8px' : 0 }}>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{ct.carrierLabel}</span>
+                  <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>{carrierLabels[order.carrier] || order.carrier}</span>
+                </div>
+              )}
+              {order.tracking_status && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{ct.status}</span>
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700,
+                    color: getTrackingStatusColor(order.tracking_status),
+                    backgroundColor: `${getTrackingStatusColor(order.tracking_status)}14`,
+                    padding: '3px 10px', borderRadius: '8px',
+                    border: `1px solid ${getTrackingStatusColor(order.tracking_status)}30`,
+                  }}>
+                    {getTrackingStatusLabel(order.tracking_status)}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -854,6 +1097,26 @@ export default function OrderDetailPage() {
             </button>
           )}
 
+          {/* Seller: Add tracking button (when shipped but no tracking yet, or to update) */}
+          {isSeller && ['paid', 'shipped'].includes(order.status) && (
+            <button
+              onClick={() => { setShowTrackingModal(true); setTrackingError(null); setTrackingInput(order.tracking_number || ''); setCarrierInput(order.carrier || '') }}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: order.tracking_number ? 'transparent' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: order.tracking_number ? '1px solid #333' : 'none',
+                color: order.tracking_number ? '#aaa' : '#fff',
+                fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+              {ct.addTracking}
+            </button>
+          )}
+
           {/* Seller: Print label */}
           {isSeller && ['paid', 'shipped'].includes(order.status) && order.shipping_address && (
             <button
@@ -868,8 +1131,8 @@ export default function OrderDetailPage() {
             </button>
           )}
 
-          {/* Buyer: Confirm delivery */}
-          {isBuyer && order.status === 'shipped' && (
+          {/* Buyer: Confirm delivery (legacy) */}
+          {isBuyer && order.status === 'shipped' && !order.tracking_number && (
             <button
               onClick={handleConfirmDelivery}
               disabled={confirmingDelivery}
@@ -881,6 +1144,26 @@ export default function OrderDetailPage() {
               }}
             >
               {confirmingDelivery ? ct.confirming : ct.confirmDelivery}
+            </button>
+          )}
+
+          {/* Buyer: Confirm receipt (escrow — when tracking exists) */}
+          {isBuyer && ['paid', 'shipped'].includes(order.status) && (order.tracking_status === 'shipped' || order.tracking_status === 'in_transit') && (
+            <button
+              onClick={handleConfirmReceipt}
+              disabled={confirmingReceipt}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: confirmingReceipt ? '#333' : 'linear-gradient(135deg, #10B981, #059669)',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: confirmingReceipt ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+              {confirmingReceipt ? ct.confirmingReceipt : ct.confirmReceipt}
             </button>
           )}
 
@@ -1152,6 +1435,82 @@ export default function OrderDetailPage() {
 
             <button
               onClick={() => setShowRejectModal(false)}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#666', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
+            >
+              {ct.cancel}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tracking modal (seller) */}
+      {showTrackingModal && (
+        <div
+          onClick={() => setShowTrackingModal(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: '#111', borderRadius: '20px', padding: '24px', width: '100%', maxWidth: '380px', border: '1px solid #222' }}>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>
+              {ct.addTracking}
+            </h3>
+
+            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
+              {ct.trackingNumberLabel}
+            </p>
+            <input
+              type="text"
+              value={trackingInput}
+              onChange={e => setTrackingInput(e.target.value)}
+              placeholder={ct.trackingNumberPlaceholder}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #222',
+                backgroundColor: '#0A0A0A', color: '#fff', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box', fontFamily: 'monospace',
+              }}
+            />
+
+            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
+              {ct.carrierLabel}
+            </p>
+            <select
+              value={carrierInput}
+              onChange={e => setCarrierInput(e.target.value)}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #222',
+                backgroundColor: '#0A0A0A', color: carrierInput ? '#fff' : '#666', fontSize: '14px', marginBottom: '16px',
+                boxSizing: 'border-box', WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none',
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath d=\'M3 4.5L6 7.5L9 4.5\' stroke=\'%23666\' fill=\'none\' stroke-width=\'1.5\'/%3E%3C/svg%3E")',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 12px center',
+              }}
+            >
+              <option value="" disabled>{ct.selectCarrier}</option>
+              <option value="laposte">{ct.carrierLaposte}</option>
+              <option value="mondial_relay">{ct.carrierMondialRelay}</option>
+              <option value="chronopost">{ct.carrierChronopost}</option>
+              <option value="colissimo">{ct.carrierColissimo}</option>
+              <option value="other">{ct.carrierOther}</option>
+            </select>
+
+            {trackingError && (
+              <p style={{ color: '#E8344E', fontSize: '13px', margin: '0 0 12px', textAlign: 'center' }}>{trackingError}</p>
+            )}
+
+            <button
+              onClick={handleSubmitTracking}
+              disabled={submittingTracking || !trackingInput.trim() || !carrierInput}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: submittingTracking || !trackingInput.trim() || !carrierInput ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: submittingTracking || !trackingInput.trim() || !carrierInput ? 'default' : 'pointer',
+              }}
+            >
+              {submittingTracking ? ct.submittingTracking : ct.submitTracking}
+            </button>
+
+            <button
+              onClick={() => setShowTrackingModal(false)}
               style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#666', fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
             >
               {ct.cancel}

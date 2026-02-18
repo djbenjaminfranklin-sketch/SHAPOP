@@ -7,6 +7,9 @@ import type { Stream, Item, ChatMessage, Order } from '../types/database'
 import EngagementDashboard from '../components/EngagementDashboard'
 import ViewerReactions from '../components/ViewerReactions'
 import LiveKitViewer from '../components/LiveKitViewer'
+import SellerProfileHeader from '../components/stream/SellerProfileHeader'
+import StreamSidebar from '../components/stream/StreamSidebar'
+import ActiveItemBar from '../components/stream/ActiveItemBar'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { apiFetch } from '../lib/api'
@@ -380,7 +383,7 @@ export default function StreamView() {
 
   const [stream, setStream] = useState<Stream | null>(null)
   const [activeAuction, setActiveAuction] = useState<Item | null>(null)
-  const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string } })[]>([])
+  const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string; avatar_url?: string | null } })[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [bidAmount, setBidAmount] = useState('')
   const [timeLeft, setTimeLeft] = useState(0)
@@ -398,8 +401,11 @@ export default function StreamView() {
   const [cameraActive, setCameraActive] = useState(false)
 
   const [sellerName, setSellerName] = useState('')
+  const [sellerAvatar, setSellerAvatar] = useState<string | null>(null)
   const [sellerScore, setSellerScore] = useState<number | null>(null)
+  const [itemCount, setItemCount] = useState(0)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
+  const [sellerShippingDelay, setSellerShippingDelay] = useState<number>(2)
   const [viewerMuted, setViewerMuted] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
 
@@ -559,25 +565,29 @@ export default function StreamView() {
     const fetchSellerProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, username')
+        .select('display_name, username, avatar_url')
         .eq('id', stream.seller_id)
         .single()
       if (data) {
         setSellerName(data.display_name || data.username || '')
+        setSellerAvatar(data.avatar_url || null)
       }
     }
-    const fetchSellerReturnPolicy = async () => {
+    const fetchSellerData = async () => {
       const { data } = await supabase
         .from('sellers')
-        .select('return_policy')
+        .select('return_policy, shipping_delay_days')
         .eq('id', stream.seller_id)
         .single()
       if (data?.return_policy) {
         setSellerReturnPolicy(data.return_policy)
       }
+      if (data?.shipping_delay_days != null) {
+        setSellerShippingDelay(data.shipping_delay_days)
+      }
     }
     fetchSellerProfile()
-    fetchSellerReturnPolicy()
+    fetchSellerData()
 
     // Fetch seller trust score
     const fetchSellerScore = async () => {
@@ -696,7 +706,7 @@ export default function StreamView() {
       try {
         const { data } = await supabase
           .from('chat_messages')
-          .select('*, user_profile:profiles!user_id(display_name)')
+          .select('*, user_profile:profiles!user_id(display_name, avatar_url)')
           .eq('stream_id', id)
           .neq('type', 'reaction')
           .order('created_at', { ascending: true })
@@ -705,8 +715,20 @@ export default function StreamView() {
       } catch (err) { console.error('Failed to fetch chat messages:', err) }
     }
 
+    // Fetch item count for this stream
+    const fetchItemCount = async () => {
+      try {
+        const { count } = await supabase
+          .from('items')
+          .select('id', { count: 'exact', head: true })
+          .eq('stream_id', id)
+        setItemCount(count || 0)
+      } catch { /* ignore */ }
+    }
+
     fetchActiveAuction()
     fetchMessages()
+    fetchItemCount()
   }, [id, retryFetchStream])
 
   // Ecouter les mises a jour en temps reel
@@ -728,7 +750,7 @@ export default function StreamView() {
       try {
         const { data: enriched } = await supabase
           .from('chat_messages')
-          .select('*, user_profile:profiles!user_id(display_name)')
+          .select('*, user_profile:profiles!user_id(display_name, avatar_url)')
           .eq('id', payload.new.id)
           .single()
         if (enriched) {
@@ -1410,28 +1432,7 @@ export default function StreamView() {
                   </>
                 )}
 
-                {/* Viewer count badge - dynamic */}
-                <div
-                  aria-live="polite"
-                  aria-label={`${stream.viewer_count || 0} ${ct.viewers}`}
-                  style={{
-                    position: 'absolute', top: '16px', right: '16px',
-                    padding: '6px 12px', borderRadius: '8px',
-                    backgroundColor: 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(8px)',
-                    WebkitBackdropFilter: 'blur(8px)',
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    zIndex: 10,
-                  }}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" aria-hidden="true">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                  <span style={{ fontSize: '13px', color: '#fff', fontWeight: 600 }}>
-                    {stream.viewer_count || 0}
-                  </span>
-                </div>
+                {/* Viewer count now in top bar */}
               </div>
             )}
 
@@ -1508,7 +1509,7 @@ export default function StreamView() {
               </div>
             )}
 
-            {/* Viewer: top bar with back button + LIVE badge */}
+            {/* Viewer: top bar with back button + SellerProfileHeader + LIVE badge */}
             {!isSeller && (
               <div style={{
                 position: 'absolute',
@@ -1517,7 +1518,7 @@ export default function StreamView() {
                 zIndex: 20,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                   <button
                     onClick={() => navigate(-1)}
                     aria-label="Back"
@@ -1526,13 +1527,37 @@ export default function StreamView() {
                       backgroundColor: 'rgba(0,0,0,0.5)',
                       border: '1px solid rgba(255,255,255,0.15)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer',
+                      cursor: 'pointer', flexShrink: 0,
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
                       <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
+                  <SellerProfileHeader
+                    sellerId={stream.seller_id}
+                    sellerName={sellerName}
+                    sellerAvatar={sellerAvatar}
+                    sellerScore={sellerScore}
+                    shippingDelay={sellerShippingDelay}
+                    isFollowing={isFollowing}
+                    onFollowToggle={async () => {
+                      const { data: { session: s } } = await supabase.auth.getSession()
+                      if (!s || !stream) return
+                      try {
+                        if (isFollowing) {
+                          const res = await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
+                          if (res.ok) setIsFollowing(false)
+                        } else {
+                          const res = await apiFetch(`/api/follow/${stream.seller_id}`, { method: 'POST', headers: { Authorization: `Bearer ${s.access_token}` } })
+                          if (res.ok) setIsFollowing(true)
+                        }
+                      } catch { /* ignore */ }
+                    }}
+                    lang={lang}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                   {stream.status === 'live' && (
                     <span style={{
                       background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
@@ -1550,16 +1575,23 @@ export default function StreamView() {
                       {ct.liveNow}
                     </span>
                   )}
-                  <span style={{
-                    backgroundColor: 'rgba(0,0,0,0.5)',
-                    padding: '5px 10px', borderRadius: '8px',
-                    fontSize: '11px', fontWeight: 600, color: '#fff',
-                    display: 'flex', alignItems: 'center', gap: '4px',
-                  }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
+                  <span
+                    aria-live="polite"
+                    aria-label={`${stream.viewer_count || 0} ${ct.viewers}`}
+                    style={{
+                      background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
+                      padding: '5px 14px', borderRadius: '20px',
+                      fontSize: '12px', fontWeight: 700, color: '#fff',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      boxShadow: '0 2px 8px rgba(232,52,78,0.4)',
+                    }}
+                  >
+                    <div style={{
+                      width: '7px', height: '7px', borderRadius: '50%',
+                      backgroundColor: '#fff',
+                      animation: 'liveDot 1.5s ease-in-out infinite',
+                      boxShadow: '0 0 6px rgba(255,255,255,0.8)',
+                    }} />
                     {stream.viewer_count || 0}
                   </span>
                 </div>
@@ -1770,6 +1802,35 @@ export default function StreamView() {
             {/* Viewer reactions moved to bottom overlay */}
           </div>
 
+      {/* ═══ StreamSidebar (viewer only, right side) ═══ */}
+      {!isSeller && isLive && (
+        <div style={{
+          position: 'absolute',
+          right: '8px',
+          bottom: '50%',
+          transform: 'translateY(50%)',
+          zIndex: 18,
+        }}>
+          <StreamSidebar
+            streamId={stream.id}
+            itemCount={itemCount}
+            onShare={() => {
+              if (navigator.share) {
+                navigator.share({ title: stream.title || 'Live', url: window.location.href }).catch(() => {})
+              } else {
+                navigator.clipboard.writeText(window.location.href).catch(() => {})
+              }
+            }}
+            onShopClick={() => {
+              // Scroll to or focus auction area
+              const auctionEl = document.getElementById('active-item-bar')
+              if (auctionEl) auctionEl.scrollIntoView({ behavior: 'smooth' })
+            }}
+            lang={lang}
+          />
+        </div>
+      )}
+
       {/* ═══ BOTTOM GRADIENT ═══ */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
@@ -1787,21 +1848,61 @@ export default function StreamView() {
       }}>
         {/* Chat messages — last 4, overlaid */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          {messages.slice(-4).map(msg => (
-            <div key={msg.id} style={{
-              display: 'flex', gap: '6px',
-              padding: '4px 10px',
-              backgroundColor: 'rgba(0,0,0,0.55)',
-              borderRadius: '8px',
-            }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                {msg.user_profile?.display_name || ct.anonymous}
-              </span>
-              <span style={{ fontSize: '12px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
-                {msg.is_flagged ? ct.messageFlagged : msg.message}
-              </span>
-            </div>
-          ))}
+          {messages.slice(-4).map(msg => {
+            const isJoin = msg.message === '__system:join__'
+            const joinText: Record<string, string> = { fr: 'a rejoint', en: 'joined', he: '\u05D4\u05E6\u05D8\u05E8\u05E3', es: 'se unio' }
+            if (isJoin) {
+              return (
+                <div key={msg.id} style={{
+                  padding: '2px 10px',
+                }}>
+                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+                    {msg.user_profile?.display_name || ct.anonymous} {joinText[lang] || joinText.fr} {'\uD83D\uDC4B'}
+                  </span>
+                </div>
+              )
+            }
+            return (
+              <div key={msg.id} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '6px',
+                padding: '4px 10px',
+                backgroundColor: 'rgba(0,0,0,0.55)',
+                borderRadius: '8px',
+              }}>
+                {msg.user_profile?.avatar_url ? (
+                  <img
+                    src={msg.user_profile.avatar_url}
+                    alt=""
+                    style={{
+                      width: '28px', height: '28px', borderRadius: '50%',
+                      objectFit: 'cover', flexShrink: 0,
+                      border: '1px solid rgba(255,255,255,0.15)',
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    backgroundColor: 'rgba(240,144,138,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A' }}>
+                      {(msg.user_profile?.display_name || '?')[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                    {msg.user_profile?.display_name || ct.anonymous}
+                  </span>
+                  <span style={{ fontSize: '12px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
+                    {msg.is_flagged ? ct.messageFlagged : msg.message}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
         {/* Chat input */}
@@ -1846,8 +1947,8 @@ export default function StreamView() {
           <ViewerReactions onReaction={handleViewerReaction} sendReaction={sendReactionToServer} />
         )}
 
-        {/* Active auction + bid */}
-        {activeAuction && (
+        {/* Active auction + bid — seller sees original panel, viewer sees ActiveItemBar */}
+        {activeAuction && isSeller && (
           <div style={{
             padding: '12px',
             backgroundColor: 'rgba(0,0,0,0.85)',
@@ -1883,43 +1984,24 @@ export default function StreamView() {
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '11px', color: '#888', margin: '0 0 2px' }}>{ct.currentPrice}</p>
                 <p style={{ fontSize: '24px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                  {activeAuction.current_price.toLocaleString()} €
+                  {activeAuction.current_price.toLocaleString()} EUR
                 </p>
               </div>
-
-              {user && (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    value={bidAmount}
-                    onChange={e => setBidAmount(e.target.value)}
-                    min={activeAuction.current_price + 1}
-                    aria-label={ct.bid}
-                    style={{
-                      width: '80px', padding: '10px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      border: '1px solid rgba(255,255,255,0.2)',
-                      borderRadius: '12px', color: '#fff',
-                      fontSize: '16px', fontWeight: 700, outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={handlePlaceBid}
-                    disabled={timeLeft <= 0}
-                    style={{
-                      padding: '10px 18px', borderRadius: '12px',
-                      background: timeLeft > 0 ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
-                      border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
-                      cursor: timeLeft > 0 ? 'pointer' : 'not-allowed',
-                      opacity: timeLeft <= 0 ? 0.5 : 1,
-                    }}
-                  >
-                    {ct.bid}
-                  </button>
-                </div>
-              )}
             </div>
+          </div>
+        )}
+        {activeAuction && !isSeller && isLive && (
+          <div id="active-item-bar">
+            <ActiveItemBar
+              item={activeAuction}
+              bidAmount={bidAmount}
+              onBidAmountChange={setBidAmount}
+              onBid={handlePlaceBid}
+              hasCard={hasCard}
+              onAddCard={openCardSetup}
+              disabled={timeLeft <= 0}
+              lang={lang}
+            />
           </div>
         )}
 

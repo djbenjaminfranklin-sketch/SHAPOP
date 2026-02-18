@@ -427,6 +427,8 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     }
     if (autoCharged) {
       updateData.paid_at = new Date().toISOString()
+      updateData.payout_status = 'held'
+      updateData.tracking_status = 'pending'
     }
 
     const { error: dbUpdateError } = await supabase
@@ -534,6 +536,7 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
         payoutMethod = 'paypal'
       }
 
+      // Escrow: payment is held until delivery is confirmed (buyer confirms, tracking shows delivered, or 14-day auto-release)
       await supabase
         .from('orders')
         .update({
@@ -542,10 +545,12 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
           holdback_percent: holdbackPercent,
           payout_scheduled_at: payoutScheduledAt,
           payout_method: payoutMethod,
+          payout_status: 'held',
+          tracking_status: 'pending',
         })
         .eq('id', order_id)
 
-      // If PayPal seller, create a paypal_payouts record
+      // If PayPal seller, create a paypal_payouts record (status 'pending' — will become 'ready' when delivery confirmed)
       if (payoutMethod === 'paypal' && sellerInfo?.paypal_email) {
         const fees = calculateFees(order.amount)
         // Check if payout record already exists (webhook may have created it)
@@ -564,7 +569,7 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
             currency: 'EUR',
             status: 'pending',
           })
-          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${order_id} (${fees.sellerPayout} EUR)`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${order_id} (${fees.sellerPayout} EUR, held until delivery)`)
         }
       }
 
