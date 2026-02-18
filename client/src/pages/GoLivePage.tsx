@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import ConfirmModal from '../components/ConfirmModal'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -187,6 +188,10 @@ const goLiveContent = {
     deleteSelected: 'Supprimer',
     bulkCancel: 'Annuler',
     bulkDeleteConfirm: 'Supprimer ces lives et leurs articles ?',
+    confirmDelete: 'Supprimer',
+    confirmCancel: 'Annuler',
+    deleteStreamTitle: 'Supprimer le live',
+    bulkDeleteTitle: 'Suppression multiple',
   },
   en: {
     title: 'New live',
@@ -215,6 +220,10 @@ const goLiveContent = {
     deleteSelected: 'Delete',
     bulkCancel: 'Cancel',
     bulkDeleteConfirm: 'Delete these lives and their items?',
+    confirmDelete: 'Delete',
+    confirmCancel: 'Cancel',
+    deleteStreamTitle: 'Delete live',
+    bulkDeleteTitle: 'Bulk delete',
   },
   he: {
     title: 'שידור חדש',
@@ -243,6 +252,10 @@ const goLiveContent = {
     deleteSelected: '\u05DE\u05D7\u05E7',
     bulkCancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
     bulkDeleteConfirm: '\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05DC\u05D4\u05DD?',
+    confirmDelete: '\u05DE\u05D7\u05E7',
+    confirmCancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
+    deleteStreamTitle: '\u05DE\u05D7\u05E7 \u05E9\u05D9\u05D3\u05D5\u05E8',
+    bulkDeleteTitle: '\u05DE\u05D7\u05D9\u05E7\u05D4 \u05DE\u05E8\u05D5\u05D1\u05D4',
   },
   es: {
     title: 'Nuevo directo',
@@ -271,6 +284,10 @@ const goLiveContent = {
     deleteSelected: 'Eliminar',
     bulkCancel: 'Cancelar',
     bulkDeleteConfirm: '\u00BFEliminar estos directos y sus art\u00EDculos?',
+    confirmDelete: 'Eliminar',
+    confirmCancel: 'Cancelar',
+    deleteStreamTitle: 'Eliminar directo',
+    bulkDeleteTitle: 'Eliminaci\u00F3n m\u00FAltiple',
   },
 }
 
@@ -332,6 +349,7 @@ export default function GoLivePage() {
   const [streamsLoading, setStreamsLoading] = useState(true)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -363,36 +381,48 @@ export default function GoLivePage() {
     fetchMyStreams()
   }, [user])
 
-  const handleDeleteStream = async (streamId: string) => {
-    if (!confirm(ct.deleteConfirm)) return
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const res = await apiFetch(`/api/streams/${streamId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
+  const handleDeleteStream = (streamId: string) => {
+    setConfirmModal({
+      title: (ct as any).deleteStreamTitle || ct.delete,
+      message: ct.deleteConfirm,
+      onConfirm: async () => {
+        setConfirmModal(null)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await apiFetch(`/api/streams/${streamId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (res.ok) {
+          setMyStreams(prev => prev.filter(s => s.id !== streamId))
+        } else {
+          const body = await res.json().catch(() => ({ error: 'Delete failed' }))
+          alert(body.error || 'Delete failed')
+        }
+      },
     })
-    if (res.ok) {
-      setMyStreams(prev => prev.filter(s => s.id !== streamId))
-    } else {
-      const body = await res.json().catch(() => ({ error: 'Delete failed' }))
-      alert(body.error || 'Delete failed')
-    }
   }
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
-    if (!confirm((ct as any).bulkDeleteConfirm || ct.deleteConfirm)) return
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const headers = { Authorization: `Bearer ${session.access_token}` }
-    const deletedIds = new Set<string>()
-    for (const id of selectedIds) {
-      const res = await apiFetch(`/api/streams/${id}`, { method: 'DELETE', headers })
-      if (res.ok) deletedIds.add(id)
-    }
-    setMyStreams(prev => prev.filter(s => !deletedIds.has(s.id)))
-    setSelectedIds(new Set())
-    setSelectionMode(false)
+    setConfirmModal({
+      title: (ct as any).bulkDeleteTitle || ct.delete,
+      message: (ct as any).bulkDeleteConfirm || ct.deleteConfirm,
+      onConfirm: async () => {
+        setConfirmModal(null)
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const headers = { Authorization: `Bearer ${session.access_token}` }
+        const deletedIds = new Set<string>()
+        for (const id of selectedIds) {
+          const res = await apiFetch(`/api/streams/${id}`, { method: 'DELETE', headers })
+          if (res.ok) deletedIds.add(id)
+        }
+        setMyStreams(prev => prev.filter(s => !deletedIds.has(s.id)))
+        setSelectedIds(new Set())
+        setSelectionMode(false)
+      },
+    })
   }
 
   const toggleSelectStream = (id: string) => {
@@ -1134,6 +1164,17 @@ export default function GoLivePage() {
           50% { opacity: 0.3; }
         }
       `}</style>
+
+      <ConfirmModal
+        open={!!confirmModal}
+        title={confirmModal?.title || ''}
+        message={confirmModal?.message || ''}
+        confirmLabel={(ct as any).confirmDelete || ct.delete}
+        cancelLabel={(ct as any).confirmCancel || ct.cancel}
+        onConfirm={() => confirmModal?.onConfirm()}
+        onCancel={() => setConfirmModal(null)}
+        danger
+      />
     </div>
   )
 }

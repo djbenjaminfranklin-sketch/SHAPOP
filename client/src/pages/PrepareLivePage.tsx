@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ConfirmModal from '../components/ConfirmModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -75,6 +76,8 @@ const pageContent = {
     changeDate: 'Modifier la date',
     saveDate: 'Enregistrer',
     deleteError: 'Echec de la suppression',
+    confirmDelete: 'Supprimer',
+    confirmCancel: 'Annuler',
   },
   en: {
     title: 'Prepare your live',
@@ -109,6 +112,8 @@ const pageContent = {
     changeDate: 'Change date',
     saveDate: 'Save',
     deleteError: 'Failed to delete',
+    confirmDelete: 'Delete',
+    confirmCancel: 'Cancel',
   },
   he: {
     title: 'הכנת השידור',
@@ -143,6 +148,8 @@ const pageContent = {
     changeDate: 'שנה תאריך',
     saveDate: 'שמור',
     deleteError: 'המחיקה נכשלה',
+    confirmDelete: 'מחק',
+    confirmCancel: 'ביטול',
   },
   es: {
     title: 'Preparar el directo',
@@ -177,6 +184,8 @@ const pageContent = {
     changeDate: 'Cambiar fecha',
     saveDate: 'Guardar',
     deleteError: 'Error al eliminar',
+    confirmDelete: 'Eliminar',
+    confirmCancel: 'Cancelar',
   },
 }
 
@@ -218,6 +227,7 @@ export default function PrepareLivePage() {
   const [editingDate, setEditingDate] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
   const [deleteError, setDeleteError] = useState('')
+  const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -452,21 +462,28 @@ export default function PrepareLivePage() {
     setItems(prev => prev.filter((_, i) => i !== index).map((it, i) => ({ ...it, lot_number: i + 1 })))
   }
 
-  const handleDeleteStream = async () => {
-    if (!streamId || !confirm(ct.deleteStreamConfirm)) return
-    setDeleteError('')
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    const res = await apiFetch(`/api/streams/${streamId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
+  const handleDeleteStream = () => {
+    if (!streamId) return
+    setConfirmModal({
+      title: ct.deleteStream,
+      message: ct.deleteStreamConfirm,
+      onConfirm: async () => {
+        setConfirmModal(null)
+        setDeleteError('')
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) return
+        const res = await apiFetch(`/api/streams/${streamId}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        if (res.ok) {
+          navigate('/go-live', { replace: true })
+        } else {
+          const body = await res.json().catch(() => ({ error: ct.deleteError }))
+          setDeleteError(body.error || ct.deleteError)
+        }
+      },
     })
-    if (res.ok) {
-      navigate('/go-live', { replace: true })
-    } else {
-      const body = await res.json().catch(() => ({ error: ct.deleteError }))
-      setDeleteError(body.error || ct.deleteError)
-    }
   }
 
   const handleSaveDate = async () => {
@@ -1167,6 +1184,17 @@ export default function PrepareLivePage() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      <ConfirmModal
+        open={!!confirmModal}
+        title={confirmModal?.title || ''}
+        message={confirmModal?.message || ''}
+        confirmLabel={ct.confirmDelete}
+        cancelLabel={ct.confirmCancel}
+        onConfirm={() => confirmModal?.onConfirm()}
+        onCancel={() => setConfirmModal(null)}
+        danger
+      />
     </div>
   )
 }

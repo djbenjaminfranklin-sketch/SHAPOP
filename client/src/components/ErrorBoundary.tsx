@@ -13,7 +13,7 @@ interface State {
 const getErrorText = () => {
   const lang = localStorage.getItem('shapop_lang') || 'fr'
   const texts: Record<string, { title: string; desc: string; btn: string; backBtn: string }> = {
-    fr: { title: 'Une erreur est survenue', desc: 'Une erreur inattendue s\'est produite.', btn: 'Rafraichir', backBtn: 'Retour a l\'accueil' },
+    fr: { title: 'Oups, une erreur est survenue', desc: 'Une erreur inattendue s\'est produite.', btn: 'Recharger', backBtn: 'Retour a l\'accueil' },
     en: { title: 'Something went wrong', desc: 'An unexpected error occurred.', btn: 'Refresh', backBtn: 'Back to home' },
     he: { title: 'משהו השתבש', desc: 'אירעה שגיאה בלתי צפויה.', btn: 'רענן', backBtn: 'חזרה לדף הבית' },
     es: { title: 'Algo salio mal', desc: 'Ocurrio un error inesperado.', btn: 'Recargar', backBtn: 'Volver al inicio' },
@@ -31,7 +31,8 @@ export default class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error, errorInfo: null }
   }
 
-  componentDidCatch(_error: Error, errorInfo: { componentStack?: string }) {
+  componentDidCatch(error: Error, errorInfo: { componentStack?: string }) {
+    console.error('[ErrorBoundary] Uncaught error:', error, errorInfo)
     this.setState({ errorInfo: errorInfo?.componentStack || null })
   }
 
@@ -49,7 +50,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null })
+    window.location.reload()
   }
 
   render() {

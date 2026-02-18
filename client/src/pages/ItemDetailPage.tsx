@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import ConfirmModal from '../components/ConfirmModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
@@ -24,6 +25,8 @@ const content = {
     deleteConfirm: 'Supprimer cette annonce ?',
     myItem: 'Mon annonce',
     editPrice: 'Modifier le prix',
+    confirmDelete: 'Supprimer',
+    confirmCancel: 'Annuler',
   },
   en: {
     notFound: 'Item not found',
@@ -42,6 +45,8 @@ const content = {
     deleteConfirm: 'Delete this listing?',
     myItem: 'My listing',
     editPrice: 'Edit price',
+    confirmDelete: 'Delete',
+    confirmCancel: 'Cancel',
   },
   he: {
     notFound: 'הפריט לא נמצא',
@@ -60,6 +65,8 @@ const content = {
     deleteConfirm: 'למחוק את המודעה?',
     myItem: 'המודעה שלי',
     editPrice: 'ערוך מחיר',
+    confirmDelete: 'מחק',
+    confirmCancel: 'ביטול',
   },
   es: {
     notFound: 'Articulo no encontrado',
@@ -78,6 +85,8 @@ const content = {
     deleteConfirm: 'Eliminar este anuncio?',
     myItem: 'Mi anuncio',
     editPrice: 'Editar precio',
+    confirmDelete: 'Eliminar',
+    confirmCancel: 'Cancelar',
   },
 } as Record<string, Record<string, string>>
 
@@ -100,6 +109,7 @@ export default function ItemDetailPage() {
   const [fetchError, setFetchError] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
 
   const retryLabel = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Reessayer'
 
@@ -345,14 +355,20 @@ export default function ItemDetailPage() {
             {/* Owner actions vs buyer actions */}
             {user && item.seller_id === user.id ? (
               <button
-                onClick={async () => {
-                  if (!confirm(t.deleteConfirm)) return
-                  if (!session?.access_token) return
-                  const res = await apiFetch(`/api/items/${item.id}`, {
-                    method: 'DELETE',
-                    headers: { Authorization: `Bearer ${session.access_token}` },
+                onClick={() => {
+                  setConfirmModal({
+                    title: t.deleteItem,
+                    message: t.deleteConfirm,
+                    onConfirm: async () => {
+                      setConfirmModal(null)
+                      if (!session?.access_token) return
+                      const res = await apiFetch(`/api/items/${item.id}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      })
+                      if (res.ok) navigate(-1)
+                    },
                   })
-                  if (res.ok) navigate(-1)
                 }}
                 style={{
                   width: '100%', padding: '14px', borderRadius: '14px',
@@ -379,6 +395,17 @@ export default function ItemDetailPage() {
           </div>
         </>
       )}
+
+      <ConfirmModal
+        open={!!confirmModal}
+        title={confirmModal?.title || ''}
+        message={confirmModal?.message || ''}
+        confirmLabel={t.confirmDelete}
+        cancelLabel={t.confirmCancel}
+        onConfirm={() => confirmModal?.onConfirm()}
+        onCancel={() => setConfirmModal(null)}
+        danger
+      />
     </div>
   )
 }
