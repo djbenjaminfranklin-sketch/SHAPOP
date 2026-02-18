@@ -25,45 +25,172 @@ export function calculateFees(amount: number) {
 }
 
 // =============================================
-// Shipping cost calculation (French carriers)
+// Shipping cost calculation (zone-based carriers)
 // =============================================
 
 type ShippingRate = { maxGrams: number; cost: number }[]
 
-const SHIPPING_RATES: Record<string, ShippingRate> = {
-  mondial_relay: [
-    { maxGrams: 500, cost: 3.99 },
-    { maxGrams: 1000, cost: 4.99 },
-    { maxGrams: 2000, cost: 5.99 },
-    { maxGrams: 5000, cost: 6.99 },
-    { maxGrams: 10000, cost: 9.99 },
-    { maxGrams: 30000, cost: 14.99 },
-  ],
-  colissimo: [
-    { maxGrams: 250, cost: 4.95 },
-    { maxGrams: 500, cost: 6.35 },
-    { maxGrams: 1000, cost: 7.25 },
-    { maxGrams: 2000, cost: 8.55 },
-    { maxGrams: 5000, cost: 13.75 },
-    { maxGrams: 10000, cost: 20.05 },
-  ],
-  chronopost: [
-    { maxGrams: 500, cost: 13.19 },
-    { maxGrams: 1000, cost: 14.49 },
-    { maxGrams: 2000, cost: 16.49 },
-    { maxGrams: 5000, cost: 22.49 },
-  ],
-  laposte: [
-    { maxGrams: 250, cost: 4.95 },
-    { maxGrams: 500, cost: 6.35 },
-    { maxGrams: 1000, cost: 7.25 },
-    { maxGrams: 2000, cost: 8.55 },
-  ],
+// Zone: france (default), dom_tom, europe, international
+type ShippingZone = 'france' | 'dom_tom' | 'europe' | 'international'
+
+// Rates per zone per carrier
+// france = France metropolitaine (current rates)
+// dom_tom = DOM-TOM (~2x France prices)
+// europe = EU countries (~1.5-2x France prices)
+// international = Rest of world (~2.5-3x France prices)
+const SHIPPING_RATES: Record<string, Record<string, ShippingRate>> = {
+  mondial_relay: {
+    france: [
+      { maxGrams: 500, cost: 3.99 },
+      { maxGrams: 1000, cost: 4.99 },
+      { maxGrams: 2000, cost: 5.99 },
+      { maxGrams: 5000, cost: 6.99 },
+      { maxGrams: 10000, cost: 9.99 },
+      { maxGrams: 30000, cost: 14.99 },
+    ],
+    // Mondial Relay available in select EU countries (BE, LU, NL, DE, ES, PT, AT, IT)
+    europe: [
+      { maxGrams: 500, cost: 6.99 },
+      { maxGrams: 1000, cost: 8.49 },
+      { maxGrams: 2000, cost: 10.49 },
+      { maxGrams: 5000, cost: 12.99 },
+      { maxGrams: 10000, cost: 18.99 },
+      { maxGrams: 30000, cost: 27.99 },
+    ],
+    // Mondial Relay NOT available for DOM-TOM or international
+  },
+  colissimo: {
+    france: [
+      { maxGrams: 250, cost: 4.95 },
+      { maxGrams: 500, cost: 6.35 },
+      { maxGrams: 1000, cost: 7.25 },
+      { maxGrams: 2000, cost: 8.55 },
+      { maxGrams: 5000, cost: 13.75 },
+      { maxGrams: 10000, cost: 20.05 },
+    ],
+    dom_tom: [
+      { maxGrams: 250, cost: 9.90 },
+      { maxGrams: 500, cost: 12.70 },
+      { maxGrams: 1000, cost: 14.50 },
+      { maxGrams: 2000, cost: 17.10 },
+      { maxGrams: 5000, cost: 27.50 },
+      { maxGrams: 10000, cost: 40.10 },
+    ],
+    europe: [
+      { maxGrams: 250, cost: 8.90 },
+      { maxGrams: 500, cost: 11.40 },
+      { maxGrams: 1000, cost: 13.05 },
+      { maxGrams: 2000, cost: 15.40 },
+      { maxGrams: 5000, cost: 24.75 },
+      { maxGrams: 10000, cost: 36.10 },
+    ],
+    international: [
+      { maxGrams: 250, cost: 13.85 },
+      { maxGrams: 500, cost: 17.80 },
+      { maxGrams: 1000, cost: 20.30 },
+      { maxGrams: 2000, cost: 23.95 },
+      { maxGrams: 5000, cost: 38.50 },
+      { maxGrams: 10000, cost: 56.15 },
+    ],
+  },
+  chronopost: {
+    france: [
+      { maxGrams: 500, cost: 13.19 },
+      { maxGrams: 1000, cost: 14.49 },
+      { maxGrams: 2000, cost: 16.49 },
+      { maxGrams: 5000, cost: 22.49 },
+    ],
+    dom_tom: [
+      { maxGrams: 500, cost: 26.49 },
+      { maxGrams: 1000, cost: 29.49 },
+      { maxGrams: 2000, cost: 33.49 },
+      { maxGrams: 5000, cost: 45.49 },
+    ],
+    europe: [
+      { maxGrams: 500, cost: 22.99 },
+      { maxGrams: 1000, cost: 25.49 },
+      { maxGrams: 2000, cost: 28.99 },
+      { maxGrams: 5000, cost: 39.49 },
+    ],
+    international: [
+      { maxGrams: 500, cost: 36.49 },
+      { maxGrams: 1000, cost: 39.99 },
+      { maxGrams: 2000, cost: 45.49 },
+      { maxGrams: 5000, cost: 61.99 },
+    ],
+  },
+  laposte: {
+    france: [
+      { maxGrams: 250, cost: 4.95 },
+      { maxGrams: 500, cost: 6.35 },
+      { maxGrams: 1000, cost: 7.25 },
+      { maxGrams: 2000, cost: 8.55 },
+    ],
+    dom_tom: [
+      { maxGrams: 250, cost: 9.90 },
+      { maxGrams: 500, cost: 12.70 },
+      { maxGrams: 1000, cost: 14.50 },
+      { maxGrams: 2000, cost: 17.10 },
+    ],
+    europe: [
+      { maxGrams: 250, cost: 8.90 },
+      { maxGrams: 500, cost: 11.40 },
+      { maxGrams: 1000, cost: 13.05 },
+      { maxGrams: 2000, cost: 15.40 },
+    ],
+    international: [
+      { maxGrams: 250, cost: 13.85 },
+      { maxGrams: 500, cost: 17.80 },
+      { maxGrams: 1000, cost: 20.30 },
+      { maxGrams: 2000, cost: 23.95 },
+    ],
+  },
 }
 
-/** Calculate shipping cost in EUR based on weight and carrier */
-export function calculateShippingCost(weightGrams: number, carrier: string): number {
-  const rates = SHIPPING_RATES[carrier]
+// EU country codes for zone detection
+const EU_COUNTRY_CODES = new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'DE',
+  'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL',
+  'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+])
+
+// DOM-TOM zip code prefixes (971xx=Guadeloupe, 972xx=Martinique, 973xx=Guyane, 974xx=Reunion, 976xx=Mayotte)
+const DOM_TOM_ZIP_PREFIXES = ['971', '972', '973', '974', '976']
+
+/** Determine the shipping zone from a country code and optional zip code */
+export function getZoneFromCountry(countryCode?: string, zip?: string): ShippingZone {
+  if (!countryCode) return 'france'
+
+  const code = countryCode.toUpperCase().trim()
+
+  if (code === 'FR') {
+    // Check for DOM-TOM via zip code prefix
+    if (zip) {
+      const zipClean = zip.replace(/\s/g, '')
+      for (const prefix of DOM_TOM_ZIP_PREFIXES) {
+        if (zipClean.startsWith(prefix)) {
+          return 'dom_tom'
+        }
+      }
+    }
+    return 'france'
+  }
+
+  if (EU_COUNTRY_CODES.has(code)) {
+    return 'europe'
+  }
+
+  return 'international'
+}
+
+/** Calculate shipping cost in EUR based on weight, carrier, and zone */
+export function calculateShippingCost(weightGrams: number, carrier: string, zone?: string): number {
+  const zoneKey = (zone || 'france') as ShippingZone
+  const carrierRates = SHIPPING_RATES[carrier]
+  if (!carrierRates) return 0
+
+  // Get rates for the requested zone; if not available for this carrier/zone, return 0 (unavailable)
+  const rates = carrierRates[zoneKey]
   if (!rates) return 0
 
   for (const tier of rates) {
@@ -76,12 +203,24 @@ export function calculateShippingCost(weightGrams: number, carrier: string): num
   return rates[rates.length - 1].cost
 }
 
-/** Get all available carriers and their costs for a given weight */
-export function getShippingOptions(weightGrams: number): { carrier: string; cost: number }[] {
-  return Object.keys(SHIPPING_RATES).map(carrier => ({
-    carrier,
-    cost: calculateShippingCost(weightGrams, carrier),
-  }))
+/** Check if a carrier is available for a given zone */
+export function isCarrierAvailableForZone(carrier: string, zone?: string): boolean {
+  const zoneKey = (zone || 'france') as ShippingZone
+  const carrierRates = SHIPPING_RATES[carrier]
+  if (!carrierRates) return false
+  return !!carrierRates[zoneKey]
+}
+
+/** Get all available carriers and their costs for a given weight and zone */
+export function getShippingOptions(weightGrams: number, zone?: string): { carrier: string; cost: number; zone: string }[] {
+  const zoneKey = (zone || 'france') as ShippingZone
+  return Object.keys(SHIPPING_RATES)
+    .filter(carrier => isCarrierAvailableForZone(carrier, zoneKey))
+    .map(carrier => ({
+      carrier,
+      cost: calculateShippingCost(weightGrams, carrier, zoneKey),
+      zone: zoneKey,
+    }))
 }
 
 // Compute a seller score out of 10 from their trust data

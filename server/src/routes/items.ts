@@ -199,7 +199,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
 router.post('/api/items/create-listing', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
-    const { title, description, category, starting_price, image_urls, ai_generated, ai_tags, ai_condition, ai_confidence, weight_grams } = req.body
+    const { title, description, category, starting_price, image_urls, ai_generated, ai_tags, ai_condition, ai_confidence, weight_grams, seller_shipping_override } = req.body
 
     if (!title || !category) {
       res.status(400).json({ error: 'Missing required fields (title, category)' })
@@ -233,6 +233,7 @@ router.post('/api/items/create-listing', createLimiter, requireAuth, async (req:
       ai_condition: ai_condition || null,
       ai_confidence: normalizedConfidence,
       weight_grams: (weight_grams && Number(weight_grams) > 0) ? Number(weight_grams) : null,
+      seller_shipping_override: (seller_shipping_override && Number(seller_shipping_override) > 0) ? Number(seller_shipping_override) : null,
       status: 'draft',
     }).select('id').single()
 

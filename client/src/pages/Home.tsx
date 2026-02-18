@@ -42,6 +42,13 @@ const homeContent = {
   },
 } as Record<string, { sortedByRelevance: string; basedOnPrefs: string; modify: string }>
 
+const promoBannerText = {
+  fr: { cta: 'Profitez-en !', commission: 'Commission reduite', shipping: 'Livraison reduite', both: 'Commission + Livraison reduites' },
+  en: { cta: 'Take advantage!', commission: 'Reduced commission', shipping: 'Reduced shipping', both: 'Commission + Shipping reduced' },
+  he: { cta: '!נצלו את ההזדמנות', commission: 'עמלה מופחתת', shipping: 'משלוח מופחת', both: 'עמלה + משלוח מופחתים' },
+  es: { cta: 'Aprovecha!', commission: 'Comision reducida', shipping: 'Envio reducido', both: 'Comision + Envio reducidos' },
+} as Record<string, { cta: string; commission: string; shipping: string; both: string }>
+
 const directSalesBanner = {
   fr: 'Acceder aux ventes directes',
   en: 'Browse direct sales',
@@ -126,6 +133,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [fetchError, setFetchError] = useState(false)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [activePromotion, setActivePromotion] = useState<{ id: string; title: string; description: string | null; type: string; discount_percent: number } | null>(null)
+  const [promoBannerDismissed, setPromoBannerDismissed] = useState(false)
   const navigate = useNavigate()
   const { city, loading: locationLoading, setManualCity } = useLocation()
   const { user, updateCity } = useAuth()
@@ -133,6 +142,22 @@ export default function Home() {
   // Track page view on mount
   useEffect(() => {
     track('page_view', { page: 'home' })
+  }, [])
+
+  // Fetch active promotions
+  useEffect(() => {
+    const fetchPromo = async () => {
+      try {
+        const res = await apiFetch('/api/promotions/active')
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data) && data.length > 0) {
+            setActivePromotion(data[0])
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    fetchPromo()
   }, [])
 
   // Sync detected city to user profile
@@ -521,6 +546,70 @@ export default function Home() {
       <div style={{ marginTop: '4px', marginBottom: '12px' }}>
         <CategoryScroll selected={selectedCategory} onSelect={setSelectedCategory} lang={lang} />
       </div>
+
+      {/* Promotion banner */}
+      {activePromotion && !promoBannerDismissed && (() => {
+        const pt = promoBannerText[lang] || promoBannerText.fr
+        const typeKey = activePromotion.type as 'commission' | 'shipping' | 'both'
+        return (
+          <div style={{
+            margin: '0 16px 12px 16px',
+            padding: '14px 16px',
+            borderRadius: '14px',
+            background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #B91C3C 100%)',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(232,52,78,0.3)',
+          }}>
+            {/* Close button */}
+            <button
+              onClick={() => setPromoBannerDismissed(true)}
+              style={{
+                position: 'absolute', top: '8px', right: '8px',
+                background: 'rgba(0,0,0,0.3)', border: 'none',
+                borderRadius: '50%', width: '24px', height: '24px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', padding: 0,
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '40px', height: '40px', borderRadius: '10px',
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, fontSize: '20px',
+              }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" stroke="none">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ color: '#fff', fontSize: '15px', fontWeight: 800, margin: '0 0 2px', paddingRight: '20px' }}>
+                  {activePromotion.title}
+                </p>
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', margin: '0 0 4px' }}>
+                  {activePromotion.description || (pt[typeKey] + ' -' + activePromotion.discount_percent + '%')}
+                </p>
+                <span style={{
+                  display: 'inline-block',
+                  padding: '3px 10px',
+                  borderRadius: '8px',
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#fff',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                }}>
+                  {pt.cta}
+                </span>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Direct sales banner */}
       <Link to="/direct-sales" style={{ textDecoration: 'none' }}>

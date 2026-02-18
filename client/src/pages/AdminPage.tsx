@@ -191,6 +191,31 @@ const adminContent = {
     retentionPercentLabel: 'Rétention (%)',
     payoutDelayDaysLabel: 'Délai de paiement (jours)',
     save: 'Enregistrer',
+    // Promotions
+    tabPromos: 'Promos',
+    promoTitle: 'Titre',
+    promoDescription: 'Description',
+    promoType: 'Type',
+    promoTypeCommission: 'Commission',
+    promoTypeShipping: 'Livraison',
+    promoTypeBoth: 'Les deux',
+    promoDiscount: 'Reduction (%)',
+    promoStartDate: 'Date de debut',
+    promoEndDate: 'Date de fin',
+    promoCreate: 'Creer la promotion',
+    promoNotify: 'Notifier',
+    promoDeactivate: 'Desactiver',
+    promoActive: 'Active',
+    promoExpired: 'Expiree',
+    promoInactive: 'Inactive',
+    promoNoPromos: 'Aucune promotion',
+    promoCreated: 'Promotion creee',
+    promoDeactivated: 'Promotion desactivee',
+    promoNotified: 'Notification envoyee',
+    promoCreateError: 'Erreur lors de la creation',
+    promoNotifyError: 'Erreur lors de la notification',
+    promoNewPromo: 'Nouvelle promotion',
+    promoExisting: 'Promotions existantes',
   },
   en: {
     pageTitle: 'Administration',
@@ -355,6 +380,30 @@ const adminContent = {
     retentionPercentLabel: 'Retention (%)',
     payoutDelayDaysLabel: 'Payout delay (days)',
     save: 'Save',
+    tabPromos: 'Promos',
+    promoTitle: 'Title',
+    promoDescription: 'Description',
+    promoType: 'Type',
+    promoTypeCommission: 'Commission',
+    promoTypeShipping: 'Shipping',
+    promoTypeBoth: 'Both',
+    promoDiscount: 'Discount (%)',
+    promoStartDate: 'Start date',
+    promoEndDate: 'End date',
+    promoCreate: 'Create promotion',
+    promoNotify: 'Notify',
+    promoDeactivate: 'Deactivate',
+    promoActive: 'Active',
+    promoExpired: 'Expired',
+    promoInactive: 'Inactive',
+    promoNoPromos: 'No promotions',
+    promoCreated: 'Promotion created',
+    promoDeactivated: 'Promotion deactivated',
+    promoNotified: 'Notification sent',
+    promoCreateError: 'Error creating promotion',
+    promoNotifyError: 'Error sending notification',
+    promoNewPromo: 'New promotion',
+    promoExisting: 'Existing promotions',
   },
   he: {
     pageTitle: 'ניהול',
@@ -519,6 +568,30 @@ const adminContent = {
     retentionPercentLabel: '(%עיכוב (אחוז',
     payoutDelayDaysLabel: 'עיכוב תשלום (ימים)',
     save: 'שמור',
+    tabPromos: 'מבצעים',
+    promoTitle: 'כותרת',
+    promoDescription: 'תיאור',
+    promoType: 'סוג',
+    promoTypeCommission: 'עמלה',
+    promoTypeShipping: 'משלוח',
+    promoTypeBoth: 'שניהם',
+    promoDiscount: 'הנחה (%)',
+    promoStartDate: 'תאריך התחלה',
+    promoEndDate: 'תאריך סיום',
+    promoCreate: 'צור מבצע',
+    promoNotify: 'שלח התראה',
+    promoDeactivate: 'בטל',
+    promoActive: 'פעיל',
+    promoExpired: 'פג תוקף',
+    promoInactive: 'לא פעיל',
+    promoNoPromos: 'אין מבצעים',
+    promoCreated: 'מבצע נוצר',
+    promoDeactivated: 'מבצע בוטל',
+    promoNotified: 'התראה נשלחה',
+    promoCreateError: 'שגיאה ביצירת מבצע',
+    promoNotifyError: 'שגיאה בשליחת התראה',
+    promoNewPromo: 'מבצע חדש',
+    promoExisting: 'מבצעים קיימים',
   },
   es: {
     pageTitle: 'Administración',
@@ -683,10 +756,34 @@ const adminContent = {
     retentionPercentLabel: 'Retención (%)',
     payoutDelayDaysLabel: 'Retraso de pago (días)',
     save: 'Guardar',
+    tabPromos: 'Promos',
+    promoTitle: 'Titulo',
+    promoDescription: 'Descripcion',
+    promoType: 'Tipo',
+    promoTypeCommission: 'Comision',
+    promoTypeShipping: 'Envio',
+    promoTypeBoth: 'Ambos',
+    promoDiscount: 'Descuento (%)',
+    promoStartDate: 'Fecha de inicio',
+    promoEndDate: 'Fecha de fin',
+    promoCreate: 'Crear promocion',
+    promoNotify: 'Notificar',
+    promoDeactivate: 'Desactivar',
+    promoActive: 'Activa',
+    promoExpired: 'Expirada',
+    promoInactive: 'Inactiva',
+    promoNoPromos: 'Sin promociones',
+    promoCreated: 'Promocion creada',
+    promoDeactivated: 'Promocion desactivada',
+    promoNotified: 'Notificacion enviada',
+    promoCreateError: 'Error al crear promocion',
+    promoNotifyError: 'Error al enviar notificacion',
+    promoNewPromo: 'Nueva promocion',
+    promoExisting: 'Promociones existentes',
   },
 }
 
-type Tab = 'overview' | 'users' | 'sellers' | 'payments' | 'disputes' | 'lives' | 'audit'
+type Tab = 'overview' | 'users' | 'sellers' | 'payments' | 'disputes' | 'lives' | 'audit' | 'promos'
 
 interface Stats {
   users: number; sellers: number; orders: number; orders_30d: number
@@ -745,6 +842,10 @@ export default function AdminPage() {
   const [auditTotal, setAuditTotal] = useState(0)
   const [auditPage, setAuditPage] = useState(1)
 
+  // Promotions
+  const [promotions, setPromotions] = useState<Record<string, unknown>[]>([])
+  const [promoForm, setPromoForm] = useState({ title: '', description: '', type: 'commission', discount_percent: 50, starts_at: '', ends_at: '' })
+
   const [loading, setLoading] = useState(false)
   const [actionMsg, setActionMsg] = useState('')
   const [toast, setToast] = useState<string | null>(null)
@@ -775,6 +876,7 @@ export default function AdminPage() {
       case 'disputes': fetchDisputes(); break
       case 'lives': fetchStreams(); break
       case 'audit': fetchAudit(); break
+      case 'promos': fetchPromotions(); break
     }
   }, [tab, token])
 
@@ -915,6 +1017,47 @@ export default function AdminPage() {
       setAuditLogs(Array.isArray(data.logs) ? data.logs : []); setAuditTotal(Number(data.total) || 0); setAuditPage(page)
     } catch { showToast(ct.loadingError) }
     setLoading(false)
+  }
+
+  const fetchPromotions = async () => {
+    if (!token) return
+    setLoading(true)
+    try {
+      const data = await adminFetch('/api/admin/promotions')
+      setPromotions(Array.isArray(data) ? data : [])
+    } catch { showToast(ct.loadingError) }
+    setLoading(false)
+  }
+
+  const createPromotion = async () => {
+    if (!promoForm.title || !promoForm.starts_at || !promoForm.ends_at) {
+      showToast(ct.promoCreateError)
+      return
+    }
+    try {
+      await adminFetch('/api/admin/promotions', {
+        method: 'POST',
+        body: JSON.stringify(promoForm),
+      })
+      showAction(ct.promoCreated)
+      setPromoForm({ title: '', description: '', type: 'commission', discount_percent: 50, starts_at: '', ends_at: '' })
+      fetchPromotions()
+    } catch { showToast(ct.promoCreateError) }
+  }
+
+  const deactivatePromotion = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/promotions/${id}`, { method: 'DELETE' })
+      showAction(ct.promoDeactivated)
+      fetchPromotions()
+    } catch { showToast(ct.error) }
+  }
+
+  const notifyPromotion = async (id: string) => {
+    try {
+      await adminFetch(`/api/admin/promotions/${id}/notify`, { method: 'POST' })
+      showAction(ct.promoNotified)
+    } catch { showToast(ct.promoNotifyError) }
   }
 
   // ======== ACTIONS ========
@@ -1091,6 +1234,7 @@ export default function AdminPage() {
     { id: 'disputes', label: ct.tabDisputes },
     { id: 'lives', label: ct.tabLives },
     { id: 'audit', label: ct.tabAudit },
+    { id: 'promos', label: ct.tabPromos },
   ]
 
   // ======== ERROR DISPLAY ========
@@ -1649,6 +1793,135 @@ export default function AdminPage() {
     </div>
   )
 
+  const renderPromos = () => {
+    const now = new Date()
+    const getPromoStatus = (p: Record<string, unknown>): 'active' | 'expired' | 'inactive' => {
+      if (!p.is_active) return 'inactive'
+      const starts = new Date(String(p.starts_at))
+      const ends = new Date(String(p.ends_at))
+      if (now >= starts && now <= ends) return 'active'
+      return 'expired'
+    }
+    const statusColor: Record<string, string> = { active: '#10B981', expired: '#666', inactive: '#EF4444' }
+    const statusLabel: Record<string, string> = { active: ct.promoActive, expired: ct.promoExpired, inactive: ct.promoInactive }
+    const typeLabel: Record<string, string> = { commission: ct.promoTypeCommission, shipping: ct.promoTypeShipping, both: ct.promoTypeBoth }
+
+    return (
+      <div style={{ padding: '0 16px' }}>
+        {/* Create form */}
+        <div style={{ ...card, marginBottom: '20px' }}>
+          <p style={{ color: '#F0908A', fontSize: '16px', fontWeight: 800, margin: '0 0 14px' }}>{ct.promoNewPromo}</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input
+              placeholder={ct.promoTitle}
+              value={promoForm.title}
+              onChange={e => setPromoForm(f => ({ ...f, title: e.target.value }))}
+              style={inputStyle}
+            />
+            <input
+              placeholder={ct.promoDescription}
+              value={promoForm.description}
+              onChange={e => setPromoForm(f => ({ ...f, description: e.target.value }))}
+              style={inputStyle}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <select
+                value={promoForm.type}
+                onChange={e => setPromoForm(f => ({ ...f, type: e.target.value }))}
+                style={{ ...inputStyle, flex: 1 }}
+              >
+                <option value="commission">{ct.promoTypeCommission}</option>
+                <option value="shipping">{ct.promoTypeShipping}</option>
+                <option value="both">{ct.promoTypeBoth}</option>
+              </select>
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: '#888', fontSize: '13px', flexShrink: 0 }}>{ct.promoDiscount}</span>
+                <input
+                  type="range"
+                  min={10}
+                  max={100}
+                  step={10}
+                  value={promoForm.discount_percent}
+                  onChange={e => setPromoForm(f => ({ ...f, discount_percent: Number(e.target.value) }))}
+                  style={{ flex: 1, accentColor: '#F0908A' }}
+                />
+                <span style={{ color: '#F0908A', fontSize: '16px', fontWeight: 800, minWidth: '44px', textAlign: 'right' }}>
+                  {promoForm.discount_percent}%
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: '#666', fontSize: '11px', display: 'block', marginBottom: '4px' }}>{ct.promoStartDate}</label>
+                <input
+                  type="datetime-local"
+                  value={promoForm.starts_at}
+                  onChange={e => setPromoForm(f => ({ ...f, starts_at: e.target.value }))}
+                  style={{ ...inputStyle, colorScheme: 'dark' }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ color: '#666', fontSize: '11px', display: 'block', marginBottom: '4px' }}>{ct.promoEndDate}</label>
+                <input
+                  type="datetime-local"
+                  value={promoForm.ends_at}
+                  onChange={e => setPromoForm(f => ({ ...f, ends_at: e.target.value }))}
+                  style={{ ...inputStyle, colorScheme: 'dark' }}
+                />
+              </div>
+            </div>
+            <button
+              onClick={createPromotion}
+              style={{
+                ...btn('linear-gradient(135deg, #F0908A, #E8344E)'),
+                padding: '12px 20px',
+                fontSize: '14px',
+                width: '100%',
+                borderRadius: '12px',
+                marginRight: 0,
+              }}
+            >
+              {ct.promoCreate}
+            </button>
+          </div>
+        </div>
+
+        {/* Existing promotions */}
+        <p style={{ color: '#888', fontSize: '14px', fontWeight: 700, margin: '0 0 10px' }}>{ct.promoExisting}</p>
+        {promotions.length === 0 ? (
+          <p style={{ color: '#555', textAlign: 'center', padding: '30px', fontSize: '13px' }}>{ct.promoNoPromos}</p>
+        ) : promotions.map((p, i) => {
+          const status = getPromoStatus(p)
+          const color = statusColor[status]
+          return (
+            <div key={i} style={{ ...card }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 2px' }}>{sv(p.title)}</p>
+                  {p.description && <p style={{ color: '#888', fontSize: '12px', margin: '0 0 4px' }}>{sv(p.description)}</p>}
+                </div>
+                <span style={badge(color)}>{statusLabel[status]}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <span style={badge('#8B5CF6')}>{typeLabel[sv(p.type)] || sv(p.type)}</span>
+                <span style={badge('#F0908A')}>-{sv(p.discount_percent)}%</span>
+                <span style={{ color: '#555', fontSize: '11px' }}>
+                  {fmtDate(p.starts_at)} → {fmtDate(p.ends_at)}
+                </span>
+              </div>
+              {status === 'active' && (
+                <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+                  <button onClick={() => notifyPromotion(sv(p.id))} style={btn('#8B5CF6')}>{ct.promoNotify}</button>
+                  <button onClick={() => deactivatePromotion(sv(p.id))} style={btn('#EF4444')}>{ct.promoDeactivate}</button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   const renderContent = () => {
     try {
       switch (tab) {
@@ -1659,6 +1932,7 @@ export default function AdminPage() {
         case 'disputes': return renderDisputes()
         case 'lives': return renderLives()
         case 'audit': return renderAudit()
+        case 'promos': return renderPromos()
         default: return null
       }
     } catch (err: any) {

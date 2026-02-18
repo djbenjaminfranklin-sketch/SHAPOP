@@ -3,7 +3,8 @@ import type { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { supabase, stripe, APP_BASE_URL, PAYPAL_BASE_URL, PAYPAL_MODE, ADMIN_EMAILS } from '../config'
 import { requireAuth, paymentLimiter } from '../middleware'
-import { calculateFees, calculateShippingCost, getPaypalAccessToken } from '../utils'
+import { calculateFees, calculateShippingCost, getPaypalAccessToken, getZoneFromCountry } from '../utils'
+import { getActivePromotion } from './promotions'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -339,22 +340,87 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     }
 
     // Calculate shipping cost if item has weight and order has a carrier
+    // Determine shipping zone from buyer's shipping address (country + zip)
     let shippingCost = 0
+    let sellerShippingAbsorption = 0
     if (order.item_id) {
       const { data: item } = await supabase
         .from('items')
-        .select('weight_grams')
+        .select('weight_grams, seller_shipping_override')
         .eq('id', order.item_id)
         .single()
 
       if (item?.weight_grams && order.carrier) {
-        shippingCost = calculateShippingCost(item.weight_grams, order.carrier)
+        // Get zone from shipping address on the order, or fall back to buyer's profile country
+        let buyerCountry: string | undefined
+        let buyerZip: string | undefined
+
+        if (order.shipping_address) {
+          const addr = order.shipping_address as Record<string, string>
+          buyerCountry = addr.country
+          buyerZip = addr.zip
+        }
+
+        // Fall back to profile country if no country on shipping address
+        if (!buyerCountry) {
+          const { data: buyerProfile } = await supabase
+            .from('profiles')
+            .select('country')
+            .eq('id', buyerId)
+            .single()
+          buyerCountry = buyerProfile?.country || undefined
+        }
+
+        const zone = getZoneFromCountry(buyerCountry, buyerZip)
+        const realCarrierCost = calculateShippingCost(item.weight_grams, order.carrier, zone)
+
+        if (item.seller_shipping_override != null && Number(item.seller_shipping_override) > 0) {
+          // Seller set a custom shipping price — buyer pays the override price
+          shippingCost = Number(item.seller_shipping_override)
+          // If seller's price is lower than real cost, they absorb the difference
+          if (shippingCost < realCarrierCost) {
+            sellerShippingAbsorption = Math.round((realCarrierCost - shippingCost) * 100) / 100
+          }
+          if (process.env.NODE_ENV !== 'production') console.log(`[Shipping] Seller override: ${shippingCost}EUR (real: ${realCarrierCost}EUR, absorption: ${sellerShippingAbsorption}EUR)`)
+        } else {
+          shippingCost = realCarrierCost
+        }
+      }
+    }
+
+    // Check for active promotions and apply discounts
+    const activePromo = await getActivePromotion()
+    let promotionId: string | null = null
+
+    if (activePromo) {
+      promotionId = activePromo.id
+      const discountFactor = activePromo.discount_percent / 100
+
+      // Apply shipping discount
+      if ((activePromo.type === 'shipping' || activePromo.type === 'both') && shippingCost > 0) {
+        const originalShipping = shippingCost
+        shippingCost = Math.round(shippingCost * (1 - discountFactor) * 100) / 100
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[Promo] Shipping discount ${activePromo.discount_percent}%: ${originalShipping} -> ${shippingCost}`)
+        }
       }
     }
 
     // Recalculate fees server-side (don't trust client values)
     // Fees are calculated on item price only, not on shipping
-    const fees = calculateFees(order.amount)
+    // If promotion reduces commission, apply that discount to the platform fee
+    let fees = calculateFees(order.amount)
+    if (activePromo && (activePromo.type === 'commission' || activePromo.type === 'both')) {
+      const discountFactor = activePromo.discount_percent / 100
+      const discountedPlatformFee = Math.round(fees.platformFee * (1 - discountFactor) * 100) / 100
+      const newTotalFees = Math.round((discountedPlatformFee + fees.processingFee) * 100) / 100
+      const newSellerPayout = Math.round((order.amount - newTotalFees) * 100) / 100
+      fees = { ...fees, platformFee: discountedPlatformFee, totalFees: newTotalFees, sellerPayout: newSellerPayout }
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[Promo] Commission discount ${activePromo.discount_percent}%: platformFee -> ${discountedPlatformFee}`)
+      }
+    }
+
     const totalAmount = Math.round((order.amount + shippingCost) * 100) / 100
     const amountCents = Math.round(totalAmount * 100)
     const feeCents = Math.round(fees.totalFees * 100)
@@ -395,9 +461,14 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] ${isAdminSeller ? 'Admin' : 'PayPal'} seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
     } else {
       // Stripe seller: direct transfer with application fee (minimum 50 centimes)
-      piParams.application_fee_amount = Math.max(50, feeCents)
+      // If seller set a shipping override below real cost, add the absorption to the application fee
+      const absorptionCents = Math.round(sellerShippingAbsorption * 100)
+      piParams.application_fee_amount = Math.max(50, feeCents + absorptionCents)
       piParams.transfer_data = {
         destination: seller!.stripe_account_id!,
+      }
+      if (absorptionCents > 0 && process.env.NODE_ENV !== 'production') {
+        console.log(`[Stripe] Seller shipping absorption: ${sellerShippingAbsorption}EUR added to application_fee`)
       }
     }
 
@@ -443,6 +514,9 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       shipping_cost: shippingCost,
       total_amount: totalAmount,
     }
+    if (promotionId) {
+      updateData.promotion_id = promotionId
+    }
     if (autoCharged) {
       updateData.paid_at = new Date().toISOString()
       updateData.payout_status = 'held'
@@ -457,11 +531,13 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     // If auto-charged + PayPal seller, create payout record immediately
     if (autoCharged && isPaypalSeller && seller?.paypal_email) {
       const fees = calculateFees(order.amount)
+      // Deduct seller shipping absorption from PayPal payout (seller absorbs the difference)
+      const paypalPayoutAmount = Math.round((fees.sellerPayout - sellerShippingAbsorption) * 100) / 100
       await supabase.from('paypal_payouts').insert({
         order_id: order_id,
         seller_id: order.seller_id,
         paypal_email: seller.paypal_email,
-        amount: fees.sellerPayout,
+        amount: paypalPayoutAmount,
         currency: 'EUR',
         status: 'pending',
       })
@@ -573,6 +649,37 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
       // If PayPal seller, create a paypal_payouts record (status 'pending' — will become 'ready' when delivery confirmed)
       if (payoutMethod === 'paypal' && sellerInfo?.paypal_email) {
         const fees = calculateFees(order.amount)
+
+        // Check if seller has a shipping override that is lower than real cost — deduct absorption from payout
+        let confirmAbsorption = 0
+        if (order.item_id && order.carrier) {
+          const { data: itemForShipping } = await supabase
+            .from('items')
+            .select('weight_grams, seller_shipping_override')
+            .eq('id', order.item_id)
+            .single()
+          if (itemForShipping?.weight_grams && itemForShipping.seller_shipping_override != null && Number(itemForShipping.seller_shipping_override) > 0) {
+            let cBuyerCountry: string | undefined
+            let cBuyerZip: string | undefined
+            if (order.shipping_address) {
+              const addr = order.shipping_address as Record<string, string>
+              cBuyerCountry = addr.country
+              cBuyerZip = addr.zip
+            }
+            if (!cBuyerCountry) {
+              const { data: cProfile } = await supabase.from('profiles').select('country').eq('id', order.buyer_id).single()
+              cBuyerCountry = cProfile?.country || undefined
+            }
+            const cZone = getZoneFromCountry(cBuyerCountry, cBuyerZip)
+            const realCost = calculateShippingCost(itemForShipping.weight_grams, order.carrier, cZone)
+            if (Number(itemForShipping.seller_shipping_override) < realCost) {
+              confirmAbsorption = Math.round((realCost - Number(itemForShipping.seller_shipping_override)) * 100) / 100
+            }
+          }
+        }
+
+        const paypalPayoutAmount = Math.round((fees.sellerPayout - confirmAbsorption) * 100) / 100
+
         // Check if payout record already exists (webhook may have created it)
         const { data: existingPayout } = await supabase
           .from('paypal_payouts')
@@ -585,11 +692,11 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
             order_id: order_id,
             seller_id: order.seller_id,
             paypal_email: sellerInfo.paypal_email,
-            amount: fees.sellerPayout,
+            amount: paypalPayoutAmount,
             currency: 'EUR',
             status: 'pending',
           })
-          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${order_id} (${fees.sellerPayout} EUR, held until delivery)`)
+          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${order_id} (${paypalPayoutAmount} EUR, absorption: ${confirmAbsorption} EUR, held until delivery)`)
         }
       }
 

@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateFees, calculateShippingCost, notifyUser } from '../utils'
+import { calculateFees, calculateShippingCost, getZoneFromCountry, notifyUser } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -259,7 +259,7 @@ router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Get item weight to calculate shipping cost
+    // Get item weight and buyer's zone to calculate shipping cost
     let shippingCost = 0
     if (order.item_id) {
       const { data: item } = await supabase
@@ -269,7 +269,33 @@ router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedReq
         .single()
 
       if (item?.weight_grams) {
-        shippingCost = calculateShippingCost(item.weight_grams, carrier)
+        // Determine shipping zone from buyer's shipping address or profile
+        let buyerCountry: string | undefined
+        let buyerZip: string | undefined
+
+        const { data: fullOrder } = await supabase
+          .from('orders')
+          .select('shipping_address')
+          .eq('id', orderId)
+          .single()
+
+        if (fullOrder?.shipping_address) {
+          const addr = fullOrder.shipping_address as Record<string, string>
+          buyerCountry = addr.country
+          buyerZip = addr.zip
+        }
+
+        if (!buyerCountry) {
+          const { data: buyerProfile } = await supabase
+            .from('profiles')
+            .select('country')
+            .eq('id', userId)
+            .single()
+          buyerCountry = buyerProfile?.country || undefined
+        }
+
+        const zone = getZoneFromCountry(buyerCountry, buyerZip)
+        shippingCost = calculateShippingCost(item.weight_grams, carrier, zone)
       }
     }
 

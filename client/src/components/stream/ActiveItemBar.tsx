@@ -13,6 +13,8 @@ interface ActiveItemBarProps {
   lang: 'fr' | 'en' | 'he' | 'es'
   selectedCarrier?: string
   onCarrierChange?: (carrier: string) => void
+  buyerCountry?: string
+  buyerZip?: string
 }
 
 const LABELS: Record<string, {
@@ -77,6 +79,7 @@ const CARRIER_NAMES: Record<string, string> = {
 interface ShippingOption {
   carrier: string
   cost: number
+  zone?: string
 }
 
 export default function ActiveItemBar({
@@ -90,11 +93,16 @@ export default function ActiveItemBar({
   lang,
   selectedCarrier,
   onCarrierChange,
+  buyerCountry,
+  buyerZip,
 }: ActiveItemBarProps) {
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
+  const [shippingZone, setShippingZone] = useState<string>('france')
   const [showCarrierPicker, setShowCarrierPicker] = useState(false)
+  const [shippingPromo, setShippingPromo] = useState<{ discount_percent: number } | null>(null)
 
   // Fetch shipping options when item changes and has weight
+  // Include buyer country/zip for zone-based pricing
   useEffect(() => {
     if (!item?.weight_grams) {
       setShippingOptions([])
@@ -102,15 +110,40 @@ export default function ActiveItemBar({
     }
     const fetchOptions = async () => {
       try {
-        const resp = await apiFetch(`/api/shipping/options?weight_grams=${item.weight_grams}`)
+        const params = new URLSearchParams({ weight_grams: String(item.weight_grams) })
+        if (buyerCountry) params.set('country', buyerCountry)
+        if (buyerZip) params.set('zip', buyerZip)
+        const resp = await apiFetch(`/api/shipping/options?${params.toString()}`)
         if (resp.ok) {
           const data = await resp.json()
           setShippingOptions(data.options || [])
+          if (data.zone) setShippingZone(data.zone)
         }
       } catch { /* ignore */ }
     }
     fetchOptions()
-  }, [item?.id, item?.weight_grams])
+  }, [item?.id, item?.weight_grams, buyerCountry, buyerZip])
+
+  // Fetch active shipping promotion
+  useEffect(() => {
+    const fetchPromo = async () => {
+      try {
+        const res = await apiFetch('/api/promotions/active')
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data)) {
+            const shippingPromotion = data.find((p: Record<string, unknown>) =>
+              p.type === 'shipping' || p.type === 'both'
+            )
+            if (shippingPromotion) {
+              setShippingPromo({ discount_percent: Number(shippingPromotion.discount_percent) })
+            }
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    fetchPromo()
+  }, [])
 
   if (!item) return null
 
@@ -126,6 +159,12 @@ export default function ActiveItemBar({
   // Find selected carrier cost
   const selectedOption = shippingOptions.find(o => o.carrier === selectedCarrier)
   const displayShippingCost = selectedOption?.cost ?? cheapestShipping
+
+  // Apply shipping promotion discount for display
+  const hasShippingPromo = shippingPromo && shippingPromo.discount_percent > 0
+  const discountedShippingCost = hasShippingPromo
+    ? Math.round(displayShippingCost * (1 - shippingPromo!.discount_percent / 100) * 100) / 100
+    : displayShippingCost
 
   return (
     <div style={{
@@ -224,9 +263,23 @@ export default function ActiveItemBar({
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
               {selectedCarrier ? labels.shipping : labels.shippingFrom}
             </span>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
-              {displayShippingCost.toFixed(2)}€
-            </span>
+            {hasShippingPromo ? (
+              <>
+                <span style={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.35)', textDecoration: 'line-through' }}>
+                  {displayShippingCost.toFixed(2)}€
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#10B981' }}>
+                  {discountedShippingCost.toFixed(2)}€
+                </span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: '#10B981', backgroundColor: 'rgba(16,185,129,0.15)', padding: '1px 5px', borderRadius: '4px' }}>
+                  -{shippingPromo!.discount_percent}%
+                </span>
+              </>
+            ) : (
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
+                {displayShippingCost.toFixed(2)}€
+              </span>
+            )}
           </div>
         </div>
       )}

@@ -84,6 +84,11 @@ const pageContent = {
     days: 'jours',
     weight: 'Poids (grammes)',
     weightHint: 'Poids de l\'article pour le calcul des frais de port',
+    suggestedShipping: 'Prix suggere',
+    shippingOverride: 'Prix de livraison personnalise (EUR)',
+    shippingOverrideHint: 'Laissez vide pour utiliser le prix calcule',
+    shippingWarning: 'Attention: si le cout reel est superieur, la difference sera deduite de vos gains',
+    perCarrier: 'selon le transporteur',
   },
   en: {
     title: 'Prepare your live',
@@ -126,6 +131,11 @@ const pageContent = {
     days: 'days',
     weight: 'Weight (grams)',
     weightHint: 'Item weight for shipping cost calculation',
+    suggestedShipping: 'Suggested price',
+    shippingOverride: 'Custom shipping price (EUR)',
+    shippingOverrideHint: 'Leave empty to use calculated price',
+    shippingWarning: 'Warning: if actual cost is higher, the difference will be deducted from your earnings',
+    perCarrier: 'depending on carrier',
   },
   he: {
     title: 'הכנת השידור',
@@ -168,6 +178,11 @@ const pageContent = {
     days: 'ימים',
     weight: '(משקל (גרם',
     weightHint: 'משקל הפריט לחישוב עלות משלוח',
+    suggestedShipping: 'מחיר מוצע',
+    shippingOverride: '(מחיר משלוח מותאם (EUR',
+    shippingOverrideHint: 'השאר ריק לשימוש במחיר המחושב',
+    shippingWarning: 'שים לב: אם העלות בפועל גבוהה יותר, ההפרש ינוכה מהרווחים שלך',
+    perCarrier: 'בהתאם לשליח',
   },
   es: {
     title: 'Preparar el directo',
@@ -210,7 +225,17 @@ const pageContent = {
     days: 'dias',
     weight: 'Peso (gramos)',
     weightHint: 'Peso del articulo para calcular el envio',
+    suggestedShipping: 'Precio sugerido',
+    shippingOverride: 'Precio de envio personalizado (EUR)',
+    shippingOverrideHint: 'Dejar vacio para usar el precio calculado',
+    shippingWarning: 'Atencion: si el costo real es mayor, la diferencia se deducira de tus ganancias',
+    perCarrier: 'segun el transportista',
   },
+}
+
+interface ShippingOption {
+  carrier: string
+  cost: number
 }
 
 interface DraftItem {
@@ -223,6 +248,7 @@ interface DraftItem {
   lot_number: number
   duration_seconds: number
   weight_grams: number | null
+  seller_shipping_override: number | null
 }
 
 export default function PrepareLivePage() {
@@ -249,6 +275,9 @@ export default function PrepareLivePage() {
   const [formDuration, setFormDuration] = useState(60)
   const [formMinPrice, setFormMinPrice] = useState('')
   const [formWeight, setFormWeight] = useState('')
+  const [formShippingOverride, setFormShippingOverride] = useState('')
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
+  const [loadingShipping, setLoadingShipping] = useState(false)
   const [formError, setFormError] = useState('')
   const [editingDate, setEditingDate] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
@@ -299,6 +328,7 @@ export default function PrepareLivePage() {
           lot_number: i + 1,
           duration_seconds: item.duration_seconds || 60,
           weight_grams: item.weight_grams || null,
+          seller_shipping_override: item.seller_shipping_override || null,
         })))
       }
     }
@@ -328,6 +358,25 @@ export default function PrepareLivePage() {
     }
     fetchShippingDelay()
   }, [user])
+
+  // Fetch shipping options when weight changes
+  useEffect(() => {
+    const weightNum = parseInt(formWeight, 10)
+    if (!weightNum || weightNum <= 0) {
+      setShippingOptions([])
+      return
+    }
+    setLoadingShipping(true)
+    const controller = new AbortController()
+    apiFetch(`/api/shipping/options?weight_grams=${weightNum}`, { signal: controller.signal })
+      .then(resp => resp.json())
+      .then(data => {
+        if (data.options) setShippingOptions(data.options)
+        setLoadingShipping(false)
+      })
+      .catch(() => setLoadingShipping(false))
+    return () => controller.abort()
+  }, [formWeight])
 
   const handleShippingDelayChange = async (days: number) => {
     setShippingDelay(days)
@@ -424,6 +473,7 @@ export default function PrepareLivePage() {
 
       const minPrice = formMinPrice ? parseFloat(formMinPrice) : null
       const weightGrams = formWeight ? parseInt(formWeight, 10) : null
+      const shippingOverride = formShippingOverride ? parseFloat(formShippingOverride) : null
       const { data, error } = await supabase
         .from('items')
         .insert({
@@ -438,6 +488,7 @@ export default function PrepareLivePage() {
           image_urls: imageUrls,
           duration_seconds: formDuration,
           weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
+          seller_shipping_override: (shippingOverride && shippingOverride > 0) ? shippingOverride : null,
         })
         .select()
         .single()
@@ -459,6 +510,7 @@ export default function PrepareLivePage() {
           lot_number: lotNumber,
           duration_seconds: formDuration,
           weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
+          seller_shipping_override: (shippingOverride && shippingOverride > 0) ? shippingOverride : null,
         })
       }
     }
@@ -477,6 +529,8 @@ export default function PrepareLivePage() {
     setFormDuration(60)
     setFormMinPrice('')
     setFormWeight('')
+    setFormShippingOverride('')
+    setShippingOptions([])
     setShowForm(false)
     setSaving(false)
   }
@@ -857,6 +911,11 @@ export default function PrepareLivePage() {
                       : `${item.weight_grams}g`}
                   </span>
                 )}
+                {item.seller_shipping_override != null && item.seller_shipping_override > 0 && (
+                  <span style={{ fontSize: '11px', color: '#F0908A', fontWeight: 600 }}>
+                    {item.seller_shipping_override.toFixed(2)}&euro;
+                  </span>
+                )}
                 <span style={{ fontSize: '11px', color: '#666' }}>
                   {item.duration_seconds}s
                 </span>
@@ -1109,6 +1168,101 @@ export default function PrepareLivePage() {
               </p>
             </div>
 
+            {/* Shipping override section — shown when weight is set */}
+            {formWeight && parseInt(formWeight, 10) > 0 && (
+              <div style={{
+                backgroundColor: '#0D0D0D',
+                border: '1px solid #222',
+                borderRadius: '10px',
+                padding: '12px 14px',
+                marginBottom: '10px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="3" width="15" height="13" rx="1" />
+                    <path d="M16 8h4l3 3v5h-7V8z" />
+                    <circle cx="5.5" cy="18.5" r="2.5" />
+                    <circle cx="18.5" cy="18.5" r="2.5" />
+                  </svg>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                    {ct.shippingOverride}
+                  </p>
+                </div>
+
+                {/* Suggested shipping price range */}
+                {loadingShipping ? (
+                  <p style={{ fontSize: '12px', color: '#888', margin: '0 0 8px 0' }}>...</p>
+                ) : shippingOptions.length > 0 && (
+                  <div style={{
+                    backgroundColor: 'rgba(240,144,138,0.08)',
+                    border: '1px solid rgba(240,144,138,0.2)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    marginBottom: '10px',
+                  }}>
+                    <p style={{ fontSize: '12px', color: '#F0908A', margin: 0, fontWeight: 600 }}>
+                      {ct.suggestedShipping}: {Math.min(...shippingOptions.map(o => o.cost)).toFixed(2)}&euro; - {Math.max(...shippingOptions.map(o => o.cost)).toFixed(2)}&euro; {ct.perCarrier}
+                    </p>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                      {shippingOptions.map(opt => (
+                        <span key={opt.carrier} style={{
+                          fontSize: '11px', color: '#888',
+                          backgroundColor: '#111',
+                          border: '1px solid #222',
+                          borderRadius: '6px',
+                          padding: '3px 8px',
+                        }}>
+                          {opt.carrier.replace('_', ' ')}: {opt.cost.toFixed(2)}&euro;
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Override input */}
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={formShippingOverride}
+                  onChange={e => setFormShippingOverride(e.target.value)}
+                  placeholder={shippingOptions.length > 0
+                    ? `${Math.min(...shippingOptions.map(o => o.cost)).toFixed(2)}`
+                    : '0.00'}
+                  min="0"
+                  step="0.01"
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    backgroundColor: '#111',
+                    border: '1px solid #222',
+                    borderRadius: '8px',
+                    color: '#fff', fontSize: '15px',
+                    outline: 'none', boxSizing: 'border-box',
+                    marginBottom: '6px',
+                  }}
+                />
+                <p style={{ fontSize: '11px', color: '#666', margin: '0 0 0 2px' }}>
+                  {ct.shippingOverrideHint}
+                </p>
+
+                {/* Warning if override is below cheapest carrier */}
+                {formShippingOverride && shippingOptions.length > 0 &&
+                  parseFloat(formShippingOverride) > 0 &&
+                  parseFloat(formShippingOverride) < Math.min(...shippingOptions.map(o => o.cost)) && (
+                  <div style={{
+                    backgroundColor: 'rgba(245,158,11,0.1)',
+                    border: '1px solid rgba(245,158,11,0.3)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    marginTop: '8px',
+                  }}>
+                    <p style={{ fontSize: '12px', color: '#F59E0B', margin: 0 }}>
+                      {ct.shippingWarning}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Category (optional) */}
             <input
               type="text"
@@ -1277,6 +1431,8 @@ export default function PrepareLivePage() {
                   setFormPrice('')
                   setFormCategory('')
                   setFormWeight('')
+                  setFormShippingOverride('')
+                  setShippingOptions([])
                   if (formImage) URL.revokeObjectURL(formImage)
                   setFormImage(null)
                   setFormImageFile(null)
