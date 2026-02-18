@@ -1,10 +1,15 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import Stripe from 'stripe'
-import { supabase, stripe, APP_BASE_URL, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
+import { supabase, stripe, APP_BASE_URL, PAYPAL_BASE_URL, PAYPAL_MODE, ADMIN_EMAILS } from '../config'
 import { requireAuth, paymentLimiter } from '../middleware'
 import { calculateFees, getPaypalAccessToken } from '../utils'
 import type { AuthenticatedRequest } from '../types'
+
+// Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
+function isAdminUser(email?: string): boolean {
+  return !!email && ADMIN_EMAILS.includes(email)
+}
 
 const router = Router()
 
@@ -92,6 +97,12 @@ router.get('/api/stripe/account-status', requireAuth, async (req: AuthenticatedR
       .select('stripe_account_id, bank_choice, paypal_email')
       .eq('id', userId)
       .single()
+
+    // Admin bypass: admins are always considered connected (no Stripe Connect needed)
+    if (isAdminUser(req.user?.email)) {
+      res.json({ connected: true, charges_enabled: true, payouts_enabled: true, payment_method: 'admin_bypass' })
+      return
+    }
 
     // PayPal sellers: considered connected if they have a paypal_email
     if (seller?.bank_choice === 'paypal' && seller?.paypal_email) {
@@ -308,7 +319,11 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
 
     const isPaypalSeller = seller?.bank_choice === 'paypal' && seller?.paypal_email
 
-    if (!isPaypalSeller) {
+    // Check if seller is an admin (bypass Stripe Connect requirement)
+    const { data: sellerAuth } = await supabase.auth.admin.getUserById(order.seller_id)
+    const isAdminSeller = isAdminUser(sellerAuth?.user?.email ?? undefined)
+
+    if (!isPaypalSeller && !isAdminSeller) {
       // Stripe seller: must have a connected Stripe account
       if (!seller?.stripe_account_id) {
         res.status(400).json({ error: 'Seller has not connected Stripe' })
@@ -359,10 +374,9 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       description: `ShaPop - Order ${order.id}`,
     }
 
-    if (isPaypalSeller) {
-      // PayPal seller: money stays on ShaPop's Stripe account (no transfer_data)
-      // We'll pay the seller later via PayPal Payouts
-      if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] PayPal seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
+    if (isPaypalSeller || isAdminSeller) {
+      // PayPal/Admin seller: money stays on ShaPop's Stripe account (no transfer_data)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] ${isAdminSeller ? 'Admin' : 'PayPal'} seller ${order.seller_id.slice(0, 8)} — no transfer_data`)
     } else {
       // Stripe seller: direct transfer with application fee (minimum 50 centimes)
       piParams.application_fee_amount = Math.max(50, feeCents)
