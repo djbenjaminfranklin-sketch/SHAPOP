@@ -71,9 +71,8 @@ const LABELS: Record<string, {
 
 const CARRIER_NAMES: Record<string, string> = {
   mondial_relay: 'Mondial Relay',
-  colissimo: 'Colissimo',
-  chronopost: 'Chronopost',
-  laposte: 'La Poste',
+  dpd: 'DPD',
+  dhl: 'DHL Express',
 }
 
 interface ShippingOption {
@@ -98,7 +97,6 @@ export default function ActiveItemBar({
 }: ActiveItemBarProps) {
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
   const [shippingZone, setShippingZone] = useState<string>('france')
-  const [showCarrierPicker, setShowCarrierPicker] = useState(false)
   const [shippingPromo, setShippingPromo] = useState<{ discount_percent: number } | null>(null)
 
   // Fetch shipping options when item changes and has weight
@@ -151,14 +149,10 @@ export default function ActiveItemBar({
   const isActive = item.status === 'active'
   const hasWeight = item.weight_grams != null && item.weight_grams > 0
 
-  // Find cheapest shipping cost for display
-  const cheapestShipping = shippingOptions.length > 0
-    ? Math.min(...shippingOptions.map(o => o.cost))
-    : 0
-
-  // Find selected carrier cost
-  const selectedOption = shippingOptions.find(o => o.carrier === selectedCarrier)
-  const displayShippingCost = selectedOption?.cost ?? cheapestShipping
+  // Single carrier per zone — use the first (and only) option
+  const autoOption = shippingOptions.length > 0 ? shippingOptions[0] : null
+  const displayShippingCost = autoOption?.cost ?? 0
+  const autoCarrierName = autoOption ? (CARRIER_NAMES[autoOption.carrier] || autoOption.carrier) : ''
 
   // Apply shipping promotion discount for display
   const hasShippingPromo = shippingPromo && shippingPromo.discount_percent > 0
@@ -242,26 +236,17 @@ export default function ActiveItemBar({
               <circle cx="5.5" cy="18.5" r="2.5" />
               <circle cx="18.5" cy="18.5" r="2.5" />
             </svg>
-            <button
-              onClick={() => setShowCarrierPicker(!showCarrierPicker)}
-              style={{
-                background: 'none',
-                border: 'none',
+            <span style={{
                 color: '#F0908A',
                 fontSize: '12px',
                 fontWeight: 600,
-                cursor: 'pointer',
-                padding: 0,
-                textDecoration: 'underline',
-                textDecorationStyle: 'dotted' as const,
-              }}
-            >
-              {selectedCarrier ? CARRIER_NAMES[selectedCarrier] || selectedCarrier : labels.selectCarrier}
-            </button>
+              }}>
+              {autoCarrierName}
+            </span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
-              {selectedCarrier ? labels.shipping : labels.shippingFrom}
+              {labels.shipping}
             </span>
             {hasShippingPromo ? (
               <>
@@ -281,55 +266,6 @@ export default function ActiveItemBar({
               </span>
             )}
           </div>
-        </div>
-      )}
-
-      {/* Carrier picker dropdown */}
-      {showCarrierPicker && shippingOptions.length > 0 && (
-        <div style={{
-          marginBottom: '10px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-        }}>
-          {shippingOptions.map(opt => (
-            <button
-              key={opt.carrier}
-              onClick={() => {
-                onCarrierChange?.(opt.carrier)
-                setShowCarrierPicker(false)
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 12px',
-                borderRadius: '10px',
-                border: selectedCarrier === opt.carrier
-                  ? '1px solid rgba(240,144,138,0.4)'
-                  : '1px solid rgba(255,255,255,0.1)',
-                backgroundColor: selectedCarrier === opt.carrier
-                  ? 'rgba(240,144,138,0.1)'
-                  : 'rgba(255,255,255,0.04)',
-                cursor: 'pointer',
-              }}
-            >
-              <span style={{
-                fontSize: '13px',
-                fontWeight: 600,
-                color: selectedCarrier === opt.carrier ? '#F0908A' : '#fff',
-              }}>
-                {CARRIER_NAMES[opt.carrier] || opt.carrier}
-              </span>
-              <span style={{
-                fontSize: '14px',
-                fontWeight: 700,
-                color: selectedCarrier === opt.carrier ? '#F0908A' : 'rgba(255,255,255,0.7)',
-              }}>
-                {opt.cost.toFixed(2)}€
-              </span>
-            </button>
-          ))}
         </div>
       )}
 

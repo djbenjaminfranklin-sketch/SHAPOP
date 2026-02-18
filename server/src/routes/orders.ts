@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateFees, calculateShippingCost, getZoneFromCountry, notifyUser } from '../utils'
+import { calculateFees, calculateShippingCost, getCarrierForZone, getZoneFromCountry, notifyUser } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -228,23 +228,16 @@ router.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReq
   }
 })
 
-// Buyer selects a carrier for their order
+// Auto-assign carrier based on buyer's shipping zone
 router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const orderId = req.params.id
     const userId = req.user!.id
-    const { carrier } = req.body
-
-    const validCarriers = ['mondial_relay', 'colissimo', 'chronopost', 'laposte']
-    if (!carrier || !validCarriers.includes(carrier)) {
-      res.status(400).json({ error: `carrier must be one of: ${validCarriers.join(', ')}` })
-      return
-    }
 
     // Verify order belongs to buyer
     const { data: order } = await supabase
       .from('orders')
-      .select('id, buyer_id, item_id, status')
+      .select('id, buyer_id, item_id, status, shipping_address')
       .eq('id', orderId)
       .eq('buyer_id', userId)
       .single()
@@ -259,7 +252,29 @@ router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Get item weight and buyer's zone to calculate shipping cost
+    // Determine shipping zone from buyer's address
+    let buyerCountry: string | undefined
+    let buyerZip: string | undefined
+
+    if (order.shipping_address) {
+      const addr = order.shipping_address as Record<string, string>
+      buyerCountry = addr.country
+      buyerZip = addr.zip
+    }
+
+    if (!buyerCountry) {
+      const { data: buyerProfile } = await supabase
+        .from('profiles')
+        .select('country')
+        .eq('id', userId)
+        .single()
+      buyerCountry = buyerProfile?.country || undefined
+    }
+
+    const zone = getZoneFromCountry(buyerCountry, buyerZip)
+    const carrier = getCarrierForZone(zone)
+
+    // Get item weight to calculate shipping cost
     let shippingCost = 0
     if (order.item_id) {
       const { data: item } = await supabase
@@ -269,32 +284,6 @@ router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedReq
         .single()
 
       if (item?.weight_grams) {
-        // Determine shipping zone from buyer's shipping address or profile
-        let buyerCountry: string | undefined
-        let buyerZip: string | undefined
-
-        const { data: fullOrder } = await supabase
-          .from('orders')
-          .select('shipping_address')
-          .eq('id', orderId)
-          .single()
-
-        if (fullOrder?.shipping_address) {
-          const addr = fullOrder.shipping_address as Record<string, string>
-          buyerCountry = addr.country
-          buyerZip = addr.zip
-        }
-
-        if (!buyerCountry) {
-          const { data: buyerProfile } = await supabase
-            .from('profiles')
-            .select('country')
-            .eq('id', userId)
-            .single()
-          buyerCountry = buyerProfile?.country || undefined
-        }
-
-        const zone = getZoneFromCountry(buyerCountry, buyerZip)
         shippingCost = calculateShippingCost(item.weight_grams, carrier, zone)
       }
     }
@@ -308,7 +297,7 @@ router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedReq
       })
       .eq('id', orderId)
 
-    res.json({ success: true, carrier, shipping_cost: shippingCost })
+    res.json({ success: true, carrier, shipping_cost: shippingCost, zone })
   } catch (err: any) {
     console.error('Set carrier error:', err?.message || err)
     res.status(500).json({ error: 'Failed to set carrier' })

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { calculateShippingCost, getShippingOptions, getZoneFromCountry, isCarrierAvailableForZone } from '../utils'
+import { calculateShippingCost, getCarrierForZone, getShippingOptions, getZoneFromCountry } from '../utils'
 
 const router = Router()
 
@@ -24,28 +24,14 @@ router.get('/api/shipping/calculate', (req: Request, res: Response) => {
     return
   }
 
-  const validCarriers = ['mondial_relay', 'colissimo', 'chronopost', 'laposte']
-  if (!validCarriers.includes(carrier)) {
-    res.status(400).json({ error: `carrier must be one of: ${validCarriers.join(', ')}` })
-    return
-  }
-
   const zone = getZoneFromCountry(country, zip)
-
-  // Check if carrier is available for this zone
-  if (!isCarrierAvailableForZone(carrier, zone)) {
-    res.status(400).json({
-      error: `${carrier} is not available for zone: ${zone}`,
-      zone,
-    })
-    return
-  }
-
-  const shippingCost = calculateShippingCost(weightGrams, carrier, zone)
+  // Auto-determine carrier from zone (carrier param is optional/ignored)
+  const autoCarrier = carrier || getCarrierForZone(zone)
+  const shippingCost = calculateShippingCost(weightGrams, autoCarrier, zone)
 
   res.json({
     shipping_cost: shippingCost,
-    carrier,
+    carrier: autoCarrier,
     weight_grams: weightGrams,
     zone,
   })

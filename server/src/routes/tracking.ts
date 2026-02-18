@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import type { Response } from 'express'
 import { supabase, LAPOSTE_API_KEY } from '../config'
-import { requireAuth } from '../middleware'
-import { notifyUser, paramStr } from '../utils'
+import { requireAuth, requireAdmin, adminLimiter } from '../middleware'
+import { notifyUser, paramStr, SHIPPING_SAFETY_MARGIN } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
 
-const VALID_CARRIERS = ['laposte', 'mondial_relay', 'chronopost', 'colissimo', 'other']
+const VALID_CARRIERS = ['mondial_relay', 'dpd', 'dhl', 'laposte', 'colissimo', 'chronopost', 'other']
 
 // =============================================
 // POST /api/orders/:id/tracking — Seller adds tracking info
@@ -368,5 +368,77 @@ export async function checkTrackingStatuses(): Promise<number> {
 
   return updated
 }
+
+// =============================================
+// POST /api/admin/orders/:id/shipping-adjustment — Admin records a weight surplus
+// When the carrier charges more because actual weight > declared weight,
+// the surplus (minus safety margin already collected) is debited from seller's shipping_balance
+// =============================================
+router.post('/api/admin/orders/:id/shipping-adjustment', adminLimiter, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = paramStr(req.params.id)
+    const { actual_cost } = req.body
+
+    if (!actual_cost || typeof actual_cost !== 'number' || actual_cost <= 0) {
+      res.status(400).json({ error: 'actual_cost (number > 0) is required' })
+      return
+    }
+
+    const { data: order, error: fetchErr } = await supabase
+      .from('orders')
+      .select('id, seller_id, shipping_cost, carrier')
+      .eq('id', orderId)
+      .single()
+
+    if (fetchErr || !order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+
+    // shipping_cost already includes the 15% margin
+    // Calculate how much the buyer actually paid vs what the carrier actually charged
+    const buyerPaid = order.shipping_cost || 0
+    const surplus = Math.round((actual_cost - buyerPaid) * 100) / 100
+
+    if (surplus <= 0) {
+      // No adjustment needed — margin covered it
+      res.json({ success: true, message: 'No adjustment needed, margin covered the cost', surplus: 0 })
+      return
+    }
+
+    // Debit the surplus from seller's shipping_balance (negative = seller owes)
+    const { data: trust } = await supabase
+      .from('seller_trust')
+      .select('shipping_balance')
+      .eq('seller_id', order.seller_id)
+      .single()
+
+    const currentBalance = trust ? Number((trust as Record<string, unknown>).shipping_balance || 0) : 0
+    const newBalance = Math.round((currentBalance - surplus) * 100) / 100
+
+    if (trust) {
+      await supabase
+        .from('seller_trust')
+        .update({ shipping_balance: newBalance })
+        .eq('seller_id', order.seller_id)
+    }
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[shipping-adjustment] Order ${orderId}: actual_cost=${actual_cost}, buyer_paid=${buyerPaid}, surplus=${surplus}, seller_balance: ${currentBalance} -> ${newBalance}`)
+    }
+
+    res.json({
+      success: true,
+      actual_cost,
+      buyer_paid: buyerPaid,
+      surplus,
+      seller_balance: newBalance,
+      margin_rate: SHIPPING_SAFETY_MARGIN,
+    })
+  } catch (err) {
+    console.error('POST /api/admin/orders/:id/shipping-adjustment error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
 
 export default router

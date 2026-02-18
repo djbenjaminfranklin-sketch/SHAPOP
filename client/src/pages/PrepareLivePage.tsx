@@ -1201,21 +1201,8 @@ export default function PrepareLivePage() {
                     marginBottom: '10px',
                   }}>
                     <p style={{ fontSize: '12px', color: '#F0908A', margin: 0, fontWeight: 600 }}>
-                      {ct.suggestedShipping}: {Math.min(...shippingOptions.map(o => o.cost)).toFixed(2)}&euro; - {Math.max(...shippingOptions.map(o => o.cost)).toFixed(2)}&euro; {ct.perCarrier}
+                      {ct.suggestedShipping}: {shippingOptions[0].cost.toFixed(2)}&euro; ({shippingOptions[0].carrier.replace('_', ' ')})
                     </p>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                      {shippingOptions.map(opt => (
-                        <span key={opt.carrier} style={{
-                          fontSize: '11px', color: '#888',
-                          backgroundColor: '#111',
-                          border: '1px solid #222',
-                          borderRadius: '6px',
-                          padding: '3px 8px',
-                        }}>
-                          {opt.carrier.replace('_', ' ')}: {opt.cost.toFixed(2)}&euro;
-                        </span>
-                      ))}
-                    </div>
                   </div>
                 )}
 
