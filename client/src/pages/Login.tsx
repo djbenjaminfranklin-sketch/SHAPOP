@@ -2,6 +2,7 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { track } from '../lib/analytics'
 
 const content = {
   fr: {
@@ -103,6 +104,7 @@ export default function Login() {
     setLoading(true)
     try {
       await signIn(email, password)
+      track('login')
       sessionStorage.setItem('shapop_fresh_login', '1')
       navigate('/')
     } catch (err) {

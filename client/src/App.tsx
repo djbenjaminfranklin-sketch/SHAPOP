@@ -58,11 +58,15 @@ function PageLoader() {
       minHeight: '100vh', backgroundColor: '#000',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
-      <div style={{
-        width: '32px', height: '32px', border: '3px solid #333',
-        borderTopColor: '#E8344E', borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite',
-      }} />
+      <div
+        role="status"
+        aria-label="Loading page"
+        style={{
+          width: '32px', height: '32px', border: '3px solid #333',
+          borderTopColor: '#E8344E', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }}
+      />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
@@ -84,12 +88,15 @@ function OfflineBanner() {
   const isOnline = useOnlineStatus()
   if (isOnline) return null
   return (
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
-      backgroundColor: '#1A1A1A', color: '#f59e0b',
-      textAlign: 'center', padding: '8px 16px',
-      fontSize: '14px', fontWeight: 600,
-    }}>
+    <div
+      role="alert"
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
+        backgroundColor: '#1A1A1A', color: '#f59e0b',
+        textAlign: 'center', padding: '8px 16px',
+        fontSize: '14px', fontWeight: 600,
+      }}
+    >
       Pas de connexion internet
     </div>
   )
@@ -153,9 +160,21 @@ export default function App() {
         <AuthProvider>
           <PushAutoRegister />
           <div dir={dir} className="min-h-screen bg-black" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
+            <a
+              href="#main-content"
+              style={{
+                position: 'absolute', left: '-9999px', top: 'auto',
+                width: '1px', height: '1px', overflow: 'hidden',
+              }}
+              onFocus={(e) => { e.currentTarget.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px;background:#F0908A;color:#000;text-align:center;font-weight:700;' }}
+              onBlur={(e) => { e.currentTarget.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;' }}
+            >
+              Skip to content
+            </a>
             <OfflineBanner />
             <HomeButton />
             <Suspense fallback={<PageLoader />}>
+              <main id="main-content">
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
@@ -199,6 +218,7 @@ export default function App() {
                 <Route path="/conversation/:id" element={<ConversationPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
+              </main>
             </Suspense>
             <BottomNav />
           </div>

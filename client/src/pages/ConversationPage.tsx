@@ -387,13 +387,17 @@ export default function ConversationPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{
-          width: '36px', height: '36px',
-          border: '3px solid #333',
-          borderTopColor: '#E8344E',
-          borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
+        <div
+          role="status"
+          aria-label={ct.loading}
+          style={{
+            width: '36px', height: '36px',
+            border: '3px solid #333',
+            borderTopColor: '#E8344E',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
         <p style={{ color: '#666', fontSize: '14px', marginTop: '12px' }}>{ct.loading}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -403,7 +407,7 @@ export default function ConversationPage() {
   if (error) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-        <p style={{ color: '#EF4444', fontSize: '14px' }}>{error}</p>
+        <p role="alert" style={{ color: '#EF4444', fontSize: '14px' }}>{error}</p>
         <button onClick={() => navigate(-1)} style={{ marginTop: '12px', color: '#E8344E', fontSize: '14px', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
           {ct.back}
         </button>
@@ -436,6 +440,7 @@ export default function ConversationPage() {
           {/* Back button */}
           <button
             onClick={() => navigate('/messages')}
+            aria-label={ct.back}
             style={{
               background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
               color: '#E8344E', flexShrink: 0, display: 'flex', alignItems: 'center',
@@ -686,12 +691,15 @@ export default function ConversationPage() {
 
       {/* Inline send error */}
       {sendError && (
-        <div style={{
-          flexShrink: 0,
-          padding: '8px 16px',
-          backgroundColor: 'rgba(239,68,68,0.1)',
-          borderTop: '1px solid rgba(239,68,68,0.25)',
-        }}>
+        <div
+          role="alert"
+          style={{
+            flexShrink: 0,
+            padding: '8px 16px',
+            backgroundColor: 'rgba(239,68,68,0.1)',
+            borderTop: '1px solid rgba(239,68,68,0.25)',
+          }}
+        >
           <p style={{ fontSize: '13px', color: '#EF4444', margin: 0, textAlign: 'center' }}>
             {sendError}
           </p>
@@ -712,6 +720,7 @@ export default function ConversationPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
+            aria-label={ct.attachment}
             style={{
               background: 'none', border: 'none', padding: '8px', cursor: 'pointer',
               color: uploading ? '#444' : '#888', flexShrink: 0,
@@ -746,6 +755,7 @@ export default function ConversationPage() {
             onChange={e => setNewMessage(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={ct.placeholder}
+            aria-label={ct.placeholder}
             disabled={sending}
             style={{
               flex: 1,

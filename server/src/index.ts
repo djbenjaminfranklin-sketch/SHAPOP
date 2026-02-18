@@ -1,3 +1,6 @@
+import { initMonitoring, Sentry } from './monitoring'
+initMonitoring()
+
 import express, { type Request, type Response, type NextFunction } from 'express'
 import compression from 'compression'
 import cors from 'cors'
@@ -18,6 +21,7 @@ import notificationRoutes from './routes/notifications'
 import userRoutes from './routes/users'
 import disputeRoutes from './routes/disputes'
 import adminRoutes from './routes/admin'
+import analyticsRoutes from './routes/analytics'
 
 // Webhook handlers (raw body — must be registered before express.json)
 import { stripeWebhookHandler, livekitWebhookHandler, paypalWebhookHandler } from './routes/webhooks'
@@ -95,6 +99,12 @@ app.use(notificationRoutes)
 app.use(userRoutes)
 app.use(disputeRoutes)
 app.use(adminRoutes)
+app.use(analyticsRoutes)
+
+// =============================================
+// Sentry error handler (must be before generic error handler)
+// =============================================
+Sentry.setupExpressErrorHandler(app)
 
 // =============================================
 // Global error handler

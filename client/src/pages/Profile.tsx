@@ -200,7 +200,7 @@ export default function Profile() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
       }}>
-        <div style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div role="status" aria-label="Loading profile" style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -451,7 +451,11 @@ export default function Profile() {
         }}>
           {/* Tappable avatar */}
           <div
+            role="button"
+            tabIndex={0}
+            aria-label={tx('Changer la photo de profil', 'Change profile photo', 'שנה תמונת פרופיל', 'Cambiar foto de perfil', lang)}
             onClick={handleAvatarTap}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAvatarTap() } }}
             style={{
               position: 'relative', width: '80px', height: '80px', flexShrink: 0, cursor: 'pointer',
             }}
@@ -533,6 +537,8 @@ export default function Profile() {
                   onChange={e => setEditDisplayName(e.target.value)}
                   maxLength={50}
                   placeholder={tx('Nom', 'Name', '\u05E9\u05DD', 'Nombre', lang)}
+                  aria-label={tx('Nom', 'Name', '\u05E9\u05DD', 'Nombre', lang)}
+                  aria-required="true"
                   style={{
                     width: '100%', padding: '8px 12px', borderRadius: '8px',
                     backgroundColor: '#1A1A1A', border: '1.5px solid #333',
@@ -562,6 +568,7 @@ export default function Profile() {
               maxLength={200}
               rows={3}
               placeholder={tx('Parle-nous de toi...', 'Tell us about yourself...', '\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DA...', 'Cuentanos sobre ti...', lang)}
+              aria-label="Bio"
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '10px',
                 backgroundColor: '#1A1A1A', border: '1.5px solid #333',

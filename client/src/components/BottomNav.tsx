@@ -86,11 +86,14 @@ export default function BottomNav() {
   return (
     <>
       <SellPopup isOpen={showSell} onClose={() => setShowSell(false)} />
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
-        backgroundColor: '#0A0A0A', borderTop: '1px solid #1A1A1A', zIndex: 50,
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-      }}>
+      <nav
+        aria-label="Main navigation"
+        style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0,
+          backgroundColor: '#0A0A0A', borderTop: '1px solid #1A1A1A', zIndex: 50,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
+      >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>
           {tabs.map(tab => {
             if (tab.special) {
@@ -120,6 +123,7 @@ export default function BottomNav() {
               <Link
                 key={tab.labelKey}
                 to={tab.to}
+                aria-current={tab.active ? 'page' : undefined}
                 style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
                   textDecoration: 'none', justifySelf: 'center', touchAction: 'manipulation',

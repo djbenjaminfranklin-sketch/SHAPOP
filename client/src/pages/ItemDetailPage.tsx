@@ -3,6 +3,7 @@ import ConfirmModal from '../components/ConfirmModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
+import { track } from '../lib/analytics'
 import type { Item } from '../types/database'
 
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
@@ -136,6 +137,11 @@ export default function ItemDetailPage() {
     fetchItem()
   }, [fetchItem])
 
+  // Track page view on mount
+  useEffect(() => {
+    if (id) track('page_view', { page: 'item', item_id: id })
+  }, [id])
+
   // Check follow status when item loads
   useEffect(() => {
     if (!item?.seller_id || !session?.access_token || !user) return
@@ -179,7 +185,7 @@ export default function ItemDetailPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }} role="status" aria-label="Loading item">
           <div style={{
             width: '32px', height: '32px', border: '3px solid #333',
             borderTopColor: '#E8344E', borderRadius: '50%',
@@ -188,7 +194,7 @@ export default function ItemDetailPage() {
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       ) : fetchError || !item ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', textAlign: 'center' }}>
+        <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', textAlign: 'center' }}>
           <p style={{ fontSize: '16px', color: '#888', marginBottom: '16px' }}>{t.notFound}</p>
           {fetchError && (
             <button
@@ -252,6 +258,8 @@ export default function ItemDetailPage() {
                 <button
                   key={i}
                   onClick={() => setSelectedImage(i)}
+                  aria-label={`Image ${i + 1}${i === selectedImage ? ' (selected)' : ''}`}
+                  aria-pressed={i === selectedImage}
                   style={{
                     width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden',
                     border: i === selectedImage ? '2px solid #E8344E' : '2px solid #333',

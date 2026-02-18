@@ -10,6 +10,7 @@ import LiveKitViewer from '../components/LiveKitViewer'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { apiFetch } from '../lib/api'
+import { track } from '../lib/analytics'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -370,7 +371,11 @@ export default function StreamView() {
   const isMountedRef = useRef(true)
   useEffect(() => {
     isMountedRef.current = true
-    return () => { isMountedRef.current = false }
+    if (id) track('stream_join', { stream_id: id })
+    return () => {
+      isMountedRef.current = false
+      if (id) track('stream_leave', { stream_id: id })
+    }
   }, [])
 
   const [stream, setStream] = useState<Stream | null>(null)
@@ -1007,6 +1012,7 @@ export default function StreamView() {
       }
       // Update local bid amount for next bid
       setBidAmount(String(amount + 10))
+      if (id) track('bid_placed', { stream_id: id, amount })
     } catch (err) {
       console.error('Failed to place bid:', err)
       alert('Failed to place bid. Please try again.')
@@ -1185,11 +1191,15 @@ export default function StreamView() {
   if (loading) {
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-        <div style={{
-          width: '32px', height: '32px',
-          border: '3px solid #333', borderTopColor: '#F0908A',
-          borderRadius: '50%', animation: 'spin 0.8s linear infinite',
-        }} />
+        <div
+          role="status"
+          aria-label="Loading stream"
+          style={{
+            width: '32px', height: '32px',
+            border: '3px solid #333', borderTopColor: '#F0908A',
+            borderRadius: '50%', animation: 'spin 0.8s linear infinite',
+          }}
+        />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
@@ -1266,6 +1276,7 @@ export default function StreamView() {
                     {viewerMuted && (
                       <button
                         onClick={() => setViewerMuted(false)}
+                        aria-label={ct.unmuteViewer}
                         style={{
                           position: 'absolute',
                           bottom: '16px', left: '16px',
@@ -1400,16 +1411,20 @@ export default function StreamView() {
                 )}
 
                 {/* Viewer count badge - dynamic */}
-                <div style={{
-                  position: 'absolute', top: '16px', right: '16px',
-                  padding: '6px 12px', borderRadius: '8px',
-                  backgroundColor: 'rgba(0,0,0,0.6)',
-                  backdropFilter: 'blur(8px)',
-                  WebkitBackdropFilter: 'blur(8px)',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  zIndex: 10,
-                }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                <div
+                  aria-live="polite"
+                  aria-label={`${stream.viewer_count || 0} ${ct.viewers}`}
+                  style={{
+                    position: 'absolute', top: '16px', right: '16px',
+                    padding: '6px 12px', borderRadius: '8px',
+                    backgroundColor: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    zIndex: 10,
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" aria-hidden="true">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
@@ -1505,6 +1520,7 @@ export default function StreamView() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
                     onClick={() => navigate(-1)}
+                    aria-label="Back"
                     style={{
                       width: '36px', height: '36px', borderRadius: '50%',
                       backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1563,6 +1579,7 @@ export default function StreamView() {
                 <button
                   onClick={handleFlipCamera}
                   title={ct.flipCamera}
+                  aria-label={ct.flipCamera}
                   style={{
                     width: '48px', height: '48px',
                     borderRadius: '50%',
@@ -1586,6 +1603,7 @@ export default function StreamView() {
                 <button
                   onClick={handleToggleMute}
                   title={isMuted ? ct.unmute : ct.mute}
+                  aria-label={isMuted ? ct.unmute : ct.mute}
                   style={{
                     width: '48px', height: '48px',
                     borderRadius: '50%',
@@ -1642,6 +1660,8 @@ export default function StreamView() {
             {/* ═══ End Stream Confirmation Modal ═══ */}
             {showEndConfirm && (
               <div
+                role="dialog"
+                aria-label={ct.endStreamConfirm}
                 onClick={e => e.stopPropagation()}
                 style={{
                   position: 'fixed', inset: 0,
@@ -1707,6 +1727,8 @@ export default function StreamView() {
             {isSeller && isLive && (
               <button
                 onClick={() => setShowEngagement(!showEngagement)}
+                aria-label="Toggle engagement dashboard"
+                aria-expanded={showEngagement}
                 style={{
                   position: 'absolute',
                   top: '16px',
@@ -1791,6 +1813,7 @@ export default function StreamView() {
               onChange={e => setNewMessage(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
               placeholder={ct.sendMessage}
+              aria-label={ct.sendMessage}
               style={{
                 flex: 1, padding: '10px 14px',
                 backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1843,11 +1866,15 @@ export default function StreamView() {
                 )}
                 <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
               </div>
-              <div style={{
-                fontSize: '20px', fontWeight: 800,
-                color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
-                animation: timeLeft <= 10 ? 'pulse 1s ease-in-out infinite' : 'none',
-              }}>
+              <div
+                aria-live="polite"
+                aria-label={`Time left: ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`}
+                style={{
+                  fontSize: '20px', fontWeight: 800,
+                  color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
+                  animation: timeLeft <= 10 ? 'pulse 1s ease-in-out infinite' : 'none',
+                }}
+              >
                 {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
               </div>
             </div>
@@ -1868,6 +1895,7 @@ export default function StreamView() {
                     value={bidAmount}
                     onChange={e => setBidAmount(e.target.value)}
                     min={activeAuction.current_price + 1}
+                    aria-label={ct.bid}
                     style={{
                       width: '80px', padding: '10px',
                       backgroundColor: 'rgba(255,255,255,0.1)',
@@ -2067,6 +2095,8 @@ export default function StreamView() {
                   value={addressForm.name}
                   onChange={e => setAddressForm(f => ({ ...f, name: e.target.value }))}
                   placeholder={ct.fullName}
+                  aria-label={ct.fullName}
+                  aria-required="true"
                   style={{
                     width: '100%', padding: '12px 14px',
                     backgroundColor: '#0D0D0D', border: '1px solid #222',
@@ -2079,6 +2109,8 @@ export default function StreamView() {
                   value={addressForm.street}
                   onChange={e => setAddressForm(f => ({ ...f, street: e.target.value }))}
                   placeholder={ct.addressPlaceholder}
+                  aria-label={ct.addressPlaceholder}
+                  aria-required="true"
                   style={{
                     width: '100%', padding: '12px 14px',
                     backgroundColor: '#0D0D0D', border: '1px solid #222',
@@ -2092,6 +2124,8 @@ export default function StreamView() {
                     value={addressForm.city}
                     onChange={e => setAddressForm(f => ({ ...f, city: e.target.value }))}
                     placeholder={ct.cityPlaceholder}
+                    aria-label={ct.cityPlaceholder}
+                    aria-required="true"
                     style={{
                       width: '100%', padding: '12px 14px',
                       backgroundColor: '#0D0D0D', border: '1px solid #222',
@@ -2104,6 +2138,8 @@ export default function StreamView() {
                     value={addressForm.zip}
                     onChange={e => setAddressForm(f => ({ ...f, zip: e.target.value }))}
                     placeholder={ct.zipPlaceholder}
+                    aria-label={ct.zipPlaceholder}
+                    aria-required="true"
                     style={{
                       width: '100%', padding: '12px 14px',
                       backgroundColor: '#0D0D0D', border: '1px solid #222',
@@ -2118,6 +2154,7 @@ export default function StreamView() {
                   value={addressForm.phone}
                   onChange={e => setAddressForm(f => ({ ...f, phone: e.target.value }))}
                   placeholder={ct.phonePlaceholder}
+                  aria-label={ct.phonePlaceholder}
                   style={{
                     width: '100%', padding: '12px 14px',
                     backgroundColor: '#0D0D0D', border: '1px solid #222',

@@ -283,7 +283,7 @@ export default function NotificationsPage() {
         </div>
 
         {loadingNotifs ? (
-          <div style={{ padding: '20px 0', textAlign: 'center' }}>
+          <div style={{ padding: '20px 0', textAlign: 'center' }} role="status" aria-label="Loading notifications">
             <div style={{ width: '24px', height: '24px', border: '2px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
           </div>
@@ -392,10 +392,13 @@ export default function NotificationsPage() {
 
         {/* Push denied warning */}
         {pushDenied && (
-          <div style={{
-            padding: '12px 14px', backgroundColor: '#2a1a0a', borderRadius: '10px', border: '1px solid #3a2a1a',
-            marginBottom: '20px',
-          }}>
+          <div
+            role="alert"
+            style={{
+              padding: '12px 14px', backgroundColor: '#2a1a0a', borderRadius: '10px', border: '1px solid #3a2a1a',
+              marginBottom: '20px',
+            }}
+          >
             <p style={{ fontSize: '13px', color: '#f59e0b', lineHeight: 1.4 }}>{c.denied}</p>
           </div>
         )}
@@ -409,6 +412,9 @@ export default function NotificationsPage() {
               <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>{item.desc}</p>
             </div>
             <button
+              role="switch"
+              aria-checked={toggles[item.id]}
+              aria-label={item.label}
               onClick={() => handleToggle(item.id)}
               disabled={!loadedFromDb}
               style={{
@@ -420,6 +426,7 @@ export default function NotificationsPage() {
               <div style={{
                 width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#fff', position: 'absolute', top: '3px',
                 left: toggles[item.id] ? '23px' : '3px',
+                transition: 'left 0.2s ease',
               }} />
             </button>
           </div>

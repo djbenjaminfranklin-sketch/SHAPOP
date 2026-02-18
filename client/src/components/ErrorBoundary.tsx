@@ -34,6 +34,14 @@ export default class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: { componentStack?: string }) {
     console.error('[ErrorBoundary] Uncaught error:', error, errorInfo)
     this.setState({ errorInfo: errorInfo?.componentStack || null })
+
+    try {
+      import('@sentry/react').then((Sentry) => {
+        Sentry.captureException(error, { contexts: { react: { componentStack: errorInfo?.componentStack || '' } } })
+      })
+    } catch {
+      // Sentry not available — ignore
+    }
   }
 
   handleGoHome = () => {

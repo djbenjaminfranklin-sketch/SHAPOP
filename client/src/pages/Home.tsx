@@ -11,6 +11,7 @@ import { sortStreamsByMatch } from '../lib/matchingAlgorithm'
 import { getBehaviorData } from '../lib/behaviorTracker'
 import { cacheGet, cacheSet } from '../lib/cache'
 import { apiFetch } from '../lib/api'
+import { track } from '../lib/analytics'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
@@ -129,6 +130,11 @@ export default function Home() {
   const { city, loading: locationLoading, setManualCity } = useLocation()
   const { user, updateCity } = useAuth()
 
+  // Track page view on mount
+  useEffect(() => {
+    track('page_view', { page: 'home' })
+  }, [])
+
   // Sync detected city to user profile
   useEffect(() => {
     if (city && user) {
@@ -208,6 +214,9 @@ export default function Home() {
       else next.add(streamId)
       return next
     })
+    if (!wasFav) {
+      track('item_favorited', { item_id: streamId })
+    }
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
@@ -479,6 +488,7 @@ export default function Home() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={t(lang, 'search_placeholder')}
+              aria-label={t(lang, 'search_placeholder')}
               style={{ background: 'transparent', fontSize: '16px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
             />
           </div>
@@ -501,6 +511,7 @@ export default function Home() {
       {/* Close dropdowns when tapping outside */}
       {(showCityPicker || showLangPicker) && (
         <div
+          role="presentation"
           onClick={() => { setShowCityPicker(false); setShowLangPicker(false) }}
           style={{ position: 'fixed', inset: 0, zIndex: 39 }}
         />
@@ -599,10 +610,13 @@ export default function Home() {
 
       {/* Subtle refresh indicator when showing cached data */}
       {refreshing && streams.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          gap: '6px', padding: '6px 0',
-        }}>
+        <div
+          role="status"
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: '6px', padding: '6px 0',
+          }}
+        >
           <div style={{
             width: '14px', height: '14px', border: '2px solid #333',
             borderTopColor: '#F0908A', borderRadius: '50%',
@@ -616,11 +630,11 @@ export default function Home() {
 
       {/* Streams grid — 2 columns */}
       {loading ? (
-        <div className="flex justify-center py-20">
+        <div className="flex justify-center py-20" role="status" aria-label="Loading streams">
           <div className="w-8 h-8 border-2 border-[#333] border-t-accent rounded-full animate-spin" />
         </div>
       ) : fetchError ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
+        <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
           <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>

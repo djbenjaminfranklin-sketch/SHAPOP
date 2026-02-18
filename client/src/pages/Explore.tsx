@@ -1,7 +1,8 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { track } from '../lib/analytics'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -135,6 +136,15 @@ export default function Explore() {
   const [search, setSearch] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Track search queries with debounce
+  useEffect(() => {
+    if (!search.trim()) return
+    const timeout = setTimeout(() => {
+      track('search', { query: search.trim() })
+    }, 500)
+    return () => clearTimeout(timeout)
+  }, [search])
 
   // Build unique suggestion terms from category names + keywords + trending
   const suggestionTerms = useMemo(() => {
