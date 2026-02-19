@@ -28,7 +28,7 @@ export const SHIPPING_DELAY_DEFAULT = 2
 export const SHIPPING_DELAY_MAX = 4
 
 // Safe column list for streams table (mux_stream_id/playback_id/asset_id kept for historical data).
-export const STREAMS_SAFE_COLUMNS = 'id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name, recording_url'
+export const STREAMS_SAFE_COLUMNS = 'id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name'
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },

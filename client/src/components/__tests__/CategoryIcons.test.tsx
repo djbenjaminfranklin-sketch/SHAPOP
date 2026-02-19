@@ -51,21 +51,21 @@ describe('CategoryIcons', () => {
 
     it('renders translated labels in English', () => {
       render(<CategoryScroll selected="for_you" onSelect={() => {}} lang="en" />)
-      expect(screen.getByText('For you')).toBeInTheDocument()
+      expect(screen.getByText('My feed')).toBeInTheDocument()
       expect(screen.getByText('Following')).toBeInTheDocument()
       expect(screen.getByText('Women')).toBeInTheDocument()
     })
 
     it('renders translated labels in French', () => {
       render(<CategoryScroll selected="for_you" onSelect={() => {}} lang="fr" />)
-      expect(screen.getByText('Pour toi')).toBeInTheDocument()
+      expect(screen.getByText('Mon feed')).toBeInTheDocument()
       expect(screen.getByText('Suivis')).toBeInTheDocument()
       expect(screen.getByText('Femme')).toBeInTheDocument()
     })
 
     it('renders translated labels in Spanish', () => {
       render(<CategoryScroll selected="for_you" onSelect={() => {}} lang="es" />)
-      expect(screen.getByText('Para ti')).toBeInTheDocument()
+      expect(screen.getByText('Mi feed')).toBeInTheDocument()
       expect(screen.getByText('Seguidos')).toBeInTheDocument()
       expect(screen.getByText('Mujer')).toBeInTheDocument()
     })
