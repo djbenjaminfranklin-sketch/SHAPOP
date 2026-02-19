@@ -27,7 +27,7 @@ router.get('/api/streams', async (req: Request, res: Response) => {
 
     let query = supabase
       .from('streams')
-      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, shipping_delay_days, profiles:profiles!id(display_name, avatar_url))`)
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:profiles!seller_id(display_name, avatar_url)`)
       .in('status', status ? [status as string] : ['live', 'scheduled'])
       .order('engagement_score', { ascending: false })
 
@@ -41,16 +41,25 @@ router.get('/api/streams', async (req: Request, res: Response) => {
       return
     }
 
-    // Enrich with seller trust scores
+    // Enrich with seller info + trust scores
     if (data && data.length > 0) {
       const sellerIds = [...new Set(data.map((s: Record<string, unknown>) => s.seller_id as string))]
-      const { data: trusts } = await supabase
-        .from('seller_trust')
-        .select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost')
-        .in('seller_id', sellerIds)
+
+      const [{ data: sellers }, { data: trusts }] = await Promise.all([
+        supabase.from('sellers').select('id, store_name, return_policy, shipping_delay_days').in('id', sellerIds),
+        supabase.from('seller_trust').select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost').in('seller_id', sellerIds),
+      ])
+
+      const sellerMap = new Map((sellers || []).map((s: Record<string, unknown>) => [s.id, s]))
       const trustMap = new Map((trusts || []).map((t: Record<string, unknown>) => [t.seller_id, t]))
+
       for (const stream of data as Record<string, unknown>[]) {
-        const trust = trustMap.get(stream.seller_id as string) as Record<string, unknown> | undefined
+        const sid = stream.seller_id as string
+        const sellerInfo = sellerMap.get(sid) as Record<string, unknown> | undefined
+        if (sellerInfo) {
+          stream.seller = { ...(stream.seller as Record<string, unknown> || {}), store_name: sellerInfo.store_name, id: sellerInfo.id, return_policy: sellerInfo.return_policy, shipping_delay_days: sellerInfo.shipping_delay_days }
+        }
+        const trust = trustMap.get(sid) as Record<string, unknown> | undefined
         stream.seller_score = trust ? computeSellerScore(trust) : 8.0
         stream.seller_trust_level = trust ? trust.trust_level : 'new'
       }
@@ -67,7 +76,7 @@ router.get('/api/streams/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
       .from('streams')
-      .select(`${STREAMS_SAFE_COLUMNS}, seller:sellers!seller_id(store_name, id, return_policy, shipping_delay_days, profiles:profiles!id(display_name, avatar_url))`)
+      .select(`${STREAMS_SAFE_COLUMNS}, seller:profiles!seller_id(display_name, avatar_url)`)
       .eq('id', req.params.id)
       .single()
 
@@ -76,12 +85,14 @@ router.get('/api/streams/:id', async (req: Request, res: Response) => {
       return
     }
 
-    // Enrich with seller trust score
-    const { data: trust } = await supabase
-      .from('seller_trust')
-      .select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost')
-      .eq('seller_id', data.seller_id)
-      .single()
+    // Enrich with seller info + trust score
+    const [{ data: sellerInfo }, { data: trust }] = await Promise.all([
+      supabase.from('sellers').select('id, store_name, return_policy, shipping_delay_days').eq('id', data.seller_id).single(),
+      supabase.from('seller_trust').select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost').eq('seller_id', data.seller_id).single(),
+    ])
+    if (sellerInfo) {
+      ;(data as Record<string, unknown>).seller = { ...(data.seller as unknown as Record<string, unknown> || {}), store_name: sellerInfo.store_name, id: sellerInfo.id, return_policy: sellerInfo.return_policy, shipping_delay_days: sellerInfo.shipping_delay_days }
+    }
     ;(data as Record<string, unknown>).seller_score = trust ? computeSellerScore(trust as Record<string, unknown>) : 8.0
     ;(data as Record<string, unknown>).seller_trust_level = trust ? trust.trust_level : 'new'
 
