@@ -81,7 +81,7 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: '120px', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
           >
             <div style={{
-              width: '116px', height: '116px', borderRadius: '2px', overflow: 'hidden', position: 'relative',
+              width: '116px', height: '116px', borderRadius: '10px', overflow: 'hidden', position: 'relative',
               border: isActive ? '2.5px solid #F0908A' : '1.5px solid #2A2A2A',
               backgroundColor: '#1C1C1E',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -90,7 +90,7 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
               ...(imageFailed ? { background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)' } : {})
             }}>
               {cat.id === 'for_you' ? (
-                <CartoonAvatar seed="shapop_pour_toi" size={110} />
+                <CartoonAvatar seed="shapop_pour_toi" size={116} />
               ) : cat.id === 'following' ? (
                 <FollowingIcon size={72} />
               ) : imageFailed ? (
