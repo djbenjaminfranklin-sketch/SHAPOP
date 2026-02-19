@@ -136,9 +136,16 @@ router.post('/api/streams', createLimiter, requireAuth, async (req: Authenticate
       .single()
 
     if (sellerError && sellerError.code === 'PGRST116') {
+      // Get display_name for default store_name
+      const { data: profileForStore } = await supabase
+        .from('profiles')
+        .select('display_name, username')
+        .eq('id', userId)
+        .single()
+      const defaultStoreName = profileForStore?.display_name || profileForStore?.username || 'Ma boutique'
       const { error: createSellerError } = await supabase
         .from('sellers')
-        .insert({ id: userId })
+        .insert({ id: userId, store_name: defaultStoreName })
       if (createSellerError) {
         console.error('Failed to auto-create seller:', createSellerError)
         res.status(500).json({ error: 'Failed to create seller record' })
