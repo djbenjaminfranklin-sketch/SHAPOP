@@ -36,7 +36,8 @@ router.get('/api/streams', async (req: Request, res: Response) => {
 
     const { data, error } = await query.limit(50)
     if (error) {
-      res.status(500).json({ error: 'Failed to fetch streams' })
+      console.error('Supabase streams error:', error.message, error.code, error.details)
+      res.status(500).json({ error: 'Failed to fetch streams', details: error.message })
       return
     }
 
@@ -56,7 +57,8 @@ router.get('/api/streams', async (req: Request, res: Response) => {
     }
 
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('Streams list error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
