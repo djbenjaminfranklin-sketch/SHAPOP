@@ -37,8 +37,8 @@ export default function CartoonAvatar({ seed, size }: CartoonAvatarProps) {
 
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" fill="none">
-      {/* Background */}
-      <rect width="100" height="100" rx="20" fill={bg} />
+      {/* Background — fills entire container, parent handles border-radius */}
+      <rect width="100" height="100" fill={bg} />
 
       {/* Head */}
       <ellipse cx="50" cy="52" rx="30" ry="33" fill={skin} />
