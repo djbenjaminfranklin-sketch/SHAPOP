@@ -544,10 +544,10 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       ? Math.round(streamsArr.reduce((sum: number, s: Record<string, unknown>) => sum + ((s.peak_viewers as number) || 0), 0) / streamsArr.length)
       : 0
 
-    // Recent orders: last 5 with item title
+    // Recent orders: last 5 with item title + buyer name
     const { data: recentOrdersRaw } = await supabase
       .from('orders')
-      .select('id, amount, status, created_at, item_id')
+      .select('id, amount, status, created_at, item_id, buyer_id')
       .eq('seller_id', userId)
       .order('created_at', { ascending: false })
       .limit(5)
@@ -566,12 +566,26 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       }
     }
 
+    // Fetch buyer display names
+    const buyerIds = [...new Set(recentArr.map((o: Record<string, unknown>) => o.buyer_id as string).filter(Boolean))]
+    let buyerNames: Record<string, string> = {}
+    if (buyerIds.length > 0) {
+      const { data: buyers } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', buyerIds)
+      if (buyers) {
+        buyerNames = Object.fromEntries(buyers.map((b: Record<string, unknown>) => [b.id as string, b.display_name as string]))
+      }
+    }
+
     const recent_orders = recentArr.map((o: Record<string, unknown>) => ({
       id: o.id,
       item_title: itemTitles[o.item_id as string] || 'Unknown item',
       amount: o.amount,
       status: o.status,
       created_at: o.created_at,
+      buyer_name: buyerNames[o.buyer_id as string] || null,
     }))
 
     res.json({

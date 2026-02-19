@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import type { Item, Order, Profile } from '../types/database'
 import ShippingLabel from '../components/ShippingLabel'
+import VodPlayer from '../components/VodPlayer'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -36,6 +37,10 @@ const pageContent = {
     articles: 'articles',
     sellerAddress: 'Adresse du vendeur',
     noAddress: 'Adresse non renseignee',
+    watchVod: 'Regarder la VOD',
+    peakViewers: 'Pic de spectateurs',
+    duration: 'Duree du live',
+    minutes: 'min',
   },
   en: {
     title: 'Live recap',
@@ -64,6 +69,10 @@ const pageContent = {
     articles: 'items',
     sellerAddress: 'Seller address',
     noAddress: 'Address not provided',
+    watchVod: 'Watch VOD',
+    peakViewers: 'Peak viewers',
+    duration: 'Live duration',
+    minutes: 'min',
   },
   he: {
     title: 'סיכום השידור',
@@ -92,6 +101,10 @@ const pageContent = {
     articles: 'פריטים',
     sellerAddress: 'כתובת המוכר',
     noAddress: 'כתובת לא סופקה',
+    watchVod: 'צפה VOD',
+    peakViewers: 'שיא צופים',
+    duration: 'משך השידור',
+    minutes: 'דק׳',
   },
   es: {
     title: 'Resumen del directo',
@@ -120,6 +133,10 @@ const pageContent = {
     articles: 'articulos',
     sellerAddress: 'Direccion del vendedor',
     noAddress: 'Direccion no proporcionada',
+    watchVod: 'Ver VOD',
+    peakViewers: 'Pico de espectadores',
+    duration: 'Duracion del directo',
+    minutes: 'min',
   },
 }
 
@@ -144,6 +161,8 @@ export default function LiveRecapPage() {
   const [showLabel, setShowLabel] = useState<SaleRow | null>(null)
   const [showAllLabels, setShowAllLabels] = useState(false)
   const [sellerProfile, setSellerProfile] = useState<Profile | null>(null)
+  const [streamInfo, setStreamInfo] = useState<{ recording_url: string | null; started_at: string | null; ended_at: string | null; peak_viewers: number; title: string } | null>(null)
+  const [showVod, setShowVod] = useState(false)
 
   useEffect(() => {
     if (!streamId || !user) return
@@ -168,6 +187,14 @@ export default function LiveRecapPage() {
         .from('orders')
         .select('*')
         .eq('stream_id', streamId)
+
+      // Fetch stream info (VOD, stats)
+      const { data: streamData } = await supabase
+        .from('streams')
+        .select('recording_url, started_at, ended_at, peak_viewers, title')
+        .eq('id', streamId)
+        .single()
+      if (streamData) setStreamInfo(streamData as { recording_url: string | null; started_at: string | null; ended_at: string | null; peak_viewers: number; title: string })
 
       // Fetch seller profile
       const { data: sp } = await supabase
@@ -346,6 +373,28 @@ export default function LiveRecapPage() {
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
       </div>
 
+      {/* Watch VOD button */}
+      {streamInfo?.recording_url && (
+        <div style={{ padding: '16px 16px 0' }}>
+          <button
+            onClick={() => setShowVod(true)}
+            style={{
+              width: '100%', padding: '14px',
+              background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+              borderRadius: '14px', border: 'none',
+              color: '#fff', fontSize: '15px', fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="none">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            {ct.watchVod}
+          </button>
+        </div>
+      )}
+
       {/* Stats cards */}
       <div style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
@@ -385,6 +434,39 @@ export default function LiveRecapPage() {
           </p>
         </div>
       </div>
+
+      {/* Extra stats: peak viewers + duration */}
+      {streamInfo && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: '10px', padding: '0 16px 16px',
+        }}>
+          <div style={{
+            backgroundColor: '#111', borderRadius: '14px', padding: '16px',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#8B5CF6', margin: 0 }}>
+              {streamInfo.peak_viewers || 0}
+            </p>
+            <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+              {ct.peakViewers}
+            </p>
+          </div>
+          <div style={{
+            backgroundColor: '#111', borderRadius: '14px', padding: '16px',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '24px', fontWeight: 800, color: '#3B82F6', margin: 0 }}>
+              {streamInfo.started_at && streamInfo.ended_at
+                ? `${Math.round((new Date(streamInfo.ended_at).getTime() - new Date(streamInfo.started_at).getTime()) / 60000)}${ct.minutes}`
+                : '-'}
+            </p>
+            <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+              {ct.duration}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Sales list */}
       <div style={{ padding: '0 16px' }}>
@@ -619,6 +701,15 @@ export default function LiveRecapPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* VodPlayer modal */}
+      {showVod && streamInfo?.recording_url && (
+        <VodPlayer
+          recordingUrl={streamInfo.recording_url}
+          title={streamInfo.title || ct.watchVod}
+          onClose={() => setShowVod(false)}
+        />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>

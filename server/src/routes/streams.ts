@@ -2,7 +2,8 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { AccessToken } from 'livekit-server-sdk'
-import { supabase, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService } from '../config'
+import { supabase, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
+import { EncodedFileOutput, S3Upload } from 'livekit-server-sdk'
 import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore } from '../utils'
 import type { AuthenticatedRequest } from '../types'
@@ -522,6 +523,26 @@ router.post('/api/streams/:id/create-livekit-room', requireAuth, async (req: Aut
       .update({ livekit_room_name: roomName })
       .eq('id', streamId)
 
+    // Start recording egress if bucket is configured
+    if (livekitEgressClient && LIVEKIT_RECORDING_BUCKET) {
+      try {
+        const s3Output = new S3Upload({
+          bucket: LIVEKIT_RECORDING_BUCKET,
+          region: process.env.AWS_REGION || 'eu-west-3',
+          accessKey: process.env.AWS_ACCESS_KEY_ID || '',
+          secret: process.env.AWS_SECRET_ACCESS_KEY || '',
+        })
+        const fileOutput = new EncodedFileOutput({
+          filepath: `recordings/${streamId}/{time}`,
+          output: { case: 's3', value: s3Output },
+        })
+        const egress = await livekitEgressClient.startRoomCompositeEgress(roomName, fileOutput)
+        await supabase.from('streams').update({ egress_id: egress.egressId }).eq('id', streamId)
+      } catch (egressErr) {
+        console.error('[egress] Failed to start recording:', egressErr)
+      }
+    }
+
     res.json({ livekit_room_name: roomName })
   } catch (err: any) {
     console.error('LiveKit room creation error:', err?.message || err)
@@ -619,6 +640,18 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
     if (!stream || stream.seller_id !== req.user!.id) {
       res.status(403).json({ error: 'You can only end your own streams' })
       return
+    }
+
+    // Stop recording if active
+    const { data: streamData } = await supabase.from('streams').select('egress_id').eq('id', streamId).single()
+    if (streamData?.egress_id && livekitEgressClient) {
+      try {
+        const result = await livekitEgressClient.stopEgress(streamData.egress_id)
+        // Store recording URL
+        if (result.fileResults?.[0]?.location) {
+          await supabase.from('streams').update({ recording_url: result.fileResults[0].location }).eq('id', streamId)
+        }
+      } catch { /* egress may already be stopped */ }
     }
 
     // Delete the LiveKit room

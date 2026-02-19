@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { Stream } from '../types/database'
 import { t, getLang } from '../lib/i18n'
 import { trackStreamView } from '../lib/behaviorTracker'
@@ -25,13 +25,24 @@ interface StreamCardProps {
 
 export default function StreamCard({ stream, isFavorited, onToggleFavorite }: StreamCardProps) {
   const lang = getLang()
+  const navigate = useNavigate()
   const sellerName = stream.seller?.store_name || stream.seller?.display_name || 'Vendeur'
   const communityName = stream.community_id ? COMMUNITY_NAMES[stream.community_id] : null
+
+  const goToSellerProfile = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    navigate(`/seller/${stream.seller_id}`)
+  }
 
   return (
     <Link to={`/stream/${stream.id}`} onClick={() => trackStreamView(stream.category, sellerName)} style={{ display: 'block', textDecoration: 'none' }}>
       {/* Seller info above card */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+      <div
+        onClick={goToSellerProfile}
+        data-tap="true"
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', cursor: 'pointer' }}
+      >
         <div style={{
           width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#222',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

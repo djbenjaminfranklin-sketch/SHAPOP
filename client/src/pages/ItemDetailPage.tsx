@@ -307,20 +307,28 @@ export default function ItemDetailPage() {
               padding: '14px', borderRadius: '14px', backgroundColor: '#111',
               marginBottom: '20px',
             }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '16px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
-              }}>
-                {item.seller?.avatar_url ? (
-                  <img src={item.seller.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  sellerName.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{sellerName}</p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>{t.seller}</p>
+              <div
+                onClick={() => item.seller_id && navigate(`/seller/${item.seller_id}`)}
+                data-tap="true"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', flex: 1, cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '16px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
+                }}>
+                  {item.seller?.avatar_url ? (
+                    <img src={item.seller.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    sellerName.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{sellerName}</p>
+                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>{t.seller}</p>
+                </div>
               </div>
               {user && item.seller_id !== user.id && (
                 <button

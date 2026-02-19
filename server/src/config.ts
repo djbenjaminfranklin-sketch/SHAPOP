@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { Resend } from 'resend'
-import { RoomServiceClient, WebhookReceiver } from 'livekit-server-sdk'
+import { RoomServiceClient, WebhookReceiver, EgressClient } from 'livekit-server-sdk'
 
 dotenv.config()
 
@@ -24,7 +24,7 @@ export const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
 export const APP_BASE_URL = process.env.APP_BASE_URL || 'https://shapop.app'
 
 // Safe column list for streams table (mux_stream_id/playback_id/asset_id kept for historical data).
-export const STREAMS_SAFE_COLUMNS = 'id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name'
+export const STREAMS_SAFE_COLUMNS = 'id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name, recording_url'
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
@@ -61,6 +61,12 @@ export const LIVEKIT_URL = process.env.LIVEKIT_URL || '' // e.g. wss://xxx.livek
 export const livekitRoomService = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_URL)
   ? new RoomServiceClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
   : null
+
+export const livekitEgressClient = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_URL)
+  ? new EgressClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+  : null
+
+export const LIVEKIT_RECORDING_BUCKET = process.env.LIVEKIT_RECORDING_BUCKET || ''
 
 export const livekitWebhookReceiver = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET)
   ? new WebhookReceiver(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)

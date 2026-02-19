@@ -173,6 +173,19 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
         .single()
 
       if (item) {
+        // Calculate stream offset for purchase proof
+        let purchaseStreamOffsetSeconds: number | null = null
+        if (item.stream_id) {
+          const { data: stream } = await supabase
+            .from('streams')
+            .select('started_at')
+            .eq('id', item.stream_id)
+            .single()
+          if (stream?.started_at) {
+            purchaseStreamOffsetSeconds = Math.floor((Date.now() - new Date(stream.started_at).getTime()) / 1000)
+          }
+        }
+
         const fees = calculateFees(topBid.amount)
         await supabase.from('orders').insert({
           buyer_id: winnerId,
@@ -183,6 +196,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
           platform_fee: fees.platformFee,
           processing_fee: fees.processingFee,
           seller_payout: fees.sellerPayout,
+          purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
         })
         // Notify winner
         await notifyUser(winnerId, 'auction_won', 'Tu as gagne !', `${item.title} — ${topBid.amount}\u20ac. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })

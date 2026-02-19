@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express'
 import Stripe from 'stripe'
-import { supabase, stripe, livekitWebhookReceiver, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
+import { supabase, stripe, livekitWebhookReceiver, livekitEgressClient, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
 import { calculateFees, notifyFollowersSellerLive, notifyUser, getPaypalAccessToken } from '../utils'
 
 // Idempotency: track processed Stripe event IDs to avoid double-processing
@@ -324,10 +324,10 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
     if (event.event === 'room_finished') {
       const roomName = event.room?.name
       if (roomName) {
-        // Get the stream ID before updating status
+        // Get the stream ID and started_at before updating status
         const { data: finishedStream } = await supabase
           .from('streams')
-          .select('id')
+          .select('id, started_at, egress_id')
           .eq('livekit_room_name', roomName)
           .eq('status', 'live')
           .maybeSingle()
@@ -337,6 +337,16 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
           .update({ status: 'ended', ended_at: new Date().toISOString(), viewer_count: 0 })
           .eq('livekit_room_name', roomName)
           .eq('status', 'live')
+
+        // Stop recording if active
+        if (finishedStream?.egress_id && livekitEgressClient) {
+          try {
+            const result = await livekitEgressClient.stopEgress(finishedStream.egress_id)
+            if (result.fileResults?.[0]?.location) {
+              await supabase.from('streams').update({ recording_url: result.fileResults[0].location }).eq('id', finishedStream.id)
+            }
+          } catch { /* egress may already be stopped */ }
+        }
 
         // Clean up in-app live notifications for this stream
         if (finishedStream) {
@@ -391,6 +401,12 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
                   .maybeSingle()
 
                 if (!existingOrder) {
+                  // Calculate stream offset for purchase proof
+                  let purchaseStreamOffsetSeconds: number | null = null
+                  if (finishedStream?.started_at) {
+                    purchaseStreamOffsetSeconds = Math.floor((Date.now() - new Date(finishedStream.started_at).getTime()) / 1000)
+                  }
+
                   const fees = calculateFees(topBid.amount)
                   await supabase.from('orders').insert({
                     buyer_id: winnerId,
@@ -401,6 +417,7 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
                     platform_fee: fees.platformFee,
                     processing_fee: fees.processingFee,
                     seller_payout: fees.sellerPayout,
+                    purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
                   })
                   if (process.env.NODE_ENV !== 'production') console.log(`[room_finished] Order created for item ${item.id} — winner: ${winnerId}, amount: ${topBid.amount}`)
                   // Notify winner

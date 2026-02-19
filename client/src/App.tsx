@@ -50,6 +50,7 @@ const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
 const MessagesPage = lazy(() => import('./pages/MessagesPage'))
 const ConversationPage = lazy(() => import('./pages/ConversationPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
 const CreateLiveWizard = lazy(() => import('./components/seller/CreateLiveWizard'))
 
 function PageLoader() {
@@ -216,6 +217,7 @@ export default function App() {
                 <Route path="/order/:id" element={<OrderDetailPage />} />
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/conversation/:id" element={<ConversationPage />} />
+                <Route path="/seller/:id" element={<SellerProfilePage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               </main>
