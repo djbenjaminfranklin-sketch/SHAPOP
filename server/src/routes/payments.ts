@@ -618,6 +618,13 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
       return
     }
 
+    // C5 fix: Validate that the payment_intent_id matches the one stored on the order
+    // This prevents a malicious user from using a different succeeded PI to mark orders as paid
+    if (order.stripe_payment_intent_id && order.stripe_payment_intent_id !== payment_intent_id) {
+      res.status(400).json({ error: 'Payment intent mismatch' })
+      return
+    }
+
     // Idempotency: prevent double confirmation
     if (order.status !== 'pending_payment') {
       res.json({ success: true, message: 'Order already processed' })
@@ -656,6 +663,18 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
         payoutMethod = 'paypal'
       }
 
+      // Calculate ship deadline based on seller's shipping_delay_days
+      let shipDeadline: string | null = null
+      const { data: sellerDelay } = await supabase
+        .from('sellers')
+        .select('shipping_delay_days')
+        .eq('id', order.seller_id)
+        .single()
+      const delayDays = sellerDelay?.shipping_delay_days ?? 2
+      const deadline = new Date()
+      deadline.setDate(deadline.getDate() + delayDays)
+      shipDeadline = deadline.toISOString()
+
       // Escrow: payment is held until delivery is confirmed (buyer confirms, tracking shows delivered, or 14-day auto-release)
       await supabase
         .from('orders')
@@ -667,6 +686,7 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
           payout_method: payoutMethod,
           payout_status: 'held',
           tracking_status: 'pending',
+          ship_deadline: shipDeadline,
         })
         .eq('id', order_id)
 

@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 
-const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
+// Admin access is verified server-side via requireAdmin middleware
+// Client-side check uses /api/admin/stats response to gate UI
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -858,12 +859,16 @@ export default function AdminPage() {
     setTimeout(() => setToast(null), 4000)
   }
 
-  // Redirect non-admin users
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+
+  // Check admin access via server (single source of truth)
   useEffect(() => {
-    if (!authContextLoading && (!user || user.email !== ADMIN_EMAIL)) {
-      navigate('/', { replace: true })
-    }
-  }, [user, authContextLoading, navigate])
+    if (authContextLoading || !token) return
+    if (!user) { navigate('/', { replace: true }); return }
+    apiFetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => { if (r.ok) { setIsAdmin(true) } else { setIsAdmin(false); navigate('/', { replace: true }) } })
+      .catch(() => { setIsAdmin(false); navigate('/', { replace: true }) })
+  }, [user, authContextLoading, token, navigate])
 
   // Load data when tab changes — MUST be before early returns (Rules of Hooks)
   useEffect(() => {
@@ -882,7 +887,7 @@ export default function AdminPage() {
 
   if (authContextLoading) return <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div className="admin-spinner" /></div>
 
-  if (!user || user.email !== ADMIN_EMAIL) return null
+  if (!user || isAdmin !== true) return null
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 

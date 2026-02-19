@@ -773,4 +773,118 @@ router.post('/api/orders/:id/conversation', requireAuth, async (req: Authenticat
   }
 })
 
+// =============================================
+// CRON: Auto-cancel overdue orders (seller didn't ship before ship_deadline)
+// Called from index.ts every hour
+// =============================================
+export async function cancelOverdueOrders(): Promise<number> {
+  const now = new Date().toISOString()
+
+  // Find paid orders where ship_deadline has passed and seller hasn't shipped
+  const { data: overdueOrders, error } = await supabase
+    .from('orders')
+    .select('id, buyer_id, seller_id, amount, total_amount, stripe_payment_intent_id, ship_deadline')
+    .eq('status', 'paid')
+    .not('ship_deadline', 'is', null)
+    .lt('ship_deadline', now)
+    .limit(50)
+
+  if (error || !overdueOrders || overdueOrders.length === 0) return 0
+
+  let cancelled = 0
+
+  for (const order of overdueOrders) {
+    try {
+      // Refund the buyer via Stripe
+      if (order.stripe_payment_intent_id) {
+        await stripe.refunds.create({
+          payment_intent: order.stripe_payment_intent_id,
+          reason: 'requested_by_customer',
+        })
+      }
+
+      // Update order status to cancelled
+      await supabase
+        .from('orders')
+        .update({
+          status: 'cancelled',
+          payout_status: 'cancelled',
+        })
+        .eq('id', order.id)
+
+      // Cancel any pending PayPal payout
+      await supabase
+        .from('paypal_payouts')
+        .update({ status: 'cancelled' })
+        .eq('order_id', order.id)
+        .eq('status', 'pending')
+
+      // Notify buyer — refund
+      notifyUser(
+        order.buyer_id,
+        'order_cancelled',
+        'Commande annulee — remboursement',
+        'Le vendeur n\'a pas expedie a temps. Vous avez ete rembourse.',
+        { order_id: order.id },
+      )
+
+      // Notify seller — lost sale
+      notifyUser(
+        order.seller_id,
+        'order_cancelled',
+        'Vente annulee — delai depasse',
+        'Vous n\'avez pas expedie la commande dans le delai. La vente est annulee et l\'acheteur a ete rembourse.',
+        { order_id: order.id },
+      )
+
+      cancelled++
+      console.log(`[Ship-Deadline] Order ${order.id} auto-cancelled + refunded (deadline was ${order.ship_deadline})`)
+    } catch (err) {
+      console.error(`[Ship-Deadline] Failed to cancel order ${order.id}:`, err)
+    }
+  }
+
+  return cancelled
+}
+
+// =============================================
+// CRON: Remind sellers 24h before ship deadline
+// =============================================
+export async function remindShipDeadline(): Promise<number> {
+  const now = new Date()
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+
+  // Find paid orders where deadline is within the next 24h and seller hasn't shipped
+  // Exclude orders already reminded (we use a simple check: deadline between now and now+24h)
+  const { data: urgentOrders, error } = await supabase
+    .from('orders')
+    .select('id, seller_id, ship_deadline')
+    .eq('status', 'paid')
+    .not('ship_deadline', 'is', null)
+    .gt('ship_deadline', now.toISOString())
+    .lt('ship_deadline', in24h.toISOString())
+    .limit(50)
+
+  if (error || !urgentOrders || urgentOrders.length === 0) return 0
+
+  let reminded = 0
+
+  for (const order of urgentOrders) {
+    try {
+      notifyUser(
+        order.seller_id,
+        'ship_reminder',
+        'Rappel : expedier avant demain',
+        'Votre commande doit etre expediee dans les 24 prochaines heures, sinon elle sera annulee automatiquement.',
+        { order_id: order.id },
+      )
+      reminded++
+    } catch {
+      // ignore notification errors
+    }
+  }
+
+  return reminded
+}
+
 export default router

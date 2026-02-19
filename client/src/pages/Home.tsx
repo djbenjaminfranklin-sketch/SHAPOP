@@ -355,45 +355,72 @@ export default function Home() {
   return (
     <div
       ref={scrollRef}
-      className="pb-20 bg-black min-h-screen"
-      style={{ overflowX: 'hidden', maxWidth: '100vw' }}
+      className="pb-20 min-h-screen"
+      style={{ overflowX: 'hidden', maxWidth: '100vw', backgroundColor: '#0A0A0A' }}
     >
-      {/* Top bar — logo + search + icons */}
-      <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)', backgroundColor: '#000', position: 'sticky', top: 0, zIndex: 40 }}>
-        {/* Logo + home icon + language flag */}
-        <div style={{ padding: '0px 16px 0px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-          <button
-            onClick={() => { setSelectedCategory('for_you'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-            aria-label="Home"
-            style={{ position: 'absolute', left: '16px', background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="1.5">
-              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Top bar — WhatNot-style clean header */}
+      <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)', backgroundColor: '#0A0A0A', position: 'sticky', top: 0, zIndex: 40 }}>
+
+        {/* Search bar + icons — priority layout like WhatNot */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px 6px' }}>
+          <div style={{
+            flex: 1, display: 'flex', alignItems: 'center', gap: '12px',
+            backgroundColor: '#1C1C1E', borderRadius: '12px', padding: '12px 16px',
+          }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder={t(lang, 'search_placeholder')}
+              aria-label={t(lang, 'search_placeholder')}
+              style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
+            />
+          </div>
+          {/* Chat icon */}
+          <button onClick={() => navigate('/messages')} aria-label="Messages" style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <img src="/logo.png" alt="ShaPop" style={{ width: '52%', display: 'inline-block' }} />
-          <div style={{ position: 'absolute', right: '16px' }}>
+          {/* Notifications */}
+          <button onClick={() => navigate('/notifications')} aria-label="Notifications" style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
+              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {/* Language flag */}
+          <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowLangPicker(!showLangPicker)}
               aria-label="Language"
-              style={{ background: 'none', border: 'none', fontSize: '22px', cursor: 'pointer', padding: '4px' }}
+              style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                backgroundColor: '#F5C518', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer', fontSize: '16px',
+              }}
             >
               {lang === 'fr' ? '🇫🇷' : lang === 'he' ? '🇮🇱' : lang === 'es' ? '🇪🇸' : '🇬🇧'}
             </button>
             {showLangPicker && (
               <div style={{
-                position: 'absolute', top: '100%', right: 0,
-                backgroundColor: '#1A1A1A', borderRadius: '12px',
-                padding: '6px 0', zIndex: 51, minWidth: '140px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.5)', border: '1px solid #333',
+                position: 'absolute', top: '110%', right: 0,
+                backgroundColor: '#1C1C1E', borderRadius: '14px',
+                padding: '6px 0', zIndex: 51, minWidth: '150px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
               }}>
-                {([['fr', 'Français', '🇫🇷'], ['en', 'English', '🇬🇧'], ['he', 'עברית', '🇮🇱'], ['es', 'Español', '🇪🇸']] as const).map(([code, label, flag]) => (
+                {([['fr', 'Francais', '🇫🇷'], ['en', 'English', '🇬🇧'], ['he', 'עברית', '🇮🇱'], ['es', 'Espanol', '🇪🇸']] as const).map(([code, label, flag]) => (
                   <button
                     key={code}
                     onClick={() => { setLang(code); localStorage.setItem('shapop_lang', code); setShowLangPicker(false) }}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '8px', width: '100%',
-                      padding: '10px 14px', background: 'transparent', border: 'none',
+                      display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
+                      padding: '11px 16px', background: 'transparent', border: 'none',
                       color: lang === code ? '#F0908A' : '#ccc', fontSize: '14px',
                       fontWeight: lang === code ? 700 : 400, cursor: 'pointer', textAlign: 'left',
                     }}
@@ -407,129 +434,95 @@ export default function Home() {
           </div>
         </div>
 
-        {/* City indicator */}
-        <div style={{ textAlign: 'center', paddingBottom: '4px' }}>
+        {/* City indicator — compact, under search */}
+        <div style={{ padding: '0 16px 6px', display: 'flex', alignItems: 'center', position: 'relative' }}>
           <button
             onClick={() => setShowCityPicker(!showCityPicker)}
             aria-label="City"
             style={{
-              background: 'transparent',
-              border: '1px solid #333',
-              borderRadius: '9999px',
-              padding: '4px 14px',
-              color: '#ccc',
-              fontSize: '13px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
+              background: 'transparent', border: 'none',
+              padding: '2px 0', color: '#888', fontSize: '13px',
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              cursor: 'pointer',
             }}
           >
             {locationLoading ? (
-              <span style={{ color: '#666' }}>{t(lang, 'detecting_location')}</span>
+              <span style={{ color: '#555' }}>{t(lang, 'detecting_location')}</span>
             ) : city ? (
               <>
-                <span role="img" aria-label="location">📍</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 <span>{city}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6" />
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5">
+                  <path d="M6 9l6 6 6-6"/>
                 </svg>
               </>
             ) : (
               <>
-                <span role="img" aria-label="globe">🌍</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                </svg>
                 <span>{t(lang, 'all_cities')}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
-                  <path d="M6 9l6 6 6-6" />
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5">
+                  <path d="M6 9l6 6 6-6"/>
                 </svg>
               </>
             )}
           </button>
-        </div>
 
-        {/* City picker dropdown */}
-        {showCityPicker && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            backgroundColor: '#1A1A1A',
-            borderRadius: '12px',
-            padding: '8px 0',
-            zIndex: 50,
-            minWidth: '200px',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            border: '1px solid #333',
-          }}>
-          <button
-              onClick={() => { setManualCity(''); setShowCityPicker(false) }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                padding: '10px 16px', color: !city ? '#F0908A' : '#ccc',
-                fontSize: '14px', background: 'transparent', border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              🌍 {t(lang, 'all_cities')}
-            </button>
-            {(() => {
-              const country = getStoredGPSCountry() || detectUserCountry()
-              const communities = getCommunitiesByCountry(country)
-              const commCities = communities.map(c => c.city).filter((c, i, arr) => arr.indexOf(c) === i)
-              // Add the GPS-detected city at the top if not already in the list
-              const detectedCity = localStorage.getItem('shapop_user_city')
-              const allCities = detectedCity && !commCities.includes(detectedCity)
-                ? [detectedCity, ...commCities]
-                : commCities
-              return allCities.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => handleCitySelect(c)}
-                  style={{
-                    display: 'block', width: '100%', textAlign: 'left',
-                    padding: '10px 16px',
-                    color: city === c ? '#F0908A' : '#ccc',
-                    fontSize: '14px', background: 'transparent', border: 'none',
-                    cursor: 'pointer',
-                    fontWeight: c === detectedCity ? 700 : 400,
-                  }}
-                >
-                  📍 {c}{c === detectedCity && !commCities.includes(detectedCity) ? ' (GPS)' : ''}
-                </button>
-              ))
-            })()}
-          </div>
-        )}
-
-        {/* Search bar + icons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px 8px 16px' }}>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#1A1A1A', borderRadius: '9999px', padding: '14px 20px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder={t(lang, 'search_placeholder')}
-              aria-label={t(lang, 'search_placeholder')}
-              style={{ background: 'transparent', fontSize: '16px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
-            />
-          </div>
-          {/* Chat icon */}
-          <button onClick={() => navigate('/activity', { state: { tab: 'messages' } })} aria-label="Messages" style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          {/* Notifications */}
-          <button onClick={() => navigate('/notifications')} aria-label="Notifications" style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
-              <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
+          {/* City picker dropdown */}
+          {showCityPicker && (
+            <div style={{
+              position: 'absolute', top: '100%', left: '16px',
+              backgroundColor: '#1C1C1E', borderRadius: '14px',
+              padding: '8px 0', zIndex: 50, minWidth: '220px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
+            }}>
+              <button
+                onClick={() => { setManualCity(''); setShowCityPicker(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
+                  padding: '11px 16px', color: !city ? '#F0908A' : '#ccc',
+                  fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer',
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                </svg>
+                {t(lang, 'all_cities')}
+              </button>
+              {(() => {
+                const country = getStoredGPSCountry() || detectUserCountry()
+                const communities = getCommunitiesByCountry(country)
+                const commCities = communities.map(c => c.city).filter((c, i, arr) => arr.indexOf(c) === i)
+                const detectedCity = localStorage.getItem('shapop_user_city')
+                const allCities = detectedCity && !commCities.includes(detectedCity)
+                  ? [detectedCity, ...commCities]
+                  : commCities
+                return allCities.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => handleCitySelect(c)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
+                      padding: '11px 16px',
+                      color: city === c ? '#F0908A' : '#ccc',
+                      fontSize: '14px', background: 'transparent', border: 'none',
+                      cursor: 'pointer', fontWeight: c === detectedCity ? 700 : 400,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+                      <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    {c}{c === detectedCity && !commCities.includes(detectedCity) ? ' (GPS)' : ''}
+                  </button>
+                ))
+              })()}
+            </div>
+          )}
         </div>
       </div>
 
@@ -543,7 +536,7 @@ export default function Home() {
       )}
 
       {/* Categories horizontal scroll */}
-      <div style={{ marginTop: '4px', marginBottom: '12px' }}>
+      <div style={{ marginTop: '2px', marginBottom: '16px' }}>
         <CategoryScroll selected={selectedCategory} onSelect={setSelectedCategory} lang={lang} />
       </div>
 
@@ -760,7 +753,7 @@ export default function Home() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-6 px-4 pt-2">
           {displayStreams.map(stream => (
             <StreamCard key={stream.id} stream={stream} isFavorited={favoriteIds.has(stream.id)} onToggleFavorite={toggleFavorite} />
           ))}

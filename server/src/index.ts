@@ -14,6 +14,7 @@ import authRoutes from './routes/auth'
 import streamRoutes from './routes/streams'
 import itemRoutes from './routes/items'
 import orderRoutes from './routes/orders'
+import { cancelOverdueOrders, remindShipDeadline } from './routes/orders'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
 import messageRoutes from './routes/messages'
@@ -157,4 +158,17 @@ server.listen(PORT, () => {
       console.error('[Tracking] Auto-check error:', err)
     }
   }, 2 * 60 * 60 * 1000) // 2 hours
+
+  // Auto-cancel overdue orders every hour (seller didn't ship before deadline)
+  console.log('[Ship-Deadline] Overdue order check enabled (every 1h)')
+  setInterval(async () => {
+    try {
+      const cancelled = await cancelOverdueOrders()
+      if (cancelled > 0) console.log(`[Ship-Deadline] Auto-cancelled ${cancelled} overdue order(s)`)
+      const reminded = await remindShipDeadline()
+      if (reminded > 0) console.log(`[Ship-Deadline] Reminded ${reminded} seller(s) about upcoming deadline`)
+    } catch (err) {
+      console.error('[Ship-Deadline] Error:', err)
+    }
+  }, 60 * 60 * 1000) // 1 hour
 })

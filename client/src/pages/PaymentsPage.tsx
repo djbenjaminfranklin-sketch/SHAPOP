@@ -72,6 +72,16 @@ const content = {
     paypalCountryDesc: 'Stripe n\'est pas disponible dans votre pays. Entrez votre email PayPal pour recevoir vos paiements.',
     paypalCountryPlaceholder: 'email@paypal.com',
     paypalCountrySave: 'Connecter PayPal',
+    pageDesc: 'Ces informations sont necessaires pour placer une enchere, passer une commande ou acheter un produit pendant un live. Nous debiterons ta carte si une enchere ou une offre est acceptee.',
+    paymentMethod: 'Mode de paiement',
+    shippingDetails: 'Details d\'expedition',
+    addPaymentMethod: 'Ajouter un mode de paiement',
+    addPaymentMethodDesc: 'Aucun montant ne sera debite tant que tu n\'auras pas achete un article.',
+    creditCard: 'Carte bancaire',
+    applePay: 'Apple Pay',
+    applePayUnavailable: 'Non disponible sur cet appareil',
+    noPaymentMethod: 'Aucun mode de paiement',
+    noAddress: 'Aucune adresse enregistree',
   },
   en: {
     title: 'Payments & Shipping',
@@ -133,6 +143,16 @@ const content = {
     paypalCountryDesc: 'Stripe is not available in your country. Enter your PayPal email to receive payments.',
     paypalCountryPlaceholder: 'email@paypal.com',
     paypalCountrySave: 'Connect PayPal',
+    pageDesc: 'This information is required to place a bid, make an order or buy a product during a live. Your card will be charged if a bid or offer is accepted.',
+    paymentMethod: 'Payment method',
+    shippingDetails: 'Shipping details',
+    addPaymentMethod: 'Add a payment method',
+    addPaymentMethodDesc: 'No amount will be charged until you purchase an item.',
+    creditCard: 'Credit card',
+    applePay: 'Apple Pay',
+    applePayUnavailable: 'Not available on this device',
+    noPaymentMethod: 'No payment method',
+    noAddress: 'No address saved',
   },
   he: {
     title: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7',
@@ -194,6 +214,16 @@ const content = {
     paypalCountryDesc: 'Stripe \u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA. \u05D4\u05D6\u05DF \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC PayPal \u05DC\u05E7\u05D1\u05DC\u05EA \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
     paypalCountryPlaceholder: 'email@paypal.com',
     paypalCountrySave: '\u05D7\u05D1\u05E8 PayPal',
+    pageDesc: '\u05DE\u05D9\u05D3\u05E2 \u05D6\u05D4 \u05E0\u05D3\u05E8\u05E9 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D4\u05E6\u05E2\u05D5\u05EA, \u05DC\u05D1\u05E6\u05E2 \u05D4\u05D6\u05DE\u05E0\u05D4 \u05D0\u05D5 \u05DC\u05E7\u05E0\u05D5\u05EA \u05DE\u05D5\u05E6\u05E8 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8.',
+    paymentMethod: '\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
+    shippingDetails: '\u05E4\u05E8\u05D8\u05D9 \u05DE\u05E9\u05DC\u05D5\u05D7',
+    addPaymentMethod: '\u05D4\u05D5\u05E1\u05E3 \u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
+    addPaymentMethodDesc: '\u05DC\u05D0 \u05D9\u05D7\u05D5\u05D9\u05D1 \u05E1\u05DB\u05D5\u05DD \u05E2\u05D3 \u05E9\u05EA\u05E8\u05DB\u05D5\u05E9 \u05E4\u05E8\u05D9\u05D8.',
+    creditCard: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05E9\u05E8\u05D0\u05D9',
+    applePay: 'Apple Pay',
+    applePayUnavailable: '\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D6\u05D4',
+    noPaymentMethod: '\u05D0\u05D9\u05DF \u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
+    noAddress: '\u05D0\u05D9\u05DF \u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DE\u05D5\u05E8\u05D4',
   },
   es: {
     title: 'Pagos y Envio',
@@ -255,6 +285,16 @@ const content = {
     paypalCountryDesc: 'Stripe no esta disponible en tu pais. Ingresa tu email de PayPal para recibir pagos.',
     paypalCountryPlaceholder: 'email@paypal.com',
     paypalCountrySave: 'Conectar PayPal',
+    pageDesc: 'Esta informacion es necesaria para pujar, hacer un pedido o comprar un producto durante un directo. Se cargara tu tarjeta si una puja u oferta es aceptada.',
+    paymentMethod: 'Metodo de pago',
+    shippingDetails: 'Detalles de envio',
+    addPaymentMethod: 'Agregar metodo de pago',
+    addPaymentMethodDesc: 'No se cobrara ningun monto hasta que compres un articulo.',
+    creditCard: 'Tarjeta bancaria',
+    applePay: 'Apple Pay',
+    applePayUnavailable: 'No disponible en este dispositivo',
+    noPaymentMethod: 'Sin metodo de pago',
+    noAddress: 'Sin direccion guardada',
   },
 }
 
@@ -549,6 +589,41 @@ export default function PaymentsPage() {
     }
   }, [searchParams, fetchStatus])
 
+  // Detect Apple Pay availability
+  useEffect(() => {
+    const checkApplePay = async () => {
+      try {
+        const stripe = await getStripePromise()
+        if (!stripe) return
+        const pr = stripe.paymentRequest({
+          country: 'FR',
+          currency: 'eur',
+          total: { label: 'ShaPop', amount: 0 },
+        })
+        const result = await pr.canMakePayment()
+        if (result?.applePay) {
+          setApplePayAvailable(true)
+        }
+      } catch { /* Apple Pay not available */ }
+    }
+    checkApplePay()
+  }, [])
+
+  // Fetch default address
+  useEffect(() => {
+    if (!user) return
+    const fetchAddress = async () => {
+      const { data } = await supabase
+        .from('addresses')
+        .select('name, street, city, zip')
+        .eq('user_id', user.id)
+        .eq('is_default', true)
+        .single()
+      if (data) setDefaultAddress(data)
+    }
+    fetchAddress()
+  }, [user])
+
   // Refetch Stripe status when in-app browser closes (user returns from Stripe onboarding)
   useEffect(() => {
     let listener: { remove: () => void } | undefined
@@ -574,6 +649,13 @@ export default function PaymentsPage() {
     { code: 'CA', flag: '\uD83C\uDDE8\uD83C\uDDE6', name: { fr: 'Canada', en: 'Canada', he: '\u05E7\u05E0\u05D3\u05D4', es: 'Canada' } },
     { code: 'MA', flag: '\uD83C\uDDF2\uD83C\uDDE6', name: { fr: 'Maroc', en: 'Morocco', he: '\u05DE\u05E8\u05D5\u05E7\u05D5', es: 'Marruecos' } },
   ]
+  // Payment method picker modal
+  const [showMethodPicker, setShowMethodPicker] = useState(false)
+  const [applePayAvailable, setApplePayAvailable] = useState(false)
+
+  // Default address
+  const [defaultAddress, setDefaultAddress] = useState<{ name: string; street: string; city: string; zip: string } | null>(null)
+
   const [showPaypalForm, setShowPaypalForm] = useState(false)
   const [countryPaypalEmail, setCountryPaypalEmail] = useState('')
   const [countryPaypalSaving, setCountryPaypalSaving] = useState(false)
@@ -679,6 +761,7 @@ export default function PaymentsPage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
+      <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
@@ -688,8 +771,75 @@ export default function PaymentsPage() {
       </div>
 
       <div style={{ padding: '20px' }}>
+        {/* ═══════ WHATNOT-STYLE OVERVIEW ═══════ */}
+        <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>{c.title}</h2>
+        <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.5, margin: '0 0 24px' }}>{c.pageDesc}</p>
+
+        {/* Mode de paiement row */}
+        <div
+          onClick={() => setShowMethodPicker(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '16px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
+          }}
+        >
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#F5F5F5',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              {c.paymentMethod}
+            </p>
+            <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+              {cardInfo?.has_card
+                ? `${(cardInfo.brand || 'visa').toLowerCase()} - ${cardInfo.last4} - ${cardInfo.exp_month}/${cardInfo.exp_year}`
+                : c.noPaymentMethod}
+            </p>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        {/* Détails d'expédition row */}
+        <div
+          onClick={() => navigate('/addresses')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '16px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
+            marginBottom: '32px',
+          }}
+        >
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#F5F5F5',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a1 1 0 01-1 1h-1"/>
+              <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              {c.shippingDetails}
+            </p>
+            <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0', lineHeight: 1.4 }}>
+              {defaultAddress
+                ? `${defaultAddress.street}\n${defaultAddress.zip} ${defaultAddress.city}`
+                : c.noAddress}
+            </p>
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+        </div>
+
+        {/* ═══════ SELLER SECTIONS ═══════ */}
         {/* Payment Methods */}
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{c.payTitle}</h2>
+        {profile?.is_seller && (
+          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{c.payTitle}</h2>
+        )}
 
         {/* PayPal seller section */}
         {profile?.is_seller && sellerBankChoice === 'paypal' && (
@@ -937,10 +1087,8 @@ export default function PaymentsPage() {
         </div>
         )}
 
-        {/* Buyer card section */}
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px', marginTop: '24px' }}>
-          {c.buyerCardTitle}
-        </h2>
+        {/* Buyer card section — only visible during card setup */}
+        {showCardSetup && (
         <div style={{
           backgroundColor: '#111', borderRadius: '14px', padding: '20px',
           marginBottom: '16px',
@@ -1095,6 +1243,7 @@ export default function PaymentsPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Fees summary */}
         {profile?.is_seller && (
@@ -1131,6 +1280,136 @@ export default function PaymentsPage() {
           <p style={{ fontSize: '11px', color: '#555', padding: '8px 16px 12px', textAlign: 'right' }}>{c.savedLocally}</p>
         </div>
       </div>
+
+      {/* ═══════ PAYMENT METHOD PICKER MODAL ═══════ */}
+      {showMethodPicker && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+          onClick={() => setShowMethodPicker(false)}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff', borderRadius: '20px 20px 0 0',
+              width: '100%', maxWidth: '500px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+              animation: 'slideUp 0.3s ease',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Handle bar */}
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 8px' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#ccc' }} />
+            </div>
+
+            {/* Title */}
+            <div style={{ textAlign: 'center', padding: '8px 24px 4px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#000', margin: 0 }}>
+                {c.addPaymentMethod}
+              </h3>
+              <p style={{ fontSize: '13px', color: '#888', margin: '8px 0 20px', lineHeight: 1.5 }}>
+                {c.addPaymentMethodDesc}
+              </p>
+            </div>
+
+            {/* Options */}
+            <div style={{ padding: '0 24px' }}>
+              {/* Carte bancaire */}
+              <button
+                onClick={() => { setShowMethodPicker(false); openCardSetup() }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
+                  padding: '18px 0', borderBottom: '1px solid #eee',
+                  background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#eee',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{
+                  width: '44px', height: '30px', borderRadius: '6px', border: '1.5px solid #333',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                  </svg>
+                </div>
+                <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
+                  {c.creditCard}
+                </span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+
+              {/* PayPal */}
+              <button
+                onClick={() => {
+                  setShowMethodPicker(false)
+                  // For buyer PayPal: navigate to a PayPal setup or show info
+                  showToast(lang === 'fr' ? 'PayPal sera disponible lors du paiement.' : 'PayPal will be available at checkout.', 'info')
+                }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
+                  padding: '18px 0', borderBottom: '1px solid #eee',
+                  background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#eee',
+                  cursor: 'pointer', textAlign: 'left',
+                }}
+              >
+                <div style={{
+                  width: '44px', height: '30px', borderRadius: '6px',
+                  background: 'linear-gradient(135deg, #003087, #009CDE)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  <span style={{ color: '#fff', fontWeight: 800, fontSize: '12px', letterSpacing: '-0.5px' }}>Pay</span>
+                </div>
+                <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
+                  PayPal
+                </span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+
+              {/* Apple Pay */}
+              <button
+                onClick={() => {
+                  if (!applePayAvailable) return
+                  setShowMethodPicker(false)
+                  showToast(lang === 'fr' ? 'Apple Pay sera utilise automatiquement lors du paiement.' : 'Apple Pay will be used automatically at checkout.', 'success')
+                }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
+                  padding: '18px 0',
+                  background: 'none', border: 'none',
+                  cursor: applePayAvailable ? 'pointer' : 'default', textAlign: 'left',
+                  opacity: applePayAvailable ? 1 : 0.4,
+                }}
+              >
+                <div style={{
+                  width: '44px', height: '30px', borderRadius: '6px', border: '1.5px solid #333',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  backgroundColor: '#000',
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff">
+                    <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
+                  </svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', display: 'block' }}>
+                    {c.applePay}
+                  </span>
+                  {!applePayAvailable && (
+                    <span style={{ fontSize: '12px', color: '#999' }}>
+                      {c.applePayUnavailable}
+                    </span>
+                  )}
+                </div>
+                {applePayAvailable && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Country picker modal */}
       {showCountryPicker && (

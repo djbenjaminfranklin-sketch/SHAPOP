@@ -12,6 +12,9 @@ export interface Profile {
   phone_number: string | null
   phone_verified: boolean
   stripe_customer_id: string | null
+  selfie_url: string | null
+  id_document_url: string | null
+  identity_status: 'unverified' | 'pending' | 'verified' | 'rejected'
   created_at: string
 }
 
@@ -50,6 +53,7 @@ export interface Seller {
   team_size: string | null
   live_hours: string | null
   return_address: Record<string, string> | null
+  shipping_delay_days: number | null
   return_policy: 'no_return' | 'exchange_only' | 'return_7' | 'return_14' | 'return_30'
   bank_choice: string | null
   paypal_email: string | null
@@ -150,10 +154,16 @@ export interface Order {
   shipped_at: string | null
   delivered_at: string | null
   claim_deadline: string | null
+  ship_deadline: string | null
+  tracking_status: 'pending' | 'shipped' | 'in_transit' | 'delivered' | 'returned' | null
+  buyer_confirmed_at: string | null
   payout_scheduled_at: string | null
   payout_method: string
   holdback_percent: number
   payout_status: string
+  relay_point_id: string | null
+  relay_point_name: string | null
+  label_url: string | null
   created_at: string
 }
 

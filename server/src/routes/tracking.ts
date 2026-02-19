@@ -3,11 +3,12 @@ import type { Response } from 'express'
 import { supabase, LAPOSTE_API_KEY } from '../config'
 import { requireAuth, requireAdmin, adminLimiter } from '../middleware'
 import { notifyUser, paramStr, SHIPPING_SAFETY_MARGIN } from '../utils'
+import { trackShipment as mrTrackShipment, isMondialRelayConfigured } from '../services/mondialrelay'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
 
-const VALID_CARRIERS = ['mondial_relay', 'dpd', 'dhl', 'laposte', 'colissimo', 'chronopost', 'other']
+const VALID_CARRIERS = ['mondial_relay', 'dpd', 'dhl', 'laposte', 'colissimo', 'chronopost', 'israel_post', 'other']
 
 // =============================================
 // POST /api/orders/:id/tracking — Seller adds tracking info
@@ -274,8 +275,49 @@ export async function checkTrackingStatuses(): Promise<number> {
     for (const order of orders) {
       let isDelivered = false
 
+      // Try Mondial Relay tracking
+      if (isMondialRelayConfigured() && order.carrier === 'mondial_relay') {
+        try {
+          const mrResult = await mrTrackShipment(order.tracking_number)
+          if (!mrResult.error) {
+            if (mrResult.delivered) {
+              isDelivered = true
+            } else if (mrResult.events.length > 0 && order.tracking_status === 'shipped') {
+              await supabase
+                .from('orders')
+                .update({ tracking_status: 'in_transit' })
+                .eq('id', order.id)
+            }
+          }
+        } catch (err) {
+          if (process.env.NODE_ENV !== 'production') console.error(`[tracking-check] Mondial Relay API error for order ${order.id}:`, err)
+        }
+      }
+
+      // Try Israel Post tracking (public API, no key needed)
+      if (!isDelivered && order.carrier === 'israel_post') {
+        try {
+          const ipResp = await fetch(`https://mypost.israelpost.co.il/umbraco/api/Tracking/GetItemTracking?itemNumber=${encodeURIComponent(order.tracking_number)}&language=en`, {
+            headers: { 'Accept': 'application/json' },
+          })
+          if (ipResp.ok) {
+            const ipData = await ipResp.json() as { itemcodealiases?: string; isDelivered?: boolean; statusData?: Array<{ eventTitle?: string; eventDate?: string }> }
+            if (ipData.isDelivered === true) {
+              isDelivered = true
+            } else if (ipData.statusData && ipData.statusData.length > 0 && order.tracking_status === 'shipped') {
+              await supabase
+                .from('orders')
+                .update({ tracking_status: 'in_transit' })
+                .eq('id', order.id)
+            }
+          }
+        } catch (err) {
+          if (process.env.NODE_ENV !== 'production') console.error(`[tracking-check] Israel Post API error for order ${order.id}:`, err)
+        }
+      }
+
       // Try La Poste API for supported carriers
-      if (LAPOSTE_API_KEY && ['laposte', 'colissimo', 'chronopost'].includes(order.carrier || '')) {
+      if (!isDelivered && LAPOSTE_API_KEY && ['laposte', 'colissimo', 'chronopost'].includes(order.carrier || '')) {
         try {
           const resp = await fetch(`https://api.laposte.fr/suivi/v2/idships/${encodeURIComponent(order.tracking_number)}`, {
             headers: {

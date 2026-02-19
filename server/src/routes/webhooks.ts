@@ -67,7 +67,7 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
           // Look up seller trust for holdback
           const { data: orderData } = await supabase
             .from('orders')
-            .select('seller_id, buyer_id')
+            .select('seller_id, buyer_id, amount')
             .eq('id', orderId)
             .single()
 
@@ -101,6 +101,20 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
             }
           }
 
+          // Calculate ship deadline based on seller's shipping_delay_days
+          let shipDeadline: string | null = null
+          if (orderData) {
+            const { data: sellerDelay } = await supabase
+              .from('sellers')
+              .select('shipping_delay_days')
+              .eq('id', orderData.seller_id)
+              .single()
+            const delayDays = sellerDelay?.shipping_delay_days ?? 2
+            const deadline = new Date()
+            deadline.setDate(deadline.getDate() + delayDays)
+            shipDeadline = deadline.toISOString()
+          }
+
           // Escrow: payment is held until delivery is confirmed
           await supabase
             .from('orders')
@@ -112,6 +126,7 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
               payout_method: payoutMethod,
               payout_status: 'held',
               tracking_status: 'pending',
+              ship_deadline: shipDeadline,
             })
             .eq('id', orderId)
 
@@ -124,7 +139,8 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
               .single()
 
             if (sellerInfo?.paypal_email) {
-              const fees = calculateFees(pi.amount / 100)
+              // Use order.amount (item price only) not pi.amount which includes shipping
+              const fees = calculateFees(orderData.amount)
               await supabase.from('paypal_payouts').insert({
                 order_id: orderId,
                 seller_id: orderData.seller_id,

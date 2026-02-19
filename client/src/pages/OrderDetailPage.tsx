@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import ShippingLabel from '../components/ShippingLabel'
+import RelayPointPicker from '../components/RelayPointPicker'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -30,6 +31,9 @@ interface OrderDetail {
   shipped_at: string | null
   delivered_at: string | null
   claim_deadline: string | null
+  relay_point_id: string | null
+  relay_point_name: string | null
+  label_url: string | null
   created_at: string
   item?: { title: string; image_urls: string[]; category: string; description: string | null }
   buyer_profile?: { display_name: string; username: string; avatar_url: string | null }
@@ -109,6 +113,8 @@ const pageContent = {
     carrierMondialRelay: 'Mondial Relay',
     carrierChronopost: 'Chronopost',
     carrierColissimo: 'Colissimo',
+    carrierIsraelPost: 'Israel Post',
+    carrierDhl: 'DHL Express',
     carrierOther: 'Autre',
     submitTracking: 'Envoyer le suivi',
     submittingTracking: 'Envoi...',
@@ -124,6 +130,14 @@ const pageContent = {
     escrowInfo: 'Le paiement est securise. Il sera libere quand vous confirmerez la reception.',
     escrowInfoSeller: 'Le paiement est bloque jusqu\'a confirmation de livraison.',
     selectCarrier: 'Selectionnez un transporteur',
+    generateLabel: 'Generer l\'etiquette Mondial Relay',
+    generatingLabel: 'Generation...',
+    downloadLabel: 'Telecharger l\'etiquette',
+    selectRelay: 'Choisir un Point Relais',
+    relaySelected: 'Point Relais',
+    changeRelay: 'Changer',
+    trackMondialRelay: 'Suivre sur Mondial Relay',
+    labelReady: 'Etiquette prete',
   },
   en: {
     back: 'Back',
@@ -196,6 +210,8 @@ const pageContent = {
     carrierMondialRelay: 'Mondial Relay',
     carrierChronopost: 'Chronopost',
     carrierColissimo: 'Colissimo',
+    carrierIsraelPost: 'Israel Post',
+    carrierDhl: 'DHL Express',
     carrierOther: 'Other',
     submitTracking: 'Submit tracking',
     submittingTracking: 'Submitting...',
@@ -211,6 +227,14 @@ const pageContent = {
     escrowInfo: 'Payment is secured. It will be released when you confirm receipt.',
     escrowInfoSeller: 'Payment is held until delivery is confirmed.',
     selectCarrier: 'Select a carrier',
+    generateLabel: 'Generate Mondial Relay label',
+    generatingLabel: 'Generating...',
+    downloadLabel: 'Download label',
+    selectRelay: 'Choose a Relay Point',
+    relaySelected: 'Relay Point',
+    changeRelay: 'Change',
+    trackMondialRelay: 'Track on Mondial Relay',
+    labelReady: 'Label ready',
   },
   he: {
     back: '\u05D7\u05D6\u05D5\u05E8',
@@ -283,6 +307,8 @@ const pageContent = {
     carrierMondialRelay: 'Mondial Relay',
     carrierChronopost: 'Chronopost',
     carrierColissimo: 'Colissimo',
+    carrierIsraelPost: '\u05D3\u05D5\u05D0\u05E8 \u05D9\u05E9\u05E8\u05D0\u05DC',
+    carrierDhl: 'DHL Express',
     carrierOther: '\u05D0\u05D7\u05E8',
     submitTracking: '\u05E9\u05DC\u05D7 \u05DE\u05E2\u05E7\u05D1',
     submittingTracking: '\u05E9\u05D5\u05DC\u05D7...',
@@ -298,6 +324,14 @@ const pageContent = {
     escrowInfo: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D0\u05D5\u05D1\u05D8\u05D7. \u05D4\u05D5\u05D0 \u05D9\u05E9\u05D5\u05D7\u05E8\u05E8 \u05DB\u05E9\u05EA\u05D0\u05E9\u05E8 \u05E7\u05D1\u05DC\u05D4.',
     escrowInfoSeller: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D5\u05E7\u05E4\u05D0 \u05E2\u05D3 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7.',
     selectCarrier: '\u05D1\u05D7\u05E8 \u05D7\u05D1\u05E8\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
+    generateLabel: '\u05E6\u05D5\u05E8 \u05EA\u05D5\u05D5\u05D9\u05EA Mondial Relay',
+    generatingLabel: '\u05D9\u05D5\u05E6\u05E8...',
+    downloadLabel: '\u05D4\u05D5\u05E8\u05D3 \u05EA\u05D5\u05D5\u05D9\u05EA',
+    selectRelay: '\u05D1\u05D7\u05E8 \u05E0\u05E7\u05D5\u05D3\u05EA \u05D0\u05D9\u05E1\u05D5\u05E3',
+    relaySelected: '\u05E0\u05E7\u05D5\u05D3\u05EA \u05D0\u05D9\u05E1\u05D5\u05E3',
+    changeRelay: '\u05E9\u05E0\u05D4',
+    trackMondialRelay: '\u05E2\u05E7\u05D5\u05D1 \u05D1-Mondial Relay',
+    labelReady: '\u05EA\u05D5\u05D5\u05D9\u05EA \u05DE\u05D5\u05DB\u05E0\u05D4',
   },
   es: {
     back: 'Volver',
@@ -370,6 +404,8 @@ const pageContent = {
     carrierMondialRelay: 'Mondial Relay',
     carrierChronopost: 'Chronopost',
     carrierColissimo: 'Colissimo',
+    carrierIsraelPost: 'Israel Post',
+    carrierDhl: 'DHL Express',
     carrierOther: 'Otro',
     submitTracking: 'Enviar seguimiento',
     submittingTracking: 'Enviando...',
@@ -385,6 +421,14 @@ const pageContent = {
     escrowInfo: 'El pago esta asegurado. Se liberara cuando confirmes la recepcion.',
     escrowInfoSeller: 'El pago esta retenido hasta que se confirme la entrega.',
     selectCarrier: 'Seleccione un transportista',
+    generateLabel: 'Generar etiqueta Mondial Relay',
+    generatingLabel: 'Generando...',
+    downloadLabel: 'Descargar etiqueta',
+    selectRelay: 'Elegir Punto de Recogida',
+    relaySelected: 'Punto de Recogida',
+    changeRelay: 'Cambiar',
+    trackMondialRelay: 'Seguir en Mondial Relay',
+    labelReady: 'Etiqueta lista',
   },
 }
 
@@ -437,6 +481,11 @@ export default function OrderDetailPage() {
 
   // Confirm receipt state
   const [confirmingReceipt, setConfirmingReceipt] = useState(false)
+
+  // Mondial Relay states
+  const [showRelayPicker, setShowRelayPicker] = useState(false)
+  const [generatingLabel, setGeneratingLabel] = useState(false)
+  const [labelError, setLabelError] = useState<string | null>(null)
 
   // Return request states
   const [showReturnModal, setShowReturnModal] = useState(false)
@@ -714,6 +763,51 @@ export default function OrderDetailPage() {
     }
   }
 
+  // Generate Mondial Relay label
+  const handleGenerateLabel = async () => {
+    if (!order || !session) return
+    setGeneratingLabel(true)
+    setLabelError(null)
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/create-label`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed')
+      }
+      const data = await res.json()
+      // If label URL returned, open it
+      if (data.label_url) {
+        window.open(data.label_url, '_blank')
+      }
+      fetchOrder()
+    } catch (err: unknown) {
+      setLabelError(err instanceof Error ? err.message : ct.error)
+    } finally {
+      setGeneratingLabel(false)
+    }
+  }
+
+  // Select a relay point
+  const handleSelectRelay = async (point: { id: string; name: string }) => {
+    if (!order || !session) return
+    try {
+      const res = await apiFetch(`/api/orders/${order.id}/select-relay`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ relay_point_id: point.id, relay_point_name: point.name }),
+      })
+      if (res.ok) {
+        setShowRelayPicker(false)
+        fetchOrder()
+      }
+    } catch {
+      // silently fail
+    }
+  }
+
   const getTrackingStatusLabel = (ts: string | null) => {
     switch (ts) {
       case 'pending': return ct.trackingStatusPending
@@ -741,6 +835,8 @@ export default function OrderDetailPage() {
     mondial_relay: ct.carrierMondialRelay,
     chronopost: ct.carrierChronopost,
     colissimo: ct.carrierColissimo,
+    israel_post: ct.carrierIsraelPost,
+    dhl: ct.carrierDhl,
     other: ct.carrierOther,
   }
 
@@ -976,6 +1072,49 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
+        {/* Relay point info */}
+        {order.relay_point_id && (
+          <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {ct.relaySelected}
+            </p>
+            <div style={{
+              backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '12px', border: '1px solid #E8344E30',
+              display: 'flex', alignItems: 'center', gap: '12px',
+            }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '10px',
+                backgroundColor: '#E8344E', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                  {order.relay_point_name || `Point Relais #${order.relay_point_id}`}
+                </p>
+                <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 0' }}>
+                  Mondial Relay #{order.relay_point_id}
+                </p>
+              </div>
+              {isBuyer && order.status === 'pending_payment' && (
+                <button
+                  onClick={() => setShowRelayPicker(true)}
+                  style={{
+                    padding: '6px 12px', borderRadius: '8px',
+                    border: '1px solid #333', backgroundColor: 'transparent',
+                    color: '#888', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {ct.changeRelay}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Shipping address */}
         {order.shipping_address && (
           <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
@@ -1083,6 +1222,96 @@ export default function OrderDetailPage() {
 
         {/* Action buttons */}
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Buyer: Select relay point (France, before payment) */}
+          {isBuyer && order.status === 'pending_payment' && order.carrier === 'mondial_relay' && !order.relay_point_id && order.shipping_address && (
+            <button
+              onClick={() => setShowRelayPicker(true)}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '14px',
+                background: 'linear-gradient(135deg, #E8344E, #B91C1C)',
+                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+              {ct.selectRelay}
+            </button>
+          )}
+
+          {/* Seller: Generate Mondial Relay label */}
+          {isSeller && ['paid', 'shipped'].includes(order.status) && order.carrier === 'mondial_relay' && order.shipping_address && (
+            order.label_url ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{
+                  padding: '12px', borderRadius: '12px', backgroundColor: '#10B98110',
+                  border: '1px solid #10B98130',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                  </svg>
+                  <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>{ct.labelReady}</span>
+                </div>
+                <button
+                  onClick={() => window.open(order.label_url!, '_blank')}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #E8344E, #B91C1C)',
+                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  {ct.downloadLabel}
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  onClick={handleGenerateLabel}
+                  disabled={generatingLabel}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px',
+                    background: generatingLabel ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
+                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                    cursor: generatingLabel ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                  </svg>
+                  {generatingLabel ? ct.generatingLabel : ct.generateLabel}
+                </button>
+                {labelError && (
+                  <p style={{ color: '#E8344E', fontSize: '12px', textAlign: 'center', margin: 0 }}>{labelError}</p>
+                )}
+              </>
+            )
+          )}
+
+          {/* Mondial Relay tracking link */}
+          {order.carrier === 'mondial_relay' && order.tracking_number && (
+            <button
+              onClick={() => window.open(`https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${encodeURIComponent(order.tracking_number!)}`, '_blank')}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px',
+                border: '1px solid #E8344E30', backgroundColor: 'transparent',
+                color: '#E8344E', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              {ct.trackMondialRelay}
+            </button>
+          )}
+
           {/* Seller: Ship button */}
           {isSeller && order.status === 'paid' && (
             <button
@@ -1489,6 +1718,8 @@ export default function OrderDetailPage() {
               <option value="mondial_relay">{ct.carrierMondialRelay}</option>
               <option value="chronopost">{ct.carrierChronopost}</option>
               <option value="colissimo">{ct.carrierColissimo}</option>
+              <option value="israel_post">{ct.carrierIsraelPost}</option>
+              <option value="dhl">{ct.carrierDhl}</option>
               <option value="other">{ct.carrierOther}</option>
             </select>
 
@@ -1533,6 +1764,17 @@ export default function OrderDetailPage() {
           </button>
           <img src={proofImageUrl} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px' }} />
         </div>
+      )}
+
+      {/* Relay Point Picker */}
+      {showRelayPicker && order.shipping_address && (
+        <RelayPointPicker
+          zip={order.shipping_address.zip || ''}
+          country={order.shipping_address.country || 'FR'}
+          selectedId={order.relay_point_id}
+          onSelect={(point) => handleSelectRelay({ id: point.id, name: point.name })}
+          onClose={() => setShowRelayPicker(false)}
+        />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

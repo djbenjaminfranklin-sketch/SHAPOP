@@ -51,6 +51,8 @@ const MessagesPage = lazy(() => import('./pages/MessagesPage'))
 const ConversationPage = lazy(() => import('./pages/ConversationPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
+const VerificationPage = lazy(() => import('./pages/VerificationPage'))
+const AccountControlsPage = lazy(() => import('./pages/AccountControlsPage'))
 const CreateLiveWizard = lazy(() => import('./components/seller/CreateLiveWizard'))
 
 function PageLoader() {
@@ -88,6 +90,13 @@ function PushAutoRegister() {
 function OfflineBanner() {
   const isOnline = useOnlineStatus()
   if (isOnline) return null
+  const lang = localStorage.getItem('shapop_lang') || 'fr'
+  const msg: Record<string, string> = {
+    fr: 'Pas de connexion internet',
+    en: 'No internet connection',
+    he: '\u05D0\u05D9\u05DF \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05D9\u05E0\u05D8\u05E8\u05E0\u05D8',
+    es: 'Sin conexion a internet',
+  }
   return (
     <div
       role="alert"
@@ -98,7 +107,7 @@ function OfflineBanner() {
         fontSize: '14px', fontWeight: 600,
       }}
     >
-      Pas de connexion internet
+      {msg[lang] || msg.fr}
     </div>
   )
 }
@@ -218,6 +227,8 @@ export default function App() {
                 <Route path="/messages" element={<MessagesPage />} />
                 <Route path="/conversation/:id" element={<ConversationPage />} />
                 <Route path="/seller/:id" element={<SellerProfilePage />} />
+                <Route path="/verification" element={<VerificationPage />} />
+                <Route path="/account-controls" element={<AccountControlsPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               </main>

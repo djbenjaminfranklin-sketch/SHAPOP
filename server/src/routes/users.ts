@@ -645,7 +645,7 @@ router.put('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedR
       return
     }
 
-    const allowed = [1, 2, 3, 5, 7]
+    const allowed = [1, 2, 3, 4]
     if (!allowed.includes(shipping_delay_days)) {
       res.status(400).json({ error: `shipping_delay_days must be one of: ${allowed.join(', ')}` })
       return
