@@ -1903,7 +1903,7 @@ export default function AdminPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 2px' }}>{sv(p.title)}</p>
-                  {p.description && <p style={{ color: '#888', fontSize: '12px', margin: '0 0 4px' }}>{sv(p.description)}</p>}
+                  {p.description ? <p style={{ color: '#888', fontSize: '12px', margin: '0 0 4px' }}>{sv(p.description)}</p> : null}
                 </div>
                 <span style={badge(color)}>{statusLabel[status]}</span>
               </div>

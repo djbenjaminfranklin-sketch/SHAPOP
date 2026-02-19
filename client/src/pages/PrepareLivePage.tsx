@@ -300,11 +300,11 @@ export default function PrepareLivePage() {
     const fetchStream = async () => {
       const { data } = await supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name')
         .eq('id', streamId)
         .single()
       if (data) {
-        setStream(data)
+        setStream(data as Stream)
         if (data.scheduled_at) {
           setScheduledDate(new Date(data.scheduled_at).toISOString().slice(0, 16))
         }

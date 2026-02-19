@@ -172,7 +172,7 @@ export default function Home() {
     try {
       let query = supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name, seller:profiles!seller_id(display_name, avatar_url)')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name, seller:profiles!seller_id(display_name, avatar_url)')
         .in('status', ['live', 'scheduled'])
         .order('status', { ascending: true })
         .order('viewer_count', { ascending: false })
@@ -183,7 +183,7 @@ export default function Home() {
       }
 
       const { data } = await query
-      const fresh = (data as StreamWithSeller[]) || []
+      const fresh = ((data || []) as unknown as StreamWithSeller[])
       setStreams(fresh)
       cacheSet('home_streams', fresh)
     } catch (err) {

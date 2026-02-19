@@ -90,13 +90,13 @@ export default function ActiveItemBar({
   onAddCard,
   disabled,
   lang,
-  selectedCarrier,
-  onCarrierChange,
+  selectedCarrier: _selectedCarrier,
+  onCarrierChange: _onCarrierChange,
   buyerCountry,
   buyerZip,
 }: ActiveItemBarProps) {
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
-  const [shippingZone, setShippingZone] = useState<string>('france')
+  const [_shippingZone, setShippingZone] = useState<string>('france')
   const [shippingPromo, setShippingPromo] = useState<{ discount_percent: number } | null>(null)
 
   // Fetch shipping options when item changes and has weight

@@ -705,10 +705,10 @@ export default function StreamView() {
     try {
       const { data } = await supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name')
         .eq('id', id)
         .single()
-      setStream(data)
+      setStream(data as Stream | null)
     } catch (err) { console.error('Failed to fetch stream:', err) }
     setLoading(false)
   }, [id])
@@ -904,7 +904,7 @@ export default function StreamView() {
             })
             if (!resp.ok) {
               const err = await resp.json().catch(() => ({}))
-              if (process.env.NODE_ENV !== 'production') console.error('PaymentIntent error:', err)
+              if (import.meta.env.DEV) console.error('PaymentIntent error:', err)
               setPaymentError(err.error || 'Failed to initialize payment. Please try again.')
               return
             }
@@ -1034,7 +1034,7 @@ export default function StreamView() {
         setSetupClientSecret(data.client_secret)
       }
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error('Setup intent error:', err)
+      if (import.meta.env.DEV) console.error('Setup intent error:', err)
       setCardError('Failed to initialize card setup')
     }
   }
@@ -1234,7 +1234,7 @@ export default function StreamView() {
       }
     } catch (err) {
       // Even if server confirm fails, Stripe already processed the payment
-      if (process.env.NODE_ENV !== 'production') console.error('Server payment confirmation failed (Stripe already processed):', err)
+      if (import.meta.env.DEV) console.error('Server payment confirmation failed (Stripe already processed):', err)
     }
     setPaymentSuccess(true)
     setPaymentLoading(false)

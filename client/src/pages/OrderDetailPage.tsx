@@ -627,7 +627,7 @@ export default function OrderDetailPage() {
       }
       fetchOrder()
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error(err)
+      if (import.meta.env.DEV) console.error(err)
     } finally {
       setConfirmingDelivery(false)
     }
@@ -689,7 +689,7 @@ export default function OrderDetailPage() {
       }
       fetchOrder()
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error(err)
+      if (import.meta.env.DEV) console.error(err)
     } finally {
       setApprovingReturn(false)
     }
@@ -712,7 +712,7 @@ export default function OrderDetailPage() {
       setRejectReason('')
       fetchOrder()
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error(err)
+      if (import.meta.env.DEV) console.error(err)
     } finally {
       setSubmittingReject(false)
     }
@@ -757,7 +757,7 @@ export default function OrderDetailPage() {
       }
       fetchOrder()
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error(err)
+      if (import.meta.env.DEV) console.error(err)
     } finally {
       setConfirmingReceipt(false)
     }

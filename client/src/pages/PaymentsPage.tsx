@@ -695,7 +695,7 @@ export default function PaymentsPage() {
         showToast(data.error, 'error')
       }
     } catch (err) {
-      if (process.env.NODE_ENV !== 'production') console.error('Stripe connect error:', err)
+      if (import.meta.env.DEV) console.error('Stripe connect error:', err)
       showToast(c.errorConnect, 'error')
     }
     setConnecting(false)
@@ -1346,7 +1346,7 @@ export default function PaymentsPage() {
                 onClick={() => {
                   setShowMethodPicker(false)
                   // For buyer PayPal: navigate to a PayPal setup or show info
-                  showToast(lang === 'fr' ? 'PayPal sera disponible lors du paiement.' : 'PayPal will be available at checkout.', 'info')
+                  showToast(lang === 'fr' ? 'PayPal sera disponible lors du paiement.' : 'PayPal will be available at checkout.')
                 }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: '16px',

@@ -57,7 +57,7 @@ export function useCityStreamCounts(country: CountryCode = 'FR') {
         .in('status', ['live', 'scheduled'])
         .order('viewer_count', { ascending: false })
 
-      const streams = (data as StreamWithSeller[]) || []
+      const streams = ((data || []) as unknown as StreamWithSeller[])
 
       // Filter streams that belong to this country's cities
       const countryCities = CITIES_BY_COUNTRY[country] || []
