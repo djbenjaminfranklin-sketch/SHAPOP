@@ -1204,7 +1204,25 @@ export default function StreamView() {
       })
       .subscribe()
 
-    return () => { supabase.removeChannel(gwChannel) }
+    // Poll giveaway every 5s as fallback (realtime may miss events)
+    const pollInterval = setInterval(async () => {
+      try {
+        const resp = await apiFetch(`/api/streams/${id}/giveaway`)
+        const gw = await resp.json()
+        if (gw && gw.id) {
+          setActiveGiveaway(gw)
+          if (gw.status === 'drawn' && gw.winner_name) {
+            setGiveawayWinner({ name: gw.winner_name })
+            setTimeout(() => setGiveawayWinner(null), 5000)
+          }
+        }
+      } catch { /* ignore */ }
+    }, 5000)
+
+    return () => {
+      supabase.removeChannel(gwChannel)
+      clearInterval(pollInterval)
+    }
   }, [id, user])
 
   // Giveaway: listen for entry count updates

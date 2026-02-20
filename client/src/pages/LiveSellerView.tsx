@@ -758,7 +758,7 @@ export default function LiveSellerView() {
         ))
       }
 
-      // Auto-advance after delay to let overlay show, or end live
+      // Auto-advance after delay to let overlay show
       // Read from refs to avoid stale closures (items/currentIndex may have changed by the time this fires)
       setTimeout(() => {
         const latestItems = itemsRef.current
@@ -766,9 +766,8 @@ export default function LiveSellerView() {
         const nextIdx = latestItems.findIndex((it, i) => i > latestIndex && (it.status === 'draft' || it.status === 'pending'))
         if (nextIdx >= 0) {
           setCurrentIndex(nextIdx)
-        } else {
-          handleEndLiveRef.current()
         }
+        // If no more items, stay on current view — seller manually ends the live
       }, 2500)
     }
 

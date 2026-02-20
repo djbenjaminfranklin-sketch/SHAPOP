@@ -131,6 +131,7 @@ const pageContent = {
     escrowInfoSeller: 'Le paiement est bloque jusqu\'a confirmation de livraison.',
     selectCarrier: 'Selectionnez un transporteur',
     generateLabel: 'Generer l\'etiquette Mondial Relay',
+    packageWeight: 'Poids du colis (grammes)',
     generatingLabel: 'Generation...',
     downloadLabel: 'Telecharger l\'etiquette',
     selectRelay: 'Choisir un Point Relais',
@@ -228,6 +229,7 @@ const pageContent = {
     escrowInfoSeller: 'Payment is held until delivery is confirmed.',
     selectCarrier: 'Select a carrier',
     generateLabel: 'Generate Mondial Relay label',
+    packageWeight: 'Package weight (grams)',
     generatingLabel: 'Generating...',
     downloadLabel: 'Download label',
     selectRelay: 'Choose a Relay Point',
@@ -325,6 +327,7 @@ const pageContent = {
     escrowInfoSeller: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D5\u05E7\u05E4\u05D0 \u05E2\u05D3 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7.',
     selectCarrier: '\u05D1\u05D7\u05E8 \u05D7\u05D1\u05E8\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
     generateLabel: '\u05E6\u05D5\u05E8 \u05EA\u05D5\u05D5\u05D9\u05EA Mondial Relay',
+    packageWeight: '\u05DE\u05E9\u05E7\u05DC \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4 (\u05D2\u05E8\u05DD)',
     generatingLabel: '\u05D9\u05D5\u05E6\u05E8...',
     downloadLabel: '\u05D4\u05D5\u05E8\u05D3 \u05EA\u05D5\u05D5\u05D9\u05EA',
     selectRelay: '\u05D1\u05D7\u05E8 \u05E0\u05E7\u05D5\u05D3\u05EA \u05D0\u05D9\u05E1\u05D5\u05E3',
@@ -422,6 +425,7 @@ const pageContent = {
     escrowInfoSeller: 'El pago esta retenido hasta que se confirme la entrega.',
     selectCarrier: 'Seleccione un transportista',
     generateLabel: 'Generar etiqueta Mondial Relay',
+    packageWeight: 'Peso del paquete (gramos)',
     generatingLabel: 'Generando...',
     downloadLabel: 'Descargar etiqueta',
     selectRelay: 'Elegir Punto de Recogida',
@@ -486,6 +490,7 @@ export default function OrderDetailPage() {
   const [showRelayPicker, setShowRelayPicker] = useState(false)
   const [generatingLabel, setGeneratingLabel] = useState(false)
   const [labelError, setLabelError] = useState<string | null>(null)
+  const [labelWeightInput, setLabelWeightInput] = useState('')
 
   // Return request states
   const [showReturnModal, setShowReturnModal] = useState(false)
@@ -766,12 +771,18 @@ export default function OrderDetailPage() {
   // Generate Mondial Relay label
   const handleGenerateLabel = async () => {
     if (!order || !session) return
+    const weight = parseInt(labelWeightInput)
+    if (!weight || weight <= 0) {
+      setLabelError('Entre le poids du colis (en grammes)')
+      return
+    }
     setGeneratingLabel(true)
     setLabelError(null)
     try {
       const res = await apiFetch(`/api/orders/${order.id}/create-label`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ weight_grams: weight }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -1241,7 +1252,7 @@ export default function OrderDetailPage() {
           )}
 
           {/* Seller: Generate Mondial Relay label */}
-          {isSeller && ['paid', 'shipped'].includes(order.status) && order.carrier === 'mondial_relay' && order.shipping_address && (
+          {isSeller && ['paid', 'shipped'].includes(order.status) && order.shipping_address && (
             order.label_url ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{
@@ -1270,7 +1281,25 @@ export default function OrderDetailPage() {
                 </button>
               </div>
             ) : (
-              <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Weight input */}
+                <div>
+                  <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
+                    {ct.packageWeight || 'Poids du colis (grammes)'}
+                  </p>
+                  <input
+                    type="number"
+                    placeholder="ex: 500"
+                    value={labelWeightInput}
+                    onChange={e => { setLabelWeightInput(e.target.value); setLabelError(null) }}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '12px',
+                      border: '1px solid #222', backgroundColor: '#0A0A0A',
+                      color: '#fff', fontSize: '14px', fontWeight: 600,
+                      boxSizing: 'border-box', outline: 'none',
+                    }}
+                  />
+                </div>
                 <button
                   onClick={handleGenerateLabel}
                   disabled={generatingLabel}
@@ -1290,7 +1319,7 @@ export default function OrderDetailPage() {
                 {labelError && (
                   <p style={{ color: '#E8344E', fontSize: '12px', textAlign: 'center', margin: 0 }}>{labelError}</p>
                 )}
-              </>
+              </div>
             )
           )}
 
@@ -1714,13 +1743,8 @@ export default function OrderDetailPage() {
               }}
             >
               <option value="" disabled>{ct.selectCarrier}</option>
-              <option value="laposte">{ct.carrierLaposte}</option>
               <option value="mondial_relay">{ct.carrierMondialRelay}</option>
-              <option value="chronopost">{ct.carrierChronopost}</option>
-              <option value="colissimo">{ct.carrierColissimo}</option>
               <option value="israel_post">{ct.carrierIsraelPost}</option>
-              <option value="dhl">{ct.carrierDhl}</option>
-              <option value="other">{ct.carrierOther}</option>
             </select>
 
             {trackingError && (
