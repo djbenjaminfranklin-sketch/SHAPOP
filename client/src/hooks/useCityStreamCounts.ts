@@ -53,7 +53,7 @@ export function useCityStreamCounts(country: CountryCode = 'FR') {
     const fetchStreams = async () => {
       const { data } = await supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, location, community_id, mux_playback_id, created_at, livekit_room_name, seller:profiles!seller_id(display_name, avatar_url)')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, seller:profiles!seller_id(display_name, avatar_url)')
         .in('status', ['live', 'scheduled'])
         .order('viewer_count', { ascending: false })
 
