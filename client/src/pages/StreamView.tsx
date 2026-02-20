@@ -463,7 +463,7 @@ export default function StreamView() {
   const navigate = useNavigate()
   const lang = (getLang() || 'fr') as Lang
   const ct = streamContent[lang] || streamContent.fr
-  const { user, profile } = useAuth()
+  const { user } = useAuth()
   const userRef = useRef(user)
   useEffect(() => { userRef.current = user }, [user])
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -526,10 +526,7 @@ export default function StreamView() {
   const [addressStep, setAddressStep] = useState(true) // true = show address first, false = show payment
 
   // Carrier selection for shipping
-  const [selectedCarrier, setSelectedCarrier] = useState('mondial_relay')
-
-  // Buyer saved zip for zone-based shipping pricing
-  const [buyerSavedZip, setBuyerSavedZip] = useState<string | undefined>(undefined)
+  const [selectedCarrier] = useState('mondial_relay')
 
   // Card setup modal (required before bidding)
   const [hasCard, setHasCard] = useState<boolean | null>(null) // null = not checked yet
@@ -659,22 +656,7 @@ export default function StreamView() {
     fetchWalletData()
   }, [showWallet, user])
 
-  // Fetch buyer's saved zip for zone-based shipping pricing
-  useEffect(() => {
-    if (!user || isSeller) return
-    const fetchSavedZip = async () => {
-      try {
-        const { data: savedAddr } = await supabase
-          .from('addresses')
-          .select('zip')
-          .eq('user_id', user.id)
-          .eq('is_default', true)
-          .single()
-        if (savedAddr?.zip) setBuyerSavedZip(savedAddr.zip)
-      } catch { /* ignore */ }
-    }
-    fetchSavedZip()
-  }, [user, isSeller])
+
 
   // Fetch LiveKit viewer token when stream has a livekit room and is live
   useEffect(() => {
@@ -2523,10 +2505,6 @@ export default function StreamView() {
               onAddCard={openCardSetup}
               disabled={timeLeft <= 0}
               lang={lang}
-              selectedCarrier={selectedCarrier}
-              onCarrierChange={setSelectedCarrier}
-              buyerCountry={profile?.country}
-              buyerZip={buyerSavedZip}
             />
           </div>
         )}

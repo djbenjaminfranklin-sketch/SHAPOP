@@ -202,14 +202,15 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    // Get item weight
+    // Get item weight — seller can override via request body
     const { data: item } = await supabase
       .from('items')
       .select('title, weight_grams')
       .eq('id', order.item_id)
       .single()
 
-    const weight = item?.weight_grams || 500 // Default 500g if not set
+    const manualWeight = req.body?.weight_grams ? Number(req.body.weight_grams) : null
+    const weight = manualWeight || item?.weight_grams || 500 // Manual > item > default 500g
 
     // Get seller's return address (for sender)
     const { data: seller } = await supabase

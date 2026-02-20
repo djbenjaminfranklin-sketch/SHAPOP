@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import type { Item } from '../../types/database'
-import { apiFetch } from '../../lib/api'
 import { hapticTap } from '../../lib/haptics'
 
 interface ActiveItemBarProps {
@@ -12,10 +11,6 @@ interface ActiveItemBarProps {
   onAddCard: () => void
   disabled?: boolean
   lang: 'fr' | 'en' | 'he' | 'es'
-  selectedCarrier?: string
-  onCarrierChange?: (carrier: string) => void
-  buyerCountry?: string
-  buyerZip?: string
 }
 
 const LABELS: Record<string, {
@@ -24,6 +19,7 @@ const LABELS: Record<string, {
   unavailable: string
   addCard: string
   max: string
+  shippingGrouped: string
 }> = {
   fr: {
     bid: 'Encherir',
@@ -31,6 +27,7 @@ const LABELS: Record<string, {
     unavailable: 'Article non disponible',
     addCard: 'Ajoute ta carte',
     max: 'MAX',
+    shippingGrouped: 'Livraison groupee en fin de live',
   },
   en: {
     bid: 'Bid',
@@ -38,6 +35,7 @@ const LABELS: Record<string, {
     unavailable: 'Item unavailable',
     addCard: 'Add your card',
     max: 'MAX',
+    shippingGrouped: 'Shipping grouped at end of live',
   },
   he: {
     bid: 'הצע',
@@ -45,6 +43,7 @@ const LABELS: Record<string, {
     unavailable: 'פריט לא זמין',
     addCard: 'הוסף כרטיס',
     max: 'MAX',
+    shippingGrouped: 'משלוח מרוכז בסוף השידור',
   },
   es: {
     bid: 'Pujar',
@@ -52,19 +51,8 @@ const LABELS: Record<string, {
     unavailable: 'No disponible',
     addCard: 'Agrega tu tarjeta',
     max: 'MAX',
+    shippingGrouped: 'Envio agrupado al final del live',
   },
-}
-
-const CARRIER_NAMES: Record<string, string> = {
-  mondial_relay: 'Mondial Relay',
-  dpd: 'DPD',
-  dhl: 'DHL Express',
-}
-
-interface ShippingOption {
-  carrier: string
-  cost: number
-  zone?: string
 }
 
 export default function ActiveItemBar({
@@ -76,16 +64,10 @@ export default function ActiveItemBar({
   onAddCard,
   disabled,
   lang,
-  buyerCountry,
-  buyerZip,
 }: ActiveItemBarProps) {
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
-  const [_shippingZone, setShippingZone] = useState<string>('france')
-  const [shippingPromo, setShippingPromo] = useState<{ discount_percent: number } | null>(null)
   const [bidFlash, setBidFlash] = useState(false)
 
   const currentBid = parseFloat(bidAmount) || 0
-  const nextBid = (item?.current_price ?? 0) + 1
 
   // Keep bid amount in sync with current price
   useEffect(() => {
@@ -115,56 +97,10 @@ export default function ActiveItemBar({
     setTimeout(() => onBid(), 50)
   }
 
-  // Fetch shipping options
-  useEffect(() => {
-    if (!item?.weight_grams) { setShippingOptions([]); return }
-    const fetchOptions = async () => {
-      try {
-        const params = new URLSearchParams({ weight_grams: String(item.weight_grams) })
-        if (buyerCountry) params.set('country', buyerCountry)
-        if (buyerZip) params.set('zip', buyerZip)
-        const resp = await apiFetch(`/api/shipping/options?${params.toString()}`)
-        if (resp.ok) {
-          const data = await resp.json()
-          setShippingOptions(data.options || [])
-          if (data.zone) setShippingZone(data.zone)
-        }
-      } catch { /* ignore */ }
-    }
-    fetchOptions()
-  }, [item?.id, item?.weight_grams, buyerCountry, buyerZip])
-
-  // Fetch shipping promo
-  useEffect(() => {
-    const f = async () => {
-      try {
-        const res = await apiFetch('/api/promotions/active')
-        if (res.ok) {
-          const data = await res.json()
-          if (Array.isArray(data)) {
-            const sp = data.find((p: Record<string, unknown>) => p.type === 'shipping' || p.type === 'both')
-            if (sp) setShippingPromo({ discount_percent: Number(sp.discount_percent) })
-          }
-        }
-      } catch { /* ignore */ }
-    }
-    f()
-  }, [])
-
   if (!item) return null
 
   const labels = LABELS[lang] || LABELS.en
   const isActive = item.status === 'active'
-  const hasWeight = item.weight_grams != null && item.weight_grams > 0
-  const autoOption = shippingOptions.length > 0 ? shippingOptions[0] : null
-  const displayShippingCost = autoOption?.cost ?? 0
-  const autoCarrierName = autoOption ? (CARRIER_NAMES[autoOption.carrier] || autoOption.carrier) : ''
-  const hasShippingPromo = shippingPromo && shippingPromo.discount_percent > 0
-  const discountedShippingCost = hasShippingPromo
-    ? Math.round(displayShippingCost * (1 - shippingPromo!.discount_percent / 100) * 100) / 100
-    : displayShippingCost
-  void _shippingZone
-  void nextBid
 
   return (
     <div style={{
@@ -197,30 +133,20 @@ export default function ActiveItemBar({
         </div>
       </div>
 
-      {/* Shipping (compact) */}
-      {hasWeight && shippingOptions.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          marginBottom: '5px', padding: '3px 8px',
-          backgroundColor: 'rgba(240,144,138,0.06)', borderRadius: '6px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 3v5h-7V8z" />
-              <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
-            </svg>
-            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '10px' }}>{autoCarrierName}</span>
-          </div>
-          {hasShippingPromo ? (
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>{displayShippingCost.toFixed(2)}€</span>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#10B981' }}>{discountedShippingCost.toFixed(2)}€</span>
-            </div>
-          ) : (
-            <span style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)' }}>+{displayShippingCost.toFixed(2)}€</span>
-          )}
-        </div>
-      )}
+      {/* Shipping: grouped at end of live */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '4px',
+        marginBottom: '5px', padding: '3px 8px',
+        backgroundColor: 'rgba(240,144,138,0.06)', borderRadius: '6px',
+      }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 3v5h-7V8z" />
+          <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+        </svg>
+        <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>
+          {labels.shippingGrouped}
+        </span>
+      </div>
 
       {/* Bid action */}
       {!isActive ? (
