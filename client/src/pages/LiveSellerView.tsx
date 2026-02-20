@@ -713,6 +713,15 @@ export default function LiveSellerView() {
         })
 
         const result = await resp.json().catch(() => ({}))
+        console.log('[autoResolve] resp.ok=', resp.ok, 'status=', resp.status, 'result=', JSON.stringify(result))
+
+        // If API failed, check DB directly as safety net
+        if (!resp.ok) {
+          const { data: dbItem } = await supabase.from('items').select('*').eq('id', currentItem.id).single()
+          if (dbItem?.status === 'sold' && dbItem?.winner_id) {
+            Object.assign(result, { status: 'sold', winner_id: dbItem.winner_id, final_price: dbItem.current_price })
+          }
+        }
 
         if (result.status === 'sold' && result.winner_id) {
           const winnerId = result.winner_id

@@ -1975,85 +1975,107 @@ export default function StreamView() {
               </div>
             )}
 
-            {/* ═══ GIVEAWAY BANNER (viewer, large visible card) ═══ */}
+            {/* ═══ GIVEAWAY BANNER (viewer) ═══ */}
             {!isSeller && activeGiveaway && activeGiveaway.status === 'active' && (
-              <div style={{
-                position: 'absolute',
-                top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-                left: '8px', right: '8px',
-                zIndex: 25,
-                animation: 'giftCardIn 0.4s ease',
-              }}>
+              hasEnteredGiveaway ? (
+                /* Collapsed pill after entry */
                 <div style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                  padding: '16px 18px 14px',
-                  background: 'linear-gradient(135deg, rgba(30,20,0,0.92), rgba(10,10,12,0.95))',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: '2px solid rgba(255,215,0,0.6)',
-                  borderRadius: '18px',
-                  boxShadow: '0 4px 24px rgba(255,215,0,0.15), 0 0 0 1px rgba(255,215,0,0.1)',
-                  animation: 'giftBadgePulse 2s ease-in-out infinite',
+                  position: 'absolute',
+                  top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 25,
                 }}>
-                  {/* Top: big title */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-                    <span style={{ fontSize: '36px', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '18px', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
-                        {ct.giftTitle}
-                      </p>
-                      <p style={{ fontSize: '14px', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                        {activeGiveaway.prize_description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Participant counter */}
                   <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                    padding: '6px 16px',
-                    backgroundColor: 'rgba(255,215,0,0.12)',
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 14px',
+                    background: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(255,215,0,0.35)',
                     borderRadius: '100px',
-                    border: '1px solid rgba(255,215,0,0.2)',
+                    whiteSpace: 'nowrap',
                   }}>
-                    <span style={{ fontSize: '20px' }}>👥</span>
-                    <span style={{ fontSize: '22px', fontWeight: 900, color: '#FFD700' }}>
-                      {activeGiveaway.entry_count}
-                    </span>
-                    <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
-                      {ct.giftParticipants}
+                    <span style={{ fontSize: '14px' }}>🎁</span>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#FFD700' }}>{ct.giftEntered}</span>
+                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+                      · {activeGiveaway.entry_count} 👥
                     </span>
                   </div>
-
-                  {/* Enter button */}
-                  {user && (
-                    <button
-                      onClick={handleEnterGiveaway}
-                      disabled={hasEnteredGiveaway || enteringGiveaway}
-                      style={{
-                        width: '100%',
-                        padding: '14px',
-                        background: hasEnteredGiveaway
-                          ? 'rgba(255,255,255,0.08)'
-                          : 'linear-gradient(135deg, #FFD700, #FF8C00)',
-                        border: hasEnteredGiveaway
-                          ? '1px solid rgba(255,255,255,0.15)'
-                          : 'none',
-                        borderRadius: '100px',
-                        color: hasEnteredGiveaway ? '#888' : '#000',
-                        fontSize: '16px', fontWeight: 900,
-                        cursor: hasEnteredGiveaway ? 'default' : 'pointer',
-                        WebkitTapHighlightColor: 'transparent',
-                        touchAction: 'manipulation',
-                        boxShadow: hasEnteredGiveaway ? 'none' : '0 2px 12px rgba(255,165,0,0.4)',
-                        letterSpacing: '0.3px',
-                      }}
-                    >
-                      {enteringGiveaway ? '...' : hasEnteredGiveaway ? ct.giftEntered : ct.giftEnter}
-                    </button>
-                  )}
                 </div>
-              </div>
+              ) : (
+                /* Full card before entry */
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+                  left: '8px', right: '8px',
+                  zIndex: 25,
+                  animation: 'giftCardIn 0.4s ease',
+                }}>
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+                    padding: '16px 18px 14px',
+                    background: 'linear-gradient(135deg, rgba(30,20,0,0.92), rgba(10,10,12,0.95))',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    border: '2px solid rgba(255,215,0,0.6)',
+                    borderRadius: '18px',
+                    boxShadow: '0 4px 24px rgba(255,215,0,0.15), 0 0 0 1px rgba(255,215,0,0.1)',
+                    animation: 'giftBadgePulse 2s ease-in-out infinite',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                      <span style={{ fontSize: '36px', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '18px', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                          {ct.giftTitle}
+                        </p>
+                        <p style={{ fontSize: '14px', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                          {activeGiveaway.prize_description}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      padding: '6px 16px',
+                      backgroundColor: 'rgba(255,215,0,0.12)',
+                      borderRadius: '100px',
+                      border: '1px solid rgba(255,215,0,0.2)',
+                    }}>
+                      <span style={{ fontSize: '20px' }}>👥</span>
+                      <span style={{ fontSize: '22px', fontWeight: 900, color: '#FFD700' }}>
+                        {activeGiveaway.entry_count}
+                      </span>
+                      <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
+                        {ct.giftParticipants}
+                      </span>
+                    </div>
+
+                    {user && (
+                      <button
+                        onClick={handleEnterGiveaway}
+                        disabled={enteringGiveaway}
+                        style={{
+                          width: '100%',
+                          padding: '14px',
+                          background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                          border: 'none',
+                          borderRadius: '100px',
+                          color: '#000',
+                          fontSize: '16px', fontWeight: 900,
+                          cursor: 'pointer',
+                          WebkitTapHighlightColor: 'transparent',
+                          touchAction: 'manipulation',
+                          boxShadow: '0 2px 12px rgba(255,165,0,0.4)',
+                          letterSpacing: '0.3px',
+                        }}
+                      >
+                        {enteringGiveaway ? '...' : ct.giftEnter}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
             )}
 
             {/* ═══ SELLER: Camera Controls Overlay ═══ */}
