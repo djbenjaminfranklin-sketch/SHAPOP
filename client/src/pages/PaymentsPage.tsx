@@ -75,6 +75,9 @@ const content = {
     pageDesc: 'Ces informations sont necessaires pour placer une enchere, passer une commande ou acheter un produit pendant un live. Nous debiterons ta carte si une enchere ou une offre est acceptee.',
     paymentMethod: 'Mode de paiement',
     shippingDetails: 'Details d\'expedition',
+    shippingDelay: 'Delai d\'expedition',
+    shippingDelayHint: 'Nombre de jours max avant expedition',
+    days: 'jours',
     addPaymentMethod: 'Ajouter un mode de paiement',
     addPaymentMethodDesc: 'Aucun montant ne sera debite tant que tu n\'auras pas achete un article.',
     creditCard: 'Carte bancaire',
@@ -146,6 +149,9 @@ const content = {
     pageDesc: 'This information is required to place a bid, make an order or buy a product during a live. Your card will be charged if a bid or offer is accepted.',
     paymentMethod: 'Payment method',
     shippingDetails: 'Shipping details',
+    shippingDelay: 'Shipping delay',
+    shippingDelayHint: 'Max days before shipping',
+    days: 'days',
     addPaymentMethod: 'Add a payment method',
     addPaymentMethodDesc: 'No amount will be charged until you purchase an item.',
     creditCard: 'Credit card',
@@ -217,6 +223,9 @@ const content = {
     pageDesc: '\u05DE\u05D9\u05D3\u05E2 \u05D6\u05D4 \u05E0\u05D3\u05E8\u05E9 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D4\u05E6\u05E2\u05D5\u05EA, \u05DC\u05D1\u05E6\u05E2 \u05D4\u05D6\u05DE\u05E0\u05D4 \u05D0\u05D5 \u05DC\u05E7\u05E0\u05D5\u05EA \u05DE\u05D5\u05E6\u05E8 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8.',
     paymentMethod: '\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
     shippingDetails: '\u05E4\u05E8\u05D8\u05D9 \u05DE\u05E9\u05DC\u05D5\u05D7',
+    shippingDelay: '\u05D6\u05DE\u05DF \u05DE\u05E9\u05DC\u05D5\u05D7',
+    shippingDelayHint: '\u05D9\u05DE\u05D9\u05DD \u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD \u05DC\u05E4\u05E0\u05D9 \u05DE\u05E9\u05DC\u05D5\u05D7',
+    days: '\u05D9\u05DE\u05D9\u05DD',
     addPaymentMethod: '\u05D4\u05D5\u05E1\u05E3 \u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
     addPaymentMethodDesc: '\u05DC\u05D0 \u05D9\u05D7\u05D5\u05D9\u05D1 \u05E1\u05DB\u05D5\u05DD \u05E2\u05D3 \u05E9\u05EA\u05E8\u05DB\u05D5\u05E9 \u05E4\u05E8\u05D9\u05D8.',
     creditCard: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05E9\u05E8\u05D0\u05D9',
@@ -288,6 +297,9 @@ const content = {
     pageDesc: 'Esta informacion es necesaria para pujar, hacer un pedido o comprar un producto durante un directo. Se cargara tu tarjeta si una puja u oferta es aceptada.',
     paymentMethod: 'Metodo de pago',
     shippingDetails: 'Detalles de envio',
+    shippingDelay: 'Plazo de envio',
+    shippingDelayHint: 'Dias maximos antes del envio',
+    days: 'dias',
     addPaymentMethod: 'Agregar metodo de pago',
     addPaymentMethodDesc: 'No se cobrara ningun monto hasta que compres un articulo.',
     creditCard: 'Tarjeta bancaria',
@@ -429,6 +441,41 @@ export default function PaymentsPage() {
     const saved = localStorage.getItem('shippingPref')
     return saved !== null ? Number(saved) : 0
   })
+
+  // Seller shipping delay
+  const [shippingDelay, setShippingDelay] = useState(2)
+  useEffect(() => {
+    if (!profile?.is_seller || !user) return
+    const fetchDelay = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session.session?.access_token
+        if (!token) return
+        const resp = await apiFetch('/api/seller/shipping-delay', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (resp.ok) {
+          const d = await resp.json()
+          if (d.shipping_delay_days != null) setShippingDelay(d.shipping_delay_days)
+        }
+      } catch { /* ignore */ }
+    }
+    fetchDelay()
+  }, [profile?.is_seller, user])
+
+  const handleShippingDelayChange = async (days: number) => {
+    setShippingDelay(days)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      await apiFetch('/api/seller/shipping-delay', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ shipping_delay_days: days }),
+      })
+    } catch { /* ignore */ }
+  }
 
   const fetchStatus = useCallback(async () => {
     // Only fetch Stripe status if user is a seller
@@ -809,8 +856,8 @@ export default function PaymentsPage() {
           onClick={() => navigate('/addresses')}
           style={{
             display: 'flex', alignItems: 'center', gap: '14px',
-            padding: '16px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
-            marginBottom: '32px',
+            padding: '16px 0', borderBottom: profile?.is_seller ? 'none' : '1px solid #1A1A1A', cursor: 'pointer',
+            marginBottom: profile?.is_seller ? '0' : '32px',
           }}
         >
           <div style={{
@@ -834,6 +881,45 @@ export default function PaymentsPage() {
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </div>
+
+        {/* Shipping delay selector (seller only) */}
+        {profile?.is_seller && (
+          <div style={{
+            padding: '16px 0', borderBottom: '1px solid #1A1A1A',
+            marginBottom: '32px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
+                {c.shippingDelay}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[2, 3, 4].map(d => (
+                <button
+                  key={d}
+                  onClick={() => handleShippingDelayChange(d)}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: '10px',
+                    background: shippingDelay === d
+                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                      : '#111',
+                    border: shippingDelay === d ? 'none' : '1px solid #222',
+                    color: shippingDelay === d ? '#fff' : '#888',
+                    fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  {d} {c.days}
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '11px', color: '#666', margin: '8px 0 0' }}>
+              {c.shippingDelayHint}
+            </p>
+          </div>
+        )}
 
         {/* ═══════ SELLER SECTIONS ═══════ */}
         {/* Payment Methods */}

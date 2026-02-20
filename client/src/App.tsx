@@ -123,16 +123,24 @@ function useAppSettings() {
 
         // Theme
         const html = document.documentElement
-        if (s.appearance === 'light') {
+        const isLight = s.appearance === 'light' || (s.appearance === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+        // Manage the counter-inversion stylesheet for media elements
+        let styleEl = document.getElementById('shapop-theme-fix') as HTMLStyleElement | null
+        if (isLight) {
           html.style.filter = 'invert(1) hue-rotate(180deg)'
           html.style.backgroundColor = '#fff'
-        } else if (s.appearance === 'auto') {
-          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-          html.style.filter = prefersDark ? '' : 'invert(1) hue-rotate(180deg)'
-          html.style.backgroundColor = prefersDark ? '' : '#fff'
+          // Counter-invert video/img/canvas so they look normal
+          if (!styleEl) {
+            styleEl = document.createElement('style')
+            styleEl.id = 'shapop-theme-fix'
+            document.head.appendChild(styleEl)
+          }
+          styleEl.textContent = 'video, img, canvas, svg image { filter: invert(1) hue-rotate(180deg) !important; }'
         } else {
           html.style.filter = ''
           html.style.backgroundColor = ''
+          if (styleEl) styleEl.textContent = ''
         }
 
         // Text size
