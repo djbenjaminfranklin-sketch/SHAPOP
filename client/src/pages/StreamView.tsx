@@ -14,6 +14,8 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
+import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } from '../lib/settings'
+import { hapticTap } from '../lib/haptics'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -458,6 +460,39 @@ export default function StreamView() {
     }
   }, [isSeller, stream, navigate])
 
+  // Watch time tracking — log viewing seconds every 30s
+  useEffect(() => {
+    if (!isLive || isSeller) return
+    const interval = setInterval(() => {
+      try {
+        const raw = localStorage.getItem('shapop_watch_log')
+        const logs: { ts: number; duration: number }[] = raw ? JSON.parse(raw) : []
+        logs.push({ ts: Date.now(), duration: 30 })
+        // Keep only last 31 days of logs
+        const cutoff = Date.now() - 31 * 86400000
+        const filtered = logs.filter(l => l.ts > cutoff)
+        localStorage.setItem('shapop_watch_log', JSON.stringify(filtered))
+      } catch { /* ignore */ }
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [isLive, isSeller])
+
+  // Watch limit enforcement — redirect if limit exceeded
+  useEffect(() => {
+    if (isSeller || !isLive) return
+    if (isWatchLimitExceeded()) {
+      const lang = (localStorage.getItem('shapop_lang') || 'fr') as 'fr' | 'en' | 'he' | 'es'
+      const msgs = {
+        fr: 'Tu as atteint ta limite de visionnage. Reviens plus tard !',
+        en: 'You\'ve reached your watch time limit. Come back later!',
+        he: '\u05D4\u05D2\u05E2\u05EA \u05DC\u05DE\u05D2\u05D1\u05DC\u05EA \u05D6\u05DE\u05DF \u05D4\u05E6\u05E4\u05D9\u05D9\u05D4. \u05D7\u05D6\u05D5\u05E8 \u05DE\u05D0\u05D5\u05D7\u05E8 \u05D9\u05D5\u05EA\u05E8!',
+        es: 'Has alcanzado tu limite de visualizacion. Vuelve mas tarde!',
+      }
+      alert(msgs[lang])
+      navigate(-1)
+    }
+  }, [isSeller, isLive, navigate])
+
   // Check if user has a saved card (for bidding)
   useEffect(() => {
     if (!user || isSeller) return
@@ -567,11 +602,12 @@ export default function StreamView() {
 
     const startCamera = async () => {
       try {
+        const qualityConstraints = getStreamQualityConstraints()
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: facingMode,
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
+            width: { ideal: qualityConstraints.width },
+            height: { ideal: qualityConstraints.height },
           },
           audio: true,
         })
@@ -1083,6 +1119,9 @@ export default function StreamView() {
       // Update local bid amount for next bid
       setBidAmount(String(amount + 10))
       if (id) track('bid_placed', { stream_id: id, amount })
+      // Haptic feedback on successful bid
+      const appS = getAppSettings()
+      if (!appS || appS.auctionHaptics !== false) hapticTap()
     } catch (err) {
       console.error('Failed to place bid:', err)
       alert('Failed to place bid. Please try again.')
@@ -1120,11 +1159,12 @@ export default function StreamView() {
     }
 
     try {
+      const qualityConstraints = getStreamQualityConstraints()
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: newMode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          width: { ideal: qualityConstraints.width },
+          height: { ideal: qualityConstraints.height },
         },
         audio: true,
       })

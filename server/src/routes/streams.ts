@@ -255,6 +255,17 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
       }
     }
 
+    // 5) Clean up in-app notifications that reference this stream
+    try {
+      const { error: notifErr } = await supabase
+        .from('notifications')
+        .delete()
+        .filter('data->>stream_id', 'eq', streamId)
+      if (notifErr) errors.push(`notifications: ${notifErr.message}`)
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') console.log(`[stream-delete] notifications skip:`, (e as Error).message)
+    }
+
     if (errors.length > 0) {
       console.error(`[stream-delete] Dependency errors for ${streamId}:`, errors)
     }
@@ -263,7 +274,7 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
     if (process.env.NODE_ENV !== 'production') console.log(`[stream-delete] stream=${streamId} deleted=${count ?? 'unknown'} error=${error?.message || 'none'}`)
 
     if (error) {
-      res.status(500).json({ error: `Failed to delete stream: ${error.message}` })
+      res.status(500).json({ error: `Failed to delete stream: ${error.message}`, details: errors })
       return
     }
     res.json({ status: 'deleted' })

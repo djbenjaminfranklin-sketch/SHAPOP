@@ -6,6 +6,7 @@ import { getLang } from '../lib/i18n'
 import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage } from '../types/database'
+import { getStreamQualityConstraints } from '../lib/settings'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -353,8 +354,9 @@ export default function LiveSellerView() {
         mediaStreamRef.current = null
       }
       try {
+        const qualityConstraints = getStreamQualityConstraints()
         const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode, width: { ideal: qualityConstraints.width }, height: { ideal: qualityConstraints.height } },
           audio: true,
         })
         if (cancelled) {
@@ -691,8 +693,9 @@ export default function LiveSellerView() {
       mediaStreamRef.current.getTracks().forEach(t => t.stop())
     }
     try {
+      const qualityConstraints = getStreamQualityConstraints()
       const ms = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: newMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: newMode, width: { ideal: qualityConstraints.width }, height: { ideal: qualityConstraints.height } },
         audio: true,
       })
       mediaStreamRef.current = ms

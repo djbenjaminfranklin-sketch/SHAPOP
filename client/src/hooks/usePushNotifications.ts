@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
+import { isNightModeActive } from '../lib/settings'
 
 const PENDING_DEEPLINK_KEY = 'shapop_pending_deeplink'
 
@@ -95,6 +96,11 @@ export function usePushNotifications() {
 
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       console.log('Push received in foreground:', notification.title)
+      // Night mode: suppress foreground notifications during quiet hours
+      if (isNightModeActive()) {
+        PushNotifications.removeAllDeliveredNotifications()
+        return
+      }
     })
 
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {

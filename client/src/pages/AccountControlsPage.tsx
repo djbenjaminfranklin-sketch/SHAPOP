@@ -342,6 +342,50 @@ export default function AccountControlsPage() {
               </div>
             </div>
 
+            {settings.watchLimitEnabled && (
+              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+                <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
+                  {tx('Definir la limite', 'Set the limit', 'הגדר מגבלה', 'Definir limite', lang)}
+                </p>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '6px' }}>
+                      {tx('Heures', 'Hours', 'שעות', 'Horas', lang)}
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={24}
+                      value={settings.watchLimitHours}
+                      onChange={e => update({ watchLimitHours: Math.max(0, Math.min(24, Number(e.target.value) || 0)) })}
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '10px',
+                        backgroundColor: '#222', border: '1px solid #333', color: '#fff',
+                        fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '6px' }}>
+                      {tx('Minutes', 'Minutes', 'דקות', 'Minutos', lang)}
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={59}
+                      value={settings.watchLimitMinutes}
+                      onChange={e => update({ watchLimitMinutes: Math.max(0, Math.min(59, Number(e.target.value) || 0)) })}
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '10px',
+                        backgroundColor: '#222', border: '1px solid #333', color: '#fff',
+                        fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>
               {tx(
                 'Reprends le controle de ton temps d\'ecran et regarde les lives a ton rythme en definissant des limites ou des alertes.',
@@ -440,6 +484,30 @@ export default function AccountControlsPage() {
                 <div style={toggleDot(settings.spendingLimitEnabled)} />
               </div>
             </div>
+
+            {settings.spendingLimitEnabled && (
+              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+                <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
+                  {tx('Montant maximum', 'Maximum amount', 'סכום מקסימלי', 'Monto maximo', lang)}
+                </p>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={settings.spendingLimitAmount || ''}
+                    onChange={e => update({ spendingLimitAmount: Math.max(0, Number(e.target.value) || 0) })}
+                    placeholder="100"
+                    style={{
+                      width: '100%', padding: '10px 12px', paddingRight: '36px', borderRadius: '10px',
+                      backgroundColor: '#222', border: '1px solid #333', color: '#fff',
+                      fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                  <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: '16px', fontWeight: 600 }}>€</span>
+                </div>
+              </div>
+            )}
 
             <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>
               {tx(
