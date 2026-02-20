@@ -300,6 +300,28 @@ export interface ConversationMessage {
   sender?: Profile
 }
 
+export interface Giveaway {
+  id: string
+  stream_id: string
+  seller_id: string
+  title: string
+  prize_description: string
+  status: 'active' | 'drawn' | 'cancelled'
+  winner_id: string | null
+  winner_name: string | null
+  entry_count: number
+  created_at: string
+  drawn_at: string | null
+}
+
+export interface GiveawayEntry {
+  id: string
+  giveaway_id: string
+  user_id: string
+  display_name: string | null
+  entered_at: string
+}
+
 export interface Database {
   public: {
     Tables: {

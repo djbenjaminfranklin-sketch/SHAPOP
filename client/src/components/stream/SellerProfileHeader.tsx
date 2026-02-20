@@ -28,7 +28,7 @@ function StarIcon() {
 // Truck SVG icon for shipping speed
 function TruckIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
       <rect x="1" y="3" width="15" height="13" rx="1" />
       <path d="M16 8h4l3 3v5h-7V8z" />
       <circle cx="5.5" cy="18.5" r="2.5" />
@@ -81,20 +81,20 @@ export default function SellerProfileHeader({
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '10px',
-      padding: '8px 10px',
-      borderRadius: '12px',
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      gap: '6px',
+      padding: '5px 8px',
+      borderRadius: '100px',
+      backgroundColor: 'rgba(0,0,0,0.45)',
       backdropFilter: 'blur(12px)',
       WebkitBackdropFilter: 'blur(12px)',
       maxWidth: 'fit-content',
     }}>
       {/* Avatar */}
       <div style={{
-        width: '40px',
-        height: '40px',
+        width: '28px',
+        height: '28px',
         borderRadius: '50%',
-        border: '2px solid #F0908A',
+        border: '1.5px solid #F0908A',
         overflow: 'hidden',
         flexShrink: 0,
         display: 'flex',
@@ -110,7 +110,7 @@ export default function SellerProfileHeader({
           />
         ) : (
           <span style={{
-            fontSize: '16px',
+            fontSize: '12px',
             fontWeight: 700,
             color: '#fff',
             lineHeight: 1,
@@ -121,30 +121,27 @@ export default function SellerProfileHeader({
         )}
       </div>
 
-      {/* Info column */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-        {/* Username */}
+      {/* Name + meta inline */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
         <span style={{
-          fontSize: '14px',
+          fontSize: '12px',
           fontWeight: 700,
           color: '#fff',
           lineHeight: 1.2,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          maxWidth: '120px',
+          maxWidth: '90px',
         }}>
           {sellerName}
         </span>
-
-        {/* Rating + shipping row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
           {sellerScore != null && (
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '3px',
-              fontSize: '11px',
+              gap: '2px',
+              fontSize: '9px',
               fontWeight: 700,
               color: '#F0908A',
               lineHeight: 1,
@@ -156,10 +153,10 @@ export default function SellerProfileHeader({
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '3px',
-            fontSize: '11px',
+            gap: '2px',
+            fontSize: '9px',
             fontWeight: 600,
-            color: 'rgba(255,255,255,0.7)',
+            color: 'rgba(255,255,255,0.6)',
             lineHeight: 1,
           }}>
             <TruckIcon />
@@ -177,13 +174,13 @@ export default function SellerProfileHeader({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: '4px',
-          padding: '6px 10px',
-          borderRadius: '8px',
+          gap: '3px',
+          padding: '4px 8px',
+          borderRadius: '100px',
           border: 'none',
           backgroundColor: isFollowing ? 'rgba(255,255,255,0.15)' : '#E8344E',
           color: '#fff',
-          fontSize: '12px',
+          fontSize: '11px',
           fontWeight: 700,
           cursor: 'pointer',
           flexShrink: 0,

@@ -774,4 +774,244 @@ router.get('/api/matching/personalized-lives', requireAuth, async (req: Authenti
   }
 })
 
+// =============================================
+// CADEAU SURPRISE (Giveaway) — 4 endpoints
+// =============================================
+
+// POST /api/streams/:id/giveaway — seller launches a giveaway
+router.post('/api/streams/:id/giveaway', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const streamId = req.params.id
+
+    // Verify stream ownership
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    const { prize_description, title } = req.body
+    if (!prize_description || typeof prize_description !== 'string' || !prize_description.trim()) {
+      res.status(400).json({ error: 'prize_description is required' })
+      return
+    }
+
+    // Check no active giveaway already exists on this stream
+    const { data: existing } = await supabase
+      .from('giveaways')
+      .select('id')
+      .eq('stream_id', streamId)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    if (existing) {
+      res.status(409).json({ error: 'A giveaway is already active on this stream' })
+      return
+    }
+
+    const { data: giveaway, error } = await supabase
+      .from('giveaways')
+      .insert({
+        stream_id: streamId,
+        seller_id: userId,
+        title: title?.trim() || 'Cadeau Surprise',
+        prize_description: prize_description.trim(),
+      })
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Giveaway creation error:', error)
+      res.status(500).json({ error: 'Failed to create giveaway' })
+      return
+    }
+
+    res.json(giveaway)
+  } catch (err) {
+    console.error('POST /api/streams/:id/giveaway error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// GET /api/streams/:id/giveaway — get active giveaway for a stream
+router.get('/api/streams/:id/giveaway', async (req: Request, res: Response) => {
+  try {
+    const streamId = req.params.id
+
+    // Return active or recently drawn giveaway
+    const { data: giveaway } = await supabase
+      .from('giveaways')
+      .select('*')
+      .eq('stream_id', streamId)
+      .in('status', ['active', 'drawn'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    res.json(giveaway || null)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/giveaways/:id/enter — viewer enters the giveaway
+router.post('/api/giveaways/:id/enter', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const giveawayId = req.params.id
+
+    // Verify giveaway is active
+    const { data: giveaway } = await supabase
+      .from('giveaways')
+      .select('id, status')
+      .eq('id', giveawayId)
+      .single()
+
+    if (!giveaway) {
+      res.status(404).json({ error: 'Giveaway not found' })
+      return
+    }
+    if (giveaway.status !== 'active') {
+      res.status(400).json({ error: 'Giveaway is no longer active' })
+      return
+    }
+
+    // Get user display name
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', userId)
+      .single()
+
+    // Insert entry (unique constraint prevents duplicates)
+    const { error: entryError } = await supabase
+      .from('giveaway_entries')
+      .insert({
+        giveaway_id: giveawayId,
+        user_id: userId,
+        display_name: profile?.display_name || null,
+      })
+
+    if (entryError) {
+      if (entryError.code === '23505') {
+        res.status(409).json({ error: 'Already entered' })
+        return
+      }
+      console.error('Giveaway entry error:', entryError)
+      res.status(500).json({ error: 'Failed to enter giveaway' })
+      return
+    }
+
+    // Increment entry_count
+    const { data: updated } = await supabase
+      .from('giveaways')
+      .select('entry_count')
+      .eq('id', giveawayId)
+      .single()
+
+    if (updated) {
+      await supabase
+        .from('giveaways')
+        .update({ entry_count: (updated.entry_count || 0) + 1 })
+        .eq('id', giveawayId)
+    }
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('POST /api/giveaways/:id/enter error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/giveaways/:id/draw — seller draws a winner
+router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const giveawayId = req.params.id
+
+    // Verify ownership
+    const { data: giveaway } = await supabase
+      .from('giveaways')
+      .select('id, stream_id, seller_id, title, status, entry_count')
+      .eq('id', giveawayId)
+      .single()
+
+    if (!giveaway) {
+      res.status(404).json({ error: 'Giveaway not found' })
+      return
+    }
+    if (giveaway.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+    if (giveaway.status !== 'active') {
+      res.status(400).json({ error: 'Giveaway is not active' })
+      return
+    }
+
+    // Get all entries
+    const { data: entries } = await supabase
+      .from('giveaway_entries')
+      .select('user_id, display_name')
+      .eq('giveaway_id', giveawayId)
+
+    if (!entries || entries.length === 0) {
+      res.status(400).json({ error: 'No participants to draw from' })
+      return
+    }
+
+    // Random winner
+    const winner = entries[Math.floor(Math.random() * entries.length)]
+
+    // Get winner display name (fallback to profile if not on entry)
+    let winnerName = winner.display_name
+    if (!winnerName) {
+      const { data: wp } = await supabase
+        .from('profiles')
+        .select('display_name, username')
+        .eq('id', winner.user_id)
+        .single()
+      winnerName = wp?.display_name || wp?.username || 'Unknown'
+    }
+
+    // Update giveaway
+    const { data: updated, error: updateError } = await supabase
+      .from('giveaways')
+      .update({
+        status: 'drawn',
+        winner_id: winner.user_id,
+        winner_name: winnerName,
+        drawn_at: new Date().toISOString(),
+      })
+      .eq('id', giveawayId)
+      .select('*')
+      .single()
+
+    if (updateError) {
+      console.error('Giveaway draw update error:', updateError)
+      res.status(500).json({ error: 'Failed to draw winner' })
+      return
+    }
+
+    // Insert system chat message announcing the winner
+    await supabase.from('chat_messages').insert({
+      stream_id: giveaway.stream_id,
+      user_id: userId,
+      message: `🎁 ${winnerName} a gagné le cadeau "${giveaway.title}" !`,
+      type: 'system',
+    })
+
+    res.json(updated)
+  } catch (err) {
+    console.error('POST /api/giveaways/:id/draw error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router

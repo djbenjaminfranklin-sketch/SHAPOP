@@ -168,7 +168,7 @@ export default function ItemDetailPage() {
   const sellerName = item?.seller?.display_name || 'Vendeur'
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px',
@@ -370,31 +370,33 @@ export default function ItemDetailPage() {
 
             {/* Owner actions vs buyer actions */}
             {user && item.seller_id === user.id ? (
-              <button
-                onClick={() => {
-                  setConfirmModal({
-                    title: t.deleteItem,
-                    message: t.deleteConfirm,
-                    onConfirm: async () => {
-                      setConfirmModal(null)
-                      if (!session?.access_token) return
-                      const res = await apiFetch(`/api/items/${item.id}`, {
-                        method: 'DELETE',
-                        headers: { Authorization: `Bearer ${session.access_token}` },
-                      })
-                      if (res.ok) navigate(-1)
-                    },
-                  })
-                }}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: '14px',
-                  background: 'none', border: '1px solid #E8344E',
-                  color: '#E8344E', fontSize: '16px', fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {t.deleteItem}
-              </button>
+              item.status !== 'sold' ? (
+                <button
+                  onClick={() => {
+                    setConfirmModal({
+                      title: t.deleteItem,
+                      message: t.deleteConfirm,
+                      onConfirm: async () => {
+                        setConfirmModal(null)
+                        if (!session?.access_token) return
+                        const res = await apiFetch(`/api/items/${item.id}`, {
+                          method: 'DELETE',
+                          headers: { Authorization: `Bearer ${session.access_token}` },
+                        })
+                        if (res.ok) navigate(-1)
+                      },
+                    })
+                  }}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px',
+                    background: 'none', border: '1px solid #E8344E',
+                    color: '#E8344E', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t.deleteItem}
+                </button>
+              ) : null
             ) : (
               <button
                 onClick={() => navigate(`/conversation/${item.seller_id}`)}

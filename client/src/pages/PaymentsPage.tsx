@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { showToast } from '../lib/toast'
 import { Browser } from '@capacitor/browser'
+import { Capacitor } from '@capacitor/core'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
@@ -639,6 +640,12 @@ export default function PaymentsPage() {
   // Detect Apple Pay availability
   useEffect(() => {
     const checkApplePay = async () => {
+      // On native iOS (Capacitor WKWebView), Stripe's canMakePayment() doesn't work
+      // but Apple Pay is available on virtually all modern iPhones
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'ios') {
+        setApplePayAvailable(true)
+        return
+      }
       try {
         const stripe = await getStripePromise()
         if (!stripe) return

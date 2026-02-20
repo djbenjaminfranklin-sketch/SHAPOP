@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
-import type { Item, ChatMessage } from '../types/database'
+import type { Item, ChatMessage, Giveaway } from '../types/database'
 import { getStreamQualityConstraints } from '../lib/settings'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
@@ -49,6 +49,14 @@ const pageContent = {
     messageFlagged: '[Message masque]',
     auctionLive: 'Enchere en cours',
     resolving: 'Resolution...',
+    giftTitle: 'Cadeau Surprise',
+    giftParticipants: 'participants',
+    giftDraw: 'Tirer au sort',
+    giftPrizePlaceholder: 'Decris le cadeau...',
+    giftLaunch: 'Lancer le cadeau',
+    giftActive: 'Cadeau en cours',
+    giftCancel: 'Annuler',
+    giftWinner: 'a gagne le cadeau !',
   },
   en: {
     live: 'LIVE',
@@ -88,6 +96,14 @@ const pageContent = {
     messageFlagged: '[Hidden message]',
     auctionLive: 'Auction live',
     resolving: 'Resolving...',
+    giftTitle: 'Surprise Gift',
+    giftParticipants: 'participants',
+    giftDraw: 'Draw winner',
+    giftPrizePlaceholder: 'Describe the gift...',
+    giftLaunch: 'Launch gift',
+    giftActive: 'Gift active',
+    giftCancel: 'Cancel',
+    giftWinner: 'won the gift!',
   },
   he: {
     live: 'שידור',
@@ -127,6 +143,14 @@ const pageContent = {
     messageFlagged: '[הודעה מוסתרת]',
     auctionLive: 'מכירה בעיצומה',
     resolving: '...פותר',
+    giftTitle: 'מתנה הפתעה',
+    giftParticipants: 'משתתפים',
+    giftDraw: 'הגרלה',
+    giftPrizePlaceholder: '...תאר את המתנה',
+    giftLaunch: 'השקת מתנה',
+    giftActive: 'מתנה פעילה',
+    giftCancel: 'ביטול',
+    giftWinner: 'זכה במתנה!',
   },
   es: {
     live: 'EN VIVO',
@@ -166,6 +190,14 @@ const pageContent = {
     messageFlagged: '[Mensaje oculto]',
     auctionLive: 'Subasta en curso',
     resolving: 'Resolviendo...',
+    giftTitle: 'Regalo Sorpresa',
+    giftParticipants: 'participantes',
+    giftDraw: 'Sortear',
+    giftPrizePlaceholder: 'Describe el regalo...',
+    giftLaunch: 'Lanzar regalo',
+    giftActive: 'Regalo activo',
+    giftCancel: 'Cancelar',
+    giftWinner: 'gano el regalo!',
   },
 }
 
@@ -230,6 +262,13 @@ export default function LiveSellerView() {
   const [addItemPrice, setAddItemPrice] = useState('')
   const [addingItem, setAddingItem] = useState(false)
 
+  // Giveaway
+  const [showGiveawayForm, setShowGiveawayForm] = useState(false)
+  const [giveawayPrize, setGiveawayPrize] = useState('')
+  const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
+  const [giveawayDrawing, setGiveawayDrawing] = useState(false)
+  const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
+
   // Return policy
   const [returnPolicy, setReturnPolicy] = useState<string>('no_return')
 
@@ -273,7 +312,7 @@ export default function LiveSellerView() {
       })
   }, [user])
 
-  const { isConnected: lkConnected, isBroadcasting, error: lkError, startBroadcast, stopBroadcast } = useLiveKitBroadcast({
+  const { isConnected: lkConnected, isBroadcasting, startBroadcast, stopBroadcast } = useLiveKitBroadcast({
     livekitUrl,
     livekitToken,
   })
@@ -484,6 +523,118 @@ export default function LiveSellerView() {
     channel.subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [streamId])
+
+  // Giveaway realtime: listen for new entries to update counter
+  useEffect(() => {
+    if (!activeGiveaway || activeGiveaway.status !== 'active') return
+
+    const channel = supabase
+      .channel(`giveaway-entries-${activeGiveaway.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'giveaway_entries',
+        filter: `giveaway_id=eq.${activeGiveaway.id}`,
+      }, () => {
+        setActiveGiveaway(prev => prev ? { ...prev, entry_count: prev.entry_count + 1 } : null)
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
+  }, [activeGiveaway?.id, activeGiveaway?.status])
+
+  // Fetch active giveaway on mount
+  useEffect(() => {
+    if (!streamId) return
+    const fetchGiveaway = async () => {
+      try {
+        const resp = await apiFetch(`/api/streams/${streamId}/giveaway`)
+        const data = await resp.json()
+        if (data && data.status === 'active') setActiveGiveaway(data)
+      } catch { /* ignore */ }
+    }
+    fetchGiveaway()
+  }, [streamId])
+
+  const handleLaunchGiveaway = async () => {
+    if (!giveawayPrize.trim() || !streamId) return
+    if (!sessionToken) {
+      showToast('Erreur: session expirée')
+      return
+    }
+    try {
+      const resp = await apiFetch(`/api/streams/${streamId}/giveaway`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+        body: JSON.stringify({ prize_description: giveawayPrize.trim() }),
+      })
+      if (resp.ok) {
+        const gw = await resp.json()
+        setActiveGiveaway(gw)
+        setShowGiveawayForm(false)
+        setGiveawayPrize('')
+        showToast('Cadeau lancé !')
+      } else {
+        const err = await resp.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Giveaway launch error:', resp.status, err)
+        showToast(err.error || 'Erreur lors du lancement')
+      }
+    } catch (err) {
+      console.error('Failed to launch giveaway:', err)
+      showToast('Erreur réseau')
+    }
+  }
+
+  const handleDrawWinner = async () => {
+    if (!activeGiveaway) return
+    if (!sessionToken) {
+      showToast('Erreur: session expirée')
+      return
+    }
+    setGiveawayDrawing(true)
+    try {
+      const resp = await apiFetch(`/api/giveaways/${activeGiveaway.id}/draw`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${sessionToken}`,
+        },
+      })
+      if (resp.ok) {
+        const drawn = await resp.json()
+        setActiveGiveaway(drawn)
+        if (drawn.winner_name) {
+          setGiveawayWinner({ name: drawn.winner_name })
+          setTimeout(() => {
+            setGiveawayWinner(null)
+            setActiveGiveaway(null)
+          }, 5000)
+        }
+      } else {
+        const err = await resp.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('Draw error:', resp.status, err)
+        showToast(err.error || 'Erreur lors du tirage')
+      }
+    } catch (err) {
+      console.error('Failed to draw winner:', err)
+      showToast('Erreur réseau')
+    }
+    setGiveawayDrawing(false)
+  }
+
+  const handleCancelGiveaway = async () => {
+    if (!activeGiveaway || !sessionToken) return
+    try {
+      await supabase
+        .from('giveaways')
+        .update({ status: 'cancelled' })
+        .eq('id', activeGiveaway.id)
+      setActiveGiveaway(null)
+    } catch { /* ignore */ }
+  }
 
   // Cleanup old floating reactions
   useEffect(() => {
@@ -945,122 +1096,93 @@ export default function LiveSellerView() {
       {/* Top bar */}
       <div style={{
         position: 'absolute',
-        top: 'calc(env(safe-area-inset-top, 44px) + 12px)',
-        left: '12px', right: '12px',
+        top: 'calc(env(safe-area-inset-top, 44px) + 8px)',
+        left: '8px', right: '8px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         zIndex: 20,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{
-            background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
-            padding: '5px 12px', borderRadius: '8px',
-            fontSize: '11px', fontWeight: 800, color: '#fff',
-            letterSpacing: '1px',
-            boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
-            display: 'flex', alignItems: 'center', gap: '5px',
-          }}>
-            <div style={{
-              width: '6px', height: '6px', borderRadius: '50%',
-              backgroundColor: '#fff',
-              animation: 'liveDot 1.5s ease-in-out infinite',
-            }} />
-            {ct.live}
-          </span>
-          <span style={{
-            backgroundColor: 'rgba(0,0,0,0.6)',
-            padding: '5px 10px', borderRadius: '8px',
-            fontSize: '11px', fontWeight: 600, color: '#fff',
-            display: 'flex', alignItems: 'center', gap: '4px',
-          }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            {viewerCount}
-          </span>
-          {/* LiveKit broadcast status */}
-          <span style={{
-            padding: '5px 10px', borderRadius: '8px',
-            fontSize: '10px', fontWeight: 700,
-            backgroundColor: lkConnected
-              ? 'rgba(34,197,94,0.2)'
-              : lkError
-                ? 'rgba(232,52,78,0.2)'
-                : 'rgba(255,255,255,0.1)',
-            color: lkConnected ? '#22C55E' : lkError ? '#E8344E' : '#888',
-            border: `1px solid ${lkConnected ? 'rgba(34,197,94,0.3)' : lkError ? 'rgba(232,52,78,0.3)' : 'rgba(255,255,255,0.15)'}`,
-            display: 'flex', alignItems: 'center', gap: '4px',
-          }}>
-            <div style={{
-              width: '5px', height: '5px', borderRadius: '50%',
-              backgroundColor: lkConnected ? '#22C55E' : lkError ? '#E8344E' : '#888',
-            }} />
-            {isBroadcasting ? 'STREAM' : lkError ? 'ERR' : 'OFF'}
-          </span>
+        {/* Left: LIVE dot + viewer count */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0',
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          borderRadius: '100px',
+          padding: '4px 10px 4px 8px',
+          backdropFilter: 'blur(8px)',
+        }}>
+          <div style={{
+            width: '7px', height: '7px', borderRadius: '50%',
+            backgroundColor: lkConnected ? '#E8344E' : '#888',
+            marginRight: '6px',
+            animation: lkConnected ? 'liveDot 1.5s ease-in-out infinite' : 'none',
+            boxShadow: lkConnected ? '0 0 6px rgba(232,52,78,0.6)' : 'none',
+          }} />
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{ marginRight: '3px' }}>
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{viewerCount}</span>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        {/* Right: camera + gift + end */}
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <button
             onClick={handleFlipCamera}
             style={{
-              width: '38px', height: '38px', borderRadius: '50%',
+              width: '34px', height: '34px', borderRadius: '50%',
               backgroundColor: 'rgba(0,0,0,0.5)',
-              border: '1px solid rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(8px)',
+              border: 'none',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-              <path d="M20 16v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4M4 8V4a2 2 0 012-2h12a2 2 0 012 2v4" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="16 12 12 8 8 12" strokeLinecap="round" strokeLinejoin="round"/>
-              <polyline points="16 12 12 16 8 12" strokeLinecap="round" strokeLinejoin="round"/>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 16v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4M4 8V4a2 2 0 012-2h12a2 2 0 012 2v4"/>
+              <polyline points="16 12 12 8 8 12"/>
+              <polyline points="16 12 12 16 8 12"/>
             </svg>
+          </button>
+          <button
+            onClick={() => setShowGiveawayForm(true)}
+            style={{
+              height: '34px', padding: '0 10px',
+              borderRadius: '100px',
+              background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+              border: 'none',
+              display: 'flex', alignItems: 'center', gap: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '14px', lineHeight: 1 }}>🎁</span>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#000' }}>
+              {activeGiveaway && activeGiveaway.status === 'active'
+                ? activeGiveaway.entry_count
+                : ct.giftTitle.split(' ')[0]}
+            </span>
           </button>
           <button
             onClick={() => setShowEndConfirm(true)}
             style={{
-              height: '38px', padding: '0 14px',
+              height: '34px', padding: '0 10px',
               borderRadius: '100px',
-              background: 'linear-gradient(135deg, #E8344E, #DC2626)',
-              border: 'none',
-              display: 'flex', alignItems: 'center', gap: '5px',
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(232,52,78,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#E8344E">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
             </svg>
-            <span style={{ color: '#fff', fontSize: '12px', fontWeight: 700 }}>{ct.endLive}</span>
           </button>
         </div>
       </div>
 
-      {/* Return policy badge */}
+      {/* Return policy badge — removed from live view to reduce clutter */}
       {(() => {
-        const policyLabels: Record<string, Record<string, { icon: string; label: string; color: string; bg: string }>> = {
-          no_return: { fr: { icon: '🚫', label: 'Aucun retour', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' }, en: { icon: '🚫', label: 'No returns', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' }, he: { icon: '🚫', label: 'ללא החזרות', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' }, es: { icon: '🚫', label: 'Sin devoluciones', color: '#EF4444', bg: 'rgba(239,68,68,0.15)' } },
-          exchange_only: { fr: { icon: '🔄', label: 'Echanges uniquement', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' }, en: { icon: '🔄', label: 'Exchanges only', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' }, he: { icon: '🔄', label: 'החלפות בלבד', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' }, es: { icon: '🔄', label: 'Solo intercambios', color: '#F59E0B', bg: 'rgba(245,158,11,0.15)' } },
-          return_7: { fr: { icon: '✅', label: 'Retours 7j', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, en: { icon: '✅', label: 'Returns 7d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, he: { icon: '✅', label: 'החזרות 7 ימים', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, es: { icon: '✅', label: 'Devoluciones 7d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' } },
-          return_14: { fr: { icon: '✅', label: 'Retours 14j', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, en: { icon: '✅', label: 'Returns 14d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, he: { icon: '✅', label: 'החזרות 14 ימים', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, es: { icon: '✅', label: 'Devoluciones 14d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' } },
-          return_30: { fr: { icon: '✅', label: 'Retours 30j', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, en: { icon: '✅', label: 'Returns 30d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, he: { icon: '✅', label: 'החזרות 30 ימים', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' }, es: { icon: '✅', label: 'Devoluciones 30d', color: '#22C55E', bg: 'rgba(34,197,94,0.15)' } },
-        }
-        const p = policyLabels[returnPolicy]?.[lang] || policyLabels.no_return.fr
-        return (
-          <div style={{
-            position: 'absolute', top: 'calc(env(safe-area-inset-top, 44px) + 52px)',
-            left: '12px', zIndex: 25, pointerEvents: 'none',
-          }}>
-            <span style={{
-              display: 'inline-flex', alignItems: 'center', gap: '4px',
-              padding: '4px 10px', borderRadius: '8px',
-              backgroundColor: p.bg, backdropFilter: 'blur(8px)',
-              border: `1px solid ${p.color}30`,
-              fontSize: '11px', fontWeight: 700, color: p.color,
-            }}>
-              {p.icon} {p.label}
-            </span>
-          </div>
-        )
+        void returnPolicy
+        return null
       })()}
 
       {/* Toasts */}
@@ -1096,24 +1218,35 @@ export default function LiveSellerView() {
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '8px',
       }}>
-        {/* Chat messages — max 3, auto-disappear after 5s */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          {messages.filter(m => visibleMsgIds.has(m.id)).slice(-3).map(msg => (
-            <div key={msg.id} style={{
-              display: 'flex', gap: '4px',
-              padding: '3px 8px',
-              backgroundColor: 'rgba(0,0,0,0.55)',
-              borderRadius: '6px',
-              animation: 'chatMsgIn 0.3s ease',
-            }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                {msg.user_profile?.display_name || ct.anonymous || '?'}
-              </span>
-              <span style={{ fontSize: '11px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
-                {msg.is_flagged ? ct.messageFlagged : msg.message}
-              </span>
-            </div>
-          ))}
+        {/* Chat messages — max 4, transparent WhatNot style */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '70%' }}>
+          {messages.filter(m => visibleMsgIds.has(m.id)).slice(-4).map((msg, i, arr) => {
+            const opacity = i < arr.length - 2 ? 0.5 : i < arr.length - 1 ? 0.75 : 1
+            return (
+              <div key={msg.id} style={{
+                padding: '2px 0',
+                opacity,
+                animation: 'chatMsgIn 0.3s ease',
+              }}>
+                <span style={{
+                  fontSize: '12px', fontWeight: 800, color: '#F0908A',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                  marginRight: '5px',
+                }}>
+                  {msg.user_profile?.display_name || ct.anonymous || '?'}
+                </span>
+                <span style={{
+                  fontSize: '12px', fontWeight: 500,
+                  color: msg.is_flagged ? 'rgba(255,255,255,0.4)' : '#fff',
+                  fontStyle: msg.is_flagged ? 'italic' : 'normal',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                  wordBreak: 'break-word',
+                }}>
+                  {msg.is_flagged ? ct.messageFlagged : msg.message}
+                </span>
+              </div>
+            )
+          })}
         </div>
 
         {/* Chat input */}
@@ -1412,6 +1545,195 @@ export default function LiveSellerView() {
         </div>
       </div>
 
+      {/* Giveaway form/panel overlay */}
+      {showGiveawayForm && (
+        <div
+          onClick={() => setShowGiveawayForm(false)}
+          style={{
+            position: 'fixed', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+            zIndex: 280, padding: '16px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '360px',
+              backgroundColor: '#111',
+              borderRadius: '18px',
+              padding: '20px',
+              display: 'flex', flexDirection: 'column', gap: '12px',
+              border: '1px solid rgba(255,215,0,0.2)',
+              marginBottom: 'env(safe-area-inset-bottom, 34px)',
+              animation: 'slideUpGift 0.3s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '24px' }}>🎁</span>
+              <span style={{ fontSize: '17px', fontWeight: 800, color: '#FFD700' }}>
+                {ct.giftTitle}
+              </span>
+            </div>
+
+            {!activeGiveaway ? (
+              <>
+                <input
+                  type="text"
+                  value={giveawayPrize}
+                  onChange={e => setGiveawayPrize(e.target.value)}
+                  placeholder={ct.giftPrizePlaceholder}
+                  autoFocus
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,215,0,0.2)',
+                    borderRadius: '12px',
+                    color: '#fff', fontSize: '14px',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => { setShowGiveawayForm(false); setGiveawayPrize('') }}
+                    style={{
+                      flex: 1, padding: '12px',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '12px',
+                      color: '#888', fontSize: '14px', fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {ct.giftCancel}
+                  </button>
+                  <button
+                    onClick={handleLaunchGiveaway}
+                    disabled={!giveawayPrize.trim()}
+                    style={{
+                      flex: 1, padding: '12px',
+                      background: !giveawayPrize.trim()
+                        ? 'rgba(255,255,255,0.1)'
+                        : 'linear-gradient(135deg, #FFD700, #FFA500)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      color: !giveawayPrize.trim() ? '#666' : '#000',
+                      fontSize: '14px', fontWeight: 800,
+                      cursor: !giveawayPrize.trim() ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {ct.giftLaunch}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={{
+                  fontSize: '14px', color: '#ccc', margin: 0,
+                  backgroundColor: 'rgba(255,255,255,0.05)',
+                  padding: '10px 12px', borderRadius: '10px',
+                }}>
+                  {activeGiveaway.prize_description}
+                </p>
+                <div style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: '8px', padding: '8px 0',
+                }}>
+                  <span style={{ fontSize: '28px', fontWeight: 900, color: '#fff' }}>
+                    {activeGiveaway.entry_count}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#888' }}>
+                    {ct.giftParticipants}
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => { handleCancelGiveaway(); setShowGiveawayForm(false) }}
+                    style={{
+                      flex: 1, padding: '12px',
+                      backgroundColor: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: '12px',
+                      color: '#888', fontSize: '14px', fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {ct.giftCancel}
+                  </button>
+                  <button
+                    onClick={() => { handleDrawWinner(); setShowGiveawayForm(false) }}
+                    disabled={giveawayDrawing || activeGiveaway.entry_count === 0}
+                    style={{
+                      flex: 1, padding: '12px',
+                      background: activeGiveaway.entry_count === 0
+                        ? 'rgba(255,255,255,0.1)'
+                        : 'linear-gradient(135deg, #FFD700, #FFA500)',
+                      border: 'none',
+                      borderRadius: '12px',
+                      color: activeGiveaway.entry_count === 0 ? '#666' : '#000',
+                      fontSize: '14px', fontWeight: 800,
+                      cursor: activeGiveaway.entry_count === 0 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {giveawayDrawing ? '...' : ct.giftDraw}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Giveaway winner overlay */}
+      {giveawayWinner && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 260, pointerEvents: 'none',
+          animation: 'soldOverlayIn 0.4s ease',
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+          }} />
+          <div style={{
+            position: 'relative', zIndex: 1,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '16px',
+            animation: 'soldBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          }}>
+            <div style={{ fontSize: '48px', animation: 'giftSpin 1s ease-out' }}>🎁</div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontSize: '14px', color: 'rgba(255,215,0,0.6)',
+            }}>
+              ✦ ✦ ✦
+            </div>
+            <p style={{
+              fontSize: '28px', fontWeight: 900, color: '#FFD700',
+              textShadow: '0 2px 20px rgba(255,215,0,0.5)',
+              margin: 0, textAlign: 'center',
+            }}>
+              {giveawayWinner.name}
+            </p>
+            <p style={{
+              fontSize: '16px', fontWeight: 600, color: '#fff',
+              opacity: 0.8, margin: 0,
+            }}>
+              {ct.giftWinner}
+            </p>
+            <div style={{
+              display: 'flex', gap: '4px',
+              fontSize: '20px',
+              animation: 'giftStars 1.5s ease-in-out infinite',
+            }}>
+              ⭐ ✨ 🌟 ✨ ⭐
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* End confirm modal */}
       {showEndConfirm && (
         <div
@@ -1595,6 +1917,19 @@ export default function LiveSellerView() {
         @keyframes chatMsgIn {
           0% { opacity: 0; transform: translateY(8px); }
           100% { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUpGift {
+          0% { transform: translateY(100%); opacity: 0; }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes giftSpin {
+          0% { transform: scale(0) rotate(-180deg); }
+          60% { transform: scale(1.3) rotate(10deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes giftStars {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.15); opacity: 1; }
         }
         @keyframes floatUpReaction {
           0% { opacity: 1; transform: translateY(0) scale(1); }

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
-import type { Stream, Item, ChatMessage, Order } from '../types/database'
+import type { Stream, Item, ChatMessage, Order, Giveaway } from '../types/database'
 import EngagementDashboard from '../components/EngagementDashboard'
 import ViewerReactions from '../components/ViewerReactions'
 import LiveKitViewer from '../components/LiveKitViewer'
@@ -16,6 +16,7 @@ import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
 import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } from '../lib/settings'
 import { hapticTap } from '../lib/haptics'
+import { Share } from '@capacitor/share'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -42,6 +43,7 @@ const streamContent = {
     connectedTo: 'Connecte au live de',
     liveNow: 'EN DIRECT',
     soldBang: 'VENDU !',
+    unsoldBang: 'INVENDU',
     confirmAddress: 'Confirme ton adresse de livraison',
     toReceiveItem: 'Pour recevoir ton article',
     fullName: 'Nom complet',
@@ -73,6 +75,27 @@ const streamContent = {
     cardRequired: 'Ajoute ta carte pour encherir',
     shipping: 'Livraison',
     itemPrice: 'Prix article',
+    walletTitle: 'Portefeuille',
+    walletAddress: 'Adresse de livraison',
+    walletPayment: 'Moyen de paiement',
+    walletPromo: 'Code promo',
+    walletPromoPlaceholder: 'Entrer un code promo',
+    walletApply: 'Appliquer',
+    walletNoAddress: 'Aucune adresse',
+    walletAddAddress: 'Ajouter une adresse',
+    walletNoCard: 'Aucune carte',
+    walletAddCard: 'Ajouter',
+    linkCopied: 'Lien copie !',
+    waitingNextItem: 'En attente de l\'article suivant...',
+    moreReport: 'Signaler',
+    moreBlock: 'Bloquer',
+    morePiP: 'Mode mini-lecteur',
+    pipUnavailable: 'PiP non disponible',
+    giftTitle: 'Cadeau Surprise',
+    giftParticipants: 'participants',
+    giftEnter: 'Participer et gagner !',
+    giftEntered: 'Inscrit ✓',
+    giftWinner: 'a gagne le cadeau !',
   },
   en: {
     viewers: 'viewers',
@@ -96,6 +119,7 @@ const streamContent = {
     connectedTo: 'Connected to live by',
     liveNow: 'LIVE',
     soldBang: 'SOLD!',
+    unsoldBang: 'UNSOLD',
     confirmAddress: 'Confirm your shipping address',
     toReceiveItem: 'To receive your item',
     fullName: 'Full name',
@@ -127,6 +151,27 @@ const streamContent = {
     cardRequired: 'Add your card to bid',
     shipping: 'Shipping',
     itemPrice: 'Item price',
+    walletTitle: 'Wallet',
+    walletAddress: 'Delivery address',
+    walletPayment: 'Payment method',
+    walletPromo: 'Promo code',
+    walletPromoPlaceholder: 'Enter a promo code',
+    walletApply: 'Apply',
+    walletNoAddress: 'No address',
+    walletAddAddress: 'Add an address',
+    walletNoCard: 'No card',
+    walletAddCard: 'Add',
+    linkCopied: 'Link copied!',
+    waitingNextItem: 'Waiting for the next item...',
+    moreReport: 'Report',
+    moreBlock: 'Block',
+    morePiP: 'Mini player',
+    pipUnavailable: 'PiP unavailable',
+    giftTitle: 'Surprise Gift',
+    giftParticipants: 'participants',
+    giftEnter: 'Enter to win!',
+    giftEntered: 'Entered ✓',
+    giftWinner: 'won the gift!',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -150,6 +195,7 @@ const streamContent = {
     connectedTo: '\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E9\u05DC',
     liveNow: '\u05E9\u05D9\u05D3\u05D5\u05E8',
     soldBang: '!נמכר',
+    unsoldBang: 'לא נמכר',
     confirmAddress: 'אשר את כתובת המשלוח שלך',
     toReceiveItem: 'כדי לקבל את הפריט שלך',
     fullName: 'שם מלא',
@@ -181,6 +227,27 @@ const streamContent = {
     cardRequired: 'הוסף כרטיס כדי להציע',
     shipping: 'משלוח',
     itemPrice: 'מחיר פריט',
+    walletTitle: 'ארנק',
+    walletAddress: 'כתובת משלוח',
+    walletPayment: 'אמצעי תשלום',
+    walletPromo: 'קוד קופון',
+    walletPromoPlaceholder: 'הזן קוד קופון',
+    walletApply: 'החל',
+    walletNoAddress: 'אין כתובת',
+    walletAddAddress: 'הוסף כתובת',
+    walletNoCard: 'אין כרטיס',
+    walletAddCard: 'הוסף',
+    linkCopied: '!הקישור הועתק',
+    waitingNextItem: '...ממתין לפריט הבא',
+    moreReport: 'דווח',
+    moreBlock: 'חסום',
+    morePiP: 'נגן מיני',
+    pipUnavailable: 'PiP לא זמין',
+    giftTitle: 'מתנה הפתעה',
+    giftParticipants: 'משתתפים',
+    giftEnter: '!להשתתף ולזכות',
+    giftEntered: '✓ רשום',
+    giftWinner: 'זכה במתנה!',
   },
   es: {
     viewers: 'espectadores',
@@ -204,6 +271,7 @@ const streamContent = {
     connectedTo: 'Conectado al directo de',
     liveNow: 'EN VIVO',
     soldBang: 'VENDIDO!',
+    unsoldBang: 'NO VENDIDO',
     confirmAddress: 'Confirma tu direccion de envio',
     toReceiveItem: 'Para recibir tu articulo',
     fullName: 'Nombre completo',
@@ -235,6 +303,27 @@ const streamContent = {
     cardRequired: 'Agrega tu tarjeta para pujar',
     shipping: 'Envio',
     itemPrice: 'Precio articulo',
+    walletTitle: 'Cartera',
+    walletAddress: 'Direccion de envio',
+    walletPayment: 'Metodo de pago',
+    walletPromo: 'Codigo promo',
+    walletPromoPlaceholder: 'Ingresar codigo promo',
+    walletApply: 'Aplicar',
+    walletNoAddress: 'Sin direccion',
+    walletAddAddress: 'Agregar direccion',
+    walletNoCard: 'Sin tarjeta',
+    walletAddCard: 'Agregar',
+    linkCopied: 'Enlace copiado!',
+    waitingNextItem: 'Esperando el siguiente articulo...',
+    moreReport: 'Reportar',
+    moreBlock: 'Bloquear',
+    morePiP: 'Mini reproductor',
+    pipUnavailable: 'PiP no disponible',
+    giftTitle: 'Regalo Sorpresa',
+    giftParticipants: 'participantes',
+    giftEnter: 'Participar y ganar!',
+    giftEntered: 'Inscrito ✓',
+    giftWinner: 'gano el regalo!',
   },
 }
 
@@ -382,6 +471,7 @@ export default function StreamView() {
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const auctionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
+  const itemEventSeqRef = useRef(0)
   useEffect(() => {
     isMountedRef.current = true
     if (id) track('stream_join', { stream_id: id })
@@ -413,7 +503,7 @@ export default function StreamView() {
   const [sellerName, setSellerName] = useState('')
   const [sellerAvatar, setSellerAvatar] = useState<string | null>(null)
   const [sellerScore, setSellerScore] = useState<number | null>(null)
-  const [itemCount, setItemCount] = useState(0)
+  const [, setItemCount] = useState(0)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
   const [sellerShippingDelay, setSellerShippingDelay] = useState<number>(2)
   const [viewerMuted, setViewerMuted] = useState(true)
@@ -424,7 +514,7 @@ export default function StreamView() {
   const [viewerLkToken, setViewerLkToken] = useState<string | null>(null)
 
   // Sold animation & payment modal
-  const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number } | null>(null)
+  const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number; isUnsold?: boolean } | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null)
   const [paymentItem, setPaymentItem] = useState<Item | null>(null)
@@ -448,6 +538,32 @@ export default function StreamView() {
   const [cardLoading, setCardLoading] = useState(false)
   const [cardSuccess, setCardSuccess] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
+
+  // Wallet modal state
+  const [showWallet, setShowWallet] = useState(false)
+  const [walletAddress, setWalletAddress] = useState<{ name: string; street: string; city: string; zip: string } | null>(null)
+  const [walletCard, setWalletCard] = useState<{ brand?: string; last4?: string } | null>(null)
+  const [promoCode, setPromoCode] = useState('')
+
+  // Giveaway state
+  const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
+
+  const [hasEnteredGiveaway, setHasEnteredGiveaway] = useState(false)
+  const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
+  const [enteringGiveaway, setEnteringGiveaway] = useState(false)
+
+  // More menu state
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+
+  // Clip capture state
+
+
+  // Toast message
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg)
+    setTimeout(() => setToastMessage(null), 2000)
+  }, [])
 
   // Determine if user is the seller of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
@@ -512,6 +628,36 @@ export default function StreamView() {
     }
     checkCard()
   }, [user, isSeller])
+
+  // Fetch wallet data (address + card) when wallet modal opens
+  useEffect(() => {
+    if (!showWallet || !user) return
+    const fetchWalletData = async () => {
+      try {
+        // Fetch default address
+        const { data: addr } = await supabase
+          .from('addresses')
+          .select('name, street, city, zip')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .single()
+        if (addr) setWalletAddress(addr)
+        // Fetch card info
+        const { data: session } = await supabase.auth.getSession()
+        const token = session.session?.access_token
+        if (token) {
+          const resp = await apiFetch('/api/stripe/card-info', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (resp.ok) {
+            const card = await resp.json()
+            if (card.has_card) setWalletCard({ brand: card.brand, last4: card.last4 })
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    fetchWalletData()
+  }, [showWallet, user])
 
   // Fetch buyer's saved zip for zone-based shipping pricing
   useEffect(() => {
@@ -741,6 +887,22 @@ export default function StreamView() {
     }
   }, [isSeller, isLive])
 
+  // PiP (Picture-in-Picture) handler
+  const handlePiP = useCallback(async () => {
+    try {
+      const videoEl = document.querySelector('video') as HTMLVideoElement | null
+      if (!videoEl) return
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture()
+      } else if (videoEl.requestPictureInPicture) {
+        await videoEl.requestPictureInPicture()
+      }
+    } catch {
+      // PiP not supported or user denied
+    }
+  }, [])
+
+
   // Charger les donnees du stream
   const retryFetchStream = useCallback(async () => {
     if (!id) return
@@ -771,7 +933,7 @@ export default function StreamView() {
           .single()
         setActiveAuction(data)
         if (data) {
-          setBidAmount(String(data.current_price + 10))
+          setBidAmount(String(data.current_price + 1))
         }
       } catch (err) { console.error('Failed to fetch active auction:', err) }
     }
@@ -835,7 +997,7 @@ export default function StreamView() {
       }
     })
 
-    // Mises a jour des encheres
+    // Mises a jour des encheres — use payload.new directly (REPLICA IDENTITY FULL)
     channel.on('postgres_changes', {
       event: '*',
       schema: 'public',
@@ -843,9 +1005,25 @@ export default function StreamView() {
       filter: `stream_id=eq.${id}`,
     }, async (payload) => {
       const item = payload.new as Item
+      if (!item?.id) return
+
+      // Debug: log what Realtime sends
+      console.log('[RT-ITEMS]', item.id.slice(0, 8), 'status=', item.status, 'winner=', item.winner_id?.slice(0, 8), 'price=', item.current_price, 'keys=', Object.keys(payload.new))
+
+      // Sequence counter: discard stale async handlers
+      const seq = ++itemEventSeqRef.current
+
+      // If payload.new is missing status (REPLICA IDENTITY not FULL), re-fetch from DB
+      if (!item.status) {
+        const { data: fetched } = await supabase.from('items').select('*').eq('id', item.id).single()
+        if (!fetched || itemEventSeqRef.current !== seq) return
+        Object.assign(item, fetched)
+        console.log('[RT-ITEMS] refetched status=', item.status)
+      }
+
       if (item.status === 'active') {
         setActiveAuction(item)
-        setBidAmount(String(item.current_price + 10))
+        setBidAmount(String(item.current_price + 1))
       } else if (item.status === 'sold') {
         setActiveAuction(null)
         // Show sold animation
@@ -856,6 +1034,7 @@ export default function StreamView() {
             .select('display_name, username')
             .eq('id', item.winner_id)
             .single()
+          if (itemEventSeqRef.current !== seq) return
           winnerName = wp?.display_name || wp?.username || ''
         }
         setSoldAnimation({ winner: winnerName, price: item.current_price })
@@ -963,6 +1142,9 @@ export default function StreamView() {
         }
       } else if (item.status === 'unsold') {
         setActiveAuction(null)
+        // Show unsold animation
+        setSoldAnimation({ winner: '', price: item.current_price, isUnsold: true })
+        setTimeout(() => { if (isMountedRef.current) setSoldAnimation(null) }, 3000)
       }
     })
 
@@ -982,6 +1164,108 @@ export default function StreamView() {
       supabase.removeChannel(channel)
     }
   }, [id])
+
+  // Giveaway: fetch active giveaway + realtime
+  useEffect(() => {
+    if (!id) return
+
+    // Fetch active giveaway
+    const fetchGiveaway = async () => {
+      try {
+        const resp = await apiFetch(`/api/streams/${id}/giveaway`)
+        const data = await resp.json()
+        if (data) {
+          setActiveGiveaway(data)
+          if (data.status === 'drawn' && data.winner_name) {
+            setGiveawayWinner({ name: data.winner_name })
+            setTimeout(() => setGiveawayWinner(null), 5000)
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    fetchGiveaway()
+
+    // Check if user has already entered
+    const checkEntry = async () => {
+      if (!user) return
+      try {
+        const resp = await apiFetch(`/api/streams/${id}/giveaway`)
+        const gw = await resp.json()
+        if (gw && gw.id) {
+          const { data: entry } = await supabase
+            .from('giveaway_entries')
+            .select('id')
+            .eq('giveaway_id', gw.id)
+            .eq('user_id', user.id)
+            .maybeSingle()
+          if (entry) setHasEnteredGiveaway(true)
+        }
+      } catch { /* ignore */ }
+    }
+    checkEntry()
+
+    // Realtime: listen for giveaway changes on this stream
+    const gwChannel = supabase
+      .channel(`giveaway-stream-${id}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'giveaways',
+        filter: `stream_id=eq.${id}`,
+      }, (payload) => {
+        const gw = payload.new as Giveaway
+        setActiveGiveaway(gw)
+        if (gw.status === 'drawn' && gw.winner_name) {
+          setGiveawayWinner({ name: gw.winner_name })
+          setTimeout(() => setGiveawayWinner(null), 5000)
+        }
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(gwChannel) }
+  }, [id, user])
+
+  // Giveaway: listen for entry count updates
+  useEffect(() => {
+    if (!activeGiveaway || activeGiveaway.status !== 'active') return
+
+    const entryChannel = supabase
+      .channel(`giveaway-entries-viewer-${activeGiveaway.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'giveaway_entries',
+        filter: `giveaway_id=eq.${activeGiveaway.id}`,
+      }, () => {
+        setActiveGiveaway(prev => prev ? { ...prev, entry_count: prev.entry_count + 1 } : null)
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(entryChannel) }
+  }, [activeGiveaway?.id, activeGiveaway?.status])
+
+  const handleEnterGiveaway = async () => {
+    if (!activeGiveaway || !user || hasEnteredGiveaway || enteringGiveaway) return
+    setEnteringGiveaway(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+
+      const resp = await apiFetch(`/api/giveaways/${activeGiveaway.id}/enter`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      if (resp.ok || resp.status === 409) {
+        setHasEnteredGiveaway(true)
+        hapticTap()
+      }
+    } catch { /* ignore */ }
+    setEnteringGiveaway(false)
+  }
 
   // Timer pour l'enchere
   useEffect(() => {
@@ -1117,7 +1401,7 @@ export default function StreamView() {
         throw new Error(err.error || ct.bidError)
       }
       // Update local bid amount for next bid
-      setBidAmount(String(amount + 10))
+      setBidAmount(String(amount + 1))
       if (id) track('bid_placed', { stream_id: id, amount })
       // Haptic feedback on successful bid
       const appS = getAppSettings()
@@ -1599,28 +1883,30 @@ export default function StreamView() {
               </div>
             )}
 
-            {/* Viewer: top bar with back button + SellerProfileHeader + LIVE badge */}
+            {/* Viewer: top bar with back button + seller info + viewer count */}
             {!isSeller && (
               <div style={{
                 position: 'absolute',
-                top: 'calc(env(safe-area-inset-top, 0px) + 12px)',
-                left: '12px', right: '12px',
+                top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+                left: '8px', right: '8px',
                 zIndex: 20,
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                gap: '6px',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                {/* Left: back + seller pill */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <button
                     onClick={() => navigate(-1)}
                     aria-label="Back"
                     style={{
-                      width: '36px', height: '36px', borderRadius: '50%',
-                      backgroundColor: 'rgba(0,0,0,0.5)',
-                      border: '1px solid rgba(255,255,255,0.15)',
+                      width: '32px', height: '32px', borderRadius: '50%',
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      border: 'none',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer', flexShrink: 0,
                     }}
                   >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
                       <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
@@ -1647,43 +1933,125 @@ export default function StreamView() {
                     lang={lang}
                   />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                  {stream.status === 'live' && (
-                    <span style={{
-                      background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
-                      padding: '5px 14px', borderRadius: '8px',
-                      fontSize: '12px', fontWeight: 800, color: '#fff',
-                      letterSpacing: '1px',
-                      boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
-                      display: 'flex', alignItems: 'center', gap: '6px',
-                    }}>
-                      <div style={{
-                        width: '6px', height: '6px', borderRadius: '50%',
-                        backgroundColor: '#fff',
-                        animation: 'liveDot 1.5s ease-in-out infinite',
-                      }} />
-                      {ct.liveNow}
-                    </span>
-                  )}
+                {/* Right: viewer count + PiP */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                   <span
                     aria-live="polite"
                     aria-label={`${stream.viewer_count || 0} ${ct.viewers}`}
                     style={{
-                      background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
-                      padding: '5px 14px', borderRadius: '20px',
+                      backgroundColor: 'rgba(0,0,0,0.45)',
+                      padding: '4px 10px', borderRadius: '100px',
                       fontSize: '12px', fontWeight: 700, color: '#fff',
-                      display: 'flex', alignItems: 'center', gap: '6px',
-                      boxShadow: '0 2px 8px rgba(232,52,78,0.4)',
+                      display: 'flex', alignItems: 'center', gap: '5px',
                     }}
                   >
                     <div style={{
-                      width: '7px', height: '7px', borderRadius: '50%',
-                      backgroundColor: '#fff',
+                      width: '6px', height: '6px', borderRadius: '50%',
+                      backgroundColor: '#E8344E',
                       animation: 'liveDot 1.5s ease-in-out infinite',
-                      boxShadow: '0 0 6px rgba(255,255,255,0.8)',
+                      boxShadow: '0 0 4px rgba(232,52,78,0.8)',
                     }} />
                     {stream.viewer_count || 0}
                   </span>
+                  {stream.status === 'live' && (
+                    <button
+                      onClick={handlePiP}
+                      aria-label={ct.morePiP}
+                      style={{
+                        width: '32px', height: '32px', borderRadius: '50%',
+                        backgroundColor: 'rgba(0,0,0,0.45)',
+                        border: 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <rect x="12" y="9" width="8" height="6" rx="1" fill="rgba(255,255,255,0.3)" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ═══ GIVEAWAY BANNER (viewer, large visible card) ═══ */}
+            {!isSeller && activeGiveaway && activeGiveaway.status === 'active' && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+                left: '8px', right: '8px',
+                zIndex: 25,
+                animation: 'giftCardIn 0.4s ease',
+              }}>
+                <div style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+                  padding: '16px 18px 14px',
+                  background: 'linear-gradient(135deg, rgba(30,20,0,0.92), rgba(10,10,12,0.95))',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '2px solid rgba(255,215,0,0.6)',
+                  borderRadius: '18px',
+                  boxShadow: '0 4px 24px rgba(255,215,0,0.15), 0 0 0 1px rgba(255,215,0,0.1)',
+                  animation: 'giftBadgePulse 2s ease-in-out infinite',
+                }}>
+                  {/* Top: big title */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                    <span style={{ fontSize: '36px', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: '18px', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                        {ct.giftTitle}
+                      </p>
+                      <p style={{ fontSize: '14px', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                        {activeGiveaway.prize_description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Participant counter */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                    padding: '6px 16px',
+                    backgroundColor: 'rgba(255,215,0,0.12)',
+                    borderRadius: '100px',
+                    border: '1px solid rgba(255,215,0,0.2)',
+                  }}>
+                    <span style={{ fontSize: '20px' }}>👥</span>
+                    <span style={{ fontSize: '22px', fontWeight: 900, color: '#FFD700' }}>
+                      {activeGiveaway.entry_count}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
+                      {ct.giftParticipants}
+                    </span>
+                  </div>
+
+                  {/* Enter button */}
+                  {user && (
+                    <button
+                      onClick={handleEnterGiveaway}
+                      disabled={hasEnteredGiveaway || enteringGiveaway}
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        background: hasEnteredGiveaway
+                          ? 'rgba(255,255,255,0.08)'
+                          : 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                        border: hasEnteredGiveaway
+                          ? '1px solid rgba(255,255,255,0.15)'
+                          : 'none',
+                        borderRadius: '100px',
+                        color: hasEnteredGiveaway ? '#888' : '#000',
+                        fontSize: '16px', fontWeight: 900,
+                        cursor: hasEnteredGiveaway ? 'default' : 'pointer',
+                        WebkitTapHighlightColor: 'transparent',
+                        touchAction: 'manipulation',
+                        boxShadow: hasEnteredGiveaway ? 'none' : '0 2px 12px rgba(255,165,0,0.4)',
+                        letterSpacing: '0.3px',
+                      }}
+                    >
+                      {enteringGiveaway ? '...' : hasEnteredGiveaway ? ct.giftEntered : ct.giftEnter}
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -1899,23 +2267,70 @@ export default function StreamView() {
           right: '8px',
           bottom: '50%',
           transform: 'translateY(50%)',
-          zIndex: 18,
+          zIndex: 30,
+          pointerEvents: 'auto',
         }}>
           <StreamSidebar
             streamId={stream.id}
-            itemCount={itemCount}
-            onShare={() => {
-              if (navigator.share) {
-                navigator.share({ title: stream.title || 'Live', url: window.location.href }).catch(() => {})
-              } else {
-                navigator.clipboard.writeText(window.location.href).catch(() => {})
+            onShare={async () => {
+              hapticTap()
+              const shareUrl = `https://shapop.com/stream/${stream.id}`
+              const sellerDisplayName = sellerName || 'ShaPop'
+              const shareTitle = `${sellerDisplayName} est en live sur ShaPop !`
+              const shareText = `Rejoins le live de ${sellerDisplayName} sur ShaPop\n${shareUrl}`
+              try {
+                await Share.share({
+                  title: shareTitle,
+                  text: shareText,
+                  url: shareUrl,
+                  dialogTitle: shareTitle,
+                })
+              } catch {
+                // Fallback for web
+                try {
+                  if (navigator.clipboard) {
+                    await navigator.clipboard.writeText(shareUrl)
+                    showToast(ct.linkCopied)
+                  }
+                } catch { /* ignore */ }
               }
             }}
-            onShopClick={() => {
-              // Scroll to or focus auction area
-              const auctionEl = document.getElementById('active-item-bar')
-              if (auctionEl) auctionEl.scrollIntoView({ behavior: 'smooth' })
+            onClipClick={async () => {
+              hapticTap()
+              try {
+                const videoEl = document.querySelector('video') as HTMLVideoElement | null
+                if (!videoEl || !videoEl.videoWidth) { showToast('Clip failed'); return }
+                const canvas = document.createElement('canvas')
+                canvas.width = videoEl.videoWidth
+                canvas.height = videoEl.videoHeight
+                const ctx = canvas.getContext('2d')
+                if (!ctx) return
+                ctx.drawImage(videoEl, 0, 0)
+                const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+                if (!blob) return
+                const file = new File([blob], `shapop-clip-${Date.now()}.jpg`, { type: 'image/jpeg' })
+                if (navigator.share && navigator.canShare?.({ files: [file] })) {
+                  await navigator.share({ files: [file], title: stream?.title || 'ShaPop Clip' })
+                } else {
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url; a.download = file.name; a.click()
+                  URL.revokeObjectURL(url)
+                }
+                showToast(ct.linkCopied)
+              } catch { /* cancelled */ }
             }}
+            onShopClick={() => {
+              hapticTap()
+              if (stream?.seller_id) {
+                navigate(`/seller/${stream.seller_id}`)
+              }
+            }}
+            onLikeClick={() => {
+              hapticTap()
+            }}
+            onWalletClick={() => setShowWallet(true)}
+            onMoreClick={() => setShowMoreMenu(true)}
             lang={lang}
           />
         </div>
@@ -1931,22 +2346,32 @@ export default function StreamView() {
       {/* ═══ BOTTOM OVERLAY: stream info + auction + chat + input ═══ */}
       <div style={{
         position: 'absolute',
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
+        bottom: activeAuction && !isSeller && isLive
+          ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)'
+          : 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
         left: '10px', right: '10px',
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '6px',
+        transition: 'bottom 0.3s ease',
       }}>
-        {/* Chat messages — last 4, overlaid */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          {messages.slice(-4).map(msg => {
+        {/* Chat messages — last 5, WhatNot style: transparent, float up */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '75%' }}>
+          {messages.slice(-5).map((msg, i, arr) => {
             const isJoin = msg.message === '__system:join__'
             const joinText: Record<string, string> = { fr: 'a rejoint', en: 'joined', he: '\u05D4\u05E6\u05D8\u05E8\u05E3', es: 'se unio' }
+            // Older messages fade out
+            const opacity = i < arr.length - 3 ? 0.5 : i < arr.length - 1 ? 0.75 : 1
             if (isJoin) {
               return (
                 <div key={msg.id} style={{
-                  padding: '2px 10px',
+                  padding: '2px 0',
+                  opacity,
+                  animation: 'chatMsgIn 0.3s ease',
                 }}>
-                  <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+                  <span style={{
+                    fontSize: '12px', color: '#fff', fontWeight: 500,
+                    textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                  }}>
                     {msg.user_profile?.display_name || ct.anonymous} {joinText[lang] || joinText.fr} {'\uD83D\uDC4B'}
                   </span>
                 </div>
@@ -1954,42 +2379,27 @@ export default function StreamView() {
             }
             return (
               <div key={msg.id} style={{
-                display: 'flex', alignItems: 'flex-start', gap: '6px',
-                padding: '4px 10px',
-                backgroundColor: 'rgba(0,0,0,0.55)',
-                borderRadius: '8px',
+                padding: '3px 0',
+                opacity,
+                animation: 'chatMsgIn 0.3s ease',
               }}>
-                {msg.user_profile?.avatar_url ? (
-                  <img
-                    src={msg.user_profile.avatar_url}
-                    alt=""
-                    style={{
-                      width: '28px', height: '28px', borderRadius: '50%',
-                      objectFit: 'cover', flexShrink: 0,
-                      border: '1px solid rgba(255,255,255,0.15)',
-                    }}
-                  />
-                ) : (
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    backgroundColor: 'rgba(240,144,138,0.2)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                    border: '1px solid rgba(255,255,255,0.1)',
-                  }}>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A' }}>
-                      {(msg.user_profile?.display_name || '?')[0]?.toUpperCase()}
-                    </span>
-                  </div>
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                    {msg.user_profile?.display_name || ct.anonymous}
-                  </span>
-                  <span style={{ fontSize: '12px', color: msg.is_flagged ? '#666' : '#fff', fontStyle: msg.is_flagged ? 'italic' : 'normal', wordBreak: 'break-word' }}>
-                    {msg.is_flagged ? ct.messageFlagged : msg.message}
-                  </span>
-                </div>
+                <span style={{
+                  fontSize: '13px', fontWeight: 800, color: '#F0908A',
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                  marginRight: '6px',
+                }}>
+                  {msg.user_profile?.display_name || ct.anonymous}
+                </span>
+                <span style={{
+                  fontSize: '13px',
+                  color: msg.is_flagged ? 'rgba(255,255,255,0.4)' : '#fff',
+                  fontStyle: msg.is_flagged ? 'italic' : 'normal',
+                  fontWeight: 500,
+                  textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+                  wordBreak: 'break-word',
+                }}>
+                  {msg.is_flagged ? ct.messageFlagged : msg.message}
+                </span>
               </div>
             )
           })}
@@ -2099,6 +2509,43 @@ export default function StreamView() {
           </div>
         )}
 
+        {/* Waiting for next item (viewer, no active auction, live is on) */}
+        {!activeAuction && !isSeller && isLive && !soldAnimation && (
+          <div style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            backgroundColor: 'rgba(18,18,20,0.9)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderTop: '1px solid rgba(255,255,255,0.08)',
+            padding: '14px 16px',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+          }}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: '#F0908A',
+              animation: 'waitingPulse 1.5s ease-in-out infinite',
+            }} />
+            <span style={{
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.5)',
+              letterSpacing: '0.3px',
+            }}>
+              {ct.waitingNextItem}
+            </span>
+          </div>
+        )}
+
         {/* Stream title */}
         <div style={{
           padding: '6px 10px',
@@ -2111,7 +2558,7 @@ export default function StreamView() {
         </div>
       </div>
 
-      {/* SOLD animation overlay */}
+      {/* SOLD / UNSOLD animation overlay */}
       {soldAnimation && (
         <div style={{
           position: 'fixed', inset: 0,
@@ -2125,19 +2572,30 @@ export default function StreamView() {
           animation: 'soldFadeIn 0.3s ease',
         }}>
           <p style={{
-            fontSize: '48px', fontWeight: 900, color: '#22C55E',
-            textShadow: '0 0 40px rgba(34,197,94,0.6)',
+            fontSize: '48px', fontWeight: 900,
+            color: soldAnimation.isUnsold ? '#FF9632' : '#22C55E',
+            textShadow: soldAnimation.isUnsold
+              ? '0 0 40px rgba(255,150,50,0.6)'
+              : '0 0 40px rgba(34,197,94,0.6)',
             animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             margin: 0,
           }}>
-            {ct.soldBang}
+            {soldAnimation.isUnsold ? ct.unsoldBang : ct.soldBang}
           </p>
-          {soldAnimation.winner && (
+          {!soldAnimation.isUnsold && soldAnimation.winner && (
             <p style={{
               fontSize: '18px', fontWeight: 700, color: '#fff', margin: '8px 0 0',
               animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
             }}>
               @{soldAnimation.winner} — {soldAnimation.price} €
+            </p>
+          )}
+          {soldAnimation.isUnsold && soldAnimation.price > 0 && (
+            <p style={{
+              fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: '8px 0 0',
+              animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
+            }}>
+              {soldAnimation.price} €
             </p>
           )}
         </div>
@@ -2606,7 +3064,291 @@ export default function StreamView() {
         </div>
       )}
 
+      {/* ═══ WALLET MODAL ═══ */}
+      {showWallet && (
+        <div
+          onClick={() => setShowWallet(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 400,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#111', borderRadius: '20px 20px 0 0',
+              width: '100%', maxWidth: '500px',
+              padding: '24px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              animation: 'slideUp 0.3s ease',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#333' }} />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 20px', textAlign: 'center' }}>
+              {ct.walletTitle}
+            </h3>
+
+            {/* Adresse de livraison */}
+            <div
+              onClick={() => navigate('/addresses')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#1A1A1A',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a1 1 0 01-1 1h-1"/>
+                  <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletAddress}</p>
+                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                  {walletAddress ? `${walletAddress.street}, ${walletAddress.zip} ${walletAddress.city}` : ct.walletNoAddress}
+                </p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+
+            {/* Moyen de paiement */}
+            <div
+              onClick={() => navigate('/payments')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#1A1A1A',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletPayment}</p>
+                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                  {walletCard ? `${(walletCard.brand || 'Card').toUpperCase()} **** ${walletCard.last4}` : ct.walletNoCard}
+                </p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+
+            {/* Code promo */}
+            <div style={{ padding: '14px 0' }}>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: '0 0 10px' }}>{ct.walletPromo}</p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                  placeholder={ct.walletPromoPlaceholder}
+                  style={{
+                    flex: 1, padding: '12px 14px', borderRadius: '10px',
+                    backgroundColor: '#0A0A0A', border: '1px solid #333',
+                    color: '#fff', fontSize: '14px', outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (promoCode.trim()) {
+                      hapticTap()
+                      // Store promo code for use during checkout
+                      localStorage.setItem('shapop_promo_code', promoCode.trim())
+                      setShowWallet(false)
+                    }
+                  }}
+                  disabled={!promoCode.trim()}
+                  style={{
+                    padding: '12px 20px', borderRadius: '10px',
+                    background: promoCode.trim() ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
+                    border: 'none', color: '#fff', fontSize: '14px', fontWeight: 600,
+                    cursor: promoCode.trim() ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {ct.walletApply}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MORE MENU ═══ */}
+      {showMoreMenu && (
+        <div
+          onClick={() => setShowMoreMenu(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 400,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#111', borderRadius: '20px 20px 0 0',
+              width: '100%', maxWidth: '500px',
+              padding: '16px 24px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              animation: 'slideUp 0.3s ease',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#333' }} />
+            </div>
+
+            {/* PiP / Mini player */}
+            <button
+              onClick={() => { setShowMoreMenu(false); handlePiP() }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 0', borderBottom: '1px solid #1A1A1A',
+                background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <rect x="12" y="9" width="8" height="6" rx="1" fill="rgba(255,255,255,0.2)" />
+              </svg>
+              <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>{ct.morePiP}</span>
+            </button>
+
+            {/* Report */}
+            <button
+              onClick={() => {
+                setShowMoreMenu(false)
+                if (stream) {
+                  const subject = encodeURIComponent(`Signalement live ${stream.id}`)
+                  window.open(`mailto:support@shapop.com?subject=${subject}`, '_blank')
+                }
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 0', borderBottom: '1px solid #1A1A1A',
+                background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>{ct.moreReport}</span>
+            </button>
+
+            {/* Block */}
+            <button
+              onClick={() => {
+                setShowMoreMenu(false)
+                if (stream) {
+                  const blocked = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
+                  if (!blocked.includes(stream.seller_id)) {
+                    blocked.push(stream.seller_id)
+                    localStorage.setItem('shapop_blocked_users', JSON.stringify(blocked))
+                  }
+                  navigate(-1)
+                }
+              }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 0',
+                background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+              </svg>
+              <span style={{ fontSize: '16px', fontWeight: 600, color: '#E8344E' }}>{ct.moreBlock}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ GIVEAWAY WINNER OVERLAY ═══ */}
+      {giveawayWinner && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 400, pointerEvents: 'none',
+          animation: 'soldFadeIn 0.4s ease',
+        }}>
+          <div style={{
+            position: 'absolute', inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+          }} />
+          <div style={{
+            position: 'relative', zIndex: 1,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '16px',
+            animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          }}>
+            <div style={{ fontSize: '52px', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              fontSize: '16px', color: 'rgba(255,215,0,0.6)',
+            }}>
+              ✦ ✦ ✦
+            </div>
+            <p style={{
+              fontSize: '32px', fontWeight: 900, color: '#FFD700',
+              textShadow: '0 2px 24px rgba(255,215,0,0.5)',
+              margin: 0, textAlign: 'center',
+            }}>
+              {giveawayWinner.name}
+            </p>
+            <p style={{
+              fontSize: '16px', fontWeight: 600, color: '#fff',
+              opacity: 0.8, margin: 0,
+            }}>
+              {ct.giftWinner}
+            </p>
+            <div style={{
+              display: 'flex', gap: '4px',
+              fontSize: '22px',
+              animation: 'giftStarsViewer 1.5s ease-in-out infinite',
+            }}>
+              ⭐ ✨ 🌟 ✨ ⭐
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ TOAST ═══ */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
+          left: '50%', transform: 'translateX(-50%)',
+          padding: '10px 20px',
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderRadius: '100px',
+          border: '1px solid rgba(255,255,255,0.15)',
+          zIndex: 500,
+          animation: 'toastIn 0.25s ease',
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+            {toastMessage}
+          </span>
+        </div>
+      )}
+
       <style>{`
+        @keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+        @keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
         @keyframes liveDot {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.3; }
@@ -2631,6 +3373,31 @@ export default function StreamView() {
           0% { transform: scale(0.3); opacity: 0; }
           50% { transform: scale(1.15); opacity: 1; }
           100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes giftBadgePulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0.4); }
+          50% { box-shadow: 0 0 0 6px rgba(255,215,0,0); }
+        }
+        @keyframes giftCardIn {
+          0% { transform: translateY(-8px) scale(0.95); opacity: 0; }
+          100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        @keyframes giftSpinViewer {
+          0% { transform: scale(0) rotate(-180deg); }
+          60% { transform: scale(1.3) rotate(10deg); }
+          100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes giftStarsViewer {
+          0%, 100% { transform: scale(1); opacity: 0.8; }
+          50% { transform: scale(1.15); opacity: 1; }
+        }
+        @keyframes waitingPulse {
+          0%, 100% { opacity: 0.3; transform: scale(0.8); }
+          50% { opacity: 1; transform: scale(1.2); }
+        }
+        @keyframes chatMsgIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
