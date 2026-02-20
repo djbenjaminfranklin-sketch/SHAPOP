@@ -451,6 +451,13 @@ export default function StreamView() {
   const isSeller = !!(user && stream && stream.seller_id === user.id)
   const isLive = stream?.status === 'live'
 
+  // Redirect seller to prepare-live page for their own scheduled streams
+  useEffect(() => {
+    if (isSeller && stream && stream.status === 'scheduled') {
+      navigate(`/prepare-live/${stream.id}`, { replace: true })
+    }
+  }, [isSeller, stream, navigate])
+
   // Check if user has a saved card (for bidding)
   useEffect(() => {
     if (!user || isSeller) return
@@ -1478,38 +1485,40 @@ export default function StreamView() {
             )}
 
             {/* ═══ NON-LIVE states (scheduled / ended) ═══ */}
-            {(!isSeller && !isLive) && (
+            {(!isLive) && (
               <div style={{ width: '100%', height: '100%' }}>
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  playsInline
-                />
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+                  {/* Back button */}
+                  <button
+                    onClick={() => navigate(-1)}
+                    style={{
+                      position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '16px',
+                      zIndex: 20, background: 'rgba(0,0,0,0.5)', border: 'none',
+                      borderRadius: '50%', width: '40px', height: '40px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                  </button>
                   <div className="text-center text-white">
                     <p className="text-5xl mb-4">{'\u{1F4FA}'}</p>
                     <p className="text-xl font-semibold">
                       {stream.status === 'scheduled' ? ct.liveStartsSoon : ct.liveEnded}
                     </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            {(isSeller && !isLive) && (
-              <div style={{ width: '100%', height: '100%' }}>
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  autoPlay
-                  playsInline
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                  <div className="text-center text-white">
-                    <p className="text-5xl mb-4">{'\u{1F4FA}'}</p>
-                    <p className="text-xl font-semibold">
-                      {stream.status === 'scheduled' ? ct.liveStartsSoon : ct.liveEnded}
-                    </p>
+                    <button
+                      onClick={() => navigate(-1)}
+                      style={{
+                        marginTop: '24px', padding: '12px 32px', borderRadius: '100px',
+                        background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                        border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {ct.close}
+                    </button>
                   </div>
                 </div>
               </div>

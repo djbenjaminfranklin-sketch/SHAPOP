@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
@@ -304,6 +304,30 @@ export default function SellerProfilePage() {
   const [stripeStatusFetched, setStripeStatusFetched] = useState(false)
 
   const isOwnProfile = user?.id === sellerId
+
+  // Swipe between tabs
+  const swipeStartX = useRef<number | null>(null)
+  const swipeStartY = useRef<number | null>(null)
+  const handleSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeStartX.current = e.touches[0].clientX
+    swipeStartY.current = e.touches[0].clientY
+  }, [])
+  const handleSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeStartX.current === null || swipeStartY.current === null) return
+    const dx = e.changedTouches[0].clientX - swipeStartX.current
+    const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY.current)
+    swipeStartX.current = null
+    swipeStartY.current = null
+    if (Math.abs(dx) < 50 || dy > Math.abs(dx)) return
+    type TabKey = 'shop' | 'lives' | 'reviews' | 'orders' | 'finances'
+    const allTabs: TabKey[] = isOwnProfile
+      ? ['shop', 'lives', 'reviews', 'orders', 'finances']
+      : ['shop', 'lives', 'reviews']
+    const idx = allTabs.indexOf(activeTab)
+    if (idx === -1) return
+    if (dx < 0 && idx < allTabs.length - 1) setActiveTab(allTabs[idx + 1])
+    if (dx > 0 && idx > 0) setActiveTab(allTabs[idx - 1])
+  }, [activeTab, isOwnProfile])
 
   // =============================================
   // Fetch seller profile data
@@ -770,7 +794,7 @@ export default function SellerProfilePage() {
       {/* =============================================
           TAB CONTENT
          ============================================= */}
-      <div style={{ padding: '16px' }}>
+      <div style={{ padding: '16px' }} onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
         {/* ---------- BOUTIQUE TAB ---------- */}
         {activeTab === 'shop' && (
           items.length === 0 ? (

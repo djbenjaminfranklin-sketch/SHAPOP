@@ -112,10 +112,62 @@ function OfflineBanner() {
   )
 }
 
+/** Apply user settings (theme, text size) from localStorage */
+function useAppSettings() {
+  useEffect(() => {
+    const applySettings = () => {
+      try {
+        const raw = localStorage.getItem('shapop_account_controls')
+        if (!raw) return
+        const s = JSON.parse(raw)
+
+        // Theme
+        const html = document.documentElement
+        if (s.appearance === 'light') {
+          html.style.filter = 'invert(1) hue-rotate(180deg)'
+          html.style.backgroundColor = '#fff'
+        } else if (s.appearance === 'auto') {
+          const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          html.style.filter = prefersDark ? '' : 'invert(1) hue-rotate(180deg)'
+          html.style.backgroundColor = prefersDark ? '' : '#fff'
+        } else {
+          html.style.filter = ''
+          html.style.backgroundColor = ''
+        }
+
+        // Text size
+        const sizes: Record<string, string> = { small: '14px', normal: '16px', large: '18px' }
+        html.style.fontSize = sizes[s.textSize] || '16px'
+      } catch { /* ignore */ }
+    }
+
+    applySettings()
+
+    // Listen for storage changes (from AccountControlsPage)
+    window.addEventListener('storage', applySettings)
+
+    // Also listen for custom event (same-tab updates)
+    window.addEventListener('shapop-settings-changed', applySettings)
+
+    // Auto theme listener
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleMediaChange = () => applySettings()
+    mq.addEventListener('change', handleMediaChange)
+
+    return () => {
+      window.removeEventListener('storage', applySettings)
+      window.removeEventListener('shapop-settings-changed', applySettings)
+      mq.removeEventListener('change', handleMediaChange)
+    }
+  }, [])
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true)
   const lang = useMemo(() => localStorage.getItem('shapop_lang') || 'fr', [])
   const dir = lang === 'he' ? 'rtl' : 'ltr'
+
+  useAppSettings()
 
   useEffect(() => {
     // Use touchstart (fires ~40ms before pointerdown on iOS) for instant feedback

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -94,6 +94,7 @@ function loadSettings(): ControlSettings {
 
 function saveSettings(s: ControlSettings) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
+  window.dispatchEvent(new Event('shapop-settings-changed'))
 }
 
 export default function AccountControlsPage() {
@@ -171,6 +172,26 @@ export default function AccountControlsPage() {
     { key: 'settings', label: tx('Parametres', 'Settings', 'הגדרות', 'Parametros', lang) },
   ]
 
+  // Swipe between tabs
+  const touchStartX = useRef<number | null>(null)
+  const touchStartY = useRef<number | null>(null)
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }, [])
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const dx = e.changedTouches[0].clientX - touchStartX.current
+    const dy = Math.abs(e.changedTouches[0].clientY - touchStartY.current)
+    touchStartX.current = null
+    touchStartY.current = null
+    if (Math.abs(dx) < 50 || dy > Math.abs(dx)) return
+    const tabKeys = tabs.map(t => t.key)
+    const idx = tabKeys.indexOf(activeTab)
+    if (dx < 0 && idx < tabKeys.length - 1) setActiveTab(tabKeys[idx + 1])
+    if (dx > 0 && idx > 0) setActiveTab(tabKeys[idx - 1])
+  }, [activeTab, tabs])
+
   const toggleStyle = (enabled: boolean): React.CSSProperties => ({
     width: '48px', height: '28px', borderRadius: '14px',
     backgroundColor: enabled ? '#22C55E' : '#333',
@@ -228,7 +249,7 @@ export default function AccountControlsPage() {
         ))}
       </div>
 
-      <div style={{ padding: '20px 16px' }}>
+      <div style={{ padding: '20px 16px' }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         {/* ═══════ WATCH TIME TAB ═══════ */}
         {activeTab === 'watch' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

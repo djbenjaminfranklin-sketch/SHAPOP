@@ -622,6 +622,27 @@ export default function ActivityPage() {
     { id: 'favorites', label: lt.favoritesTab, emoji: '\u2764\uFE0F' },
   ]
 
+  // Swipe between tabs
+  const swipeStartX = useRef<number | null>(null)
+  const swipeStartY = useRef<number | null>(null)
+  const handleSwipeStart = useCallback((e: React.TouchEvent) => {
+    swipeStartX.current = e.touches[0].clientX
+    swipeStartY.current = e.touches[0].clientY
+  }, [])
+  const handleSwipeEnd = useCallback((e: React.TouchEvent) => {
+    if (swipeStartX.current === null || swipeStartY.current === null) return
+    const dx = e.changedTouches[0].clientX - swipeStartX.current
+    const dy = Math.abs(e.changedTouches[0].clientY - swipeStartY.current)
+    swipeStartX.current = null
+    swipeStartY.current = null
+    if (Math.abs(dx) < 50 || dy > Math.abs(dx)) return
+    const tabIds: MainTab[] = mainTabs.map(t => t.id).filter(id => id !== 'messages') as MainTab[]
+    const idx = tabIds.indexOf(mainTab)
+    if (idx === -1) return
+    if (dx < 0 && idx < tabIds.length - 1) { setMainTab(tabIds[idx + 1]); setSubFilter('all') }
+    if (dx > 0 && idx > 0) { setMainTab(tabIds[idx - 1]); setSubFilter('all') }
+  }, [mainTab, mainTabs])
+
   const subFilters: { id: SubFilter; label: string }[] = [
     { id: 'all', label: { fr: 'Toutes', en: 'All', he: '\u05D4\u05DB\u05DC', es: 'Todas' }[lang] || 'Toutes' },
     { id: 'active', label: { fr: 'En cours', en: 'Active', he: '\u05E4\u05E2\u05D9\u05DC', es: 'Activas' }[lang] || 'En cours' },
@@ -1314,7 +1335,9 @@ export default function ActivityPage() {
         )}
 
         {/* Content */}
-        {renderContent()}
+        <div onTouchStart={handleSwipeStart} onTouchEnd={handleSwipeEnd}>
+          {renderContent()}
+        </div>
       </div>
 
       {/* Shipping modal (seller uploads proof) */}

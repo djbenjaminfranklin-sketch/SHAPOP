@@ -776,7 +776,7 @@ export default function PrepareLivePage() {
               </span>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {[1, 2, 3, 5, 7].map(d => (
+              {[2, 3, 4].map(d => (
                 <button
                   key={d}
                   onClick={() => handleShippingDelayChange(d)}
