@@ -303,6 +303,172 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
 })
 
 // =============================================
+// POST /api/orders/group-label — Generate one label for multiple orders (same buyer)
+// Seller groups orders, enters weight, gets one Mondial Relay label
+// =============================================
+router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { order_ids, weight_grams } = req.body
+
+    if (!Array.isArray(order_ids) || order_ids.length === 0) {
+      res.status(400).json({ error: 'order_ids required' })
+      return
+    }
+    if (!weight_grams || Number(weight_grams) <= 0) {
+      res.status(400).json({ error: 'weight_grams required (> 0)' })
+      return
+    }
+
+    if (!isMondialRelayShipmentConfigured()) {
+      res.status(503).json({ error: 'Mondial Relay shipment API not configured' })
+      return
+    }
+
+    // Fetch all orders
+    const { data: orders, error: fetchErr } = await supabase
+      .from('orders')
+      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name')
+      .in('id', order_ids)
+
+    if (fetchErr || !orders || orders.length === 0) {
+      res.status(404).json({ error: 'Orders not found' })
+      return
+    }
+
+    // Verify all orders belong to this seller
+    if (orders.some(o => o.seller_id !== userId)) {
+      res.status(403).json({ error: 'Not your orders' })
+      return
+    }
+
+    // Verify all orders are from the same buyer
+    const buyerIds = [...new Set(orders.map(o => o.buyer_id))]
+    if (buyerIds.length > 1) {
+      res.status(400).json({ error: 'All orders must be from the same buyer' })
+      return
+    }
+
+    // Verify all orders are paid
+    if (orders.some(o => !['paid', 'shipped'].includes(o.status))) {
+      res.status(400).json({ error: 'All orders must be paid' })
+      return
+    }
+
+    // If any order already has a label, return it
+    const existingLabel = orders.find(o => o.label_url && o.tracking_number)
+    if (existingLabel) {
+      res.json({
+        shipment_number: existingLabel.tracking_number,
+        label_url: existingLabel.label_url,
+        tracking_url: getMondialRelayTrackingUrl(existingLabel.tracking_number!),
+        already_exists: true,
+      })
+      return
+    }
+
+    // Use the first order's shipping address
+    const primaryOrder = orders.find(o => o.shipping_address) || orders[0]
+    if (!primaryOrder.shipping_address) {
+      res.status(400).json({ error: 'Buyer has not provided a shipping address' })
+      return
+    }
+
+    // Get item titles for the label content
+    const { data: items } = await supabase
+      .from('items')
+      .select('title')
+      .in('id', orders.map(o => o.item_id))
+
+    const content = items?.map(i => i.title).join(', ').slice(0, 60) || 'Articles ShaPop'
+
+    // Get seller address
+    const { data: seller } = await supabase
+      .from('sellers')
+      .select('return_address, store_name')
+      .eq('id', userId)
+      .single()
+
+    const { data: sellerProfile } = await supabase
+      .from('profiles')
+      .select('display_name, phone_number')
+      .eq('id', userId)
+      .single()
+
+    const returnAddr = seller?.return_address as Record<string, string> | null
+    if (!returnAddr || !returnAddr.street || !returnAddr.city || !returnAddr.zip) {
+      res.status(400).json({ error: 'Seller must set a return address before generating labels' })
+      return
+    }
+
+    const buyerAddr = primaryOrder.shipping_address as Record<string, string>
+    const buyerNameParts = (buyerAddr.name || '').split(' ')
+
+    const { data: buyerProfile } = await supabase
+      .from('profiles')
+      .select('phone_number')
+      .eq('id', buyerIds[0])
+      .single()
+
+    const result = await createShipment({
+      orderNo: primaryOrder.id.slice(0, 15),
+      weight: Number(weight_grams),
+      content,
+      sender: {
+        firstname: sellerProfile?.display_name?.split(' ')[0] || 'ShaPop',
+        lastname: sellerProfile?.display_name?.split(' ').slice(1).join(' ') || 'Seller',
+        street: returnAddr.street,
+        postCode: returnAddr.zip,
+        city: returnAddr.city,
+        countryCode: returnAddr.country || 'FR',
+        phone: sellerProfile?.phone_number || '',
+        mobile: sellerProfile?.phone_number || '',
+      },
+      recipient: {
+        firstname: buyerNameParts[0] || 'Acheteur',
+        lastname: buyerNameParts.slice(1).join(' ') || 'ShaPop',
+        street: buyerAddr.street || '',
+        postCode: buyerAddr.zip || '',
+        city: buyerAddr.city || '',
+        countryCode: buyerAddr.country || 'FR',
+        phone: buyerAddr.phone || buyerProfile?.phone_number || '',
+        mobile: buyerAddr.phone || buyerProfile?.phone_number || '',
+      },
+      relayPointId: primaryOrder.relay_point_id || undefined,
+    })
+
+    if (result.error || !result.shipmentNumber) {
+      console.error('[shipping] Group label creation failed:', result.error)
+      res.status(502).json({ error: result.error || 'Failed to create shipment' })
+      return
+    }
+
+    // Update ALL orders with the same tracking info
+    await supabase
+      .from('orders')
+      .update({
+        tracking_number: result.shipmentNumber,
+        carrier: 'mondial_relay',
+        label_url: result.labelUrl,
+        tracking_status: 'pending',
+      })
+      .in('id', order_ids)
+
+    console.log(`[MondialRelay] Group label for ${order_ids.length} orders: ${result.shipmentNumber}`)
+
+    res.json({
+      shipment_number: result.shipmentNumber,
+      label_url: result.labelUrl,
+      tracking_url: getMondialRelayTrackingUrl(result.shipmentNumber),
+      orders_updated: order_ids.length,
+    })
+  } catch (err) {
+    console.error('[shipping] Group label error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // GET /api/orders/:id/mondial-relay-tracking — Get MR tracking details
 // =============================================
 router.get('/api/orders/:id/mondial-relay-tracking', requireAuth, async (req: AuthenticatedRequest, res: Response) => {

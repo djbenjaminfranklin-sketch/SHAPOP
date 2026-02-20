@@ -33,6 +33,231 @@ interface SaleOrder extends Order {
   buyer_profile?: { display_name: string; username: string }
 }
 
+// Grouped order card for same-buyer shipments
+function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate }: {
+  group: SaleOrder[]
+  buyerName: string
+  totalAmount: number
+  index: number
+  mounted: boolean
+  lang: string
+  formatAmount: (n: number) => string
+  formatDate: (s: string) => string
+  getItemImage: (item: any) => string | null
+  navigate: (path: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const [weightInput, setWeightInput] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleGenerateLabel = async () => {
+    const weight = parseInt(weightInput)
+    if (!weight || weight <= 0) {
+      setError(lang === 'fr' ? 'Entre le poids du colis (en grammes)' : 'Enter package weight (in grams)')
+      return
+    }
+    setGenerating(true)
+    setError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setError('Non connecte'); setGenerating(false); return }
+
+      const resp = await apiFetch('/api/orders/group-label', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          order_ids: group.map(o => o.id),
+          weight_grams: weight,
+        }),
+      })
+      const data = await resp.json()
+      if (resp.ok) {
+        setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
+        if (data.label_url) window.open(data.label_url, '_blank')
+      } else {
+        setError(data.error || 'Erreur')
+      }
+    } catch {
+      setError('Erreur reseau')
+    }
+    setGenerating(false)
+  }
+
+  const groupLabels = {
+    fr: { items: 'articles', total: 'Total', weight: 'Poids du colis (g)', generate: 'Generer l\'etiquette MR', labelReady: 'Etiquette prete', openLabel: 'Ouvrir', groupShip: 'Envoi groupe' },
+    en: { items: 'items', total: 'Total', weight: 'Package weight (g)', generate: 'Generate MR label', labelReady: 'Label ready', openLabel: 'Open', groupShip: 'Grouped shipment' },
+    he: { items: 'פריטים', total: 'סה"כ', weight: 'משקל החבילה (ג)', generate: 'הפק תווית MR', labelReady: 'תווית מוכנה', openLabel: 'פתח', groupShip: 'משלוח מרוכז' },
+    es: { items: 'articulos', total: 'Total', weight: 'Peso del paquete (g)', generate: 'Generar etiqueta MR', labelReady: 'Etiqueta lista', openLabel: 'Abrir', groupShip: 'Envio agrupado' },
+  }
+  const gl = groupLabels[lang as keyof typeof groupLabels] || groupLabels.fr
+
+  return (
+    <div style={{
+      marginBottom: '12px',
+      backgroundColor: '#0D0D0D', borderRadius: '14px',
+      border: '1px solid rgba(59,130,246,0.3)',
+      opacity: mounted ? 1 : 0,
+      transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
+      transition: `all 0.4s ease ${0.1 + index * 0.05}s`,
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          padding: '14px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}
+      >
+        {/* Stacked item thumbnails */}
+        <div style={{ position: 'relative', width: '52px', height: '52px', flexShrink: 0 }}>
+          {group.slice(0, 3).map((o, i) => {
+            const img = getItemImage(o.item)
+            return img ? (
+              <img key={o.id} src={img} alt="" style={{
+                position: 'absolute',
+                top: i * 4, left: i * 4,
+                width: '44px', height: '44px',
+                borderRadius: '10px', objectFit: 'cover',
+                border: '2px solid #0D0D0D',
+                zIndex: 3 - i,
+              }} />
+            ) : null
+          })}
+          {!getItemImage(group[0].item) && (
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '12px',
+              backgroundColor: '#111', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '24px',
+            }}>
+              {'\uD83D\uDCE6'}
+            </div>
+          )}
+        </div>
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{buyerName}</span>
+            <span style={{
+              fontSize: '10px', fontWeight: 700, color: '#3B82F6',
+              backgroundColor: 'rgba(59,130,246,0.12)',
+              padding: '2px 8px', borderRadius: '100px',
+              border: '1px solid rgba(59,130,246,0.25)',
+            }}>
+              {group.length} {gl.items}
+            </span>
+          </div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: '#F0908A', margin: 0 }}>
+            {gl.total}: {formatAmount(totalAmount)}
+          </p>
+          <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>
+            {formatDate(group[0].created_at)}
+          </p>
+        </div>
+
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+
+      {/* Expanded: item list + weight + label */}
+      {expanded && (
+        <div style={{ padding: '0 14px 14px', borderTop: '1px solid #1A1A1A' }}>
+          {/* Item list */}
+          {group.map(order => (
+            <div key={order.id} onClick={() => navigate(`/order/${order.id}`)} style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 0', borderBottom: '1px solid #111', cursor: 'pointer',
+            }}>
+              {getItemImage(order.item) ? (
+                <img src={getItemImage(order.item)!} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+              ) : (
+                <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{'\uD83D\uDCB0'}</div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {order.item?.title || order.id.slice(0, 8)}
+                </p>
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                {formatAmount(order.amount)}
+              </span>
+            </div>
+          ))}
+
+          {/* Label generation */}
+          {labelResult ? (
+            <div style={{
+              marginTop: '12px', padding: '12px', borderRadius: '10px',
+              backgroundColor: 'rgba(16,185,129,0.08)',
+              border: '1px solid rgba(16,185,129,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            }}>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>
+                  {gl.labelReady}
+                </p>
+                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>
+                  # {labelResult.shipment_number}
+                </p>
+              </div>
+              <button onClick={() => window.open(labelResult.label_url, '_blank')} style={{
+                padding: '8px 16px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #10B981, #059669)',
+                border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+              }}>
+                {gl.openLabel}
+              </button>
+            </div>
+          ) : (
+            <div style={{ marginTop: '12px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '8px' }}>
+                {gl.groupShip} — {group.length} {gl.items}
+              </p>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="number"
+                  placeholder={gl.weight}
+                  value={weightInput}
+                  onChange={e => { setWeightInput(e.target.value); setError(null) }}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: '10px',
+                    backgroundColor: '#111', border: '1px solid #333',
+                    color: '#fff', fontSize: '14px', fontWeight: 600,
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={handleGenerateLabel}
+                  disabled={generating}
+                  style={{
+                    padding: '10px 18px', borderRadius: '10px',
+                    background: generating ? '#333' : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                    border: 'none', color: '#fff', fontSize: '13px',
+                    fontWeight: 700, cursor: generating ? 'default' : 'pointer',
+                    whiteSpace: 'nowrap', opacity: generating ? 0.6 : 1,
+                  }}
+                >
+                  {generating ? '...' : gl.generate}
+                </button>
+              </div>
+              {error && (
+                <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '6px' }}>{error}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ActivityPage() {
   const { user, profile } = useAuth()
   const lang = getLang()
@@ -1113,9 +1338,49 @@ export default function ActivityPage() {
       )
     }
 
+    // Group PAID orders by buyer_id
+    const paidOrders = filtered.filter(o => o.status === 'paid')
+    const otherOrders = filtered.filter(o => o.status !== 'paid')
+    const grouped: Record<string, SaleOrder[]> = {}
+    for (const o of paidOrders) {
+      const key = o.buyer_id
+      if (!grouped[key]) grouped[key] = []
+      grouped[key].push(o)
+    }
+    const buyerGroups = Object.values(grouped).filter(g => g.length > 1)
+    const ungroupedPaid = Object.values(grouped).filter(g => g.length === 1).map(g => g[0])
+
     return (
       <div style={{ padding: '0 16px' }}>
-        {filtered.map((order, i) => renderOrderCard(order, i, true))}
+        {/* Grouped orders by buyer (2+ items) */}
+        {buyerGroups.map((group, gi) => {
+          const buyer = group[0].buyer_profile
+          const buyerName = buyer?.display_name || buyer?.username || 'Acheteur'
+          const totalAmount = group.reduce((sum, o) => sum + o.amount, 0)
+          const groupKey = group[0].buyer_id
+
+          return (
+            <GroupedOrderCard
+              key={groupKey}
+              group={group}
+              buyerName={buyerName}
+              totalAmount={totalAmount}
+              index={gi}
+              mounted={mounted}
+              lang={lang}
+              formatAmount={formatAmount}
+              formatDate={formatDate}
+              getItemImage={getItemImage}
+              navigate={navigate}
+            />
+          )
+        })}
+
+        {/* Single paid orders (not grouped) */}
+        {ungroupedPaid.map((order, i) => renderOrderCard(order, buyerGroups.length + i, true))}
+
+        {/* Non-paid orders */}
+        {otherOrders.map((order, i) => renderOrderCard(order, buyerGroups.length + ungroupedPaid.length + i, true))}
       </div>
     )
   }
