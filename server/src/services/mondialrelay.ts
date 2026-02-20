@@ -14,8 +14,14 @@ const MR_API2_LOGIN = process.env.MONDIAL_RELAY_API2_LOGIN || ''
 const MR_API2_PASSWORD = process.env.MONDIAL_RELAY_API2_PASSWORD || ''
 const MR_CUSTOMER_ID = process.env.MONDIAL_RELAY_CUSTOMER_ID || ''
 
-const SOAP_URL = 'https://api.mondialrelay.com/Web_Services.asmx'
-const REST_URL = 'https://connect-api.mondialrelay.com/api/shipment'
+const MR_SANDBOX = process.env.MONDIAL_RELAY_SANDBOX === 'true'
+
+const SOAP_URL = MR_SANDBOX
+  ? 'https://api.mondialrelay.com/Web_Services.asmx' // same URL, test via credentials
+  : 'https://api.mondialrelay.com/Web_Services.asmx'
+const REST_URL = MR_SANDBOX
+  ? 'https://connect-sandbox-api.mondialrelay.com/api/shipment'
+  : 'https://connect-api.mondialrelay.com/api/shipment'
 
 const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
 
