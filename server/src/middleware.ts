@@ -106,6 +106,7 @@ export const paymentLimiter = rateLimit({
     const auth = req.headers.authorization
     return auth ? auth.split('Bearer ')[1]?.slice(0, 20) || req.ip || 'unknown' : req.ip || 'unknown'
   },
+  validate: false,
 })
 
 export const disputeLimiter = rateLimit({
@@ -134,6 +135,7 @@ export const reportLimiter = rateLimit({
     const auth = req.headers.authorization
     return auth ? auth.split('Bearer ')[1]?.slice(0, 20) || req.ip || 'unknown' : req.ip || 'unknown'
   },
+  validate: false,
 })
 
 export const createLimiter = rateLimit({
