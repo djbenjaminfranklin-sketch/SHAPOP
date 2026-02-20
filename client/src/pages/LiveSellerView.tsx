@@ -558,8 +558,11 @@ export default function LiveSellerView() {
 
   const handleLaunchGiveaway = async () => {
     if (!giveawayPrize.trim() || !streamId) return
-    if (!sessionToken) {
-      showToast('Erreur: session expirée')
+    // Always get a fresh token
+    const { data: freshSession } = await supabase.auth.getSession()
+    const token = freshSession.session?.access_token
+    if (!token) {
+      showToast('Erreur: reconnecte-toi')
       return
     }
     try {
@@ -567,7 +570,7 @@ export default function LiveSellerView() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ prize_description: giveawayPrize.trim() }),
       })
@@ -576,22 +579,24 @@ export default function LiveSellerView() {
         setActiveGiveaway(gw)
         setShowGiveawayForm(false)
         setGiveawayPrize('')
-        showToast('Cadeau lancé !')
+        showToast('Cadeau lance !')
       } else {
-        const err = await resp.json().catch(() => ({ error: 'Unknown error' }))
+        const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }))
         console.error('Giveaway launch error:', resp.status, err)
-        showToast(err.error || 'Erreur lors du lancement')
+        showToast(`Erreur: ${err.error || resp.status}`)
       }
     } catch (err) {
       console.error('Failed to launch giveaway:', err)
-      showToast('Erreur réseau')
+      showToast('Erreur reseau')
     }
   }
 
   const handleDrawWinner = async () => {
     if (!activeGiveaway) return
-    if (!sessionToken) {
-      showToast('Erreur: session expirée')
+    const { data: freshSession } = await supabase.auth.getSession()
+    const token = freshSession.session?.access_token
+    if (!token) {
+      showToast('Erreur: reconnecte-toi')
       return
     }
     setGiveawayDrawing(true)
@@ -600,7 +605,7 @@ export default function LiveSellerView() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionToken}`,
+          'Authorization': `Bearer ${token}`,
         },
       })
       if (resp.ok) {
@@ -690,14 +695,20 @@ export default function LiveSellerView() {
 
     const autoResolve = async () => {
       // Use server API to resolve auction (bypasses RLS for reading bids + updating item)
-      if (!sessionToken) return
+      // Get fresh token to avoid stale session issues during long lives
+      const { data: freshSession } = await supabase.auth.getSession()
+      const freshToken = freshSession.session?.access_token
+      if (!freshToken) {
+        console.error('autoResolve: no fresh token available')
+        return
+      }
 
       try {
         const resp = await apiFetch(`/api/items/${currentItem.id}/end-auction`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`,
+            'Authorization': `Bearer ${freshToken}`,
           },
         })
 
@@ -802,18 +813,20 @@ export default function LiveSellerView() {
     if (dbError) {
       console.error('Failed to activate item in DB:', dbError)
       // Fallback: try via API server (bypasses RLS)
-      if (sessionToken) {
-        try {
+      try {
+        const { data: fs } = await supabase.auth.getSession()
+        const tk = fs.session?.access_token
+        if (tk) {
           await apiFetch(`/api/items/${currentItem.id}/activate`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${sessionToken}`,
+              'Authorization': `Bearer ${tk}`,
             },
           })
-        } catch (err) {
-          console.error('API activate fallback also failed:', err)
         }
+      } catch (err) {
+        console.error('API activate fallback also failed:', err)
       }
     }
 
@@ -869,18 +882,31 @@ export default function LiveSellerView() {
       mediaStreamRef.current = null
     }
 
-    if (streamId && sessionToken) {
-      // End LiveKit stream via API
-      try {
-        await apiFetch(`/api/streams/${streamId}/end-livekit-stream`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionToken}`,
-          },
-        })
-      } catch {
-        // Fallback: update status directly
+    if (streamId) {
+      // End LiveKit stream via API (use fresh token)
+      const { data: endSession } = await supabase.auth.getSession()
+      const endToken = endSession.session?.access_token
+      if (endToken) {
+        try {
+          await apiFetch(`/api/streams/${streamId}/end-livekit-stream`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${endToken}`,
+            },
+          })
+        } catch {
+          // Fallback: update status directly
+          await supabase
+            .from('streams')
+            .update({
+              status: 'ended' as const,
+              ended_at: new Date().toISOString(),
+            })
+            .eq('id', streamId)
+        }
+      } else {
+        // No token available, update directly
         await supabase
           .from('streams')
           .update({
@@ -889,14 +915,6 @@ export default function LiveSellerView() {
           })
           .eq('id', streamId)
       }
-    } else if (streamId) {
-      await supabase
-        .from('streams')
-        .update({
-          status: 'ended' as const,
-          ended_at: new Date().toISOString(),
-        })
-        .eq('id', streamId)
     }
 
     // Unlock body BEFORE showing the ended screen
