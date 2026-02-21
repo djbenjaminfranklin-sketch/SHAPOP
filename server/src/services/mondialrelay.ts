@@ -19,7 +19,9 @@ const MR_SANDBOX = process.env.MONDIAL_RELAY_SANDBOX === 'true'
 const SOAP_URL = MR_SANDBOX
   ? 'https://api.mondialrelay.com/Web_Services.asmx' // same URL, test via credentials
   : 'https://api.mondialrelay.com/Web_Services.asmx'
-const REST_URL = 'https://connect-api.mondialrelay.com/api/shipment' // sandbox uses same URL with sandbox credentials
+const REST_URL = MR_SANDBOX
+  ? 'https://connect-sandbox-api.mondialrelay.com/api/shipment'
+  : 'https://connect-api.mondialrelay.com/api/shipment'
 
 const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
 
