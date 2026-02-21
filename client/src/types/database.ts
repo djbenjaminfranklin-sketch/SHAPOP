@@ -164,6 +164,7 @@ export interface Order {
   relay_point_id: string | null
   relay_point_name: string | null
   label_url: string | null
+  purchase_stream_offset_seconds: number | null
   created_at: string
 }
 

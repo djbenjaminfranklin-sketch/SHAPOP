@@ -547,7 +547,7 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
     // Recent orders: last 50 with item title + buyer name
     const { data: recentOrdersRaw } = await supabase
       .from('orders')
-      .select('id, amount, seller_payout, status, created_at, item_id, buyer_id, label_url, tracking_number, carrier')
+      .select('id, amount, seller_payout, status, created_at, item_id, buyer_id, label_url, tracking_number, carrier, stream_id, purchase_stream_offset_seconds')
       .eq('seller_id', userId)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -579,6 +579,21 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       }
     }
 
+    // Fetch recording URLs for streams linked to orders
+    const streamIds = [...new Set(recentArr.map((o: Record<string, unknown>) => o.stream_id as string).filter(Boolean))]
+    let streamRecordings: Record<string, string> = {}
+    if (streamIds.length > 0) {
+      const { data: streams } = await supabase
+        .from('streams')
+        .select('id, recording_url')
+        .in('id', streamIds)
+      if (streams) {
+        streamRecordings = Object.fromEntries(
+          streams.filter((s: Record<string, unknown>) => s.recording_url).map((s: Record<string, unknown>) => [s.id as string, s.recording_url as string])
+        )
+      }
+    }
+
     const recent_orders = recentArr.map((o: Record<string, unknown>) => ({
       id: o.id,
       item_title: itemTitles[o.item_id as string] || 'Unknown item',
@@ -591,6 +606,9 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       label_url: o.label_url || null,
       tracking_number: o.tracking_number || null,
       carrier: o.carrier || null,
+      stream_id: o.stream_id || null,
+      purchase_stream_offset_seconds: o.purchase_stream_offset_seconds ?? null,
+      recording_url: o.stream_id ? (streamRecordings[o.stream_id as string] || null) : null,
     }))
 
     res.json({

@@ -256,6 +256,9 @@ interface RecentOrder {
   label_url?: string | null
   tracking_number?: string | null
   carrier?: string | null
+  stream_id?: string | null
+  purchase_stream_offset_seconds?: number | null
+  recording_url?: string | null
 }
 
 interface DashboardData {
@@ -269,7 +272,7 @@ interface DashboardData {
 // =============================================
 // BuyerGroupCard — grouped orders from same buyer
 // =============================================
-function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabel, navigate }: {
+function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabel, navigate, onVideoMoment }: {
   group: RecentOrder[]
   buyerName: string
   total: number
@@ -277,6 +280,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
   statusColor: Record<string, string>
   statusLabel: (s: string) => string
   navigate: (path: string) => void
+  onVideoMoment?: (url: string, title: string, offset: number) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const itemsLabel = lang === 'fr' ? 'articles' : lang === 'es' ? 'articulos' : 'items'
@@ -361,6 +365,25 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                   </span>
                 </div>
               </div>
+              {order.recording_url && order.purchase_stream_offset_seconds != null && onVideoMoment && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onVideoMoment(order.recording_url!, order.item_title || 'Video', order.purchase_stream_offset_seconds!)
+                  }}
+                  style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0, padding: 0,
+                  }}
+                  title={lang === 'fr' ? 'Voir le moment' : 'See moment'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                </button>
+              )}
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
                 {(order.amount || 0).toFixed(2)}&euro;
               </span>
@@ -1297,7 +1320,8 @@ export default function SellerProfilePage() {
                     false, () => {}
                   ]
                   return <BuyerGroupCard key={gi} group={group} buyerName={buyerName} total={total}
-                    lang={lang} statusColor={statusColor} statusLabel={statusLabel} navigate={navigate} />
+                    lang={lang} statusColor={statusColor} statusLabel={statusLabel} navigate={navigate}
+                    onVideoMoment={(url, title, offset) => setVodModal({ url, title, offset })} />
                 })}
                 {/* Single orders */}
                 {ungrouped.map(order => (
@@ -1341,6 +1365,21 @@ export default function SellerProfilePage() {
                             style={{ fontSize: '10px', fontWeight: 700, color: '#22C55E', backgroundColor: 'rgba(34,197,94,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
                           >
                             {'\uD83D\uDCE6'} {lang === 'fr' ? 'Etiquette' : 'Label'}
+                          </span>
+                        )}
+                        {order.recording_url && order.purchase_stream_offset_seconds != null && (
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setVodModal({
+                                url: order.recording_url!,
+                                title: order.item_title || 'Video',
+                                offset: order.purchase_stream_offset_seconds!,
+                              })
+                            }}
+                            style={{ fontSize: '10px', fontWeight: 700, color: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
+                          >
+                            {lang === 'fr' ? 'Voir le moment' : 'See moment'}
                           </span>
                         )}
                       </div>

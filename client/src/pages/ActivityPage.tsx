@@ -8,6 +8,7 @@ import { getLang } from '../lib/i18n'
 import type { Order, Item, Stream } from '../types/database'
 import StreamCard from '../components/StreamCard'
 import ItemCard from '../components/ItemCard'
+import VodPlayer from '../components/VodPlayer'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
@@ -27,11 +28,13 @@ function formatTimeRemaining(deadline: string): string {
 
 interface PurchaseOrder extends Order {
   item?: Pick<Item, 'title' | 'image_urls' | 'category'>
+  stream?: { recording_url: string | null } | null
 }
 
 interface SaleOrder extends Order {
   item?: Pick<Item, 'title' | 'image_urls' | 'category'>
   buyer_profile?: { display_name: string; username: string }
+  stream?: { recording_url: string | null } | null
 }
 
 // Inline shipping section for a single paid order (weight + label)
@@ -159,7 +162,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
 }
 
 // Grouped order card for same-buyer shipments (all statuses)
-function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate, onLabelGenerated }: {
+function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate, onLabelGenerated, onVideoMoment }: {
   group: SaleOrder[]
   buyerName: string
   totalAmount: number
@@ -171,6 +174,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
   getItemImage: (item: any) => string | null
   navigate: (path: string) => void
   onLabelGenerated?: () => void
+  onVideoMoment?: (url: string, title: string, offset: number) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [weightInput, setWeightInput] = useState('')
@@ -381,6 +385,25 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                 }}>
                   {sl}
                 </span>
+                {order.stream?.recording_url && order.purchase_stream_offset_seconds != null && onVideoMoment && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onVideoMoment(order.stream!.recording_url!, order.item?.title || 'Video', order.purchase_stream_offset_seconds!)
+                    }}
+                    style={{
+                      width: '28px', height: '28px', borderRadius: '50%',
+                      background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer', flexShrink: 0, padding: 0,
+                    }}
+                    title={lang === 'fr' ? 'Voir le moment' : 'See moment'}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                  </button>
+                )}
                 <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
                   {formatAmount(order.amount)}
                 </span>
@@ -501,6 +524,9 @@ export default function ActivityPage() {
   const [subFilter, setSubFilter] = useState<SubFilter>('all')
   const [mounted, setMounted] = useState(false)
 
+  // VodPlayer modal
+  const [vodModal, setVodModal] = useState<{ url: string; title: string; offset?: number } | null>(null)
+
   // Data states
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([])
   const [sales, setSales] = useState<SaleOrder[]>([])
@@ -585,7 +611,7 @@ export default function ActivityPage() {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, item:items(title, image_urls, category)')
+        .select('*, item:items(title, image_urls, category), stream:streams(recording_url)')
         .eq('buyer_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -607,7 +633,7 @@ export default function ActivityPage() {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, item:items(title, image_urls, category), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username)')
+        .select('*, item:items(title, image_urls, category), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username), stream:streams(recording_url)')
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false })
 
@@ -885,6 +911,7 @@ export default function ActivityPage() {
       disputeOpen: 'Litige ouvert',
       contactSeller: 'Contacter le vendeur',
       contactBuyer: 'Contacter l\'acheteur',
+      seeVideoMoment: 'Voir le moment',
       shippingLabel: 'Etiquette d\'envoi',
       packagePhoto: 'Photo du colis',
       contentPhoto: 'Photo du contenu',
@@ -943,6 +970,7 @@ export default function ActivityPage() {
       disputeOpen: 'Dispute open',
       contactSeller: 'Contact seller',
       contactBuyer: 'Contact buyer',
+      seeVideoMoment: 'See moment',
       shippingLabel: 'Shipping label',
       packagePhoto: 'Package photo',
       contentPhoto: 'Content photo',
@@ -1001,6 +1029,7 @@ export default function ActivityPage() {
       disputeOpen: '\u05DE\u05D7\u05DC\u05D5\u05E7\u05EA \u05E4\u05EA\u05D5\u05D7\u05D4',
       contactSeller: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05DE\u05D5\u05DB\u05E8',
       contactBuyer: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8 \u05E2\u05DD \u05D4\u05E7\u05D5\u05E0\u05D4',
+      seeVideoMoment: '\u05E6\u05E4\u05D4 \u05D1\u05E8\u05D2\u05E2',
       shippingLabel: '\u05EA\u05D5\u05D5\u05D9\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
       packagePhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05D7\u05D1\u05D9\u05DC\u05D4',
       contentPhoto: '\u05EA\u05DE\u05D5\u05E0\u05EA \u05EA\u05D5\u05DB\u05DF',
@@ -1059,6 +1088,7 @@ export default function ActivityPage() {
       disputeOpen: 'Disputa abierta',
       contactSeller: 'Contactar al vendedor',
       contactBuyer: 'Contactar al comprador',
+      seeVideoMoment: 'Ver momento',
       shippingLabel: 'Etiqueta de envio',
       packagePhoto: 'Foto del paquete',
       contentPhoto: 'Foto del contenido',
@@ -1481,6 +1511,33 @@ export default function ActivityPage() {
           </div>
         )}
 
+        {/* Video moment button — replay the purchase instant */}
+        {order.stream?.recording_url && order.purchase_stream_offset_seconds != null && (
+          <div style={{ marginTop: '10px' }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setVodModal({
+                  url: order.stream!.recording_url!,
+                  title: order.item?.title || 'Video',
+                  offset: order.purchase_stream_offset_seconds!,
+                })
+              }}
+              style={{
+                padding: '7px 14px', borderRadius: '8px',
+                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
+                color: '#8B5CF6', fontSize: '12px', fontWeight: 600,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              {lt.seeVideoMoment}
+            </button>
+          </div>
+        )}
+
         {/* "Contacter" button for paid/shipped/delivered orders */}
         {['paid', 'shipped', 'delivered'].includes(order.status) && (
           <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-start' }}>
@@ -1596,6 +1653,7 @@ export default function ActivityPage() {
               getItemImage={getItemImage}
               navigate={navigate}
               onLabelGenerated={fetchSales}
+              onVideoMoment={(url, title, offset) => setVodModal({ url, title, offset })}
             />
           )
         })}
@@ -2016,6 +2074,16 @@ export default function ActivityPage() {
             }}
           />
         </div>
+      )}
+
+      {/* VodPlayer modal */}
+      {vodModal && (
+        <VodPlayer
+          recordingUrl={vodModal.url}
+          title={vodModal.title}
+          startOffset={vodModal.offset}
+          onClose={() => setVodModal(null)}
+        />
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>

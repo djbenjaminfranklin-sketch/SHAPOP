@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import ShippingLabel from '../components/ShippingLabel'
 import RelayPointPicker from '../components/RelayPointPicker'
+import VodPlayer from '../components/VodPlayer'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -35,11 +36,13 @@ interface OrderDetail {
   relay_point_name: string | null
   label_url: string | null
   shipping_cost: number | null
+  purchase_stream_offset_seconds: number | null
   created_at: string
   item?: { title: string; image_urls: string[]; category: string; description: string | null }
   buyer_profile?: { display_name: string; username: string; avatar_url: string | null }
   seller_profile?: { display_name: string; username: string; avatar_url: string | null }
   proofs?: { type: string; url: string }[]
+  stream_recording_url?: string | null
 }
 
 const pageContent = {
@@ -145,6 +148,7 @@ const pageContent = {
     changeRelay: 'Changer',
     trackCarrier: 'Suivre le colis',
     labelReady: 'Etiquette prete',
+    seeVideoMoment: 'Voir le moment video',
   },
   en: {
     back: 'Back',
@@ -248,6 +252,7 @@ const pageContent = {
     changeRelay: 'Change',
     trackCarrier: 'Track shipment',
     labelReady: 'Label ready',
+    seeVideoMoment: 'See video moment',
   },
   he: {
     back: '\u05D7\u05D6\u05D5\u05E8',
@@ -351,6 +356,7 @@ const pageContent = {
     changeRelay: '\u05E9\u05E0\u05D4',
     trackCarrier: '\u05E2\u05E7\u05D5\u05D1 \u05DE\u05E9\u05DC\u05D5\u05D7',
     labelReady: '\u05EA\u05D5\u05D5\u05D9\u05EA \u05DE\u05D5\u05DB\u05E0\u05D4',
+    seeVideoMoment: '\u05E6\u05E4\u05D4 \u05D1\u05E8\u05D2\u05E2 \u05D4\u05D5\u05D9\u05D3\u05D0\u05D5',
   },
   es: {
     back: 'Volver',
@@ -454,6 +460,7 @@ const pageContent = {
     changeRelay: 'Cambiar',
     trackCarrier: 'Seguir envio',
     labelReady: 'Etiqueta lista',
+    seeVideoMoment: 'Ver momento video',
   },
 }
 
@@ -483,6 +490,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  const [vodModal, setVodModal] = useState<{ url: string; title: string; offset?: number } | null>(null)
 
   // Shipping modal
   const [showShipModal, setShowShipModal] = useState(false)
@@ -539,11 +547,16 @@ export default function OrderDetailPage() {
     try {
       const { data, error: err } = await supabase
         .from('orders')
-        .select('*, item:items(title, image_urls, category, description), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username, avatar_url), seller_profile:profiles!orders_seller_id_fkey(display_name, username, avatar_url)')
+        .select('*, item:items(title, image_urls, category, description), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username, avatar_url), seller_profile:profiles!orders_seller_id_fkey(display_name, username, avatar_url), stream:streams(recording_url)')
         .eq('id', id)
         .single()
 
       if (err || !data) throw new Error(ct.notFound)
+
+      // Flatten stream recording_url
+      if (data.stream?.recording_url) {
+        (data as any).stream_recording_url = data.stream.recording_url
+      }
 
       // Check access
       if (data.buyer_id !== user.id && data.seller_id !== user.id) {
@@ -1075,6 +1088,30 @@ export default function OrderDetailPage() {
             </span>
           </div>
         </div>
+
+        {/* Video moment — replay the exact sale instant */}
+        {order.stream_recording_url && order.purchase_stream_offset_seconds != null && (
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid #111' }}>
+            <button
+              onClick={() => setVodModal({
+                url: order.stream_recording_url!,
+                title: order.item?.title || 'Video',
+                offset: order.purchase_stream_offset_seconds!,
+              })}
+              style={{
+                width: '100%', padding: '12px 16px', borderRadius: '12px',
+                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
+                color: '#8B5CF6', fontSize: '14px', fontWeight: 700,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              {ct.seeVideoMoment}
+            </button>
+          </div>
+        )}
 
         {/* Participant info */}
         <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
@@ -2001,6 +2038,16 @@ export default function OrderDetailPage() {
           selectedId={order.relay_point_id}
           onSelect={(point) => handleSelectRelay({ id: point.id, name: point.name })}
           onClose={() => setShowRelayPicker(false)}
+        />
+      )}
+
+      {/* VodPlayer modal */}
+      {vodModal && (
+        <VodPlayer
+          recordingUrl={vodModal.url}
+          title={vodModal.title}
+          startOffset={vodModal.offset}
+          onClose={() => setVodModal(null)}
         />
       )}
 
