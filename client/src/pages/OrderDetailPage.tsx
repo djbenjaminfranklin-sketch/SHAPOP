@@ -541,28 +541,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => { fetchOrder() }, [fetchOrder])
 
-  // Fetch proof level when opening ship modal
-  const openShipModal = async () => {
-    setShowShipModal(true)
-    setShipError(null)
-    if (!session) return
-    try {
-      const res = await apiFetch(`/api/sellers/${user!.id}/trust`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const level = data.proof_level || 'basic'
-        if (level === 'basic') {
-          setProofFiles([{ type: 'photo_package', file: null }])
-        } else if (level === 'standard') {
-          setProofFiles([{ type: 'photo_package', file: null }, { type: 'photo_content', file: null }])
-        } else {
-          setProofFiles([{ type: 'photo_package', file: null }, { type: 'photo_content', file: null }, { type: 'video_packing', file: null }])
-        }
-      }
-    } catch { /* use default */ }
-  }
+  void setShowShipModal // ship modal kept for legacy flows
 
   const handleShipOrder = async () => {
     if (!order || !session) return
@@ -1341,42 +1320,8 @@ export default function OrderDetailPage() {
             </button>
           )}
 
-          {/* Seller: Ship button */}
-          {isSeller && order.status === 'paid' && (
-            <button
-              onClick={openShipModal}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '14px',
-                background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              {ct.shipOrder}
-            </button>
-          )}
-
-          {/* Seller: Add tracking button (when shipped but no tracking yet, or to update) */}
-          {isSeller && ['paid', 'shipped'].includes(order.status) && (
-            <button
-              onClick={() => { setShowTrackingModal(true); setTrackingError(null); setTrackingInput(order.tracking_number || ''); setCarrierInput(order.carrier || '') }}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '14px',
-                background: order.tracking_number ? 'transparent' : 'linear-gradient(135deg, #F0908A, #E8344E)',
-                border: order.tracking_number ? '1px solid #333' : 'none',
-                color: order.tracking_number ? '#aaa' : '#fff',
-                fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-              </svg>
-              {ct.addTracking}
-            </button>
-          )}
-
-          {/* Seller: Print label */}
-          {isSeller && ['paid', 'shipped'].includes(order.status) && order.shipping_address && (
+          {/* Seller: Print shipping address label (for manual shipping like Israel Post) */}
+          {isSeller && ['paid', 'shipped'].includes(order.status) && order.shipping_address && !order.label_url && (
             <button
               onClick={() => setShowLabel(true)}
               style={{

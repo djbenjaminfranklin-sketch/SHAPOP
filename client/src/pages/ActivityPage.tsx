@@ -33,6 +33,100 @@ interface SaleOrder extends Order {
   buyer_profile?: { display_name: string; username: string }
 }
 
+// Inline shipping section for a single paid order (weight + MR label)
+function InlineShippingSection({ orderId, existingLabel, existingTracking, lang }: {
+  orderId: string
+  existingLabel: string | null
+  existingTracking: string | null
+  lang: string
+}) {
+  const [weightInput, setWeightInput] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(
+    existingLabel && existingTracking ? { label_url: existingLabel, shipment_number: existingTracking } : null
+  )
+  const [error, setError] = useState<string | null>(null)
+
+  const labels = {
+    fr: { weight: 'Poids (g)', generate: 'Etiquette MR', ready: 'Prete', open: 'Ouvrir' },
+    en: { weight: 'Weight (g)', generate: 'MR Label', ready: 'Ready', open: 'Open' },
+    he: { weight: 'משקל (ג)', generate: 'תווית MR', ready: 'מוכנה', open: 'פתח' },
+    es: { weight: 'Peso (g)', generate: 'Etiqueta MR', ready: 'Lista', open: 'Abrir' },
+  }
+  const lb = labels[lang as keyof typeof labels] || labels.fr
+
+  const handleGenerate = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const weight = parseInt(weightInput)
+    if (!weight || weight <= 0) { setError(lb.weight); return }
+    setGenerating(true); setError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setError('Auth'); setGenerating(false); return }
+      const resp = await apiFetch(`/api/orders/${orderId}/create-label`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ weight_grams: weight }),
+      })
+      const data = await resp.json()
+      if (resp.ok) {
+        setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
+        if (data.label_url) window.open(data.label_url, '_blank')
+      } else { setError(data.error || 'Erreur') }
+    } catch { setError('Erreur reseau') }
+    setGenerating(false)
+  }
+
+  return (
+    <div onClick={e => e.stopPropagation()} style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px' }}>
+      {labelResult ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 12px', borderRadius: '10px',
+          backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+        }}>
+          <div>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{lb.ready}</span>
+            <span style={{ fontSize: '11px', color: '#666', marginLeft: '6px' }}>#{labelResult.shipment_number}</span>
+          </div>
+          <button onClick={() => window.open(labelResult.label_url, '_blank')} style={{
+            padding: '6px 14px', borderRadius: '8px',
+            background: 'linear-gradient(135deg, #10B981, #059669)',
+            border: 'none', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+          }}>
+            {lb.open}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <input
+            type="number"
+            placeholder={lb.weight}
+            value={weightInput}
+            onClick={e => e.stopPropagation()}
+            onChange={e => { setWeightInput(e.target.value); setError(null) }}
+            style={{
+              width: '90px', padding: '8px 10px', borderRadius: '8px',
+              backgroundColor: '#111', border: '1px solid #333',
+              color: '#fff', fontSize: '13px', fontWeight: 600, outline: 'none',
+            }}
+          />
+          <button onClick={handleGenerate} disabled={generating} style={{
+            flex: 1, padding: '8px 12px', borderRadius: '8px',
+            background: generating ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
+            border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700,
+            cursor: generating ? 'default' : 'pointer', opacity: generating ? 0.6 : 1,
+            whiteSpace: 'nowrap',
+          }}>
+            {generating ? '...' : lb.generate}
+          </button>
+        </div>
+      )}
+      {error && <p style={{ fontSize: '11px', color: '#E8344E', marginTop: '4px', margin: '4px 0 0' }}>{error}</p>}
+    </div>
+  )
+}
+
 // Grouped order card for same-buyer shipments
 function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate }: {
   group: SaleOrder[]
@@ -345,6 +439,7 @@ export default function ActivityPage() {
       setLoadingProofLevel(false)
     }
   }, [user])
+  void fetchProofLevel // called when shipping modal opens
 
   // Fetch purchases (orders where user is buyer)
   const fetchPurchases = useCallback(async () => {
@@ -1095,49 +1190,24 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {/* Seller: "Ship" button + "Shipping label" for paid orders */}
-        {isSale && order.status === 'paid' && (
-          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            {order.shipping_address && (
-              <button
-                onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
-                style={{
-                  padding: '8px 14px', borderRadius: '10px',
-                  background: 'transparent', border: '1px solid #333',
-                  color: '#aaa', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                }}
-              >
-                {'\uD83C\uDFF7\uFE0F'} {(lt as any).shippingLabel || 'Etiquette'}
-              </button>
-            )}
-            <button
-              onClick={(e) => { e.stopPropagation(); setShippingOrderId(order.id); setSelectedFile(null); setTrackingNumber(''); setShipError(null); fetchProofLevel() }}
-              style={{
-                padding: '8px 18px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                border: 'none', color: '#fff', fontSize: '13px',
-                fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              {lt.shipOrder}
-            </button>
-          </div>
+        {/* Seller: inline shipping for paid orders */}
+        {isSale && order.status === 'paid' && order.shipping_address && (
+          <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} />
         )}
 
-        {/* Seller: "Shipping label" button for shipped orders */}
-        {isSale && order.status === 'shipped' && order.shipping_address && (
-          <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-start' }}>
+        {/* Seller: label already generated for shipped orders */}
+        {isSale && order.status === 'shipped' && order.label_url && (
+          <div style={{ marginTop: '10px' }}>
             <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
+              onClick={(e) => { e.stopPropagation(); window.open(order.label_url!, '_blank') }}
               style={{
                 padding: '7px 14px', borderRadius: '8px',
-                background: 'transparent', border: '1px solid #333',
-                color: '#aaa', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+                color: '#10B981', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}
             >
-              {'\uD83C\uDFF7\uFE0F'} {(lt as any).shippingLabel || 'Etiquette'}
+              {'\uD83C\uDFF7\uFE0F'} {order.tracking_number || 'Etiquette'}
             </button>
           </div>
         )}

@@ -274,7 +274,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    // Store label URL and tracking number on the order
+    // Store label URL and tracking number on the order — mark as shipped
     const now = new Date().toISOString()
     await supabase
       .from('orders')
@@ -282,8 +282,9 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
         tracking_number: result.shipmentNumber,
         carrier: 'mondial_relay',
         label_url: result.labelUrl,
-        tracking_status: 'pending',
-        status: order.status === 'paid' ? 'paid' : order.status, // Don't change status yet
+        tracking_status: 'shipped',
+        status: 'shipped',
+        shipped_at: now,
       })
       .eq('id', orderId)
 
@@ -443,14 +444,17 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Update ALL orders with the same tracking info
+    // Update ALL orders with the same tracking info — mark as shipped
+    const now = new Date().toISOString()
     await supabase
       .from('orders')
       .update({
         tracking_number: result.shipmentNumber,
         carrier: 'mondial_relay',
         label_url: result.labelUrl,
-        tracking_status: 'pending',
+        tracking_status: 'shipped',
+        status: 'shipped',
+        shipped_at: now,
       })
       .in('id', order_ids)
 
