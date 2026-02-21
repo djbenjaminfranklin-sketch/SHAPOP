@@ -479,26 +479,12 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
         tracking_number: shipResult.shipmentNumber,
         carrier,
         label_url: shipResult.labelUrl,
-        tracking_status: 'pending',
         status: 'preparing',
       })
       .eq('id', orderId)
 
     if (updateErr) {
       console.error(`[shipping] Failed to save label to order ${orderId}:`, updateErr.message)
-      // Retry once without tracking_status in case column doesn't exist
-      const { error: retryErr } = await supabase
-        .from('orders')
-        .update({
-          tracking_number: shipResult.shipmentNumber,
-          carrier,
-          label_url: shipResult.labelUrl,
-          status: 'preparing',
-        })
-        .eq('id', orderId)
-      if (retryErr) {
-        console.error(`[shipping] Retry also failed for order ${orderId}:`, retryErr.message)
-      }
     }
 
     const trackingUrl = carrier === 'dpd' ? getDpdTrackingUrl(shipResult.shipmentNumber)
@@ -803,26 +789,12 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
         tracking_number: groupShipResult.shipmentNumber,
         carrier: groupCarrier,
         label_url: groupShipResult.labelUrl,
-        tracking_status: 'pending',
         status: 'preparing',
       })
       .in('id', order_ids)
 
     if (groupUpdateErr) {
       console.error(`[shipping] Failed to save group label to orders:`, groupUpdateErr.message)
-      // Retry once without tracking_status in case column doesn't exist
-      const { error: retryErr } = await supabase
-        .from('orders')
-        .update({
-          tracking_number: groupShipResult.shipmentNumber,
-          carrier: groupCarrier,
-          label_url: groupShipResult.labelUrl,
-          status: 'preparing',
-        })
-        .in('id', order_ids)
-      if (retryErr) {
-        console.error(`[shipping] Group retry also failed:`, retryErr.message)
-      }
     }
 
     const groupTrackingUrl = groupCarrier === 'dpd' ? getDpdTrackingUrl(groupShipResult.shipmentNumber)
