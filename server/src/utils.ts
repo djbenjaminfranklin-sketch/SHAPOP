@@ -53,20 +53,20 @@ const ZONE_CARRIER_MAP: Record<ShippingZone, string> = {
 const SHIPPING_RATES: Record<string, Record<string, ShippingRate>> = {
   mondial_relay: {
     france: [
-      { maxGrams: 500, cost: 3.99 },
-      { maxGrams: 1000, cost: 4.99 },
-      { maxGrams: 2000, cost: 5.99 },
-      { maxGrams: 5000, cost: 6.99 },
-      { maxGrams: 10000, cost: 9.99 },
-      { maxGrams: 30000, cost: 14.99 },
+      { maxGrams: 500, cost: 6.52 },
+      { maxGrams: 1000, cost: 7.50 },
+      { maxGrams: 2000, cost: 9.50 },
+      { maxGrams: 5000, cost: 12.00 },
+      { maxGrams: 10000, cost: 16.00 },
+      { maxGrams: 30000, cost: 22.00 },
     ],
     dom_tom: [
-      { maxGrams: 500, cost: 7.99 },
-      { maxGrams: 1000, cost: 9.99 },
-      { maxGrams: 2000, cost: 11.99 },
-      { maxGrams: 5000, cost: 13.99 },
-      { maxGrams: 10000, cost: 19.99 },
-      { maxGrams: 30000, cost: 29.99 },
+      { maxGrams: 500, cost: 12.00 },
+      { maxGrams: 1000, cost: 14.00 },
+      { maxGrams: 2000, cost: 17.00 },
+      { maxGrams: 5000, cost: 22.00 },
+      { maxGrams: 10000, cost: 28.00 },
+      { maxGrams: 30000, cost: 40.00 },
     ],
   },
   dpd: {
