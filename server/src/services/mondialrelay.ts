@@ -214,7 +214,7 @@ export async function createShipment(params: {
   const orderNo = (params.orderNo || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15)
 
   const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
-<ShipmentCreationRequest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.mondialrelay.fr/webservice/">
+<ShipmentCreationRequest xmlns="http://www.example.org/Request" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Context>
     <Login>${escXml(MR_API2_LOGIN)}</Login>
     <Password>${escXml(MR_API2_PASSWORD)}</Password>
@@ -280,8 +280,7 @@ export async function createShipment(params: {
     const resp = await fetch(REST_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'Accept': 'application/xml',
+        'Content-Type': 'application/xml',
       },
       body: xmlBody,
     })
