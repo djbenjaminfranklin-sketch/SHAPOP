@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Item, Order, Profile } from '../types/database'
 import ShippingLabel from '../components/ShippingLabel'
@@ -24,7 +25,12 @@ const pageContent = {
     pending: 'En attente',
     shipped: 'Expedie',
     orderRef: 'N° commande',
-    generateLabel: 'Generer etiquette',
+    generateLabel: 'Etiquette Mondial Relay',
+    generateLabelShort: 'Etiquette MR',
+    weightPlaceholder: 'Poids du colis (grammes)',
+    generatingLabel: 'Generation...',
+    labelReady: 'Etiquette prete',
+    downloadLabel: 'Ouvrir l\'etiquette',
     printAllLabels: 'Imprimer toutes les etiquettes',
     back: 'Retour',
     noSales: 'Aucune vente pour ce live',
@@ -56,7 +62,12 @@ const pageContent = {
     pending: 'Pending',
     shipped: 'Shipped',
     orderRef: 'Order #',
-    generateLabel: 'Generate label',
+    generateLabel: 'Mondial Relay Label',
+    generateLabelShort: 'MR Label',
+    weightPlaceholder: 'Package weight (grams)',
+    generatingLabel: 'Generating...',
+    labelReady: 'Label ready',
+    downloadLabel: 'Open label',
     printAllLabels: 'Print all labels',
     back: 'Back',
     noSales: 'No sales for this live',
@@ -88,7 +99,12 @@ const pageContent = {
     pending: 'ממתין',
     shipped: 'נשלח',
     orderRef: 'מספר הזמנה',
-    generateLabel: 'צור תווית',
+    generateLabel: 'תווית Mondial Relay',
+    generateLabelShort: 'תווית MR',
+    weightPlaceholder: 'משקל החבילה (גרם)',
+    generatingLabel: 'יוצר...',
+    labelReady: 'תווית מוכנה',
+    downloadLabel: 'פתח תווית',
     printAllLabels: 'הדפס את כל התוויות',
     back: 'חזור',
     noSales: 'אין מכירות לשידור זה',
@@ -120,7 +136,12 @@ const pageContent = {
     pending: 'Pendiente',
     shipped: 'Enviado',
     orderRef: 'N° pedido',
-    generateLabel: 'Generar etiqueta',
+    generateLabel: 'Etiqueta Mondial Relay',
+    generateLabelShort: 'Etiqueta MR',
+    weightPlaceholder: 'Peso del paquete (gramos)',
+    generatingLabel: 'Generando...',
+    labelReady: 'Etiqueta lista',
+    downloadLabel: 'Abrir etiqueta',
     printAllLabels: 'Imprimir todas las etiquetas',
     back: 'Volver',
     noSales: 'Sin ventas para este directo',
@@ -162,6 +183,12 @@ export default function LiveRecapPage() {
   const [showAllLabels, setShowAllLabels] = useState(false)
   const [sellerProfile, setSellerProfile] = useState<Profile | null>(null)
   const [streamInfo, setStreamInfo] = useState<{ recording_url: string | null; started_at: string | null; ended_at: string | null; peak_viewers: number; title: string } | null>(null)
+
+  // MR label states
+  const [labelWeight, setLabelWeight] = useState('')
+  const [labelGenerating, setLabelGenerating] = useState(false)
+  const [labelError, setLabelError] = useState<string | null>(null)
+  const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
   const [showVod, setShowVod] = useState(false)
 
   useEffect(() => {
@@ -502,7 +529,7 @@ export default function LiveRecapPage() {
             {sales.map((sale) => (
               <button
                 key={sale.item.id}
-                onClick={() => setSelectedSale(sale)}
+                onClick={() => { setSelectedSale(sale); setLabelWeight(''); setLabelError(null); setLabelResult(null) }}
                 style={{
                   backgroundColor: '#111',
                   border: '1px solid #222',
@@ -677,28 +704,119 @@ export default function LiveRecapPage() {
               </div>
             </div>
 
-            {/* Generate label button */}
-            <button
-              onClick={() => {
-                setSelectedSale(null)
-                setShowLabel(selectedSale)
-              }}
-              style={{
-                width: '100%', padding: '16px',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                borderRadius: '14px', border: 'none',
-                color: '#fff', fontSize: '16px', fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="6 9 6 2 18 2 18 9" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" strokeLinecap="round" strokeLinejoin="round"/>
-                <rect x="6" y="14" width="12" height="8" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {ct.generateLabel}
-            </button>
+            {/* MR label generation: weight + button */}
+            {selectedSale.order && ['paid', 'shipped'].includes(selectedSale.order.status) && selectedSale.order.shipping_address ? (
+              selectedSale.order.label_url ? (
+                <div style={{
+                  padding: '14px', borderRadius: '12px',
+                  backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>{ct.labelReady}</p>
+                    {selectedSale.order.tracking_number && (
+                      <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>#{selectedSale.order.tracking_number}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => window.open(selectedSale.order!.label_url!, '_blank')}
+                    style={{
+                      padding: '10px 18px', borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #10B981, #059669)',
+                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {ct.downloadLabel}
+                  </button>
+                </div>
+              ) : labelResult ? (
+                <div style={{
+                  padding: '14px', borderRadius: '12px',
+                  backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>{ct.labelReady}</p>
+                    <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>#{labelResult.shipment_number}</p>
+                  </div>
+                  <button
+                    onClick={() => window.open(labelResult.label_url, '_blank')}
+                    style={{
+                      padding: '10px 18px', borderRadius: '10px',
+                      background: 'linear-gradient(135deg, #10B981, #059669)',
+                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {ct.downloadLabel}
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <input
+                    type="number"
+                    placeholder={ct.weightPlaceholder}
+                    value={labelWeight}
+                    onChange={e => { setLabelWeight(e.target.value); setLabelError(null) }}
+                    style={{
+                      width: '100%', padding: '14px', borderRadius: '12px',
+                      border: '1px solid #333', backgroundColor: '#0D0D0D',
+                      color: '#fff', fontSize: '14px', fontWeight: 600,
+                      boxSizing: 'border-box', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!selectedSale.order) return
+                      const weight = parseInt(labelWeight)
+                      if (!weight || weight <= 0) { setLabelError(ct.weightPlaceholder); return }
+                      setLabelGenerating(true); setLabelError(null)
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession()
+                        if (!session) { setLabelError('Auth'); setLabelGenerating(false); return }
+                        const resp = await apiFetch(`/api/orders/${selectedSale.order.id}/create-label`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                          body: JSON.stringify({ weight_grams: weight }),
+                        })
+                        const data = await resp.json()
+                        if (resp.ok) {
+                          setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
+                          if (data.label_url) window.open(data.label_url, '_blank')
+                        } else { setLabelError(data.error || 'Erreur') }
+                      } catch { setLabelError('Erreur reseau') }
+                      setLabelGenerating(false)
+                    }}
+                    disabled={labelGenerating}
+                    style={{
+                      width: '100%', padding: '16px',
+                      background: labelGenerating ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
+                      borderRadius: '14px', border: 'none',
+                      color: '#fff', fontSize: '16px', fontWeight: 700,
+                      cursor: labelGenerating ? 'default' : 'pointer',
+                      opacity: labelGenerating ? 0.6 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                    {labelGenerating ? ct.generatingLabel : ct.generateLabel}
+                  </button>
+                  {labelError && <p style={{ color: '#E8344E', fontSize: '12px', textAlign: 'center', margin: 0 }}>{labelError}</p>}
+                </div>
+              )
+            ) : (
+              <button
+                onClick={() => { setSelectedSale(null); setShowLabel(selectedSale) }}
+                style={{
+                  width: '100%', padding: '16px',
+                  background: 'transparent', borderRadius: '14px', border: '1px solid #333',
+                  color: '#aaa', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                {ct.generateLabel}
+              </button>
+            )}
           </div>
         </div>
       )}
