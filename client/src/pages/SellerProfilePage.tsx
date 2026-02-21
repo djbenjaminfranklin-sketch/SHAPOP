@@ -312,7 +312,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
             </span>
           </div>
           <p style={{ fontSize: '14px', fontWeight: 600, color: '#F0908A', margin: 0 }}>
-            {lang === 'fr' ? 'Revenu net' : 'Net revenue'}: {total.toFixed(2)}&euro;
+            Total: {total.toFixed(2)}&euro;
           </p>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
@@ -358,7 +358,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                 </div>
               </div>
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                {((order.seller_payout as number) || order.amount).toFixed(2)}&euro;
+                {(order.amount || 0).toFixed(2)}&euro;
               </span>
             </div>
           ))}
@@ -1252,7 +1252,7 @@ export default function SellerProfilePage() {
                 {/* Grouped orders by buyer */}
                 {buyerGroups.map((group, gi) => {
                   const buyerName = group[0].buyer_name || (lang === 'fr' ? 'Acheteur' : 'Buyer')
-                  const total = group.reduce((s, o) => s + ((o.seller_payout as number) || o.amount || 0), 0)
+                  const total = group.reduce((s, o) => s + (o.amount || 0), 0)
                   const [expanded, setExpanded] = [
                     // Use a simple trick: store expanded state via data attribute
                     false, () => {}
@@ -1299,7 +1299,7 @@ export default function SellerProfilePage() {
                       </div>
                     </div>
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>
-                      {((order.seller_payout as number) || order.amount).toFixed(2)}&euro;
+                      {(order.amount || 0).toFixed(2)}&euro;
                     </span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
                       <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>

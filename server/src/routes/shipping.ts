@@ -229,7 +229,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     // Fetch order with item details
     const { data: order, error: fetchErr } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name')
+      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name, shipping_cost, shipping_payment_intent_id')
       .eq('id', orderId)
       .single()
 
@@ -297,9 +297,10 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     const weight = manualWeight || item?.weight_grams || 500 // Manual > item > default 500g
 
     // Calculate shipping cost and charge buyer off-session BEFORE generating label
+    // Skip if already charged (prevents double-charging on retry)
     const shippingCost = calculateShippingCost(weight, carrier, shippingZone)
 
-    if (shippingCost > 0) {
+    if (shippingCost > 0 && !order.shipping_payment_intent_id) {
       const chargeResult = await chargeShippingOffSession(order.buyer_id, orderId, shippingCost)
       if (!chargeResult.success) {
         res.status(402).json({ error: chargeResult.error || 'Le paiement des frais de port a echoue' })
@@ -459,6 +460,19 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
 
     if (updateErr) {
       console.error(`[shipping] Failed to save label to order ${orderId}:`, updateErr.message)
+      // Retry once without tracking_status in case column doesn't exist
+      const { error: retryErr } = await supabase
+        .from('orders')
+        .update({
+          tracking_number: shipResult.shipmentNumber,
+          carrier,
+          label_url: shipResult.labelUrl,
+          status: 'preparing',
+        })
+        .eq('id', orderId)
+      if (retryErr) {
+        console.error(`[shipping] Retry also failed for order ${orderId}:`, retryErr.message)
+      }
     }
 
     const trackingUrl = carrier === 'dpd' ? getDpdTrackingUrl(shipResult.shipmentNumber)
@@ -501,7 +515,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     // Fetch all orders
     const { data: orders, error: fetchErr } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name')
+      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name, shipping_payment_intent_id')
       .in('id', order_ids)
 
     if (fetchErr || !orders || orders.length === 0) {
@@ -570,9 +584,11 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Calculate shipping cost for the grouped weight and charge buyer off-session
+    // Skip if already charged (prevents double-charging on retry)
+    const alreadyCharged = orders.some(o => o.shipping_payment_intent_id)
     const groupShippingCost = calculateShippingCost(Number(weight_grams), groupCarrier, groupZone)
 
-    if (groupShippingCost > 0) {
+    if (groupShippingCost > 0 && !alreadyCharged) {
       const chargeResult = await chargeShippingOffSession(buyerIds[0], primaryOrder.id, groupShippingCost)
       if (!chargeResult.success) {
         res.status(402).json({ error: chargeResult.error || 'Le paiement des frais de port a echoue' })
@@ -743,6 +759,19 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
 
     if (groupUpdateErr) {
       console.error(`[shipping] Failed to save group label to orders:`, groupUpdateErr.message)
+      // Retry once without tracking_status in case column doesn't exist
+      const { error: retryErr } = await supabase
+        .from('orders')
+        .update({
+          tracking_number: groupShipResult.shipmentNumber,
+          carrier: groupCarrier,
+          label_url: groupShipResult.labelUrl,
+          status: 'preparing',
+        })
+        .in('id', order_ids)
+      if (retryErr) {
+        console.error(`[shipping] Group retry also failed:`, retryErr.message)
+      }
     }
 
     const groupTrackingUrl = groupCarrier === 'dpd' ? getDpdTrackingUrl(groupShipResult.shipmentNumber)
