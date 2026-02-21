@@ -297,36 +297,53 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     const weight = manualWeight || item?.weight_grams || 500 // Manual > item > default 500g
 
     // Calculate shipping cost and charge buyer off-session BEFORE generating label
-    // Skip if already charged (shipping_cost > 0 means buyer was already billed)
     const shippingCost = calculateShippingCost(weight, carrier, shippingZone)
 
     if (shippingCost > 0 && !(order.shipping_cost > 0)) {
-      const chargeResult = await chargeShippingOffSession(order.buyer_id, orderId, shippingCost)
-      if (!chargeResult.success) {
-        res.status(402).json({ error: chargeResult.error || 'Le paiement des frais de port a echoue' })
-        return
-      }
-
-      // Store shipping cost (and payment intent if column exists)
-      const { error: costErr } = await supabase
-        .from('orders')
-        .update({
-          shipping_cost: shippingCost,
-          shipping_payment_intent_id: chargeResult.paymentIntentId,
+      // Double-check Stripe: maybe buyer was already charged but DB update failed
+      let alreadyPaidInStripe = false
+      try {
+        const existingPIs = await stripe.paymentIntents.search({
+          query: `metadata["order_id"]:"${orderId}" metadata["type"]:"shipping" status:"succeeded"`,
         })
-        .eq('id', orderId)
-
-      // If update failed (shipping_payment_intent_id column might not exist), retry with just shipping_cost
-      if (costErr) {
-        console.error(`[shipping] Cost update failed, retrying without payment_intent_id:`, costErr.message)
-        await supabase
-          .from('orders')
-          .update({ shipping_cost: shippingCost })
-          .eq('id', orderId)
+        if (existingPIs.data.length > 0) {
+          alreadyPaidInStripe = true
+          console.log(`[Shipping] Found existing Stripe charge for order ${orderId}, skipping`)
+          // Fix DB: save the shipping cost that was already charged
+          await supabase.from('orders').update({ shipping_cost: shippingCost }).eq('id', orderId)
+        }
+      } catch (searchErr) {
+        console.error('[Shipping] Stripe search failed, proceeding with charge check:', searchErr)
       }
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Shipping] Charged ${shippingCost}EUR shipping for order ${orderId} (PI: ${chargeResult.paymentIntentId})`)
+      if (!alreadyPaidInStripe) {
+        const chargeResult = await chargeShippingOffSession(order.buyer_id, orderId, shippingCost)
+        if (!chargeResult.success) {
+          res.status(402).json({ error: chargeResult.error || 'Le paiement des frais de port a echoue' })
+          return
+        }
+
+        // Store shipping cost (and payment intent if column exists)
+        const { error: costErr } = await supabase
+          .from('orders')
+          .update({
+            shipping_cost: shippingCost,
+            shipping_payment_intent_id: chargeResult.paymentIntentId,
+          })
+          .eq('id', orderId)
+
+        // If update failed (shipping_payment_intent_id column might not exist), retry with just shipping_cost
+        if (costErr) {
+          console.error(`[shipping] Cost update failed, retrying without payment_intent_id:`, costErr.message)
+          await supabase
+            .from('orders')
+            .update({ shipping_cost: shippingCost })
+            .eq('id', orderId)
+        }
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[Shipping] Charged ${shippingCost}EUR shipping for order ${orderId} (PI: ${chargeResult.paymentIntentId})`)
+        }
       }
     }
 
@@ -593,9 +610,27 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Calculate shipping cost for the grouped weight and charge buyer off-session
-    // Skip if already charged (shipping_cost > 0 means buyer was already billed)
-    const alreadyCharged = orders.some(o => o.shipping_cost > 0)
+    let alreadyCharged = orders.some(o => o.shipping_cost > 0)
     const groupShippingCost = calculateShippingCost(Number(weight_grams), groupCarrier, groupZone)
+
+    // Double-check Stripe if DB says not charged
+    if (groupShippingCost > 0 && !alreadyCharged) {
+      try {
+        const existingPIs = await stripe.paymentIntents.search({
+          query: `metadata["order_id"]:"${primaryOrder.id}" metadata["type"]:"shipping" status:"succeeded"`,
+        })
+        if (existingPIs.data.length > 0) {
+          alreadyCharged = true
+          console.log(`[Shipping] Found existing Stripe charge for group order ${primaryOrder.id}, skipping`)
+          const perOrderShippingFix = Math.round((groupShippingCost / orders.length) * 100) / 100
+          for (const o of orders) {
+            await supabase.from('orders').update({ shipping_cost: perOrderShippingFix }).eq('id', o.id)
+          }
+        }
+      } catch (searchErr) {
+        console.error('[Shipping] Stripe search failed:', searchErr)
+      }
+    }
 
     if (groupShippingCost > 0 && !alreadyCharged) {
       const chargeResult = await chargeShippingOffSession(buyerIds[0], primaryOrder.id, groupShippingCost)
