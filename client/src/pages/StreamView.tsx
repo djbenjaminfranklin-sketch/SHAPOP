@@ -74,6 +74,8 @@ const streamContent = {
     cardSavedDesc: 'Tu peux maintenant encherir',
     saveCard: 'Enregistrer la carte',
     cardRequired: 'Ajoute ta carte pour encherir',
+    addAddress: 'Ajoute ton adresse',
+    addressRequired: 'Ajoute ton adresse de livraison avant d\'encherir',
     shipping: 'Livraison',
     itemPrice: 'Prix article',
     walletTitle: 'Portefeuille',
@@ -151,6 +153,8 @@ const streamContent = {
     cardSavedDesc: 'You can now place bids',
     saveCard: 'Save card',
     cardRequired: 'Add your card to bid',
+    addAddress: 'Add your address',
+    addressRequired: 'Add your shipping address before bidding',
     shipping: 'Shipping',
     itemPrice: 'Item price',
     walletTitle: 'Wallet',
@@ -228,6 +232,8 @@ const streamContent = {
     cardSavedDesc: 'אתה יכול עכשיו להציע',
     saveCard: 'שמור כרטיס',
     cardRequired: 'הוסף כרטיס כדי להציע',
+    addAddress: 'הוסף כתובת',
+    addressRequired: 'הוסף כתובת משלוח לפני שתציע',
     shipping: 'משלוח',
     itemPrice: 'מחיר פריט',
     walletTitle: 'ארנק',
@@ -305,6 +311,8 @@ const streamContent = {
     cardSavedDesc: 'Ya puedes pujar',
     saveCard: 'Guardar tarjeta',
     cardRequired: 'Agrega tu tarjeta para pujar',
+    addAddress: 'Agrega tu direccion',
+    addressRequired: 'Agrega tu direccion de envio antes de pujar',
     shipping: 'Envio',
     itemPrice: 'Precio articulo',
     walletTitle: 'Cartera',
@@ -535,6 +543,7 @@ export default function StreamView() {
 
   // Card setup modal (required before bidding)
   const [hasCard, setHasCard] = useState<boolean | null>(null) // null = not checked yet
+  const [hasAddress, setHasAddress] = useState<boolean | null>(null) // null = not checked yet
   const [showCardModal, setShowCardModal] = useState(false)
   const [setupClientSecret, setSetupClientSecret] = useState<string | null>(null)
   const [cardLoading, setCardLoading] = useState(false)
@@ -626,6 +635,7 @@ export default function StreamView() {
         if (resp.ok) {
           const data = await resp.json()
           setHasCard(data.has_card)
+          setHasAddress(data.has_address ?? null)
         }
       } catch { /* ignore */ }
     }
@@ -1391,6 +1401,12 @@ export default function StreamView() {
       return
     }
 
+    // Check if user has a shipping address
+    if (hasAddress !== true) {
+      navigate('/addresses')
+      return
+    }
+
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
@@ -1410,6 +1426,12 @@ export default function StreamView() {
         if (err.error === 'card_required') {
           setHasCard(false)
           openCardSetup()
+          return
+        }
+        // Server returns 'address_required' if no shipping address
+        if (err.error === 'address_required') {
+          setHasAddress(false)
+          navigate('/addresses')
           return
         }
         throw new Error(err.error || ct.bidError)
@@ -2541,7 +2563,9 @@ export default function StreamView() {
               onBidAmountChange={setBidAmount}
               onBid={handlePlaceBid}
               hasCard={hasCard}
+              hasAddress={hasAddress}
               onAddCard={openCardSetup}
+              onAddAddress={() => navigate('/addresses')}
               disabled={timeLeft <= 0}
               timeLeft={timeLeft}
               lang={lang}

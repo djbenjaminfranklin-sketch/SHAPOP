@@ -8,7 +8,9 @@ interface ActiveItemBarProps {
   onBidAmountChange: (value: string) => void
   onBid: () => void
   hasCard: boolean | null
+  hasAddress: boolean | null
   onAddCard: () => void
+  onAddAddress: () => void
   disabled?: boolean
   timeLeft?: number
   lang: 'fr' | 'en' | 'he' | 'es'
@@ -19,6 +21,7 @@ const LABELS: Record<string, {
   currentPrice: string
   unavailable: string
   addCard: string
+  addAddress: string
   max: string
   shippingGrouped: string
 }> = {
@@ -27,6 +30,7 @@ const LABELS: Record<string, {
     currentPrice: 'Prix actuel',
     unavailable: 'Article non disponible',
     addCard: 'Ajoute ta carte',
+    addAddress: 'Ajoute ton adresse',
     max: 'MAX',
     shippingGrouped: 'Livraison groupee en fin de live',
   },
@@ -35,6 +39,7 @@ const LABELS: Record<string, {
     currentPrice: 'Current price',
     unavailable: 'Item unavailable',
     addCard: 'Add your card',
+    addAddress: 'Add your address',
     max: 'MAX',
     shippingGrouped: 'Shipping grouped at end of live',
   },
@@ -43,6 +48,7 @@ const LABELS: Record<string, {
     currentPrice: 'מחיר נוכחי',
     unavailable: 'פריט לא זמין',
     addCard: 'הוסף כרטיס',
+    addAddress: 'הוסף כתובת',
     max: 'MAX',
     shippingGrouped: 'משלוח מרוכז בסוף השידור',
   },
@@ -51,6 +57,7 @@ const LABELS: Record<string, {
     currentPrice: 'Precio actual',
     unavailable: 'No disponible',
     addCard: 'Agrega tu tarjeta',
+    addAddress: 'Agrega tu direccion',
     max: 'MAX',
     shippingGrouped: 'Envio agrupado al final del live',
   },
@@ -62,7 +69,9 @@ export default function ActiveItemBar({
   onBidAmountChange,
   onBid,
   hasCard,
+  hasAddress,
   onAddCard,
+  onAddAddress,
   disabled,
   timeLeft,
   lang,
@@ -181,6 +190,14 @@ export default function ActiveItemBar({
           color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
         }}>
           {labels.addCard}
+        </button>
+      ) : hasAddress === false ? (
+        <button onClick={onAddAddress} style={{
+          width: '100%', padding: '10px', borderRadius: '100px', border: 'none',
+          background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+          color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+        }}>
+          {labels.addAddress}
         </button>
       ) : (
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>

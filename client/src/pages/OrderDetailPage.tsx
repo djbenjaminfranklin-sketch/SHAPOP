@@ -514,6 +514,9 @@ export default function OrderDetailPage() {
   const [labelWeightInput, setLabelWeightInput] = useState('')
   const [shippingPreview, setShippingPreview] = useState<number | null>(null)
 
+  // Sibling orders (same buyer, same seller — for grouped shipping)
+  const [siblingOrders, setSiblingOrders] = useState<{ id: string; item_id: string; amount: number; status: string; label_url: string | null; tracking_number: string | null; item?: { title: string; image_urls: string[] } }[]>([])
+
   // Return request states
   const [showReturnModal, setShowReturnModal] = useState(false)
   const [returnReason, setReturnReason] = useState('')
@@ -562,6 +565,27 @@ export default function OrderDetailPage() {
   }, [user, id, session, ct.notFound, ct.error])
 
   useEffect(() => { fetchOrder() }, [fetchOrder])
+
+  // Fetch sibling orders (same buyer + same seller) for grouped shipping
+  useEffect(() => {
+    if (!order || !user) return
+    const isSeller = user.id === order.seller_id
+    if (!isSeller) return
+
+    const fetchSiblings = async () => {
+      const { data } = await supabase
+        .from('orders')
+        .select('id, item_id, amount, status, label_url, tracking_number, item:items(title, image_urls)')
+        .eq('seller_id', order.seller_id)
+        .eq('buyer_id', order.buyer_id)
+        .neq('id', order.id)
+        .in('status', ['paid', 'preparing', 'shipped', 'delivered'])
+        .order('created_at', { ascending: true })
+
+      if (data) setSiblingOrders(data as typeof siblingOrders)
+    }
+    fetchSiblings()
+  }, [order?.id, order?.seller_id, order?.buyer_id, user])
 
   void setShowShipModal // ship modal kept for legacy flows
 
@@ -787,7 +811,7 @@ export default function OrderDetailPage() {
     } catch { /* ignore */ }
   }
 
-  // Generate Mondial Relay label
+  // Generate shipping label — uses group-label endpoint when there are siblings
   const handleGenerateLabel = async () => {
     if (!order || !session) return
     const weight = parseInt(labelWeightInput)
@@ -798,11 +822,29 @@ export default function OrderDetailPage() {
     setGeneratingLabel(true)
     setLabelError(null)
     try {
-      const res = await apiFetch(`/api/orders/${order.id}/create-label`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ weight_grams: weight }),
-      })
+      // Collect all order IDs from this buyer that need a label (current + siblings)
+      const allOrders = [order, ...siblingOrders]
+      const orderIdsForLabel = allOrders
+        .filter(o => ['paid', 'preparing'].includes(o.status) && !o.label_url)
+        .map(o => o.id)
+
+      let res: Response
+      if (orderIdsForLabel.length > 1) {
+        // Use group label endpoint
+        res = await apiFetch('/api/orders/group-label', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ order_ids: orderIdsForLabel, weight_grams: weight }),
+        })
+      } else {
+        // Single order label
+        res = await apiFetch(`/api/orders/${order.id}/create-label`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ weight_grams: weight }),
+        })
+      }
+
       if (res.status === 402) {
         const err = await res.json()
         setLabelError(lang === 'fr'
@@ -1073,6 +1115,71 @@ export default function OrderDetailPage() {
               </>
             )}
           </div>
+
+          {/* Sibling orders from same buyer (grouped shipping) */}
+          {isSeller && siblingOrders.length > 0 && (
+            <div style={{
+              backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '12px',
+              border: '1px solid rgba(59,130,246,0.3)', marginBottom: '12px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 3v5h-7V8z" />
+                  <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#3B82F6' }}>
+                  {lang === 'fr' ? `Envoi groupe — ${siblingOrders.length + 1} articles` : `Grouped shipment — ${siblingOrders.length + 1} items`}
+                </span>
+              </div>
+              {/* Current order */}
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0',
+                borderBottom: '1px solid #1A1A1A',
+              }}>
+                {order.item?.image_urls?.[0] ? (
+                  <img src={order.item.image_urls[0]} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>{'\uD83D\uDCB0'}</div>
+                )}
+                <span style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {order.item?.title || order.id.slice(0, 8)}
+                </span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                  {order.amount.toFixed(2)} {'\u20AC'}
+                </span>
+              </div>
+              {/* Sibling orders */}
+              {siblingOrders.map(sib => (
+                <div
+                  key={sib.id}
+                  onClick={() => navigate(`/order/${sib.id}`)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 0',
+                    borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
+                  }}
+                >
+                  {sib.item?.image_urls?.[0] ? (
+                    <img src={sib.item.image_urls[0]} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>{'\uD83D\uDCB0'}</div>
+                  )}
+                  <span style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: '#ccc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {sib.item?.title || sib.id.slice(0, 8)}
+                  </span>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                    {sib.amount.toFixed(2)} {'\u20AC'}
+                  </span>
+                </div>
+              ))}
+              {/* Total */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#888' }}>Total</span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: '#F0908A' }}>
+                  {(order.amount + siblingOrders.reduce((s, o) => s + o.amount, 0)).toFixed(2)} {'\u20AC'}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Financial breakdown for buyer */}
           {!isSeller && (

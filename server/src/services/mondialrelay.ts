@@ -210,6 +210,9 @@ export async function createShipment(params: {
     ? `${params.recipient.countryCode}-${params.relayPointId}`
     : ''
 
+  // Sanitize OrderNo: alphanumeric only, max 15 chars
+  const orderNo = (params.orderNo || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15)
+
   const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.mondialrelay.fr/webservice/">
   <Context>
@@ -225,45 +228,45 @@ export async function createShipment(params: {
   </OutputOptions>
   <ShipmentsList>
     <Shipment>
-      <OrderNo>${escXml(params.orderNo)}</OrderNo>
-      <CustomerNo>${escXml(params.orderNo)}</CustomerNo>
+      <OrderNo>${orderNo}</OrderNo>
+      <CustomerNo>${orderNo}</CustomerNo>
       <ParcelCount>1</ParcelCount>
       <DeliveryMode Mode="${deliveryMode}"${deliveryLocation ? ` Location="${escXml(deliveryLocation)}"` : ''}/>
       <CollectionMode Mode="CCC"/>
       <Parcels>
         <Parcel>
-          <Content>${escXml(params.content)}</Content>
+          <Content>${mrField(params.content, 50)}</Content>
           <Weight Value="${params.weight}" Unit="gr"/>
         </Parcel>
       </Parcels>
       <Sender>
         <Address>
-          <Title>${escXml(params.sender.title || 'MR')}</Title>
-          <Firstname>${escXml(params.sender.firstname)}</Firstname>
-          <Lastname>${escXml(params.sender.lastname)}</Lastname>
-          <Streetname>${escXml(params.sender.street)}</Streetname>
-          <HouseNo>${escXml(params.sender.houseNo || '')}</HouseNo>
-          <CountryCode>${params.sender.countryCode}</CountryCode>
-          <PostCode>${params.sender.postCode}</PostCode>
-          <City>${escXml(params.sender.city)}</City>
-          <PhoneNo>${params.sender.phone || ''}</PhoneNo>
-          <MobileNo>${params.sender.mobile || ''}</MobileNo>
-          <Email>${params.sender.email || ''}</Email>
+          <Title>${mrField(params.sender.title || 'MR', 5)}</Title>
+          <Firstname>${mrField(params.sender.firstname, 20)}</Firstname>
+          <Lastname>${mrField(params.sender.lastname, 20)}</Lastname>
+          <Streetname>${mrField(params.sender.street, 32)}</Streetname>
+          <HouseNo>${mrField(params.sender.houseNo, 5)}</HouseNo>
+          <CountryCode>${mrField(params.sender.countryCode, 2)}</CountryCode>
+          <PostCode>${mrField(params.sender.postCode, 10)}</PostCode>
+          <City>${mrField(params.sender.city, 25)}</City>
+          <PhoneNo>${mrPhone(params.sender.phone)}</PhoneNo>
+          <MobileNo>${mrPhone(params.sender.mobile)}</MobileNo>
+          <Email>${mrField(params.sender.email, 50)}</Email>
         </Address>
       </Sender>
       <Recipient>
         <Address>
-          <Title>${escXml(params.recipient.title || 'MR')}</Title>
-          <Firstname>${escXml(params.recipient.firstname)}</Firstname>
-          <Lastname>${escXml(params.recipient.lastname)}</Lastname>
-          <Streetname>${escXml(params.recipient.street)}</Streetname>
-          <HouseNo>${escXml(params.recipient.houseNo || '')}</HouseNo>
-          <CountryCode>${params.recipient.countryCode}</CountryCode>
-          <PostCode>${params.recipient.postCode}</PostCode>
-          <City>${escXml(params.recipient.city)}</City>
-          <PhoneNo>${params.recipient.phone || ''}</PhoneNo>
-          <MobileNo>${params.recipient.mobile || ''}</MobileNo>
-          <Email>${params.recipient.email || ''}</Email>
+          <Title>${mrField(params.recipient.title || 'MR', 5)}</Title>
+          <Firstname>${mrField(params.recipient.firstname, 20)}</Firstname>
+          <Lastname>${mrField(params.recipient.lastname, 20)}</Lastname>
+          <Streetname>${mrField(params.recipient.street, 32)}</Streetname>
+          <HouseNo>${mrField(params.recipient.houseNo, 5)}</HouseNo>
+          <CountryCode>${mrField(params.recipient.countryCode, 2)}</CountryCode>
+          <PostCode>${mrField(params.recipient.postCode, 10)}</PostCode>
+          <City>${mrField(params.recipient.city, 25)}</City>
+          <PhoneNo>${mrPhone(params.recipient.phone)}</PhoneNo>
+          <MobileNo>${mrPhone(params.recipient.mobile)}</MobileNo>
+          <Email>${mrField(params.recipient.email, 50)}</Email>
         </Address>
       </Recipient>
     </Shipment>
@@ -434,6 +437,30 @@ export async function trackShipment(shipmentNumber: string): Promise<TrackingRes
 // =============================================
 function escXml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
+}
+
+/** Sanitize a field for Mondial Relay: trim, remove control chars, truncate to max length, escape XML */
+function mrField(value: string | undefined | null, maxLen: number): string {
+  if (!value) return ''
+  // Remove control characters and normalize whitespace
+  let clean = String(value).replace(/[\x00-\x1F\x7F]/g, '').trim()
+  // Truncate to max length
+  if (clean.length > maxLen) clean = clean.slice(0, maxLen)
+  return escXml(clean)
+}
+
+/** Clean a phone number for Mondial Relay: digits only, convert +33 to 0, max 10 digits */
+function mrPhone(value: string | undefined | null): string {
+  if (!value) return ''
+  let phone = String(value).replace(/[\s.\-()]/g, '')
+  // Convert +33 to 0
+  if (phone.startsWith('+33')) phone = '0' + phone.slice(3)
+  // Remove remaining + prefix
+  if (phone.startsWith('+')) phone = phone.slice(1)
+  // Keep only digits
+  phone = phone.replace(/\D/g, '')
+  // Truncate to 10 digits
+  return phone.slice(0, 10)
 }
 
 function formatHours(raw: unknown): string {

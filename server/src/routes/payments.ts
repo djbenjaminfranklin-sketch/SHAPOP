@@ -222,7 +222,18 @@ router.get('/api/stripe/check-card', requireAuth, async (req: AuthenticatedReque
       limit: 1,
     })
 
-    res.json({ has_card: paymentMethods.data.length > 0 })
+    const hasCard = paymentMethods.data.length > 0
+
+    // Check if buyer has at least one shipping address
+    const { data: addresses } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+
+    const hasAddress = (addresses && addresses.length > 0) || false
+
+    res.json({ has_card: hasCard, has_address: hasAddress })
   } catch (err: any) {
     console.error('Check card error:', err)
     res.status(500).json({ error: err?.message || 'Failed to check card' })

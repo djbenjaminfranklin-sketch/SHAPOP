@@ -370,6 +370,18 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
       return
     }
 
+    // Check buyer has at least one shipping address
+    const { data: addresses } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+
+    if (!addresses || addresses.length === 0) {
+      res.status(403).json({ error: 'address_required' })
+      return
+    }
+
     // Insert bid
     const { error: bidError } = await supabase.from('bids').insert({
       item_id: itemId,
