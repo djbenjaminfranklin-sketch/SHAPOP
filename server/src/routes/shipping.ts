@@ -776,6 +776,8 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       return
     }
 
+    console.log(`[shipping] MR result: shipmentNumber=${groupShipResult.shipmentNumber}, labelUrl=${groupShipResult.labelUrl?.substring(0, 80)}, error=${groupShipResult.error}`)
+
     if (groupShipResult.error || !groupShipResult.shipmentNumber) {
       console.error(`[shipping] Group label creation failed (${groupCarrier}):`, groupShipResult.error)
       res.status(502).json({ error: groupShipResult.error || 'Failed to create shipment' })
@@ -783,7 +785,8 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Update ALL orders with tracking info — status 'preparing' until carrier scans the parcel
-    const { error: groupUpdateErr } = await supabase
+    console.log(`[shipping] Saving label to ${order_ids.length} orders: ${JSON.stringify(order_ids.slice(0, 3))}...`)
+    const { error: groupUpdateErr, data: groupUpdateData, count: groupUpdateCount } = await supabase
       .from('orders')
       .update({
         tracking_number: groupShipResult.shipmentNumber,
@@ -792,9 +795,12 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
         status: 'preparing',
       })
       .in('id', order_ids)
+      .select('id')
+
+    console.log(`[shipping] DB save result: error=${groupUpdateErr?.message || 'none'}, updated=${groupUpdateData?.length || 0} rows`)
 
     if (groupUpdateErr) {
-      console.error(`[shipping] Failed to save group label to orders:`, groupUpdateErr.message)
+      console.error(`[shipping] Failed to save group label to orders:`, groupUpdateErr.message, groupUpdateErr.details, groupUpdateErr.hint)
     }
 
     const groupTrackingUrl = groupCarrier === 'dpd' ? getDpdTrackingUrl(groupShipResult.shipmentNumber)
@@ -883,6 +889,60 @@ router.get(['/api/orders/:id/mondial-relay-tracking', '/api/orders/:id/tracking-
   } catch (err) {
     console.error('[shipping] Tracking details error:', err)
     res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// GET /api/shipping/test-save — Test DB write to orders (no MR call)
+// =============================================
+router.get('/api/shipping/test-save', async (_req: Request, res: Response) => {
+  try {
+    // Pick one order to test
+    const { data: orders, error: fetchErr } = await supabase
+      .from('orders')
+      .select('id, label_url, tracking_number, status')
+      .eq('status', 'paid')
+      .is('label_url', null)
+      .limit(1)
+
+    if (fetchErr || !orders || orders.length === 0) {
+      res.json({ test: 'no_orders_found', fetchErr: fetchErr?.message })
+      return
+    }
+
+    const testId = orders[0].id
+    console.log(`[test-save] Testing update on order ${testId}`)
+
+    // Try updating with a test value
+    const { error: updateErr, data: updateData } = await supabase
+      .from('orders')
+      .update({
+        tracking_number: 'TEST_TRACK_123',
+        carrier: 'mondial_relay',
+        label_url: 'https://test-label-url.com/test.pdf',
+        status: 'preparing',
+      })
+      .eq('id', testId)
+      .select('id, label_url, tracking_number, status')
+
+    console.log(`[test-save] Update result: error=${updateErr?.message || 'none'}, data=${JSON.stringify(updateData)}`)
+
+    if (updateErr) {
+      // Revert
+      res.json({ test: 'FAILED', error: updateErr.message, details: updateErr.details, hint: updateErr.hint })
+      return
+    }
+
+    // Revert the test
+    await supabase
+      .from('orders')
+      .update({ tracking_number: null, label_url: null, status: 'paid', carrier: null })
+      .eq('id', testId)
+
+    res.json({ test: 'SUCCESS', order_id: testId, updated: updateData })
+  } catch (err: any) {
+    console.error('[test-save] Error:', err)
+    res.json({ test: 'EXCEPTION', error: err?.message })
   }
 })
 
