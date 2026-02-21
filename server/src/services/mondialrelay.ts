@@ -226,7 +226,7 @@ export async function createShipment(params: {
     <VersionAPI>1.0</VersionAPI>
   </Context>
   <OutputOptions>
-    <OutputFormat>10x15</OutputFormat>
+    <OutputFormat>A4</OutputFormat>
     <OutputType>PdfUrl</OutputType>
   </OutputOptions>
   <ShipmentsList>
