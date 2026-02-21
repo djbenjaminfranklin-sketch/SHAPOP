@@ -547,7 +547,7 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
     // Recent orders: last 50 with item title + buyer name
     const { data: recentOrdersRaw } = await supabase
       .from('orders')
-      .select('id, amount, seller_payout, status, created_at, item_id, buyer_id')
+      .select('id, amount, seller_payout, status, created_at, item_id, buyer_id, label_url, tracking_number, carrier')
       .eq('seller_id', userId)
       .order('created_at', { ascending: false })
       .limit(50)
@@ -588,6 +588,9 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       created_at: o.created_at,
       buyer_id: o.buyer_id,
       buyer_name: buyerNames[o.buyer_id as string] || null,
+      label_url: o.label_url || null,
+      tracking_number: o.tracking_number || null,
+      carrier: o.carrier || null,
     }))
 
     res.json({

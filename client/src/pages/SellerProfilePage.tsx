@@ -252,6 +252,9 @@ interface RecentOrder {
   created_at: string
   buyer_id?: string
   buyer_name?: string
+  label_url?: string | null
+  tracking_number?: string | null
+  carrier?: string | null
 }
 
 interface DashboardData {
@@ -362,6 +365,41 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
               </span>
             </div>
           ))}
+          {/* Label display if any order in group has a label */}
+          {(() => {
+            const labelOrder = group.find(o => o.label_url && o.tracking_number)
+            if (!labelOrder) return null
+            return (
+              <div style={{
+                marginTop: '10px', padding: '10px 12px',
+                backgroundColor: 'rgba(34,197,94,0.08)',
+                border: '1px solid rgba(34,197,94,0.25)',
+                borderRadius: '10px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+              }}>
+                <span style={{ fontSize: '18px' }}>{'\uD83D\uDCE6'}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: '#22C55E', margin: 0 }}>
+                    {lang === 'fr' ? 'Etiquette prete' : 'Label ready'}
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                    N° {labelOrder.tracking_number}
+                  </p>
+                </div>
+                <button
+                  onClick={(e) => { e.stopPropagation(); window.open(labelOrder.label_url!, '_blank') }}
+                  style={{
+                    padding: '6px 14px', borderRadius: '8px',
+                    backgroundColor: '#22C55E', color: '#fff',
+                    fontSize: '12px', fontWeight: 700,
+                    border: 'none', cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  {lang === 'fr' ? 'Ouvrir' : 'Open'}
+                </button>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>
@@ -1295,6 +1333,14 @@ export default function SellerProfilePage() {
                         </span>
                         {order.buyer_name && (
                           <span style={{ fontSize: '12px', color: '#888' }}>{order.buyer_name}</span>
+                        )}
+                        {order.label_url && (
+                          <span
+                            onClick={(e) => { e.stopPropagation(); window.open(order.label_url!, '_blank') }}
+                            style={{ fontSize: '10px', fontWeight: 700, color: '#22C55E', backgroundColor: 'rgba(34,197,94,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
+                          >
+                            {'\uD83D\uDCE6'} {lang === 'fr' ? 'Etiquette' : 'Label'}
+                          </span>
                         )}
                       </div>
                     </div>
