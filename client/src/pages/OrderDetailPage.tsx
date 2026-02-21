@@ -19,7 +19,7 @@ interface OrderDetail {
   platform_fee: number
   processing_fee: number
   seller_payout: number
-  status: 'pending_payment' | 'paid' | 'shipped' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected'
+  status: 'pending_payment' | 'paid' | 'preparing' | 'shipped' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected'
   shipping_address: Record<string, string> | null
   shipping_proof_url: string | null
   tracking_number: string | null
@@ -74,6 +74,7 @@ const pageContent = {
     notFound: 'Commande introuvable',
     statusPendingPayment: 'En attente de paiement',
     statusPaid: 'Payee',
+    statusPreparing: 'En preparation',
     statusShipped: 'Expediee',
     statusDelivered: 'Livree',
     statusRefunded: 'Remboursee',
@@ -172,6 +173,7 @@ const pageContent = {
     notFound: 'Order not found',
     statusPendingPayment: 'Pending payment',
     statusPaid: 'Paid',
+    statusPreparing: 'Preparing',
     statusShipped: 'Shipped',
     statusDelivered: 'Delivered',
     statusRefunded: 'Refunded',
@@ -270,6 +272,7 @@ const pageContent = {
     notFound: '\u05D4\u05D6\u05DE\u05E0\u05D4 \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4',
     statusPendingPayment: '\u05DE\u05DE\u05EA\u05D9\u05DF \u05DC\u05EA\u05E9\u05DC\u05D5\u05DD',
     statusPaid: '\u05E9\u05D5\u05DC\u05DD',
+    statusPreparing: '\u05D1\u05D4\u05DB\u05E0\u05D4',
     statusShipped: '\u05E0\u05E9\u05DC\u05D7',
     statusDelivered: '\u05E0\u05DE\u05E1\u05E8',
     statusRefunded: '\u05D4\u05D5\u05D7\u05D6\u05E8',
@@ -368,6 +371,7 @@ const pageContent = {
     notFound: 'Pedido no encontrado',
     statusPendingPayment: 'Pendiente',
     statusPaid: 'Pagado',
+    statusPreparing: 'En preparacion',
     statusShipped: 'Enviado',
     statusDelivered: 'Entregado',
     statusRefunded: 'Reembolsado',
@@ -834,6 +838,7 @@ export default function OrderDetailPage() {
     switch (status) {
       case 'pending_payment': return '#F59E0B'
       case 'paid': return '#3B82F6'
+      case 'preparing': return '#F59E0B'
       case 'shipped': return '#10B981'
       case 'delivered': return '#10B981'
       case 'refunded': return '#8B5CF6'
@@ -849,6 +854,7 @@ export default function OrderDetailPage() {
     switch (status) {
       case 'pending_payment': return ct.statusPendingPayment
       case 'paid': return ct.statusPaid
+      case 'preparing': return (ct as any).statusPreparing || 'En preparation'
       case 'shipped': return ct.statusShipped
       case 'delivered': return ct.statusDelivered
       case 'refunded': return ct.statusRefunded
@@ -1231,7 +1237,7 @@ export default function OrderDetailPage() {
           )}
 
           {/* Seller: Generate Mondial Relay label */}
-          {isSeller && ['paid', 'shipped'].includes(order.status) && order.shipping_address && (
+          {isSeller && ['paid', 'preparing', 'shipped'].includes(order.status) && order.shipping_address && (
             order.label_url ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{
@@ -1321,7 +1327,7 @@ export default function OrderDetailPage() {
           )}
 
           {/* Seller: Print shipping address label (for manual shipping like Israel Post) */}
-          {isSeller && ['paid', 'shipped'].includes(order.status) && order.shipping_address && !order.label_url && (
+          {isSeller && ['paid', 'preparing', 'shipped'].includes(order.status) && order.shipping_address && !order.label_url && (
             <button
               onClick={() => setShowLabel(true)}
               style={{

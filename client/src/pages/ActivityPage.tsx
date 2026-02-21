@@ -723,6 +723,7 @@ export default function ActivityPage() {
       emptyFavoritesDesc: 'Appuie sur le coeur d\'un live pour l\'ajouter ici',
       statusPendingPayment: 'En attente',
       statusPaid: 'Paye',
+      statusPreparing: 'En preparation',
       statusShipped: 'Expedie',
       statusDelivered: 'Livre',
       statusRefunded: 'Rembourse',
@@ -780,6 +781,7 @@ export default function ActivityPage() {
       emptyFavoritesDesc: 'Tap the heart on a live to add it here',
       statusPendingPayment: 'Pending',
       statusPaid: 'Paid',
+      statusPreparing: 'Preparing',
       statusShipped: 'Shipped',
       statusDelivered: 'Delivered',
       statusRefunded: 'Refunded',
@@ -837,6 +839,7 @@ export default function ActivityPage() {
       emptyFavoritesDesc: '\u05DC\u05D7\u05E5 \u05E2\u05DC \u05D4\u05DC\u05D1 \u05E9\u05DC \u05E9\u05D9\u05D3\u05D5\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D5\u05E1\u05D9\u05E3 \u05D0\u05D5\u05EA\u05D5 \u05DC\u05DB\u05D0\u05DF',
       statusPendingPayment: '\u05DE\u05DE\u05EA\u05D9\u05DF',
       statusPaid: '\u05E9\u05D5\u05DC\u05DD',
+      statusPreparing: '\u05D1\u05D4\u05DB\u05E0\u05D4',
       statusShipped: '\u05E0\u05E9\u05DC\u05D7',
       statusDelivered: '\u05E0\u05DE\u05E1\u05E8',
       statusRefunded: '\u05D4\u05D5\u05D7\u05D6\u05E8',
@@ -894,6 +897,7 @@ export default function ActivityPage() {
       emptyFavoritesDesc: 'Pulsa el corazon de un directo para agregarlo aqui',
       statusPendingPayment: 'Pendiente',
       statusPaid: 'Pagado',
+      statusPreparing: 'En preparacion',
       statusShipped: 'Enviado',
       statusDelivered: 'Entregado',
       statusRefunded: 'Reembolsado',
@@ -974,6 +978,7 @@ export default function ActivityPage() {
     switch (status) {
       case 'pending_payment': return '#F59E0B'
       case 'paid': return '#3B82F6'
+      case 'preparing': return '#F59E0B'
       case 'shipped': return '#10B981'
       case 'delivered': return '#10B981'
       case 'refunded': return '#8B5CF6'
@@ -986,6 +991,7 @@ export default function ActivityPage() {
     switch (status) {
       case 'pending_payment': return lt.statusPendingPayment
       case 'paid': return lt.statusPaid
+      case 'preparing': return (lt as any).statusPreparing || 'En preparation'
       case 'shipped': return lt.statusShipped
       case 'delivered': return lt.statusDelivered
       case 'refunded': return lt.statusRefunded
@@ -996,7 +1002,7 @@ export default function ActivityPage() {
 
   const filterOrders = <T extends { status: Order['status'] }>(items: T[]): T[] => {
     switch (subFilter) {
-      case 'active': return items.filter(o => ['pending_payment', 'paid', 'shipped'].includes(o.status))
+      case 'active': return items.filter(o => ['pending_payment', 'paid', 'preparing', 'shipped'].includes(o.status))
       case 'completed': return items.filter(o => o.status === 'delivered')
       case 'refunds': return items.filter(o => ['refunded', 'disputed'].includes(o.status))
       default: return items
@@ -1190,8 +1196,8 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {/* Seller: inline shipping for paid orders */}
-        {isSale && order.status === 'paid' && order.shipping_address && (
+        {/* Seller: inline shipping for paid/preparing orders */}
+        {isSale && (order.status === 'paid' || order.status === 'preparing') && order.shipping_address && (
           <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} />
         )}
 
@@ -1408,9 +1414,9 @@ export default function ActivityPage() {
       )
     }
 
-    // Group PAID orders by buyer_id
-    const paidOrders = filtered.filter(o => o.status === 'paid')
-    const otherOrders = filtered.filter(o => o.status !== 'paid')
+    // Group PAID/PREPARING orders by buyer_id
+    const paidOrders = filtered.filter(o => o.status === 'paid' || o.status === 'preparing')
+    const otherOrders = filtered.filter(o => o.status !== 'paid' && o.status !== 'preparing')
     const grouped: Record<string, SaleOrder[]> = {}
     for (const o of paidOrders) {
       const key = o.buyer_id

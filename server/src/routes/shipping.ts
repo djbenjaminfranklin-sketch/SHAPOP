@@ -181,7 +181,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    if (!['paid', 'shipped'].includes(order.status)) {
+    if (!['paid', 'preparing', 'shipped'].includes(order.status)) {
       res.status(400).json({ error: 'Order must be paid to generate a label' })
       return
     }
@@ -274,17 +274,15 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    // Store label URL and tracking number on the order — mark as shipped
-    const now = new Date().toISOString()
+    // Store label URL and tracking number — status 'preparing' until MR scans the parcel
     await supabase
       .from('orders')
       .update({
         tracking_number: result.shipmentNumber,
         carrier: 'mondial_relay',
         label_url: result.labelUrl,
-        tracking_status: 'shipped',
-        status: 'shipped',
-        shipped_at: now,
+        tracking_status: 'pending',
+        status: 'preparing',
       })
       .eq('id', orderId)
 
@@ -350,8 +348,8 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Verify all orders are paid
-    if (orders.some(o => !['paid', 'shipped'].includes(o.status))) {
+    // Verify all orders are paid or preparing
+    if (orders.some(o => !['paid', 'preparing', 'shipped'].includes(o.status))) {
       res.status(400).json({ error: 'All orders must be paid' })
       return
     }
@@ -444,17 +442,15 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Update ALL orders with the same tracking info — mark as shipped
-    const now = new Date().toISOString()
+    // Update ALL orders with tracking info — status 'preparing' until MR scans the parcel
     await supabase
       .from('orders')
       .update({
         tracking_number: result.shipmentNumber,
         carrier: 'mondial_relay',
         label_url: result.labelUrl,
-        tracking_status: 'shipped',
-        status: 'shipped',
-        shipped_at: now,
+        tracking_status: 'pending',
+        status: 'preparing',
       })
       .in('id', order_ids)
 
