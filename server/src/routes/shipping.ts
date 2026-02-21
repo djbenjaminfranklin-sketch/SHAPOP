@@ -229,7 +229,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     // Fetch order with item details
     const { data: order, error: fetchErr } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name, shipping_cost, shipping_payment_intent_id')
+      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name, shipping_cost')
       .eq('id', orderId)
       .single()
 
@@ -297,24 +297,33 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     const weight = manualWeight || item?.weight_grams || 500 // Manual > item > default 500g
 
     // Calculate shipping cost and charge buyer off-session BEFORE generating label
-    // Skip if already charged (prevents double-charging on retry)
+    // Skip if already charged (shipping_cost > 0 means buyer was already billed)
     const shippingCost = calculateShippingCost(weight, carrier, shippingZone)
 
-    if (shippingCost > 0 && !order.shipping_payment_intent_id) {
+    if (shippingCost > 0 && !(order.shipping_cost > 0)) {
       const chargeResult = await chargeShippingOffSession(order.buyer_id, orderId, shippingCost)
       if (!chargeResult.success) {
         res.status(402).json({ error: chargeResult.error || 'Le paiement des frais de port a echoue' })
         return
       }
 
-      // Store shipping cost and payment intent on the order
-      await supabase
+      // Store shipping cost (and payment intent if column exists)
+      const { error: costErr } = await supabase
         .from('orders')
         .update({
           shipping_cost: shippingCost,
           shipping_payment_intent_id: chargeResult.paymentIntentId,
         })
         .eq('id', orderId)
+
+      // If update failed (shipping_payment_intent_id column might not exist), retry with just shipping_cost
+      if (costErr) {
+        console.error(`[shipping] Cost update failed, retrying without payment_intent_id:`, costErr.message)
+        await supabase
+          .from('orders')
+          .update({ shipping_cost: shippingCost })
+          .eq('id', orderId)
+      }
 
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[Shipping] Charged ${shippingCost}EUR shipping for order ${orderId} (PI: ${chargeResult.paymentIntentId})`)
@@ -515,7 +524,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     // Fetch all orders
     const { data: orders, error: fetchErr } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name, shipping_payment_intent_id')
+      .select('id, seller_id, buyer_id, status, shipping_address, item_id, carrier, label_url, tracking_number, relay_point_id, relay_point_name, shipping_cost')
       .in('id', order_ids)
 
     if (fetchErr || !orders || orders.length === 0) {
@@ -584,8 +593,8 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Calculate shipping cost for the grouped weight and charge buyer off-session
-    // Skip if already charged (prevents double-charging on retry)
-    const alreadyCharged = orders.some(o => o.shipping_payment_intent_id)
+    // Skip if already charged (shipping_cost > 0 means buyer was already billed)
+    const alreadyCharged = orders.some(o => o.shipping_cost > 0)
     const groupShippingCost = calculateShippingCost(Number(weight_grams), groupCarrier, groupZone)
 
     if (groupShippingCost > 0 && !alreadyCharged) {
@@ -595,16 +604,23 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
         return
       }
 
-      // Distribute shipping cost evenly across orders and store payment intent
+      // Distribute shipping cost evenly across orders
       const perOrderShipping = Math.round((groupShippingCost / orders.length) * 100) / 100
       for (const o of orders) {
-        await supabase
+        const { error: costErr } = await supabase
           .from('orders')
           .update({
             shipping_cost: perOrderShipping,
             shipping_payment_intent_id: chargeResult.paymentIntentId,
           })
           .eq('id', o.id)
+
+        if (costErr) {
+          await supabase
+            .from('orders')
+            .update({ shipping_cost: perOrderShipping })
+            .eq('id', o.id)
+        }
       }
 
       if (process.env.NODE_ENV !== 'production') {
