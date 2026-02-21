@@ -232,7 +232,7 @@ export async function createShipment(params: {
       <CustomerNo>${orderNo}</CustomerNo>
       <ParcelCount>1</ParcelCount>
       <DeliveryMode Mode="${deliveryMode}"${deliveryLocation ? ` Location="${escXml(deliveryLocation)}"` : ''}/>
-      <CollectionMode Mode="CCC"/>
+      <CollectionMode Mode="REL"/>
       <Parcels>
         <Parcel>
           <Content>${mrField(params.content, 50)}</Content>
@@ -273,6 +273,9 @@ export async function createShipment(params: {
   </ShipmentsList>
 </ShipmentCreationRequest>`
 
+  // Log the XML body for debugging
+  console.log('[MondialRelay] Sending shipment XML:', xmlBody)
+
   try {
     const resp = await fetch(REST_URL, {
       method: 'POST',
@@ -283,14 +286,16 @@ export async function createShipment(params: {
       body: xmlBody,
     })
 
+    const responseText = await resp.text()
+
     if (!resp.ok) {
-      const text = await resp.text()
-      console.error('[MondialRelay] Shipment creation failed:', resp.status, text)
+      console.error('[MondialRelay] Shipment creation failed:', resp.status, responseText)
       return { shipmentNumber: '', labelUrl: '', error: `API error: ${resp.status}` }
     }
 
-    const xml = await resp.text()
-    const parsed = xmlParser.parse(xml)
+    console.log('[MondialRelay] Response:', responseText)
+
+    const parsed = xmlParser.parse(responseText)
 
     // Navigate response structure
     const shipmentResponse = parsed.ShipmentCreationResponse || parsed
@@ -303,6 +308,7 @@ export async function createShipment(params: {
       const errors = statuses.filter((s: Record<string, unknown>) => s['@_Code'] && String(s['@_Code']) !== '0')
       if (errors.length > 0) {
         const errMsg = errors.map((e: Record<string, unknown>) => `${e['@_Code']}: ${e['@_Message'] || ''}`).join('; ')
+        console.error('[MondialRelay] API error:', errMsg, '| Full response:', responseText)
         return { shipmentNumber: '', labelUrl: '', error: errMsg }
       }
     }
@@ -439,11 +445,11 @@ function escXml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 }
 
-/** Sanitize a field for Mondial Relay: trim, remove control chars, truncate to max length, escape XML */
+/** Sanitize a field for Mondial Relay: trim, remove special chars that break MR XML (error 10061), truncate, escape XML */
 function mrField(value: string | undefined | null, maxLen: number): string {
   if (!value) return ''
-  // Remove control characters and normalize whitespace
-  let clean = String(value).replace(/[\x00-\x1F\x7F]/g, '').trim()
+  // Remove control characters, brackets, #, /, \, |, {, }, ~, ^, and other MR-problematic chars
+  let clean = String(value).replace(/[\x00-\x1F\x7F\[\]#/\\|{}~^`]/g, '').trim()
   // Truncate to max length
   if (clean.length > maxLen) clean = clean.slice(0, maxLen)
   return escXml(clean)
