@@ -66,7 +66,7 @@ const defaultSettings: ControlSettings = {
   dmEnabled: true,
   privateParticipation: false,
   activityStatus: true,
-  appearance: 'dark',
+  appearance: 'light',
   streamQuality: 'auto',
   contactSync: false,
   accountRecommendation: true,
