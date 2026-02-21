@@ -34,13 +34,14 @@ interface SaleOrder extends Order {
 }
 
 // Inline shipping section for a single paid order (weight + label)
-function InlineShippingSection({ orderId, existingLabel, existingTracking, lang, buyerCountry, carrier }: {
+function InlineShippingSection({ orderId, existingLabel, existingTracking, lang, buyerCountry, carrier, onLabelGenerated }: {
   orderId: string
   existingLabel: string | null
   existingTracking: string | null
   lang: string
   buyerCountry?: string
   carrier?: string
+  onLabelGenerated?: () => void
 }) {
   const [weightInput, setWeightInput] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -91,6 +92,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
       if (resp.ok) {
         setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
         if (data.label_url) window.open(data.label_url, '_blank')
+        onLabelGenerated?.()
       } else if (resp.status === 402) {
         setError(lb.paymentFailed)
       } else { setError(data.error || 'Erreur') }
@@ -156,7 +158,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
 }
 
 // Grouped order card for same-buyer shipments (all statuses)
-function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate }: {
+function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate, onLabelGenerated }: {
   group: SaleOrder[]
   buyerName: string
   totalAmount: number
@@ -167,6 +169,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
   formatDate: (s: string) => string
   getItemImage: (item: any) => string | null
   navigate: (path: string) => void
+  onLabelGenerated?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const [weightInput, setWeightInput] = useState('')
@@ -223,6 +226,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
       if (resp.ok) {
         setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
         if (data.label_url) window.open(data.label_url, '_blank')
+        onLabelGenerated?.()
       } else if (resp.status === 402) {
         setError(paymentFailedMsg)
       } else {
@@ -1291,6 +1295,11 @@ export default function ActivityPage() {
             </p>
             <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600, marginBottom: '3px' }}>
               {formatAmount(order.amount)}
+              {!isSale && order.shipping_cost != null && order.shipping_cost > 0 && (
+                <span style={{ fontSize: '11px', color: '#888', fontWeight: 500 }}>
+                  {' '}+ {formatAmount(order.shipping_cost)} {lang === 'fr' ? 'livraison' : 'shipping'}
+                </span>
+              )}
             </p>
             <p style={{ fontSize: '12px', color: '#555' }}>
               {isSale && saleOrder.buyer_profile
@@ -1330,7 +1339,7 @@ export default function ActivityPage() {
         {/* Seller: inline shipping for paid/preparing orders */}
         {isSale && (order.status === 'paid' || order.status === 'preparing') && (
           order.shipping_address ? (
-            <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} buyerCountry={(order.shipping_address as Record<string, string> | null)?.country} carrier={order.carrier || undefined} />
+            <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} buyerCountry={(order.shipping_address as Record<string, string> | null)?.country} carrier={order.carrier || undefined} onLabelGenerated={fetchSales} />
           ) : (
             <div style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px' }}>
               <p style={{ fontSize: '11px', color: '#F59E0B', margin: 0 }}>
@@ -1585,6 +1594,7 @@ export default function ActivityPage() {
               formatDate={formatDate}
               getItemImage={getItemImage}
               navigate={navigate}
+              onLabelGenerated={fetchSales}
             />
           )
         })}

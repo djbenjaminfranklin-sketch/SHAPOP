@@ -446,7 +446,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     }
 
     // Store label URL and tracking number — status 'preparing' until carrier scans the parcel
-    await supabase
+    const { error: updateErr } = await supabase
       .from('orders')
       .update({
         tracking_number: shipResult.shipmentNumber,
@@ -456,6 +456,10 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
         status: 'preparing',
       })
       .eq('id', orderId)
+
+    if (updateErr) {
+      console.error(`[shipping] Failed to save label to order ${orderId}:`, updateErr.message)
+    }
 
     const trackingUrl = carrier === 'dpd' ? getDpdTrackingUrl(shipResult.shipmentNumber)
       : carrier === 'dhl' ? getDhlTrackingUrl(shipResult.shipmentNumber)
@@ -726,7 +730,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Update ALL orders with tracking info — status 'preparing' until carrier scans the parcel
-    await supabase
+    const { error: groupUpdateErr } = await supabase
       .from('orders')
       .update({
         tracking_number: groupShipResult.shipmentNumber,
@@ -736,6 +740,10 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
         status: 'preparing',
       })
       .in('id', order_ids)
+
+    if (groupUpdateErr) {
+      console.error(`[shipping] Failed to save group label to orders:`, groupUpdateErr.message)
+    }
 
     const groupTrackingUrl = groupCarrier === 'dpd' ? getDpdTrackingUrl(groupShipResult.shipmentNumber)
       : groupCarrier === 'dhl' ? getDhlTrackingUrl(groupShipResult.shipmentNumber)
