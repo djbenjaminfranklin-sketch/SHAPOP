@@ -243,7 +243,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    if (!['paid', 'preparing', 'shipped'].includes(order.status)) {
+    if (!['paid', 'shipped'].includes(order.status)) {
       res.status(400).json({ error: 'Order must be paid to generate a label' })
       return
     }
@@ -472,14 +472,14 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    // Store label URL and tracking number — status 'preparing' until carrier scans the parcel
+    // Store label URL and tracking number — status 'shipped' until carrier scans the parcel
     const { error: updateErr } = await supabase
       .from('orders')
       .update({
         tracking_number: shipResult.shipmentNumber,
         carrier,
         label_url: shipResult.labelUrl,
-        status: 'preparing',
+        status: 'shipped',
       })
       .eq('id', orderId)
 
@@ -549,7 +549,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Verify all orders are paid or preparing
-    if (orders.some(o => !['paid', 'preparing', 'shipped'].includes(o.status))) {
+    if (orders.some(o => !['paid', 'shipped'].includes(o.status))) {
       res.status(400).json({ error: 'All orders must be paid' })
       return
     }
@@ -784,7 +784,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Update ALL orders with tracking info — status 'preparing' until carrier scans the parcel
+    // Update ALL orders with tracking info — status 'shipped' until carrier scans the parcel
     console.log(`[shipping] Saving label to ${order_ids.length} orders: ${JSON.stringify(order_ids.slice(0, 3))}...`)
     const { error: groupUpdateErr, data: groupUpdateData, count: groupUpdateCount } = await supabase
       .from('orders')
@@ -792,7 +792,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
         tracking_number: groupShipResult.shipmentNumber,
         carrier: groupCarrier,
         label_url: groupShipResult.labelUrl,
-        status: 'preparing',
+        status: 'shipped',
       })
       .in('id', order_ids)
       .select('id')
@@ -920,7 +920,7 @@ router.get('/api/shipping/test-save', async (_req: Request, res: Response) => {
         tracking_number: 'TEST_TRACK_123',
         carrier: 'mondial_relay',
         label_url: 'https://test-label-url.com/test.pdf',
-        status: 'preparing',
+        status: 'shipped',
       })
       .eq('id', testId)
       .select('id, label_url, tracking_number, status')
@@ -933,10 +933,10 @@ router.get('/api/shipping/test-save', async (_req: Request, res: Response) => {
       return
     }
 
-    // Revert the test
+    // Revert the test — set status back but keep it valid
     await supabase
       .from('orders')
-      .update({ tracking_number: null, label_url: null, status: 'paid', carrier: null })
+      .update({ tracking_number: null, label_url: null, status: 'paid' })
       .eq('id', testId)
 
     res.json({ test: 'SUCCESS', order_id: testId, updated: updateData })
