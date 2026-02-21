@@ -34,6 +34,7 @@ interface OrderDetail {
   relay_point_id: string | null
   relay_point_name: string | null
   label_url: string | null
+  shipping_cost: number | null
   created_at: string
   item?: { title: string; image_urls: string[]; category: string; description: string | null }
   buyer_profile?: { display_name: string; username: string; avatar_url: string | null }
@@ -50,6 +51,9 @@ const pageContent = {
     seller: 'Vendeur',
     item: 'Article',
     amount: 'Montant',
+    itemPrice: 'Prix de l\'article',
+    shippingCost: 'Frais de port',
+    totalPaid: 'Total paye',
     platformFee: 'Frais plateforme',
     sellerPayout: 'Versement vendeur',
     status: 'Statut',
@@ -131,14 +135,15 @@ const pageContent = {
     escrowInfo: 'Le paiement est securise. Il sera libere quand vous confirmerez la reception.',
     escrowInfoSeller: 'Le paiement est bloque jusqu\'a confirmation de livraison.',
     selectCarrier: 'Selectionnez un transporteur',
-    generateLabel: 'Generer l\'etiquette Mondial Relay',
-    packageWeight: 'Poids du colis (grammes)',
+    carrierDpd: 'DPD',
+    generateLabel: 'Generer l\'etiquette',
+    packageWeight: 'Poids en grammes (ex: 500)',
     generatingLabel: 'Generation...',
     downloadLabel: 'Telecharger l\'etiquette',
     selectRelay: 'Choisir un Point Relais',
     relaySelected: 'Point Relais',
     changeRelay: 'Changer',
-    trackMondialRelay: 'Suivre sur Mondial Relay',
+    trackCarrier: 'Suivre le colis',
     labelReady: 'Etiquette prete',
   },
   en: {
@@ -149,6 +154,9 @@ const pageContent = {
     seller: 'Seller',
     item: 'Item',
     amount: 'Amount',
+    itemPrice: 'Item price',
+    shippingCost: 'Shipping cost',
+    totalPaid: 'Total paid',
     platformFee: 'Platform fee',
     sellerPayout: 'Seller payout',
     status: 'Status',
@@ -230,14 +238,15 @@ const pageContent = {
     escrowInfo: 'Payment is secured. It will be released when you confirm receipt.',
     escrowInfoSeller: 'Payment is held until delivery is confirmed.',
     selectCarrier: 'Select a carrier',
-    generateLabel: 'Generate Mondial Relay label',
-    packageWeight: 'Package weight (grams)',
+    carrierDpd: 'DPD',
+    generateLabel: 'Generate label',
+    packageWeight: 'Weight in grams (e.g. 500)',
     generatingLabel: 'Generating...',
     downloadLabel: 'Download label',
     selectRelay: 'Choose a Relay Point',
     relaySelected: 'Relay Point',
     changeRelay: 'Change',
-    trackMondialRelay: 'Track on Mondial Relay',
+    trackCarrier: 'Track shipment',
     labelReady: 'Label ready',
   },
   he: {
@@ -248,6 +257,9 @@ const pageContent = {
     seller: '\u05DE\u05D5\u05DB\u05E8',
     item: '\u05E4\u05E8\u05D9\u05D8',
     amount: '\u05E1\u05DB\u05D5\u05DD',
+    itemPrice: '\u05DE\u05D7\u05D9\u05E8 \u05D4\u05E4\u05E8\u05D9\u05D8',
+    shippingCost: '\u05D3\u05DE\u05D9 \u05DE\u05E9\u05DC\u05D5\u05D7',
+    totalPaid: '\u05E1\u05D4\u05F4\u05DB \u05E9\u05D5\u05DC\u05DD',
     platformFee: '\u05E2\u05DE\u05DC\u05EA \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4',
     sellerPayout: '\u05EA\u05E9\u05DC\u05D5\u05DD \u05DC\u05DE\u05D5\u05DB\u05E8',
     status: '\u05E1\u05D8\u05D8\u05D5\u05E1',
@@ -313,6 +325,7 @@ const pageContent = {
     carrierChronopost: 'Chronopost',
     carrierColissimo: 'Colissimo',
     carrierIsraelPost: '\u05D3\u05D5\u05D0\u05E8 \u05D9\u05E9\u05E8\u05D0\u05DC',
+    carrierDpd: 'DPD',
     carrierDhl: 'DHL Express',
     carrierOther: '\u05D0\u05D7\u05E8',
     submitTracking: '\u05E9\u05DC\u05D7 \u05DE\u05E2\u05E7\u05D1',
@@ -329,14 +342,14 @@ const pageContent = {
     escrowInfo: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D0\u05D5\u05D1\u05D8\u05D7. \u05D4\u05D5\u05D0 \u05D9\u05E9\u05D5\u05D7\u05E8\u05E8 \u05DB\u05E9\u05EA\u05D0\u05E9\u05E8 \u05E7\u05D1\u05DC\u05D4.',
     escrowInfoSeller: '\u05D4\u05EA\u05E9\u05DC\u05D5\u05DD \u05DE\u05D5\u05E7\u05E4\u05D0 \u05E2\u05D3 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05DE\u05E9\u05DC\u05D5\u05D7.',
     selectCarrier: '\u05D1\u05D7\u05E8 \u05D7\u05D1\u05E8\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
-    generateLabel: '\u05E6\u05D5\u05E8 \u05EA\u05D5\u05D5\u05D9\u05EA Mondial Relay',
+    generateLabel: '\u05E6\u05D5\u05E8 \u05EA\u05D5\u05D5\u05D9\u05EA',
     packageWeight: '\u05DE\u05E9\u05E7\u05DC \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4 (\u05D2\u05E8\u05DD)',
     generatingLabel: '\u05D9\u05D5\u05E6\u05E8...',
     downloadLabel: '\u05D4\u05D5\u05E8\u05D3 \u05EA\u05D5\u05D5\u05D9\u05EA',
     selectRelay: '\u05D1\u05D7\u05E8 \u05E0\u05E7\u05D5\u05D3\u05EA \u05D0\u05D9\u05E1\u05D5\u05E3',
     relaySelected: '\u05E0\u05E7\u05D5\u05D3\u05EA \u05D0\u05D9\u05E1\u05D5\u05E3',
     changeRelay: '\u05E9\u05E0\u05D4',
-    trackMondialRelay: '\u05E2\u05E7\u05D5\u05D1 \u05D1-Mondial Relay',
+    trackCarrier: '\u05E2\u05E7\u05D5\u05D1 \u05DE\u05E9\u05DC\u05D5\u05D7',
     labelReady: '\u05EA\u05D5\u05D5\u05D9\u05EA \u05DE\u05D5\u05DB\u05E0\u05D4',
   },
   es: {
@@ -347,6 +360,9 @@ const pageContent = {
     seller: 'Vendedor',
     item: 'Articulo',
     amount: 'Monto',
+    itemPrice: 'Precio del articulo',
+    shippingCost: 'Gastos de envio',
+    totalPaid: 'Total pagado',
     platformFee: 'Comision',
     sellerPayout: 'Pago al vendedor',
     status: 'Estado',
@@ -412,6 +428,7 @@ const pageContent = {
     carrierChronopost: 'Chronopost',
     carrierColissimo: 'Colissimo',
     carrierIsraelPost: 'Israel Post',
+    carrierDpd: 'DPD',
     carrierDhl: 'DHL Express',
     carrierOther: 'Otro',
     submitTracking: 'Enviar seguimiento',
@@ -428,14 +445,14 @@ const pageContent = {
     escrowInfo: 'El pago esta asegurado. Se liberara cuando confirmes la recepcion.',
     escrowInfoSeller: 'El pago esta retenido hasta que se confirme la entrega.',
     selectCarrier: 'Seleccione un transportista',
-    generateLabel: 'Generar etiqueta Mondial Relay',
-    packageWeight: 'Peso del paquete (gramos)',
+    generateLabel: 'Generar etiqueta',
+    packageWeight: 'Peso en gramos (ej: 500)',
     generatingLabel: 'Generando...',
     downloadLabel: 'Descargar etiqueta',
     selectRelay: 'Elegir Punto de Recogida',
     relaySelected: 'Punto de Recogida',
     changeRelay: 'Cambiar',
-    trackMondialRelay: 'Seguir en Mondial Relay',
+    trackCarrier: 'Seguir envio',
     labelReady: 'Etiqueta lista',
   },
 }
@@ -495,6 +512,7 @@ export default function OrderDetailPage() {
   const [generatingLabel, setGeneratingLabel] = useState(false)
   const [labelError, setLabelError] = useState<string | null>(null)
   const [labelWeightInput, setLabelWeightInput] = useState('')
+  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
 
   // Return request states
   const [showReturnModal, setShowReturnModal] = useState(false)
@@ -751,6 +769,24 @@ export default function OrderDetailPage() {
     }
   }
 
+  // Preview shipping cost when weight changes
+  const handleLabelWeightChange = async (value: string) => {
+    setLabelWeightInput(value)
+    setLabelError(null)
+    setShippingPreview(null)
+    const weight = parseInt(value)
+    if (!weight || weight <= 0) return
+    try {
+      const country = order?.shipping_address ? (order.shipping_address as Record<string, string>).country || 'FR' : 'FR'
+      const orderCarrier = order?.carrier || 'mondial_relay'
+      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${orderCarrier}&country=${country}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        setShippingPreview(data.shipping_cost)
+      }
+    } catch { /* ignore */ }
+  }
+
   // Generate Mondial Relay label
   const handleGenerateLabel = async () => {
     if (!order || !session) return
@@ -767,12 +803,18 @@ export default function OrderDetailPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ weight_grams: weight }),
       })
+      if (res.status === 402) {
+        const err = await res.json()
+        setLabelError(lang === 'fr'
+          ? 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.'
+          : err.error || 'Shipping payment failed. Buyer must update their card.')
+        return
+      }
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error || 'Failed')
       }
       const data = await res.json()
-      // If label URL returned, open it
       if (data.label_url) {
         window.open(data.label_url, '_blank')
       }
@@ -827,11 +869,30 @@ export default function OrderDetailPage() {
   const carrierLabels: Record<string, string> = {
     laposte: ct.carrierLaposte,
     mondial_relay: ct.carrierMondialRelay,
+    dpd: (ct as any).carrierDpd || 'DPD',
     chronopost: ct.carrierChronopost,
     colissimo: ct.carrierColissimo,
     israel_post: ct.carrierIsraelPost,
     dhl: ct.carrierDhl,
     other: ct.carrierOther,
+  }
+
+  // Dynamic label button text based on carrier
+  const getGenerateLabelText = () => {
+    const c = order?.carrier
+    if (c === 'dpd') return `${ct.generateLabel} DPD`
+    if (c === 'dhl') return `${ct.generateLabel} DHL Express`
+    if (c === 'mondial_relay') return `${ct.generateLabel} Mondial Relay`
+    return ct.generateLabel
+  }
+
+  // Dynamic tracking URL based on carrier
+  const getTrackingUrl = () => {
+    if (!order?.tracking_number) return ''
+    const tn = order.tracking_number
+    if (order.carrier === 'dpd') return `https://trace.dpd.fr/fr/trace/${encodeURIComponent(tn)}`
+    if (order.carrier === 'dhl') return `https://www.dhl.com/fr-fr/home/suivi.html?tracking-id=${encodeURIComponent(tn)}`
+    return `https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${encodeURIComponent(tn)}`
   }
 
   const getStatusColor = (status: string) => {
@@ -1013,6 +1074,26 @@ export default function OrderDetailPage() {
             )}
           </div>
 
+          {/* Financial breakdown for buyer */}
+          {!isSeller && (
+            <div style={{ backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '12px', border: '1px solid #1A1A1A' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <span style={{ fontSize: '12px', color: '#666' }}>{ct.itemPrice}</span>
+                <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{order.amount.toFixed(2)} \u20AC</span>
+              </div>
+              {(order.shipping_cost != null && order.shipping_cost > 0) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{ct.shippingCost}</span>
+                  <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{order.shipping_cost.toFixed(2)} \u20AC</span>
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid #222', paddingTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '13px', color: '#F0908A', fontWeight: 700 }}>{ct.totalPaid}</span>
+                <span style={{ fontSize: '13px', color: '#F0908A', fontWeight: 700 }}>{((order.amount || 0) + (order.shipping_cost || 0)).toFixed(2)} \u20AC</span>
+              </div>
+            </div>
+          )}
+
           {/* Financial breakdown for seller */}
           {isSeller && (
             <div style={{ backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '12px', border: '1px solid #1A1A1A' }}>
@@ -1020,6 +1101,12 @@ export default function OrderDetailPage() {
                 <span style={{ fontSize: '12px', color: '#666' }}>{ct.amount}</span>
                 <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{order.amount.toFixed(2)} \u20AC</span>
               </div>
+              {(order.shipping_cost != null && order.shipping_cost > 0) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#666' }}>{ct.shippingCost}</span>
+                  <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{order.shipping_cost.toFixed(2)} \u20AC</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <span style={{ fontSize: '12px', color: '#666' }}>{ct.platformFee}</span>
                 <span style={{ fontSize: '12px', color: '#E8344E', fontWeight: 600 }}>-{order.platform_fee.toFixed(2)} \u20AC</span>
@@ -1112,7 +1199,7 @@ export default function OrderDetailPage() {
         )}
 
         {/* Shipping address */}
-        {order.shipping_address && (
+        {order.shipping_address ? (
           <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               {ct.shippingAddress}
@@ -1121,12 +1208,26 @@ export default function OrderDetailPage() {
               <p style={{ fontSize: '14px', color: '#fff', fontWeight: 600, margin: 0 }}>{order.shipping_address.name}</p>
               <p style={{ fontSize: '13px', color: '#999', margin: '4px 0 0' }}>{order.shipping_address.street}</p>
               <p style={{ fontSize: '13px', color: '#999', margin: '2px 0 0' }}>{order.shipping_address.zip} {order.shipping_address.city}</p>
+              {order.shipping_address.country && (
+                <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0' }}>{order.shipping_address.country}</p>
+              )}
               {order.shipping_address.phone && (
                 <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0' }}>Tel: {order.shipping_address.phone}</p>
               )}
             </div>
           </div>
-        )}
+        ) : isSeller && ['paid', 'preparing'].includes(order.status) ? (
+          <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {ct.shippingAddress}
+            </p>
+            <div style={{ backgroundColor: '#F59E0B10', borderRadius: '12px', padding: '12px', border: '1px solid #F59E0B30' }}>
+              <p style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 600, margin: 0 }}>
+                {lang === 'fr' ? 'En attente de l\'adresse de l\'acheteur' : lang === 'es' ? 'Esperando la direccion del comprador' : lang === 'he' ? 'ממתין לכתובת הקונה' : 'Waiting for buyer address'}
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         {/* Escrow info banner */}
         {order.status === 'paid' && order.payout_status === 'held' && (
@@ -1236,8 +1337,47 @@ export default function OrderDetailPage() {
             </button>
           )}
 
-          {/* Seller: Generate Mondial Relay label */}
-          {isSeller && ['paid', 'preparing', 'shipped'].includes(order.status) && order.shipping_address && (
+          {/* Seller: waiting for buyer payment */}
+          {isSeller && order.status === 'pending_payment' && (
+            <div style={{
+              padding: '12px', borderRadius: '12px', backgroundColor: '#F59E0B10',
+              border: '1px solid #F59E0B30',
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 600 }}>
+                {lang === 'fr' ? 'En attente du paiement de l\'acheteur' : lang === 'es' ? 'Esperando el pago del comprador' : lang === 'he' ? '\u05DE\u05DE\u05EA\u05D9\u05DF \u05DC\u05EA\u05E9\u05DC\u05D5\u05DD \u05D4\u05E7\u05D5\u05E0\u05D4' : 'Waiting for buyer payment'}
+              </span>
+            </div>
+          )}
+
+          {/* Seller: waiting for buyer address */}
+          {isSeller && ['paid', 'preparing'].includes(order.status) && !order.shipping_address && (
+            <div style={{
+              padding: '12px', borderRadius: '12px', backgroundColor: '#F59E0B10',
+              border: '1px solid #F59E0B30',
+              display: 'flex', alignItems: 'center', gap: '8px',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 600 }}>
+                {lang === 'fr' ? 'En attente de l\'adresse de l\'acheteur' : 'Waiting for buyer address'}
+              </span>
+            </div>
+          )}
+
+          {/* Seller: Generate shipping label */}
+          {isSeller && ['paid', 'preparing', 'shipped'].includes(order.status) && (
+            !order.shipping_address ? (
+              <div style={{ padding: '12px', borderRadius: '12px', backgroundColor: '#F59E0B10', border: '1px solid #F59E0B30' }}>
+                <p style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 600, margin: 0, textAlign: 'center' }}>
+                  {lang === 'fr' ? 'Adresse requise pour generer l\'etiquette' : 'Address required to generate label'}
+                </p>
+              </div>
+            ) :
             order.label_url ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{
@@ -1276,7 +1416,7 @@ export default function OrderDetailPage() {
                     type="number"
                     placeholder="ex: 500"
                     value={labelWeightInput}
-                    onChange={e => { setLabelWeightInput(e.target.value); setLabelError(null) }}
+                    onChange={e => handleLabelWeightChange(e.target.value)}
                     style={{
                       width: '100%', padding: '12px', borderRadius: '12px',
                       border: '1px solid #222', backgroundColor: '#0A0A0A',
@@ -1284,6 +1424,11 @@ export default function OrderDetailPage() {
                       boxSizing: 'border-box', outline: 'none',
                     }}
                   />
+                  {shippingPreview != null && shippingPreview > 0 && (
+                    <p style={{ fontSize: '12px', color: '#3B82F6', margin: '6px 0 0', fontWeight: 600 }}>
+                      {lang === 'fr' ? 'Frais de port' : 'Shipping cost'} : {shippingPreview.toFixed(2)} EUR
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={handleGenerateLabel}
@@ -1299,7 +1444,7 @@ export default function OrderDetailPage() {
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
                   </svg>
-                  {generatingLabel ? ct.generatingLabel : ct.generateLabel}
+                  {generatingLabel ? ct.generatingLabel : getGenerateLabelText()}
                 </button>
                 {labelError && (
                   <p style={{ color: '#E8344E', fontSize: '12px', textAlign: 'center', margin: 0 }}>{labelError}</p>
@@ -1308,10 +1453,10 @@ export default function OrderDetailPage() {
             )
           )}
 
-          {/* Mondial Relay tracking link */}
-          {order.carrier === 'mondial_relay' && order.tracking_number && (
+          {/* Carrier tracking link */}
+          {order.tracking_number && ['mondial_relay', 'dpd', 'dhl'].includes(order.carrier || '') && (
             <button
-              onClick={() => window.open(`https://www.mondialrelay.fr/suivi-de-colis?numeroExpedition=${encodeURIComponent(order.tracking_number!)}`, '_blank')}
+              onClick={() => window.open(getTrackingUrl(), '_blank')}
               style={{
                 width: '100%', padding: '12px', borderRadius: '12px',
                 border: '1px solid #E8344E30', backgroundColor: 'transparent',
@@ -1322,7 +1467,7 @@ export default function OrderDetailPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
-              {ct.trackMondialRelay}
+              {(ct as any).trackCarrier || 'Suivre le colis'}
             </button>
           )}
 

@@ -25,9 +25,9 @@ const pageContent = {
     pending: 'En attente',
     shipped: 'Expedie',
     orderRef: 'N° commande',
-    generateLabel: 'Etiquette Mondial Relay',
-    generateLabelShort: 'Etiquette MR',
-    weightPlaceholder: 'Poids du colis (grammes)',
+    generateLabel: 'Etiquette',
+    generateLabelShort: 'Etiquette',
+    weightPlaceholder: 'Poids en grammes (ex: 500)',
     generatingLabel: 'Generation...',
     labelReady: 'Etiquette prete',
     downloadLabel: 'Ouvrir l\'etiquette',
@@ -62,9 +62,9 @@ const pageContent = {
     pending: 'Pending',
     shipped: 'Shipped',
     orderRef: 'Order #',
-    generateLabel: 'Mondial Relay Label',
-    generateLabelShort: 'MR Label',
-    weightPlaceholder: 'Package weight (grams)',
+    generateLabel: 'Shipping Label',
+    generateLabelShort: 'Label',
+    weightPlaceholder: 'Weight in grams (e.g. 500)',
     generatingLabel: 'Generating...',
     labelReady: 'Label ready',
     downloadLabel: 'Open label',
@@ -99,9 +99,9 @@ const pageContent = {
     pending: 'ממתין',
     shipped: 'נשלח',
     orderRef: 'מספר הזמנה',
-    generateLabel: 'תווית Mondial Relay',
+    generateLabel: 'תווית משלוח',
     generateLabelShort: 'תווית MR',
-    weightPlaceholder: 'משקל החבילה (גרם)',
+    weightPlaceholder: 'משקל בגרמים (לדוגמה: 500)',
     generatingLabel: 'יוצר...',
     labelReady: 'תווית מוכנה',
     downloadLabel: 'פתח תווית',
@@ -136,9 +136,9 @@ const pageContent = {
     pending: 'Pendiente',
     shipped: 'Enviado',
     orderRef: 'N° pedido',
-    generateLabel: 'Etiqueta Mondial Relay',
+    generateLabel: 'Etiqueta de envio',
     generateLabelShort: 'Etiqueta MR',
-    weightPlaceholder: 'Peso del paquete (gramos)',
+    weightPlaceholder: 'Peso en gramos (ej: 500)',
     generatingLabel: 'Generando...',
     labelReady: 'Etiqueta lista',
     downloadLabel: 'Abrir etiqueta',
@@ -189,7 +189,28 @@ export default function LiveRecapPage() {
   const [labelGenerating, setLabelGenerating] = useState(false)
   const [labelError, setLabelError] = useState<string | null>(null)
   const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
+  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
   const [showVod, setShowVod] = useState(false)
+
+  // Preview shipping cost when weight changes
+  const handleLabelWeightChange = async (value: string) => {
+    setLabelWeight(value)
+    setLabelError(null)
+    setShippingPreview(null)
+    const weight = parseInt(value)
+    if (!weight || weight <= 0) return
+    try {
+      const country = selectedSale?.order?.shipping_address
+        ? (selectedSale.order.shipping_address as Record<string, string>).country || 'FR'
+        : 'FR'
+      const orderCarrier = selectedSale?.order?.carrier || 'mondial_relay'
+      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${orderCarrier}&country=${country}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        setShippingPreview(data.shipping_cost)
+      }
+    } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     if (!streamId || !user) return
@@ -756,7 +777,7 @@ export default function LiveRecapPage() {
                     type="number"
                     placeholder={ct.weightPlaceholder}
                     value={labelWeight}
-                    onChange={e => { setLabelWeight(e.target.value); setLabelError(null) }}
+                    onChange={e => handleLabelWeightChange(e.target.value)}
                     style={{
                       width: '100%', padding: '14px', borderRadius: '12px',
                       border: '1px solid #333', backgroundColor: '#0D0D0D',
@@ -764,6 +785,11 @@ export default function LiveRecapPage() {
                       boxSizing: 'border-box', outline: 'none',
                     }}
                   />
+                  {shippingPreview != null && shippingPreview > 0 && (
+                    <p style={{ fontSize: '12px', color: '#3B82F6', margin: 0, fontWeight: 600 }}>
+                      {lang === 'fr' ? 'Frais de port' : 'Shipping cost'} : {shippingPreview.toFixed(2)} EUR
+                    </p>
+                  )}
                   <button
                     onClick={async () => {
                       if (!selectedSale.order) return
@@ -782,6 +808,10 @@ export default function LiveRecapPage() {
                         if (resp.ok) {
                           setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
                           if (data.label_url) window.open(data.label_url, '_blank')
+                        } else if (resp.status === 402) {
+                          setLabelError(lang === 'fr'
+                            ? 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.'
+                            : 'Shipping payment failed. Buyer must update their card.')
                         } else { setLabelError(data.error || 'Erreur') }
                       } catch { setLabelError('Erreur reseau') }
                       setLabelGenerating(false)

@@ -10,6 +10,7 @@ interface ActiveItemBarProps {
   hasCard: boolean | null
   onAddCard: () => void
   disabled?: boolean
+  timeLeft?: number
   lang: 'fr' | 'en' | 'he' | 'es'
 }
 
@@ -63,6 +64,7 @@ export default function ActiveItemBar({
   hasCard,
   onAddCard,
   disabled,
+  timeLeft,
   lang,
 }: ActiveItemBarProps) {
   const [bidFlash, setBidFlash] = useState(false)
@@ -127,9 +129,28 @@ export default function ActiveItemBar({
             {item.title}
           </span>
         </div>
-        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-          <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{labels.currentPrice}</span>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{item.current_price}€</span>
+        <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {timeLeft != null && timeLeft > 0 && (
+            <div style={{
+              backgroundColor: timeLeft <= 10 ? 'rgba(232,52,78,0.3)' : 'rgba(240,144,138,0.15)',
+              border: timeLeft <= 10 ? '1.5px solid #E8344E' : '1px solid rgba(240,144,138,0.4)',
+              borderRadius: '8px',
+              padding: '2px 8px',
+              textAlign: 'center',
+              animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
+            }}>
+              <span style={{
+                fontSize: '15px', fontWeight: 900, color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
+                fontVariantNumeric: 'tabular-nums',
+              }}>
+                {timeLeft}s
+              </span>
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{labels.currentPrice}</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{item.current_price}€</span>
+          </div>
         </div>
       </div>
 
@@ -218,6 +239,7 @@ export default function ActiveItemBar({
           </button>
         </div>
       )}
+      <style>{`@keyframes timerPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }`}</style>
     </div>
   )
 }

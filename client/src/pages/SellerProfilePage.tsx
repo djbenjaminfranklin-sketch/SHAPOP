@@ -247,8 +247,10 @@ interface RecentOrder {
   id: string
   item_title: string
   amount: number
+  seller_payout?: number
   status: string
   created_at: string
+  buyer_id?: string
   buyer_name?: string
 }
 
@@ -258,6 +260,112 @@ interface DashboardData {
   total_sales: number
   avg_viewers: number
   recent_orders: RecentOrder[]
+}
+
+// =============================================
+// BuyerGroupCard — grouped orders from same buyer
+// =============================================
+function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabel, navigate }: {
+  group: RecentOrder[]
+  buyerName: string
+  total: number
+  lang: string
+  statusColor: Record<string, string>
+  statusLabel: (s: string) => string
+  navigate: (path: string) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const itemsLabel = lang === 'fr' ? 'articles' : lang === 'es' ? 'articulos' : 'items'
+
+  return (
+    <div style={{
+      backgroundColor: '#0D0D0D', borderRadius: '14px',
+      border: '1px solid rgba(59,130,246,0.3)',
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div
+        onClick={() => setExpanded(!expanded)}
+        style={{
+          padding: '14px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}
+      >
+        <div style={{
+          width: '44px', height: '44px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05))',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '18px', flexShrink: 0,
+        }}>
+          {'\uD83D\uDC64'}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{buyerName}</span>
+            <span style={{
+              fontSize: '10px', fontWeight: 700, color: '#3B82F6',
+              backgroundColor: 'rgba(59,130,246,0.12)',
+              padding: '2px 8px', borderRadius: '100px',
+              border: '1px solid rgba(59,130,246,0.25)',
+            }}>
+              {group.length} {itemsLabel}
+            </span>
+          </div>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: '#F0908A', margin: 0 }}>
+            {lang === 'fr' ? 'Revenu net' : 'Net revenue'}: {total.toFixed(2)}&euro;
+          </p>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
+          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </div>
+
+      {/* Expanded: individual orders */}
+      {expanded && (
+        <div style={{ padding: '0 14px 14px', borderTop: '1px solid #1A1A1A' }}>
+          {group.map(order => (
+            <div
+              key={order.id}
+              onClick={() => navigate(`/order/${order.id}`)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 0', borderBottom: '1px solid #111', cursor: 'pointer',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{
+                  fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {order.item_title}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700,
+                    color: statusColor[order.status] || '#888',
+                    backgroundColor: `${statusColor[order.status] || '#888'}14`,
+                    padding: '2px 6px', borderRadius: '6px',
+                    border: `1px solid ${statusColor[order.status] || '#888'}30`,
+                  }}>
+                    {statusLabel(order.status)}
+                  </span>
+                  <span style={{ fontSize: '11px', color: '#555' }}>
+                    {new Date(order.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
+                      day: 'numeric', month: 'short',
+                    })}
+                  </span>
+                </div>
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                {((order.seller_payout as number) || order.amount).toFixed(2)}&euro;
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // =============================================
@@ -1119,14 +1227,41 @@ export default function SellerProfilePage() {
             </div>
           ) : !dashboardData || dashboardData.recent_orders.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#666', padding: '40px 0', fontSize: '14px' }}>{t.noOrders}</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {dashboardData.recent_orders.map(order => {
-                const statusColor: Record<string, string> = {
-                  paid: '#22C55E', shipped: '#3B82F6', delivered: '#8B5CF6',
-                  pending_payment: '#F59E0B', pending: '#F59E0B',
-                }
-                return (
+          ) : (() => {
+            const orders = dashboardData.recent_orders
+            const statusColor: Record<string, string> = {
+              paid: '#22C55E', shipped: '#3B82F6', delivered: '#8B5CF6',
+              pending_payment: '#F59E0B', pending: '#F59E0B', preparing: '#F59E0B',
+            }
+            const statusLabel = (s: string) => {
+              if (lang === 'fr') return s === 'paid' ? 'Paye' : s === 'preparing' ? 'Prep.' : s === 'shipped' ? 'Expedie' : s === 'delivered' ? 'Livre' : s === 'pending_payment' ? 'En attente' : s === 'refunded' ? 'Rembourse' : s
+              return s === 'paid' ? 'Paid' : s === 'preparing' ? 'Prep.' : s === 'shipped' ? 'Shipped' : s === 'delivered' ? 'Delivered' : s === 'pending_payment' ? 'Pending' : s === 'refunded' ? 'Refunded' : s
+            }
+            // Group by buyer_id
+            const grouped: Record<string, RecentOrder[]> = {}
+            for (const o of orders) {
+              const key = o.buyer_id || o.id
+              if (!grouped[key]) grouped[key] = []
+              grouped[key].push(o)
+            }
+            const buyerGroups = Object.values(grouped).filter(g => g.length > 1)
+            const ungrouped = Object.values(grouped).filter(g => g.length === 1).map(g => g[0])
+
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {/* Grouped orders by buyer */}
+                {buyerGroups.map((group, gi) => {
+                  const buyerName = group[0].buyer_name || (lang === 'fr' ? 'Acheteur' : 'Buyer')
+                  const total = group.reduce((s, o) => s + ((o.seller_payout as number) || o.amount || 0), 0)
+                  const [expanded, setExpanded] = [
+                    // Use a simple trick: store expanded state via data attribute
+                    false, () => {}
+                  ]
+                  return <BuyerGroupCard key={gi} group={group} buyerName={buyerName} total={total}
+                    lang={lang} statusColor={statusColor} statusLabel={statusLabel} navigate={navigate} />
+                })}
+                {/* Single orders */}
+                {ungrouped.map(order => (
                   <div
                     key={order.id}
                     onClick={() => navigate(`/order/${order.id}`)}
@@ -1144,14 +1279,14 @@ export default function SellerProfilePage() {
                       }}>
                         {order.item_title}
                       </p>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{
                           fontSize: '10px', fontWeight: 700,
                           color: statusColor[order.status] || '#888',
                           backgroundColor: `${statusColor[order.status] || '#888'}15`,
                           padding: '2px 8px', borderRadius: '100px',
                         }}>
-                          {order.status}
+                          {statusLabel(order.status)}
                         </span>
                         <span style={{ fontSize: '12px', color: '#666' }}>
                           {new Date(order.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
@@ -1164,27 +1299,27 @@ export default function SellerProfilePage() {
                       </div>
                     </div>
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>
-                      {order.amount}&euro;
+                      {((order.seller_payout as number) || order.amount).toFixed(2)}&euro;
                     </span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
                       <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                )
-              })}
-              <button
-                onClick={() => navigate('/activity?tab=sales')}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: '12px',
-                  border: '1px solid #333', backgroundColor: 'transparent',
-                  color: '#F0908A', fontSize: '14px', fontWeight: 700,
-                  cursor: 'pointer', marginTop: '4px',
-                }}
-              >
-                {t.viewAll}
-              </button>
-            </div>
-          )
+                ))}
+                <button
+                  onClick={() => navigate('/activity?tab=sales')}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '12px',
+                    border: '1px solid #333', backgroundColor: 'transparent',
+                    color: '#F0908A', fontSize: '14px', fontWeight: 700,
+                    cursor: 'pointer', marginTop: '4px',
+                  }}
+                >
+                  {t.viewAll}
+                </button>
+              </div>
+            )
+          })()
         )}
 
         {/* ---------- FINANCES TAB (own profile) ---------- */}

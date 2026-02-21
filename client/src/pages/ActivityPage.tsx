@@ -33,12 +33,14 @@ interface SaleOrder extends Order {
   buyer_profile?: { display_name: string; username: string }
 }
 
-// Inline shipping section for a single paid order (weight + MR label)
-function InlineShippingSection({ orderId, existingLabel, existingTracking, lang }: {
+// Inline shipping section for a single paid order (weight + label)
+function InlineShippingSection({ orderId, existingLabel, existingTracking, lang, buyerCountry, carrier }: {
   orderId: string
   existingLabel: string | null
   existingTracking: string | null
   lang: string
+  buyerCountry?: string
+  carrier?: string
 }) {
   const [weightInput, setWeightInput] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -46,14 +48,31 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang 
     existingLabel && existingTracking ? { label_url: existingLabel, shipment_number: existingTracking } : null
   )
   const [error, setError] = useState<string | null>(null)
+  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
 
+  const carrierShort = carrier === 'dpd' ? 'DPD' : carrier === 'dhl' ? 'DHL' : 'MR'
   const labels = {
-    fr: { weight: 'Poids (g)', generate: 'Etiquette MR', ready: 'Prete', open: 'Ouvrir' },
-    en: { weight: 'Weight (g)', generate: 'MR Label', ready: 'Ready', open: 'Open' },
-    he: { weight: 'משקל (ג)', generate: 'תווית MR', ready: 'מוכנה', open: 'פתח' },
-    es: { weight: 'Peso (g)', generate: 'Etiqueta MR', ready: 'Lista', open: 'Abrir' },
+    fr: { weight: 'Poids en grammes (ex: 500)', generate: `Etiquette ${carrierShort}`, ready: 'Prete', open: 'Ouvrir', shipping: 'Frais de port', paymentFailed: 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.' },
+    en: { weight: 'Weight in grams (e.g. 500)', generate: `${carrierShort} Label`, ready: 'Ready', open: 'Open', shipping: 'Shipping cost', paymentFailed: 'Shipping payment failed. Buyer must update their card.' },
+    he: { weight: 'משקל בגרמים (לדוגמה: 500)', generate: `תווית ${carrierShort}`, ready: 'מוכנה', open: 'פתח', shipping: 'דמי משלוח', paymentFailed: 'תשלום המשלוח נכשל. הקונה צריך לעדכן את הכרטיס.' },
+    es: { weight: 'Peso en gramos (ej: 500)', generate: `Etiqueta ${carrierShort}`, ready: 'Lista', open: 'Abrir', shipping: 'Gastos de envio', paymentFailed: 'El pago del envio ha fallado. El comprador debe actualizar su tarjeta.' },
   }
   const lb = labels[lang as keyof typeof labels] || labels.fr
+
+  // Preview shipping cost when weight changes
+  const handleWeightChange = async (value: string) => {
+    setWeightInput(value)
+    setError(null)
+    const weight = parseInt(value)
+    if (!weight || weight <= 0) { setShippingPreview(null); return }
+    try {
+      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${carrier || 'mondial_relay'}&country=${buyerCountry || 'FR'}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        setShippingPreview(data.shipping_cost)
+      }
+    } catch { /* ignore preview errors */ }
+  }
 
   const handleGenerate = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -72,6 +91,8 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang 
       if (resp.ok) {
         setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
         if (data.label_url) window.open(data.label_url, '_blank')
+      } else if (resp.status === 402) {
+        setError(lb.paymentFailed)
       } else { setError(data.error || 'Erreur') }
     } catch { setError('Erreur reseau') }
     setGenerating(false)
@@ -98,28 +119,35 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang 
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          <input
-            type="number"
-            placeholder={lb.weight}
-            value={weightInput}
-            onClick={e => e.stopPropagation()}
-            onChange={e => { setWeightInput(e.target.value); setError(null) }}
-            style={{
-              width: '90px', padding: '8px 10px', borderRadius: '8px',
-              backgroundColor: '#111', border: '1px solid #333',
-              color: '#fff', fontSize: '13px', fontWeight: 600, outline: 'none',
-            }}
-          />
-          <button onClick={handleGenerate} disabled={generating} style={{
-            flex: 1, padding: '8px 12px', borderRadius: '8px',
-            background: generating ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
-            border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700,
-            cursor: generating ? 'default' : 'pointer', opacity: generating ? 0.6 : 1,
-            whiteSpace: 'nowrap',
-          }}>
-            {generating ? '...' : lb.generate}
-          </button>
+        <div>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <input
+              type="number"
+              placeholder={lb.weight}
+              value={weightInput}
+              onClick={e => e.stopPropagation()}
+              onChange={e => handleWeightChange(e.target.value)}
+              style={{
+                width: '90px', padding: '8px 10px', borderRadius: '8px',
+                backgroundColor: '#111', border: '1px solid #333',
+                color: '#fff', fontSize: '13px', fontWeight: 600, outline: 'none',
+              }}
+            />
+            <button onClick={handleGenerate} disabled={generating} style={{
+              flex: 1, padding: '8px 12px', borderRadius: '8px',
+              background: generating ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
+              border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700,
+              cursor: generating ? 'default' : 'pointer', opacity: generating ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}>
+              {generating ? '...' : lb.generate}
+            </button>
+          </div>
+          {shippingPreview != null && shippingPreview > 0 && (
+            <p style={{ fontSize: '11px', color: '#3B82F6', margin: '6px 0 0', fontWeight: 600 }}>
+              {lb.shipping} : {shippingPreview.toFixed(2)} EUR
+            </p>
+          )}
         </div>
       )}
       {error && <p style={{ fontSize: '11px', color: '#E8344E', marginTop: '4px', margin: '4px 0 0' }}>{error}</p>}
@@ -127,7 +155,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang 
   )
 }
 
-// Grouped order card for same-buyer shipments
+// Grouped order card for same-buyer shipments (all statuses)
 function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate }: {
   group: SaleOrder[]
   buyerName: string
@@ -145,6 +173,28 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
   const [generating, setGenerating] = useState(false)
   const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
+
+  const paymentFailedMsg = lang === 'fr'
+    ? 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.'
+    : 'Shipping payment failed. Buyer must update their card.'
+
+  // Preview shipping cost when weight changes
+  const handleWeightChange = async (value: string) => {
+    setWeightInput(value)
+    setError(null)
+    const weight = parseInt(value)
+    if (!weight || weight <= 0) { setShippingPreview(null); return }
+    const primaryAddr = group.find(o => o.shipping_address)?.shipping_address as Record<string, string> | null
+    try {
+      const groupCarrier = group[0]?.carrier || 'mondial_relay'
+      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${groupCarrier}&country=${primaryAddr?.country || 'FR'}`)
+      if (resp.ok) {
+        const data = await resp.json()
+        setShippingPreview(data.shipping_cost)
+      }
+    } catch { /* ignore */ }
+  }
 
   const handleGenerateLabel = async () => {
     const weight = parseInt(weightInput)
@@ -165,7 +215,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          order_ids: group.map(o => o.id),
+          order_ids: group.filter(o => ['paid', 'preparing'].includes(o.status) && !o.label_url).map(o => o.id),
           weight_grams: weight,
         }),
       })
@@ -173,20 +223,23 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
       if (resp.ok) {
         setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
         if (data.label_url) window.open(data.label_url, '_blank')
+      } else if (resp.status === 402) {
+        setError(paymentFailedMsg)
       } else {
         setError(data.error || 'Erreur')
       }
-    } catch {
-      setError('Erreur reseau')
+    } catch (err: any) {
+      setError(err?.message || 'Erreur reseau')
     }
     setGenerating(false)
   }
 
+  const gcShort = group[0]?.carrier === 'dpd' ? 'DPD' : group[0]?.carrier === 'dhl' ? 'DHL' : 'MR'
   const groupLabels = {
-    fr: { items: 'articles', total: 'Total', weight: 'Poids du colis (g)', generate: 'Generer l\'etiquette MR', labelReady: 'Etiquette prete', openLabel: 'Ouvrir', groupShip: 'Envoi groupe' },
-    en: { items: 'items', total: 'Total', weight: 'Package weight (g)', generate: 'Generate MR label', labelReady: 'Label ready', openLabel: 'Open', groupShip: 'Grouped shipment' },
-    he: { items: 'פריטים', total: 'סה"כ', weight: 'משקל החבילה (ג)', generate: 'הפק תווית MR', labelReady: 'תווית מוכנה', openLabel: 'פתח', groupShip: 'משלוח מרוכז' },
-    es: { items: 'articulos', total: 'Total', weight: 'Peso del paquete (g)', generate: 'Generar etiqueta MR', labelReady: 'Etiqueta lista', openLabel: 'Abrir', groupShip: 'Envio agrupado' },
+    fr: { items: 'articles', total: 'Total', weight: 'Poids en grammes (ex: 500)', generate: `Generer l'etiquette ${gcShort}`, labelReady: 'Etiquette prete', openLabel: 'Ouvrir', groupShip: 'Envoi groupe' },
+    en: { items: 'items', total: 'Total', weight: 'Weight in grams (e.g. 500)', generate: `Generate ${gcShort} label`, labelReady: 'Label ready', openLabel: 'Open', groupShip: 'Grouped shipment' },
+    he: { items: 'פריטים', total: 'סה"כ', weight: 'משקל בגרמים (לדוגמה: 500)', generate: `הפק תווית ${gcShort}`, labelReady: 'תווית מוכנה', openLabel: 'פתח', groupShip: 'משלוח מרוכז' },
+    es: { items: 'articulos', total: 'Total', weight: 'Peso en gramos (ej: 500)', generate: `Generar etiqueta ${gcShort}`, labelReady: 'Etiqueta lista', openLabel: 'Abrir', groupShip: 'Envio agrupado' },
   }
   const gl = groupLabels[lang as keyof typeof groupLabels] || groupLabels.fr
 
@@ -249,9 +302,38 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
           <p style={{ fontSize: '14px', fontWeight: 600, color: '#F0908A', margin: 0 }}>
             {gl.total}: {formatAmount(totalAmount)}
           </p>
-          <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>
-            {formatDate(group[0].created_at)}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
+            <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>
+              {formatDate(group[0].created_at)}
+            </p>
+            {group.some(o => ['paid', 'preparing'].includes(o.status) && !o.label_url) && (
+              <span style={{
+                fontSize: '9px', fontWeight: 700, color: '#F59E0B',
+                backgroundColor: 'rgba(245,158,11,0.12)', padding: '2px 6px',
+                borderRadius: '6px', border: '1px solid rgba(245,158,11,0.25)',
+              }}>
+                {lang === 'fr' ? 'A expedier' : 'To ship'}
+              </span>
+            )}
+            {group.every(o => o.status === 'delivered') && (
+              <span style={{
+                fontSize: '9px', fontWeight: 700, color: '#10B981',
+                backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 6px',
+                borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)',
+              }}>
+                {lang === 'fr' ? 'Livre' : 'Delivered'}
+              </span>
+            )}
+            {group.every(o => o.label_url) && !group.every(o => o.status === 'delivered') && (
+              <span style={{
+                fontSize: '9px', fontWeight: 700, color: '#10B981',
+                backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 6px',
+                borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)',
+              }}>
+                {lang === 'fr' ? 'Etiquette prete' : 'Label ready'}
+              </span>
+            )}
+          </div>
         </div>
 
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
@@ -263,30 +345,74 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
       {/* Expanded: item list + weight + label */}
       {expanded && (
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid #1A1A1A' }}>
-          {/* Item list */}
-          {group.map(order => (
-            <div key={order.id} onClick={() => navigate(`/order/${order.id}`)} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '10px 0', borderBottom: '1px solid #111', cursor: 'pointer',
-            }}>
-              {getItemImage(order.item) ? (
-                <img src={getItemImage(order.item)!} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
-              ) : (
-                <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{'\uD83D\uDCB0'}</div>
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {order.item?.title || order.id.slice(0, 8)}
-                </p>
+          {/* Item list with status badges */}
+          {group.map(order => {
+            const sc = order.status === 'paid' ? '#3B82F6' : order.status === 'preparing' ? '#F59E0B' : order.status === 'shipped' ? '#10B981' : order.status === 'delivered' ? '#10B981' : order.status === 'refunded' ? '#8B5CF6' : '#666'
+            const sl = order.status === 'paid' ? (lang === 'fr' ? 'Paye' : 'Paid')
+              : order.status === 'preparing' ? (lang === 'fr' ? 'Prep.' : 'Prep.')
+              : order.status === 'shipped' ? (lang === 'fr' ? 'Expedie' : 'Shipped')
+              : order.status === 'delivered' ? (lang === 'fr' ? 'Livre' : 'Delivered')
+              : order.status === 'refunded' ? (lang === 'fr' ? 'Rembourse' : 'Refunded')
+              : order.status
+            return (
+              <div key={order.id} onClick={() => navigate(`/order/${order.id}`)} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 0', borderBottom: '1px solid #111', cursor: 'pointer',
+              }}>
+                {getItemImage(order.item) ? (
+                  <img src={getItemImage(order.item)!} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{'\uD83D\uDCB0'}</div>
+                )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {order.item?.title || order.id.slice(0, 8)}
+                  </p>
+                </div>
+                <span style={{
+                  fontSize: '10px', fontWeight: 700, color: sc,
+                  backgroundColor: `${sc}14`, padding: '3px 8px', borderRadius: '8px',
+                  border: `1px solid ${sc}30`, whiteSpace: 'nowrap', flexShrink: 0,
+                }}>
+                  {sl}
+                </span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+                  {formatAmount(order.amount)}
+                </span>
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                {formatAmount(order.amount)}
-              </span>
-            </div>
-          ))}
+            )
+          })}
 
-          {/* Label generation */}
-          {labelResult ? (
+          {/* Label section — existing label from group, just-generated label, or generate new */}
+          {group.find(o => o.label_url && o.tracking_number) && !labelResult ? (
+            (() => {
+              const lo = group.find(o => o.label_url && o.tracking_number)!
+              return (
+                <div style={{
+                  marginTop: '12px', padding: '12px', borderRadius: '10px',
+                  backgroundColor: 'rgba(16,185,129,0.08)',
+                  border: '1px solid rgba(16,185,129,0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                }}>
+                  <div>
+                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>
+                      {gl.labelReady}
+                    </p>
+                    <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>
+                      # {lo.tracking_number}
+                    </p>
+                  </div>
+                  <button onClick={() => window.open(lo.label_url!, '_blank')} style={{
+                    padding: '8px 16px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #10B981, #059669)',
+                    border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                  }}>
+                    {gl.openLabel}
+                  </button>
+                </div>
+              )
+            })()
+          ) : labelResult ? (
             <div style={{
               marginTop: '12px', padding: '12px', borderRadius: '10px',
               backgroundColor: 'rgba(16,185,129,0.08)',
@@ -309,17 +435,17 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                 {gl.openLabel}
               </button>
             </div>
-          ) : (
+          ) : group.some(o => ['paid', 'preparing'].includes(o.status) && !o.label_url) ? (
             <div style={{ marginTop: '12px' }}>
               <p style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '8px' }}>
-                {gl.groupShip} — {group.length} {gl.items}
+                {gl.groupShip} — {group.filter(o => ['paid', 'preparing'].includes(o.status) && !o.label_url).length} {gl.items}
               </p>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
                   type="number"
                   placeholder={gl.weight}
                   value={weightInput}
-                  onChange={e => { setWeightInput(e.target.value); setError(null) }}
+                  onChange={e => handleWeightChange(e.target.value)}
                   style={{
                     flex: 1, padding: '10px 14px', borderRadius: '10px',
                     backgroundColor: '#111', border: '1px solid #333',
@@ -341,11 +467,16 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                   {generating ? '...' : gl.generate}
                 </button>
               </div>
+              {shippingPreview != null && shippingPreview > 0 && (
+                <p style={{ fontSize: '11px', color: '#3B82F6', margin: '6px 0 0', fontWeight: 600 }}>
+                  {lang === 'fr' ? 'Frais de port' : 'Shipping cost'} : {shippingPreview.toFixed(2)} EUR
+                </p>
+              )}
               {error && (
                 <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '6px' }}>{error}</p>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -1197,8 +1328,16 @@ export default function ActivityPage() {
         </div>
 
         {/* Seller: inline shipping for paid/preparing orders */}
-        {isSale && (order.status === 'paid' || order.status === 'preparing') && order.shipping_address && (
-          <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} />
+        {isSale && (order.status === 'paid' || order.status === 'preparing') && (
+          order.shipping_address ? (
+            <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} buyerCountry={(order.shipping_address as Record<string, string> | null)?.country} carrier={order.carrier || undefined} />
+          ) : (
+            <div style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px' }}>
+              <p style={{ fontSize: '11px', color: '#F59E0B', margin: 0 }}>
+                {lang === 'fr' ? 'En attente de l\'adresse de l\'acheteur' : 'Waiting for buyer address'}
+              </p>
+            </div>
+          )
         )}
 
         {/* Seller: label already generated for shipped orders */}
@@ -1414,21 +1553,19 @@ export default function ActivityPage() {
       )
     }
 
-    // Group PAID/PREPARING orders by buyer_id
-    const paidOrders = filtered.filter(o => o.status === 'paid' || o.status === 'preparing')
-    const otherOrders = filtered.filter(o => o.status !== 'paid' && o.status !== 'preparing')
+    // Group ALL orders by buyer_id — same buyer = same card
     const grouped: Record<string, SaleOrder[]> = {}
-    for (const o of paidOrders) {
+    for (const o of filtered) {
       const key = o.buyer_id
       if (!grouped[key]) grouped[key] = []
       grouped[key].push(o)
     }
     const buyerGroups = Object.values(grouped).filter(g => g.length > 1)
-    const ungroupedPaid = Object.values(grouped).filter(g => g.length === 1).map(g => g[0])
+    const ungrouped = Object.values(grouped).filter(g => g.length === 1).map(g => g[0])
 
     return (
       <div style={{ padding: '0 16px' }}>
-        {/* Grouped orders by buyer (2+ items) */}
+        {/* Grouped orders by buyer (2+ items from same buyer) */}
         {buyerGroups.map((group, gi) => {
           const buyer = group[0].buyer_profile
           const buyerName = buyer?.display_name || buyer?.username || 'Acheteur'
@@ -1452,11 +1589,8 @@ export default function ActivityPage() {
           )
         })}
 
-        {/* Single paid orders (not grouped) */}
-        {ungroupedPaid.map((order, i) => renderOrderCard(order, buyerGroups.length + i, true))}
-
-        {/* Non-paid orders */}
-        {otherOrders.map((order, i) => renderOrderCard(order, buyerGroups.length + ungroupedPaid.length + i, true))}
+        {/* Single orders (only 1 from this buyer) */}
+        {ungrouped.map((order, i) => renderOrderCard(order, buyerGroups.length + i, true))}
       </div>
     )
   }

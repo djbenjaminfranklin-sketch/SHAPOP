@@ -179,7 +179,7 @@ router.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReq
   try {
     const orderId = req.params.id
     const userId = req.user!.id
-    const { name, street, city, zip, phone } = req.body
+    const { name, street, city, zip, phone, country } = req.body
 
     if (!name || !street || !city || !zip) {
       res.status(400).json({ error: 'Missing required address fields' })
@@ -199,7 +199,7 @@ router.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    const addr = { name, street, city, zip, phone: phone || '' }
+    const addr = { name, street, city, zip, phone: phone || '', country: country || 'FR' }
 
     // Save/update default address
     const { data: existing } = await supabase
@@ -210,18 +210,26 @@ router.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedReq
       .single()
 
     if (existing) {
-      await supabase.from('addresses').update(addr).eq('id', existing.id)
+      await supabase.from('addresses').update({ name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone }).eq('id', existing.id)
     } else {
-      await supabase.from('addresses').insert({ ...addr, user_id: userId, is_default: true })
+      await supabase.from('addresses').insert({ name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, user_id: userId, is_default: true })
     }
 
-    // Save shipping address on order
+    // Save shipping address on order (includes country)
     await supabase
       .from('orders')
       .update({ shipping_address: addr })
       .eq('id', orderId)
 
-    res.json({ success: true })
+    // Update carrier based on the address country
+    const zone = getZoneFromCountry(addr.country, addr.zip)
+    const carrier = getCarrierForZone(zone)
+    await supabase
+      .from('orders')
+      .update({ carrier })
+      .eq('id', orderId)
+
+    res.json({ success: true, carrier, zone })
   } catch (err: any) {
     console.error('Save address error:', err?.message || err)
     res.status(500).json({ error: 'Failed to save address' })

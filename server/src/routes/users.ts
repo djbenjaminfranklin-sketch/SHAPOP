@@ -242,17 +242,17 @@ router.post('/api/follow/:sellerId', createLimiter, requireAuth, async (req: Aut
       return
     }
 
-    // Check seller exists
-    const { data: seller } = await supabase.from('sellers').select('id').eq('id', sellerId).single()
-    if (!seller) {
-      res.status(404).json({ error: 'Seller not found' })
+    // Check user/profile exists (not necessarily a seller with a sellers record)
+    const { data: sellerProfile } = await supabase.from('profiles').select('id').eq('id', sellerId).single()
+    if (!sellerProfile) {
+      res.status(404).json({ error: 'User not found' })
       return
     }
 
     // Check if already following
     const { data: existing } = await supabase
       .from('followers')
-      .select('id')
+      .select('user_id')
       .eq('user_id', userId)
       .eq('seller_id', sellerId)
       .single()
@@ -309,7 +309,7 @@ router.get('/api/follow/:sellerId/status', requireAuth, async (req: Authenticate
 
     const { data } = await supabase
       .from('followers')
-      .select('id')
+      .select('user_id')
       .eq('user_id', userId)
       .eq('seller_id', sellerId)
       .single()
@@ -544,13 +544,13 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       ? Math.round(streamsArr.reduce((sum: number, s: Record<string, unknown>) => sum + ((s.peak_viewers as number) || 0), 0) / streamsArr.length)
       : 0
 
-    // Recent orders: last 5 with item title + buyer name
+    // Recent orders: last 50 with item title + buyer name
     const { data: recentOrdersRaw } = await supabase
       .from('orders')
-      .select('id, amount, status, created_at, item_id, buyer_id')
+      .select('id, amount, seller_payout, status, created_at, item_id, buyer_id')
       .eq('seller_id', userId)
       .order('created_at', { ascending: false })
-      .limit(5)
+      .limit(50)
 
     const recentArr = recentOrdersRaw || []
     // Fetch item titles for recent orders
@@ -583,8 +583,10 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       id: o.id,
       item_title: itemTitles[o.item_id as string] || 'Unknown item',
       amount: o.amount,
+      seller_payout: o.seller_payout,
       status: o.status,
       created_at: o.created_at,
+      buyer_id: o.buyer_id,
       buyer_name: buyerNames[o.buyer_id as string] || null,
     }))
 

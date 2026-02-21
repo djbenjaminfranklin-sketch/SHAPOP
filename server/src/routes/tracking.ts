@@ -4,6 +4,8 @@ import { supabase, LAPOSTE_API_KEY } from '../config'
 import { requireAuth, requireAdmin, adminLimiter } from '../middleware'
 import { notifyUser, paramStr, SHIPPING_SAFETY_MARGIN } from '../utils'
 import { trackShipment as mrTrackShipment, isMondialRelayConfigured } from '../services/mondialrelay'
+import { isDpdConfigured, trackDpdShipment } from '../services/dpd'
+import { isDhlConfigured, trackDhlShipment } from '../services/dhl'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -355,6 +357,44 @@ export async function checkTrackingStatuses(): Promise<number> {
           }
         } catch (err) {
           if (process.env.NODE_ENV !== 'production') console.error(`[tracking-check] La Poste API error for order ${order.id}:`, err)
+        }
+      }
+
+      // DPD tracking
+      if (!isDelivered && isDpdConfigured() && order.carrier === 'dpd') {
+        try {
+          const dpdResult = await trackDpdShipment(order.tracking_number)
+          if (!dpdResult.error) {
+            if (dpdResult.delivered) {
+              isDelivered = true
+            } else if (dpdResult.events.length > 0 && order.tracking_status === 'shipped') {
+              await supabase
+                .from('orders')
+                .update({ tracking_status: 'in_transit' })
+                .eq('id', order.id)
+            }
+          }
+        } catch (err) {
+          if (process.env.NODE_ENV !== 'production') console.error(`[tracking-check] DPD API error for order ${order.id}:`, err)
+        }
+      }
+
+      // DHL Express tracking
+      if (!isDelivered && isDhlConfigured() && order.carrier === 'dhl') {
+        try {
+          const dhlResult = await trackDhlShipment(order.tracking_number)
+          if (!dhlResult.error) {
+            if (dhlResult.delivered) {
+              isDelivered = true
+            } else if (dhlResult.events.length > 0 && order.tracking_status === 'shipped') {
+              await supabase
+                .from('orders')
+                .update({ tracking_status: 'in_transit' })
+                .eq('id', order.id)
+            }
+          }
+        } catch (err) {
+          if (process.env.NODE_ENV !== 'production') console.error(`[tracking-check] DHL API error for order ${order.id}:`, err)
         }
       }
 

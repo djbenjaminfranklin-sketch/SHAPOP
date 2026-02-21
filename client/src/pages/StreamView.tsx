@@ -51,6 +51,7 @@ const streamContent = {
     cityPlaceholder: 'Ville',
     zipPlaceholder: 'Code postal',
     phonePlaceholder: 'Telephone',
+    countryPlaceholder: 'Pays',
     confirm: 'Confirmer',
     youWon: 'Tu as gagne !',
     payToClaim: 'Paye pour recevoir ton article',
@@ -127,6 +128,7 @@ const streamContent = {
     cityPlaceholder: 'City',
     zipPlaceholder: 'Zip code',
     phonePlaceholder: 'Phone',
+    countryPlaceholder: 'Country',
     confirm: 'Confirm',
     youWon: 'You won!',
     payToClaim: 'Pay to claim your item',
@@ -203,6 +205,7 @@ const streamContent = {
     cityPlaceholder: 'עיר',
     zipPlaceholder: 'מיקוד',
     phonePlaceholder: 'טלפון',
+    countryPlaceholder: 'מדינה',
     confirm: 'אישור',
     youWon: '!זכית',
     payToClaim: 'שלם כדי לקבל את הפריט שלך',
@@ -279,6 +282,7 @@ const streamContent = {
     cityPlaceholder: 'Ciudad',
     zipPlaceholder: 'Codigo postal',
     phonePlaceholder: 'Telefono',
+    countryPlaceholder: 'Pais',
     confirm: 'Confirmar',
     youWon: 'Ganaste!',
     payToClaim: 'Paga para recibir tu articulo',
@@ -522,8 +526,9 @@ export default function StreamView() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [addressForm, setAddressForm] = useState({ name: '', street: '', city: '', zip: '', phone: '' })
+  const [addressForm, setAddressForm] = useState({ name: '', street: '', city: '', zip: '', phone: '', country: 'FR' })
   const [addressStep, setAddressStep] = useState(true) // true = show address first, false = show payment
+  const autoChargedRef = useRef(false) // true when payment was auto-charged (off-session)
 
   // Carrier selection for shipping
   const [selectedCarrier] = useState('mondial_relay')
@@ -548,6 +553,7 @@ export default function StreamView() {
   const [hasEnteredGiveaway, setHasEnteredGiveaway] = useState(false)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
   const [enteringGiveaway, setEnteringGiveaway] = useState(false)
+  const giveawayWinnerShownRef = useRef<string | null>(null) // track which giveaway winner was already shown
 
   // More menu state
   const [showMoreMenu, setShowMoreMenu] = useState(false)
@@ -1114,8 +1120,8 @@ export default function StreamView() {
             }
             const piData = await resp.json()
             if (piData.auto_charged) {
-              // Card was charged automatically — show success directly
-              setPaymentSuccess(true)
+              // Card was charged automatically — still show address form first
+              autoChargedRef.current = true
             } else if (piData.client_secret) {
               setClientSecret(piData.client_secret)
             }
@@ -1151,6 +1157,17 @@ export default function StreamView() {
   useEffect(() => {
     if (!id) return
 
+    // Helper: show winner only once per giveaway, auto-dismiss after 6s
+    const showWinnerOnce = (gw: { id: string; winner_name: string }) => {
+      if (giveawayWinnerShownRef.current === gw.id) return
+      giveawayWinnerShownRef.current = gw.id
+      setGiveawayWinner({ name: gw.winner_name })
+      // Auto-dismiss after 6 seconds
+      const timer = setTimeout(() => setGiveawayWinner(null), 6000)
+      // Store timer ref for cleanup
+      return () => clearTimeout(timer)
+    }
+
     // Fetch active giveaway
     const fetchGiveaway = async () => {
       try {
@@ -1159,8 +1176,7 @@ export default function StreamView() {
         if (data) {
           setActiveGiveaway(data)
           if (data.status === 'drawn' && data.winner_name) {
-            setGiveawayWinner({ name: data.winner_name })
-            setTimeout(() => setGiveawayWinner(null), 5000)
+            showWinnerOnce(data)
           }
         }
       } catch { /* ignore */ }
@@ -1198,8 +1214,7 @@ export default function StreamView() {
         const gw = payload.new as Giveaway
         setActiveGiveaway(gw)
         if (gw.status === 'drawn' && gw.winner_name) {
-          setGiveawayWinner({ name: gw.winner_name })
-          setTimeout(() => setGiveawayWinner(null), 5000)
+          showWinnerOnce(gw)
         }
       })
       .subscribe()
@@ -1212,8 +1227,7 @@ export default function StreamView() {
         if (gw && gw.id) {
           setActiveGiveaway(gw)
           if (gw.status === 'drawn' && gw.winner_name) {
-            setGiveawayWinner({ name: gw.winner_name })
-            setTimeout(() => setGiveawayWinner(null), 5000)
+            showWinnerOnce(gw)
           }
         }
       } catch { /* ignore */ }
@@ -1495,10 +1509,16 @@ export default function StreamView() {
 
   const handleConfirmAddress = async () => {
     if (!user) return
-    // Always move to payment step — save address in background
-    setAddressStep(false)
 
-    // Try API server first, then direct Supabase fallback
+    // If auto-charged, show success directly after saving address
+    if (autoChargedRef.current) {
+      setPaymentSuccess(true)
+    } else {
+      // Move to payment step
+      setAddressStep(false)
+    }
+
+    // Save address (in background for payment step, blocking for auto-charged)
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
@@ -1537,7 +1557,7 @@ export default function StreamView() {
 
       if (paymentOrder) {
         await supabase.from('orders').update({
-          shipping_address: { name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone },
+          shipping_address: { name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, country: addr.country },
         }).eq('id', paymentOrder.id)
       }
     } catch (err) {
@@ -1580,6 +1600,7 @@ export default function StreamView() {
     setPaymentError(null)
     setPaymentLoading(false)
     setAddressStep(true)
+    autoChargedRef.current = false
   }
 
   if (loading) {
@@ -2522,6 +2543,7 @@ export default function StreamView() {
               hasCard={hasCard}
               onAddCard={openCardSetup}
               disabled={timeLeft <= 0}
+              timeLeft={timeLeft}
               lang={lang}
             />
           </div>
@@ -2803,20 +2825,47 @@ export default function StreamView() {
                     }}
                   />
                 </div>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  value={addressForm.phone}
-                  onChange={e => setAddressForm(f => ({ ...f, phone: e.target.value }))}
-                  placeholder={ct.phonePlaceholder}
-                  aria-label={ct.phonePlaceholder}
-                  style={{
-                    width: '100%', padding: '12px 14px',
-                    backgroundColor: '#0D0D0D', border: '1px solid #222',
-                    borderRadius: '10px', color: '#fff', fontSize: '15px',
-                    outline: 'none', boxSizing: 'border-box', marginBottom: '16px',
-                  }}
-                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    value={addressForm.phone}
+                    onChange={e => setAddressForm(f => ({ ...f, phone: e.target.value }))}
+                    placeholder={ct.phonePlaceholder}
+                    aria-label={ct.phonePlaceholder}
+                    style={{
+                      width: '100%', padding: '12px 14px',
+                      backgroundColor: '#0D0D0D', border: '1px solid #222',
+                      borderRadius: '10px', color: '#fff', fontSize: '15px',
+                      outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                  <select
+                    value={addressForm.country}
+                    onChange={e => setAddressForm(f => ({ ...f, country: e.target.value }))}
+                    aria-label={ct.countryPlaceholder}
+                    style={{
+                      width: '100%', padding: '12px 14px',
+                      backgroundColor: '#0D0D0D', border: '1px solid #222',
+                      borderRadius: '10px', color: '#fff', fontSize: '15px',
+                      outline: 'none', boxSizing: 'border-box',
+                      appearance: 'none', WebkitAppearance: 'none',
+                    }}
+                  >
+                    <option value="FR">France</option>
+                    <option value="BE">Belgique</option>
+                    <option value="CH">Suisse</option>
+                    <option value="LU">Luxembourg</option>
+                    <option value="DE">Allemagne</option>
+                    <option value="ES">Espagne</option>
+                    <option value="IT">Italie</option>
+                    <option value="NL">Pays-Bas</option>
+                    <option value="PT">Portugal</option>
+                    <option value="GB">Royaume-Uni</option>
+                    <option value="IL">Israel</option>
+                    <option value="US">USA</option>
+                  </select>
+                </div>
                 <button
                   onClick={handleConfirmAddress}
                   disabled={!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip}
@@ -3293,15 +3342,18 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* ═══ GIVEAWAY WINNER OVERLAY ═══ */}
+      {/* ═══ GIVEAWAY WINNER OVERLAY — tap anywhere to dismiss ═══ */}
       {giveawayWinner && (
-        <div style={{
-          position: 'fixed', inset: 0,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          zIndex: 400, pointerEvents: 'none',
-          animation: 'soldFadeIn 0.4s ease',
-        }}>
+        <div
+          onClick={() => setGiveawayWinner(null)}
+          style={{
+            position: 'fixed', inset: 0,
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center',
+            zIndex: 400, cursor: 'pointer',
+            animation: 'soldFadeIn 0.4s ease',
+          }}
+        >
           <div style={{
             position: 'absolute', inset: 0,
             backgroundColor: 'rgba(0,0,0,0.8)',
