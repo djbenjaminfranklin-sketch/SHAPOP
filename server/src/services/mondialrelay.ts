@@ -213,6 +213,9 @@ export async function createShipment(params: {
   // Sanitize OrderNo: alphanumeric only, max 15 chars
   const orderNo = (params.orderNo || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 15)
 
+  // CustomerNo: max 9 chars, alphanumeric only
+  const customerNo = orderNo.slice(0, 9)
+
   const xmlBody = `<?xml version="1.0" encoding="utf-8"?>
 <ShipmentCreationRequest xmlns="http://www.example.org/Request" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Context>
@@ -229,29 +232,24 @@ export async function createShipment(params: {
   <ShipmentsList>
     <Shipment>
       <OrderNo>${orderNo}</OrderNo>
-      <CustomerNo>${orderNo}</CustomerNo>
+      <CustomerNo>${customerNo}</CustomerNo>
       <ParcelCount>1</ParcelCount>
+      <DeliveryInstruction></DeliveryInstruction>
+      <CollectionMode Mode="CCC"/>
       <DeliveryMode Mode="${deliveryMode}"${deliveryLocation ? ` Location="${escXml(deliveryLocation)}"` : ''}/>
-      <CollectionMode Mode="REL"/>
-      <Parcels>
-        <Parcel>
-          <Content>${mrField(params.content, 50)}</Content>
-          <Weight Value="${params.weight}" Unit="gr"/>
-        </Parcel>
-      </Parcels>
       <Sender>
         <Address>
           <Title>${mrField(params.sender.title || 'MR', 5)}</Title>
           <Firstname>${mrField(params.sender.firstname, 20)}</Firstname>
           <Lastname>${mrField(params.sender.lastname, 20)}</Lastname>
-          <Streetname>${mrField(params.sender.street, 32)}</Streetname>
-          <HouseNo>${mrField(params.sender.houseNo, 5)}</HouseNo>
+          <Streetname>${mrField(params.sender.street, 40)}</Streetname>
+          <HouseNo>${mrField(params.sender.houseNo, 10)}</HouseNo>
           <CountryCode>${mrField(params.sender.countryCode, 2)}</CountryCode>
           <PostCode>${mrField(params.sender.postCode, 10)}</PostCode>
-          <City>${mrField(params.sender.city, 25)}</City>
+          <City>${mrField(params.sender.city, 30)}</City>
           <PhoneNo>${mrPhone(params.sender.phone)}</PhoneNo>
           <MobileNo>${mrPhone(params.sender.mobile)}</MobileNo>
-          <Email>${mrField(params.sender.email, 50)}</Email>
+          <Email>${mrField(params.sender.email, 70)}</Email>
         </Address>
       </Sender>
       <Recipient>
@@ -259,16 +257,22 @@ export async function createShipment(params: {
           <Title>${mrField(params.recipient.title || 'MR', 5)}</Title>
           <Firstname>${mrField(params.recipient.firstname, 20)}</Firstname>
           <Lastname>${mrField(params.recipient.lastname, 20)}</Lastname>
-          <Streetname>${mrField(params.recipient.street, 32)}</Streetname>
-          <HouseNo>${mrField(params.recipient.houseNo, 5)}</HouseNo>
+          <Streetname>${mrField(params.recipient.street, 40)}</Streetname>
+          <HouseNo>${mrField(params.recipient.houseNo, 10)}</HouseNo>
           <CountryCode>${mrField(params.recipient.countryCode, 2)}</CountryCode>
           <PostCode>${mrField(params.recipient.postCode, 10)}</PostCode>
-          <City>${mrField(params.recipient.city, 25)}</City>
+          <City>${mrField(params.recipient.city, 30)}</City>
           <PhoneNo>${mrPhone(params.recipient.phone)}</PhoneNo>
           <MobileNo>${mrPhone(params.recipient.mobile)}</MobileNo>
-          <Email>${mrField(params.recipient.email, 50)}</Email>
+          <Email>${mrField(params.recipient.email, 70)}</Email>
         </Address>
       </Recipient>
+      <Parcels>
+        <Parcel>
+          <Content>${mrField(params.content, 40)}</Content>
+          <Weight Value="${params.weight}" Unit="gr"/>
+        </Parcel>
+      </Parcels>
     </Shipment>
   </ShipmentsList>
 </ShipmentCreationRequest>`
