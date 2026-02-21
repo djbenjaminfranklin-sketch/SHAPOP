@@ -307,12 +307,12 @@ export async function createShipment(params: {
 
     console.log('[MondialRelay] Parsed response:', JSON.stringify(parsed, null, 2))
 
-    // Check for errors in statusListField
+    // Check for errors in statusListField (any non-zero code, any level)
     const statusList = parsed.statusListField as Array<Record<string, string>> | null
     if (statusList && statusList.length > 0) {
-      const errors = statusList.filter(s => s.levelField === 'Error')
+      const errors = statusList.filter(s => s.codeField && s.codeField !== '0')
       if (errors.length > 0) {
-        const errMsg = errors.map(e => `${e.codeField}: ${e.messageField || ''}`).join('; ')
+        const errMsg = errors.map(e => `${e.codeField}: ${e.messageField || ''} [${e.levelField || ''}]`).join('; ')
         console.error('[MondialRelay] API error:', errMsg)
         return { shipmentNumber: '', labelUrl: '', error: errMsg }
       }
@@ -334,7 +334,8 @@ export async function createShipment(params: {
       }
     }
 
-    return { shipmentNumber: '', labelUrl: '', error: 'Could not parse shipment response: no shipments in response' }
+    // Include full response in error for debugging
+    return { shipmentNumber: '', labelUrl: '', error: `MR response: ${JSON.stringify(parsed)}` }
   } catch (err) {
     console.error('[MondialRelay] Shipment creation error:', err)
     return { shipmentNumber: '', labelUrl: '', error: 'Shipment creation failed' }
