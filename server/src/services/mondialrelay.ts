@@ -233,7 +233,7 @@ export async function createShipment(params: {
       <CustomerNo>${customerNo}</CustomerNo>
       <ParcelCount>1</ParcelCount>
       <DeliveryInstruction></DeliveryInstruction>
-      <CollectionMode Mode="CCC"/>
+      <CollectionMode Mode="REL"/>
       <DeliveryMode Mode="${deliveryMode}"${deliveryLocation ? ` Location="${escXml(deliveryLocation)}"` : ''}/>
       <Sender>
         <Address>
