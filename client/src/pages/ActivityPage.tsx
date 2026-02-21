@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { Browser } from '@capacitor/browser'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
@@ -91,7 +92,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
       const data = await resp.json()
       if (resp.ok) {
         setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
-        if (data.label_url) window.open(data.label_url, '_blank')
+        if (data.label_url) Browser.open({ url: data.label_url })
         onLabelGenerated?.()
       } else if (resp.status === 402) {
         setError(lb.paymentFailed)
@@ -112,7 +113,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{lb.ready}</span>
             <span style={{ fontSize: '11px', color: '#666', marginLeft: '6px' }}>#{labelResult.shipment_number}</span>
           </div>
-          <button onClick={() => window.open(labelResult.label_url, '_blank')} style={{
+          <button onClick={() => Browser.open({ url: labelResult.label_url })} style={{
             padding: '6px 14px', borderRadius: '8px',
             background: 'linear-gradient(135deg, #10B981, #059669)',
             border: 'none', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
@@ -225,7 +226,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
       const data = await resp.json()
       if (resp.ok) {
         setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
-        if (data.label_url) window.open(data.label_url, '_blank')
+        if (data.label_url) Browser.open({ url: data.label_url })
         onLabelGenerated?.()
       } else if (resp.status === 402) {
         setError(paymentFailedMsg)
@@ -406,7 +407,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                       # {lo.tracking_number}
                     </p>
                   </div>
-                  <button onClick={() => window.open(lo.label_url!, '_blank')} style={{
+                  <button onClick={() => Browser.open({ url: lo.label_url! })} style={{
                     padding: '8px 16px', borderRadius: '10px',
                     background: 'linear-gradient(135deg, #10B981, #059669)',
                     border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
@@ -431,7 +432,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                   # {labelResult.shipment_number}
                 </p>
               </div>
-              <button onClick={() => window.open(labelResult.label_url, '_blank')} style={{
+              <button onClick={() => Browser.open({ url: labelResult.label_url })} style={{
                 padding: '8px 16px', borderRadius: '10px',
                 background: 'linear-gradient(135deg, #10B981, #059669)',
                 border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
@@ -1353,7 +1354,7 @@ export default function ActivityPage() {
         {isSale && order.status === 'shipped' && order.label_url && (
           <div style={{ marginTop: '10px' }}>
             <button
-              onClick={(e) => { e.stopPropagation(); window.open(order.label_url!, '_blank') }}
+              onClick={(e) => { e.stopPropagation(); Browser.open({ url: order.label_url! }) }}
               style={{
                 padding: '7px 14px', borderRadius: '8px',
                 background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',

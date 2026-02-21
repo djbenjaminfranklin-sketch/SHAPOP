@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { Browser } from '@capacitor/browser'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
@@ -387,7 +388,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                   </p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); window.open(labelOrder.label_url!, '_blank') }}
+                  onClick={(e) => { e.stopPropagation(); Browser.open({ url: labelOrder.label_url! }) }}
                   style={{
                     padding: '6px 14px', borderRadius: '8px',
                     backgroundColor: '#22C55E', color: '#fff',
@@ -1336,7 +1337,7 @@ export default function SellerProfilePage() {
                         )}
                         {order.label_url && (
                           <span
-                            onClick={(e) => { e.stopPropagation(); window.open(order.label_url!, '_blank') }}
+                            onClick={(e) => { e.stopPropagation(); Browser.open({ url: order.label_url! }) }}
                             style={{ fontSize: '10px', fontWeight: 700, color: '#22C55E', backgroundColor: 'rgba(34,197,94,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
                           >
                             {'\uD83D\uDCE6'} {lang === 'fr' ? 'Etiquette' : 'Label'}
