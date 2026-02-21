@@ -348,6 +348,12 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       .eq('id', order.buyer_id)
       .single()
 
+    // Get emails from auth
+    const { data: buyerAuth } = await supabase.auth.admin.getUserById(order.buyer_id)
+    const { data: sellerAuth } = await supabase.auth.admin.getUserById(userId)
+    const buyerEmail = buyerAuth?.user?.email || ''
+    const sellerEmail = sellerAuth?.user?.email || ''
+
     // Dispatch to the right carrier
     let shipResult: { shipmentNumber: string; labelUrl: string; error?: string }
 
@@ -365,6 +371,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
           countryCode: returnAddr.country || 'FR',
           phone: sellerProfile?.phone_number || '',
           mobile: sellerProfile?.phone_number || '',
+          email: sellerEmail,
         },
         recipient: {
           firstname: buyerNameParts[0] || 'Acheteur',
@@ -375,6 +382,7 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
           countryCode: buyerAddr.country || 'FR',
           phone: buyerAddr.phone || buyerProfile?.phone_number || '',
           mobile: buyerAddr.phone || buyerProfile?.phone_number || '',
+          email: buyerEmail,
         },
         relayPointId: order.relay_point_id || undefined,
       })
@@ -620,6 +628,12 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       .eq('id', buyerIds[0])
       .single()
 
+    // Get emails from auth
+    const { data: buyerAuth } = await supabase.auth.admin.getUserById(buyerIds[0])
+    const { data: sellerAuth } = await supabase.auth.admin.getUserById(userId)
+    const buyerEmail = buyerAuth?.user?.email || ''
+    const sellerEmail = sellerAuth?.user?.email || ''
+
     // Dispatch to the right carrier
     let groupShipResult: { shipmentNumber: string; labelUrl: string; error?: string }
 
@@ -637,6 +651,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
           countryCode: returnAddr.country || 'FR',
           phone: sellerProfile?.phone_number || '',
           mobile: sellerProfile?.phone_number || '',
+          email: sellerEmail,
         },
         recipient: {
           firstname: buyerNameParts[0] || 'Acheteur',
@@ -647,6 +662,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
           countryCode: buyerAddr.country || 'FR',
           phone: buyerAddr.phone || buyerProfile?.phone_number || '',
           mobile: buyerAddr.phone || buyerProfile?.phone_number || '',
+          email: buyerEmail,
         },
         relayPointId: primaryOrder.relay_point_id || undefined,
       })
