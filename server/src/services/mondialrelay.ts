@@ -19,9 +19,7 @@ const MR_SANDBOX = process.env.MONDIAL_RELAY_SANDBOX === 'true'
 const SOAP_URL = MR_SANDBOX
   ? 'https://api.mondialrelay.com/Web_Services.asmx' // same URL, test via credentials
   : 'https://api.mondialrelay.com/Web_Services.asmx'
-const REST_URL = MR_SANDBOX
-  ? 'https://connect-sandbox-api.mondialrelay.com/api/shipment'
-  : 'https://connect-api.mondialrelay.com/api/shipment'
+const REST_URL = 'https://connect-api.mondialrelay.com/api/shipment' // sandbox uses same URL with sandbox credentials
 
 const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' })
 
@@ -298,41 +296,45 @@ export async function createShipment(params: {
 
     console.log('[MondialRelay] Response:', responseText)
 
-    const parsed = xmlParser.parse(responseText)
+    // MR REST API v2 returns JSON (not XML despite accepting XML input)
+    let parsed: Record<string, unknown>
+    try {
+      parsed = JSON.parse(responseText)
+    } catch {
+      console.error('[MondialRelay] Failed to parse response as JSON:', responseText)
+      return { shipmentNumber: '', labelUrl: '', error: 'Could not parse shipment response (not valid JSON)' }
+    }
 
-    // Navigate response structure
-    const shipmentResponse = parsed.ShipmentCreationResponse || parsed
-    const statusList = shipmentResponse?.StatusList?.Status
-    const shipments = shipmentResponse?.ShipmentsList?.Shipment
+    console.log('[MondialRelay] Parsed response:', JSON.stringify(parsed, null, 2))
 
-    // Check for errors in status list
-    if (statusList) {
-      const statuses = Array.isArray(statusList) ? statusList : [statusList]
-      const errors = statuses.filter((s: Record<string, unknown>) => s['@_Code'] && String(s['@_Code']) !== '0')
+    // Check for errors in statusListField
+    const statusList = parsed.statusListField as Array<Record<string, string>> | null
+    if (statusList && statusList.length > 0) {
+      const errors = statusList.filter(s => s.levelField === 'Error')
       if (errors.length > 0) {
-        const errMsg = errors.map((e: Record<string, unknown>) => `${e['@_Code']}: ${e['@_Message'] || ''}`).join('; ')
-        console.error('[MondialRelay] API error:', errMsg, '| Full response:', responseText)
+        const errMsg = errors.map(e => `${e.codeField}: ${e.messageField || ''}`).join('; ')
+        console.error('[MondialRelay] API error:', errMsg)
         return { shipmentNumber: '', labelUrl: '', error: errMsg }
       }
     }
 
-    // Extract shipment number and label URL
-    if (shipments) {
-      const shipment = Array.isArray(shipments) ? shipments[0] : shipments
-      const label = shipment?.LabelList?.Label
-      const labelData = Array.isArray(label) ? label[0] : label
+    // Extract shipment number and label URL from shipmentsListField
+    const shipmentsList = parsed.shipmentsListField as Array<Record<string, unknown>> | null
+    if (shipmentsList && shipmentsList.length > 0) {
+      const shipment = shipmentsList[0]
+      const shipmentNumber = String(shipment.shipmentNumberField || '')
 
-      const shipmentNumber = labelData?.RawContent?.LabelValues?.ShipmentNumber
-        || shipment?.ShipmentNumber
-        || ''
-      const labelUrl = labelData?.Output || ''
+      // Label URL: labelListField.labelField.outputField (nested object, not array)
+      const labelListField = shipment.labelListField as Record<string, unknown> | null
+      const labelField = labelListField?.labelField as Record<string, unknown> | null
+      const labelUrl = String(labelField?.outputField || '')
 
       if (shipmentNumber) {
-        return { shipmentNumber: String(shipmentNumber), labelUrl: String(labelUrl) }
+        return { shipmentNumber, labelUrl }
       }
     }
 
-    return { shipmentNumber: '', labelUrl: '', error: 'Could not parse shipment response' }
+    return { shipmentNumber: '', labelUrl: '', error: 'Could not parse shipment response: no shipments in response' }
   } catch (err) {
     console.error('[MondialRelay] Shipment creation error:', err)
     return { shipmentNumber: '', labelUrl: '', error: 'Shipment creation failed' }
