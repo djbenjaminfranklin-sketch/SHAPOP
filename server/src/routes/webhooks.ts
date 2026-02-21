@@ -357,11 +357,24 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
         // Stop recording if active
         if (finishedStream?.egress_id && livekitEgressClient) {
           try {
+            console.log(`[webhook/egress] Stopping egress ${finishedStream.egress_id} for stream ${finishedStream.id}`)
             const result = await livekitEgressClient.stopEgress(finishedStream.egress_id)
-            if (result.fileResults?.[0]?.location) {
-              await supabase.from('streams').update({ recording_url: result.fileResults[0].location }).eq('id', finishedStream.id)
+            console.log(`[webhook/egress] Stop result:`, JSON.stringify(result, null, 2))
+            const fileLocation = result.fileResults?.[0]?.location
+              || result.file?.filename
+              || (result as any).fileResults?.[0]?.filename
+            if (fileLocation) {
+              const recordingUrl = fileLocation.startsWith('http')
+                ? fileLocation
+                : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
+              console.log(`[webhook/egress] Recording URL: ${recordingUrl}`)
+              await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', finishedStream.id)
+            } else {
+              console.error(`[webhook/egress] No file location in result`)
             }
-          } catch { /* egress may already be stopped */ }
+          } catch (egressErr) {
+            console.error(`[webhook/egress] Failed to stop egress:`, egressErr)
+          }
         }
 
         // Clean up in-app live notifications for this stream
