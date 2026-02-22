@@ -806,38 +806,30 @@ export default function LiveSellerView() {
 
   const handleActivateItem = async () => {
     if (!currentItem || !streamId) return
-    const now = new Date().toISOString()
     const duration = currentItem.duration_seconds || 60
 
-    // Update DB FIRST to ensure realtime reaches viewers
-    const { error: dbError } = await supabase
-      .from('items')
-      .update({
-        status: 'active' as const,
-        started_at: now,
-      })
-      .eq('id', currentItem.id)
-
-    if (dbError) {
-      console.error('Failed to activate item in DB:', dbError)
-      // Fallback: try via API server (bypasses RLS)
-      try {
-        const { data: fs } = await supabase.auth.getSession()
-        const tk = fs.session?.access_token
-        if (tk) {
-          const activateResp = await apiFetch(`/api/items/${currentItem.id}/activate`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${tk}`,
-            },
-          })
-          const activateBody = await activateResp.json().catch(() => ({}))
-          console.log('[ACTIVATE] response:', JSON.stringify(activateBody))
-        }
-      } catch (err) {
-        console.error('API activate fallback also failed:', err)
+    // Always call API — it activates the item AND processes pre-bids
+    try {
+      const { data: fs } = await supabase.auth.getSession()
+      const tk = fs.session?.access_token
+      if (tk) {
+        const activateResp = await apiFetch(`/api/items/${currentItem.id}/activate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${tk}`,
+          },
+        })
+        const activateBody = await activateResp.json().catch(() => ({}))
+        console.log('[ACTIVATE] response:', JSON.stringify(activateBody))
       }
+    } catch (err) {
+      console.error('API activate failed, fallback to direct DB:', err)
+      // Fallback: direct Supabase update (no pre-bid processing)
+      await supabase
+        .from('items')
+        .update({ status: 'active' as const, started_at: new Date().toISOString() })
+        .eq('id', currentItem.id)
     }
 
     // Start the local countdown
@@ -845,7 +837,7 @@ export default function LiveSellerView() {
 
     // Update local state
     setItems(prev => prev.map((it, i) =>
-      i === currentIndex ? { ...it, status: 'active' as const, started_at: now } : it
+      i === currentIndex ? { ...it, status: 'active' as const, started_at: new Date().toISOString() } : it
     ))
   }
 
