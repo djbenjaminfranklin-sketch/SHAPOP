@@ -825,13 +825,15 @@ export default function LiveSellerView() {
         const { data: fs } = await supabase.auth.getSession()
         const tk = fs.session?.access_token
         if (tk) {
-          await apiFetch(`/api/items/${currentItem.id}/activate`, {
+          const activateResp = await apiFetch(`/api/items/${currentItem.id}/activate`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${tk}`,
             },
           })
+          const activateBody = await activateResp.json().catch(() => ({}))
+          console.log('[ACTIVATE] response:', JSON.stringify(activateBody))
         }
       } catch (err) {
         console.error('API activate fallback also failed:', err)

@@ -32,8 +32,8 @@ async function runProxyBidding(itemId: string, currentAmount: number, currentBid
 
     const topMax = maxBids[0]
     const topMaxAmount = parseFloat(String(topMax.max_amount))
-    // Auto-bid at price + 0.50, capped at max_amount
-    let autoBidAmount = Math.round((price + 0.50) * 100) / 100
+    // Auto-bid at price + 1€, capped at max_amount
+    let autoBidAmount = Math.round((price + 1) * 100) / 100
     if (autoBidAmount > topMaxAmount) {
       autoBidAmount = topMaxAmount
     }
@@ -196,11 +196,12 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
 
         const firstBidder = preBids[0]
         const preBidAmount = parseFloat(String(firstBidder.amount))
-        const firstBidAmount = Math.round((startingPrice + 0.50) * 100) / 100
+        // First bid = starting price (not +0.50 — the increment is for subsequent bids)
+        const firstBidAmount = startingPrice > 0 ? startingPrice : 1
 
         console.log(`[PreBid] startingPrice=${startingPrice}, firstBidAmount=${firstBidAmount}, preBidAmount=${preBidAmount}`)
 
-        if (firstBidAmount <= preBidAmount) {
+        if (preBidAmount >= firstBidAmount) {
           const { error: bidErr } = await supabase.from('bids').insert({
             item_id: auctionItemId,
             bidder_id: firstBidder.bidder_id,
@@ -222,7 +223,7 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
             console.log(`[PreBid] Proxy bidding done for item ${auctionItemId}`)
           }
         } else {
-          console.log(`[PreBid] Pre-bid amount ${firstBidder.amount} too low for first bid ${firstBidAmount} — skipping`)
+          console.log(`[PreBid] Pre-bid amount ${preBidAmount} too low (min: ${firstBidAmount}) — skipping`)
         }
       }
     } catch (preBidError: any) {
@@ -440,6 +441,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
     if (error) throw error
 
     // Activate pre-bids in a separate try/catch so item activation always succeeds
+    let preBidDebug: any = { found: 0 }
     try {
       const { data: preBids, error: preBidsErr } = await supabase
         .from('pre_bids')
@@ -448,11 +450,14 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
 
+      preBidDebug.found = preBids?.length ?? 0
+      preBidDebug.queryError = preBidsErr?.message || null
       console.log(`[PreBid] Activating item ${itemId} — found ${preBids?.length ?? 0} pre-bids`, preBidsErr ? `ERROR: ${preBidsErr.message}` : '')
 
       if (preBids && preBids.length > 0) {
         // Parse as numbers — Supabase returns numeric columns as strings
         const startingPrice = parseFloat(String(item.current_price || item.starting_price || 0))
+        preBidDebug.startingPrice = startingPrice
 
         // Convert each pre-bid to a max_bid
         for (const pb of preBids) {
@@ -464,7 +469,10 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
             is_active: true,
             current_bid: 0,
           }, { onConflict: 'item_id,bidder_id' })
-          if (upsertErr) console.error(`[PreBid] Failed to upsert max_bid for bidder ${pb.bidder_id}:`, upsertErr.message)
+          if (upsertErr) {
+            preBidDebug.maxBidError = upsertErr.message
+            console.error(`[PreBid] Failed to upsert max_bid for bidder ${pb.bidder_id}:`, upsertErr.message)
+          }
         }
 
         // Mark pre_bids as activated
@@ -473,24 +481,31 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
           .update({ status: 'activated', activated_at: new Date().toISOString() })
           .eq('item_id', itemId)
           .eq('status', 'pending')
-        if (activateErr) console.error('[PreBid] Failed to mark pre_bids as activated:', activateErr.message)
+        if (activateErr) {
+          preBidDebug.activateError = activateErr.message
+          console.error('[PreBid] Failed to mark pre_bids as activated:', activateErr.message)
+        }
 
-        // Place the first bid from the first pre-bidder
+        // Place the first bid from the first pre-bidder at starting price
         const firstBidder = preBids[0]
         const preBidAmount = parseFloat(String(firstBidder.amount))
-        const firstBidAmount = Math.round((startingPrice + 0.50) * 100) / 100
+        const firstBidAmount = startingPrice > 0 ? startingPrice : 1
+        preBidDebug.firstBidAmount = firstBidAmount
+        preBidDebug.preBidAmount = preBidAmount
 
         console.log(`[PreBid] startingPrice=${startingPrice}, firstBidAmount=${firstBidAmount}, preBidAmount=${preBidAmount}`)
 
-        if (firstBidAmount <= preBidAmount) {
+        if (preBidAmount >= firstBidAmount) {
           const { error: bidErr } = await supabase.from('bids').insert({
             item_id: itemId,
             bidder_id: firstBidder.bidder_id,
             amount: firstBidAmount,
           })
           if (bidErr) {
+            preBidDebug.bidError = bidErr.message
             console.error('[PreBid] Failed to insert first bid:', bidErr.message)
           } else {
+            preBidDebug.bidPlaced = firstBidAmount
             await supabase
               .from('items')
               .update({ current_price: firstBidAmount })
@@ -502,17 +517,20 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
 
             // Run proxy bidding between pre-bidders
             await runProxyBidding(itemId, firstBidAmount, firstBidder.bidder_id)
+            preBidDebug.proxyDone = true
             console.log(`[PreBid] Proxy bidding done for item ${itemId}`)
           }
         } else {
-          console.log(`[PreBid] Pre-bid amount ${firstBidder.amount} too low for first bid ${firstBidAmount} — skipping`)
+          preBidDebug.skipped = `amount ${preBidAmount} < min ${firstBidAmount}`
+          console.log(`[PreBid] Pre-bid amount ${preBidAmount} too low (min: ${firstBidAmount}) — skipping`)
         }
       }
     } catch (preBidError: any) {
+      preBidDebug.exception = preBidError?.message || String(preBidError)
       console.error('[PreBid] Activation error (item already activated):', preBidError?.message || preBidError)
     }
 
-    res.json({ success: true })
+    res.json({ success: true, preBidDebug })
   } catch (err: any) {
     console.error('[Activate] Failed to activate item:', err?.message || err)
     res.status(500).json({ error: 'Failed to activate item' })
@@ -554,8 +572,8 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
       res.status(400).json({ error: 'Bid must be higher than current price' })
       return
     }
-    if (amount - item.current_price < 0.50) {
-      res.status(400).json({ error: 'Minimum bid increment is 0.50\u20ac' })
+    if (amount - item.current_price < 1) {
+      res.status(400).json({ error: 'Minimum bid increment is 1\u20ac' })
       return
     }
 
@@ -697,8 +715,8 @@ router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, async (req: Authe
 
     if (upsertError) throw upsertError
 
-    // Immediately place a bid at current_price + 0.50
-    const immediateBid = Math.round((item.current_price + 0.50) * 100) / 100
+    // Immediately place a bid at current_price + 1€
+    const immediateBid = Math.round((item.current_price + 1) * 100) / 100
     if (immediateBid <= maxAmount) {
       await supabase.from('bids').insert({
         item_id: itemId,
@@ -774,6 +792,13 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
     }
     if (item.seller_id === userId) {
       res.status(400).json({ error: 'Cannot pre-bid on your own item' })
+      return
+    }
+
+    // Pre-bid must be at least the starting price
+    const startPrice = parseFloat(String(item.starting_price || 0))
+    if (amount < startPrice) {
+      res.status(400).json({ error: `Le montant doit être au moins ${startPrice}€` })
       return
     }
 
