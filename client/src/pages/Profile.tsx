@@ -80,10 +80,13 @@ export default function Profile() {
         })
         if (res.ok) {
           const data = await res.json()
+          console.log('[Profile] buyer stats:', data)
           setBuyerStats(data)
+        } else {
+          console.warn('[Profile] buyer stats failed:', res.status, await res.text().catch(() => ''))
         }
-      } catch {
-        // silently fail
+      } catch (err) {
+        console.error('[Profile] buyer stats error:', err)
       }
       setBuyerStatsLoaded(true)
     }
@@ -103,10 +106,13 @@ export default function Profile() {
         })
         if (res.ok) {
           const data = await res.json()
+          console.log('[Profile] loyalty:', data)
           setLoyalty(data)
+        } else {
+          console.warn('[Profile] loyalty failed:', res.status, await res.text().catch(() => ''))
         }
-      } catch {
-        // silently fail
+      } catch (err) {
+        console.error('[Profile] loyalty error:', err)
       }
       setLoyaltyLoaded(true)
     }
@@ -688,7 +694,7 @@ export default function Profile() {
         </div>
 
         {/* ── Buyer stats card ──────────────────────────────────── */}
-        {buyerStatsLoaded && buyerStats && (
+        {buyerStatsLoaded && (
           <div style={{ padding: '0 16px 16px', ...entrance('60ms') }}>
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
               <div style={{
@@ -709,7 +715,7 @@ export default function Profile() {
                     </svg>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {buyerStats.total_spent.toFixed(0)}&euro;
+                    {(buyerStats?.total_spent ?? 0).toFixed(0)}&euro;
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
                     {tx('Total depense', 'Total spent', 'סה"כ הוצאות', 'Total gastado', lang)}
@@ -731,7 +737,7 @@ export default function Profile() {
                     </svg>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {buyerStats.order_count}
+                    {buyerStats?.order_count ?? 0}
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
                     {tx('Commandes', 'Orders', 'הזמנות', 'Pedidos', lang)}
@@ -753,7 +759,7 @@ export default function Profile() {
                     </svg>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {buyerStats.pending_count}
+                    {buyerStats?.pending_count ?? 0}
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
                     {tx('En cours', 'Pending', 'בתהליך', 'En curso', lang)}
@@ -775,7 +781,7 @@ export default function Profile() {
                     </svg>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {buyerStats.buyer_score}<span style={{ fontSize: '13px', fontWeight: 500, color: '#888' }}>/100</span>
+                    {buyerStats?.buyer_score ?? 0}<span style={{ fontSize: '13px', fontWeight: 500, color: '#888' }}>/100</span>
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
                     {tx('Score acheteur', 'Buyer score', 'ציון קונה', 'Puntaje comprador', lang)}

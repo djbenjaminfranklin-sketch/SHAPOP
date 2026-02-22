@@ -510,41 +510,6 @@ export default function AccountControlsPage() {
               </div>
             </div>
 
-            {/* Spending progress bar */}
-            {settings.spendingLimitEnabled && settings.spendingLimitAmount > 0 && (() => {
-              const limit = settings.spendingLimitAmount
-              const ratio = limit > 0 ? spendingAmount / limit : 0
-              const pct = Math.min(ratio * 100, 100)
-              const barColor = ratio > 0.9 ? '#EF4444' : ratio > 0.75 ? '#F59E0B' : '#22C55E'
-              return (
-                <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                      {spendingAmount}&euro; / {limit}&euro;
-                    </p>
-                    <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                      {Math.round(pct)}%
-                    </p>
-                  </div>
-                  <div style={{
-                    width: '100%', height: '8px', borderRadius: '4px',
-                    backgroundColor: '#333', overflow: 'hidden',
-                  }}>
-                    <div style={{
-                      width: `${pct}%`, height: '100%',
-                      borderRadius: '4px', backgroundColor: barColor,
-                      transition: 'width 0.5s ease, background-color 0.3s ease',
-                    }} />
-                  </div>
-                  {ratio > 0.9 && (
-                    <p style={{ fontSize: '12px', color: '#EF4444', margin: '8px 0 0', fontWeight: 600 }}>
-                      {tx('Attention : limite presque atteinte !', 'Warning: limit almost reached!', 'אזהרה: המגבלה כמעט הושגה!', 'Atencion: limite casi alcanzado!', lang)}
-                    </p>
-                  )}
-                </div>
-              )
-            })()}
-
             {/* Spending alert */}
             <div
               onClick={() => update({ spendingAlertEnabled: !settings.spendingAlertEnabled })}
@@ -604,42 +569,85 @@ export default function AccountControlsPage() {
             </div>
 
             {settings.spendingLimitEnabled && (
-              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
-                <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
-                  {tx('Montant maximum', 'Maximum amount', 'סכום מקסימלי', 'Monto maximo', lang)}
-                </p>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="number"
-                    min={0}
-                    step={10}
-                    value={settings.spendingLimitAmount || ''}
-                    onChange={e => update({ spendingLimitAmount: Math.max(0, Number(e.target.value) || 0) })}
-                    placeholder="100"
+              <>
+                <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+                  <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
+                    {tx('Montant maximum', 'Maximum amount', 'סכום מקסימלי', 'Monto maximo', lang)}
+                  </p>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="number"
+                      min={0}
+                      step={10}
+                      value={settings.spendingLimitAmount || ''}
+                      onChange={e => update({ spendingLimitAmount: Math.max(0, Number(e.target.value) || 0) })}
+                      onClick={e => e.stopPropagation()}
+                      placeholder="100"
+                      style={{
+                        width: '100%', padding: '10px 12px', paddingRight: '36px', borderRadius: '10px',
+                        backgroundColor: '#222', border: '1px solid #333', color: '#fff',
+                        fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                    <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: '16px', fontWeight: 600 }}>€</span>
+                  </div>
+                  <button
+                    onClick={saveSpendLimits}
+                    disabled={savingLimits}
                     style={{
-                      width: '100%', padding: '10px 12px', paddingRight: '36px', borderRadius: '10px',
-                      backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                      fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                      width: '100%', marginTop: '12px', padding: '14px',
+                      borderRadius: '10px', border: 'none', cursor: savingLimits ? 'not-allowed' : 'pointer',
+                      background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+                      color: '#fff', fontSize: '15px', fontWeight: 700,
+                      opacity: savingLimits ? 0.6 : 1,
                     }}
-                  />
-                  <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: '16px', fontWeight: 600 }}>€</span>
+                  >
+                    {savingLimits
+                      ? tx('Sauvegarde...', 'Saving...', '...שומר', 'Guardando...', lang)
+                      : tx('Enregistrer la limite', 'Save limit', 'שמור מגבלה', 'Guardar limite', lang)}
+                  </button>
                 </div>
-                <button
-                  onClick={saveSpendLimits}
-                  disabled={savingLimits}
-                  style={{
-                    width: '100%', marginTop: '12px', padding: '12px',
-                    borderRadius: '10px', border: 'none', cursor: savingLimits ? 'not-allowed' : 'pointer',
-                    background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-                    color: '#fff', fontSize: '14px', fontWeight: 700,
-                    opacity: savingLimits ? 0.6 : 1,
-                  }}
-                >
-                  {savingLimits
-                    ? tx('Sauvegarde...', 'Saving...', '...שומר', 'Guardando...', lang)
-                    : tx('Enregistrer la limite', 'Save limit', 'שמור מגבלה', 'Guardar limite', lang)}
-                </button>
-              </div>
+
+                {/* Spending progress bar */}
+                {settings.spendingLimitAmount > 0 && (() => {
+                  const limit = settings.spendingLimitAmount
+                  const ratio = limit > 0 ? spendingAmount / limit : 0
+                  const pct = Math.min(ratio * 100, 100)
+                  const exceeded = ratio >= 1
+                  const barColor = exceeded ? '#EF4444' : ratio > 0.75 ? '#F59E0B' : '#22C55E'
+                  return (
+                    <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 600, color: exceeded ? '#EF4444' : '#fff', margin: 0 }}>
+                          {spendingAmount}&euro; / {limit}&euro;
+                        </p>
+                        <p style={{ fontSize: '12px', color: exceeded ? '#EF4444' : '#888', margin: 0 }}>
+                          {Math.round(pct)}%
+                        </p>
+                      </div>
+                      <div style={{
+                        width: '100%', height: '8px', borderRadius: '4px',
+                        backgroundColor: '#333', overflow: 'hidden',
+                      }}>
+                        <div style={{
+                          width: `${pct}%`, height: '100%',
+                          borderRadius: '4px', backgroundColor: barColor,
+                          transition: 'width 0.5s ease, background-color 0.3s ease',
+                        }} />
+                      </div>
+                      {exceeded ? (
+                        <p style={{ fontSize: '12px', color: '#EF4444', margin: '8px 0 0', fontWeight: 600 }}>
+                          {tx('Limite depassee !', 'Limit exceeded!', 'המגבלה חורגה!', 'Limite superado!', lang)}
+                        </p>
+                      ) : ratio > 0.75 && (
+                        <p style={{ fontSize: '12px', color: '#F59E0B', margin: '8px 0 0', fontWeight: 600 }}>
+                          {tx('Attention : limite presque atteinte !', 'Warning: limit almost reached!', 'אזהרה: המגבלה כמעט הושגה!', 'Atencion: limite casi alcanzado!', lang)}
+                        </p>
+                      )}
+                    </div>
+                  )
+                })()}
+              </>
             )}
 
             <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>

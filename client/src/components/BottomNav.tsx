@@ -97,6 +97,11 @@ export default function BottomNav() {
       to: `/seller/${user.id}`,
     },
     {
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
+      label: tx('Mon compte', 'My account', 'החשבון שלי', 'Mi cuenta', lang),
+      to: '/profile',
+    },
+    {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
       label: tx('Paiements et livraison', 'Payments & shipping', 'תשלומים ומשלוח', 'Pagos y envio', lang),
       to: '/payments',
