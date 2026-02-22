@@ -296,7 +296,6 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
     const body = Buffer.isBuffer(req.body) ? req.body.toString() : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
     const authHeader = req.headers['authorization'] as string || ''
     const event = await livekitWebhookReceiver.receive(body, authHeader)
-    console.log(`[livekit-webhook] Event received: ${event.event}`, event.egressInfo ? `egress=${event.egressInfo.egressId}` : '')
 
     if (event.event === 'participant_joined' && event.participant?.identity?.startsWith('seller-')) {
       // Publisher (seller) joined -> mark stream as live + push notifs
@@ -354,17 +353,6 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
           .update({ status: 'ended', ended_at: new Date().toISOString(), viewer_count: 0 })
           .eq('livekit_room_name', roomName)
           .eq('status', 'live')
-
-        // Stop recording if active (recording URL will be saved by egress_ended webhook)
-        if (finishedStream?.egress_id && livekitEgressClient) {
-          try {
-            console.log(`[webhook/egress] Stopping egress ${finishedStream.egress_id} for stream ${finishedStream.id}`)
-            await livekitEgressClient.stopEgress(finishedStream.egress_id)
-            console.log(`[webhook/egress] Stop signal sent — URL will be saved by egress_ended webhook`)
-          } catch (egressErr) {
-            console.error(`[webhook/egress] Failed to stop egress:`, egressErr)
-          }
-        }
 
         // Clean up in-app live notifications for this stream
         if (finishedStream) {
@@ -452,35 +440,23 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
       }
     }
 
-    // Handle egress_ended — recording file is ready on S3
+    // Handle egress_ended — recording file is ready on S3 (backup for polling)
     if (event.event === 'egress_ended' && event.egressInfo) {
       const egress = event.egressInfo
-      console.log(`[egress_ended] Egress ${egress.egressId} status=${egress.status}`)
-      console.log(`[egress_ended] Full egressInfo:`, JSON.stringify(egress, null, 2))
-
-      // Find stream by egress_id
       const { data: stream } = await supabase
         .from('streams')
-        .select('id')
+        .select('id, recording_url')
         .eq('egress_id', egress.egressId)
         .maybeSingle()
 
-      if (stream) {
-        // FileInfo has: filename (S3 key), location (may be URL or empty)
-        const fileInfo = egress.fileResults?.[0]
-          || (egress as any).file?.value  // deprecated field
+      if (stream && !stream.recording_url) {
+        const fileInfo = egress.fileResults?.[0] || (egress as any).result?.value || (egress as any).file
         const fileLocation = fileInfo?.location || fileInfo?.filename
         if (fileLocation) {
-          const recordingUrl = fileLocation.startsWith('http')
-            ? fileLocation
+          const recordingUrl = fileLocation.startsWith('http') ? fileLocation
             : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
-          console.log(`[egress_ended] Saving recording URL for stream ${stream.id}: ${recordingUrl}`)
           await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', stream.id)
-        } else {
-          console.error(`[egress_ended] No file location found in egressInfo for stream ${stream.id}`)
         }
-      } else {
-        console.warn(`[egress_ended] No stream found with egress_id ${egress.egressId}`)
       }
     }
 
