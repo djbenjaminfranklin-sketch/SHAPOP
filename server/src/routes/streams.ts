@@ -673,27 +673,13 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
       return
     }
 
-    // Stop recording if active
+    // Stop recording if active (recording URL will be saved by egress_ended webhook)
     const { data: streamData } = await supabase.from('streams').select('egress_id').eq('id', streamId).single()
     if (streamData?.egress_id && livekitEgressClient) {
       try {
         console.log(`[egress] Stopping egress ${streamData.egress_id} for stream ${streamId}`)
-        const result = await livekitEgressClient.stopEgress(streamData.egress_id)
-        console.log(`[egress] Stop result:`, JSON.stringify(result, null, 2))
-        // Store recording URL — check multiple result formats
-        const fileLocation = result.fileResults?.[0]?.location
-          || result.file?.filename
-          || (result as any).fileResults?.[0]?.filename
-        if (fileLocation) {
-          // Convert S3 path to public HTTPS URL if needed
-          const recordingUrl = fileLocation.startsWith('http')
-            ? fileLocation
-            : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
-          console.log(`[egress] Recording URL: ${recordingUrl}`)
-          await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', streamId)
-        } else {
-          console.error(`[egress] No file location found in result`)
-        }
+        await livekitEgressClient.stopEgress(streamData.egress_id)
+        console.log(`[egress] Stop signal sent — URL will be saved by egress_ended webhook`)
       } catch (egressErr) {
         console.error(`[egress] Failed to stop egress:`, egressErr)
       }

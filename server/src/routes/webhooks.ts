@@ -354,24 +354,12 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
           .eq('livekit_room_name', roomName)
           .eq('status', 'live')
 
-        // Stop recording if active
+        // Stop recording if active (recording URL will be saved by egress_ended webhook)
         if (finishedStream?.egress_id && livekitEgressClient) {
           try {
             console.log(`[webhook/egress] Stopping egress ${finishedStream.egress_id} for stream ${finishedStream.id}`)
-            const result = await livekitEgressClient.stopEgress(finishedStream.egress_id)
-            console.log(`[webhook/egress] Stop result:`, JSON.stringify(result, null, 2))
-            const fileLocation = result.fileResults?.[0]?.location
-              || result.file?.filename
-              || (result as any).fileResults?.[0]?.filename
-            if (fileLocation) {
-              const recordingUrl = fileLocation.startsWith('http')
-                ? fileLocation
-                : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
-              console.log(`[webhook/egress] Recording URL: ${recordingUrl}`)
-              await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', finishedStream.id)
-            } else {
-              console.error(`[webhook/egress] No file location in result`)
-            }
+            await livekitEgressClient.stopEgress(finishedStream.egress_id)
+            console.log(`[webhook/egress] Stop signal sent — URL will be saved by egress_ended webhook`)
           } catch (egressErr) {
             console.error(`[webhook/egress] Failed to stop egress:`, egressErr)
           }
@@ -460,6 +448,38 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
             }
           }
         }
+      }
+    }
+
+    // Handle egress_ended — recording file is ready on S3
+    if (event.event === 'egress_ended' && event.egressInfo) {
+      const egress = event.egressInfo
+      console.log(`[egress_ended] Egress ${egress.egressId} status=${egress.status}`)
+      console.log(`[egress_ended] Full egressInfo:`, JSON.stringify(egress, null, 2))
+
+      // Find stream by egress_id
+      const { data: stream } = await supabase
+        .from('streams')
+        .select('id')
+        .eq('egress_id', egress.egressId)
+        .maybeSingle()
+
+      if (stream) {
+        // FileInfo has: filename (S3 key), location (may be URL or empty)
+        const fileInfo = egress.fileResults?.[0]
+          || (egress as any).file?.value  // deprecated field
+        const fileLocation = fileInfo?.location || fileInfo?.filename
+        if (fileLocation) {
+          const recordingUrl = fileLocation.startsWith('http')
+            ? fileLocation
+            : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
+          console.log(`[egress_ended] Saving recording URL for stream ${stream.id}: ${recordingUrl}`)
+          await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', stream.id)
+        } else {
+          console.error(`[egress_ended] No file location found in egressInfo for stream ${stream.id}`)
+        }
+      } else {
+        console.warn(`[egress_ended] No stream found with egress_id ${egress.egressId}`)
       }
     }
 
