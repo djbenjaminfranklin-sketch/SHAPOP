@@ -595,7 +595,7 @@ export default function OrderDetailPage() {
         .in('status', ['paid', 'preparing', 'shipped', 'delivered'])
         .order('created_at', { ascending: true })
 
-      if (data) setSiblingOrders(data as typeof siblingOrders)
+      if (data) setSiblingOrders(data as unknown as typeof siblingOrders)
     }
     fetchSiblings()
   }, [order?.id, order?.seller_id, order?.buyer_id, user])

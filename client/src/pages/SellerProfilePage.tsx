@@ -1315,10 +1315,8 @@ export default function SellerProfilePage() {
                 {buyerGroups.map((group, gi) => {
                   const buyerName = group[0].buyer_name || (lang === 'fr' ? 'Acheteur' : 'Buyer')
                   const total = group.reduce((s, o) => s + (o.amount || 0), 0)
-                  const [expanded, setExpanded] = [
-                    // Use a simple trick: store expanded state via data attribute
-                    false, () => {}
-                  ]
+                  const _expanded = false
+                  void _expanded
                   return <BuyerGroupCard key={gi} group={group} buyerName={buyerName} total={total}
                     lang={lang} statusColor={statusColor} statusLabel={statusLabel} navigate={navigate}
                     onVideoMoment={(url, title, offset) => setVodModal({ url, title, offset })} />

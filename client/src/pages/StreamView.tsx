@@ -1100,6 +1100,7 @@ export default function StreamView() {
                 city: savedAddr.city || '',
                 zip: savedAddr.zip || '',
                 phone: savedAddr.phone || '',
+                country: savedAddr.country || 'FR',
               })
             }
 
@@ -1168,10 +1169,10 @@ export default function StreamView() {
     if (!id) return
 
     // Helper: show winner only once per giveaway, auto-dismiss after 6s
-    const showWinnerOnce = (gw: { id: string; winner_name: string }) => {
+    const showWinnerOnce = (gw: { id: string; winner_name: string | null }) => {
       if (giveawayWinnerShownRef.current === gw.id) return
       giveawayWinnerShownRef.current = gw.id
-      setGiveawayWinner({ name: gw.winner_name })
+      setGiveawayWinner({ name: gw.winner_name || '' })
       // Auto-dismiss after 6 seconds
       const timer = setTimeout(() => setGiveawayWinner(null), 6000)
       // Store timer ref for cleanup
