@@ -296,6 +296,7 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
     const body = Buffer.isBuffer(req.body) ? req.body.toString() : (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
     const authHeader = req.headers['authorization'] as string || ''
     const event = await livekitWebhookReceiver.receive(body, authHeader)
+    console.log(`[livekit-webhook] Event received: ${event.event}`, event.egressInfo ? `egress=${event.egressInfo.egressId}` : '')
 
     if (event.event === 'participant_joined' && event.participant?.identity?.startsWith('seller-')) {
       // Publisher (seller) joined -> mark stream as live + push notifs

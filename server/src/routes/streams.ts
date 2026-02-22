@@ -673,13 +673,49 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
       return
     }
 
-    // Stop recording if active (recording URL will be saved by egress_ended webhook)
+    // Stop recording if active
     const { data: streamData } = await supabase.from('streams').select('egress_id').eq('id', streamId).single()
     if (streamData?.egress_id && livekitEgressClient) {
       try {
         console.log(`[egress] Stopping egress ${streamData.egress_id} for stream ${streamId}`)
-        await livekitEgressClient.stopEgress(streamData.egress_id)
-        console.log(`[egress] Stop signal sent — URL will be saved by egress_ended webhook`)
+        const stopResult = await livekitEgressClient.stopEgress(streamData.egress_id)
+        console.log(`[egress] Stop result status: ${stopResult.status}`)
+        // Start async polling to get recording URL (webhook may or may not arrive)
+        const egressId = streamData.egress_id
+        const sid = streamId
+        ;(async () => {
+          for (let attempt = 0; attempt < 12; attempt++) {
+            await new Promise(r => setTimeout(r, 5000)) // wait 5s between checks
+            try {
+              // Check if URL was already saved (by webhook)
+              const { data: check } = await supabase.from('streams').select('recording_url').eq('id', sid).single()
+              if (check?.recording_url) {
+                console.log(`[egress-poll] URL already saved for stream ${sid}: ${check.recording_url}`)
+                return
+              }
+              // Poll egress status
+              const egresses = await livekitEgressClient!.listEgress({ egressId })
+              const egress = egresses[0]
+              if (!egress) { console.log(`[egress-poll] Egress ${egressId} not found`); return }
+              console.log(`[egress-poll] Attempt ${attempt + 1}: status=${egress.status}, fileResults=${egress.fileResults?.length || 0}`)
+              if (egress.fileResults && egress.fileResults.length > 0) {
+                const fileInfo = egress.fileResults[0]
+                const fileLocation = fileInfo.location || fileInfo.filename
+                if (fileLocation) {
+                  const recordingUrl = fileLocation.startsWith('http')
+                    ? fileLocation
+                    : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
+                  console.log(`[egress-poll] Saving recording URL for stream ${sid}: ${recordingUrl}`)
+                  await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', sid)
+                  return
+                }
+              }
+            } catch (pollErr) {
+              console.error(`[egress-poll] Error on attempt ${attempt + 1}:`, pollErr)
+            }
+          }
+          console.error(`[egress-poll] Gave up after 60s for stream ${sid}`)
+        })()
       } catch (egressErr) {
         console.error(`[egress] Failed to stop egress:`, egressErr)
       }
