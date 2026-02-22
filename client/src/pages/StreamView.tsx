@@ -1018,17 +1018,18 @@ export default function StreamView() {
       } catch { /* ignore */ }
     }
 
-    // Fetch upcoming items (pending/queued) for pre-bid
+    // Fetch upcoming items (draft/pending = not yet auctioned) for pre-bid
     const fetchUpcomingItems = async () => {
       try {
         const { data } = await supabase
           .from('items')
           .select('id, title, starting_price, image_urls, status')
           .eq('stream_id', id)
-          .in('status', ['pending', 'queued'])
+          .in('status', ['draft', 'pending'])
           .order('created_at', { ascending: true })
+        console.log('[PRE-BID] upcoming items:', data?.length, data?.map((d: any) => `${d.title}(${d.status})`))
         setUpcomingItems((data as Item[]) || [])
-      } catch { /* ignore */ }
+      } catch (err) { console.error('[PRE-BID] fetch error:', err) }
     }
 
     fetchActiveAuction()
@@ -2491,12 +2492,49 @@ export default function StreamView() {
             {/* Viewer reactions moved to bottom overlay */}
           </div>
 
+      {/* ═══ PRE-BID THIN BANNER (viewer, next item only) ═══ */}
+      {!isSeller && isLive && (() => {
+        const nextItem = upcomingItems.find(i => i.id !== activeAuction?.id)
+        if (!nextItem) return null
+        return (
+          <div
+            onClick={() => { setPreBidItemId(nextItem.id); setPreBidAmount(''); setShowPreBidModal(true) }}
+            style={{
+              position: 'absolute',
+              top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+              left: '8px', right: '8px',
+              zIndex: 25,
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(59,130,246,0.15)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              border: '1px solid rgba(59,130,246,0.3)',
+              cursor: 'pointer',
+            }}
+          >
+            <p style={{ fontSize: '12px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {nextItem.title} — {nextItem.starting_price}&euro;
+            </p>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, color: '#fff',
+              padding: '5px 12px', borderRadius: '8px',
+              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              {ct.preBid}
+            </span>
+          </div>
+        )
+      })()}
+
       {/* ═══ StreamSidebar (viewer only, right side) ═══ */}
       {!isSeller && isLive && (
         <div style={{
           position: 'absolute',
           right: '8px',
-          top: '30%',
+          top: '18%',
           zIndex: 30,
           pointerEvents: 'auto',
         }}>
@@ -2749,54 +2787,24 @@ export default function StreamView() {
             left: 0,
             right: 0,
             zIndex: 100,
-            backgroundColor: 'rgba(18,18,20,0.95)',
+            backgroundColor: 'rgba(18,18,20,0.9)',
             backdropFilter: 'blur(20px)',
             WebkitBackdropFilter: 'blur(20px)',
             borderTop: '1px solid rgba(255,255,255,0.08)',
             padding: '14px 16px',
             paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: upcomingItems.length > 0 ? '12px' : 0 }}>
-              <div style={{
-                width: '6px', height: '6px', borderRadius: '50%',
-                backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite',
-              }} />
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.3px' }}>
-                {ct.waitingNextItem}
-              </span>
-            </div>
-            {/* Upcoming items with pre-bid buttons */}
-            {upcomingItems.length > 0 && (
-              <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '4px' }}>
-                {upcomingItems.slice(0, 5).map(item => (
-                  <div key={item.id} style={{
-                    flexShrink: 0, width: '140px',
-                    backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '12px',
-                    padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px',
-                  }}>
-                    {item.image_urls?.[0] && (
-                      <img src={item.image_urls[0]} alt="" style={{ width: '100%', height: '80px', objectFit: 'cover', borderRadius: '8px' }} />
-                    )}
-                    <p style={{ fontSize: '12px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.title}
-                    </p>
-                    <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>
-                      {item.starting_price}&euro;
-                    </p>
-                    <button
-                      onClick={() => { setPreBidItemId(item.id); setPreBidAmount(''); setShowPreBidModal(true) }}
-                      style={{
-                        padding: '8px', borderRadius: '8px', border: 'none',
-                        background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                        color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
-                      }}
-                    >
-                      {ct.preBid}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite',
+            }} />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.3px' }}>
+              {ct.waitingNextItem}
+            </span>
           </div>
         )}
 
