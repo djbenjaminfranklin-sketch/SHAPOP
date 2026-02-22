@@ -68,7 +68,7 @@ export async function requireAdmin(req: AuthenticatedRequest, res: Response, nex
 // =============================================
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: 500,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later' },
@@ -123,7 +123,7 @@ export const messageLimiter = rateLimit({
 
 export const bidLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 100,
   message: { error: 'Too many bids, please try again later' },
 })
 
@@ -140,6 +140,6 @@ export const reportLimiter = rateLimit({
 
 export const createLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 50,
   message: { error: 'Too many create requests, please try again later' },
 })
