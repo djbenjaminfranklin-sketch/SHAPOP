@@ -3718,33 +3718,37 @@ export default function StreamView() {
             <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
               {activeAuction ? `${ct.currentPrice}: ${activeAuction.current_price}€` : ''}
             </p>
-            <input
-              type="number"
-              value={maxBidAmount}
-              onChange={e => setMaxBidAmount(e.target.value)}
-              placeholder={ct.maxBidPlaceholder}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '12px',
-                backgroundColor: '#111', border: '1px solid #333',
-                color: '#fff', fontSize: '18px', fontWeight: 700,
-                textAlign: 'center', outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            <button
-              onClick={handleMaxBidSubmit}
-              disabled={maxBidLoading}
-              style={{
-                width: '100%', marginTop: '14px', padding: '14px',
-                borderRadius: '100px', border: 'none',
-                background: maxBidLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
-                cursor: maxBidLoading ? 'default' : 'pointer',
-                opacity: maxBidLoading ? 0.7 : 1,
-              }}
-            >
-              {maxBidLoading ? '...' : ct.maxBidConfirm}
-            </button>
+            <form onSubmit={e => { e.preventDefault(); handleMaxBidSubmit() }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={maxBidAmount}
+                onChange={e => setMaxBidAmount(e.target.value)}
+                placeholder={ct.maxBidPlaceholder}
+                autoFocus
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '12px',
+                  backgroundColor: '#111', border: '1px solid #333',
+                  color: '#fff', fontSize: '18px', fontWeight: 700,
+                  textAlign: 'center', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="submit"
+                disabled={maxBidLoading}
+                style={{
+                  width: '100%', marginTop: '14px', padding: '14px',
+                  borderRadius: '100px', border: 'none',
+                  background: maxBidLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                  color: '#fff', fontSize: '15px', fontWeight: 700,
+                  cursor: maxBidLoading ? 'default' : 'pointer',
+                  opacity: maxBidLoading ? 0.7 : 1,
+                }}
+              >
+                {maxBidLoading ? '...' : ct.maxBidConfirm}
+              </button>
+            </form>
             {hasActiveMaxBid && (
               <button
                 onClick={async () => {
@@ -3798,33 +3802,37 @@ export default function StreamView() {
             <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'center' }}>
               {ct.preBid}
             </h3>
-            <input
-              type="number"
-              value={preBidAmount}
-              onChange={e => setPreBidAmount(e.target.value)}
-              placeholder={ct.preBidPlaceholder}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '12px',
-                backgroundColor: '#111', border: '1px solid #333',
-                color: '#fff', fontSize: '18px', fontWeight: 700,
-                textAlign: 'center', outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            <button
-              onClick={handlePreBidSubmit}
-              disabled={preBidLoading}
-              style={{
-                width: '100%', marginTop: '14px', padding: '14px',
-                borderRadius: '100px', border: 'none',
-                background: preBidLoading ? '#555' : 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
-                cursor: preBidLoading ? 'default' : 'pointer',
-                opacity: preBidLoading ? 0.7 : 1,
-              }}
-            >
-              {preBidLoading ? '...' : ct.preBidConfirm}
-            </button>
+            <form onSubmit={e => { e.preventDefault(); handlePreBidSubmit() }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={preBidAmount}
+                onChange={e => setPreBidAmount(e.target.value)}
+                placeholder={ct.preBidPlaceholder}
+                autoFocus
+                style={{
+                  width: '100%', padding: '14px', borderRadius: '12px',
+                  backgroundColor: '#111', border: '1px solid #333',
+                  color: '#fff', fontSize: '18px', fontWeight: 700,
+                  textAlign: 'center', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="submit"
+                disabled={preBidLoading}
+                style={{
+                  width: '100%', marginTop: '14px', padding: '14px',
+                  borderRadius: '100px', border: 'none',
+                  background: preBidLoading ? '#555' : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                  color: '#fff', fontSize: '15px', fontWeight: 700,
+                  cursor: preBidLoading ? 'default' : 'pointer',
+                  opacity: preBidLoading ? 0.7 : 1,
+                }}
+              >
+                {preBidLoading ? '...' : ct.preBidConfirm}
+              </button>
+            </form>
           </div>
         </div>
       )}
