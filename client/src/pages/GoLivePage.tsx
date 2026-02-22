@@ -414,13 +414,22 @@ export default function GoLivePage() {
         if (!session) return
         const headers = { Authorization: `Bearer ${session.access_token}` }
         const deletedIds = new Set<string>()
+        let failCount = 0
         for (const id of selectedIds) {
-          const res = await apiFetch(`/api/streams/${id}`, { method: 'DELETE', headers })
-          if (res.ok) deletedIds.add(id)
+          try {
+            const res = await apiFetch(`/api/streams/${id}`, { method: 'DELETE', headers })
+            if (res.ok) deletedIds.add(id)
+            else failCount++
+          } catch { failCount++ }
         }
         setMyStreams(prev => prev.filter(s => !deletedIds.has(s.id)))
         setSelectedIds(new Set())
         setSelectionMode(false)
+        if (failCount > 0 && deletedIds.size > 0) {
+          alert(`${deletedIds.size} supprimé(s), ${failCount} échoué(s)`)
+        } else if (failCount > 0) {
+          alert(`Échec de la suppression (${failCount})`)
+        }
       },
     })
   }

@@ -222,22 +222,33 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
     // Order matters: children before parents
     const errors: string[] = []
 
-    // 1) Get item IDs and order IDs for this stream
+    // 1) Get item IDs for this stream
     const { data: streamItems } = await supabase.from('items').select('id').eq('stream_id', streamId)
     const itemIds = streamItems?.map((i: { id: string }) => i.id) || []
 
-    const { data: streamOrders } = await supabase.from('orders').select('id').eq('stream_id', streamId)
-    const orderIds = streamOrders?.map((o: { id: string }) => o.id) || []
+    // 2) Get ALL order IDs (by stream_id OR by item_id) — orders.item_id has no CASCADE
+    const orderIdSet = new Set<string>()
+    const { data: ordersByStream } = await supabase.from('orders').select('id').eq('stream_id', streamId)
+    if (ordersByStream) ordersByStream.forEach((o: { id: string }) => orderIdSet.add(o.id))
 
-    // 2) Delete all tables that reference orders (shipping_proofs, conversations, paypal_payouts, disputes)
+    if (itemIds.length > 0) {
+      const { data: ordersByItem } = await supabase.from('orders').select('id').in('item_id', itemIds)
+      if (ordersByItem) ordersByItem.forEach((o: { id: string }) => orderIdSet.add(o.id))
+    }
+    const orderIds = Array.from(orderIdSet)
+
+    // 3) Delete all tables that reference orders (shipping_proofs, conversations, paypal_payouts, disputes)
     if (orderIds.length > 0) {
       for (const table of ['shipping_proofs', 'conversations', 'paypal_payouts', 'disputes']) {
         const { error: err } = await supabase.from(table).delete().in('order_id', orderIds)
         if (err) errors.push(`${table}: ${err.message}`)
       }
+      // Delete orders themselves (by ID, covers both stream_id and item_id matches)
+      const { error: ordErr } = await supabase.from('orders').delete().in('id', orderIds)
+      if (ordErr) errors.push(`orders: ${ordErr.message}`)
     }
 
-    // 3) Delete bids, item_favorites, max_bids, pre_bids, offers (reference items)
+    // 4) Delete bids, item_favorites, max_bids, pre_bids, offers (reference items)
     if (itemIds.length > 0) {
       for (const table of ['bids', 'item_favorites', 'max_bids', 'pre_bids', 'offers']) {
         const { error: err } = await supabase.from(table).delete().in('item_id', itemIds)
@@ -245,8 +256,8 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
       }
     }
 
-    // 4) Delete tables that reference stream_id directly
-    for (const table of ['orders', 'events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'items']) {
+    // 5) Delete tables that reference stream_id directly (orders already handled above)
+    for (const table of ['events', 'stream_favorites', 'engagement_metrics', 'chat_messages', 'items', 'giveaways']) {
       try {
         const { error: err } = await supabase.from(table).delete().eq('stream_id', streamId)
         if (err) errors.push(`${table}: ${err.message}`)
@@ -255,7 +266,7 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
       }
     }
 
-    // 5) Clean up in-app notifications that reference this stream
+    // 6) Clean up in-app notifications that reference this stream
     try {
       const { error: notifErr } = await supabase
         .from('notifications')
@@ -270,8 +281,8 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
       console.error(`[stream-delete] Dependency errors for ${streamId}:`, errors)
     }
 
-    const { error, count } = await supabase.from('streams').delete().eq('id', streamId).select('id')
-    if (process.env.NODE_ENV !== 'production') console.log(`[stream-delete] stream=${streamId} deleted=${count ?? 'unknown'} error=${error?.message || 'none'}`)
+    const { error } = await supabase.from('streams').delete().eq('id', streamId)
+    console.log(`[stream-delete] stream=${streamId} error=${error?.message || 'none'}`)
 
     if (error) {
       res.status(500).json({ error: `Failed to delete stream: ${error.message}`, details: errors })
