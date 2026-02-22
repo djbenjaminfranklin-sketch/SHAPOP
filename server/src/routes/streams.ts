@@ -237,9 +237,9 @@ router.delete('/api/streams/:id', requireAuth, async (req: AuthenticatedRequest,
       }
     }
 
-    // 3) Delete bids and item_favorites (reference items)
+    // 3) Delete bids, item_favorites, max_bids, pre_bids, offers (reference items)
     if (itemIds.length > 0) {
-      for (const table of ['bids', 'item_favorites']) {
+      for (const table of ['bids', 'item_favorites', 'max_bids', 'pre_bids', 'offers']) {
         const { error: err } = await supabase.from(table).delete().in('item_id', itemIds)
         if (err) errors.push(`${table}: ${err.message}`)
       }
