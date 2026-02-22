@@ -421,38 +421,65 @@ router.delete('/api/items/:id', requireAuth, async (req: AuthenticatedRequest, r
 router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const itemId = paramStr(req.params.id)
+    console.log(`[Activate] item=${itemId} user=${req.user!.id}`)
 
-    const { data: item } = await supabase
+    const { data: item, error: itemErr } = await supabase
       .from('items')
-      .select('seller_id, starting_price, current_price')
+      .select('seller_id, starting_price, current_price, status')
       .eq('id', itemId)
       .single()
 
-    if (!item || item.seller_id !== req.user!.id) {
+    if (itemErr) {
+      console.error(`[Activate] Failed to fetch item ${itemId}:`, itemErr.message)
+      res.status(500).json({ error: 'Failed to fetch item' })
+      return
+    }
+
+    if (!item) {
+      console.error(`[Activate] Item not found: ${itemId}`)
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+
+    if (item.seller_id !== req.user!.id) {
+      console.error(`[Activate] Ownership mismatch: item.seller_id=${item.seller_id} req.user.id=${req.user!.id}`)
       res.status(403).json({ error: 'Not your item' })
       return
     }
 
-    const { error } = await supabase
-      .from('items')
-      .update({ status: 'active', started_at: new Date().toISOString() })
-      .eq('id', itemId)
+    // Activate the item in DB (skip if already active — idempotent)
+    if (item.status !== 'active') {
+      const { error } = await supabase
+        .from('items')
+        .update({ status: 'active', started_at: new Date().toISOString() })
+        .eq('id', itemId)
 
-    if (error) throw error
+      if (error) throw error
+    }
 
     // Activate pre-bids in a separate try/catch so item activation always succeeds
-    let preBidDebug: any = { found: 0 }
+    let preBidDebug: any = { found: 0, itemId }
     try {
+      // Query pending pre-bids for this item
       const { data: preBids, error: preBidsErr } = await supabase
         .from('pre_bids')
-        .select('id, bidder_id, amount')
+        .select('id, bidder_id, amount, status')
         .eq('item_id', itemId)
         .eq('status', 'pending')
         .order('created_at', { ascending: true })
 
       preBidDebug.found = preBids?.length ?? 0
       preBidDebug.queryError = preBidsErr?.message || null
-      console.log(`[PreBid] Activating item ${itemId} — found ${preBids?.length ?? 0} pre-bids`, preBidsErr ? `ERROR: ${preBidsErr.message}` : '')
+
+      // Also query ALL pre-bids (any status) for diagnostic purposes
+      const { data: allPreBids } = await supabase
+        .from('pre_bids')
+        .select('id, bidder_id, amount, status')
+        .eq('item_id', itemId)
+      preBidDebug.allPreBids = allPreBids?.length ?? 0
+      preBidDebug.allStatuses = allPreBids?.map(p => p.status) || []
+
+      console.log(`[PreBid] item=${itemId} — pending=${preBids?.length ?? 0}, total=${allPreBids?.length ?? 0}, statuses=${JSON.stringify(allPreBids?.map(p => p.status))}`, preBidsErr ? `ERROR: ${preBidsErr.message}` : '')
 
       if (preBids && preBids.length > 0) {
         // Parse as numbers — Supabase returns numeric columns as strings
@@ -462,6 +489,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
         // Convert each pre-bid to a max_bid
         for (const pb of preBids) {
           const pbAmount = parseFloat(String(pb.amount))
+          console.log(`[PreBid] Converting pre-bid: bidder=${pb.bidder_id} amount=${pbAmount} -> max_bid`)
           const { error: upsertErr } = await supabase.from('max_bids').upsert({
             item_id: itemId,
             bidder_id: pb.bidder_id,
@@ -486,7 +514,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
           console.error('[PreBid] Failed to mark pre_bids as activated:', activateErr.message)
         }
 
-        // Place the first bid from the first pre-bidder at starting price
+        // Place the first bid from the first pre-bidder at starting price + 1
         const firstBidder = preBids[0]
         const preBidAmount = parseFloat(String(firstBidder.amount))
         const firstBidAmount = Math.round((startingPrice + 1) * 100) / 100
@@ -506,6 +534,8 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
             console.error('[PreBid] Failed to insert first bid:', bidErr.message)
           } else {
             preBidDebug.bidPlaced = firstBidAmount
+            console.log(`[PreBid] First bid placed: bidder=${firstBidder.bidder_id} amount=${firstBidAmount}`)
+
             await supabase
               .from('items')
               .update({ current_price: firstBidAmount })
@@ -527,9 +557,10 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
       }
     } catch (preBidError: any) {
       preBidDebug.exception = preBidError?.message || String(preBidError)
-      console.error('[PreBid] Activation error (item already activated):', preBidError?.message || preBidError)
+      console.error('[PreBid] Activation error:', preBidError?.message || preBidError)
     }
 
+    console.log(`[Activate] Done for item=${itemId}, preBidDebug=${JSON.stringify(preBidDebug)}`)
     res.json({ success: true, preBidDebug })
   } catch (err: any) {
     console.error('[Activate] Failed to activate item:', err?.message || err)
@@ -838,14 +869,16 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
     }
 
     // Upsert pre_bid
-    const { error: upsertError } = await supabase.from('pre_bids').upsert({
+    const { data: upsertData, error: upsertError } = await supabase.from('pre_bids').upsert({
       item_id: itemId,
       bidder_id: userId,
       amount,
       status: 'pending',
-    }, { onConflict: 'item_id,bidder_id' })
+    }, { onConflict: 'item_id,bidder_id' }).select('id, item_id, bidder_id, amount, status')
 
     if (upsertError) throw upsertError
+
+    console.log(`[PreBid] Saved: item=${itemId} bidder=${userId} amount=${amount}`, upsertData ? `id=${upsertData[0]?.id}` : 'no data returned')
 
     res.json({ success: true })
   } catch (err: any) {

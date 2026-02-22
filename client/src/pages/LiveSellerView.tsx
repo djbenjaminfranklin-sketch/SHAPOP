@@ -808,28 +808,50 @@ export default function LiveSellerView() {
     if (!currentItem || !streamId) return
     const duration = currentItem.duration_seconds || 60
 
-    // Always call API — it activates the item AND processes pre-bids
+    // Always get a fresh token — stale tokens are a common failure cause
+    const { data: fs } = await supabase.auth.getSession()
+    const tk = fs.session?.access_token
+    if (!tk) {
+      showToast('Erreur: reconnecte-toi')
+      console.error('[ACTIVATE] No session token — cannot activate')
+      return
+    }
+
+    let activated = false
+
+    // Call server API — it activates the item AND processes pre-bids
     try {
-      const { data: fs } = await supabase.auth.getSession()
-      const tk = fs.session?.access_token
-      if (tk) {
-        const activateResp = await apiFetch(`/api/items/${currentItem.id}/activate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${tk}`,
-          },
-        })
-        const activateBody = await activateResp.json().catch(() => ({}))
-        console.log('[ACTIVATE] response:', JSON.stringify(activateBody))
+      const activateResp = await apiFetch(`/api/items/${currentItem.id}/activate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tk}`,
+        },
+      })
+      const activateBody = await activateResp.json().catch(() => ({}))
+      console.log('[ACTIVATE] status:', activateResp.status, 'response:', JSON.stringify(activateBody))
+
+      if (activateResp.ok && activateBody.success) {
+        activated = true
+      } else {
+        console.error('[ACTIVATE] API returned error:', activateResp.status, activateBody)
       }
     } catch (err) {
-      console.error('API activate failed, fallback to direct DB:', err)
-      // Fallback: direct Supabase update (no pre-bid processing)
-      await supabase
+      console.error('[ACTIVATE] Network error calling API:', err)
+    }
+
+    // Fallback: direct Supabase update (no pre-bid processing) — only if API failed
+    if (!activated) {
+      console.warn('[ACTIVATE] API failed, falling back to direct DB update (pre-bids will NOT be processed)')
+      const { error: dbErr } = await supabase
         .from('items')
         .update({ status: 'active' as const, started_at: new Date().toISOString() })
         .eq('id', currentItem.id)
+      if (dbErr) {
+        console.error('[ACTIVATE] Direct DB fallback also failed:', dbErr.message)
+        showToast('Erreur activation')
+        return
+      }
     }
 
     // Start the local countdown

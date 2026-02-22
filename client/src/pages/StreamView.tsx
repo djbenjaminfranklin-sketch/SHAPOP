@@ -1092,8 +1092,14 @@ export default function StreamView() {
         console.log('[RT-ITEMS] refetched status=', item.status)
       }
 
-      // Remove from upcoming items when no longer draft/pending
-      if (!['draft', 'pending'].includes(item.status)) {
+      // Update upcoming items: remove when no longer draft/pending, add if newly draft/pending
+      if (['draft', 'pending'].includes(item.status)) {
+        setUpcomingItems(prev => {
+          const exists = prev.some(u => u.id === item.id)
+          if (exists) return prev.map(u => u.id === item.id ? item : u)
+          return [...prev, item]
+        })
+      } else {
         setUpcomingItems(prev => prev.filter(u => u.id !== item.id))
       }
 
