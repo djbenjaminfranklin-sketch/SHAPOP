@@ -28,6 +28,7 @@ import adminRoutes from './routes/admin'
 import analyticsRoutes from './routes/analytics'
 import promotionRoutes from './routes/promotions'
 import reviewRoutes from './routes/reviews'
+import offerRoutes from './routes/offers'
 
 // Webhook handlers (raw body — must be registered before express.json)
 import { stripeWebhookHandler, livekitWebhookHandler, paypalWebhookHandler } from './routes/webhooks'
@@ -110,6 +111,7 @@ app.use(adminRoutes)
 app.use(analyticsRoutes)
 app.use(promotionRoutes)
 app.use(reviewRoutes)
+app.use(offerRoutes)
 
 // =============================================
 // Sentry error handler (must be before generic error handler)

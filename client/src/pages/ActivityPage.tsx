@@ -13,7 +13,7 @@ import VodPlayer from '../components/VodPlayer'
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
 
-type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites'
+type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites' | 'offers'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
 type ProofLevel = 'basic' | 'standard' | 'enhanced'
 
@@ -563,6 +563,10 @@ export default function ActivityPage() {
   const [favoriteItems, setFavoriteItems] = useState<ItemWithSeller[]>([])
   const [loadingFavorites, setLoadingFavorites] = useState(false)
 
+  // Offers states
+  const [offers, setOffers] = useState<any[]>([])
+  const [loadingOffers, setLoadingOffers] = useState(false)
+
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
 
   // Fetch seller proof level when opening shipping modal
@@ -742,6 +746,44 @@ export default function ActivityPage() {
     }
   }, [user])
 
+  // Fetch offers
+  const fetchOffers = useCallback(async () => {
+    if (!user) return
+    setLoadingOffers(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const resp = await apiFetch('/api/offers', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (resp.ok) {
+        setOffers(await resp.json())
+      }
+    } catch (err) {
+      console.error('Failed to fetch offers:', err)
+    } finally {
+      setLoadingOffers(false)
+    }
+  }, [user])
+
+  const handleRespondToOffer = useCallback(async (offerId: string, action: 'accept' | 'decline') => {
+    if (!user) return
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      const resp = await apiFetch(`/api/offers/${offerId}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action }),
+      })
+      if (resp.ok) {
+        fetchOffers()
+      }
+    } catch (err) {
+      console.error('Failed to respond to offer:', err)
+    }
+  }, [user, fetchOffers])
+
   // Fetch data on mount and when tab changes
   useEffect(() => {
     if (mainTab === 'purchases') {
@@ -752,8 +794,10 @@ export default function ActivityPage() {
       fetchFollowing()
     } else if (mainTab === 'favorites') {
       fetchFavorites()
+    } else if (mainTab === 'offers') {
+      fetchOffers()
     }
-  }, [mainTab, fetchPurchases, fetchSales, fetchFollowing, fetchFavorites])
+  }, [mainTab, fetchPurchases, fetchSales, fetchFollowing, fetchFavorites, fetchOffers])
 
   // Upload shipping proofs and mark order as shipped
   const handleShipOrder = async () => {
@@ -871,6 +915,16 @@ export default function ActivityPage() {
       followingTab: 'Suivis',
       messagesTab: 'Messages',
       favoritesTab: 'Favoris',
+      offersTab: 'Offres',
+      emptyOffers: 'Aucune offre pour le moment',
+      emptyOffersDesc: 'Tes offres envoyees et recues apparaitront ici',
+      offerSent: 'Envoyee',
+      offerReceived: 'Recue',
+      offerAccept: 'Accepter',
+      offerDecline: 'Refuser',
+      offerPending: 'En attente',
+      offerAccepted: 'Acceptee',
+      offerDeclined: 'Refusee',
       emptyPurchases: 'Aucun achat pour le moment',
       emptyPurchasesDesc: 'Les articles que tu achetes apparaitront ici',
       emptySales: 'Aucune vente pour le moment',
@@ -930,6 +984,16 @@ export default function ActivityPage() {
       followingTab: 'Following',
       messagesTab: 'Messages',
       favoritesTab: 'Favorites',
+      offersTab: 'Offers',
+      emptyOffers: 'No offers yet',
+      emptyOffersDesc: 'Offers you send and receive will appear here',
+      offerSent: 'Sent',
+      offerReceived: 'Received',
+      offerAccept: 'Accept',
+      offerDecline: 'Decline',
+      offerPending: 'Pending',
+      offerAccepted: 'Accepted',
+      offerDeclined: 'Declined',
       emptyPurchases: 'No purchases yet',
       emptyPurchasesDesc: 'Items you buy will appear here',
       emptySales: 'No sales yet',
@@ -989,6 +1053,16 @@ export default function ActivityPage() {
       followingTab: '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD',
       messagesTab: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
       favoritesTab: '\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD',
+      offersTab: '\u05D4\u05E6\u05E2\u05D5\u05EA',
+      emptyOffers: '\u05D0\u05D9\u05DF \u05D4\u05E6\u05E2\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
+      emptyOffersDesc: '\u05D4\u05E6\u05E2\u05D5\u05EA \u05E9\u05EA\u05E9\u05DC\u05D7 \u05D5\u05EA\u05E7\u05D1\u05DC \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
+      offerSent: '\u05E0\u05E9\u05DC\u05D7\u05D4',
+      offerReceived: '\u05D4\u05EA\u05E7\u05D1\u05DC\u05D4',
+      offerAccept: '\u05E7\u05D1\u05DC',
+      offerDecline: '\u05D3\u05D7\u05D4',
+      offerPending: '\u05DE\u05DE\u05EA\u05D9\u05DF',
+      offerAccepted: '\u05D0\u05D5\u05E9\u05E8\u05D4',
+      offerDeclined: '\u05E0\u05D3\u05D7\u05EA\u05D4',
       emptyPurchases: '\u05D0\u05D9\u05DF \u05E8\u05DB\u05D9\u05E9\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
       emptyPurchasesDesc: '\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05EA\u05E7\u05E0\u05D4 \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
       emptySales: '\u05D0\u05D9\u05DF \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
@@ -1048,6 +1122,16 @@ export default function ActivityPage() {
       followingTab: 'Seguidos',
       messagesTab: 'Mensajes',
       favoritesTab: 'Favoritos',
+      offersTab: 'Ofertas',
+      emptyOffers: 'Sin ofertas todavia',
+      emptyOffersDesc: 'Las ofertas que envies y recibas apareceran aqui',
+      offerSent: 'Enviada',
+      offerReceived: 'Recibida',
+      offerAccept: 'Aceptar',
+      offerDecline: 'Rechazar',
+      offerPending: 'Pendiente',
+      offerAccepted: 'Aceptada',
+      offerDeclined: 'Rechazada',
       emptyPurchases: 'Sin compras todavia',
       emptyPurchasesDesc: 'Los articulos que compres apareceran aqui',
       emptySales: 'Sin ventas todavia',
@@ -1110,6 +1194,7 @@ export default function ActivityPage() {
     { id: 'following', label: lt.followingTab, emoji: '\uD83D\uDC65' },
     { id: 'messages', label: lt.messagesTab, emoji: '\uD83D\uDCAC' },
     { id: 'favorites', label: lt.favoritesTab, emoji: '\u2764\uFE0F' },
+    { id: 'offers', label: (lt as any).offersTab || 'Offres', emoji: '\uD83E\uDD1D' },
   ]
 
   // Swipe between tabs
@@ -1788,6 +1873,114 @@ export default function ActivityPage() {
     )
   }
 
+  const renderOffers = () => {
+    if (loadingOffers) {
+      return (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '60px' }}>
+          <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#E8344E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        </div>
+      )
+    }
+    if (offers.length === 0) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
+          <div style={{
+            width: '80px', height: '80px', borderRadius: '50%',
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(139,92,246,0.06))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+              <line x1="7" y1="7" x2="7.01" y2="7" />
+            </svg>
+          </div>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+            {(lt as any).emptyOffers || 'Aucune offre'}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
+            {(lt as any).emptyOffersDesc || ''}
+          </p>
+        </div>
+      )
+    }
+    const isSeller = !!profile?.is_seller
+    return (
+      <div style={{ padding: '16px' }}>
+        {offers.map((offer: any, idx: number) => {
+          const isReceived = offer.seller_id === user?.id
+          const statusColor = offer.status === 'pending' ? '#F59E0B' : offer.status === 'accepted' ? '#10B981' : '#E8344E'
+          const statusLabel = offer.status === 'pending' ? (lt as any).offerPending
+            : offer.status === 'accepted' ? (lt as any).offerAccepted
+            : (lt as any).offerDeclined
+          const imgUrl = offer.item?.image_urls?.[0] || null
+          return (
+            <div key={offer.id || idx} style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '14px', marginBottom: '10px', borderRadius: '14px',
+              backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
+            }}>
+              {imgUrl ? (
+                <img src={imgUrl} alt="" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+              ) : (
+                <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                  {'\uD83E\uDD1D'}
+                </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {offer.item?.title || 'Offre'}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{offer.amount}€</span>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, color: isReceived ? '#3B82F6' : '#8B5CF6',
+                    backgroundColor: isReceived ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)',
+                    padding: '2px 6px', borderRadius: '6px',
+                    border: isReceived ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(139,92,246,0.25)',
+                  }}>
+                    {isReceived ? ((lt as any).offerReceived || 'Recue') : ((lt as any).offerSent || 'Envoyee')}
+                  </span>
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, color: statusColor,
+                    backgroundColor: `${statusColor}14`, padding: '2px 6px', borderRadius: '6px',
+                    border: `1px solid ${statusColor}30`,
+                  }}>
+                    {statusLabel}
+                  </span>
+                </div>
+              </div>
+              {/* Seller actions: accept/decline for pending received offers */}
+              {isReceived && isSeller && offer.status === 'pending' && (
+                <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => handleRespondToOffer(offer.id, 'accept')}
+                    style={{
+                      padding: '6px 10px', borderRadius: '8px', border: 'none',
+                      background: 'linear-gradient(135deg, #10B981, #059669)',
+                      color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {(lt as any).offerAccept || 'Accepter'}
+                  </button>
+                  <button
+                    onClick={() => handleRespondToOffer(offer.id, 'decline')}
+                    style={{
+                      padding: '6px 10px', borderRadius: '8px',
+                      border: '1px solid #333', background: 'transparent',
+                      color: '#888', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {(lt as any).offerDecline || 'Refuser'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   const renderContent = () => {
     switch (mainTab) {
       case 'purchases': return renderPurchases()
@@ -1795,6 +1988,7 @@ export default function ActivityPage() {
       case 'following': return renderFollowing()
       case 'messages': return renderMessages()
       case 'favorites': return renderFavorites()
+      case 'offers': return renderOffers()
     }
   }
 

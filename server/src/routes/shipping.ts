@@ -597,7 +597,7 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
 
     // Calculate shipping cost for the grouped weight and charge buyer off-session
     let alreadyCharged = orders.some(o => o.shipping_cost > 0)
-    const groupShippingCost = calculateShippingCost(Number(weight_grams), groupCarrier, groupZone)
+    const groupShippingCost = calculateShippingCost(Number(weight_grams), groupCarrier, groupZone, orders.length)
 
     // Double-check Stripe if DB says not charged
     if (groupShippingCost > 0 && !alreadyCharged) {

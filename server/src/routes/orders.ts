@@ -94,6 +94,50 @@ router.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: R
       return
     }
 
+    // Check spend limits
+    const { data: spendLimits } = await supabase
+      .from('spend_limits')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (spendLimits && spendLimits.is_active) {
+      const orderAmount = item.current_price
+
+      // Get orders not cancelled/refunded for spend calculation
+      const { data: recentOrders } = await supabase
+        .from('orders')
+        .select('amount, created_at')
+        .eq('buyer_id', userId)
+        .not('status', 'in', '("cancelled","refunded")')
+
+      const now = new Date()
+
+      if (spendLimits.weekly_limit !== null) {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        const weeklySpent = (recentOrders || [])
+          .filter((o: Record<string, unknown>) => (o.created_at as string) >= weekAgo)
+          .reduce((sum: number, o: Record<string, unknown>) => sum + ((o.amount as number) || 0), 0)
+
+        if (weeklySpent + orderAmount > spendLimits.weekly_limit) {
+          res.status(429).json({ error: 'Weekly spend limit exceeded', weekly_spent: Math.round(weeklySpent * 100) / 100, weekly_limit: spendLimits.weekly_limit })
+          return
+        }
+      }
+
+      if (spendLimits.monthly_limit !== null) {
+        const monthAgo = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+        const monthlySpent = (recentOrders || [])
+          .filter((o: Record<string, unknown>) => (o.created_at as string) >= monthAgo)
+          .reduce((sum: number, o: Record<string, unknown>) => sum + ((o.amount as number) || 0), 0)
+
+        if (monthlySpent + orderAmount > spendLimits.monthly_limit) {
+          res.status(429).json({ error: 'Monthly spend limit exceeded', monthly_spent: Math.round(monthlySpent * 100) / 100, monthly_limit: spendLimits.monthly_limit })
+          return
+        }
+      }
+    }
+
     // Calculate fees using the server-side helper
     const amount = item.current_price
     const fees = calculateFees(amount)
@@ -523,6 +567,52 @@ router.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authent
       await supabase.from('buyer_scores').insert({
         user_id: order.buyer_id,
         total_orders: 1,
+      })
+    }
+
+    // Award loyalty points (1 point per EUR)
+    const loyaltyPoints = Math.floor(order.amount)
+    if (loyaltyPoints > 0) {
+      const { data: loyalty } = await supabase
+        .from('loyalty_points')
+        .select('*')
+        .eq('user_id', order.buyer_id)
+        .single()
+
+      if (loyalty) {
+        const newPoints = (loyalty.points || 0) + loyaltyPoints
+        const newEarned = (loyalty.total_earned || 0) + loyaltyPoints
+        // Determine tier based on total_earned
+        let tier = 'bronze'
+        if (newEarned >= 1000) tier = 'platinum'
+        else if (newEarned >= 500) tier = 'gold'
+        else if (newEarned >= 100) tier = 'silver'
+
+        await supabase.from('loyalty_points').update({
+          points: newPoints,
+          total_earned: newEarned,
+          tier,
+          updated_at: now.toISOString(),
+        }).eq('user_id', order.buyer_id)
+      } else {
+        let tier = 'bronze'
+        if (loyaltyPoints >= 1000) tier = 'platinum'
+        else if (loyaltyPoints >= 500) tier = 'gold'
+        else if (loyaltyPoints >= 100) tier = 'silver'
+
+        await supabase.from('loyalty_points').insert({
+          user_id: order.buyer_id,
+          points: loyaltyPoints,
+          total_earned: loyaltyPoints,
+          tier,
+        })
+      }
+
+      // Insert loyalty transaction record
+      await supabase.from('loyalty_transactions').insert({
+        user_id: order.buyer_id,
+        points: loyaltyPoints,
+        reason: `Earned ${loyaltyPoints} points from order delivery`,
       })
     }
 

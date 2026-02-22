@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import ConfirmModal from '../components/ConfirmModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
 import type { Item } from '../types/database'
@@ -28,6 +29,11 @@ const content = {
     editPrice: 'Modifier le prix',
     confirmDelete: 'Supprimer',
     confirmCancel: 'Annuler',
+    makeOffer: 'Faire une offre',
+    offerPlaceholder: 'Ton offre',
+    offerConfirm: 'Envoyer l\'offre',
+    offerSent: 'Offre envoyee !',
+    offerPending: 'Offre en attente',
   },
   en: {
     notFound: 'Item not found',
@@ -48,6 +54,11 @@ const content = {
     editPrice: 'Edit price',
     confirmDelete: 'Delete',
     confirmCancel: 'Cancel',
+    makeOffer: 'Make an offer',
+    offerPlaceholder: 'Your offer',
+    offerConfirm: 'Send offer',
+    offerSent: 'Offer sent!',
+    offerPending: 'Offer pending',
   },
   he: {
     notFound: 'הפריט לא נמצא',
@@ -68,6 +79,11 @@ const content = {
     editPrice: 'ערוך מחיר',
     confirmDelete: 'מחק',
     confirmCancel: 'ביטול',
+    makeOffer: 'הגש הצעה',
+    offerPlaceholder: 'ההצעה שלך',
+    offerConfirm: 'שלח הצעה',
+    offerSent: 'ההצעה נשלחה!',
+    offerPending: 'הצעה בהמתנה',
   },
   es: {
     notFound: 'Articulo no encontrado',
@@ -88,6 +104,11 @@ const content = {
     editPrice: 'Editar precio',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
+    makeOffer: 'Hacer una oferta',
+    offerPlaceholder: 'Tu oferta',
+    offerConfirm: 'Enviar oferta',
+    offerSent: 'Oferta enviada!',
+    offerPending: 'Oferta pendiente',
   },
 } as Record<string, Record<string, string>>
 
@@ -111,6 +132,12 @@ export default function ItemDetailPage() {
   const [isFollowing, setIsFollowing] = useState(false)
   const [selectedImage, setSelectedImage] = useState(0)
   const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
+
+  // Offer state
+  const [showOfferModal, setShowOfferModal] = useState(false)
+  const [offerAmount, setOfferAmount] = useState('')
+  const [offerLoading, setOfferLoading] = useState(false)
+  const [hasOffer, setHasOffer] = useState(false)
 
   const retryLabel = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Reessayer'
 
@@ -162,6 +189,39 @@ export default function ItemDetailPage() {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
     if (res.ok) setIsFollowing(!isFollowing)
+  }
+
+  // Check if user already has a pending offer on this item
+  useEffect(() => {
+    if (!id || !user || !session?.access_token) return
+    apiFetch(`/api/items/${id}/offer/status`, {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d) setHasOffer(!!d.has_offer) })
+      .catch(() => {})
+  }, [id, user, session])
+
+  const handleOfferSubmit = async () => {
+    if (!id || !user) return
+    const amount = parseFloat(offerAmount)
+    if (isNaN(amount) || amount <= 0) return
+    setOfferLoading(true)
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s) { setOfferLoading(false); return }
+      const resp = await apiFetch(`/api/items/${id}/offer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.access_token}` },
+        body: JSON.stringify({ amount }),
+      })
+      if (resp.ok) {
+        setHasOffer(true)
+        setShowOfferModal(false)
+        setOfferAmount('')
+      }
+    } catch { /* ignore */ }
+    setOfferLoading(false)
   }
 
   const price = item ? (item.current_price ?? item.starting_price) : 0
@@ -398,17 +458,37 @@ export default function ItemDetailPage() {
                 </button>
               ) : null
             ) : (
-              <button
-                onClick={() => navigate(`/conversation/${item.seller_id}`)}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: '14px',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                {t.contact}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  onClick={() => navigate(`/conversation/${item.seller_id}`)}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px',
+                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t.contact}
+                </button>
+                {/* Make an offer button */}
+                <button
+                  onClick={() => {
+                    if (!user) { navigate('/login'); return }
+                    setOfferAmount(String(Math.round(price * 0.8)))
+                    setShowOfferModal(true)
+                  }}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px',
+                    background: hasOffer ? 'rgba(139,92,246,0.15)' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                    border: hasOffer ? '1px solid rgba(139,92,246,0.3)' : 'none',
+                    color: hasOffer ? '#8B5CF6' : '#fff',
+                    fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {hasOffer ? t.offerPending : t.makeOffer}
+                </button>
+              </div>
             )}
           </div>
         </>
@@ -424,6 +504,62 @@ export default function ItemDetailPage() {
         onCancel={() => setConfirmModal(null)}
         danger
       />
+
+      {/* Offer modal */}
+      {showOfferModal && (
+        <div
+          onClick={() => setShowOfferModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '340px',
+              backgroundColor: '#1A1A1A', borderRadius: '20px',
+              padding: '24px', border: '1px solid rgba(139,92,246,0.3)',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 4px', textAlign: 'center' }}>
+              {t.makeOffer}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
+              {item?.title || ''}
+            </p>
+            <input
+              type="number"
+              value={offerAmount}
+              onChange={e => setOfferAmount(e.target.value)}
+              placeholder={t.offerPlaceholder}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                backgroundColor: '#111', border: '1px solid #333',
+                color: '#fff', fontSize: '18px', fontWeight: 700,
+                textAlign: 'center', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={handleOfferSubmit}
+              disabled={offerLoading}
+              style={{
+                width: '100%', marginTop: '14px', padding: '14px',
+                borderRadius: '100px', border: 'none',
+                background: offerLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: offerLoading ? 'default' : 'pointer',
+                opacity: offerLoading ? 0.7 : 1,
+              }}
+            >
+              {offerLoading ? '...' : t.offerConfirm}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

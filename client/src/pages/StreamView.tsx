@@ -99,6 +99,16 @@ const streamContent = {
     giftEnter: 'Participer et gagner !',
     giftEntered: 'Inscrit ✓',
     giftWinner: 'a gagne le cadeau !',
+    maxBidTitle: 'Enchere max',
+    maxBidPlaceholder: 'Montant maximum',
+    maxBidConfirm: 'Activer l\'enchere max',
+    maxBidActive: 'Auto-enchere active',
+    maxBidCancel: 'Annuler l\'enchere max',
+    preBid: 'Pre-encherir',
+    preBidPlaceholder: 'Montant de la pre-enchere',
+    preBidConfirm: 'Placer la pre-enchere',
+    preBidPlaced: 'Pre-enchere placee',
+    bundleDiscount: 'Shipping groupe : -15%',
   },
   en: {
     viewers: 'viewers',
@@ -178,6 +188,16 @@ const streamContent = {
     giftEnter: 'Enter to win!',
     giftEntered: 'Entered ✓',
     giftWinner: 'won the gift!',
+    maxBidTitle: 'Max bid',
+    maxBidPlaceholder: 'Maximum amount',
+    maxBidConfirm: 'Activate max bid',
+    maxBidActive: 'Auto-bid active',
+    maxBidCancel: 'Cancel max bid',
+    preBid: 'Pre-bid',
+    preBidPlaceholder: 'Pre-bid amount',
+    preBidConfirm: 'Place pre-bid',
+    preBidPlaced: 'Pre-bid placed',
+    bundleDiscount: 'Grouped shipping: -15%',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -257,6 +277,16 @@ const streamContent = {
     giftEnter: '!להשתתף ולזכות',
     giftEntered: '✓ רשום',
     giftWinner: 'זכה במתנה!',
+    maxBidTitle: 'הצעה מקסימלית',
+    maxBidPlaceholder: 'סכום מקסימלי',
+    maxBidConfirm: 'הפעל הצעה מקסימלית',
+    maxBidActive: 'הצעה אוטומטית פעילה',
+    maxBidCancel: 'בטל הצעה מקסימלית',
+    preBid: 'הצעה מוקדמת',
+    preBidPlaceholder: 'סכום הצעה מוקדמת',
+    preBidConfirm: 'הגש הצעה מוקדמת',
+    preBidPlaced: 'הצעה מוקדמת הוגשה',
+    bundleDiscount: 'משלוח מרוכז: -15%',
   },
   es: {
     viewers: 'espectadores',
@@ -336,6 +366,16 @@ const streamContent = {
     giftEnter: 'Participar y ganar!',
     giftEntered: 'Inscrito ✓',
     giftWinner: 'gano el regalo!',
+    maxBidTitle: 'Puja maxima',
+    maxBidPlaceholder: 'Monto maximo',
+    maxBidConfirm: 'Activar puja maxima',
+    maxBidActive: 'Auto-puja activa',
+    maxBidCancel: 'Cancelar puja maxima',
+    preBid: 'Pre-puja',
+    preBidPlaceholder: 'Monto de pre-puja',
+    preBidConfirm: 'Colocar pre-puja',
+    preBidPlaced: 'Pre-puja colocada',
+    bundleDiscount: 'Envio agrupado: -15%',
   },
 }
 
@@ -569,6 +609,21 @@ export default function StreamView() {
 
   // Clip capture state
 
+  // Max-bid state
+  const [showMaxBidModal, setShowMaxBidModal] = useState(false)
+  const [maxBidAmount, setMaxBidAmount] = useState('')
+  const [hasActiveMaxBid, setHasActiveMaxBid] = useState(false)
+  const [maxBidLoading, setMaxBidLoading] = useState(false)
+
+  // Pre-bid state
+  const [showPreBidModal, setShowPreBidModal] = useState(false)
+  const [preBidItemId, setPreBidItemId] = useState<string | null>(null)
+  const [preBidAmount, setPreBidAmount] = useState('')
+  const [preBidLoading, setPreBidLoading] = useState(false)
+  const [_preBidItems, setPreBidItems] = useState<Set<string>>(new Set())
+
+  // Bundling state: track items bought from this stream
+  const [boughtItemCount, setBoughtItemCount] = useState(0)
 
   // Toast message
   const [toastMessage, setToastMessage] = useState<string | null>(null)
@@ -1448,6 +1503,99 @@ export default function StreamView() {
       alert('Failed to place bid. Please try again.')
     }
   }
+
+  // ═══ MAX-BID: fetch status when active item changes ═══
+  useEffect(() => {
+    if (!activeAuction || !user || isSeller) { setHasActiveMaxBid(false); return }
+    const fetchMaxBidStatus = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session.session?.access_token
+        if (!token) return
+        const resp = await apiFetch(`/api/items/${activeAuction.id}/max-bid`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (resp.ok) {
+          const data = await resp.json()
+          setHasActiveMaxBid(!!data.active)
+        } else {
+          setHasActiveMaxBid(false)
+        }
+      } catch { setHasActiveMaxBid(false) }
+    }
+    fetchMaxBidStatus()
+  }, [activeAuction?.id, user, isSeller])
+
+  // ═══ MAX-BID: place or cancel ═══
+  const handleMaxBidSubmit = async () => {
+    if (!activeAuction || !user) return
+    const amount = parseFloat(maxBidAmount)
+    if (isNaN(amount) || amount <= activeAuction.current_price) return
+    setMaxBidLoading(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) { setMaxBidLoading(false); return }
+      const resp = await apiFetch(`/api/items/${activeAuction.id}/max-bid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount }),
+      })
+      if (resp.ok) {
+        setHasActiveMaxBid(true)
+        setShowMaxBidModal(false)
+        setMaxBidAmount('')
+        showToast(ct.maxBidActive)
+      }
+    } catch { /* ignore */ }
+    setMaxBidLoading(false)
+  }
+
+  // ═══ PRE-BID: place ═══
+  const handlePreBidSubmit = async () => {
+    if (!preBidItemId || !user) return
+    const amount = parseFloat(preBidAmount)
+    if (isNaN(amount) || amount <= 0) return
+    setPreBidLoading(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) { setPreBidLoading(false); return }
+      const resp = await apiFetch(`/api/items/${preBidItemId}/pre-bid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ amount }),
+      })
+      if (resp.ok) {
+        setPreBidItems(prev => new Set(prev).add(preBidItemId))
+        setShowPreBidModal(false)
+        setPreBidItemId(null)
+        setPreBidAmount('')
+        showToast(ct.preBidPlaced)
+      }
+    } catch { /* ignore */ }
+    setPreBidLoading(false)
+  }
+
+  // ═══ BUNDLING: count items bought in this stream ═══
+  useEffect(() => {
+    if (!id || !user || isSeller) return
+    const fetchBoughtCount = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        const token = session.session?.access_token
+        if (!token) return
+        const { count } = await supabase
+          .from('orders')
+          .select('id', { count: 'exact', head: true })
+          .eq('buyer_id', user.id)
+          .eq('stream_id', id)
+          .in('status', ['paid', 'preparing', 'shipped', 'delivered'])
+        setBoughtItemCount(count || 0)
+      } catch { /* ignore */ }
+    }
+    fetchBoughtCount()
+  }, [id, user, isSeller, paymentSuccess])
 
   const handleViewerReaction = useCallback(() => {
     setReactionCount(prev => prev + 1)
@@ -2570,6 +2718,9 @@ export default function StreamView() {
               disabled={timeLeft <= 0}
               timeLeft={timeLeft}
               lang={lang}
+              onMaxBid={() => { setMaxBidAmount(String(activeAuction.current_price + 10)); setShowMaxBidModal(true) }}
+              hasActiveMaxBid={hasActiveMaxBid}
+              bundleCount={boughtItemCount}
             />
           </div>
         )}
@@ -3495,6 +3646,142 @@ export default function StreamView() {
           to { opacity: 1; transform: translateY(0); }
         }
       `}</style>
+
+      {/* Max-bid modal */}
+      {showMaxBidModal && (
+        <div
+          onClick={() => setShowMaxBidModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '340px',
+              backgroundColor: '#1A1A1A', borderRadius: '20px',
+              padding: '24px', border: '1px solid rgba(139,92,246,0.3)',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 4px', textAlign: 'center' }}>
+              {ct.maxBidTitle}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
+              {activeAuction ? `${ct.currentPrice}: ${activeAuction.current_price}€` : ''}
+            </p>
+            <input
+              type="number"
+              value={maxBidAmount}
+              onChange={e => setMaxBidAmount(e.target.value)}
+              placeholder={ct.maxBidPlaceholder}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                backgroundColor: '#111', border: '1px solid #333',
+                color: '#fff', fontSize: '18px', fontWeight: 700,
+                textAlign: 'center', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={handleMaxBidSubmit}
+              disabled={maxBidLoading}
+              style={{
+                width: '100%', marginTop: '14px', padding: '14px',
+                borderRadius: '100px', border: 'none',
+                background: maxBidLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: maxBidLoading ? 'default' : 'pointer',
+                opacity: maxBidLoading ? 0.7 : 1,
+              }}
+            >
+              {maxBidLoading ? '...' : ct.maxBidConfirm}
+            </button>
+            {hasActiveMaxBid && (
+              <button
+                onClick={async () => {
+                  if (!activeAuction || !user) return
+                  try {
+                    const { data: session } = await supabase.auth.getSession()
+                    const token = session.session?.access_token
+                    if (!token) return
+                    await apiFetch(`/api/items/${activeAuction.id}/max-bid`, {
+                      method: 'DELETE',
+                      headers: { Authorization: `Bearer ${token}` },
+                    })
+                    setHasActiveMaxBid(false)
+                    setShowMaxBidModal(false)
+                  } catch { /* ignore */ }
+                }}
+                style={{
+                  width: '100%', marginTop: '8px', padding: '12px',
+                  borderRadius: '100px', border: '1px solid #333',
+                  background: 'transparent',
+                  color: '#888', fontSize: '13px', fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {ct.maxBidCancel}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Pre-bid modal */}
+      {showPreBidModal && (
+        <div
+          onClick={() => { setShowPreBidModal(false); setPreBidItemId(null) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '340px',
+              backgroundColor: '#1A1A1A', borderRadius: '20px',
+              padding: '24px', border: '1px solid rgba(59,130,246,0.3)',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'center' }}>
+              {ct.preBid}
+            </h3>
+            <input
+              type="number"
+              value={preBidAmount}
+              onChange={e => setPreBidAmount(e.target.value)}
+              placeholder={ct.preBidPlaceholder}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                backgroundColor: '#111', border: '1px solid #333',
+                color: '#fff', fontSize: '18px', fontWeight: 700,
+                textAlign: 'center', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={handlePreBidSubmit}
+              disabled={preBidLoading}
+              style={{
+                width: '100%', marginTop: '14px', padding: '14px',
+                borderRadius: '100px', border: 'none',
+                background: preBidLoading ? '#555' : 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: preBidLoading ? 'default' : 'pointer',
+                opacity: preBidLoading ? 0.7 : 1,
+              }}
+            >
+              {preBidLoading ? '...' : ct.preBidConfirm}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

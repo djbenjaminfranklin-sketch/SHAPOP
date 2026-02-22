@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ItemCard from '../components/ItemCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
@@ -28,6 +29,10 @@ const content = {
     emptySubtitle: 'Les articles mis en vente via AI Express apparaitront ici.',
     noResults: 'Aucun resultat',
     noResultsSub: 'Essaie une autre categorie ou un autre mot-cle.',
+    makeOffer: 'Faire une offre',
+    offerPlaceholder: 'Ton offre',
+    offerConfirm: 'Envoyer l\'offre',
+    offerSent: 'Offre envoyee !',
   },
   en: {
     title: 'Direct Sales',
@@ -37,6 +42,10 @@ const content = {
     emptySubtitle: 'Items listed via AI Express will appear here.',
     noResults: 'No results',
     noResultsSub: 'Try another category or keyword.',
+    makeOffer: 'Make an offer',
+    offerPlaceholder: 'Your offer',
+    offerConfirm: 'Send offer',
+    offerSent: 'Offer sent!',
   },
   he: {
     title: 'מכירות ישירות',
@@ -46,6 +55,10 @@ const content = {
     emptySubtitle: 'פריטים שהועלו דרך AI Express יופיעו כאן.',
     noResults: 'אין תוצאות',
     noResultsSub: 'נסה קטגוריה אחרת או מילת מפתח אחרת.',
+    makeOffer: 'הגש הצעה',
+    offerPlaceholder: 'ההצעה שלך',
+    offerConfirm: 'שלח הצעה',
+    offerSent: 'ההצעה נשלחה!',
   },
   es: {
     title: 'Ventas directas',
@@ -55,8 +68,12 @@ const content = {
     emptySubtitle: 'Los articulos publicados via AI Express apareceran aqui.',
     noResults: 'Sin resultados',
     noResultsSub: 'Prueba otra categoria u otra palabra clave.',
+    makeOffer: 'Hacer una oferta',
+    offerPlaceholder: 'Tu oferta',
+    offerConfirm: 'Enviar oferta',
+    offerSent: 'Oferta enviada!',
   },
-} as Record<string, { title: string; subtitle: string; searchPlaceholder: string; emptyTitle: string; emptySubtitle: string; noResults: string; noResultsSub: string }>
+} as Record<string, any>
 
 const retryTranslations: Record<string, string> = {
   fr: 'Reessayer',
@@ -72,6 +89,11 @@ export default function DirectSalesPage() {
   const [selectedCategory, setSelectedCategory] = useState('for_you')
   const [searchQuery, setSearchQuery] = useState('')
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [showOfferModal, setShowOfferModal] = useState(false)
+  const [offerItemId, setOfferItemId] = useState<string | null>(null)
+  const [offerItemTitle, setOfferItemTitle] = useState('')
+  const [offerAmount, setOfferAmount] = useState('')
+  const [offerLoading, setOfferLoading] = useState(false)
   const navigate = useNavigate()
   const { user, session } = useAuth()
   const lang = localStorage.getItem('shapop_lang') || 'fr'
@@ -283,8 +305,108 @@ export default function DirectSalesPage() {
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">
           {displayItems.map(item => (
-            <ItemCard key={item.id} item={item} isFavorited={favoriteIds.has(item.id)} onToggleFavorite={toggleFavorite} />
+            <div key={item.id}>
+              <ItemCard item={item} isFavorited={favoriteIds.has(item.id)} onToggleFavorite={toggleFavorite} />
+              {/* Make an offer button */}
+              {user && item.seller_id !== user.id && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setOfferItemId(item.id)
+                    setOfferItemTitle(item.title)
+                    setOfferAmount(String(Math.round((item.current_price ?? item.starting_price) * 0.8)))
+                    setShowOfferModal(true)
+                  }}
+                  style={{
+                    width: '100%', marginTop: '6px', padding: '8px',
+                    borderRadius: '10px', border: 'none',
+                    background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                    color: '#fff', fontSize: '12px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {tx.makeOffer}
+                </button>
+              )}
+            </div>
           ))}
+        </div>
+      )}
+
+      {/* Offer modal */}
+      {showOfferModal && (
+        <div
+          onClick={() => { setShowOfferModal(false); setOfferItemId(null) }}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '340px',
+              backgroundColor: '#1A1A1A', borderRadius: '20px',
+              padding: '24px', border: '1px solid rgba(139,92,246,0.3)',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 4px', textAlign: 'center' }}>
+              {tx.makeOffer}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
+              {offerItemTitle}
+            </p>
+            <input
+              type="number"
+              value={offerAmount}
+              onChange={e => setOfferAmount(e.target.value)}
+              placeholder={tx.offerPlaceholder}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px',
+                backgroundColor: '#111', border: '1px solid #333',
+                color: '#fff', fontSize: '18px', fontWeight: 700,
+                textAlign: 'center', outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <button
+              onClick={async () => {
+                if (!offerItemId || !user) return
+                const amount = parseFloat(offerAmount)
+                if (isNaN(amount) || amount <= 0) return
+                setOfferLoading(true)
+                try {
+                  const { data: { session: s } } = await supabase.auth.getSession()
+                  if (!s) { setOfferLoading(false); return }
+                  const resp = await apiFetch(`/api/items/${offerItemId}/offer`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.access_token}` },
+                    body: JSON.stringify({ amount }),
+                  })
+                  if (resp.ok) {
+                    setShowOfferModal(false)
+                    setOfferItemId(null)
+                    setOfferAmount('')
+                  }
+                } catch { /* ignore */ }
+                setOfferLoading(false)
+              }}
+              disabled={offerLoading}
+              style={{
+                width: '100%', marginTop: '14px', padding: '14px',
+                borderRadius: '100px', border: 'none',
+                background: offerLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                color: '#fff', fontSize: '15px', fontWeight: 700,
+                cursor: offerLoading ? 'default' : 'pointer',
+                opacity: offerLoading ? 0.7 : 1,
+              }}
+            >
+              {offerLoading ? '...' : tx.offerConfirm}
+            </button>
+          </div>
         </div>
       )}
     </div>

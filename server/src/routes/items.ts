@@ -3,11 +3,68 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, AI_MODEL } from '../config'
 import { requireAuth, createLimiter, aiLimiter, bidLimiter } from '../middleware'
-import { calculateFees, notifyUser } from '../utils'
+import { calculateFees, notifyUser, paramStr } from '../utils'
 import { stripe } from '../config'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
+
+// =============================================
+// Proxy bidding helper: after a new bid, check max_bids for OTHER users
+// and auto-bid on their behalf until all are exhausted or one wins
+// =============================================
+async function runProxyBidding(itemId: string, currentAmount: number, currentBidderId: string): Promise<number> {
+  let price = currentAmount
+
+  // Loop: find active max_bids from other users that can still outbid
+  for (let i = 0; i < 50; i++) { // safety cap to avoid infinite loop
+    const { data: maxBids } = await supabase
+      .from('max_bids')
+      .select('id, bidder_id, max_amount, current_bid')
+      .eq('item_id', itemId)
+      .eq('is_active', true)
+      .neq('bidder_id', currentBidderId)
+      .gt('max_amount', price)
+      .order('max_amount', { ascending: false })
+      .limit(1)
+
+    if (!maxBids || maxBids.length === 0) break
+
+    const topMax = maxBids[0]
+    // Auto-bid at price + 0.50, capped at max_amount
+    let autoBidAmount = Math.round((price + 0.50) * 100) / 100
+    if (autoBidAmount > topMax.max_amount) {
+      autoBidAmount = topMax.max_amount
+    }
+
+    // Place the auto-bid
+    await supabase.from('bids').insert({
+      item_id: itemId,
+      bidder_id: topMax.bidder_id,
+      amount: autoBidAmount,
+    })
+
+    // Update max_bids current_bid
+    await supabase.from('max_bids').update({ current_bid: autoBidAmount }).eq('id', topMax.id)
+
+    // Update item current_price
+    await supabase
+      .from('items')
+      .update({ current_price: autoBidAmount })
+      .eq('id', itemId)
+      .lt('current_price', autoBidAmount)
+
+    price = autoBidAmount
+    currentBidderId = topMax.bidder_id
+
+    // If we hit the max exactly, deactivate this max_bid
+    if (autoBidAmount >= topMax.max_amount) {
+      await supabase.from('max_bids').update({ is_active: false }).eq('id', topMax.id)
+    }
+  }
+
+  return price
+}
 
 const CreateListingBody = z.object({
   image_url: z.string().url(),
@@ -84,6 +141,13 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
       return
     }
 
+    // Get item details for starting_price before activating
+    const { data: fullItem } = await supabase
+      .from('items')
+      .select('starting_price, current_price')
+      .eq('id', req.params.id)
+      .single()
+
     const { error } = await supabase
       .from('items')
       .update({ status: 'active', started_at: new Date().toISOString() })
@@ -93,6 +157,61 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
       res.status(500).json({ error: 'Failed to start auction' })
       return
     }
+
+    // Activate pre-bids: convert pending pre_bids to max_bids and run proxy bidding
+    const { data: preBids } = await supabase
+      .from('pre_bids')
+      .select('id, bidder_id, amount')
+      .eq('item_id', req.params.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+
+    if (preBids && preBids.length > 0) {
+      const startingPrice = fullItem?.current_price || fullItem?.starting_price || 0
+
+      // Convert each pre-bid to a max_bid
+      for (const pb of preBids) {
+        await supabase.from('max_bids').upsert({
+          item_id: req.params.id,
+          bidder_id: pb.bidder_id,
+          max_amount: pb.amount,
+          is_active: true,
+          current_bid: 0,
+        }, { onConflict: 'item_id,bidder_id' })
+      }
+
+      // Mark pre_bids as activated
+      await supabase
+        .from('pre_bids')
+        .update({ status: 'activated' })
+        .eq('item_id', req.params.id)
+        .eq('status', 'pending')
+
+      // Place the first bid from the first pre-bidder at starting_price + 0.50
+      const firstBidder = preBids[0]
+      const firstBidAmount = Math.round((startingPrice + 0.50) * 100) / 100
+
+      if (firstBidAmount <= firstBidder.amount) {
+        await supabase.from('bids').insert({
+          item_id: req.params.id,
+          bidder_id: firstBidder.bidder_id,
+          amount: firstBidAmount,
+        })
+
+        await supabase
+          .from('items')
+          .update({ current_price: firstBidAmount })
+          .eq('id', req.params.id)
+
+        await supabase.from('max_bids').update({ current_bid: firstBidAmount })
+          .eq('item_id', req.params.id)
+          .eq('bidder_id', firstBidder.bidder_id)
+
+        // Run proxy bidding between pre-bidders
+        await runProxyBidding(paramStr(req.params.id), firstBidAmount, firstBidder.bidder_id)
+      }
+    }
+
     res.json({ success: true })
   } catch {
     res.status(500).json({ error: 'Internal server error' })
@@ -282,11 +401,11 @@ router.delete('/api/items/:id', requireAuth, async (req: AuthenticatedRequest, r
 // Activate an item (start auction) — uses service key to bypass RLS
 router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const itemId = req.params.id
+    const itemId = paramStr(req.params.id)
 
     const { data: item } = await supabase
       .from('items')
-      .select('seller_id')
+      .select('seller_id, starting_price, current_price')
       .eq('id', itemId)
       .single()
 
@@ -301,6 +420,61 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
       .eq('id', itemId)
 
     if (error) throw error
+
+    // Activate pre-bids: convert pending pre_bids to max_bids and run proxy bidding
+    const { data: preBids } = await supabase
+      .from('pre_bids')
+      .select('id, bidder_id, amount')
+      .eq('item_id', itemId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+
+    if (preBids && preBids.length > 0) {
+      const startingPrice = item.current_price || item.starting_price || 0
+
+      // Convert each pre-bid to a max_bid
+      for (const pb of preBids) {
+        await supabase.from('max_bids').upsert({
+          item_id: itemId,
+          bidder_id: pb.bidder_id,
+          max_amount: pb.amount,
+          is_active: true,
+          current_bid: 0,
+        }, { onConflict: 'item_id,bidder_id' })
+      }
+
+      // Mark pre_bids as activated
+      await supabase
+        .from('pre_bids')
+        .update({ status: 'activated' })
+        .eq('item_id', itemId)
+        .eq('status', 'pending')
+
+      // Place the first bid from the first pre-bidder at starting_price + 0.50
+      const firstBidder = preBids[0]
+      const firstBidAmount = Math.round((startingPrice + 0.50) * 100) / 100
+
+      if (firstBidAmount <= firstBidder.amount) {
+        await supabase.from('bids').insert({
+          item_id: itemId,
+          bidder_id: firstBidder.bidder_id,
+          amount: firstBidAmount,
+        })
+
+        await supabase
+          .from('items')
+          .update({ current_price: firstBidAmount })
+          .eq('id', itemId)
+
+        await supabase.from('max_bids').update({ current_bid: firstBidAmount })
+          .eq('item_id', itemId)
+          .eq('bidder_id', firstBidder.bidder_id)
+
+        // Run proxy bidding between pre-bidders
+        await runProxyBidding(itemId, firstBidAmount, firstBidder.bidder_id)
+      }
+    }
+
     res.json({ success: true })
   } catch {
     res.status(500).json({ error: 'Failed to activate item' })
@@ -310,7 +484,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
 // Place a bid on an item (bypasses RLS)
 router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const itemId = req.params.id
+    const itemId = paramStr(req.params.id)
     const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
     const userId = req.user!.id
 
@@ -403,10 +577,232 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
       if (process.env.NODE_ENV !== 'production') console.log(`[Bid] Concurrent bid detected: item ${itemId}, amount ${amount} not applied (higher bid exists)`)
     }
 
+    // Run proxy bidding: check if any OTHER user has an active max_bid that can outbid
+    await runProxyBidding(itemId, amount, userId)
+
     res.json({ success: true })
   } catch (err: any) {
     console.error('Bid error:', err?.message || err)
     res.status(500).json({ error: 'Failed to place bid' })
+  }
+})
+
+// =============================================
+// MAX-BID — Set a maximum bid (proxy bidding)
+// =============================================
+router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const itemId = paramStr(req.params.id)
+    const maxAmount = Math.round(parseFloat(req.body.max_amount) * 100) / 100
+    const userId = req.user!.id
+
+    if (!maxAmount || isNaN(maxAmount) || maxAmount <= 0) {
+      res.status(400).json({ error: 'Invalid max amount' })
+      return
+    }
+
+    // Verify item exists and is active
+    const { data: item } = await supabase
+      .from('items')
+      .select('id, current_price, status, seller_id')
+      .eq('id', itemId)
+      .single()
+
+    if (!item) {
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+    if (item.status !== 'active') {
+      res.status(400).json({ error: 'Auction is not active' })
+      return
+    }
+    if (item.seller_id === userId) {
+      res.status(400).json({ error: 'Cannot bid on your own item' })
+      return
+    }
+    if (maxAmount <= item.current_price) {
+      res.status(400).json({ error: 'Max bid must be higher than current price' })
+      return
+    }
+
+    // Verify bidder has a saved payment method (card on file)
+    const { data: bidderProfile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!bidderProfile?.stripe_customer_id) {
+      res.status(403).json({ error: 'card_required' })
+      return
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: bidderProfile.stripe_customer_id,
+      type: 'card',
+      limit: 1,
+    })
+
+    if (paymentMethods.data.length === 0) {
+      res.status(403).json({ error: 'card_required' })
+      return
+    }
+
+    // Upsert max_bid
+    const { error: upsertError } = await supabase.from('max_bids').upsert({
+      item_id: itemId,
+      bidder_id: userId,
+      max_amount: maxAmount,
+      is_active: true,
+      current_bid: 0,
+    }, { onConflict: 'item_id,bidder_id' })
+
+    if (upsertError) throw upsertError
+
+    // Immediately place a bid at current_price + 0.50
+    const immediateBid = Math.round((item.current_price + 0.50) * 100) / 100
+    if (immediateBid <= maxAmount) {
+      await supabase.from('bids').insert({
+        item_id: itemId,
+        bidder_id: userId,
+        amount: immediateBid,
+      })
+
+      await supabase
+        .from('items')
+        .update({ current_price: immediateBid })
+        .eq('id', itemId)
+        .lt('current_price', immediateBid)
+
+      await supabase.from('max_bids').update({ current_bid: immediateBid })
+        .eq('item_id', itemId)
+        .eq('bidder_id', userId)
+
+      // Run proxy bidding in case other max_bids exist
+      await runProxyBidding(itemId, immediateBid, userId)
+    }
+
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('Max-bid error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to set max bid' })
+  }
+})
+
+router.get('/api/items/:id/max-bid', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data } = await supabase
+      .from('max_bids')
+      .select('id, max_amount, current_bid, is_active, created_at')
+      .eq('item_id', req.params.id)
+      .eq('bidder_id', req.user!.id)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    res.json(data || null)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// PRE-BID — Bid on items before they go live
+// =============================================
+router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const itemId = paramStr(req.params.id)
+    const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
+    const userId = req.user!.id
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      res.status(400).json({ error: 'Invalid pre-bid amount' })
+      return
+    }
+
+    // Verify item exists and is NOT yet active
+    const { data: item } = await supabase
+      .from('items')
+      .select('id, status, seller_id, starting_price')
+      .eq('id', itemId)
+      .single()
+
+    if (!item) {
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+    if (!['draft', 'pending'].includes(item.status)) {
+      res.status(400).json({ error: 'Pre-bids are only allowed before the auction starts' })
+      return
+    }
+    if (item.seller_id === userId) {
+      res.status(400).json({ error: 'Cannot pre-bid on your own item' })
+      return
+    }
+
+    // Verify bidder has a saved payment method (card on file)
+    const { data: bidderProfile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!bidderProfile?.stripe_customer_id) {
+      res.status(403).json({ error: 'card_required' })
+      return
+    }
+
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: bidderProfile.stripe_customer_id,
+      type: 'card',
+      limit: 1,
+    })
+
+    if (paymentMethods.data.length === 0) {
+      res.status(403).json({ error: 'card_required' })
+      return
+    }
+
+    // Check buyer has at least one shipping address
+    const { data: addresses } = await supabase
+      .from('addresses')
+      .select('id')
+      .eq('user_id', userId)
+      .limit(1)
+
+    if (!addresses || addresses.length === 0) {
+      res.status(403).json({ error: 'address_required' })
+      return
+    }
+
+    // Upsert pre_bid
+    const { error: upsertError } = await supabase.from('pre_bids').upsert({
+      item_id: itemId,
+      bidder_id: userId,
+      amount,
+      status: 'pending',
+    }, { onConflict: 'item_id,bidder_id' })
+
+    if (upsertError) throw upsertError
+
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('Pre-bid error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to place pre-bid' })
+  }
+})
+
+router.get('/api/items/:id/pre-bid', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data } = await supabase
+      .from('pre_bids')
+      .select('id, amount, status, created_at')
+      .eq('item_id', req.params.id)
+      .eq('bidder_id', req.user!.id)
+      .maybeSingle()
+
+    res.json(data || null)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
   }
 })
 

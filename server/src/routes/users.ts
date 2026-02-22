@@ -730,4 +730,181 @@ router.get('/api/seller/:id/shipping-delay', async (req: Request, res: Response)
   }
 })
 
+// =============================================
+// BUYER STATS
+// =============================================
+router.get('/api/buyer/stats', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    // Fetch all non-cancelled/refunded orders for this buyer
+    const { data: orders } = await supabase
+      .from('orders')
+      .select('id, amount, status')
+      .eq('buyer_id', userId)
+
+    const allOrders = orders || []
+    const total_orders = allOrders.length
+    const total_spent = allOrders
+      .filter((o: Record<string, unknown>) => !['cancelled', 'refunded'].includes(o.status as string))
+      .reduce((sum: number, o: Record<string, unknown>) => sum + ((o.amount as number) || 0), 0)
+    const active_orders = allOrders.filter((o: Record<string, unknown>) => ['paid', 'shipped'].includes(o.status as string)).length
+    const completed_orders = allOrders.filter((o: Record<string, unknown>) => o.status === 'delivered').length
+
+    // Get buyer score
+    const { data: bs } = await supabase
+      .from('buyer_scores')
+      .select('score, risk_level')
+      .eq('user_id', userId)
+      .single()
+
+    res.json({
+      total_orders,
+      order_count: total_orders,
+      total_spent: Math.round(total_spent * 100) / 100,
+      active_orders,
+      pending_count: active_orders,
+      completed_orders,
+      score: bs?.score ?? 10.0,
+      buyer_score: bs?.score ?? 10.0,
+      risk_level: bs?.risk_level ?? 'low',
+    })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// SPEND LIMITS
+// =============================================
+
+// GET /api/spend-limits — get user's spend limits
+router.get('/api/spend-limits', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data, error } = await supabase
+      .from('spend_limits')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (error && error.code === 'PGRST116') {
+      // No limits set — return defaults (inactive)
+      res.json({ weekly_limit: null, monthly_limit: null, is_active: false })
+      return
+    }
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch spend limits' })
+      return
+    }
+
+    res.json(data)
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// PUT /api/spend-limits — update user's spend limits
+router.put('/api/spend-limits', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { weekly_limit, monthly_limit, is_active } = req.body
+
+    if (weekly_limit !== undefined && weekly_limit !== null && (typeof weekly_limit !== 'number' || weekly_limit < 0)) {
+      res.status(400).json({ error: 'weekly_limit must be a non-negative number or null' })
+      return
+    }
+    if (monthly_limit !== undefined && monthly_limit !== null && (typeof monthly_limit !== 'number' || monthly_limit < 0)) {
+      res.status(400).json({ error: 'monthly_limit must be a non-negative number or null' })
+      return
+    }
+
+    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (weekly_limit !== undefined) updates.weekly_limit = weekly_limit
+    if (monthly_limit !== undefined) updates.monthly_limit = monthly_limit
+    if (is_active !== undefined) updates.is_active = !!is_active
+
+    // Upsert
+    const { data: existing } = await supabase
+      .from('spend_limits')
+      .select('user_id')
+      .eq('user_id', userId)
+      .single()
+
+    if (existing) {
+      const { data, error } = await supabase
+        .from('spend_limits')
+        .update(updates)
+        .eq('user_id', userId)
+        .select()
+        .single()
+      if (error) {
+        res.status(500).json({ error: 'Failed to update spend limits' })
+        return
+      }
+      res.json(data)
+    } else {
+      const { data, error } = await supabase
+        .from('spend_limits')
+        .insert({ user_id: userId, ...updates })
+        .select()
+        .single()
+      if (error) {
+        res.status(500).json({ error: 'Failed to create spend limits' })
+        return
+      }
+      res.json(data)
+    }
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// LOYALTY
+// =============================================
+
+// GET /api/loyalty — get user's loyalty data
+router.get('/api/loyalty', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: loyalty } = await supabase
+      .from('loyalty_points')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    // Calculate next tier info
+    const tierThresholds: Record<string, number> = { bronze: 0, silver: 100, gold: 500, platinum: 1000 }
+    const tierOrder = ['bronze', 'silver', 'gold', 'platinum']
+
+    if (!loyalty) {
+      res.json({
+        points: 0,
+        total_earned: 0,
+        tier: 'bronze',
+        next_tier: 'silver',
+        next_tier_threshold: 100,
+      })
+      return
+    }
+
+    const currentTier = loyalty.tier || 'bronze'
+    const currentIdx = tierOrder.indexOf(currentTier)
+    const nextTier = currentIdx < tierOrder.length - 1 ? tierOrder[currentIdx + 1] : null
+    const nextThreshold = nextTier ? tierThresholds[nextTier] : tierThresholds.platinum
+
+    res.json({
+      ...loyalty,
+      points: loyalty.points || 0,
+      next_tier: nextTier,
+      next_tier_threshold: nextThreshold,
+    })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router

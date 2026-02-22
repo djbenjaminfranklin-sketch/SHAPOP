@@ -40,6 +40,24 @@ export default function Profile() {
   const [editBio, setEditBio] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Buyer stats
+  const [buyerStats, setBuyerStats] = useState<{
+    total_spent: number
+    order_count: number
+    pending_count: number
+    buyer_score: number
+  } | null>(null)
+  const [buyerStatsLoaded, setBuyerStatsLoaded] = useState(false)
+
+  // Loyalty
+  const [loyalty, setLoyalty] = useState<{
+    tier: string
+    points: number
+    next_tier: string | null
+    next_tier_threshold: number
+  } | null>(null)
+  const [loyaltyLoaded, setLoyaltyLoaded] = useState(false)
+
   useEffect(() => {
     const raf = requestAnimationFrame(() => setMounted(true))
     return () => cancelAnimationFrame(raf)
@@ -48,6 +66,52 @@ export default function Profile() {
   useEffect(() => {
     if (profile?.avatar_url) setAvatarUrl(profile.avatar_url)
   }, [profile])
+
+  // Fetch buyer stats
+  useEffect(() => {
+    if (!user) return
+    const fetchBuyerStats = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        if (!token) return
+        const res = await apiFetch('/api/buyer/stats', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setBuyerStats(data)
+        }
+      } catch {
+        // silently fail
+      }
+      setBuyerStatsLoaded(true)
+    }
+    fetchBuyerStats()
+  }, [user])
+
+  // Fetch loyalty
+  useEffect(() => {
+    if (!user) return
+    const fetchLoyalty = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        if (!token) return
+        const res = await apiFetch('/api/loyalty', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setLoyalty(data)
+        }
+      } catch {
+        // silently fail
+      }
+      setLoyaltyLoaded(true)
+    }
+    fetchLoyalty()
+  }, [user])
 
   // Fetch seller's streams
   useEffect(() => {
@@ -622,6 +686,209 @@ export default function Profile() {
             {tx('Compte', 'Account', '\u05D7\u05E9\u05D1\u05D5\u05DF', 'Cuenta', lang)}
           </h2>
         </div>
+
+        {/* ── Buyer stats card ──────────────────────────────────── */}
+        {buyerStatsLoaded && buyerStats && (
+          <div style={{ padding: '0 16px 16px', ...entrance('60ms') }}>
+            <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+              <div style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
+              }}>
+                {/* Total spent */}
+                <div style={{
+                  backgroundColor: '#111', borderRadius: '12px', padding: '14px',
+                  display: 'flex', flexDirection: 'column', gap: '6px',
+                }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    backgroundColor: 'rgba(34,197,94,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                    {buyerStats.total_spent.toFixed(0)}&euro;
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
+                    {tx('Total depense', 'Total spent', 'סה"כ הוצאות', 'Total gastado', lang)}
+                  </p>
+                </div>
+
+                {/* Order count */}
+                <div style={{
+                  backgroundColor: '#111', borderRadius: '12px', padding: '14px',
+                  display: 'flex', flexDirection: 'column', gap: '6px',
+                }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    backgroundColor: 'rgba(59,130,246,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                    {buyerStats.order_count}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
+                    {tx('Commandes', 'Orders', 'הזמנות', 'Pedidos', lang)}
+                  </p>
+                </div>
+
+                {/* Pending count */}
+                <div style={{
+                  backgroundColor: '#111', borderRadius: '12px', padding: '14px',
+                  display: 'flex', flexDirection: 'column', gap: '6px',
+                }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    backgroundColor: 'rgba(245,158,11,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                    {buyerStats.pending_count}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
+                    {tx('En cours', 'Pending', 'בתהליך', 'En curso', lang)}
+                  </p>
+                </div>
+
+                {/* Buyer score */}
+                <div style={{
+                  backgroundColor: '#111', borderRadius: '12px', padding: '14px',
+                  display: 'flex', flexDirection: 'column', gap: '6px',
+                }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    backgroundColor: 'rgba(139,92,246,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                  </div>
+                  <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                    {buyerStats.buyer_score}<span style={{ fontSize: '13px', fontWeight: 500, color: '#888' }}>/100</span>
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
+                    {tx('Score acheteur', 'Buyer score', 'ציון קונה', 'Puntaje comprador', lang)}
+                  </p>
+                </div>
+              </div>
+
+              {/* "Voir mes achats" button */}
+              <button
+                onClick={() => navigate('/activity')}
+                style={{
+                  width: '100%', marginTop: '12px', padding: '12px',
+                  borderRadius: '10px', border: 'none', cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+                  color: '#fff', fontSize: '14px', fontWeight: 700,
+                }}
+              >
+                {tx('Voir mes achats', 'View my purchases', 'צפה ברכישות שלי', 'Ver mis compras', lang)}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Loyalty section ─────────────────────────────────────── */}
+        {loyaltyLoaded && loyalty && (() => {
+          const tierColors: Record<string, string> = {
+            bronze: '#CD7F32', silver: '#C0C0C0', gold: '#FFD700', platinum: '#E5E4E2',
+          }
+          const tierNames: Record<string, string> = {
+            bronze: tx('Bronze', 'Bronze', 'ארד', 'Bronce', lang),
+            silver: tx('Argent', 'Silver', 'כסף', 'Plata', lang),
+            gold: tx('Or', 'Gold', 'זהב', 'Oro', lang),
+            platinum: tx('Platine', 'Platinum', 'פלטינה', 'Platino', lang),
+          }
+          const tierThresholds: Record<string, number> = {
+            bronze: 0, silver: 100, gold: 500, platinum: 1000,
+          }
+          const tierKey = loyalty.tier.toLowerCase()
+          const color = tierColors[tierKey] || '#C0C0C0'
+          const currentThreshold = tierThresholds[tierKey] || 0
+          const nextThreshold = loyalty.next_tier_threshold || (tierThresholds[loyalty.next_tier?.toLowerCase() || ''] || 1000)
+          const progress = nextThreshold > currentThreshold
+            ? Math.min(1, (loyalty.points - currentThreshold) / (nextThreshold - currentThreshold))
+            : 1
+          return (
+            <div style={{ padding: '0 16px 16px', ...entrance('80ms') }}>
+              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px',
+                    backgroundColor: `${color}20`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 20h20M4 20l2-14 4 6 2-8 2 8 4-6 2 14"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                        {tierNames[tierKey] || loyalty.tier}
+                      </p>
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, color: '#000',
+                        backgroundColor: color, borderRadius: '4px', padding: '2px 8px',
+                      }}>
+                        {tx('NIVEAU', 'TIER', 'רמה', 'NIVEL', lang)}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                      {loyalty.points} {tx('points', 'points', 'נקודות', 'puntos', lang)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress bar to next tier */}
+                {loyalty.next_tier && (
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                        {tierNames[tierKey] || loyalty.tier}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>
+                        {tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}
+                      </p>
+                    </div>
+                    <div style={{
+                      width: '100%', height: '6px', borderRadius: '3px',
+                      backgroundColor: '#333', overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        width: `${Math.round(progress * 100)}%`, height: '100%',
+                        borderRadius: '3px', backgroundColor: color,
+                        transition: 'width 0.5s ease',
+                      }} />
+                    </div>
+                    <p style={{ fontSize: '11px', color: '#666', margin: '6px 0 0', textAlign: 'center' }}>
+                      {nextThreshold - loyalty.points > 0
+                        ? tx(
+                            `${nextThreshold - loyalty.points} points pour atteindre ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
+                            `${nextThreshold - loyalty.points} points to reach ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
+                            `${nextThreshold - loyalty.points} נקודות להגיע ל-${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
+                            `${nextThreshold - loyalty.points} puntos para alcanzar ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
+                            lang
+                          )
+                        : tx('Niveau maximum atteint !', 'Maximum tier reached!', 'הגעת לרמה המקסימלית!', 'Nivel maximo alcanzado!', lang)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── Mes lives card (seller only) ──────────────────────── */}
         {profile?.is_seller && (

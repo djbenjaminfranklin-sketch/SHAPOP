@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
+import { apiFetch } from '../lib/api'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -106,6 +107,8 @@ export default function AccountControlsPage() {
   const [settings, setSettings] = useState<ControlSettings>(loadSettings)
   const [watchTimeMin, setWatchTimeMin] = useState(0)
   const [spendingAmount, setSpendingAmount] = useState(0)
+  const [, setServerSpendLimit] = useState<{ weekly_limit: number | null; monthly_limit: number | null; is_active: boolean } | null>(null)
+  const [savingLimits, setSavingLimits] = useState(false)
 
   // Compute watch time from localStorage tracker
   useEffect(() => {
@@ -123,10 +126,26 @@ export default function AccountControlsPage() {
     }
   }, [settings.watchLimitPeriod])
 
-  // Compute spending from orders
+  // Compute spending from buyer stats API + fallback to orders
   useEffect(() => {
     if (!user) return
     const fetchSpending = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        if (token) {
+          const res = await apiFetch('/api/buyer/stats', {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (res.ok) {
+            const data = await res.json()
+            setSpendingAmount(Math.round((data.total_spent || 0) * 100) / 100)
+            return
+          }
+        }
+      } catch {
+        // fallback to supabase query
+      }
       const now = new Date()
       const periodStart = new Date()
       if (settings.spendingLimitPeriod === 'week') {
@@ -147,6 +166,70 @@ export default function AccountControlsPage() {
     }
     fetchSpending()
   }, [user, settings.spendingLimitPeriod])
+
+  // Fetch spend limits from server
+  useEffect(() => {
+    if (!user) return
+    const fetchLimits = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession()
+        const token = sessionData.session?.access_token
+        if (!token) return
+        const res = await apiFetch('/api/spend-limits', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (res.ok) {
+          const data = await res.json()
+          setServerSpendLimit(data)
+          // Sync server values into local settings
+          if (data.is_active !== undefined) {
+            update({
+              spendingLimitEnabled: data.is_active,
+              spendingLimitAmount: (settings.spendingLimitPeriod === 'week' ? data.weekly_limit : data.monthly_limit) || 0,
+            })
+          }
+        }
+      } catch {
+        // silently fail
+      }
+    }
+    fetchLimits()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  // Save spend limits to server
+  const saveSpendLimits = async () => {
+    if (!user) return
+    setSavingLimits(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (!token) return
+      const body: Record<string, unknown> = {
+        is_active: settings.spendingLimitEnabled,
+      }
+      if (settings.spendingLimitPeriod === 'week') {
+        body.weekly_limit = settings.spendingLimitAmount
+      } else {
+        body.monthly_limit = settings.spendingLimitAmount
+      }
+      const res = await apiFetch('/api/spend-limits', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setServerSpendLimit(data)
+      }
+    } catch {
+      // silently fail
+    }
+    setSavingLimits(false)
+  }
 
   const update = (partial: Partial<ControlSettings>) => {
     setSettings(prev => {
@@ -427,6 +510,41 @@ export default function AccountControlsPage() {
               </div>
             </div>
 
+            {/* Spending progress bar */}
+            {settings.spendingLimitEnabled && settings.spendingLimitAmount > 0 && (() => {
+              const limit = settings.spendingLimitAmount
+              const ratio = limit > 0 ? spendingAmount / limit : 0
+              const pct = Math.min(ratio * 100, 100)
+              const barColor = ratio > 0.9 ? '#EF4444' : ratio > 0.75 ? '#F59E0B' : '#22C55E'
+              return (
+                <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                      {spendingAmount}&euro; / {limit}&euro;
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
+                      {Math.round(pct)}%
+                    </p>
+                  </div>
+                  <div style={{
+                    width: '100%', height: '8px', borderRadius: '4px',
+                    backgroundColor: '#333', overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      width: `${pct}%`, height: '100%',
+                      borderRadius: '4px', backgroundColor: barColor,
+                      transition: 'width 0.5s ease, background-color 0.3s ease',
+                    }} />
+                  </div>
+                  {ratio > 0.9 && (
+                    <p style={{ fontSize: '12px', color: '#EF4444', margin: '8px 0 0', fontWeight: 600 }}>
+                      {tx('Attention : limite presque atteinte !', 'Warning: limit almost reached!', 'אזהרה: המגבלה כמעט הושגה!', 'Atencion: limite casi alcanzado!', lang)}
+                    </p>
+                  )}
+                </div>
+              )
+            })()}
+
             {/* Spending alert */}
             <div
               onClick={() => update({ spendingAlertEnabled: !settings.spendingAlertEnabled })}
@@ -506,6 +624,21 @@ export default function AccountControlsPage() {
                   />
                   <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: '16px', fontWeight: 600 }}>€</span>
                 </div>
+                <button
+                  onClick={saveSpendLimits}
+                  disabled={savingLimits}
+                  style={{
+                    width: '100%', marginTop: '12px', padding: '12px',
+                    borderRadius: '10px', border: 'none', cursor: savingLimits ? 'not-allowed' : 'pointer',
+                    background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+                    color: '#fff', fontSize: '14px', fontWeight: 700,
+                    opacity: savingLimits ? 0.6 : 1,
+                  }}
+                >
+                  {savingLimits
+                    ? tx('Sauvegarde...', 'Saving...', '...שומר', 'Guardando...', lang)
+                    : tx('Enregistrer la limite', 'Save limit', 'שמור מגבלה', 'Guardar limite', lang)}
+                </button>
               </div>
             )}
 

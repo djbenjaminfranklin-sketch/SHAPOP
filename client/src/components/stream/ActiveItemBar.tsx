@@ -14,6 +14,9 @@ interface ActiveItemBarProps {
   disabled?: boolean
   timeLeft?: number
   lang: 'fr' | 'en' | 'he' | 'es'
+  onMaxBid?: () => void
+  hasActiveMaxBid?: boolean
+  bundleCount?: number
 }
 
 const LABELS: Record<string, {
@@ -24,6 +27,9 @@ const LABELS: Record<string, {
   addAddress: string
   max: string
   shippingGrouped: string
+  maxBid: string
+  maxBidActive: string
+  bundleDiscount: string
 }> = {
   fr: {
     bid: 'Encherir',
@@ -33,6 +39,9 @@ const LABELS: Record<string, {
     addAddress: 'Ajoute ton adresse',
     max: 'MAX',
     shippingGrouped: 'Livraison groupee en fin de live',
+    maxBid: 'Enchere max',
+    maxBidActive: 'Auto-enchere active',
+    bundleDiscount: 'Shipping groupe : -15%',
   },
   en: {
     bid: 'Bid',
@@ -42,6 +51,9 @@ const LABELS: Record<string, {
     addAddress: 'Add your address',
     max: 'MAX',
     shippingGrouped: 'Shipping grouped at end of live',
+    maxBid: 'Max bid',
+    maxBidActive: 'Auto-bid active',
+    bundleDiscount: 'Grouped shipping: -15%',
   },
   he: {
     bid: 'הצע',
@@ -51,6 +63,9 @@ const LABELS: Record<string, {
     addAddress: 'הוסף כתובת',
     max: 'MAX',
     shippingGrouped: 'משלוח מרוכז בסוף השידור',
+    maxBid: 'הצעה מקסימלית',
+    maxBidActive: 'הצעה אוטומטית פעילה',
+    bundleDiscount: 'משלוח מרוכז: -15%',
   },
   es: {
     bid: 'Pujar',
@@ -60,6 +75,9 @@ const LABELS: Record<string, {
     addAddress: 'Agrega tu direccion',
     max: 'MAX',
     shippingGrouped: 'Envio agrupado al final del live',
+    maxBid: 'Puja max',
+    maxBidActive: 'Auto-puja activa',
+    bundleDiscount: 'Envio agrupado: -15%',
   },
 }
 
@@ -75,6 +93,9 @@ export default function ActiveItemBar({
   disabled,
   timeLeft,
   lang,
+  onMaxBid,
+  hasActiveMaxBid,
+  bundleCount,
 }: ActiveItemBarProps) {
   const [bidFlash, setBidFlash] = useState(false)
 
@@ -125,7 +146,7 @@ export default function ActiveItemBar({
       padding: '6px 12px',
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
     }}>
-      {/* Top: title + current price */}
+      {/* Top: title + current price + max-bid badge */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         gap: '8px', marginBottom: '5px',
@@ -137,6 +158,17 @@ export default function ActiveItemBar({
           <span style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.title}
           </span>
+          {hasActiveMaxBid && (
+            <span style={{
+              fontSize: '9px', fontWeight: 700, color: '#8B5CF6',
+              backgroundColor: 'rgba(139,92,246,0.12)',
+              padding: '2px 6px', borderRadius: '6px',
+              border: '1px solid rgba(139,92,246,0.3)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              {labels.maxBidActive}
+            </span>
+          )}
         </div>
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           {timeLeft != null && timeLeft > 0 && (
@@ -163,20 +195,37 @@ export default function ActiveItemBar({
         </div>
       </div>
 
-      {/* Shipping: grouped at end of live */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '4px',
-        marginBottom: '5px', padding: '3px 8px',
-        backgroundColor: 'rgba(240,144,138,0.06)', borderRadius: '6px',
-      }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 3v5h-7V8z" />
-          <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
-        </svg>
-        <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>
-          {labels.shippingGrouped}
-        </span>
-      </div>
+      {/* Bundle discount banner */}
+      {bundleCount != null && bundleCount >= 2 ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '4px',
+          marginBottom: '5px', padding: '4px 8px',
+          backgroundColor: 'rgba(139,92,246,0.1)', borderRadius: '6px',
+          border: '1px solid rgba(139,92,246,0.25)',
+        }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
+            <line x1="7" y1="7" x2="7.01" y2="7" />
+          </svg>
+          <span style={{ fontSize: '10px', fontWeight: 700, color: '#8B5CF6' }}>
+            {labels.bundleDiscount}
+          </span>
+        </div>
+      ) : (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '4px',
+          marginBottom: '5px', padding: '3px 8px',
+          backgroundColor: 'rgba(240,144,138,0.06)', borderRadius: '6px',
+        }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 3v5h-7V8z" />
+            <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>
+            {labels.shippingGrouped}
+          </span>
+        </div>
+      )}
 
       {/* Bid action */}
       {!isActive ? (
@@ -230,6 +279,30 @@ export default function ActiveItemBar({
             }}
           >
             {labels.bid} : {currentBid}€
+          </button>
+
+          {/* Enchere max button */}
+          <button
+            onClick={() => { if (!disabled) onMaxBid?.() }}
+            disabled={disabled}
+            style={{
+              height: '42px',
+              padding: '0 12px',
+              borderRadius: '100px',
+              border: hasActiveMaxBid ? '1.5px solid #8B5CF6' : '1px solid rgba(139,92,246,0.4)',
+              backgroundColor: hasActiveMaxBid ? 'rgba(139,92,246,0.2)' : 'rgba(139,92,246,0.1)',
+              color: '#8B5CF6',
+              fontSize: '10px',
+              fontWeight: 800,
+              letterSpacing: '0.3px',
+              cursor: disabled ? 'default' : 'pointer',
+              opacity: disabled ? 0.4 : 1,
+              flexShrink: 0,
+              WebkitTapHighlightColor: 'transparent',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {labels.maxBid}
           </button>
 
           {/* MAX button */}

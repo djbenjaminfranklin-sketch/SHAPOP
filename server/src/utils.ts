@@ -151,12 +151,21 @@ export function calculateBaseShippingCost(weightGrams: number, carrier: string, 
   return rates[rates.length - 1].cost
 }
 
-/** Calculate shipping cost in EUR with 15% safety margin for buyer */
-export function calculateShippingCost(weightGrams: number, carrier: string, zone?: string): number {
+/** Calculate shipping cost in EUR with 15% safety margin for buyer
+ *  Optional itemCount applies bundling discount: 2-3 items = -15%, 4+ items = -25%
+ */
+export function calculateShippingCost(weightGrams: number, carrier: string, zone?: string, itemCount?: number): number {
   const baseCost = calculateBaseShippingCost(weightGrams, carrier, zone)
   if (baseCost === 0) return 0
-  // Add safety margin and round to 2 decimal places
-  return Math.round(baseCost * (1 + SHIPPING_SAFETY_MARGIN) * 100) / 100
+  // Add safety margin
+  let cost = baseCost * (1 + SHIPPING_SAFETY_MARGIN)
+  // Apply bundling discount
+  if (itemCount && itemCount >= 4) {
+    cost *= 0.75 // -25%
+  } else if (itemCount && itemCount >= 2) {
+    cost *= 0.85 // -15%
+  }
+  return Math.round(cost * 100) / 100
 }
 
 /** Check if a carrier is available for a given zone */
