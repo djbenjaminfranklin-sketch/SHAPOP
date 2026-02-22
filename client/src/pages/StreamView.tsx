@@ -1590,8 +1590,20 @@ export default function StreamView() {
         setPreBidItemId(null)
         setPreBidAmount('')
         showToast(ct.preBidPlaced)
+      } else {
+        const body = await resp.json().catch(() => ({ error: 'Unknown error' }))
+        const err = body.error || 'Error'
+        if (err === 'card_required') {
+          alert(lang === 'fr' ? 'Ajoutez une carte bancaire d\'abord' : lang === 'he' ? 'הוסף כרטיס תשלום קודם' : lang === 'es' ? 'Agregue una tarjeta primero' : 'Add a payment card first')
+        } else if (err === 'address_required') {
+          alert(lang === 'fr' ? 'Ajoutez une adresse de livraison d\'abord' : lang === 'he' ? 'הוסף כתובת משלוח קודם' : lang === 'es' ? 'Agregue una dirección primero' : 'Add a shipping address first')
+        } else {
+          alert(err)
+        }
       }
-    } catch { /* ignore */ }
+    } catch (e: any) {
+      console.error('Pre-bid submit error:', e)
+    }
     setPreBidLoading(false)
   }
 
