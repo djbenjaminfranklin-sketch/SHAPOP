@@ -697,16 +697,19 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
               const egresses = await livekitEgressClient!.listEgress({ egressId })
               const egress = egresses[0]
               if (!egress) { console.log(`[egress-poll] Egress ${egressId} not found`); return }
-              console.log(`[egress-poll] Attempt ${attempt + 1}: status=${egress.status}, fileResults=${egress.fileResults?.length || 0}, error=${egress.error || 'none'}`)
               // Status 4 = EGRESS_FAILED
               if (egress.status === 4) {
                 console.error(`[egress-poll] Egress FAILED for stream ${sid}. Error: ${egress.error}`)
-                console.error(`[egress-poll] Full egress info:`, JSON.stringify(egress, null, 2))
                 return
               }
-              if (egress.fileResults && egress.fileResults.length > 0) {
-                const fileInfo = egress.fileResults[0]
-                const fileLocation = fileInfo.location || fileInfo.filename
+              // Status 3 = EGRESS_COMPLETE — extract file info from multiple possible locations
+              if (egress.status === 3) {
+                // Try fileResults (new), then result.value (deprecated oneof), then raw file field
+                const fileInfo = egress.fileResults?.[0]
+                  || (egress as any).result?.value
+                  || (egress as any).file
+                const fileLocation = fileInfo?.location || fileInfo?.filename
+                console.log(`[egress-poll] COMPLETE — fileResults=${egress.fileResults?.length || 0}, fileInfo=${JSON.stringify(fileInfo)}, location=${fileLocation || 'none'}`)
                 if (fileLocation) {
                   const recordingUrl = fileLocation.startsWith('http')
                     ? fileLocation
@@ -715,7 +718,13 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
                   await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', sid)
                   return
                 }
+                // Last resort: construct URL from known path pattern
+                console.log(`[egress-poll] No file location found, trying constructed path`)
+                const constructed = `https://shapop-recordings.s3.eu-west-3.amazonaws.com/recordings/${sid}/`
+                console.log(`[egress-poll] Full egress:`, JSON.stringify(egress, null, 2))
+                return
               }
+              console.log(`[egress-poll] Attempt ${attempt + 1}: status=${egress.status}, waiting...`)
             } catch (pollErr) {
               console.error(`[egress-poll] Error on attempt ${attempt + 1}:`, pollErr)
             }
