@@ -1092,6 +1092,11 @@ export default function StreamView() {
         console.log('[RT-ITEMS] refetched status=', item.status)
       }
 
+      // Remove from upcoming items when no longer draft/pending
+      if (!['draft', 'pending'].includes(item.status)) {
+        setUpcomingItems(prev => prev.filter(u => u.id !== item.id))
+      }
+
       if (item.status === 'active') {
         setActiveAuction(item)
         setBidAmount(String(item.current_price + 1))

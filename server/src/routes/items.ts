@@ -197,7 +197,7 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
         const firstBidder = preBids[0]
         const preBidAmount = parseFloat(String(firstBidder.amount))
         // First bid = starting price (not +0.50 — the increment is for subsequent bids)
-        const firstBidAmount = startingPrice > 0 ? startingPrice : 1
+        const firstBidAmount = Math.round((startingPrice + 1) * 100) / 100
 
         console.log(`[PreBid] startingPrice=${startingPrice}, firstBidAmount=${firstBidAmount}, preBidAmount=${preBidAmount}`)
 
@@ -489,7 +489,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
         // Place the first bid from the first pre-bidder at starting price
         const firstBidder = preBids[0]
         const preBidAmount = parseFloat(String(firstBidder.amount))
-        const firstBidAmount = startingPrice > 0 ? startingPrice : 1
+        const firstBidAmount = Math.round((startingPrice + 1) * 100) / 100
         preBidDebug.firstBidAmount = firstBidAmount
         preBidDebug.preBidAmount = preBidAmount
 
