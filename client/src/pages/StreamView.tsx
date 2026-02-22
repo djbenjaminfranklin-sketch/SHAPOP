@@ -1539,7 +1539,7 @@ export default function StreamView() {
       const resp = await apiFetch(`/api/items/${activeAuction.id}/max-bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ max_amount: amount }),
       })
       if (resp.ok) {
         setHasActiveMaxBid(true)
