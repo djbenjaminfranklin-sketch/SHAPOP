@@ -697,7 +697,13 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
               const egresses = await livekitEgressClient!.listEgress({ egressId })
               const egress = egresses[0]
               if (!egress) { console.log(`[egress-poll] Egress ${egressId} not found`); return }
-              console.log(`[egress-poll] Attempt ${attempt + 1}: status=${egress.status}, fileResults=${egress.fileResults?.length || 0}`)
+              console.log(`[egress-poll] Attempt ${attempt + 1}: status=${egress.status}, fileResults=${egress.fileResults?.length || 0}, error=${egress.error || 'none'}`)
+              // Status 4 = EGRESS_FAILED
+              if (egress.status === 4) {
+                console.error(`[egress-poll] Egress FAILED for stream ${sid}. Error: ${egress.error}`)
+                console.error(`[egress-poll] Full egress info:`, JSON.stringify(egress, null, 2))
+                return
+              }
               if (egress.fileResults && egress.fileResults.length > 0) {
                 const fileInfo = egress.fileResults[0]
                 const fileLocation = fileInfo.location || fileInfo.filename
