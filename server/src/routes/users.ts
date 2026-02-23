@@ -611,6 +611,42 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       recording_url: o.stream_id ? (streamRecordings[o.stream_id as string] || null) : null,
     }))
 
+    // ─── Account Health Metrics ───
+    // All orders (including refunded/disputed/cancelled) for health calculation
+    const { data: allOrdersForHealth } = await supabase
+      .from('orders')
+      .select('status, created_at, shipped_at')
+      .eq('seller_id', userId)
+
+    const healthOrders = allOrdersForHealth || []
+    const totalOrderCount = healthOrders.length
+
+    // Dispute rate
+    const disputeCount = healthOrders.filter((o: Record<string, unknown>) => o.status === 'disputed').length
+    const disputeRate = totalOrderCount > 0 ? Math.round((disputeCount / totalOrderCount) * 1000) / 10 : 0
+
+    // Cancellation / refund rate
+    const cancelCount = healthOrders.filter((o: Record<string, unknown>) => o.status === 'refunded' || o.status === 'cancelled').length
+    const cancelRate = totalOrderCount > 0 ? Math.round((cancelCount / totalOrderCount) * 1000) / 10 : 0
+
+    // Completion rate (shipped + delivered + completed)
+    const completedCount = healthOrders.filter((o: Record<string, unknown>) =>
+      ['shipped', 'delivered', 'completed'].includes(o.status as string)
+    ).length
+    const completionRate = totalOrderCount > 0 ? Math.round((completedCount / totalOrderCount) * 1000) / 10 : 0
+
+    // Average shipping time (days between created_at and shipped_at)
+    const shippedOrders = healthOrders.filter((o: Record<string, unknown>) => o.shipped_at && o.created_at)
+    let avgShippingDays = 0
+    if (shippedOrders.length > 0) {
+      const totalDays = shippedOrders.reduce((sum: number, o: Record<string, unknown>) => {
+        const created = new Date(o.created_at as string).getTime()
+        const shipped = new Date(o.shipped_at as string).getTime()
+        return sum + Math.max(0, (shipped - created) / (1000 * 60 * 60 * 24))
+      }, 0)
+      avgShippingDays = Math.round((totalDays / shippedOrders.length) * 10) / 10
+    }
+
     res.json({
       total_revenue: Math.round(total_revenue * 100) / 100,
       total_sales,
@@ -620,6 +656,14 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
       avg_viewers,
       recent_orders,
       monthly_revenue: Math.round(monthly_revenue * 100) / 100,
+      // Health metrics
+      health: {
+        dispute_rate: disputeRate,
+        cancel_rate: cancelRate,
+        completion_rate: completionRate,
+        avg_shipping_days: avgShippingDays,
+        total_orders: totalOrderCount,
+      },
     })
   } catch (err) {
     console.error('[seller/dashboard] Error:', err)

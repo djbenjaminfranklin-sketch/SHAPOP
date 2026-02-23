@@ -72,6 +72,10 @@ const pageContent = {
     minPriceHint: 'Si aucune enchere n\'atteint ce prix, l\'article sera invendu',
     buyNowPrice: 'Prix achat immediat (optionnel)',
     buyNowHint: 'Permet d\'acheter l\'article sans encherir',
+    csvUpload: 'Importer CSV',
+    csvImporting: 'Import en cours...',
+    csvImported: '{n} articles importes',
+    csvError: 'Erreur CSV',
     deleteStream: 'Supprimer ce live',
     deleteStreamConfirm: 'Supprimer ce live et tous ses articles ? Cette action est irreversible.',
     scheduledDate: 'Date programmee',
@@ -121,6 +125,10 @@ const pageContent = {
     minPriceHint: 'If no bid reaches this price, the item will be unsold',
     buyNowPrice: 'Buy now price (optional)',
     buyNowHint: 'Allows instant purchase without bidding',
+    csvUpload: 'Import CSV',
+    csvImporting: 'Importing...',
+    csvImported: '{n} items imported',
+    csvError: 'CSV error',
     deleteStream: 'Delete this live',
     deleteStreamConfirm: 'Delete this live and all its items? This action cannot be undone.',
     scheduledDate: 'Scheduled date',
@@ -170,6 +178,10 @@ const pageContent = {
     minPriceHint: 'אם אף הצעה לא מגיעה למחיר זה, הפריט יהיה לא נמכר',
     buyNowPrice: '(מחיר קנייה מיידית (אופציונלי',
     buyNowHint: 'מאפשר קנייה מיידית ללא הצעות',
+    csvUpload: 'CSV יבוא',
+    csvImporting: '...מייבא',
+    csvImported: 'פריטים יובאו {n}',
+    csvError: 'CSV שגיאת',
     deleteStream: 'מחק שידור זה',
     deleteStreamConfirm: 'למחוק את השידור ואת כל הפריטים? פעולה זו בלתי הפיכה.',
     scheduledDate: 'תאריך מתוזמן',
@@ -219,6 +231,10 @@ const pageContent = {
     minPriceHint: 'Si ninguna puja alcanza este precio, el articulo no se vendera',
     buyNowPrice: 'Precio compra inmediata (opcional)',
     buyNowHint: 'Permite comprar sin pujar',
+    csvUpload: 'Importar CSV',
+    csvImporting: 'Importando...',
+    csvImported: '{n} articulos importados',
+    csvError: 'Error CSV',
     deleteStream: 'Eliminar este directo',
     deleteStreamConfirm: 'Eliminar este directo y todos sus articulos? Esta accion es irreversible.',
     scheduledDate: 'Fecha programada',
@@ -286,6 +302,8 @@ export default function PrepareLivePage() {
   const [formWeight, setFormWeight] = useState('')
   const [formShippingOverride, setFormShippingOverride] = useState('')
   const [formBuyNowPrice, setFormBuyNowPrice] = useState('')
+  const [csvImporting, setCsvImporting] = useState(false)
+  const csvInputRef = useRef<HTMLInputElement>(null)
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
   const [loadingShipping, setLoadingShipping] = useState(false)
   const [formError, setFormError] = useState('')
@@ -548,6 +566,99 @@ export default function PrepareLivePage() {
     setShippingOptions([])
     setShowForm(false)
     setSaving(false)
+  }
+
+  const handleCsvImport = async (file: File) => {
+    if (!user || !streamId) return
+    setCsvImporting(true)
+    try {
+      const text = await file.text()
+      const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+      if (lines.length < 2) { alert(ct.csvError + ': fichier vide'); setCsvImporting(false); return }
+
+      // Parse header
+      const header = lines[0].toLowerCase().split(/[;,]/).map(h => h.trim())
+      const titleIdx = header.findIndex(h => h === 'title' || h === 'titre')
+      const priceIdx = header.findIndex(h => h === 'price' || h === 'prix' || h === 'starting_price')
+      if (titleIdx === -1 || priceIdx === -1) {
+        alert(ct.csvError + ': colonnes "title" et "price" requises')
+        setCsvImporting(false)
+        return
+      }
+      const minPriceIdx = header.findIndex(h => h === 'min_price' || h === 'prix_min')
+      const buyNowIdx = header.findIndex(h => h === 'buy_now' || h === 'buy_now_price' || h === 'achat_immediat')
+      const categoryIdx = header.findIndex(h => h === 'category' || h === 'categorie')
+      const durationIdx = header.findIndex(h => h === 'duration' || h === 'duree')
+      const weightIdx = header.findIndex(h => h === 'weight' || h === 'poids')
+      const qtyIdx = header.findIndex(h => h === 'qty' || h === 'quantity' || h === 'quantite')
+
+      const newItems: DraftItem[] = []
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(/[;,]/).map(c => c.trim())
+        const title = cols[titleIdx]
+        const price = parseFloat(cols[priceIdx])
+        if (!title || isNaN(price) || price <= 0) continue
+
+        const minPrice = minPriceIdx >= 0 ? parseFloat(cols[minPriceIdx]) || null : null
+        const buyNowPrice = buyNowIdx >= 0 ? parseFloat(cols[buyNowIdx]) || null : null
+        const category = categoryIdx >= 0 ? (cols[categoryIdx] || 'other') : 'other'
+        const duration = durationIdx >= 0 ? (parseInt(cols[durationIdx], 10) || 60) : 60
+        const weightGrams = weightIdx >= 0 ? (parseInt(cols[weightIdx], 10) || null) : null
+        const qty = qtyIdx >= 0 ? Math.max(1, Math.min(parseInt(cols[qtyIdx], 10) || 1, 50)) : 1
+
+        for (let q = 0; q < qty; q++) {
+          const itemTitle = qty > 1 ? `${title} #${q + 1}` : title
+          const lotNumber = items.length + newItems.length + 1
+
+          const { data, error } = await supabase
+            .from('items')
+            .insert({
+              seller_id: user.id,
+              stream_id: streamId,
+              title: itemTitle,
+              starting_price: price,
+              current_price: price,
+              min_price: (minPrice && minPrice > 0) ? minPrice : null,
+              buy_now_price: (buyNowPrice && buyNowPrice > 0) ? buyNowPrice : null,
+              category,
+              status: 'draft' as const,
+              duration_seconds: duration,
+              weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
+            })
+            .select()
+            .single()
+
+          if (error) { console.error('CSV insert error:', error); continue }
+          if (data) {
+            newItems.push({
+              id: data.id,
+              title: data.title,
+              starting_price: data.starting_price,
+              min_price: data.min_price || null,
+              buy_now_price: data.buy_now_price || null,
+              category: data.category,
+              image_url: null,
+              lot_number: lotNumber,
+              duration_seconds: duration,
+              weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
+              seller_shipping_override: null,
+            })
+          }
+        }
+      }
+
+      if (newItems.length > 0) {
+        setItems(prev => [...prev, ...newItems])
+        alert(ct.csvImported.replace('{n}', String(newItems.length)))
+      } else {
+        alert(ct.csvError + ': aucun article valide')
+      }
+    } catch (err) {
+      console.error('CSV import error:', err)
+      alert(ct.csvError)
+    }
+    setCsvImporting(false)
+    if (csvInputRef.current) csvInputRef.current.value = ''
   }
 
   const persistLotNumbers = async (updatedItems: DraftItem[]) => {
@@ -1531,24 +1642,58 @@ export default function PrepareLivePage() {
         flexShrink: 0,
       }}>
         {!showForm && (
-          <button
-            onClick={() => setShowForm(true)}
-            style={{
-              width: '100%', padding: '16px',
-              backgroundColor: '#111',
-              border: '1px solid #333',
-              borderRadius: '14px',
-              color: '#fff', fontSize: '16px', fontWeight: 600,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round"/>
-              <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round"/>
-            </svg>
-            {ct.addItem}
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setShowForm(true)}
+              style={{
+                flex: 1, padding: '16px',
+                backgroundColor: '#111',
+                border: '1px solid #333',
+                borderRadius: '14px',
+                color: '#fff', fontSize: '16px', fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round"/>
+                <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round"/>
+              </svg>
+              {ct.addItem}
+            </button>
+            <button
+              onClick={() => csvInputRef.current?.click()}
+              disabled={csvImporting}
+              style={{
+                padding: '16px',
+                backgroundColor: '#111',
+                border: '1px solid rgba(139,92,246,0.4)',
+                borderRadius: '14px',
+                color: '#8B5CF6', fontSize: '12px', fontWeight: 700,
+                cursor: csvImporting ? 'default' : 'pointer',
+                opacity: csvImporting ? 0.5 : 1,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              {csvImporting ? ct.csvImporting : ct.csvUpload}
+            </button>
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              style={{ display: 'none' }}
+              onChange={e => {
+                const file = e.target.files?.[0]
+                if (file) handleCsvImport(file)
+              }}
+            />
+          </div>
         )}
 
         <button

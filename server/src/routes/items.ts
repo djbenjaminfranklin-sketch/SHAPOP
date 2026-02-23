@@ -403,6 +403,68 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
   }
 })
 
+// Tips — charge buyer's saved card and send chat message
+router.post('/api/streams/:streamId/tip', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { streamId } = req.params
+    const { amount } = req.body
+    const tipAmount = parseFloat(amount)
+
+    if (!tipAmount || tipAmount < 1 || tipAmount > 100) {
+      res.status(400).json({ error: 'Invalid tip amount (1-100€)' }); return
+    }
+
+    // Get stream + seller
+    const { data: stream } = await supabase.from('streams').select('seller_id').eq('id', streamId).single()
+    if (!stream) { res.status(404).json({ error: 'Stream not found' }); return }
+    if (stream.seller_id === userId) { res.status(400).json({ error: 'Cannot tip yourself' }); return }
+
+    // Get buyer's stripe customer + payment method
+    const { data: profile } = await supabase.from('profiles').select('stripe_customer_id, display_name').eq('id', userId).single()
+    if (!profile?.stripe_customer_id) { res.status(400).json({ error: 'card_required' }); return }
+
+    const pms = await stripe.paymentMethods.list({ customer: profile.stripe_customer_id, type: 'card', limit: 1 })
+    if (pms.data.length === 0) { res.status(400).json({ error: 'card_required' }); return }
+
+    // Charge the card
+    const amountCents = Math.round(tipAmount * 100)
+    const pi = await stripe.paymentIntents.create({
+      amount: amountCents,
+      currency: 'eur',
+      customer: profile.stripe_customer_id,
+      payment_method: pms.data[0].id,
+      off_session: true,
+      confirm: true,
+      payment_method_types: ['card'],
+      metadata: { stream_id: String(streamId), tipper_id: userId, type: 'tip' },
+      description: `ShaPop - Tip ${tipAmount}€ pour le live`,
+    })
+
+    if (pi.status !== 'succeeded') {
+      res.status(400).json({ error: 'Payment failed' }); return
+    }
+
+    // Send chat message
+    const displayName = profile.display_name || 'Anonyme'
+    await supabase.from('chat_messages').insert({
+      stream_id: streamId,
+      user_id: userId,
+      message: `💰 ${displayName} a envoye un tip de ${tipAmount}€`,
+      type: 'system',
+    })
+
+    res.json({ success: true, amount: tipAmount })
+  } catch (err: any) {
+    console.error('Tip error:', err)
+    if (err?.code === 'authentication_required') {
+      res.status(400).json({ error: 'card_requires_auth' })
+    } else {
+      res.status(500).json({ error: 'Tip failed' })
+    }
+  }
+})
+
 // Create AI Express listing (bypasses RLS)
 router.post('/api/items/create-listing', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {

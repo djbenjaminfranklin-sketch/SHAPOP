@@ -59,6 +59,16 @@ const pageContent = {
     giftActive: 'Cadeau en cours',
     giftCancel: 'Annuler',
     giftWinner: 'a gagne le cadeau !',
+    returningBuyers: 'fideles',
+    newBuyers: 'nouveaux',
+    obsTitle: 'Streamer depuis OBS',
+    obsUrl: 'URL RTMP',
+    obsKey: 'Cle de stream',
+    obsCopied: 'Copie !',
+    obsLoading: 'Generation...',
+    obsDesc: 'Collez ces infos dans OBS > Parametres > Stream',
+    boostLive: 'Booster',
+    boostActive: 'Booste !',
   },
   en: {
     live: 'LIVE',
@@ -108,6 +118,16 @@ const pageContent = {
     giftActive: 'Gift active',
     giftCancel: 'Cancel',
     giftWinner: 'won the gift!',
+    returningBuyers: 'returning',
+    newBuyers: 'new',
+    obsTitle: 'Stream from OBS',
+    obsUrl: 'RTMP URL',
+    obsKey: 'Stream Key',
+    obsCopied: 'Copied!',
+    obsLoading: 'Generating...',
+    obsDesc: 'Paste these in OBS > Settings > Stream',
+    boostLive: 'Boost',
+    boostActive: 'Boosted!',
   },
   he: {
     live: 'שידור',
@@ -157,6 +177,16 @@ const pageContent = {
     giftActive: 'מתנה פעילה',
     giftCancel: 'ביטול',
     giftWinner: 'זכה במתנה!',
+    returningBuyers: 'חוזרים',
+    newBuyers: 'חדשים',
+    obsTitle: 'שדר מ-OBS',
+    obsUrl: 'כתובת RTMP',
+    obsKey: 'מפתח שידור',
+    obsCopied: '!הועתק',
+    obsLoading: '...יוצר',
+    obsDesc: 'הדבק ב-OBS > הגדרות > שידור',
+    boostLive: 'בוסט',
+    boostActive: '!בוסט פעיל',
   },
   es: {
     live: 'EN VIVO',
@@ -206,6 +236,16 @@ const pageContent = {
     giftActive: 'Regalo activo',
     giftCancel: 'Cancelar',
     giftWinner: 'gano el regalo!',
+    returningBuyers: 'fieles',
+    newBuyers: 'nuevos',
+    obsTitle: 'Transmitir desde OBS',
+    obsUrl: 'URL RTMP',
+    obsKey: 'Clave de stream',
+    obsCopied: 'Copiado!',
+    obsLoading: 'Generando...',
+    obsDesc: 'Pega esto en OBS > Ajustes > Emision',
+    boostLive: 'Impulsar',
+    boostActive: 'Impulsado!',
   },
 }
 
@@ -251,6 +291,7 @@ export default function LiveSellerView() {
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([])
   const [timeLeft, setTimeLeft] = useState(-1) // -1 = not started, 0 = finished, >0 = counting
   const [viewerCount, setViewerCount] = useState(0)
+  const [buyerStats, setBuyerStats] = useState<{ returning: number; new: number } | null>(null)
   const [liveEnded, setLiveEnded] = useState(false)
   const autoResolvedRef = useRef<string | null>(null) // tracks item ID already auto-resolved
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -273,6 +314,15 @@ export default function LiveSellerView() {
   const [addItemQuantity, setAddItemQuantity] = useState(1)
   const [addItemDuration, setAddItemDuration] = useState(60)
   const [addingItem, setAddingItem] = useState(false)
+
+  // Boost
+  const [isBoosted, setIsBoosted] = useState(false)
+
+  // OBS/RTMP
+  const [showObsModal, setShowObsModal] = useState(false)
+  const [obsData, setObsData] = useState<{ rtmp_url: string; stream_key: string } | null>(null)
+  const [obsLoading, setObsLoading] = useState(false)
+  const [obsCopied, setObsCopied] = useState<string | null>(null)
 
   // Giveaway
   const [showGiveawayForm, setShowGiveawayForm] = useState(false)
@@ -541,6 +591,34 @@ export default function LiveSellerView() {
     channel.subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [streamId])
+
+  // Buyer stats: returning vs new — refresh when items change (new sale)
+  useEffect(() => {
+    if (!user || !streamId) return
+    const fetchBuyerStats = async () => {
+      // Get all unique buyers for this stream
+      const { data: streamOrders } = await supabase
+        .from('orders')
+        .select('buyer_id')
+        .eq('stream_id', streamId)
+      if (!streamOrders || streamOrders.length === 0) { setBuyerStats({ returning: 0, new: 0 }); return }
+
+      const uniqueBuyers = [...new Set(streamOrders.map(o => o.buyer_id))]
+
+      // For each buyer, check if they have orders with this seller BEFORE this stream
+      const { data: previousOrders } = await supabase
+        .from('orders')
+        .select('buyer_id')
+        .eq('seller_id', user.id)
+        .neq('stream_id', streamId)
+        .in('buyer_id', uniqueBuyers)
+
+      const returningBuyerIds = new Set((previousOrders || []).map(o => o.buyer_id))
+      const returning = uniqueBuyers.filter(id => returningBuyerIds.has(id)).length
+      setBuyerStats({ returning, new: uniqueBuyers.length - returning })
+    }
+    fetchBuyerStats()
+  }, [user, streamId, items])
 
   // Giveaway realtime: listen for new entries to update counter
   useEffect(() => {
@@ -921,6 +999,52 @@ export default function LiveSellerView() {
     }
   }
 
+  const handleGetRtmpUrl = async () => {
+    if (obsData) { setShowObsModal(true); return }
+    setObsLoading(true)
+    setShowObsModal(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      const resp = await apiFetch(`/api/streams/${streamId}/rtmp-url`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (resp.ok) {
+        const data = await resp.json()
+        setObsData({ rtmp_url: data.rtmp_url, stream_key: data.stream_key })
+      }
+    } catch (err) { console.error('RTMP URL error:', err) }
+    finally { setObsLoading(false) }
+  }
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try { await navigator.clipboard.writeText(text) } catch { /* */ }
+    setObsCopied(label)
+    setTimeout(() => setObsCopied(null), 2000)
+  }
+
+  const handleBoostLive = async () => {
+    if (isBoosted) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) { alert('No token'); return }
+      const resp = await apiFetch(`/api/streams/${streamId}/boost`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (resp.ok) {
+        setIsBoosted(true)
+      } else {
+        const err = await resp.json().catch(() => ({}))
+        console.error('Boost failed:', resp.status, err)
+        alert(`Boost failed: ${err.error || resp.status}`)
+      }
+    } catch (err) { console.error('Boost error:', err); alert('Boost error: ' + err) }
+  }
+
   const handleEndLive = async () => {
     // Stop LiveKit broadcast
     stopBroadcast()
@@ -1215,6 +1339,31 @@ export default function LiveSellerView() {
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{viewerCount}</span>
         </div>
 
+        {/* Buyer stats badge */}
+        {buyerStats && (buyerStats.returning > 0 || buyerStats.new > 0) && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            borderRadius: '100px',
+            padding: '4px 10px',
+            backdropFilter: 'blur(8px)',
+          }}>
+            {buyerStats.returning > 0 && (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#8B5CF6' }}>
+                {buyerStats.returning} {ct.returningBuyers}
+              </span>
+            )}
+            {buyerStats.returning > 0 && buyerStats.new > 0 && (
+              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>|</span>
+            )}
+            {buyerStats.new > 0 && (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#10B981' }}>
+                {buyerStats.new} {ct.newBuyers}
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Right: camera + gift + end */}
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           <button
@@ -1233,6 +1382,43 @@ export default function LiveSellerView() {
               <polyline points="16 12 12 8 8 12"/>
               <polyline points="16 12 12 16 8 12"/>
             </svg>
+          </button>
+          <button
+            onClick={handleGetRtmpUrl}
+            title="OBS"
+            style={{
+              width: '34px', height: '34px', borderRadius: '50%',
+              backgroundColor: obsData ? 'rgba(96,165,250,0.3)' : 'rgba(0,0,0,0.5)',
+              backdropFilter: 'blur(8px)',
+              border: obsData ? '1px solid rgba(96,165,250,0.4)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={obsData ? '#60a5fa' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </button>
+          <button
+            onClick={handleBoostLive}
+            style={{
+              height: '34px', padding: '0 10px',
+              borderRadius: '100px',
+              background: isBoosted
+                ? 'linear-gradient(135deg, #10B981, #059669)'
+                : 'linear-gradient(135deg, #F59E0B, #D97706)',
+              border: 'none',
+              display: 'flex', alignItems: 'center', gap: '4px',
+              cursor: isBoosted ? 'default' : 'pointer',
+              opacity: isBoosted ? 0.8 : 1,
+            }}
+          >
+            <span style={{ fontSize: '12px', lineHeight: 1 }}>⚡</span>
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff' }}>
+              {isBoosted ? ct.boostActive : ct.boostLive}
+            </span>
           </button>
           <button
             onClick={() => setShowGiveawayForm(true)}
@@ -1940,6 +2126,114 @@ export default function LiveSellerView() {
       )}
 
       {/* End confirm modal */}
+      {/* ═══ OBS/RTMP MODAL ═══ */}
+      {showObsModal && (
+        <div
+          onClick={() => setShowObsModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '400px',
+              backgroundColor: '#1a1a1a',
+              borderRadius: '20px 20px 0 0',
+              padding: '24px 20px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.obsTitle}</h3>
+            </div>
+
+            {obsLoading ? (
+              <div style={{ textAlign: 'center', padding: '30px 0' }}>
+                <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+                <p style={{ fontSize: '13px', color: '#888', marginTop: '10px' }}>{ct.obsLoading}</p>
+              </div>
+            ) : obsData ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>{ct.obsDesc}</p>
+
+                {/* RTMP URL */}
+                <div>
+                  <p style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>{ct.obsUrl}</p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      readOnly
+                      value={obsData.rtmp_url}
+                      style={{
+                        flex: 1, padding: '10px 12px', borderRadius: '10px',
+                        backgroundColor: '#111', border: '1px solid #333',
+                        color: '#fff', fontSize: '12px', fontFamily: 'monospace',
+                      }}
+                    />
+                    <button
+                      onClick={() => copyToClipboard(obsData.rtmp_url, 'url')}
+                      style={{
+                        padding: '0 14px', borderRadius: '10px',
+                        backgroundColor: obsCopied === 'url' ? '#10B981' : '#333',
+                        border: 'none', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      {obsCopied === 'url' ? ct.obsCopied : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Stream Key */}
+                <div>
+                  <p style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>{ct.obsKey}</p>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      readOnly
+                      value={obsData.stream_key}
+                      style={{
+                        flex: 1, padding: '10px 12px', borderRadius: '10px',
+                        backgroundColor: '#111', border: '1px solid #333',
+                        color: '#fff', fontSize: '12px', fontFamily: 'monospace',
+                      }}
+                    />
+                    <button
+                      onClick={() => copyToClipboard(obsData.stream_key, 'key')}
+                      style={{
+                        padding: '0 14px', borderRadius: '10px',
+                        backgroundColor: obsCopied === 'key' ? '#10B981' : '#333',
+                        border: 'none', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      {obsCopied === 'key' ? ct.obsCopied : 'Copy'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p style={{ fontSize: '13px', color: '#f87171', textAlign: 'center' }}>Erreur</p>
+            )}
+
+            <button
+              onClick={() => setShowObsModal(false)}
+              style={{
+                width: '100%', padding: '14px', marginTop: '16px',
+                borderRadius: '12px', background: '#222', border: 'none',
+                color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
+
       {showEndConfirm && (
         <div
           onClick={e => e.stopPropagation()}

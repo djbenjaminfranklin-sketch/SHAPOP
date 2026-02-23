@@ -8,6 +8,7 @@ interface StreamSidebarProps {
   onClipClick?: () => void
   onShopClick?: () => void
   onLikeClick?: () => void
+  onTipClick?: () => void
   lang: 'fr' | 'en' | 'he' | 'es'
 }
 
@@ -18,6 +19,7 @@ const translations: Record<string, Record<StreamSidebarProps['lang'], string>> =
   shop: { fr: 'Boutique', en: 'Shop', he: 'חנות', es: 'Tienda' },
   wallet: { fr: 'Paiement', en: 'Payment', he: 'תשלום', es: 'Pago' },
   more: { fr: 'Plus', en: 'More', he: 'עוד', es: 'Más' },
+  tip: { fr: 'Tip', en: 'Tip', he: 'טיפ', es: 'Tip' },
 }
 
 const buttonStyle: React.CSSProperties = {
@@ -47,7 +49,7 @@ const labelStyle: React.CSSProperties = {
   textShadow: '0 1px 2px rgba(0,0,0,0.6)',
 }
 
-export default function StreamSidebar({ streamId, onShare, onWalletClick, onMoreClick, onClipClick, onShopClick, onLikeClick, lang }: StreamSidebarProps) {
+export default function StreamSidebar({ streamId, onShare, onWalletClick, onMoreClick, onClipClick, onShopClick, onLikeClick, onTipClick, lang }: StreamSidebarProps) {
   const t = useCallback((key: string) => translations[key]?.[lang] || key, [lang])
   const [liked, setLiked] = useState(false)
 
@@ -131,6 +133,19 @@ export default function StreamSidebar({ streamId, onShare, onWalletClick, onMore
         </button>
         <span style={labelStyle}>{t('wallet')}</span>
       </div>
+
+      {/* Tip */}
+      {onTipClick && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <button style={{ ...buttonStyle, background: 'linear-gradient(135deg, rgba(255,215,0,0.3), rgba(255,165,0,0.3))', border: '1px solid rgba(255,215,0,0.4)' }} aria-label={t('tip')} onClick={onTipClick}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+            </svg>
+          </button>
+          <span style={{ ...labelStyle, color: '#FFD700' }}>{t('tip')}</span>
+        </div>
+      )}
 
       {/* More / Plus */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

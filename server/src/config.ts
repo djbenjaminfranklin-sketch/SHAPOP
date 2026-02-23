@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { Resend } from 'resend'
-import { RoomServiceClient, WebhookReceiver, EgressClient } from 'livekit-server-sdk'
+import { RoomServiceClient, WebhookReceiver, EgressClient, IngressClient } from 'livekit-server-sdk'
 
 dotenv.config()
 
@@ -68,6 +68,10 @@ export const livekitRoomService = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVE
 
 export const livekitEgressClient = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_URL)
   ? new EgressClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
+  : null
+
+export const livekitIngressClient = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_URL)
+  ? new IngressClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
   : null
 
 export const LIVEKIT_RECORDING_BUCKET = process.env.LIVEKIT_RECORDING_BUCKET || ''

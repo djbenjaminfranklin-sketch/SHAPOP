@@ -116,6 +116,16 @@ const streamContent = {
     walletNoRelay: 'Aucun point relais',
     pickupOption: 'Retrait en main propre (0€)',
     pickupSelected: 'Retrait en main propre — pas de frais de port',
+    tipTitle: 'Envoyer un pourboire',
+    tipSent: 'Pourboire envoye !',
+    tipMessage: 'a envoye un tip de',
+    modDelete: 'Supprimer',
+    modTimeout: 'Timeout 5 min',
+    modMake: 'Nommer moderateur',
+    modRemove: 'Retirer moderateur',
+    modAdded: 'est maintenant moderateur',
+    msgDeleted: 'Message supprime',
+    userTimedOut: 'est en timeout pour 5 min',
   },
   en: {
     viewers: 'viewers',
@@ -210,6 +220,16 @@ const streamContent = {
     walletNoRelay: 'No relay point',
     pickupOption: 'Self pickup (free)',
     pickupSelected: 'Self pickup — no shipping fees',
+    tipTitle: 'Send a tip',
+    tipSent: 'Tip sent!',
+    tipMessage: 'sent a tip of',
+    modDelete: 'Delete',
+    modTimeout: 'Timeout 5 min',
+    modMake: 'Make moderator',
+    modRemove: 'Remove moderator',
+    modAdded: 'is now a moderator',
+    msgDeleted: 'Message deleted',
+    userTimedOut: 'timed out for 5 min',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -304,6 +324,16 @@ const streamContent = {
     walletNoRelay: 'אין נקודת איסוף',
     pickupOption: 'איסוף עצמי (חינם)',
     pickupSelected: 'איסוף עצמי — ללא דמי משלוח',
+    tipTitle: 'שלח טיפ',
+    tipSent: '!הטיפ נשלח',
+    tipMessage: 'שלח טיפ של',
+    modDelete: 'מחק',
+    modTimeout: 'השתק 5 דק',
+    modMake: 'הפוך למנהל',
+    modRemove: 'הסר מנהל',
+    modAdded: 'הפך למנהל',
+    msgDeleted: 'הודעה נמחקה',
+    userTimedOut: 'הושתק ל-5 דק',
   },
   es: {
     viewers: 'espectadores',
@@ -398,6 +428,16 @@ const streamContent = {
     walletNoRelay: 'Sin punto de recogida',
     pickupOption: 'Recoger en persona (gratis)',
     pickupSelected: 'Recoger en persona — sin gastos de envio',
+    tipTitle: 'Enviar propina',
+    tipSent: 'Propina enviada!',
+    tipMessage: 'envio una propina de',
+    modDelete: 'Eliminar',
+    modTimeout: 'Timeout 5 min',
+    modMake: 'Hacer moderador',
+    modRemove: 'Quitar moderador',
+    modAdded: 'ahora es moderador',
+    msgDeleted: 'Mensaje eliminado',
+    userTimedOut: 'en timeout por 5 min',
   },
 }
 
@@ -613,6 +653,14 @@ export default function StreamView() {
   const [cardLoading, setCardLoading] = useState(false)
   const [cardSuccess, setCardSuccess] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
+
+  // Tip modal state
+  const [showTipModal, setShowTipModal] = useState(false)
+  const [tipSending, setTipSending] = useState(false)
+
+  // Moderation state
+  const [moderatorIds, setModeratorIds] = useState<string[]>([])
+  const [modMenuMsg, setModMenuMsg] = useState<ChatMessage | null>(null)
 
   // Wallet modal state
   const [showWallet, setShowWallet] = useState(false)
@@ -1159,10 +1207,11 @@ export default function StreamView() {
     try {
       const { data } = await supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, moderator_ids')
         .eq('id', id)
         .single()
       setStream(data as Stream | null)
+      if (data?.moderator_ids) setModeratorIds(data.moderator_ids)
     } catch (err) { console.error('Failed to fetch stream:', err) }
     setLoading(false)
   }, [id])
@@ -1669,6 +1718,55 @@ export default function StreamView() {
     }
   }
 
+  // ── Moderation helpers ──
+  const canModerate = user && stream && (stream.seller_id === user.id || moderatorIds.includes(user.id))
+
+  const handleDeleteMessage = async (msgId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      await apiFetch(`/api/chat/${msgId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      setMessages(prev => prev.filter(m => m.id !== msgId))
+      setModMenuMsg(null)
+    } catch (err) { console.error('Delete msg failed:', err) }
+  }
+
+  const handleTimeoutUser = async (targetUserId: string) => {
+    if (!id) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      await apiFetch(`/api/streams/${id}/timeout`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_user_id: targetUserId, duration_minutes: 5 }),
+      })
+      setModMenuMsg(null)
+    } catch (err) { console.error('Timeout failed:', err) }
+  }
+
+  const handleMakeMod = async (targetUserId: string) => {
+    if (!id) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      const resp = await apiFetch(`/api/streams/${id}/moderators`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: targetUserId }),
+      })
+      const result = await resp.json()
+      if (result.moderator_ids) setModeratorIds(result.moderator_ids)
+      setModMenuMsg(null)
+    } catch (err) { console.error('Make mod failed:', err) }
+  }
+
   // Open card setup modal
   const openCardSetup = async () => {
     setCardError(null)
@@ -1796,6 +1894,42 @@ export default function StreamView() {
       console.error('Buy now failed:', err)
       alert('Achat immediat echoue: ' + (err?.message || 'Veuillez reessayer.'))
     }
+  }
+
+  // ═══ TIPS: send a tip to the seller via Stripe ═══
+  const handleSendTip = async (amount: number) => {
+    if (!user || !stream || !id) return
+    if (hasCard !== true) { openCardSetup(); setShowTipModal(false); return }
+
+    setTipSending(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+
+      const resp = await apiFetch(`/api/streams/${id}/tip`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount }),
+      })
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        if (err.error === 'card_required') { setHasCard(false); openCardSetup(); setShowTipModal(false); return }
+        throw new Error(err.error || 'Tip failed')
+      }
+
+      hapticTap()
+      showToast(ct.tipSent)
+      setShowTipModal(false)
+    } catch (err: any) {
+      console.error('Tip failed:', err)
+      alert(err?.message || 'Tip echoue')
+    }
+    setTipSending(false)
   }
 
   // ═══ MAX-BID: fetch status when active item changes ═══
@@ -3275,6 +3409,7 @@ export default function StreamView() {
               hapticTap()
             }}
             onWalletClick={() => setShowWallet(true)}
+            onTipClick={() => { hapticTap(); setShowTipModal(true) }}
             onMoreClick={() => setShowMoreMenu(true)}
             lang={lang}
           />
@@ -3328,12 +3463,18 @@ export default function StreamView() {
                 </div>
               )
             }
+            const isMod = moderatorIds.includes(msg.user_id)
             return (
               <div key={msg.id} style={{
                 padding: '3px 0',
                 opacity,
                 animation: 'chatMsgIn 0.3s ease',
-              }}>
+                cursor: canModerate ? 'pointer' : undefined,
+              }}
+                onContextMenu={canModerate ? (e) => { e.preventDefault(); setModMenuMsg(msg) } : undefined}
+                onClick={canModerate ? () => setModMenuMsg(msg) : undefined}
+              >
+                {isMod && <span style={{ fontSize: '10px', color: '#60a5fa', marginRight: '4px', fontWeight: 700 }}>MOD</span>}
                 <span style={{
                   fontSize: '13px', fontWeight: 800, color: '#F0908A',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
@@ -4229,6 +4370,148 @@ export default function StreamView() {
           }}
           onClose={() => setShowRelayPicker(false)}
         />
+      )}
+
+      {/* ═══ TIP MODAL ═══ */}
+      {showTipModal && (
+        <div
+          onClick={() => setShowTipModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 400,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '400px',
+              backgroundColor: '#1a1a1a',
+              borderRadius: '20px 20px 0 0',
+              padding: '24px 20px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            }}
+          >
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 16px' }}>
+              {ct.tipTitle}
+            </h3>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              {[1, 2, 5, 10].map(amount => (
+                <button
+                  key={amount}
+                  disabled={tipSending}
+                  onClick={() => handleSendTip(amount)}
+                  style={{
+                    flex: 1,
+                    padding: '14px 0',
+                    borderRadius: '14px',
+                    border: '2px solid rgba(255,215,0,0.4)',
+                    background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.15))',
+                    color: '#FFD700',
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    cursor: tipSending ? 'default' : 'pointer',
+                    opacity: tipSending ? 0.5 : 1,
+                  }}
+                >
+                  {amount}€
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MODERATION MENU ═══ */}
+      {modMenuMsg && canModerate && (
+        <div
+          onClick={() => setModMenuMsg(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '400px',
+              backgroundColor: '#1a1a1a',
+              borderRadius: '20px 20px 0 0',
+              padding: '16px 20px',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+            }}
+          >
+            {/* Message preview */}
+            <div style={{ padding: '10px 14px', backgroundColor: '#111', borderRadius: '12px', marginBottom: '14px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A' }}>
+                {modMenuMsg.user_profile?.display_name || ct.anonymous}
+              </span>
+              <p style={{ fontSize: '13px', color: '#ccc', margin: '4px 0 0', wordBreak: 'break-word' }}>
+                {modMenuMsg.message}
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <button
+                onClick={() => handleDeleteMessage(modMenuMsg.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  width: '100%', padding: '14px 16px', borderRadius: '12px',
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                  color: '#f87171', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                {ct.modDelete}
+              </button>
+
+              {modMenuMsg.user_id !== user?.id && (
+                <>
+                  <button
+                    onClick={() => handleTimeoutUser(modMenuMsg.user_id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      width: '100%', padding: '14px 16px', borderRadius: '12px',
+                      background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)',
+                      color: '#fbbf24', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                    {ct.modTimeout}
+                  </button>
+
+                  {stream?.seller_id === user?.id && !moderatorIds.includes(modMenuMsg.user_id) && (
+                    <button
+                      onClick={() => handleMakeMod(modMenuMsg.user_id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        width: '100%', padding: '14px 16px', borderRadius: '12px',
+                        background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)',
+                        color: '#60a5fa', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                      {ct.modMake}
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => setModMenuMsg(null)}
+              style={{
+                width: '100%', padding: '14px', marginTop: '10px',
+                borderRadius: '12px', background: '#222', border: 'none',
+                color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {ct.close}
+            </button>
+          </div>
+        </div>
       )}
 
       {/* ═══ MORE MENU ═══ */}

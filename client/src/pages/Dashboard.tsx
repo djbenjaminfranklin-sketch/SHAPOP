@@ -8,6 +8,14 @@ import OnboardingCelebration from '../components/seller/OnboardingCelebration'
 import CreateLiveWizard from '../components/seller/CreateLiveWizard'
 import EngagementSummary from '../components/EngagementSummary'
 
+interface HealthMetrics {
+  dispute_rate: number
+  cancel_rate: number
+  completion_rate: number
+  avg_shipping_days: number
+  total_orders: number
+}
+
 interface DashboardData {
   total_revenue: number
   total_sales: number
@@ -23,6 +31,7 @@ interface DashboardData {
     created_at: string
   }>
   monthly_revenue: number
+  health?: HealthMetrics
 }
 
 // FAQ data
@@ -758,6 +767,86 @@ export default function Dashboard() {
                 </p>
               </div>
             </div>
+
+            {/* ─── Account Health ─── */}
+            {dashboardData.health && dashboardData.health.total_orders > 0 && (() => {
+              const h = dashboardData.health!
+              const healthItems = [
+                {
+                  label: tx('Litiges', 'Disputes', 'מחלוקות', 'Disputas'),
+                  value: `${h.dispute_rate}%`,
+                  color: h.dispute_rate === 0 ? '#4ade80' : h.dispute_rate < 3 ? '#facc15' : '#f87171',
+                  icon: '⚖️',
+                },
+                {
+                  label: tx('Annulations', 'Cancellations', 'ביטולים', 'Cancelaciones'),
+                  value: `${h.cancel_rate}%`,
+                  color: h.cancel_rate < 5 ? '#4ade80' : h.cancel_rate < 15 ? '#facc15' : '#f87171',
+                  icon: '↩️',
+                },
+                {
+                  label: tx('Complétion', 'Completion', 'השלמה', 'Completado'),
+                  value: `${h.completion_rate}%`,
+                  color: h.completion_rate > 90 ? '#4ade80' : h.completion_rate > 70 ? '#facc15' : '#f87171',
+                  icon: '✅',
+                },
+                {
+                  label: tx('Délai expédition', 'Ship time', 'זמן משלוח', 'Envío'),
+                  value: `${h.avg_shipping_days}j`,
+                  color: h.avg_shipping_days <= 2 ? '#4ade80' : h.avg_shipping_days <= 4 ? '#facc15' : '#f87171',
+                  icon: '📦',
+                },
+              ]
+              // Overall health: green if all green, yellow if any yellow, red if any red
+              const colors = healthItems.map(i => i.color)
+              const overallColor = colors.includes('#f87171') ? '#f87171' : colors.includes('#facc15') ? '#facc15' : '#4ade80'
+              const overallLabel = overallColor === '#4ade80'
+                ? tx('Excellent', 'Excellent', 'מצוין', 'Excelente')
+                : overallColor === '#facc15'
+                  ? tx('Attention', 'Warning', 'אזהרה', 'Atención')
+                  : tx('Critique', 'Critical', 'קריטי', 'Crítico')
+
+              return (
+                <div style={{ ...cardStyle, marginTop: '4px', marginBottom: '12px', padding: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                      {tx('Santé du compte', 'Account Health', 'בריאות החשבון', 'Salud de la cuenta')}
+                    </p>
+                    <span style={{
+                      fontSize: '10px', fontWeight: 700, color: overallColor,
+                      padding: '3px 10px', borderRadius: '8px',
+                      backgroundColor: `${overallColor}15`,
+                      textTransform: 'uppercase', letterSpacing: '0.3px',
+                    }}>
+                      {overallLabel}
+                    </span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    {healthItems.map((item, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        padding: '10px 12px', borderRadius: '12px',
+                        backgroundColor: '#111', border: `1px solid ${item.color}20`,
+                      }}>
+                        <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: '10px', color: '#888', fontWeight: 600 }}>{item.label}</p>
+                          <p style={{ fontSize: '16px', fontWeight: 800, color: item.color, letterSpacing: '-0.3px' }}>{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: '10px', color: '#555', marginTop: '10px', textAlign: 'center' }}>
+                    {tx(
+                      `Basé sur ${h.total_orders} commandes`,
+                      `Based on ${h.total_orders} orders`,
+                      `מבוסס על ${h.total_orders} הזמנות`,
+                      `Basado en ${h.total_orders} pedidos`
+                    )}
+                  </p>
+                </div>
+              )
+            })()}
 
             {/* ─── Recent Orders ─── */}
             {dashboardData.recent_orders.length > 0 && (

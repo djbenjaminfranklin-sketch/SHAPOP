@@ -96,6 +96,11 @@ export default function BottomNav() {
       label: tx('Mon profil', 'My profile', 'הפרופיל שלי', 'Mi perfil', lang),
       to: `/seller/${user.id}`,
     },
+    ...(profile?.is_seller ? [{
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
+      label: tx('Tableau de bord', 'Dashboard', 'לוח בקרה', 'Panel de control', lang),
+      to: '/dashboard',
+    }] : []),
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
       label: tx('Mon compte', 'My account', 'החשבון שלי', 'Mi cuenta', lang),

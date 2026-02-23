@@ -115,6 +115,22 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           </div>
         )}
 
+        {/* Boost badge */}
+        {(stream as any).is_boosted && (
+          <div style={{ position: 'absolute', bottom: '10px', left: '10px' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: '4px',
+              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+              color: '#fff', fontSize: '10px', fontWeight: 800,
+              padding: '3px 8px', borderRadius: '6px',
+              letterSpacing: '0.5px',
+              boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+            }}>
+              ⚡ BOOST
+            </span>
+          </div>
+        )}
+
         {/* Match score badge */}
         {stream.matching_score != null && stream.matching_score > 50 && (
           <div style={{ position: 'absolute', top: '10px', right: '8px' }}>

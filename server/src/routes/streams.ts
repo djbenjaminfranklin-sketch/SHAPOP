@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { AccessToken } from 'livekit-server-sdk'
-import { supabase, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
+import { supabase, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
 import { EncodedFileOutput, S3Upload } from 'livekit-server-sdk'
 import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore } from '../utils'
@@ -592,6 +592,74 @@ router.post('/api/streams/:id/create-livekit-room', requireAuth, async (req: Aut
   }
 })
 
+// Generate an RTMP ingress URL for OBS streaming
+router.post('/api/streams/:id/rtmp-url', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, livekit_room_name, rtmp_ingress_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    if (!livekitIngressClient || !livekitRoomService) {
+      res.status(500).json({ error: 'LiveKit not configured' })
+      return
+    }
+
+    // Create room if needed
+    let roomName = stream.livekit_room_name
+    if (!roomName) {
+      roomName = `stream-${streamId}`
+      await livekitRoomService.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: 500 })
+      await supabase.from('streams').update({ livekit_room_name: roomName }).eq('id', streamId)
+    }
+
+    // If we already have an ingress, return it
+    if (stream.rtmp_ingress_id) {
+      try {
+        const ingressList = await livekitIngressClient.listIngress({ roomName })
+        const existing = ingressList.find((i: any) => i.ingressId === stream.rtmp_ingress_id)
+        if (existing) {
+          res.json({
+            rtmp_url: existing.url,
+            stream_key: existing.streamKey,
+            ingress_id: existing.ingressId,
+          })
+          return
+        }
+      } catch { /* ingress may have expired, create new one */ }
+    }
+
+    // Create new RTMP ingress
+    const { IngressInput } = await import('livekit-server-sdk')
+    const ingress = await livekitIngressClient.createIngress(IngressInput.RTMP_INPUT, {
+      name: `OBS-${streamId}`,
+      roomName,
+      participantIdentity: `seller-${req.user!.id}`,
+      participantName: 'Seller (OBS)',
+    })
+
+    // Save ingress ID
+    await supabase.from('streams').update({ rtmp_ingress_id: ingress.ingressId }).eq('id', streamId)
+
+    res.json({
+      rtmp_url: ingress.url,
+      stream_key: ingress.streamKey,
+      ingress_id: ingress.ingressId,
+    })
+  } catch (err: any) {
+    console.error('[rtmp-url] Error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to create RTMP ingress', details: err?.message })
+  }
+})
+
 // Generate a LiveKit access token for a stream
 router.post('/api/streams/:id/livekit-token', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -1060,6 +1128,49 @@ router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedReq
     res.json(updated)
   } catch (err) {
     console.error('POST /api/giveaways/:id/draw error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// SHOW BOOST / PROMOTE
+// =============================================
+router.post('/api/streams/:id/boost', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+    const userId = req.user!.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, status, is_boosted')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    if (stream.status !== 'live' && stream.status !== 'scheduled') {
+      res.status(400).json({ error: 'Can only boost live or scheduled streams' })
+      return
+    }
+
+    if (stream.is_boosted) {
+      res.json({ ok: true, already_boosted: true })
+      return
+    }
+
+    // Boost for 24 hours
+    const boostedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    await supabase.from('streams').update({
+      is_boosted: true,
+      boosted_until: boostedUntil,
+    }).eq('id', streamId)
+
+    res.json({ ok: true, boosted_until: boostedUntil })
+  } catch (err) {
+    console.error('POST /api/streams/:id/boost error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
