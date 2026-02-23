@@ -768,6 +768,39 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* ─── Quick Actions: Team ─── */}
+            <button
+              onClick={() => navigate('/team')}
+              style={{
+                width: '100%', padding: '14px 16px',
+                backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
+                borderRadius: '14px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                marginBottom: '12px',
+              }}
+            >
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                  {tx('Mon equipe', 'My team', '\u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05D9', 'Mi equipo')}
+                </p>
+                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                  {tx('Inviter des collaborateurs', 'Invite team members', '\u05D4\u05D6\u05DE\u05DF \u05D7\u05D1\u05E8\u05D9 \u05E6\u05D5\u05D5\u05EA', 'Invitar miembros')}
+                </p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
             {/* ─── Account Health ─── */}
             {dashboardData.health && dashboardData.health.total_orders > 0 && (() => {
               const h = dashboardData.health!

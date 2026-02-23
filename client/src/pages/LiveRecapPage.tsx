@@ -47,6 +47,17 @@ const pageContent = {
     peakViewers: 'Pic de spectateurs',
     duration: 'Duree du live',
     minutes: 'min',
+    clips: 'Clips',
+    createClip: 'Creer un clip',
+    clipTitle: 'Titre du clip',
+    clipStart: 'Debut (secondes)',
+    clipDuration: 'Duree (secondes)',
+    clipCreated: 'Clip cree !',
+    clipCreating: 'Creation...',
+    noClips: 'Aucun clip pour ce live',
+    playClip: 'Lire',
+    deleteClip: 'Supprimer',
+    last60s: 'Dernieres 60s',
   },
   en: {
     title: 'Live recap',
@@ -84,6 +95,17 @@ const pageContent = {
     peakViewers: 'Peak viewers',
     duration: 'Live duration',
     minutes: 'min',
+    clips: 'Clips',
+    createClip: 'Create a clip',
+    clipTitle: 'Clip title',
+    clipStart: 'Start (seconds)',
+    clipDuration: 'Duration (seconds)',
+    clipCreated: 'Clip created!',
+    clipCreating: 'Creating...',
+    noClips: 'No clips for this live',
+    playClip: 'Play',
+    deleteClip: 'Delete',
+    last60s: 'Last 60s',
   },
   he: {
     title: 'סיכום השידור',
@@ -121,6 +143,17 @@ const pageContent = {
     peakViewers: 'שיא צופים',
     duration: 'משך השידור',
     minutes: 'דק׳',
+    clips: 'קליפים',
+    createClip: 'צור קליפ',
+    clipTitle: 'כותרת הקליפ',
+    clipStart: 'התחלה (שניות)',
+    clipDuration: 'משך (שניות)',
+    clipCreated: 'הקליפ נוצר!',
+    clipCreating: 'יוצר...',
+    noClips: 'אין קליפים לשידור זה',
+    playClip: 'הפעל',
+    deleteClip: 'מחק',
+    last60s: '60 שניות אחרונות',
   },
   es: {
     title: 'Resumen del directo',
@@ -158,6 +191,17 @@ const pageContent = {
     peakViewers: 'Pico de espectadores',
     duration: 'Duracion del directo',
     minutes: 'min',
+    clips: 'Clips',
+    createClip: 'Crear un clip',
+    clipTitle: 'Titulo del clip',
+    clipStart: 'Inicio (segundos)',
+    clipDuration: 'Duracion (segundos)',
+    clipCreated: 'Clip creado!',
+    clipCreating: 'Creando...',
+    noClips: 'No hay clips para este directo',
+    playClip: 'Reproducir',
+    deleteClip: 'Eliminar',
+    last60s: 'Ultimos 60s',
   },
 }
 
@@ -191,6 +235,15 @@ export default function LiveRecapPage() {
   const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
   const [shippingPreview, setShippingPreview] = useState<number | null>(null)
   const [showVod, setShowVod] = useState(false)
+
+  // Clips state
+  const [clips, setClips] = useState<Array<{ id: string; title: string; start_seconds: number; duration_seconds: number; recording_url: string; created_at: string }>>([])
+  const [showClipForm, setShowClipForm] = useState(false)
+  const [clipTitle, setClipTitle] = useState('')
+  const [clipStart, setClipStart] = useState('')
+  const [clipDuration, setClipDuration] = useState('60')
+  const [clipCreating, setClipCreating] = useState(false)
+  const [clipPlaying, setClipPlaying] = useState<{ recording_url: string; start_seconds: number; title: string } | null>(null)
 
   // Preview shipping cost when weight changes
   const handleLabelWeightChange = async (value: string) => {
@@ -251,6 +304,15 @@ export default function LiveRecapPage() {
         .eq('id', user.id)
         .single()
       if (sp) setSellerProfile(sp)
+
+      // Fetch clips
+      try {
+        const clipsResp = await apiFetch(`/api/streams/${streamId}/clips`)
+        if (clipsResp.ok) {
+          const clipsData = await clipsResp.json()
+          setClips(clipsData)
+        }
+      } catch { /* ignore */ }
 
       // Build sale rows
       const rows: SaleRow[] = []
@@ -849,6 +911,215 @@ export default function LiveRecapPage() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Clips section */}
+      {streamInfo?.recording_url && (
+        <div style={{ padding: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              {ct.clips} ({clips.length})
+            </h2>
+            <button
+              onClick={() => {
+                // Default to last 60s of the stream
+                if (streamInfo.started_at && streamInfo.ended_at) {
+                  const totalSec = Math.floor((new Date(streamInfo.ended_at).getTime() - new Date(streamInfo.started_at).getTime()) / 1000)
+                  setClipStart(String(Math.max(0, totalSec - 60)))
+                  setClipDuration('60')
+                } else {
+                  setClipStart('0')
+                  setClipDuration('60')
+                }
+                setClipTitle('')
+                setShowClipForm(!showClipForm)
+              }}
+              style={{
+                padding: '8px 16px',
+                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                borderRadius: '8px', border: 'none',
+                color: '#fff', fontSize: '12px', fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {ct.createClip}
+            </button>
+          </div>
+
+          {/* Clip creation form */}
+          {showClipForm && (
+            <div style={{
+              backgroundColor: '#111', borderRadius: '14px', padding: '16px',
+              marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '10px',
+            }}>
+              <input
+                type="text"
+                placeholder={ct.clipTitle}
+                value={clipTitle}
+                onChange={e => setClipTitle(e.target.value)}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: '10px',
+                  border: '1px solid #333', backgroundColor: '#0D0D0D',
+                  color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                }}
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipStart}</label>
+                  <input
+                    type="number"
+                    value={clipStart}
+                    onChange={e => setClipStart(e.target.value)}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px',
+                      border: '1px solid #333', backgroundColor: '#0D0D0D',
+                      color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipDuration}</label>
+                  <input
+                    type="number"
+                    value={clipDuration}
+                    onChange={e => setClipDuration(e.target.value)}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px',
+                      border: '1px solid #333', backgroundColor: '#0D0D0D',
+                      color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+              {streamInfo.started_at && streamInfo.ended_at && (
+                <button
+                  onClick={() => {
+                    const totalSec = Math.floor((new Date(streamInfo.ended_at!).getTime() - new Date(streamInfo.started_at!).getTime()) / 1000)
+                    setClipStart(String(Math.max(0, totalSec - 60)))
+                    setClipDuration('60')
+                  }}
+                  style={{
+                    padding: '8px', borderRadius: '8px', border: '1px solid #333',
+                    backgroundColor: 'transparent', color: '#8B5CF6', fontSize: '12px',
+                    fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {ct.last60s}
+                </button>
+              )}
+              <button
+                disabled={clipCreating}
+                onClick={async () => {
+                  setClipCreating(true)
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    if (!session) { setClipCreating(false); return }
+                    const resp = await apiFetch(`/api/streams/${streamId}/clips`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                      body: JSON.stringify({
+                        start_seconds: Number(clipStart) || 0,
+                        duration_seconds: Number(clipDuration) || 60,
+                        title: clipTitle || undefined,
+                      }),
+                    })
+                    if (resp.ok) {
+                      const newClip = await resp.json()
+                      setClips(prev => [newClip, ...prev])
+                      setShowClipForm(false)
+                    }
+                  } catch { /* ignore */ }
+                  setClipCreating(false)
+                }}
+                style={{
+                  width: '100%', padding: '14px',
+                  background: clipCreating ? '#333' : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                  borderRadius: '12px', border: 'none',
+                  color: '#fff', fontSize: '15px', fontWeight: 700,
+                  cursor: clipCreating ? 'default' : 'pointer',
+                  opacity: clipCreating ? 0.6 : 1,
+                }}
+              >
+                {clipCreating ? ct.clipCreating : ct.createClip}
+              </button>
+            </div>
+          )}
+
+          {/* Clips list */}
+          {clips.length === 0 ? (
+            <div style={{
+              backgroundColor: '#111', borderRadius: '14px', padding: '24px',
+              textAlign: 'center',
+            }}>
+              <p style={{ fontSize: '13px', color: '#666' }}>{ct.noClips}</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {clips.map(clip => (
+                <div key={clip.id} style={{
+                  backgroundColor: '#111', borderRadius: '12px', padding: '14px',
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                }}>
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '10px',
+                    background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {clip.title}
+                    </p>
+                    <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                      {Math.floor(clip.start_seconds / 60)}:{String(clip.start_seconds % 60).padStart(2, '0')} — {clip.duration_seconds}s
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setClipPlaying({ recording_url: clip.recording_url, start_seconds: clip.start_seconds, title: clip.title })}
+                    style={{
+                      padding: '6px 12px', borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                      border: 'none', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {ct.playClip}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      if (!session) return
+                      const resp = await apiFetch(`/api/streams/${streamId}/clips/${clip.id}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${session.access_token}` },
+                      })
+                      if (resp.ok) setClips(prev => prev.filter(c => c.id !== clip.id))
+                    }}
+                    style={{
+                      padding: '6px 10px', borderRadius: '8px',
+                      backgroundColor: '#1A1A1A', border: '1px solid #333',
+                      color: '#E8344E', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    {ct.deleteClip}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Clip VodPlayer */}
+      {clipPlaying && (
+        <VodPlayer
+          recordingUrl={clipPlaying.recording_url}
+          title={clipPlaying.title}
+          startOffset={clipPlaying.start_seconds}
+          onClose={() => setClipPlaying(null)}
+        />
       )}
 
       {/* VodPlayer modal */}

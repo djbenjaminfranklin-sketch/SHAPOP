@@ -55,6 +55,11 @@ const content = {
     saving: 'Sauvegarde en cours...',
     listingCreated: 'Annonce creee avec succes !',
     listingError: 'Erreur lors de la creation. Reessayez.',
+    scanBarcode: 'Scanner un code-barres',
+    scanning: 'Scannez un code-barres...',
+    barcodeFound: 'Code-barres detecte',
+    barcodeNotFound: 'Aucun produit trouve pour ce code',
+    lookingUp: 'Recherche du produit...',
     categories: [
       'Sneakers', 'Mode Femme', 'Mode Homme', 'Sacs', 'Bijoux',
       'Montres', 'High-tech', 'Gaming', 'Cartes', 'Vintage',
@@ -96,6 +101,11 @@ const content = {
     saving: 'Saving...',
     listingCreated: 'Listing created successfully!',
     listingError: 'Error creating listing. Please try again.',
+    scanBarcode: 'Scan a barcode',
+    scanning: 'Scan a barcode...',
+    barcodeFound: 'Barcode detected',
+    barcodeNotFound: 'No product found for this barcode',
+    lookingUp: 'Looking up product...',
     categories: [
       'Sneakers', 'Women\'s Fashion', 'Men\'s Fashion', 'Bags', 'Jewelry',
       'Watches', 'Tech', 'Gaming', 'Cards', 'Vintage',
@@ -137,6 +147,11 @@ const content = {
     saving: '...\u05E9\u05D5\u05DE\u05E8',
     listingCreated: '\u05D4\u05DE\u05D5\u05D3\u05E2\u05D4 \u05E0\u05D5\u05E6\u05E8\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!',
     listingError: '.\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05DE\u05D5\u05D3\u05E2\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
+    scanBarcode: '\u05E1\u05E8\u05D5\u05E7 \u05D1\u05E8\u05E7\u05D5\u05D3',
+    scanning: '\u05E1\u05E8\u05D5\u05E7 \u05D1\u05E8\u05E7\u05D5\u05D3...',
+    barcodeFound: '\u05D1\u05E8\u05E7\u05D5\u05D3 \u05D6\u05D5\u05D4\u05D4',
+    barcodeNotFound: '\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0 \u05DE\u05D5\u05E6\u05E8 \u05DC\u05D1\u05E8\u05E7\u05D5\u05D3 \u05D6\u05D4',
+    lookingUp: '\u05DE\u05D7\u05E4\u05E9 \u05DE\u05D5\u05E6\u05E8...',
     categories: [
       'Sneakers', '\u05D0\u05D5\u05E4\u05E0\u05EA \u05E0\u05E9\u05D9\u05DD', '\u05D0\u05D5\u05E4\u05E0\u05EA \u05D2\u05D1\u05E8\u05D9\u05DD', '\u05EA\u05D9\u05E7\u05D9\u05DD', '\u05EA\u05DB\u05E9\u05D9\u05D8\u05D9\u05DD',
       '\u05E9\u05E2\u05D5\u05E0\u05D9\u05DD', '\u05D8\u05E7', 'Gaming', '\u05E7\u05DC\u05E4\u05D9\u05DD', '\u05D5\u05D9\u05E0\u05D8\u05D2\u05F3',
@@ -178,6 +193,11 @@ const content = {
     saving: 'Guardando...',
     listingCreated: 'Anuncio creado con exito!',
     listingError: 'Error al crear el anuncio. Intentalo de nuevo.',
+    scanBarcode: 'Escanear codigo de barras',
+    scanning: 'Escanea un codigo de barras...',
+    barcodeFound: 'Codigo de barras detectado',
+    barcodeNotFound: 'No se encontro producto para este codigo',
+    lookingUp: 'Buscando producto...',
     categories: [
       'Sneakers', 'Moda Mujer', 'Moda Hombre', 'Bolsos', 'Joyas',
       'Relojes', 'Tecnologia', 'Gaming', 'Cartas', 'Vintage',
@@ -228,6 +248,12 @@ export default function AIListingPage() {
   // Save state
   const [saving, setSaving] = useState(false)
   const [analysisError, setAnalysisError] = useState('')
+
+  // Barcode scanning
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false)
+  const [barcodeStatus, setBarcodeStatus] = useState<string>('')
+  const barcodeVideoRef = useRef<HTMLVideoElement>(null)
+  const barcodeStreamRef = useRef<MediaStream | null>(null)
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
@@ -424,6 +450,160 @@ export default function AIListingPage() {
     setEditTags(prev => prev.filter((_, i) => i !== index))
   }
 
+  // ============== BARCODE SCANNING ==============
+
+  const stopBarcodeScanner = () => {
+    if (barcodeStreamRef.current) {
+      barcodeStreamRef.current.getTracks().forEach(track => track.stop())
+      barcodeStreamRef.current = null
+    }
+    setShowBarcodeScanner(false)
+    setBarcodeStatus('')
+  }
+
+  const startBarcodeScanner = async () => {
+    setShowBarcodeScanner(true)
+    setBarcodeStatus(t.scanning)
+    setAnalysisError('')
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+      })
+      barcodeStreamRef.current = stream
+
+      // Wait for video element to be mounted
+      await new Promise(r => setTimeout(r, 100))
+      const video = barcodeVideoRef.current
+      if (!video) { stopBarcodeScanner(); return }
+      video.srcObject = stream
+      await video.play()
+
+      // Use BarcodeDetector API if available (Chrome/Android/iOS 16+)
+      const BarcodeDetectorClass = (window as any).BarcodeDetector
+      if (BarcodeDetectorClass) {
+        const detector = new BarcodeDetectorClass({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] })
+        let scanning = true
+
+        const scan = async () => {
+          if (!scanning || !barcodeStreamRef.current) return
+          try {
+            const barcodes = await detector.detect(video)
+            if (barcodes.length > 0) {
+              scanning = false
+              const code = barcodes[0].rawValue
+              await handleBarcodeDetected(code)
+              return
+            }
+          } catch { /* ignore detection errors */ }
+          if (scanning) requestAnimationFrame(scan)
+        }
+        requestAnimationFrame(scan)
+      } else {
+        // Fallback: prompt user to enter barcode manually
+        setBarcodeStatus(t.scanning)
+      }
+    } catch {
+      stopBarcodeScanner()
+      setAnalysisError(lang === 'fr' ? 'Camera non disponible' : 'Camera not available')
+    }
+  }
+
+  const handleBarcodeDetected = async (barcode: string) => {
+    setBarcodeStatus(t.lookingUp)
+
+    try {
+      // Lookup product via Open Food Facts API (free, no key needed)
+      const resp = await fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`)
+      const data = await resp.json()
+
+      if (data.status === 1 && data.product) {
+        const product = data.product
+        stopBarcodeScanner()
+
+        // Auto-fill the listing form
+        const result: AIResult = {
+          title: product.product_name || product.generic_name || barcode,
+          category: guessCategory(product.categories_tags || []),
+          condition: lang === 'fr' ? 'Neuf' : lang === 'he' ? '\u05D7\u05D3\u05E9' : lang === 'es' ? 'Nuevo' : 'New',
+          confidence: 0.7,
+          tags: (product.brands_tags || []).slice(0, 5),
+          priceLow: 1,
+          priceHigh: 20,
+          description: [product.product_name, product.brands, product.quantity].filter(Boolean).join(' — '),
+        }
+
+        // If product has an image, use it
+        if (product.image_url) {
+          setImagePreview(product.image_url)
+        }
+
+        applyResult(result)
+        return
+      }
+
+      // Try UPC lookup via UPC Item DB (free)
+      const upcResp = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${barcode}`)
+      const upcData = await upcResp.json()
+
+      if (upcData.items && upcData.items.length > 0) {
+        const item = upcData.items[0]
+        stopBarcodeScanner()
+
+        const result: AIResult = {
+          title: item.title || barcode,
+          category: guessCategory([item.category || '']),
+          condition: lang === 'fr' ? 'Neuf' : lang === 'he' ? '\u05D7\u05D3\u05E9' : lang === 'es' ? 'Nuevo' : 'New',
+          confidence: 0.7,
+          tags: [item.brand].filter(Boolean),
+          priceLow: Math.max(1, Math.floor((item.lowest_recorded_price || 5) * 0.5)),
+          priceHigh: Math.max(5, Math.floor((item.highest_recorded_price || 20) * 0.8)),
+          description: item.description || item.title || '',
+        }
+
+        if (item.images && item.images.length > 0) {
+          setImagePreview(item.images[0])
+        }
+
+        applyResult(result)
+        return
+      }
+
+      // No product found
+      stopBarcodeScanner()
+      setAnalysisError(`${t.barcodeNotFound} (${barcode})`)
+    } catch {
+      stopBarcodeScanner()
+      setAnalysisError(t.barcodeNotFound)
+    }
+  }
+
+  const guessCategory = (tags: string[]): string => {
+    const joined = tags.join(' ').toLowerCase()
+    if (joined.includes('shoe') || joined.includes('sneaker') || joined.includes('chaussure')) return 'Sneakers'
+    if (joined.includes('tech') || joined.includes('electro') || joined.includes('phone')) return 'High-tech'
+    if (joined.includes('game') || joined.includes('jeu')) return 'Gaming'
+    if (joined.includes('card') || joined.includes('carte')) return 'Cartes'
+    if (joined.includes('watch') || joined.includes('montre')) return 'Montres'
+    if (joined.includes('jewel') || joined.includes('bijou')) return 'Bijoux'
+    if (joined.includes('bag') || joined.includes('sac')) return 'Sacs'
+    if (joined.includes('sport')) return 'Sport'
+    if (joined.includes('music') || joined.includes('musique')) return 'Musique'
+    if (joined.includes('toy') || joined.includes('jouet')) return 'Jouets'
+    if (joined.includes('art')) return 'Art'
+    if (joined.includes('vintage')) return 'Vintage'
+    return categoriesFr[0]
+  }
+
+  // Cleanup barcode scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (barcodeStreamRef.current) {
+        barcodeStreamRef.current.getTracks().forEach(track => track.stop())
+      }
+    }
+  }, [])
+
   // ============== RENDERERS ==============
 
   const renderUploadStep = () => (
@@ -547,6 +727,25 @@ export default function AIListingPage() {
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
+
+      {/* Barcode scan button */}
+      <button
+        onClick={startBarcodeScanner}
+        style={{
+          width: '100%', maxWidth: '340px', marginTop: '16px',
+          padding: '14px', borderRadius: '14px',
+          background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+          border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+          <line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="8" x2="9" y2="8"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="7" y1="16" x2="10" y2="16"/><line x1="14" y1="16" x2="17" y2="16"/>
+        </svg>
+        {t.scanBarcode}
+      </button>
 
       {/* Info cards */}
       <div style={{
@@ -1008,6 +1207,108 @@ export default function AIListingPage() {
 
       {/* Toast is now handled by showToast() from lib/toast */}
 
+      {/* Barcode scanner overlay */}
+      {showBarcodeScanner && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          backgroundColor: 'rgba(0,0,0,0.95)',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          {/* Scanner header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 16px',
+            paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
+          }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              {t.scanBarcode}
+            </h3>
+            <button
+              onClick={stopBarcodeScanner}
+              style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.1)', border: 'none',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Camera view */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', position: 'relative' }}>
+            <video
+              ref={barcodeVideoRef}
+              playsInline
+              muted
+              style={{
+                width: '100%', maxWidth: '400px', borderRadius: '16px',
+                backgroundColor: '#111',
+              }}
+            />
+            {/* Scan line animation */}
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '280px', height: '160px',
+              border: '2px solid rgba(59,130,246,0.5)',
+              borderRadius: '12px',
+              pointerEvents: 'none',
+            }}>
+              <div style={{
+                position: 'absolute', top: 0, left: 0, right: 0,
+                height: '2px', backgroundColor: '#3B82F6',
+                animation: 'barcodeScan 2s ease-in-out infinite',
+              }} />
+            </div>
+          </div>
+
+          {/* Status */}
+          <div style={{
+            padding: '16px',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '14px', color: '#888' }}>{barcodeStatus}</p>
+            {/* Manual barcode input fallback */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '12px', maxWidth: '340px', margin: '12px auto 0' }}>
+              <input
+                type="text"
+                placeholder="EAN / UPC"
+                id="barcode-manual-input"
+                style={{
+                  flex: 1, padding: '12px', borderRadius: '10px',
+                  border: '1px solid #333', backgroundColor: '#0D0D0D',
+                  color: '#fff', fontSize: '14px', outline: 'none',
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const input = document.getElementById('barcode-manual-input') as HTMLInputElement
+                    if (input.value.trim()) handleBarcodeDetected(input.value.trim())
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const input = document.getElementById('barcode-manual-input') as HTMLInputElement
+                  if (input?.value.trim()) handleBarcodeDetected(input.value.trim())
+                }}
+                style={{
+                  padding: '12px 20px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
+                  border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                }}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CSS Animations */}
       <style>{`
         @keyframes scanMove {
@@ -1030,6 +1331,11 @@ export default function AIListingPage() {
         @keyframes toastIn {
           0% { transform: translateX(-50%) translateY(-20px); opacity: 0; }
           100% { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+        @keyframes barcodeScan {
+          0% { top: 0; }
+          50% { top: 100%; }
+          100% { top: 0; }
         }
       `}</style>
     </div>

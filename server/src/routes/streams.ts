@@ -1403,4 +1403,169 @@ router.delete('/api/streams/:id/multicast/:egressId', requireAuth, async (req: A
   }
 })
 
+// =============================================
+// CLIPS — Create clips from stream recordings
+// =============================================
+
+// POST /api/streams/:id/clips — create a clip from a stream recording
+router.post('/api/streams/:id/clips', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = req.params.id
+    const userId = req.user!.id
+    const { start_seconds, duration_seconds, title } = req.body
+
+    // Verify stream exists and has a recording
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, recording_url, started_at, ended_at, title')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream) {
+      res.status(404).json({ error: 'Stream not found' })
+      return
+    }
+
+    if (!stream.recording_url) {
+      res.status(400).json({ error: 'Stream has no recording' })
+      return
+    }
+
+    // Only stream owner can create clips
+    if (stream.seller_id !== userId) {
+      res.status(403).json({ error: 'Only the stream owner can create clips' })
+      return
+    }
+
+    // Validate clip parameters
+    const start = Number(start_seconds) || 0
+    const duration = Number(duration_seconds) || 60
+    if (duration < 5 || duration > 300) {
+      res.status(400).json({ error: 'Clip duration must be between 5 and 300 seconds' })
+      return
+    }
+
+    // Calculate total stream duration
+    let totalDuration = 0
+    if (stream.started_at && stream.ended_at) {
+      totalDuration = Math.floor((new Date(stream.ended_at).getTime() - new Date(stream.started_at).getTime()) / 1000)
+    }
+
+    if (start < 0 || (totalDuration > 0 && start + duration > totalDuration + 10)) {
+      res.status(400).json({ error: 'Clip range exceeds stream duration' })
+      return
+    }
+
+    // Check max 20 clips per stream
+    const { count } = await supabase
+      .from('clips')
+      .select('id', { count: 'exact', head: true })
+      .eq('stream_id', streamId)
+
+    if ((count ?? 0) >= 20) {
+      res.status(409).json({ error: 'Maximum 20 clips per stream' })
+      return
+    }
+
+    const clipTitle = (title && typeof title === 'string' && title.trim())
+      ? title.trim()
+      : `Clip - ${stream.title || 'Live'}`
+
+    // Store clip metadata (points to original recording with time offsets)
+    const { data: clip, error: clipError } = await supabase
+      .from('clips')
+      .insert({
+        stream_id: streamId,
+        seller_id: userId,
+        title: clipTitle,
+        recording_url: stream.recording_url,
+        start_seconds: start,
+        duration_seconds: duration,
+        thumbnail_url: null,
+      })
+      .select('*')
+      .single()
+
+    if (clipError) {
+      console.error('Clip creation error:', clipError)
+      res.status(500).json({ error: 'Failed to create clip' })
+      return
+    }
+
+    res.json(clip)
+  } catch (err) {
+    console.error('POST /api/streams/:id/clips error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// GET /api/streams/:id/clips — list clips for a stream
+router.get('/api/streams/:id/clips', async (req: Request, res: Response) => {
+  try {
+    const streamId = req.params.id
+
+    const { data: clips, error } = await supabase
+      .from('clips')
+      .select('*')
+      .eq('stream_id', streamId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch clips' })
+      return
+    }
+
+    res.json(clips || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// DELETE /api/streams/:id/clips/:clipId — delete a clip
+router.delete('/api/streams/:id/clips/:clipId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const clipId = req.params.clipId
+
+    const { data: clip } = await supabase
+      .from('clips')
+      .select('seller_id')
+      .eq('id', clipId)
+      .single()
+
+    if (!clip || clip.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    await supabase.from('clips').delete().eq('id', clipId)
+    res.json({ ok: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// GET /api/sellers/:id/clips — list all clips by a seller (public)
+router.get('/api/sellers/:id/clips', async (req: Request, res: Response) => {
+  try {
+    const sellerId = req.params.id
+
+    const { data: clips, error } = await supabase
+      .from('clips')
+      .select('*, stream:streams!stream_id(title, thumbnail_url)')
+      .eq('seller_id', sellerId)
+      .order('created_at', { ascending: false })
+      .limit(50)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch clips' })
+      return
+    }
+
+    res.json(clips || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router

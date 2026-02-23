@@ -1171,4 +1171,251 @@ export async function notifyPriceDropSubscribers(itemId: string, oldPrice: numbe
   return notified
 }
 
+// =============================================
+// TEAM PERMISSIONS — Invite employees with roles
+// =============================================
+
+// POST /api/team/invite — invite a team member
+router.post('/api/team/invite', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = req.user!.id
+    const { email, role } = req.body
+
+    if (!email || typeof email !== 'string') {
+      res.status(400).json({ error: 'email is required' })
+      return
+    }
+
+    const validRoles = ['manager', 'moderator', 'shipper']
+    if (!role || !validRoles.includes(role)) {
+      res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` })
+      return
+    }
+
+    // Verify caller is a seller
+    const { data: seller } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('id', sellerId)
+      .single()
+
+    if (!seller) {
+      res.status(403).json({ error: 'You must be a seller to invite team members' })
+      return
+    }
+
+    // Find user by email
+    const { data: targetProfile } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, email')
+      .eq('email', email.trim().toLowerCase())
+      .single()
+
+    if (!targetProfile) {
+      res.status(404).json({ error: 'User not found with this email' })
+      return
+    }
+
+    if (targetProfile.id === sellerId) {
+      res.status(400).json({ error: 'Cannot invite yourself' })
+      return
+    }
+
+    // Check max 10 team members
+    const { count } = await supabase
+      .from('seller_team_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('seller_id', sellerId)
+      .neq('status', 'removed')
+
+    if ((count ?? 0) >= 10) {
+      res.status(409).json({ error: 'Maximum 10 team members' })
+      return
+    }
+
+    // Upsert (in case re-inviting a removed member)
+    const { data: member, error } = await supabase
+      .from('seller_team_members')
+      .upsert({
+        seller_id: sellerId,
+        user_id: targetProfile.id,
+        role,
+        status: 'pending',
+        invited_at: new Date().toISOString(),
+      }, { onConflict: 'seller_id,user_id' })
+      .select('*')
+      .single()
+
+    if (error) {
+      console.error('Team invite error:', error)
+      res.status(500).json({ error: 'Failed to invite team member' })
+      return
+    }
+
+    // Notify the invited user
+    notifyUser(
+      targetProfile.id,
+      'team_invite',
+      'Invitation equipe',
+      `Vous avez ete invite a rejoindre une equipe vendeur.`,
+      { seller_id: sellerId },
+    )
+
+    res.json({ ...member, user: { display_name: targetProfile.display_name, avatar_url: targetProfile.avatar_url } })
+  } catch (err) {
+    console.error('POST /api/team/invite error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// GET /api/team/members — list team members for current seller
+router.get('/api/team/members', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = req.user!.id
+
+    const { data: members, error } = await supabase
+      .from('seller_team_members')
+      .select('*, user:profiles!user_id(display_name, avatar_url, email)')
+      .eq('seller_id', sellerId)
+      .neq('status', 'removed')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch team members' })
+      return
+    }
+
+    res.json(members || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/team/accept — accept a team invitation
+router.post('/api/team/accept', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { seller_id } = req.body
+
+    if (!seller_id) {
+      res.status(400).json({ error: 'seller_id is required' })
+      return
+    }
+
+    const { data: member } = await supabase
+      .from('seller_team_members')
+      .select('id, status')
+      .eq('seller_id', seller_id)
+      .eq('user_id', userId)
+      .single()
+
+    if (!member || member.status !== 'pending') {
+      res.status(404).json({ error: 'No pending invitation found' })
+      return
+    }
+
+    await supabase
+      .from('seller_team_members')
+      .update({ status: 'active' })
+      .eq('id', member.id)
+
+    res.json({ ok: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/team/decline — decline a team invitation
+router.post('/api/team/decline', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { seller_id } = req.body
+
+    if (!seller_id) {
+      res.status(400).json({ error: 'seller_id is required' })
+      return
+    }
+
+    await supabase
+      .from('seller_team_members')
+      .update({ status: 'removed' })
+      .eq('seller_id', seller_id)
+      .eq('user_id', userId)
+
+    res.json({ ok: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// PUT /api/team/members/:userId — update role
+router.put('/api/team/members/:userId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = req.user!.id
+    const targetUserId = req.params.userId
+    const { role } = req.body
+
+    const validRoles = ['manager', 'moderator', 'shipper']
+    if (!role || !validRoles.includes(role)) {
+      res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` })
+      return
+    }
+
+    const { error } = await supabase
+      .from('seller_team_members')
+      .update({ role })
+      .eq('seller_id', sellerId)
+      .eq('user_id', targetUserId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to update role' })
+      return
+    }
+
+    res.json({ ok: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// DELETE /api/team/members/:userId — remove team member
+router.delete('/api/team/members/:userId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const sellerId = req.user!.id
+    const targetUserId = req.params.userId
+
+    await supabase
+      .from('seller_team_members')
+      .update({ status: 'removed' })
+      .eq('seller_id', sellerId)
+      .eq('user_id', targetUserId)
+
+    res.json({ ok: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// GET /api/team/invitations — list pending invitations for current user
+router.get('/api/team/invitations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data: invitations, error } = await supabase
+      .from('seller_team_members')
+      .select('*, seller:profiles!seller_id(display_name, avatar_url, store_name)')
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch invitations' })
+      return
+    }
+
+    res.json(invitations || [])
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 export default router
