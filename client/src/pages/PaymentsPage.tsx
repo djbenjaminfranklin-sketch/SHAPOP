@@ -9,6 +9,8 @@ import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -413,6 +415,7 @@ export default function PaymentsPage() {
   const [searchParams] = useSearchParams()
   const lang = (getLang() || 'fr') as Lang
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   const [status, setStatus] = useState<StripeStatus | null>(null)
   const [loading, setLoading] = useState(true)
@@ -545,7 +548,7 @@ export default function PaymentsPage() {
   }, [profile?.is_seller])
 
   const savePaypalEmail = async () => {
-    if (!paypalEditEmail.includes('@')) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(paypalEditEmail.trim())) return
     setPaypalSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -756,7 +759,7 @@ export default function PaymentsPage() {
   }
 
   const handleCountryPaypalSave = async () => {
-    if (!countryPaypalEmail.includes('@') || !countryPaypalEmail.includes('.')) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(countryPaypalEmail.trim())) return
     setCountryPaypalSaving(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -818,8 +821,8 @@ export default function PaymentsPage() {
       <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
@@ -1365,7 +1368,7 @@ export default function PaymentsPage() {
         <div style={{ backgroundColor: '#111', borderRadius: '14px', overflow: 'hidden' }}>
           <p style={{ fontSize: '12px', color: '#888', padding: '16px 16px 8px' }}>{c.defaultShip}</p>
           {[c.standard, c.express, c.pickup].map((opt, i) => (
-            <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < 2 ? '1px solid #1A1A1A' : 'none', cursor: 'pointer' }}>
+            <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < 2 ? '1px solid #1A1A1A' : 'none', cursor: 'pointer' }}>
               <input type="radio" name="shipping" checked={shippingPref === i} onChange={() => { setShippingPref(i); localStorage.setItem('shippingPref', String(i)) }} style={{ accentColor: '#F0908A' }} />
               <span style={{ fontSize: '15px', color: '#fff' }}>{opt}</span>
             </label>

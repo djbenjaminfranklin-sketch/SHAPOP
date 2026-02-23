@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { t, getLang } from '../lib/i18n'
-import SellPopup from './SellPopup'
+import { rtlTextAlign, rtlFlip } from '../lib/rtl'
+import SellPopup from './seller/SellPopup'
 import CartoonAvatar from './CartoonAvatar'
 
 type Lang = ReturnType<typeof getLang>
@@ -207,7 +208,7 @@ export default function BottomNav() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={profile.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                 ) : (
                   <CartoonAvatar seed={user.id} size={52} />
                 )}
@@ -220,22 +221,22 @@ export default function BottomNav() {
                   {tx('Voir mon profil', 'View my profile', 'צפה בפרופיל שלי', 'Ver mi perfil', lang)}
                 </div>
               </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ ...rtlFlip() }}>
                 <path d="M9 18l6-6-6-6"/>
               </svg>
             </div>
 
             {/* Menu items */}
             <div style={{ padding: '8px 0' }}>
-              {menuItems.slice(1).map((item, idx) => (
+              {menuItems.slice(1).map((item) => (
                 <button
-                  key={idx}
+                  key={item.to}
                   onClick={() => handleMenuNavigate(item.to)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px',
                     width: '100%', padding: '14px 20px',
                     background: 'none', border: 'none', cursor: 'pointer',
-                    textAlign: 'left',
+                    ...rtlTextAlign('left'),
                   }}
                 >
                   <div style={{
@@ -248,7 +249,7 @@ export default function BottomNav() {
                   <span style={{ fontSize: '15px', color: '#E5E5E5', fontWeight: 500, flex: 1 }}>
                     {item.label}
                   </span>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ ...rtlFlip() }}>
                     <path d="M9 18l6-6-6-6"/>
                   </svg>
                 </button>
@@ -263,7 +264,7 @@ export default function BottomNav() {
                   display: 'flex', alignItems: 'center', gap: '14px',
                   width: '100%', padding: '14px 0',
                   background: 'none', border: 'none', cursor: 'pointer',
-                  textAlign: 'left',
+                  ...rtlTextAlign('left'),
                 }}
               >
                 <div style={{
@@ -291,7 +292,7 @@ export default function BottomNav() {
       `}</style>
 
       <nav
-        aria-label="Main navigation"
+        aria-label={lang === 'fr' ? 'Navigation principale' : lang === 'es' ? 'Navegacion principal' : lang === 'he' ? '\u05E0\u05D9\u05D5\u05D5\u05D8 \u05E8\u05D0\u05E9\u05D9' : 'Main navigation'}
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           backgroundColor: '#0A0A0A', borderTop: '1px solid #1A1A1A', zIndex: 50,
@@ -362,7 +363,7 @@ export default function BottomNav() {
               backgroundColor: '#E8344E',
             }}>
               {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={profile.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               ) : (
                 <CartoonAvatar seed={user.id} size={26} />
               )}

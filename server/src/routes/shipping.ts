@@ -91,8 +91,8 @@ router.get('/api/shipping/calculate', (req: Request, res: Response) => {
   const country = req.query.country as string | undefined
   const zip = req.query.zip as string | undefined
 
-  if (!weightGrams || isNaN(weightGrams) || weightGrams <= 0) {
-    res.status(400).json({ error: 'weight_grams must be a positive integer' })
+  if (!weightGrams || isNaN(weightGrams) || weightGrams <= 0 || weightGrams > 30000) {
+    res.status(400).json({ error: 'weight_grams must be between 1 and 30000' })
     return
   }
 
@@ -121,8 +121,8 @@ router.get('/api/shipping/options', (req: Request, res: Response) => {
   const country = req.query.country as string | undefined
   const zip = req.query.zip as string | undefined
 
-  if (!weightGrams || isNaN(weightGrams) || weightGrams <= 0) {
-    res.status(400).json({ error: 'weight_grams must be a positive integer' })
+  if (!weightGrams || isNaN(weightGrams) || weightGrams <= 0 || weightGrams > 30000) {
+    res.status(400).json({ error: 'weight_grams must be between 1 and 30000' })
     return
   }
 

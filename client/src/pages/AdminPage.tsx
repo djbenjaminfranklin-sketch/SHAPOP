@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 // Admin access is verified server-side via requireAdmin middleware
 // Client-side check uses /api/admin/stats response to gate UI
@@ -797,6 +799,7 @@ export default function AdminPage() {
   const navigate = useNavigate()
   const lang = (getLang() || 'fr') as Lang
   const ct = adminContent[lang] || adminContent.fr
+  usePageTitle(ct.pageTitle)
   const [tab, setTab] = useState<Tab>('overview')
 
   // Overview
@@ -935,7 +938,7 @@ export default function AdminPage() {
         banned_users: Number(raw.banned_users) || 0,
       })
       setPageError(null)
-    } catch (e: any) { setPageError(String(e?.message || ct.loadingError)); showToast(String(e?.message || ct.loadingError)) }
+    } catch (e: unknown) { const msg = e instanceof Error ? e.message : ct.loadingError; setPageError(String(msg)); showToast(String(msg)) }
     setLoading(false)
   }
 
@@ -1328,14 +1331,14 @@ export default function AdminPage() {
 
       {/* User list */}
       {Array.isArray(users) ? users.map((u, i) => (
-        <div key={i} style={{ ...card, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+        <div key={String(u.id || i)} style={{ ...card, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
           onClick={() => { setSelectedUser(u); fetchUserDetail(String(u.id || '')) }}>
           <div style={{
             width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '16px', flexShrink: 0, overflow: 'hidden',
           }}>
-            {(typeof u.avatar_url === 'string' && u.avatar_url) ? <img src={String(u.avatar_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (sv(u.display_name)?.[0] || '?')}
+            {(typeof u.avatar_url === 'string' && u.avatar_url) ? <img src={String(u.avatar_url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (sv(u.display_name)?.[0] || '?')}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: '#fff', fontWeight: 600, fontSize: '14px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1389,7 +1392,7 @@ export default function AdminPage() {
           const rm = (rawRiskMetrics && typeof rawRiskMetrics === 'object' && !Array.isArray(rawRiskMetrics)) ? rawRiskMetrics as Record<string, number> : null
           const id = String(s.id || '')
           return (
-            <div key={i} style={card}>
+            <div key={id || i} style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{sv(s.store_name)}</p>
@@ -1459,10 +1462,10 @@ export default function AdminPage() {
               </div>
             </div>
           )
-        } catch (err: any) {
+        } catch (err: unknown) {
           return (
-            <div key={i} style={card}>
-              {renderDebugError('Seller row #' + String(i), { message: String(err?.message || err), stack: String(err?.stack || '') })}
+            <div key={`seller-error-${i}`} style={card}>
+              {renderDebugError('Seller row #' + String(i), { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' })}
             </div>
           )
         }
@@ -1497,7 +1500,7 @@ export default function AdminPage() {
             delivered: '#10B981', refunded: '#8B5CF6', disputed: '#EF4444',
           }
           return (
-            <div key={i} style={{ ...card, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+            <div key={String(o.id || i)} style={{ ...card, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ color: '#fff', fontWeight: 600, fontSize: '13px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {item ? sv(item.title) : fmtId(o.id)}
@@ -1513,10 +1516,10 @@ export default function AdminPage() {
               <span style={badge(statusColor[sv(o.status)] || '#666')}>{sv(o.status)}</span>
             </div>
           )
-        } catch (err: any) {
+        } catch (err: unknown) {
           return (
-            <div key={i} style={card}>
-              {renderDebugError('Order row #' + String(i), { message: String(err?.message || err), stack: String(err?.stack || '') })}
+            <div key={`order-error-${i}`} style={card}>
+              {renderDebugError('Order row #' + String(i), { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' })}
             </div>
           )
         }
@@ -1561,7 +1564,7 @@ export default function AdminPage() {
             const shippingProofUrl = typeof d.shipping_proof_url === 'string' ? d.shipping_proof_url : ''
 
             return (
-              <div key={i} style={{ ...card, padding: '20px' }}>
+              <div key={disputeId || i} style={{ ...card, padding: '20px' }}>
                 {/* Header: status + auto-refund */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1590,7 +1593,7 @@ export default function AdminPage() {
                         fontSize: '13px', flexShrink: 0, overflow: 'hidden',
                       }}>
                         {(buyer && typeof buyer.avatar_url === 'string' && buyer.avatar_url)
-                          ? <img src={String(buyer.avatar_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ? <img src={String(buyer.avatar_url)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           : (buyer ? (sv(buyer.display_name)?.[0] || sv(buyer.username)?.[0] || '?') : '?')}
                       </div>
                       <div>
@@ -1602,7 +1605,7 @@ export default function AdminPage() {
                     {evidencePhotos.length > 0 ? (
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
                         {evidencePhotos.map((photo, pi) => (
-                          <img key={pi} src={String(photo)} alt={'Evidence ' + (pi + 1)}
+                          <img key={String(photo)} src={String(photo)} alt={'Evidence ' + (pi + 1)} loading="lazy"
                             onClick={() => setEnlargedImage(String(photo))}
                             style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
                         ))}
@@ -1619,12 +1622,12 @@ export default function AdminPage() {
                     {(shippingProofs.length > 0 || shippingProofUrl) ? (
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
                         {shippingProofUrl ? (
-                          <img src={shippingProofUrl} alt={ct.shippingProofAlt}
+                          <img src={shippingProofUrl} alt={ct.shippingProofAlt} loading="lazy"
                             onClick={() => setEnlargedImage(shippingProofUrl)}
                             style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
                         ) : null}
                         {shippingProofs.map((proof, pi) => (
-                          <img key={pi} src={String(proof)} alt={'Shipping ' + (pi + 1)}
+                          <img key={String(proof)} src={String(proof)} alt={'Shipping ' + (pi + 1)} loading="lazy"
                             onClick={() => setEnlargedImage(String(proof))}
                             style={{ width: '50px', height: '50px', borderRadius: '6px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }} />
                         ))}
@@ -1669,10 +1672,10 @@ export default function AdminPage() {
                 ) : null}
               </div>
             )
-          } catch (err: any) {
+          } catch (err: unknown) {
             return (
-              <div key={i} style={card}>
-                {renderDebugError('Dispute row #' + String(i), { message: String(err?.message || err), stack: String(err?.stack || '') })}
+              <div key={`dispute-error-${i}`} style={card}>
+                {renderDebugError('Dispute row #' + String(i), { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' })}
               </div>
             )
           }
@@ -1699,7 +1702,7 @@ export default function AdminPage() {
           const rawSellerProfiles = seller ? seller.profiles : null
           const sellerProfile = (rawSellerProfiles && typeof rawSellerProfiles === 'object' && !Array.isArray(rawSellerProfiles)) ? rawSellerProfiles as Record<string, unknown> : null
           return (
-            <div key={i} style={card}>
+            <div key={String(s.id || i)} style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: '15px', margin: 0 }}>{sv(s.title)}</p>
@@ -1727,10 +1730,10 @@ export default function AdminPage() {
               ) : null}
             </div>
           )
-        } catch (err: any) {
+        } catch (err: unknown) {
           return (
-            <div key={i} style={card}>
-              {renderDebugError('Stream row #' + String(i), { message: String(err?.message || err), stack: String(err?.stack || '') })}
+            <div key={`stream-error-${i}`} style={card}>
+              {renderDebugError('Stream row #' + String(i), { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' })}
             </div>
           )
         }
@@ -1757,7 +1760,7 @@ export default function AdminPage() {
                 const adminEmailStr = sv(log.admin_email)
                 const detailsStr: string = (log.details && typeof log.details === 'object') ? safeStringify(log.details) : '-'
                 return (
-                  <tr key={i} style={{ borderBottom: '1px solid #111' }}>
+                  <tr key={String(log.id || i)} style={{ borderBottom: '1px solid #111' }}>
                     <td style={{ color: '#666', padding: '8px 6px', whiteSpace: 'nowrap' }}>{fmtDate(log.created_at)}</td>
                     <td style={{ color: '#aaa', padding: '8px 6px' }}>{adminEmailStr.split('@')[0]}</td>
                     <td style={{ padding: '8px 6px' }}>
@@ -1775,11 +1778,11 @@ export default function AdminPage() {
                     </td>
                   </tr>
                 )
-              } catch (err: any) {
+              } catch (err: unknown) {
                 return (
-                  <tr key={i}>
+                  <tr key={`log-error-${i}`}>
                     <td colSpan={6} style={{ color: '#ff3333', padding: '8px 6px' }}>
-                      {ct.errorLinePrefix + String(err?.message || err)}
+                      {ct.errorLinePrefix + (err instanceof Error ? err.message : String(err))}
                     </td>
                   </tr>
                 )
@@ -1899,7 +1902,7 @@ export default function AdminPage() {
           const status = getPromoStatus(p)
           const color = statusColor[status]
           return (
-            <div key={i} style={{ ...card }}>
+            <div key={String(p.id || i)} style={{ ...card }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: '#fff', fontSize: '15px', fontWeight: 700, margin: '0 0 2px' }}>{sv(p.title)}</p>
@@ -1940,8 +1943,8 @@ export default function AdminPage() {
         case 'promos': return renderPromos()
         default: return null
       }
-    } catch (err: any) {
-      return renderDebugError('renderContent (tab=' + String(tab) + ')', { message: String(err?.message || err), stack: String(err?.stack || '') })
+    } catch (err: unknown) {
+      return renderDebugError('renderContent (tab=' + String(tab) + ')', { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' })
     }
   }
 
@@ -1953,7 +1956,7 @@ export default function AdminPage() {
           <div style={{ padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}><path d="M15 18l-6-6 6-6"/></svg>
               </button>
               <div>
                 <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>{ct.pageTitle}</h1>
@@ -2089,7 +2092,7 @@ export default function AdminPage() {
                           <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{ct.addNote}</button>
                         </div>
                         {notes.map((n, i) => (
-                          <div key={i} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
+                          <div key={String(n.id || i)} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
                             <p style={{ color: '#ddd', fontSize: '13px', margin: 0 }}>{sv(n.note)}</p>
                             <p style={{ color: '#555', fontSize: '11px', margin: '4px 0 0' }}>{sv(n.admin_email) + ' - ' + fmtDate(n.created_at)}</p>
                           </div>
@@ -2097,8 +2100,8 @@ export default function AdminPage() {
                       </div>
                     </>
                   )
-                } catch (err: any) {
-                  return renderDebugError('UserDetail IIFE', { message: String(err?.message || err), stack: String(err?.stack || '') })
+                } catch (err: unknown) {
+                  return renderDebugError('UserDetail IIFE', { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' })
                 }
               })()}
             </div>
@@ -2194,9 +2197,9 @@ export default function AdminPage() {
         ) : null}
       </div>
     )
-  } catch (err: any) {
+  } catch (err: unknown) {
     // Catch synchronous errors during JSX evaluation
-    const errObj = { message: String(err?.message || err), stack: String(err?.stack || '') }
+    const errObj = { message: err instanceof Error ? err.message : String(err), stack: err instanceof Error ? (err.stack || '') : '' }
     // Cannot call setRenderError here (inside render), so return the error UI directly
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', padding: '40px 16px' }}>

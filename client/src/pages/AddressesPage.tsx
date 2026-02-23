@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { showToast } from '../lib/toast'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface Address {
   id?: string
@@ -27,6 +29,7 @@ export default function AddressesPage() {
   const { user } = useAuth()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   const [addresses, setAddresses] = useState<Address[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -175,8 +178,8 @@ export default function AddressesPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
@@ -295,15 +298,15 @@ export default function AddressesPage() {
           </>
         ) : (
           <div>
-            <input type="text" value={formName} onChange={e => { setFormName(e.target.value); if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: false })) }} placeholder={c.name} style={{ ...inputStyle, borderColor: fieldErrors.name ? '#E8344E' : '#222' }} />
+            <input type="text" autoComplete="name" value={formName} onChange={e => { setFormName(e.target.value); if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: false })) }} placeholder={c.name} style={{ ...inputStyle, borderColor: fieldErrors.name ? '#E8344E' : '#222' }} />
             {fieldErrors.name && <p style={{ fontSize: '12px', color: '#E8344E', margin: '-8px 0 12px 2px' }}>{c.nameRequired}</p>}
-            <input type="text" value={formStreet} onChange={e => { setFormStreet(e.target.value); if (fieldErrors.street) setFieldErrors(prev => ({ ...prev, street: false })) }} placeholder={c.street} style={{ ...inputStyle, borderColor: fieldErrors.street ? '#E8344E' : '#222' }} />
+            <input type="text" autoComplete="street-address" value={formStreet} onChange={e => { setFormStreet(e.target.value); if (fieldErrors.street) setFieldErrors(prev => ({ ...prev, street: false })) }} placeholder={c.street} style={{ ...inputStyle, borderColor: fieldErrors.street ? '#E8344E' : '#222' }} />
             {fieldErrors.street && <p style={{ fontSize: '12px', color: '#E8344E', margin: '-8px 0 12px 2px' }}>{c.streetRequired}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <input type="text" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder={c.city} style={inputStyle} />
-              <input type="text" value={formZip} onChange={e => setFormZip(e.target.value)} placeholder={c.zip} style={inputStyle} />
+              <input type="text" autoComplete="address-level2" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder={c.city} style={inputStyle} />
+              <input type="text" autoComplete="postal-code" value={formZip} onChange={e => setFormZip(e.target.value)} placeholder={c.zip} style={inputStyle} />
             </div>
-            <input type="tel" inputMode="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder={c.phone} style={inputStyle} />
+            <input type="tel" inputMode="tel" autoComplete="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder={c.phone} style={inputStyle} />
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
               <button onClick={resetForm} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#1A1A1A', border: 'none', borderRadius: '10px', color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>{c.cancel}</button>
               <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#F0908A', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? c.saving : c.save}</button>

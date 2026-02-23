@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Order, Dispute } from '../types/database'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface OrderWithItem extends Order {
   item?: { title: string; image_urls: string[]; category: string }
@@ -304,6 +306,7 @@ export default function DisputePage() {
 
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.dispute)
 
   // Order data
   const [order, setOrder] = useState<OrderWithItem | null>(null)
@@ -689,7 +692,7 @@ export default function DisputePage() {
         {/* Header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.dispute}</h1>
         </div>
@@ -717,7 +720,9 @@ export default function DisputePage() {
                   <img
                     src={order.item.image_urls[0]}
                     alt={order.item.title}
+                    loading="lazy"
                     style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
+                    onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                   />
                 )}
                 <div style={{ flex: 1 }}>
@@ -818,8 +823,10 @@ export default function DisputePage() {
                     key={`bp-${i}`}
                     src={url}
                     alt={`${ct.evidence_alt} ${i + 1}`}
+                    loading="lazy"
                     style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222', cursor: 'pointer' }}
                     onClick={() => setFullscreenPhoto(url)}
+                    onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                   />
                 ))}
               </div>
@@ -836,8 +843,10 @@ export default function DisputePage() {
                     key={`ev-${i}`}
                     src={url}
                     alt={`${ct.evidence_alt} ${i + 1}`}
+                    loading="lazy"
                     style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222', cursor: 'pointer' }}
                     onClick={() => setFullscreenPhoto(url)}
+                    onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                   />
                 ))}
               </div>
@@ -854,8 +863,10 @@ export default function DisputePage() {
                     key={`sp-${i}`}
                     src={url}
                     alt={`${(ct as Record<string, string>).seller_photos} ${i + 1}`}
+                    loading="lazy"
                     style={{ width: '80px', height: '80px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #222', cursor: 'pointer' }}
                     onClick={() => setFullscreenPhoto(url)}
+                    onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                   />
                 ))}
               </div>
@@ -874,12 +885,14 @@ export default function DisputePage() {
               {sellerPreviews.length > 0 && (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
                   {sellerPreviews.map((preview, i) => (
-                    <div key={i} style={{ position: 'relative' }}>
+                    <div key={preview} style={{ position: 'relative' }}>
                       <img
                         src={preview}
                         alt={`${(ct as Record<string, string>).seller_photos} ${i + 1}`}
+                        loading="lazy"
                         style={{ width: '72px', height: '72px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }}
                         onClick={() => setFullscreenPhoto(preview)}
+                        onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                       />
                       <button
                         onClick={() => removeSellerFile(i)}
@@ -989,8 +1002,10 @@ export default function DisputePage() {
             <img
               src={fullscreenPhoto}
               alt=""
+              loading="lazy"
               style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '8px', objectFit: 'contain' }}
               onClick={(e) => e.stopPropagation()}
+              onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
             />
           </div>
         )}
@@ -1016,7 +1031,7 @@ export default function DisputePage() {
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.open_dispute}</h1>
       </div>
@@ -1031,7 +1046,9 @@ export default function DisputePage() {
                 <img
                   src={order.item.image_urls[0]}
                   alt={order.item.title}
+                  loading="lazy"
                   style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover' }}
+                  onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                 />
               )}
               <div style={{ flex: 1 }}>
@@ -1149,12 +1166,14 @@ export default function DisputePage() {
           {previews.length > 0 && (
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
               {previews.map((preview, i) => (
-                <div key={i} style={{ position: 'relative' }}>
+                <div key={preview} style={{ position: 'relative' }}>
                   <img
                     src={preview}
                     alt={`${ct.evidence_alt} ${i + 1}`}
+                    loading="lazy"
                     style={{ width: '72px', height: '72px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #333', cursor: 'pointer' }}
                     onClick={() => setFullscreenPhoto(preview)}
+                    onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                   />
                   <button
                     onClick={() => removeFile(i)}
@@ -1268,8 +1287,10 @@ export default function DisputePage() {
           <img
             src={fullscreenPhoto}
             alt=""
+            loading="lazy"
             style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '8px', objectFit: 'contain' }}
             onClick={(e) => e.stopPropagation()}
+            onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
           />
         </div>
       )}

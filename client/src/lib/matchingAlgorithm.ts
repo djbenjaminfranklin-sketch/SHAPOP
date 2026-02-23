@@ -1,5 +1,5 @@
 import type { Stream } from '../types/database'
-import type { LocalPreferences } from '../components/PreferencesModal'
+import type { LocalPreferences } from '../types/preferences'
 import { getBehaviorScore } from './behaviorTracker'
 
 type StreamWithSeller = Stream & {

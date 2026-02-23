@@ -60,12 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const meta = u.user_metadata || {}
       const name = meta.display_name || meta.full_name || meta.name || u.email?.split('@')[0] || 'user'
       const username = meta.username || (u.email?.split('@')[0] || `user_${u.id.slice(0, 6)}`).toLowerCase().replace(/[^a-z0-9_]/g, '')
-      const { data: newProfile } = await supabase.from('profiles').insert({
+      const { data: newProfile, error: insertError } = await supabase.from('profiles').insert({
         id: u.id,
         username,
         display_name: name,
         avatar_url: meta.avatar_url || meta.picture || null,
       }).select().single()
+      if (insertError) console.error('Failed to create profile:', insertError)
       setProfile(newProfile)
     }
   }

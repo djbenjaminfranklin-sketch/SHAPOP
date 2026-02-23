@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getLang } from '../lib/i18n'
-import { supabase } from '../lib/supabase'
-import type { EngagementMetrics } from '../types/database'
+import { getLang } from '../../lib/i18n'
+import { isRTL } from '../../lib/rtl'
+import { supabase } from '../../lib/supabase'
+import type { EngagementMetrics } from '../../types/database'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -237,7 +238,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
     if (!streamId) return
 
     const fetchMetrics = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('engagement_metrics')
         .select('*')
         .eq('stream_id', streamId)
@@ -245,7 +246,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
         .limit(1)
         .single()
 
-      if (data) {
+      if (!error && data) {
         const updated = { ...data, energy_level: computeEnergyLevel(data) } as EngagementMetrics
         setPrevViewerCount(metrics.viewer_count)
         setMetrics(updated)
@@ -301,19 +302,19 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
     <div style={{
       position: 'absolute',
       top: 0,
-      right: 0,
+      ...(isRTL() ? { left: 0 } : { right: 0 }),
       bottom: 0,
       width: '100%',
       maxWidth: '360px',
       backgroundColor: '#000000DD',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      borderLeft: '1px solid rgba(255,255,255,0.08)',
+      ...(isRTL() ? { borderRight: '1px solid rgba(255,255,255,0.08)' } : { borderLeft: '1px solid rgba(255,255,255,0.08)' }),
       zIndex: 50,
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',
-      transform: panelVisible ? 'translateX(0)' : 'translateX(100%)',
+      transform: panelVisible ? 'translateX(0)' : isRTL() ? 'translateX(-100%)' : 'translateX(100%)',
       transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
     }}>
       {/* Header */}

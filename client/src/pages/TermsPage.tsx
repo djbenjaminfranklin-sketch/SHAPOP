@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
   en: {
@@ -176,19 +178,20 @@ export default function TermsPage() {
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
       <div style={{ padding: '20px 20px' }}>
         <p style={{ fontSize: '12px', color: '#666', marginBottom: '24px' }}>{c.updated}</p>
-        {c.sections.map((s, i) => (
-          <div key={i} style={{ marginBottom: s.p ? '20px' : '28px', marginTop: !s.p ? '32px' : undefined }}>
+        {c.sections.map((s) => (
+          <div key={s.h} style={{ marginBottom: s.p ? '20px' : '28px', marginTop: !s.p ? '32px' : undefined }}>
             <h2 style={{
               fontSize: s.p ? '15px' : '16px',
               fontWeight: 700,

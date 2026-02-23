@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Stream } from '../types/database'
-import type { CountryCode } from '../lib/communitiesData'
+import type { CountryCode } from '../lib/data/communitiesData'
 
 type StreamWithSeller = Omit<Stream, 'seller'> & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
@@ -51,12 +51,13 @@ export function useCityStreamCounts(country: CountryCode = 'FR') {
     setLoading(true)
 
     const fetchStreams = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('streams')
         .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, seller:profiles!seller_id(display_name, avatar_url)')
         .in('status', ['live', 'scheduled'])
         .order('viewer_count', { ascending: false })
 
+      if (error) { setLoading(false); return }
       const streams = ((data || []) as unknown as StreamWithSeller[])
 
       // Filter streams that belong to this country's cities

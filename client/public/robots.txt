@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+
+Disallow: /profile
+Disallow: /dashboard
+Disallow: /activity
+Disallow: /notifications
+Disallow: /payments
+Disallow: /addresses
+Disallow: /preferences
+Disallow: /referrals
+Disallow: /go-live
+Disallow: /direct-sales
+Disallow: /verification
+Disallow: /account-controls
+Disallow: /security
+Disallow: /change-password
+Disallow: /change-email
+Disallow: /team
+Disallow: /messages
+Disallow: /account-status
+Disallow: /admin
+Disallow: /order/
+Disallow: /dispute/
+Disallow: /conversation/
+
+Sitemap: https://shapop.app/sitemap.xml

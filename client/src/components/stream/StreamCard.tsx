@@ -1,7 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom'
-import type { Stream } from '../types/database'
-import { t, getLang } from '../lib/i18n'
-import { trackStreamView } from '../lib/behaviorTracker'
+import type { Stream } from '../../types/database'
+import { t, getLang } from '../../lib/i18n'
+import { rtlPos, rtlPadding } from '../../lib/rtl'
+import { trackStreamView } from '../../lib/behaviorTracker'
 
 // Community name lookup for badge display
 const COMMUNITY_NAMES: Record<string, string> = {
@@ -24,7 +25,7 @@ function fmtViewers(n: number): string {
 }
 
 interface StreamCardProps {
-  stream: Stream & { seller?: { display_name?: string; avatar_url?: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string }
+  stream: Stream & { seller?: { display_name?: string; avatar_url?: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string; is_boosted?: boolean }
   isFavorited?: boolean
   onToggleFavorite?: (streamId: string) => void
 }
@@ -32,7 +33,7 @@ interface StreamCardProps {
 export default function StreamCard({ stream, isFavorited, onToggleFavorite }: StreamCardProps) {
   const lang = getLang()
   const navigate = useNavigate()
-  const sellerName = stream.seller?.store_name || stream.seller?.display_name || 'Vendeur'
+  const sellerName = stream.seller?.store_name || stream.seller?.display_name || ({ fr: 'Vendeur', en: 'Seller', he: 'מוכר', es: 'Vendedor' })[getLang()]
   const communityName = stream.community_id ? COMMUNITY_NAMES[stream.community_id] : null
 
   const goToSellerProfile = (e: React.MouseEvent) => {
@@ -56,7 +57,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           border: '1.5px solid #333',
         }}>
           {stream.seller?.avatar_url ? (
-            <img src={stream.seller.avatar_url} alt={sellerName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={stream.seller.avatar_url} alt={sellerName} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
           ) : (
             sellerName.charAt(0).toUpperCase()
           )}
@@ -81,7 +82,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
       {/* Thumbnail */}
       <div style={{ position: 'relative', borderRadius: '14px', overflow: 'hidden', backgroundColor: '#151515', aspectRatio: '3/4' }}>
         {stream.thumbnail_url ? (
-          <img src={stream.thumbnail_url} alt={stream.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={stream.thumbnail_url} alt={stream.title} loading="lazy" width={300} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5">
@@ -92,7 +93,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
 
         {/* Live badge — WhatNot style with viewer count */}
         {stream.status === 'live' && (
-          <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+          <div style={{ position: 'absolute', top: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               backgroundColor: '#E8344E', color: '#fff',
@@ -105,7 +106,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         )}
 
         {stream.status === 'scheduled' && (
-          <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+          <div style={{ position: 'absolute', top: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff',
               fontSize: '12px', fontWeight: 600, padding: '5px 10px', borderRadius: '8px'
@@ -116,8 +117,8 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         )}
 
         {/* Boost badge */}
-        {(stream as any).is_boosted && (
-          <div style={{ position: 'absolute', bottom: '10px', left: '10px' }}>
+        {stream.is_boosted && (
+          <div style={{ position: 'absolute', bottom: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               background: 'linear-gradient(135deg, #F59E0B, #D97706)',
@@ -133,7 +134,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
 
         {/* Match score badge */}
         {stream.matching_score != null && stream.matching_score > 50 && (
-          <div style={{ position: 'absolute', top: '10px', right: '8px' }}>
+          <div style={{ position: 'absolute', top: '10px', ...rtlPos('right', '8px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '3px',
               background: 'linear-gradient(135deg, #F0908A, #E8344E)',
@@ -152,7 +153,9 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         {/* Favorite heart button */}
         {onToggleFavorite && (
           <button
-            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label={isFavorited
+              ? (lang === 'fr' ? 'Retirer des favoris' : lang === 'es' ? 'Quitar de favoritos' : lang === 'he' ? '\u05D4\u05E1\u05E8 \u05DE\u05D4\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD' : 'Remove from favorites')
+              : (lang === 'fr' ? 'Ajouter aux favoris' : lang === 'es' ? 'Agregar a favoritos' : lang === 'he' ? '\u05D4\u05D5\u05E1\u05E3 \u05DC\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD' : 'Add to favorites')}
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
@@ -161,7 +164,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             style={{
               position: 'absolute',
               bottom: communityName ? '36px' : '10px',
-              right: '10px', zIndex: 5,
+              ...rtlPos('right', '10px'), zIndex: 5,
               background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
               border: 'none', borderRadius: '50%',
               width: '34px', height: '34px',
@@ -177,7 +180,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
 
         {/* Community badge */}
         {communityName && (
-          <div style={{ position: 'absolute', bottom: '10px', left: '10px', right: '10px' }}>
+          <div style={{ position: 'absolute', bottom: '10px', ...rtlPos('left', '10px'), ...rtlPos('right', '10px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
@@ -196,7 +199,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
       </div>
 
       {/* Title & category — WhatNot style with blue category link */}
-      <div style={{ marginTop: '8px', paddingRight: '4px' }}>
+      <div style={{ marginTop: '8px', ...rtlPadding('right', '4px') }}>
         <p style={{
           fontSize: '14px', fontWeight: 700, color: '#fff', lineHeight: 1.3,
           overflow: 'hidden', textOverflow: 'ellipsis',

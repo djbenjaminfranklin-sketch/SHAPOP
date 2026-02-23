@@ -8,6 +8,7 @@ import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
 import { liveFormats } from './SubCategoryData'
 import CartoonAvatar from '../CartoonAvatar'
+import { rtlFlip, rtlTextAlign, rtlPos } from '../../lib/rtl'
 
 const TOTAL_STEPS = 5
 
@@ -497,7 +498,7 @@ export default function CreateLiveWizard() {
       }
       setShowSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : (t as any).createError || 'Erreur')
+      setError(err instanceof Error ? err.message : 'Erreur')
       setLoading(false)
     }
   }
@@ -679,7 +680,7 @@ export default function CreateLiveWizard() {
             >
               {tips.map((tip, i) => (
                 <div
-                  key={i}
+                  key={tip.title}
                   style={{
                     minWidth: 'calc(100% - 0px)', scrollSnapAlign: 'center',
                     background: tip.bg,
@@ -738,7 +739,7 @@ export default function CreateLiveWizard() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginTop: '0px' }}>
               {tips.map((_tip, i) => (
                 <button
-                  key={i}
+                  key={_tip.title}
                   onClick={() => scrollToTip(i)}
                   style={{
                     width: activeTip === i ? '28px' : '8px', height: '8px',
@@ -867,7 +868,7 @@ export default function CreateLiveWizard() {
                 </div>
                 {/* LIVE badge */}
                 <div style={{
-                  position: 'absolute', top: '12px', left: '12px',
+                  position: 'absolute', top: '12px', ...rtlPos('left', '12px'),
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <div style={{
@@ -886,7 +887,7 @@ export default function CreateLiveWizard() {
                 </div>
                 {/* Viewer count mock */}
                 <div style={{
-                  position: 'absolute', top: '12px', right: '12px',
+                  position: 'absolute', top: '12px', ...rtlPos('right', '12px'),
                   background: 'rgba(0,0,0,0.6)', borderRadius: '6px',
                   padding: '4px 8px', fontSize: '11px', color: '#ccc',
                   backdropFilter: 'blur(8px)',
@@ -1010,10 +1011,15 @@ export default function CreateLiveWizard() {
                   inp.style.opacity = '0'
                   inp.style.pointerEvents = 'none'
                   document.body.appendChild(inp)
+                  const removeInp = () => {
+                    if (inp.parentNode) document.body.removeChild(inp)
+                  }
                   inp.addEventListener('change', () => {
                     setScheduledDate(inp.value)
-                    document.body.removeChild(inp)
+                    removeInp()
                   })
+                  // Clean up if picker is dismissed without selection
+                  inp.addEventListener('blur', () => setTimeout(removeInp, 300))
                   inp.showPicker?.()
                   // fallback for browsers without showPicker
                   inp.click()
@@ -1339,7 +1345,7 @@ export default function CreateLiveWizard() {
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     ) : (
-                      <img src={thumbnailPreview!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={thumbnailPreview!} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     )}
                     {/* Overlay gradient */}
                     <div style={{
@@ -1347,7 +1353,7 @@ export default function CreateLiveWizard() {
                       background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 40%, transparent 60%, rgba(0,0,0,0.4) 100%)',
                     }} />
                     <div style={{
-                      position: 'absolute', top: '12px', left: '12px',
+                      position: 'absolute', top: '12px', ...rtlPos('left', '12px'),
                       display: 'flex', alignItems: 'center', gap: '6px',
                     }}>
                       <div style={{
@@ -1366,7 +1372,7 @@ export default function CreateLiveWizard() {
                     </div>
                     {thumbnailIsVideo && (
                       <div style={{
-                        position: 'absolute', top: '12px', right: '12px',
+                        position: 'absolute', top: '12px', ...rtlPos('right', '12px'),
                         background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
                         borderRadius: '6px', padding: '4px 8px',
                         fontSize: '10px', fontWeight: 700, color: '#fff',
@@ -1600,7 +1606,7 @@ export default function CreateLiveWizard() {
               touchAction: 'manipulation',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#aaa" strokeWidth="2.5" style={step > 0 ? {...rtlFlip()} : undefined}>
               <path d={step > 0 ? "M19 12H5M12 19l-7-7 7-7" : "M18 6L6 18M6 6l12 12"} strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
@@ -1628,7 +1634,7 @@ export default function CreateLiveWizard() {
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: '14px', fontWeight: 700, color: '#F0908A',
-                minWidth: '42px', textAlign: 'right', padding: '4px 0',
+                minWidth: '42px', ...rtlTextAlign('right'), padding: '4px 0',
                 letterSpacing: '0.2px',
               }}
             >
@@ -1637,7 +1643,7 @@ export default function CreateLiveWizard() {
           ) : (
             <div style={{
               fontSize: '13px', fontWeight: 700, color: '#444',
-              minWidth: '42px', textAlign: 'right',
+              minWidth: '42px', ...rtlTextAlign('right'),
             }}>
               {step + 1}/{TOTAL_STEPS}
             </div>
@@ -1674,7 +1680,7 @@ export default function CreateLiveWizard() {
             overflowY: 'auto',
             overflowX: 'hidden',
             maxHeight: 'calc(100vh - 200px)',
-            WebkitOverflowScrolling: 'touch' as any,
+            WebkitOverflowScrolling: 'touch',
             paddingBottom: '32px',
           }}
         >
@@ -1722,7 +1728,7 @@ export default function CreateLiveWizard() {
           )}
           {loading ? t.creating : step === TOTAL_STEPS - 1 ? t.goLive : t.next}
           {!loading && canProceed() && step < TOTAL_STEPS - 1 && (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" style={{...rtlFlip()}}>
               <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           )}

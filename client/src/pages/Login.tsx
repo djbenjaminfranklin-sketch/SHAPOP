@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { track } from '../lib/analytics'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
   fr: {
@@ -89,6 +90,7 @@ export default function Login() {
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title || 'Connexion')
 
   // Redirect when user becomes authenticated (OAuth callback)
   useEffect(() => {
@@ -101,6 +103,12 @@ export default function Login() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError(c.errorInvalidCredentials)
+      return
+    }
+
     setLoading(true)
     try {
       await signIn(email, password)
@@ -201,6 +209,7 @@ export default function Login() {
           <input
             type="email"
             inputMode="email"
+            autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder={c.emailPlaceholder}
@@ -222,6 +231,7 @@ export default function Login() {
           <div style={{ position: 'relative' }}>
             <input
               type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={c.passwordPlaceholder}
@@ -237,6 +247,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               style={{
                 position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -281,6 +292,19 @@ export default function Login() {
           {c.createAccount}
         </Link>
       </p>
+
+      {/* Legal links */}
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px', flexWrap: 'wrap' }}>
+        <Link to="/terms" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
+          {lang === 'fr' ? "Conditions d'utilisation" : lang === 'es' ? 'Terminos de servicio' : lang === 'he' ? '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9' : 'Terms of Service'}
+        </Link>
+        <Link to="/privacy" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
+          {lang === 'fr' ? 'Confidentialite' : lang === 'es' ? 'Privacidad' : lang === 'he' ? '\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA' : 'Privacy'}
+        </Link>
+        <Link to="/eula" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
+          {lang === 'fr' ? 'CLUF' : lang === 'es' ? 'CLUF' : lang === 'he' ? '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF' : 'EULA'}
+        </Link>
+      </div>
     </div>
   )
 }

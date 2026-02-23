@@ -65,16 +65,18 @@ html {
   max-width: 100vw;
   overflow-x: hidden !important;
   overscroll-behavior: none;
+  background-color: #0a0a0a;
+  height: 100%;
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-  min-height: 100vh;
-  background-color: #000000;
+  min-height: 100%;
+  background-color: #0a0a0a;
   color: #FFFFFF;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden !important;
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   position: relative;
   width: 100%;
   max-width: 100vw;
@@ -84,6 +86,8 @@ body {
   max-width: 100vw;
   overflow-x: hidden !important;
   width: 100%;
+  min-height: 100%;
+  background-color: #0a0a0a;
 }
 
 /* Hide scrollbars on mobile */
@@ -103,13 +107,40 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* RTL support for Hebrew */
+/* iOS overscroll dark background — covers safe area regions */
+@supports (padding-top: env(safe-area-inset-top)) {
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #0a0a0a;
+    z-index: -1;
+    pointer-events: none;
+  }
+}
+
+/* RTL Support */
 [dir="rtl"] {
   text-align: right;
 }
+
 [dir="rtl"] input,
 [dir="rtl"] textarea {
   text-align: right;
+}
+
+/* Flip horizontal scroll containers */
+[dir="rtl"] .scroll-horizontal {
+  direction: rtl;
+}
+
+/* Ensure flex gaps work correctly in RTL */
+[dir="rtl"] [style*="flex-direction: row"],
+[dir="rtl"] [style*="flexDirection"] {
+  /* Browser handles flex with dir="rtl" automatically */
 }
 
 /* Admin page spinner */

@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { MiniPlayerProvider } from './contexts/MiniPlayerContext'
-import MiniPlayerOverlay from './components/MiniPlayerOverlay'
+import MiniPlayerOverlay from './components/stream/MiniPlayerOverlay'
 import { hapticTap } from './lib/haptics'
 import { usePushNotifications } from './hooks/usePushNotifications'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
@@ -10,6 +10,8 @@ import BottomNav from './components/BottomNav'
 import HomeButton from './components/HomeButton'
 import SplashScreen from './components/SplashScreen'
 import ErrorBoundary from './components/ErrorBoundary'
+import { getLang } from './lib/i18n'
+import { getDir } from './lib/rtl'
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'))
@@ -61,12 +63,12 @@ const CreateLiveWizard = lazy(() => import('./components/seller/CreateLiveWizard
 function PageLoader() {
   return (
     <div style={{
-      minHeight: '100vh', backgroundColor: '#000',
+      minHeight: '100dvh', backgroundColor: '#0a0a0a',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       <div
         role="status"
-        aria-label="Loading page"
+        aria-label={(() => { const l = getLang(); return l === 'fr' ? 'Chargement' : l === 'es' ? 'Cargando' : l === 'he' ? 'טוען' : 'Loading page' })()}
         style={{
           width: '32px', height: '32px', border: '3px solid #333',
           borderTopColor: '#E8344E', borderRadius: '50%',
@@ -76,6 +78,14 @@ function PageLoader() {
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
+}
+
+/** Route guard — redirects to /login if not authenticated */
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) return <PageLoader />
+  if (!user) return <Navigate to="/login" replace />
+  return <>{children}</>
 }
 
 /** Referral deep link redirect */
@@ -100,7 +110,7 @@ function PushAutoRegister() {
 function OfflineBanner() {
   const isOnline = useOnlineStatus()
   if (isOnline) return null
-  const lang = localStorage.getItem('shapop_lang') || 'fr'
+  const lang = getLang()
   const msg: Record<string, string> = {
     fr: 'Pas de connexion internet',
     en: 'No internet connection',
@@ -153,7 +163,7 @@ function useAppSettings() {
           `
         } else {
           html.style.filter = ''
-          html.style.backgroundColor = ''
+          html.style.backgroundColor = '#0a0a0a'
           if (styleEl) styleEl.textContent = ''
         }
 
@@ -185,9 +195,8 @@ function useAppSettings() {
 }
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true)
-  const lang = useMemo(() => localStorage.getItem('shapop_lang') || 'fr', [])
-  const dir = lang === 'he' ? 'rtl' : 'ltr'
+  const [showSplash, setShowSplash] = useState(() => !localStorage.getItem('shapop_splash_seen'))
+  const dir = useMemo(() => getDir(), [])
 
   useAppSettings()
 
@@ -221,7 +230,7 @@ export default function App() {
     document.addEventListener('touchstart', handler, { passive: true })
     // Fallback for non-touch (dev/desktop)
     const pointerHandler = (e: Event) => {
-      if (e instanceof TouchEvent) return // Already handled by touchstart
+      if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) return // Already handled by touchstart
       const target = e.target as HTMLElement
       if (target.closest('button, a, [role="button"]')) {
         hapticTap()
@@ -235,7 +244,7 @@ export default function App() {
   }, [])
 
   if (showSplash) {
-    return <SplashScreen onFinish={() => setShowSplash(false)} />
+    return <SplashScreen onFinish={() => { localStorage.setItem('shapop_splash_seen', '1'); setShowSplash(false) }} />
   }
 
   return (
@@ -244,7 +253,7 @@ export default function App() {
         <AuthProvider>
           <MiniPlayerProvider>
           <PushAutoRegister />
-          <div dir={dir} className="min-h-screen bg-black" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
+          <div dir={dir} className="min-h-screen" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%', backgroundColor: '#0a0a0a', minHeight: '100dvh' }}>
             <a
               href="#main-content"
               style={{
@@ -267,45 +276,45 @@ export default function App() {
                 <Route path="/ref/:code" element={<RefRedirect />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/stream/:id" element={<StreamView />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<Profile />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                 <Route path="/map" element={<MapPage />} />
-                <Route path="/activity" element={<ActivityPage />} />
+                <Route path="/activity" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
                 <Route path="/eula" element={<EulaPage />} />
                 <Route path="/faq" element={<FaqPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/about" element={<AboutPage />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
-                <Route path="/account-status" element={<AccountStatusPage />} />
-                <Route path="/payments" element={<PaymentsPage />} />
-                <Route path="/addresses" element={<AddressesPage />} />
-                <Route path="/preferences" element={<PreferencesPage />} />
-                <Route path="/referrals" element={<ReferralsPage />} />
+                <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+                <Route path="/account-status" element={<ProtectedRoute><AccountStatusPage /></ProtectedRoute>} />
+                <Route path="/payments" element={<ProtectedRoute><PaymentsPage /></ProtectedRoute>} />
+                <Route path="/addresses" element={<ProtectedRoute><AddressesPage /></ProtectedRoute>} />
+                <Route path="/preferences" element={<ProtectedRoute><PreferencesPage /></ProtectedRoute>} />
+                <Route path="/referrals" element={<ProtectedRoute><ReferralsPage /></ProtectedRoute>} />
                 <Route path="/communities" element={<CommunitiesPage />} />
                 <Route path="/community/:id" element={<CommunityDetailPage />} />
-                <Route path="/ai-listing" element={<AIListingPage />} />
-                <Route path="/direct-sales" element={<DirectSalesPage />} />
+                <Route path="/ai-listing" element={<ProtectedRoute><AIListingPage /></ProtectedRoute>} />
+                <Route path="/direct-sales" element={<ProtectedRoute><DirectSalesPage /></ProtectedRoute>} />
                 <Route path="/item/:id" element={<ItemDetailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/change-password" element={<ChangePasswordPage />} />
-                <Route path="/change-email" element={<ChangeEmailPage />} />
-                <Route path="/security" element={<SecurityPage />} />
-                <Route path="/go-live" element={<GoLivePage />} />
-                <Route path="/schedule-live" element={<CreateLiveWizard />} />
-                <Route path="/prepare-live/:streamId" element={<PrepareLivePage />} />
-                <Route path="/live-seller/:streamId" element={<LiveSellerView />} />
-                <Route path="/live-recap/:streamId" element={<LiveRecapPage />} />
-                <Route path="/admin" element={<AdminPage />} />
-                <Route path="/dispute/:orderId" element={<DisputePage />} />
-                <Route path="/order/:id" element={<OrderDetailPage />} />
-                <Route path="/messages" element={<MessagesPage />} />
-                <Route path="/conversation/:id" element={<ConversationPage />} />
+                <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
+                <Route path="/change-email" element={<ProtectedRoute><ChangeEmailPage /></ProtectedRoute>} />
+                <Route path="/security" element={<ProtectedRoute><SecurityPage /></ProtectedRoute>} />
+                <Route path="/go-live" element={<ProtectedRoute><GoLivePage /></ProtectedRoute>} />
+                <Route path="/schedule-live" element={<ProtectedRoute><CreateLiveWizard /></ProtectedRoute>} />
+                <Route path="/prepare-live/:streamId" element={<ProtectedRoute><PrepareLivePage /></ProtectedRoute>} />
+                <Route path="/live-seller/:streamId" element={<ProtectedRoute><LiveSellerView /></ProtectedRoute>} />
+                <Route path="/live-recap/:streamId" element={<ProtectedRoute><LiveRecapPage /></ProtectedRoute>} />
+                <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+                <Route path="/dispute/:orderId" element={<ProtectedRoute><DisputePage /></ProtectedRoute>} />
+                <Route path="/order/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+                <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
+                <Route path="/conversation/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
                 <Route path="/seller/:id" element={<SellerProfilePage />} />
-                <Route path="/verification" element={<VerificationPage />} />
-                <Route path="/account-controls" element={<AccountControlsPage />} />
-                <Route path="/team" element={<TeamPage />} />
+                <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
+                <Route path="/account-controls" element={<ProtectedRoute><AccountControlsPage /></ProtectedRoute>} />
+                <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               </main>

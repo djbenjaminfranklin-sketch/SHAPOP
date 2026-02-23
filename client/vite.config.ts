@@ -9,6 +9,22 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      manifest: {
+        name: 'ShaPop — Live Shopping',
+        short_name: 'ShaPop',
+        description: 'Achetez et vendez en direct. Live shopping, encheres, ventes flash.',
+        start_url: '/',
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        background_color: '#0a0a0a',
+        theme_color: '#0a0a0a',
+        lang: 'fr',
+        categories: ['shopping', 'entertainment', 'social'],
+        icons: [
+          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        ],
+      },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [

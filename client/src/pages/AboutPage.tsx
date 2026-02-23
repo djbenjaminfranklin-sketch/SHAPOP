@@ -1,6 +1,8 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
   en: {
@@ -92,12 +94,13 @@ export default function AboutPage() {
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
@@ -118,8 +121,8 @@ export default function AboutPage() {
 
         {/* Features grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
-          {c.features.map((f, i) => (
-            <div key={i} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'left' }}>
+          {c.features.map((f) => (
+            <div key={f.icon} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'left' }}>
               {iconMap[f.icon]}
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '10px', marginBottom: '4px' }}>{f.title}</h3>
               <p style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>{f.desc}</p>

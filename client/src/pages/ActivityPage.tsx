@@ -9,9 +9,10 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Order, Item, Stream } from '../types/database'
-import StreamCard from '../components/StreamCard'
+import StreamCard from '../components/stream/StreamCard'
 import ItemCard from '../components/ItemCard'
-import VodPlayer from '../components/VodPlayer'
+import VodPlayer from '../components/stream/VodPlayer'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
@@ -22,11 +23,12 @@ type ProofLevel = 'basic' | 'standard' | 'enhanced'
 
 // Helper function to calculate remaining time before claim deadline
 function formatTimeRemaining(deadline: string): string {
+  const lang = getLang()
   const remaining = new Date(deadline).getTime() - Date.now()
-  if (remaining <= 0) return 'Expire'
+  if (remaining <= 0) return ({ fr: 'Expiré', en: 'Expired', he: 'פג תוקף', es: 'Expirado' })[lang] || 'Expiré'
   const hours = Math.floor(remaining / (1000 * 60 * 60))
   const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
-  return `${hours}h ${minutes}min restantes`
+  return ({ fr: `${hours}h ${minutes}min restantes`, en: `${hours}h ${minutes}min remaining`, he: `${hours}h ${minutes}min נותרו`, es: `${hours}h ${minutes}min restantes` })[lang] || `${hours}h ${minutes}min restantes`
 }
 
 interface PurchaseOrder extends Order {
@@ -38,6 +40,21 @@ interface SaleOrder extends Order {
   item?: Pick<Item, 'title' | 'image_urls' | 'category'>
   buyer_profile?: { display_name: string; username: string }
   stream?: { recording_url: string | null } | null
+}
+
+interface FollowedSeller {
+  id: string
+  store_name?: string
+  profiles?: { display_name?: string; avatar_url?: string | null }
+  upcoming_streams?: { status: string; scheduled_at: string }[]
+}
+
+interface OfferEntry {
+  id: string
+  seller_id: string
+  status: 'pending' | 'accepted' | 'declined'
+  amount: number
+  item?: { title?: string; image_urls?: string[] }
 }
 
 // Inline shipping section for a single paid order (weight + label)
@@ -89,7 +106,7 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
     setGenerating(true); setError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setError('Auth'); setGenerating(false); return }
+      if (!session) { setError(lang === 'fr' ? 'Non connecte' : lang === 'es' ? 'No conectado' : lang === 'he' ? '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8' : 'Not signed in'); setGenerating(false); return }
       const resp = await apiFetch(`/api/orders/${orderId}/create-label`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -102,8 +119,8 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
         onLabelGenerated?.()
       } else if (resp.status === 402) {
         setError(lb.paymentFailed)
-      } else { setError(data.error || 'Erreur') }
-    } catch { setError('Erreur reseau') }
+      } else { setError(data.error || (lang === 'fr' ? 'Erreur' : lang === 'es' ? 'Error' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05D4' : 'Error')) }
+    } catch { setError(lang === 'fr' ? 'Erreur reseau' : lang === 'es' ? 'Error de red' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05EA \u05E8\u05E9\u05EA' : 'Network error') }
     setGenerating(false)
   }
 
@@ -174,7 +191,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
   lang: string
   formatAmount: (n: number) => string
   formatDate: (s: string) => string
-  getItemImage: (item: any) => string | null
+  getItemImage: (item?: Pick<Item, 'image_urls'>) => string | null
   navigate: (path: string) => void
   onLabelGenerated?: () => void
   onVideoMoment?: (url: string, title: string, offset: number) => void
@@ -210,14 +227,14 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
   const handleGenerateLabel = async () => {
     const weight = parseInt(weightInput)
     if (!weight || weight <= 0) {
-      setError(lang === 'fr' ? 'Entre le poids du colis (en grammes)' : 'Enter package weight (in grams)')
+      setError(lang === 'fr' ? 'Entre le poids du colis (en grammes)' : lang === 'es' ? 'Introduce el peso del paquete (en gramos)' : lang === 'he' ? '\u05D4\u05D6\u05DF \u05DE\u05E9\u05E7\u05DC \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4 (\u05D1\u05D2\u05E8\u05DE\u05D9\u05DD)' : 'Enter package weight (in grams)')
       return
     }
     setGenerating(true)
     setError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setError('Non connecte'); setGenerating(false); return }
+      if (!session) { setError(lang === 'fr' ? 'Non connecte' : lang === 'es' ? 'No conectado' : lang === 'he' ? '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8' : 'Not signed in'); setGenerating(false); return }
 
       const resp = await apiFetch('/api/orders/group-label', {
         method: 'POST',
@@ -238,10 +255,10 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
       } else if (resp.status === 402) {
         setError(paymentFailedMsg)
       } else {
-        setError(data.error || 'Erreur')
+        setError(data.error || (lang === 'fr' ? 'Erreur' : lang === 'es' ? 'Error' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05D4' : 'Error'))
       }
-    } catch (err: any) {
-      setError(err?.message || 'Erreur reseau')
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : (lang === 'fr' ? 'Erreur reseau' : lang === 'es' ? 'Error de red' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05EA \u05E8\u05E9\u05EA' : 'Network error'))
     }
     setGenerating(false)
   }
@@ -278,14 +295,14 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
           {group.slice(0, 3).map((o, i) => {
             const img = getItemImage(o.item)
             return img ? (
-              <img key={o.id} src={img} alt="" style={{
+              <img key={o.id} src={img} alt="" loading="lazy" style={{
                 position: 'absolute',
                 top: i * 4, left: i * 4,
                 width: '44px', height: '44px',
                 borderRadius: '10px', objectFit: 'cover',
                 border: '2px solid #0D0D0D',
                 zIndex: 3 - i,
-              }} />
+              }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
             ) : null
           })}
           {!getItemImage(group[0].item) && (
@@ -324,7 +341,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                 backgroundColor: 'rgba(245,158,11,0.12)', padding: '2px 6px',
                 borderRadius: '6px', border: '1px solid rgba(245,158,11,0.25)',
               }}>
-                {lang === 'fr' ? 'A expedier' : 'To ship'}
+                {({ fr: 'A expédier', en: 'To ship', he: 'לשליחה', es: 'Para enviar' })[lang] || 'To ship'}
               </span>
             )}
             {group.every(o => o.status === 'delivered') && (
@@ -333,7 +350,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                 backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 6px',
                 borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)',
               }}>
-                {lang === 'fr' ? 'Livre' : 'Delivered'}
+                {({ fr: 'Livré', en: 'Delivered', he: 'נמסר', es: 'Entregado' })[lang] || 'Delivered'}
               </span>
             )}
             {group.every(o => o.label_url) && !group.every(o => o.status === 'delivered') && (
@@ -342,7 +359,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
                 backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 6px',
                 borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)',
               }}>
-                {lang === 'fr' ? 'Etiquette prete' : 'Label ready'}
+                {({ fr: 'Étiquette prête', en: 'Label ready', he: 'תווית מוכנה', es: 'Etiqueta lista' })[lang] || 'Label ready'}
               </span>
             )}
           </div>
@@ -360,19 +377,21 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
           {/* Item list with status badges */}
           {group.map(order => {
             const sc = order.status === 'paid' ? '#3B82F6' : order.status === 'preparing' ? '#F59E0B' : order.status === 'shipped' ? '#10B981' : order.status === 'delivered' ? '#10B981' : order.status === 'refunded' ? '#8B5CF6' : '#666'
-            const sl = order.status === 'paid' ? (lang === 'fr' ? 'Paye' : 'Paid')
-              : order.status === 'preparing' ? (lang === 'fr' ? 'Prep.' : 'Prep.')
-              : order.status === 'shipped' ? (lang === 'fr' ? 'Expedie' : 'Shipped')
-              : order.status === 'delivered' ? (lang === 'fr' ? 'Livre' : 'Delivered')
-              : order.status === 'refunded' ? (lang === 'fr' ? 'Rembourse' : 'Refunded')
-              : order.status
+            const statusLabels: Record<string, Record<string, string>> = {
+              paid: { fr: 'Payé', en: 'Paid', he: 'שולם', es: 'Pagado' },
+              preparing: { fr: 'Prép.', en: 'Prep.', he: 'הכנה', es: 'Prep.' },
+              shipped: { fr: 'Expédié', en: 'Shipped', he: 'נשלח', es: 'Enviado' },
+              delivered: { fr: 'Livré', en: 'Delivered', he: 'נמסר', es: 'Entregado' },
+              refunded: { fr: 'Remboursé', en: 'Refunded', he: 'הוחזר', es: 'Reembolsado' },
+            }
+            const sl = statusLabels[order.status]?.[lang] || order.status
             return (
               <div key={order.id} onClick={() => navigate(`/order/${order.id}`)} style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '10px 0', borderBottom: '1px solid #111', cursor: 'pointer',
               }}>
                 {getItemImage(order.item) ? (
-                  <img src={getItemImage(order.item)!} alt="" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />
+                  <img src={getItemImage(order.item)!} alt="" loading="lazy" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
                   <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{'\uD83D\uDCB0'}</div>
                 )}
@@ -517,6 +536,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
 export default function ActivityPage() {
   const { user, profile } = useAuth()
   const lang = getLang()
+  usePageTitle({ fr: 'Activite', en: 'Activity', he: 'פעילות', es: 'Actividad' }[lang] || 'Activite')
   const location = useLocation()
   const navigate = useNavigate()
   const rawInitialTab = (location.state as { tab?: MainTab })?.tab || 'purchases'
@@ -533,7 +553,7 @@ export default function ActivityPage() {
   // Data states
   const [purchases, setPurchases] = useState<PurchaseOrder[]>([])
   const [sales, setSales] = useState<SaleOrder[]>([])
-  const [followedSellers, setFollowedSellers] = useState<any[]>([])
+  const [followedSellers, setFollowedSellers] = useState<FollowedSeller[]>([])
   const [loadingFollowing, setLoadingFollowing] = useState(false)
   const [loadingPurchases, setLoadingPurchases] = useState(false)
   const [loadingSales, setLoadingSales] = useState(false)
@@ -567,7 +587,7 @@ export default function ActivityPage() {
   const [loadingFavorites, setLoadingFavorites] = useState(false)
 
   // Offers states
-  const [offers, setOffers] = useState<any[]>([])
+  const [offers, setOffers] = useState<OfferEntry[]>([])
   const [loadingOffers, setLoadingOffers] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
@@ -621,6 +641,7 @@ export default function ActivityPage() {
         .select('*, item:items(title, image_urls, category), stream:streams(recording_url)')
         .eq('buyer_id', user.id)
         .order('created_at', { ascending: false })
+        .limit(50)
 
       if (error) throw error
       setPurchases((data as PurchaseOrder[]) || [])
@@ -643,6 +664,7 @@ export default function ActivityPage() {
         .select('*, item:items(title, image_urls, category), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username), stream:streams(recording_url)')
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false })
+        .limit(50)
 
       if (error) throw error
       setSales((data as SaleOrder[]) || [])
@@ -1197,7 +1219,7 @@ export default function ActivityPage() {
     { id: 'following', label: lt.followingTab, emoji: '\uD83D\uDC65' },
     { id: 'messages', label: lt.messagesTab, emoji: '\uD83D\uDCAC' },
     { id: 'favorites', label: lt.favoritesTab, emoji: '\u2764\uFE0F' },
-    { id: 'offers', label: (lt as any).offersTab || 'Offres', emoji: '\uD83E\uDD1D' },
+    { id: 'offers', label: lt.offersTab, emoji: '\uD83E\uDD1D' },
   ]
 
   // Swipe between tabs
@@ -1245,7 +1267,7 @@ export default function ActivityPage() {
     switch (status) {
       case 'pending_payment': return lt.statusPendingPayment
       case 'paid': return lt.statusPaid
-      case 'preparing': return (lt as any).statusPreparing || 'En preparation'
+      case 'preparing': return lt.statusPreparing
       case 'shipped': return lt.statusShipped
       case 'delivered': return lt.statusDelivered
       case 'refunded': return lt.statusRefunded
@@ -1437,6 +1459,7 @@ export default function ActivityPage() {
             <img
               src={itemImage}
               alt={itemTitle}
+              loading="lazy"
               style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', backgroundColor: '#111' }}
             />
           ) : (
@@ -1534,6 +1557,7 @@ export default function ActivityPage() {
             <img
               src={order.shipping_proof_url}
               alt="Shipping proof"
+              loading="lazy"
               onClick={(e) => { e.stopPropagation(); setProofImageUrl(order.shipping_proof_url) }}
               style={{
                 width: '48px', height: '48px', borderRadius: '8px',
@@ -1801,20 +1825,20 @@ export default function ActivityPage() {
     if (followedSellers.length === 0) {
       return renderEmpty(
         '\uD83D\uDC65',
-        (lt as any).emptyFollowing || 'Tu ne suis aucun vendeur',
-        (lt as any).emptyFollowingDesc || 'Suis tes vendeurs preferes pour etre notifie',
+        lt.emptyFollowing,
+        lt.emptyFollowingDesc,
         'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
       )
     }
 
     return (
       <div style={{ padding: '0 16px' }}>
-        {followedSellers.map((seller: any, i: number) => {
-          const profile = seller.profiles
-          const displayName = profile?.display_name || seller.store_name || 'Vendeur'
-          const avatarUrl = profile?.avatar_url
-          const hasLive = seller.upcoming_streams?.some((s: any) => s.status === 'live')
-          const nextScheduled = seller.upcoming_streams?.find((s: any) => s.status === 'scheduled')
+        {followedSellers.map((seller, i) => {
+          const sellerProfile = seller.profiles
+          const displayName = sellerProfile?.display_name || seller.store_name || 'Vendeur'
+          const avatarUrl = sellerProfile?.avatar_url
+          const hasLive = seller.upcoming_streams?.some((s) => s.status === 'live')
+          const nextScheduled = seller.upcoming_streams?.find((s) => s.status === 'scheduled')
 
           return (
             <div key={seller.id} style={{
@@ -1830,7 +1854,7 @@ export default function ActivityPage() {
                   border: hasLive ? '2px solid #E8344E' : '2px solid #222',
                 }}>
                   {avatarUrl ? (
-                    <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={avatarUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
                     <span style={{ fontSize: '18px', color: '#666', fontWeight: 700 }}>{displayName[0]}</span>
                   )}
@@ -1844,14 +1868,14 @@ export default function ActivityPage() {
                   )}
                   {hasLive ? (
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#E8344E', backgroundColor: 'rgba(232,52,78,0.1)', padding: '3px 8px', borderRadius: '6px' }}>
-                      {(lt as any).liveNow || 'EN DIRECT'}
+                      {lt.liveNow}
                     </span>
                   ) : nextScheduled ? (
                     <span style={{ fontSize: '11px', color: '#8B5CF6' }}>
-                      {(lt as any).scheduled || 'Planifie'} - {new Date(nextScheduled.scheduled_at).toLocaleDateString()}
+                      {lt.scheduled} - {new Date(nextScheduled.scheduled_at).toLocaleDateString()}
                     </span>
                   ) : (
-                    <span style={{ fontSize: '11px', color: '#444' }}>{(lt as any).noUpcoming || 'Aucun live prevu'}</span>
+                    <span style={{ fontSize: '11px', color: '#444' }}>{lt.noUpcoming}</span>
                   )}
                 </div>
                 <button
@@ -1862,7 +1886,7 @@ export default function ActivityPage() {
                     color: '#888', fontSize: '11px', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                   }}
                 >
-                  {(lt as any).unfollow || 'Ne plus suivre'}
+                  {lt.unfollow}
                 </button>
               </div>
             </div>
@@ -1899,10 +1923,10 @@ export default function ActivityPage() {
             </svg>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
-            {(lt as any).emptyFavorites || 'Aucun favori'}
+            {lt.emptyFavorites}
           </h3>
           <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
-            {(lt as any).emptyFavoritesDesc || 'Appuie sur le coeur d\'un live pour l\'ajouter ici'}
+            {lt.emptyFavoritesDesc}
           </p>
         </div>
       )
@@ -1941,10 +1965,10 @@ export default function ActivityPage() {
             </svg>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
-            {(lt as any).emptyOffers || 'Aucune offre'}
+            {lt.emptyOffers}
           </h3>
           <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
-            {(lt as any).emptyOffersDesc || ''}
+            {lt.emptyOffersDesc}
           </p>
         </div>
       )
@@ -1952,12 +1976,12 @@ export default function ActivityPage() {
     const isSeller = !!profile?.is_seller
     return (
       <div style={{ padding: '16px' }}>
-        {offers.map((offer: any, idx: number) => {
+        {offers.map((offer, idx) => {
           const isReceived = offer.seller_id === user?.id
           const statusColor = offer.status === 'pending' ? '#F59E0B' : offer.status === 'accepted' ? '#10B981' : '#E8344E'
-          const statusLabel = offer.status === 'pending' ? (lt as any).offerPending
-            : offer.status === 'accepted' ? (lt as any).offerAccepted
-            : (lt as any).offerDeclined
+          const statusLabel = offer.status === 'pending' ? lt.offerPending
+            : offer.status === 'accepted' ? lt.offerAccepted
+            : lt.offerDeclined
           const imgUrl = offer.item?.image_urls?.[0] || null
           return (
             <div key={offer.id || idx} style={{
@@ -1966,7 +1990,7 @@ export default function ActivityPage() {
               backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
             }}>
               {imgUrl ? (
-                <img src={imgUrl} alt="" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                <img src={imgUrl} alt="" loading="lazy" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
               ) : (
                 <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
                   {'\uD83E\uDD1D'}
@@ -1984,7 +2008,7 @@ export default function ActivityPage() {
                     padding: '2px 6px', borderRadius: '6px',
                     border: isReceived ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(139,92,246,0.25)',
                   }}>
-                    {isReceived ? ((lt as any).offerReceived || 'Recue') : ((lt as any).offerSent || 'Envoyee')}
+                    {isReceived ? lt.offerReceived : lt.offerSent}
                   </span>
                   <span style={{
                     fontSize: '10px', fontWeight: 700, color: statusColor,
@@ -2006,7 +2030,7 @@ export default function ActivityPage() {
                       color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
-                    {(lt as any).offerAccept || 'Accepter'}
+                    {lt.offerAccept}
                   </button>
                   <button
                     onClick={() => handleRespondToOffer(offer.id, 'decline')}
@@ -2016,7 +2040,7 @@ export default function ActivityPage() {
                       color: '#888', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
-                    {(lt as any).offerDecline || 'Refuser'}
+                    {lt.offerDecline}
                   </button>
                 </div>
               )}
@@ -2212,6 +2236,7 @@ export default function ActivityPage() {
                         <img
                           src={URL.createObjectURL(proof.file)}
                           alt="Preview"
+                          loading="lazy"
                           style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px', objectFit: 'contain' }}
                         />
                       </div>
@@ -2321,6 +2346,7 @@ export default function ActivityPage() {
           <img
             src={proofImageUrl}
             alt="Shipping proof"
+            loading="lazy"
             onClick={e => e.stopPropagation()}
             style={{
               maxWidth: '100%', maxHeight: '90vh',

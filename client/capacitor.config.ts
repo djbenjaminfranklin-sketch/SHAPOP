@@ -5,9 +5,11 @@ const config: CapacitorConfig = {
   appName: 'ShaPop',
   webDir: 'dist',
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'always',
     allowsLinkPreview: false,
     allowsInlineMediaPlayback: true,
+    backgroundColor: '#0a0a0a',
+    scrollEnabled: false,
   },
   server: {
     allowNavigation: ['*.supabase.co', '*.stripe.com', '*.onrender.com']

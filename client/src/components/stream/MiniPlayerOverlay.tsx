@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
-import { useMiniPlayer } from '../contexts/MiniPlayerContext'
+import { useMiniPlayer } from '../../contexts/MiniPlayerContext'
+import { rtlPos } from '../../lib/rtl'
 import LiveKitViewer from './LiveKitViewer'
 
 export default function MiniPlayerOverlay() {
@@ -43,7 +44,7 @@ export default function MiniPlayerOverlay() {
       style={{
         position: 'fixed',
         bottom: `${80 - offset.y}px`,
-        right: `${12 - offset.x}px`,
+        ...rtlPos('right', `${12 - offset.x}px`),
         zIndex: 200,
         width: '160px',
         height: '100px',
@@ -90,7 +91,7 @@ export default function MiniPlayerOverlay() {
       <button
         onClick={(e) => { e.stopPropagation(); closeMiniPlayer() }}
         style={{
-          position: 'absolute', top: '4px', right: '4px',
+          position: 'absolute', top: '4px', ...rtlPos('right', '4px'),
           width: '22px', height: '22px', borderRadius: '50%',
           backgroundColor: 'rgba(0,0,0,0.6)', border: 'none',
           color: '#fff', fontSize: '12px', cursor: 'pointer',

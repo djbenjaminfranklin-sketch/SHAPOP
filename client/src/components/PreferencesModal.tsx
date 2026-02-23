@@ -3,8 +3,8 @@ import { createPortal } from 'react-dom'
 import { getLang } from '../lib/i18n'
 import { categories } from './CategoryIcons'
 import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
-import { COUNTRIES, getCommunitiesByCountry, detectUserCountry } from '../lib/communitiesData'
-import type { CountryCode } from '../lib/communitiesData'
+import { COUNTRIES, getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
+import type { CountryCode } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -51,13 +51,7 @@ const modalContent = {
 
 const STORAGE_KEY = 'shapop_preferences'
 
-export interface LocalPreferences {
-  favorite_categories: string[]
-  preferred_cities: string[]
-  price_range_min: number
-  price_range_max: number
-  favorite_sellers: string[]
-}
+import type { LocalPreferences } from '../types/preferences'
 
 export function loadPreferences(): LocalPreferences | null {
   try {
@@ -152,7 +146,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     }
     savePreferences(prefs)
     if (user) {
-      await supabase.from('user_preferences').upsert({
+      const { error } = await supabase.from('user_preferences').upsert({
         user_id: user.id,
         favorite_categories: selectedCategories,
         preferred_cities: selectedCities,
@@ -160,6 +154,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
         price_range_max: 10000,
         favorite_sellers: [],
       })
+      if (error) console.error('Failed to save preferences:', error)
     }
     onClose()
   }
@@ -175,7 +170,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     }
     savePreferences(prefs)
     if (user) {
-      await supabase.from('user_preferences').upsert({
+      const { error } = await supabase.from('user_preferences').upsert({
         user_id: user.id,
         favorite_categories: [],
         preferred_cities: [],
@@ -183,6 +178,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
         price_range_max: 10000,
         favorite_sellers: [],
       })
+      if (error) console.error('Failed to save preferences:', error)
     }
     onClose()
   }

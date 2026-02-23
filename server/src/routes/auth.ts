@@ -130,7 +130,11 @@ router.post('/api/auth/verify-otp', otpLimiter, async (req: Request, res: Respon
       return
     }
 
-    if (entry.code !== String(code).trim()) {
+    const submitted = String(code).trim()
+    const expected = entry.code
+    const match = submitted.length === expected.length &&
+      crypto.timingSafeEqual(Buffer.from(submitted), Buffer.from(expected))
+    if (!match) {
       res.json({ verified: false, error: 'Code incorrect' })
       return
     }
@@ -138,7 +142,8 @@ router.post('/api/auth/verify-otp', otpLimiter, async (req: Request, res: Respon
     // Success — remove from store
     otpStore.delete(normalized)
     res.json({ verified: true })
-  } catch {
+  } catch (err) {
+    console.error('[auth] verification:', err)
     res.status(500).json({ error: 'Erreur de verification' })
   }
 })
@@ -177,7 +182,8 @@ router.post('/api/auth/check-banned', async (req: Request, res: Response) => {
     }
 
     res.json({ banned: false })
-  } catch {
+  } catch (err) {
+    console.error('[auth] verification:', err)
     res.status(500).json({ error: 'Erreur de verification' })
   }
 })

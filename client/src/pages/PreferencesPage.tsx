@@ -4,8 +4,10 @@ import { getLang, setLang, type Lang } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getStoredGPSCountry } from '../lib/geolocation'
-import { detectUserCountry } from '../lib/communitiesData'
-import type { CountryCode } from '../lib/communitiesData'
+import { detectUserCountry } from '../lib/data/communitiesData'
+import type { CountryCode } from '../lib/data/communitiesData'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
   fr: {
@@ -122,6 +124,7 @@ export default function PreferencesPage() {
   const { user, profile, signOut } = useAuth()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0) // 0=hidden, 1=warning, 2=confirm
   const [confirmText, setConfirmText] = useState('')
@@ -185,7 +188,8 @@ export default function PreferencesPage() {
       const { data: avatarFiles } = await supabase.storage.from('avatars').list(user.id)
       if (avatarFiles && avatarFiles.length > 0) {
         const filePaths = avatarFiles.map(f => `${user.id}/${f.name}`)
-        await supabase.storage.from('avatars').remove(filePaths)
+        const { error: removeError } = await supabase.storage.from('avatars').remove(filePaths)
+        if (removeError) console.error('Failed to remove avatar files:', removeError.message)
       }
 
       // 2. Delete user profile from profiles table
@@ -211,8 +215,8 @@ export default function PreferencesPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
@@ -370,7 +374,7 @@ export default function PreferencesPage() {
             {/* Consequences list */}
             <div style={{ marginBottom: '24px' }}>
               {[c.deleteStep1Item1, c.deleteStep1Item2, c.deleteStep1Item3, c.deleteStep1Item4].map((item, i) => (
-                <div key={i} style={{
+                <div key={`delete-item-${i}`} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 14px', marginBottom: '6px',
                   backgroundColor: '#1A1A1A', borderRadius: '10px',

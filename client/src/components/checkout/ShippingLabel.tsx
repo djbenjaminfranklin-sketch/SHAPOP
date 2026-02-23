@@ -1,4 +1,5 @@
-import { getLang } from '../lib/i18n'
+import { getLang } from '../../lib/i18n'
+import { rtlTextAlign } from '../../lib/rtl'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -191,7 +192,7 @@ export default function ShippingLabel({
           <p style={{ fontSize: '10px', color: '#888', margin: 0 }}>{ct.order}</p>
           <p style={{ fontSize: '13px', fontWeight: 700, margin: '2px 0 0' }}>{orderRef}</p>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ ...rtlTextAlign('right') }}>
           <p style={{ fontSize: '10px', color: '#888', margin: 0 }}>{ct.lot}</p>
           <p style={{ fontSize: '13px', fontWeight: 700, margin: '2px 0 0' }}>{lotRef}</p>
         </div>

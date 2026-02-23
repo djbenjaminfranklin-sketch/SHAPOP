@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
-import { findCommunityById, getCountryDisplayName } from '../lib/communitiesData'
-import type { CommunityDisplay } from '../lib/communitiesData'
+import { findCommunityById, getCountryDisplayName } from '../lib/data/communitiesData'
+import type { CommunityDisplay } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { rtlPos, rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -138,6 +140,7 @@ export default function CommunityDetailPage() {
   const lang = (getLang() || 'fr') as Lang
   const ct = detailContent[lang] || detailContent.fr
   const [community, setCommunity] = useState<CommunityDisplay | null>(null)
+  usePageTitle(community?.name || ct.title)
   const [joined, setJoined] = useState(false)
   const [activeStreams, setActiveStreams] = useState<{id: string, title: string, seller: string, viewers: number, thumbnail: string}[]>([])
   const [members, setMembers] = useState<{id: string, name: string, avatar: string}[]>([])
@@ -167,10 +170,10 @@ export default function CommunityDetailPage() {
         .eq('city', community.city)
         .limit(4)
       if (data) {
-        setActiveStreams(data.map((s: any) => ({
+        setActiveStreams(data.map((s: { id: string; title: string; viewer_count: number; thumbnail_url: string | null; seller: { store_name: string }[] | null }) => ({
           id: s.id,
           title: s.title,
-          seller: s.seller?.store_name || '?',
+          seller: s.seller?.[0]?.store_name || '?',
           viewers: s.viewer_count || 0,
           thumbnail: s.thumbnail_url || '',
         })))
@@ -211,11 +214,11 @@ export default function CommunityDetailPage() {
           .order('created_at', { ascending: false })
           .limit(10)
         if (data) {
-          setRecentStreams(data.map((s: any) => ({
+          setRecentStreams(data.map((s: { id: string; title: string; status: string; viewer_count: number; created_at: string; seller: { store_name: string }[] | null }) => ({
             id: s.id,
             title: s.title,
-            status: s.status,
-            seller_name: s.seller?.store_name || '?',
+            status: s.status as "scheduled" | "live" | "ended",
+            seller_name: s.seller?.[0]?.store_name || '?',
             viewer_count: s.viewer_count || 0,
             created_at: s.created_at,
           })))
@@ -235,7 +238,11 @@ export default function CommunityDetailPage() {
     const updated = joined
       ? currentIds.filter(jid => jid !== id)
       : [...currentIds, id || '']
-    await supabase.from('profiles').update({ joined_communities: updated }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ joined_communities: updated }).eq('id', user.id)
+    if (error) {
+      console.error('[Community] toggle join failed:', error.message)
+      return
+    }
     setJoined(!joined)
   }
 
@@ -270,6 +277,7 @@ export default function CommunityDetailPage() {
         <img
           src={community.image_url || ''}
           alt={community.name}
+          loading="lazy"
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
           }}
@@ -283,14 +291,14 @@ export default function CommunityDetailPage() {
         <button
           onClick={() => navigate('/communities')}
           style={{
-            position: 'absolute', top: 'calc(env(safe-area-inset-top, 12px) + 8px)', left: '16px',
+            position: 'absolute', top: 'calc(env(safe-area-inset-top, 12px) + 8px)', ...rtlPos('left', '16px'),
             width: '38px', height: '38px', borderRadius: '50%',
             backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(10px)',
             border: 'none', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
@@ -429,6 +437,7 @@ export default function CommunityDetailPage() {
                   <img
                     src={stream.thumbnail}
                     alt={stream.title}
+                    loading="lazy"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
                   <div style={{
@@ -505,6 +514,7 @@ export default function CommunityDetailPage() {
                   <img
                     src={member.avatar}
                     alt={member.name}
+                    loading="lazy"
                     style={{
                       width: '100%', height: '100%', borderRadius: '50%',
                       objectFit: 'cover', display: 'block',

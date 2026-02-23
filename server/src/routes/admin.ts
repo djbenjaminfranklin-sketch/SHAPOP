@@ -144,7 +144,8 @@ router.get('/api/admin/stats', requireAdmin, async (_req: AuthenticatedRequest, 
       suspended_users: suspendedCount || 0,
       banned_users: bannedCount || 0,
     })
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch stats:', err)
     res.status(500).json({ error: 'Failed to fetch stats' })
   }
 })
@@ -175,7 +176,8 @@ router.get('/api/admin/users', requireAdmin, async (req: AuthenticatedRequest, r
     if (error) throw error
 
     res.json({ users: data || [], total: count || 0, page, limit })
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch users:', err)
     res.status(500).json({ error: 'Failed to fetch users' })
   }
 })
@@ -219,7 +221,8 @@ router.get('/api/admin/users/:id', requireAdmin, async (req: AuthenticatedReques
         total_earned: totalEarned,
       },
     })
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch user:', err)
     res.status(500).json({ error: 'Failed to fetch user' })
   }
 })
@@ -240,7 +243,8 @@ router.post('/api/admin/users/:id/suspend', requireAdmin, async (req: Authentica
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'suspend_user', 'user', userId, { reason })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] suspend user:', err)
     res.status(500).json({ error: 'Failed to suspend user' })
   }
 })
@@ -260,7 +264,8 @@ router.post('/api/admin/users/:id/unsuspend', requireAdmin, async (req: Authenti
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'unsuspend_user', 'user', userId)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] unsuspend user:', err)
     res.status(500).json({ error: 'Failed to unsuspend user' })
   }
 })
@@ -297,7 +302,8 @@ router.post('/api/admin/users/:id/ban', requireAdmin, async (req: AuthenticatedR
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'ban_user', 'user', userId, { reason })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] ban user:', err)
     res.status(500).json({ error: 'Failed to ban user' })
   }
 })
@@ -322,7 +328,8 @@ router.post('/api/admin/users/:id/unban', requireAdmin, async (req: Authenticate
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'unban_user', 'user', userId)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] unban user:', err)
     res.status(500).json({ error: 'Failed to unban user' })
   }
 })
@@ -352,7 +359,8 @@ router.post('/api/admin/users/:id/note', requireAdmin, async (req: Authenticated
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'add_note', 'user', userId, { note: note.trim().slice(0, 100) })
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[admin] add note:', err)
     res.status(500).json({ error: 'Failed to add note' })
   }
 })
@@ -401,7 +409,8 @@ router.get('/api/admin/sellers', requireAdmin, async (req: AuthenticatedRequest,
     }))
 
     res.json({ sellers: enriched, total: count || 0, page, limit })
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch sellers:', err)
     res.status(500).json({ error: 'Failed to fetch sellers' })
   }
 })
@@ -417,7 +426,8 @@ router.post('/api/admin/sellers/:id/block-payments', requireAdmin, async (req: A
 
     await logAdminAction(req.user!.id, req.user!.email || '', block ? 'block_payments' : 'unblock_payments', 'seller', sellerId)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] update seller:', err)
     res.status(500).json({ error: 'Failed to update seller' })
   }
 })
@@ -434,7 +444,8 @@ router.post('/api/admin/sellers/:id/reserve', requireAdmin, async (req: Authenti
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'set_reserve', 'seller', sellerId, { percent: reservePercent })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] set reserve:', err)
     res.status(500).json({ error: 'Failed to set reserve' })
   }
 })
@@ -449,7 +460,8 @@ router.post('/api/admin/sellers/:id/request-documents', requireAdmin, async (req
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'request_documents', 'seller', sellerId)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] request documents:', err)
     res.status(500).json({ error: 'Failed to request documents' })
   }
 })
@@ -467,7 +479,8 @@ router.post('/api/admin/sellers/:id/set-limit', requireAdmin, async (req: Authen
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'set_sale_limit', 'seller', sellerId, { limit: saleLimit })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] set limit:', err)
     res.status(500).json({ error: 'Failed to set limit' })
   }
 })
@@ -491,7 +504,8 @@ router.get('/api/admin/orders', requireAdmin, async (req: AuthenticatedRequest, 
     if (error) throw error
 
     res.json({ orders: data || [], total: count || 0, page, limit })
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch orders:', err)
     res.status(500).json({ error: 'Failed to fetch orders' })
   }
 })
@@ -508,7 +522,8 @@ router.get('/api/admin/disputes', requireAdmin, async (_req: AuthenticatedReques
 
     if (error) throw error
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch disputes:', err)
     res.status(500).json({ error: 'Failed to fetch disputes' })
   }
 })
@@ -587,7 +602,8 @@ router.post('/api/admin/streams/:id/stop', requireAdmin, async (req: Authenticat
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'stop_stream', 'stream', streamId, { seller_id: stream.seller_id })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] stop stream:', err)
     res.status(500).json({ error: 'Failed to stop stream' })
   }
 })
@@ -625,7 +641,8 @@ router.post('/api/admin/streams/:id/suspend-streamer', requireAdmin, async (req:
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'suspend_streamer', 'stream', streamId, { seller_id: stream.seller_id, reason })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[admin] suspend streamer:', err)
     res.status(500).json({ error: 'Failed to suspend streamer' })
   }
 })
@@ -777,7 +794,8 @@ router.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authent
     await logAdminAction(req.user!.id, req.user!.email || '', `resolve_dispute_${resolution}`, 'dispute', disputeId, { note, order_id: dispute.order_id })
 
     res.json({ success: true, status: newStatus })
-  } catch {
+  } catch (err) {
+    console.error('[admin]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -826,7 +844,8 @@ router.post('/api/admin/sellers/:id/trust', requireAdmin, async (req: Authentica
     await logAdminAction(req.user!.id, req.user!.email || '', 'set_trust_level', 'seller', sellerId, { trust_level, holdback_percent: updateData.holdback_percent, payout_delay_days: updateData.payout_delay_days })
 
     res.json({ success: true, ...updateData })
-  } catch {
+  } catch (err) {
+    console.error('[admin]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -937,7 +956,8 @@ router.post('/api/admin/run-automations', requireAdmin, async (req: Authenticate
     await logAdminAction(req.user!.id, req.user!.email || '', 'run_automations', 'system', 'global', results)
 
     res.json({ success: true, results })
-  } catch {
+  } catch (err) {
+    console.error('[admin]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -972,7 +992,8 @@ router.get('/api/admin/disputes-enhanced', requireAdmin, async (_req: Authentica
     }))
 
     res.json(enriched)
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch disputes:', err)
     res.status(500).json({ error: 'Failed to fetch disputes' })
   }
 })
@@ -987,7 +1008,8 @@ router.get('/api/admin/buyer-scores', requireAdmin, async (_req: AuthenticatedRe
 
     if (error) throw error
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch buyer scores:', err)
     res.status(500).json({ error: 'Failed to fetch buyer scores' })
   }
 })
@@ -1002,7 +1024,8 @@ router.get('/api/admin/seller-trusts', requireAdmin, async (_req: AuthenticatedR
 
     if (error) throw error
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[admin] fetch seller trusts:', err)
     res.status(500).json({ error: 'Failed to fetch seller trusts' })
   }
 })

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -17,6 +19,7 @@ export default function ChangeEmailPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const lang = getLang()
+  usePageTitle(tx('Changer l\'email', 'Change Email', 'שינוי אימייל', 'Cambiar email', lang))
 
   const [newEmail, setNewEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,8 +37,8 @@ export default function ChangeEmailPage() {
   }
 
   const handleSubmit = async () => {
-    if (!newEmail) {
-      showToast(tx('Veuillez entrer une adresse e-mail', 'Please enter an email address', 'נא להזין כתובת אימייל', 'Por favor ingrese una direccion de correo', lang), 'error')
+    if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
+      showToast(tx('Adresse e-mail invalide', 'Invalid email address', 'כתובת אימייל לא תקינה', 'Direccion de correo invalida', lang), 'error')
       return
     }
     if (!password) {
@@ -56,7 +59,7 @@ export default function ChangeEmailPage() {
         return
       }
 
-      const { error } = await supabase.auth.updateUser({ email: newEmail })
+      const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
       if (error) throw error
       showToast(
         tx(
@@ -68,8 +71,8 @@ export default function ChangeEmailPage() {
         ),
         'success'
       )
-    } catch (err: any) {
-      showToast(err.message || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+    } catch (err: unknown) {
+      showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
     }
     setLoading(false)
   }
@@ -95,8 +98,8 @@ export default function ChangeEmailPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
           {tx("Modifier l'adresse e-mail", 'Change email address', 'שנה כתובת אימייל', 'Cambiar direccion de correo', lang)}
@@ -125,6 +128,7 @@ export default function ChangeEmailPage() {
         <input
           type="email"
           inputMode="email"
+          autoComplete="email"
           value={newEmail}
           onChange={e => setNewEmail(e.target.value)}
           placeholder={tx('Entrez votre nouvelle adresse', 'Enter your new email', 'הזן כתובת חדשה', 'Ingrese su nuevo correo', lang)}
@@ -139,6 +143,7 @@ export default function ChangeEmailPage() {
         </label>
         <input
           type="password"
+          autoComplete="current-password"
           value={password}
           onChange={e => setPassword(e.target.value)}
           placeholder={tx('Entrez votre mot de passe', 'Enter your password', 'הזן את סיסמתך', 'Ingrese su contrasena', lang)}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { apiFetch } from '../../lib/api'
+import { getLang } from '../../lib/i18n'
 
 interface RelayPoint {
   id: string

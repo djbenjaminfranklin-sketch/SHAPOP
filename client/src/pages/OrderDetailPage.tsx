@@ -4,9 +4,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
-import ShippingLabel from '../components/ShippingLabel'
-import RelayPointPicker from '../components/RelayPointPicker'
-import VodPlayer from '../components/VodPlayer'
+import { usePageTitle } from '../hooks/usePageTitle'
+import ShippingLabel from '../components/checkout/ShippingLabel'
+import RelayPointPicker from '../components/checkout/RelayPointPicker'
+import VodPlayer from '../components/stream/VodPlayer'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -485,6 +486,7 @@ export default function OrderDetailPage() {
   const { user, session } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.title)
 
   const [order, setOrder] = useState<OrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -540,7 +542,7 @@ export default function OrderDetailPage() {
   const isSeller = user?.id === order?.seller_id
   const isBuyer = user?.id === order?.buyer_id
 
-  const fetchOrder = useCallback(async () => {
+  const fetchOrder = useCallback(async (cancelledRef?: { current: boolean }) => {
     if (!user || !id || !session) return
     setLoading(true)
     setError(null)
@@ -551,12 +553,8 @@ export default function OrderDetailPage() {
         .eq('id', id)
         .single()
 
+      if (cancelledRef?.current) return
       if (err || !data) throw new Error(ct.notFound)
-
-      // Flatten stream recording_url
-      if (data.stream?.recording_url) {
-        (data as any).stream_recording_url = data.stream.recording_url
-      }
 
       // Check access
       if (data.buyer_id !== user.id && data.seller_id !== user.id) {
@@ -569,15 +567,23 @@ export default function OrderDetailPage() {
         .select('type, url')
         .eq('order_id', id)
 
-      setOrder({ ...data, proofs: proofs || [] } as OrderDetail)
+      if (cancelledRef?.current) return
+      // Flatten stream recording_url into the order object
+      const streamRecordingUrl = data.stream?.recording_url || null
+      setOrder({ ...data, stream_recording_url: streamRecordingUrl, proofs: proofs || [] } as OrderDetail)
     } catch (err: unknown) {
+      if (cancelledRef?.current) return
       setError(err instanceof Error ? err.message : ct.error)
     } finally {
-      setLoading(false)
+      if (!cancelledRef?.current) setLoading(false)
     }
   }, [user, id, session, ct.notFound, ct.error])
 
-  useEffect(() => { fetchOrder() }, [fetchOrder])
+  useEffect(() => {
+    const cancelledRef = { current: false }
+    fetchOrder(cancelledRef)
+    return () => { cancelledRef.current = true }
+  }, [fetchOrder])
 
   // Fetch sibling orders (same buyer + same seller) for grouped shipping
   useEffect(() => {
@@ -585,6 +591,7 @@ export default function OrderDetailPage() {
     const isSeller = user.id === order.seller_id
     if (!isSeller) return
 
+    let cancelled = false
     const fetchSiblings = async () => {
       const { data } = await supabase
         .from('orders')
@@ -595,9 +602,10 @@ export default function OrderDetailPage() {
         .in('status', ['paid', 'preparing', 'shipped', 'delivered'])
         .order('created_at', { ascending: true })
 
-      if (data) setSiblingOrders(data as unknown as typeof siblingOrders)
+      if (!cancelled && data) setSiblingOrders(data as unknown as typeof siblingOrders)
     }
     fetchSiblings()
+    return () => { cancelled = true }
   }, [order?.id, order?.seller_id, order?.buyer_id, user])
 
   void setShowShipModal // ship modal kept for legacy flows
@@ -924,7 +932,7 @@ export default function OrderDetailPage() {
   const carrierLabels: Record<string, string> = {
     laposte: ct.carrierLaposte,
     mondial_relay: ct.carrierMondialRelay,
-    dpd: (ct as any).carrierDpd || 'DPD',
+    dpd: ct.carrierDpd,
     chronopost: ct.carrierChronopost,
     colissimo: ct.carrierColissimo,
     israel_post: ct.carrierIsraelPost,
@@ -970,7 +978,7 @@ export default function OrderDetailPage() {
     switch (status) {
       case 'pending_payment': return ct.statusPendingPayment
       case 'paid': return ct.statusPaid
-      case 'preparing': return (ct as any).statusPreparing || 'En preparation'
+      case 'preparing': return ct.statusPreparing
       case 'shipped': return ct.statusShipped
       case 'delivered': return ct.statusDelivered
       case 'refunded': return ct.statusRefunded
@@ -998,7 +1006,7 @@ export default function OrderDetailPage() {
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '20px' }}>
         <p style={{ color: '#E8344E', fontSize: '16px', fontWeight: 700, marginBottom: '12px' }}>{error || ct.notFound}</p>
         <button
-          onClick={fetchOrder}
+          onClick={() => fetchOrder()}
           style={{
             background: 'transparent', border: 'none', cursor: 'pointer',
             color: '#E8344E', fontSize: '14px', fontWeight: 600,
@@ -1066,7 +1074,7 @@ export default function OrderDetailPage() {
         {/* Item hero */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', borderBottom: '1px solid #111' }}>
           {itemImage ? (
-            <img src={itemImage} alt="" style={{ width: '80px', height: '80px', borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
+            <img src={itemImage} alt="" loading="lazy" style={{ width: '80px', height: '80px', borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
           ) : (
             <div style={{ width: '80px', height: '80px', borderRadius: '14px', backgroundColor: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>
               {isSeller ? '\uD83D\uDCB0' : '\uD83D\uDECD\uFE0F'}
@@ -1123,7 +1131,7 @@ export default function OrderDetailPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0,
                 }}>
                   {order.buyer_profile?.avatar_url ? (
-                    <img src={order.buyer_profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={order.buyer_profile.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span style={{ fontSize: '14px', color: '#666', fontWeight: 700 }}>{(order.buyer_profile?.display_name || '?')[0]}</span>
                   )}
@@ -1140,7 +1148,7 @@ export default function OrderDetailPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0,
                 }}>
                   {order.seller_profile?.avatar_url ? (
-                    <img src={order.seller_profile.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={order.seller_profile.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span style={{ fontSize: '14px', color: '#666', fontWeight: 700 }}>{(order.seller_profile?.display_name || '?')[0]}</span>
                   )}
@@ -1174,7 +1182,7 @@ export default function OrderDetailPage() {
                 borderBottom: '1px solid #1A1A1A',
               }}>
                 {order.item?.image_urls?.[0] ? (
-                  <img src={order.item.image_urls[0]} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                  <img src={order.item.image_urls[0]} alt="" loading="lazy" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
                   <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>{'\uD83D\uDCB0'}</div>
                 )}
@@ -1196,7 +1204,7 @@ export default function OrderDetailPage() {
                   }}
                 >
                   {sib.item?.image_urls?.[0] ? (
-                    <img src={sib.item.image_urls[0]} alt="" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
+                    <img src={sib.item.image_urls[0]} alt="" loading="lazy" style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'cover' }} />
                   ) : (
                     <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>{'\uD83D\uDCB0'}</div>
                   )}
@@ -1275,7 +1283,7 @@ export default function OrderDetailPage() {
               width: '2px', backgroundColor: '#222',
             }} />
             {timelineEvents.map((evt, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: i < timelineEvents.length - 1 ? '16px' : 0, position: 'relative' }}>
+              <div key={evt.label} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: i < timelineEvents.length - 1 ? '16px' : 0, position: 'relative' }}>
                 {/* Dot */}
                 <div style={{
                   position: 'absolute', left: '-20px', top: '2px',
@@ -1448,11 +1456,12 @@ export default function OrderDetailPage() {
               {ct.proofPhotos}
             </p>
             <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
-              {order.proofs.map((proof, i) => (
+              {order.proofs.map((proof) => (
                 <img
-                  key={i}
+                  key={proof.url}
                   src={proof.url}
                   alt={proof.type}
+                  loading="lazy"
                   onClick={() => setProofImageUrl(proof.url)}
                   style={{ width: '80px', height: '80px', borderRadius: '10px', objectFit: 'cover', cursor: 'pointer', border: '1px solid #222', flexShrink: 0 }}
                 />
@@ -1611,7 +1620,7 @@ export default function OrderDetailPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
               </svg>
-              {(ct as any).trackCarrier || 'Suivre le colis'}
+              {ct.trackCarrier}
             </button>
           )}
 
@@ -1797,7 +1806,7 @@ export default function OrderDetailPage() {
                   </button>
                   {proof.file && !isVideo && (
                     <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                      <img src={URL.createObjectURL(proof.file)} alt="" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px', objectFit: 'contain' }} />
+                      <img src={URL.createObjectURL(proof.file)} alt="" loading="lazy" style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px', objectFit: 'contain' }} />
                     </div>
                   )}
                 </div>
@@ -2026,7 +2035,7 @@ export default function OrderDetailPage() {
           >
             X
           </button>
-          <img src={proofImageUrl} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px' }} />
+          <img src={proofImageUrl} alt="" loading="lazy" onClick={e => e.stopPropagation()} style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '12px' }} />
         </div>
       )}
 

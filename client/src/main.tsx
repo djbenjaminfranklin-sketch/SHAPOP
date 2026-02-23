@@ -9,6 +9,8 @@ if (SENTRY_DSN) {
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 1.0,
   })
+} else if (import.meta.env.PROD) {
+  console.warn('[sentry] VITE_SENTRY_DSN is not set — error monitoring is disabled in production')
 }
 
 import { StrictMode } from 'react'

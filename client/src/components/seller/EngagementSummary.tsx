@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { getLang } from '../lib/i18n'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
+import { getLang } from '../../lib/i18n'
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -93,7 +93,7 @@ export default function EngagementSummary() {
     if (!user) return
 
     const fetchSummary = async () => {
-      const { data: streams } = await supabase
+      const { data: streams, error } = await supabase
         .from('streams')
         .select('peak_viewers, engagement_score, total_reactions')
         .eq('seller_id', user.id)
@@ -101,7 +101,9 @@ export default function EngagementSummary() {
         .order('created_at', { ascending: false })
         .limit(7)
 
-      if (streams && streams.length > 0) {
+      if (error || !streams) return
+
+      if (streams.length > 0) {
         const peakViewers = Math.max(...streams.map(s => s.peak_viewers || 0))
         const avgEngagement = Math.round(streams.reduce((sum, s) => sum + (s.engagement_score || 0), 0) / streams.length)
         const totalReactions = streams.reduce((sum, s) => sum + (s.total_reactions || 0), 0)
@@ -236,7 +238,7 @@ export default function EngagementSummary() {
             const heightPercent = (val / maxTrend) * 100
             const isLast = i === data.engagementTrend.length - 1
             return (
-              <div key={i} style={{
+              <div key={dayLabels[i] || i} style={{
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
@@ -284,7 +286,7 @@ export default function EngagementSummary() {
       }}>
         {stats.map((stat, i) => (
           <div
-            key={i}
+            key={stat.label}
             style={{
               padding: '16px 14px',
               borderRadius: '16px',

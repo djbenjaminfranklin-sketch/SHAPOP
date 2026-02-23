@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type NotifKey = 'live' | 'orders' | 'deals' | 'messages' | 'reminders' | 'community'
 
@@ -142,6 +144,7 @@ export default function NotificationsPage() {
   const lang = getLang()
   const c = content[lang] || content.fr
   const { requestPermission, checkPermission } = usePushNotifications()
+  usePageTitle(c.title)
 
   const [toggles, setToggles] = useState<Record<NotifKey, boolean>>(DEFAULT_TOGGLES)
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -257,8 +260,8 @@ export default function NotificationsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
@@ -283,7 +286,7 @@ export default function NotificationsPage() {
         </div>
 
         {loadingNotifs ? (
-          <div style={{ padding: '20px 0', textAlign: 'center' }} role="status" aria-label="Loading notifications">
+          <div style={{ padding: '20px 0', textAlign: 'center' }} role="status" aria-label={lang === 'fr' ? 'Chargement des notifications' : lang === 'es' ? 'Cargando notificaciones' : lang === 'he' ? 'טוען התראות' : 'Loading notifications'}>
             <div style={{ width: '24px', height: '24px', border: '2px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
           </div>

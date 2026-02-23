@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 // Compress image to max 800px and JPEG quality 0.7
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
@@ -282,6 +284,7 @@ export default function PrepareLivePage() {
   const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.title)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [stream, setStream] = useState<Stream | null>(null)
@@ -777,13 +780,19 @@ export default function PrepareLivePage() {
       alert(ct.muxError)
     }
 
-    await supabase
+    const { error: goLiveError } = await supabase
       .from('streams')
       .update({
         status: 'live' as const,
         started_at: new Date().toISOString(),
       })
       .eq('id', streamId)
+
+    if (goLiveError) {
+      console.error('[PrepareLive] go-live update failed:', goLiveError.message)
+      alert(ct.muxError)
+      return
+    }
 
     navigate(`/live-seller/${streamId}`)
   }
@@ -809,12 +818,12 @@ export default function PrepareLivePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => navigate(-1)}
-            aria-label="Back"
+            aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}>
               <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
@@ -876,7 +885,7 @@ export default function PrepareLivePage() {
                 }}>
                   {ct.saveDate}
                 </button>
-                <button onClick={() => setEditingDate(false)} aria-label="Cancel date edit" style={{
+                <button onClick={() => setEditingDate(false)} aria-label={lang === 'fr' ? 'Annuler' : lang === 'es' ? 'Cancelar' : lang === 'he' ? 'ביטול' : 'Cancel'} style={{
                   padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
                   color: '#888', fontSize: '13px', cursor: 'pointer',
                 }}>
@@ -999,6 +1008,7 @@ export default function PrepareLivePage() {
                 <img
                   src={item.image_url}
                   alt=""
+                  loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }}
                 />
               ) : (
@@ -1058,7 +1068,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
-                aria-label="Move up"
+                aria-label={lang === 'fr' ? 'Monter' : lang === 'es' ? 'Subir' : lang === 'he' ? 'העלה' : 'Move up'}
                 style={{
                   width: '28px', height: '28px', borderRadius: '6px',
                   backgroundColor: index === 0 ? '#1A1A1A' : '#222',
@@ -1074,7 +1084,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => handleMoveDown(index)}
                 disabled={index === items.length - 1}
-                aria-label="Move down"
+                aria-label={lang === 'fr' ? 'Descendre' : lang === 'es' ? 'Bajar' : lang === 'he' ? 'הורד' : 'Move down'}
                 style={{
                   width: '28px', height: '28px', borderRadius: '6px',
                   backgroundColor: index === items.length - 1 ? '#1A1A1A' : '#222',
@@ -1092,7 +1102,7 @@ export default function PrepareLivePage() {
             {/* Delete */}
             <button
               onClick={() => handleDeleteItem(index)}
-              aria-label="Delete item"
+              aria-label={lang === 'fr' ? 'Supprimer' : lang === 'es' ? 'Eliminar' : lang === 'he' ? 'מחק' : 'Delete item'}
               style={{
                 width: '28px', height: '28px', borderRadius: '6px',
                 backgroundColor: 'rgba(232,52,78,0.15)',
@@ -1145,6 +1155,7 @@ export default function PrepareLivePage() {
                 <img
                   src={formImage}
                   alt=""
+                  loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
@@ -1506,7 +1517,7 @@ export default function PrepareLivePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
                     onClick={() => setFormQuantity(q => Math.max(1, q - 1))}
-                    aria-label="Decrease quantity"
+                    aria-label={lang === 'fr' ? 'Diminuer la quantite' : lang === 'es' ? 'Disminuir cantidad' : lang === 'he' ? 'הפחת כמות' : 'Decrease quantity'}
                     style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       backgroundColor: formQuantity <= 1 ? '#1A1A1A' : '#222',
@@ -1527,7 +1538,7 @@ export default function PrepareLivePage() {
                   </span>
                   <button
                     onClick={() => setFormQuantity(q => Math.min(99, q + 1))}
-                    aria-label="Increase quantity"
+                    aria-label={lang === 'fr' ? 'Augmenter la quantite' : lang === 'es' ? 'Aumentar cantidad' : lang === 'he' ? 'הגדל כמות' : 'Increase quantity'}
                     style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       backgroundColor: '#222',

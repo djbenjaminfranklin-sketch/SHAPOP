@@ -3,31 +3,48 @@ import Stripe from 'stripe'
 import { supabase, stripe, livekitWebhookReceiver, livekitEgressClient, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
 import { calculateFees, notifyFollowersSellerLive, notifyUser, getPaypalAccessToken } from '../utils'
 
-// Idempotency: track processed Stripe event IDs to avoid double-processing
+// Idempotency: in-memory cache + database persistence
+// The in-memory Set acts as a fast-path to avoid DB lookups on every webhook.
+// On restart, the Set is empty, so we fall back to the DB check.
 const processedStripeEvents = new Set<string>()
-const MAX_PROCESSED_EVENTS = 1000
-setInterval(() => {
-  if (processedStripeEvents.size > MAX_PROCESSED_EVENTS) {
-    const toDelete = processedStripeEvents.size - MAX_PROCESSED_EVENTS
-    const iter = processedStripeEvents.values()
-    for (let i = 0; i < toDelete; i++) {
-      processedStripeEvents.delete(iter.next().value as string)
-    }
-  }
-}, 60 * 1000)
-
-// Idempotency: track processed PayPal event IDs to avoid double-processing
 const processedPaypalEvents = new Set<string>()
-const MAX_PROCESSED_PAYPAL_EVENTS = 1000
-setInterval(() => {
-  if (processedPaypalEvents.size > MAX_PROCESSED_PAYPAL_EVENTS) {
-    const toDelete = processedPaypalEvents.size - MAX_PROCESSED_PAYPAL_EVENTS
-    const iter = processedPaypalEvents.values()
-    for (let i = 0; i < toDelete; i++) {
-      processedPaypalEvents.delete(iter.next().value as string)
-    }
+
+async function isEventProcessed(provider: string, eventId: string): Promise<boolean> {
+  // Fast path: check in-memory cache
+  const cache = provider === 'stripe' ? processedStripeEvents : processedPaypalEvents
+  if (cache.has(eventId)) return true
+
+  // Slow path: check database
+  const { data } = await supabase
+    .from('processed_webhook_events')
+    .select('id')
+    .eq('event_id', eventId)
+    .eq('provider', provider)
+    .maybeSingle()
+
+  if (data) {
+    cache.add(eventId) // Warm the cache
+    return true
   }
-}, 60 * 1000)
+  return false
+}
+
+async function markEventProcessed(provider: string, eventId: string): Promise<void> {
+  const cache = provider === 'stripe' ? processedStripeEvents : processedPaypalEvents
+  cache.add(eventId)
+  // Cap in-memory cache at 1000 entries
+  if (cache.size > 1000) {
+    const iter = cache.values()
+    cache.delete(iter.next().value as string)
+  }
+  await supabase.from('processed_webhook_events').insert({
+    event_id: eventId,
+    provider,
+    processed_at: new Date().toISOString(),
+  }).then(({ error }) => {
+    if (error) console.error(`[webhook] Failed to persist event ${eventId}:`, error.message)
+  })
+}
 
 export async function stripeWebhookHandler(req: Request, res: Response) {
   try {
@@ -53,8 +70,8 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
       return
     }
 
-    // Idempotency: skip already-processed events
-    if (processedStripeEvents.has(event.id)) {
+    // Idempotency: skip already-processed events (checks memory + DB)
+    if (await isEventProcessed('stripe', event.id)) {
       res.json({ received: true, duplicate: true })
       return
     }
@@ -278,7 +295,7 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
       }
     }
 
-    processedStripeEvents.add(event.id)
+    await markEventProcessed('stripe', event.id)
     res.json({ received: true })
   } catch (err) {
     console.error('Stripe webhook error:', err)
@@ -521,7 +538,7 @@ export async function paypalWebhookHandler(req: Request, res: Response) {
 
     // Idempotency: deduplicate using transmission_id or event id
     const paypalEventId = (req.headers['paypal-transmission-id'] as string) || req.body.id
-    if (paypalEventId && processedPaypalEvents.has(paypalEventId)) {
+    if (paypalEventId && await isEventProcessed('paypal', paypalEventId)) {
       res.json({ received: true, duplicate: true })
       return
     }
@@ -568,7 +585,7 @@ export async function paypalWebhookHandler(req: Request, res: Response) {
       }
     }
 
-    if (paypalEventId) processedPaypalEvents.add(paypalEventId)
+    if (paypalEventId) await markEventProcessed('paypal', paypalEventId)
     res.json({ received: true })
   } catch (err) {
     console.error('[PayPal Webhook] Error:', err)

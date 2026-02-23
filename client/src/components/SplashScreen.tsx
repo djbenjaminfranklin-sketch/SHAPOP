@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react'
 import { getLang, t } from '../lib/i18n'
+import { rtlPos } from '../lib/rtl'
 
 interface SplashScreenProps {
   onFinish: () => void
@@ -119,7 +120,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         style={{
           position: 'absolute',
           top: 'calc(env(safe-area-inset-top, 16px) + 16px)',
-          right: '20px',
+          ...rtlPos('right', '20px'),
           background: 'rgba(255,255,255,0.15)',
           backdropFilter: 'blur(8px)',
           border: '1px solid rgba(255,255,255,0.25)',

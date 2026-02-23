@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react'
+import { getLang } from '../lib/i18n'
 
 interface Props {
   children: ReactNode
@@ -11,7 +12,7 @@ interface State {
 }
 
 const getErrorText = () => {
-  const lang = localStorage.getItem('shapop_lang') || 'fr'
+  const lang = getLang()
   const texts: Record<string, { title: string; desc: string; btn: string; backBtn: string }> = {
     fr: { title: 'Oups, une erreur est survenue', desc: 'Une erreur inattendue s\'est produite.', btn: 'Recharger', backBtn: 'Retour a l\'accueil' },
     en: { title: 'Something went wrong', desc: 'An unexpected error occurred.', btn: 'Refresh', backBtn: 'Back to home' },
@@ -90,14 +91,19 @@ export default class ErrorBoundary extends Component<Props, State> {
           <p style={{ fontSize: '14px', color: '#888', marginBottom: '12px', maxWidth: '300px' }}>
             {t.desc}
           </p>
-          {this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <p style={{ fontSize: '11px', color: '#E8344E', marginBottom: '12px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
               {this.state.error.message || String(this.state.error)}
             </p>
           )}
-          {this.state.errorInfo && (
+          {import.meta.env.DEV && this.state.errorInfo && (
             <p style={{ fontSize: '10px', color: '#666', marginBottom: '24px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', textAlign: 'left', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto' }}>
               {this.state.errorInfo}
+            </p>
+          )}
+          {!import.meta.env.DEV && (
+            <p style={{ fontSize: '12px', color: '#888', marginBottom: '24px', maxWidth: '320px' }}>
+              Une erreur technique est survenue
             </p>
           )}
           <div style={{ display: 'flex', gap: '12px', flexDirection: 'column', alignItems: 'center' }}>

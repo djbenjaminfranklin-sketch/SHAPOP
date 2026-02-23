@@ -87,7 +87,8 @@ router.get('/api/my-score', requireAuth, async (req: AuthenticatedRequest, res: 
       return
     }
     res.json(bs)
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -102,7 +103,8 @@ router.post('/api/users/:id/block', requireAuth, async (req: AuthenticatedReques
     if (blockerId === blockedId) { res.status(400).json({ error: 'Cannot block yourself' }); return }
     await supabase.from('user_blocks').upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -111,7 +113,8 @@ router.delete('/api/users/:id/block', requireAuth, async (req: AuthenticatedRequ
   try {
     await supabase.from('user_blocks').delete().eq('blocker_id', req.user!.id).eq('blocked_id', req.params.id)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -127,7 +130,8 @@ router.post('/api/report', reportLimiter, requireAuth, async (req: Authenticated
       context: context ? String(context).slice(0, 200) : null,
     })
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -174,7 +178,8 @@ router.get('/api/sellers/:id/trust', requireAuth, async (req: AuthenticatedReque
     }
 
     res.json(trust)
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -227,7 +232,8 @@ router.get('/api/following', requireAuth, async (req: AuthenticatedRequest, res:
     }))
 
     res.json(enriched)
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -274,7 +280,8 @@ router.post('/api/follow/:sellerId', createLimiter, requireAuth, async (req: Aut
     }
 
     res.json({ status: 'followed' })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -297,7 +304,8 @@ router.delete('/api/follow/:sellerId', requireAuth, async (req: AuthenticatedReq
     }
 
     res.json({ status: 'unfollowed' })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -316,7 +324,8 @@ router.get('/api/follow/:sellerId/status', requireAuth, async (req: Authenticate
       .single()
 
     res.json({ following: !!data })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -340,7 +349,8 @@ router.post('/api/favorites/:stream_id', createLimiter, requireAuth, async (req:
       return
     }
     res.json({ status: 'favorited' })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -362,7 +372,8 @@ router.delete('/api/favorites/:stream_id', requireAuth, async (req: Authenticate
       return
     }
     res.json({ status: 'unfavorited' })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -399,7 +410,8 @@ router.get('/api/favorites', requireAuth, async (req: AuthenticatedRequest, res:
     const ordered = streamIds.map(id => streamMap.get(id)).filter(Boolean)
 
     res.json(ordered)
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -423,7 +435,8 @@ router.post('/api/item-favorites/:item_id', requireAuth, async (req: Authenticat
       return
     }
     res.json({ status: 'favorited' })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -445,7 +458,8 @@ router.delete('/api/item-favorites/:item_id', requireAuth, async (req: Authentic
       return
     }
     res.json({ status: 'unfavorited' })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -482,7 +496,8 @@ router.get('/api/item-favorites', requireAuth, async (req: AuthenticatedRequest,
     const ordered = itemIds.map(id => itemMap.get(id)).filter(Boolean)
 
     res.json(ordered)
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -697,7 +712,8 @@ router.get('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedR
     }
 
     res.json({ shipping_delay_days: data.shipping_delay_days ?? 2 })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -770,7 +786,8 @@ router.get('/api/seller/:id/shipping-delay', async (req: Request, res: Response)
     }
 
     res.json({ shipping_delay_days: data.shipping_delay_days ?? 2 })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -814,7 +831,8 @@ router.get('/api/buyer/stats', requireAuth, async (req: AuthenticatedRequest, re
       buyer_score: bs?.score ?? 10.0,
       risk_level: bs?.risk_level ?? 'low',
     })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -845,7 +863,8 @@ router.get('/api/spend-limits', requireAuth, async (req: AuthenticatedRequest, r
     }
 
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -901,7 +920,8 @@ router.put('/api/spend-limits', requireAuth, async (req: AuthenticatedRequest, r
       }
       res.json(data)
     }
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -947,7 +967,8 @@ router.get('/api/loyalty', requireAuth, async (req: AuthenticatedRequest, res: R
       next_tier: nextTier,
       next_tier_threshold: nextThreshold,
     })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1073,7 +1094,8 @@ router.get('/api/referrals/stats', requireAuth, async (req: AuthenticatedRequest
       reward_codes: codes,
       my_welcome_code: myReferral?.referred_reward_code || null,
     })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1098,7 +1120,8 @@ router.post('/api/price-alerts/:item_id', requireAuth, async (req: Authenticated
     }
 
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1116,7 +1139,8 @@ router.delete('/api/price-alerts/:item_id', requireAuth, async (req: Authenticat
       .eq('item_id', itemId)
 
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1137,7 +1161,8 @@ router.get('/api/price-alerts', requireAuth, async (req: AuthenticatedRequest, r
     }
 
     res.json((data || []).map((d: { item_id: string }) => d.item_id))
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1286,7 +1311,8 @@ router.get('/api/team/members', requireAuth, async (req: AuthenticatedRequest, r
     }
 
     res.json(members || [])
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1320,7 +1346,8 @@ router.post('/api/team/accept', requireAuth, async (req: AuthenticatedRequest, r
       .eq('id', member.id)
 
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1343,7 +1370,8 @@ router.post('/api/team/decline', requireAuth, async (req: AuthenticatedRequest, 
       .eq('user_id', userId)
 
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1373,7 +1401,8 @@ router.put('/api/team/members/:userId', requireAuth, async (req: AuthenticatedRe
     }
 
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1391,7 +1420,8 @@ router.delete('/api/team/members/:userId', requireAuth, async (req: Authenticate
       .eq('user_id', targetUserId)
 
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1413,7 +1443,8 @@ router.get('/api/team/invitations', requireAuth, async (req: AuthenticatedReques
     }
 
     res.json(invitations || [])
-  } catch {
+  } catch (err) {
+    console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

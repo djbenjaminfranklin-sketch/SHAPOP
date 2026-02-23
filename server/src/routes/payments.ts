@@ -291,7 +291,8 @@ router.delete('/api/stripe/card', requireAuth, async (req: AuthenticatedRequest,
       await stripe.paymentMethods.detach(pm.id)
     }
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[payments] delete card:', err)
     res.status(500).json({ error: 'Failed to delete card' })
   }
 })

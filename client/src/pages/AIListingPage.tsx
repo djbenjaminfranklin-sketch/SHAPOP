@@ -5,6 +5,8 @@ import { getLang } from '../lib/i18n'
 import { showToast } from '../lib/toast'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 type Step = 'upload' | 'analyzing' | 'results' | 'success'
@@ -220,6 +222,7 @@ export default function AIListingPage() {
   const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const t = content[lang] || content.fr
+  usePageTitle(t.title)
 
   // Block non-sellers
   useEffect(() => {
@@ -480,7 +483,8 @@ export default function AIListingPage() {
       await video.play()
 
       // Use BarcodeDetector API if available (Chrome/Android/iOS 16+)
-      const BarcodeDetectorClass = (window as any).BarcodeDetector
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const BarcodeDetectorClass = (window as unknown as Record<string, unknown>).BarcodeDetector as (new (opts: { formats: string[] }) => { detect: (source: HTMLVideoElement) => Promise<{ rawValue: string }[]> }) | undefined
       if (BarcodeDetectorClass) {
         const detector = new BarcodeDetectorClass({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39'] })
         let scanning = true
@@ -658,6 +662,7 @@ export default function AIListingPage() {
           <img
             src={imagePreview}
             alt="Preview"
+            loading="lazy"
             style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
               objectFit: 'cover', borderRadius: '22px',
@@ -756,7 +761,7 @@ export default function AIListingPage() {
           { icon: '2', label: t.stepAnalysis, desc: t.stepAnalysisDesc },
           { icon: '3', label: t.stepPublish, desc: t.stepPublishDesc },
         ].map((item, i) => (
-          <div key={i} style={{
+          <div key={item.icon} style={{
             flex: 1, padding: '12px 8px', borderRadius: '14px',
             backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
             textAlign: 'center',
@@ -798,6 +803,7 @@ export default function AIListingPage() {
           <img
             src={imagePreview}
             alt="Scanning"
+            loading="lazy"
             style={{
               width: '100%', height: '100%', objectFit: 'cover',
             }}
@@ -869,7 +875,7 @@ export default function AIListingPage() {
         {/* Animated dots */}
         <div style={{ display: 'flex', gap: '6px' }}>
           {[0, 1, 2].map(i => (
-            <div key={i} style={{
+            <div key={`dot-${i}`} style={{
               width: '8px', height: '8px', borderRadius: '50%',
               backgroundColor: '#F0908A',
               animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
@@ -905,6 +911,7 @@ export default function AIListingPage() {
               <img
                 src={imagePreview}
                 alt="Item"
+                loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             )}
@@ -962,7 +969,7 @@ export default function AIListingPage() {
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {editTags.map((tag, i) => (
-              <div key={i} style={{
+              <div key={tag} style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '7px 12px', borderRadius: '100px',
                 backgroundColor: 'rgba(240,144,138,0.1)',
@@ -1161,7 +1168,7 @@ export default function AIListingPage() {
               cursor: 'pointer',
             }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
               <path d="M19 12H5"/>
               <path d="M12 19l-7-7 7-7"/>
             </svg>

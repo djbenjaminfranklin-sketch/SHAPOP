@@ -97,7 +97,8 @@ router.get('/api/streams/:id', async (req: Request, res: Response) => {
     ;(data as Record<string, unknown>).seller_trust_level = trust ? trust.trust_level : 'new'
 
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -319,7 +320,8 @@ router.post('/api/streams/:id/end', requireAuth, async (req: AuthenticatedReques
       return
     }
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -381,7 +383,8 @@ router.get('/api/streams/:id/adaptive-suggestions', async (req: Request, res: Re
         engagement_rate: latest.engagement_rate,
       }
     })
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -458,7 +461,8 @@ router.post('/api/streams/:id/track-engagement', requireAuth, async (req: Authen
     }
 
     res.json({ energy_level: energyLevel, engagement_rate: engagementRate })
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -503,7 +507,8 @@ router.post('/api/streams/:id/viewer-join', requireAuth, async (req: Authenticat
     }
 
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[streams] viewer count:', err)
     res.status(500).json({ error: 'Failed to update viewer count' })
   }
 })
@@ -521,7 +526,8 @@ router.post('/api/streams/:id/viewer-leave', requireAuth, async (req: Authentica
       }
     }
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[streams] viewer count:', err)
     res.status(500).json({ error: 'Failed to update viewer count' })
   }
 })
@@ -732,7 +738,8 @@ router.post('/api/streams/:id/mark-live', requireAuth, async (req: Authenticated
       .eq('id', streamId)
 
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[streams] mark live:', err)
     res.status(500).json({ error: 'Failed to mark stream as live' })
   }
 })
@@ -804,7 +811,8 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
       .eq('id', streamId)
 
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[streams] end LiveKit:', err)
     res.status(500).json({ error: 'Failed to end LiveKit stream' })
   }
 })
@@ -873,7 +881,8 @@ router.get('/api/matching/personalized-lives', requireAuth, async (req: Authenti
     })
 
     res.json(scoredLives.slice(0, 20))
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -959,7 +968,8 @@ router.get('/api/streams/:id/giveaway', async (req: Request, res: Response) => {
       .maybeSingle()
 
     res.json(giveaway || null)
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1516,7 +1526,8 @@ router.get('/api/streams/:id/clips', async (req: Request, res: Response) => {
     }
 
     res.json(clips || [])
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1540,7 +1551,8 @@ router.delete('/api/streams/:id/clips/:clipId', requireAuth, async (req: Authent
 
     await supabase.from('clips').delete().eq('id', clipId)
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1563,7 +1575,8 @@ router.get('/api/sellers/:id/clips', async (req: Request, res: Response) => {
     }
 
     res.json(clips || [])
-  } catch {
+  } catch (err) {
+    console.error('[streams]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

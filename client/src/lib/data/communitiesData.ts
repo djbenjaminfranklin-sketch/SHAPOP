@@ -1,4 +1,4 @@
-import type { Community } from '../types/database'
+import type { Community } from '../../types/database'
 
 // Extended community type with extra display fields
 export interface CommunityDisplay extends Community {

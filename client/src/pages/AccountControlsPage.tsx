@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import { apiFetch } from '../lib/api'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -102,6 +104,7 @@ export default function AccountControlsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const lang = getLang()
+  usePageTitle(tx('Controles du compte', 'Account Controls', 'בקרת חשבון', 'Controles de cuenta', lang))
 
   const [activeTab, setActiveTab] = useState<Tab>('watch')
   const [settings, setSettings] = useState<ControlSettings>(loadSettings)
@@ -300,7 +303,7 @@ export default function AccountControlsPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>

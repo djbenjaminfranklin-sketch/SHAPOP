@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const COUNTRY_PREFIXES = [
   { code: '+33', label: 'FR +33' },
@@ -52,8 +53,18 @@ const content = {
     errorFileSize: "L'image doit faire moins de 5 Mo.",
     errorEmailTaken: 'Cet email est deja utilise',
     errorUsernameTaken: "Ce nom d'utilisateur est deja pris",
+    errorPasswordShort: 'Le mot de passe doit contenir au moins 6 caracteres',
     errorPhoneRequired: 'Le numero de telephone est obligatoire',
     errorBlocked: 'Inscription bloquee',
+    errorAcceptTerms: 'Tu dois accepter les conditions pour continuer',
+    acceptTerms: "J'accepte les",
+    termsLink: "Conditions d'utilisation",
+    privacyLink: 'Politique de confidentialite',
+    eulaLink: 'CLUF',
+    andThe: 'et le',
+    comma: ', la',
+    ageConfirm: "Je confirme avoir 18 ans ou plus",
+    byContinuing: "En continuant, tu acceptes nos",
     checkEmail: 'Verifie ton email',
     checkEmailDesc: 'Un lien de confirmation a ete envoye a ton adresse email.',
   },
@@ -89,8 +100,18 @@ const content = {
     errorFileSize: 'Image must be smaller than 5MB.',
     errorEmailTaken: 'This email is already registered',
     errorUsernameTaken: 'This username is already taken',
+    errorPasswordShort: 'Password must be at least 6 characters',
     errorPhoneRequired: 'Phone number is required',
     errorBlocked: 'Registration blocked',
+    errorAcceptTerms: 'You must accept the terms to continue',
+    acceptTerms: 'I accept the',
+    termsLink: 'Terms of Service',
+    privacyLink: 'Privacy Policy',
+    eulaLink: 'EULA',
+    andThe: 'and the',
+    comma: ',',
+    ageConfirm: 'I confirm I am 18 years or older',
+    byContinuing: 'By continuing, you agree to our',
     checkEmail: 'Check your email',
     checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
@@ -126,8 +147,18 @@ const content = {
     errorFileSize: '\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D9\u05D9\u05D1\u05EA \u05DC\u05D4\u05D9\u05D5\u05EA \u05E7\u05D8\u05E0\u05D4 \u05DE-5MB.',
     errorEmailTaken: '\u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05E8\u05E9\u05D5\u05DD',
     errorUsernameTaken: '\u05E9\u05DD \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9 \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05EA\u05E4\u05D5\u05E1',
+    errorPasswordShort: '\u05D4\u05E1\u05D9\u05E1\u05DE\u05D4 \u05D7\u05D9\u05D9\u05D1\u05EA \u05DC\u05D4\u05DB\u05D9\u05DC \u05DC\u05E4\u05D7\u05D5\u05EA 6 \u05EA\u05D5\u05D5\u05D9\u05DD',
     errorPhoneRequired: '\u05D0\u05DE\u05EA \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05D8\u05DC\u05E4\u05D5\u05DF \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05E9\u05DA',
     errorBlocked: '\u05D4\u05D4\u05E8\u05E9\u05DE\u05D4 \u05E0\u05D7\u05E1\u05DE\u05D4',
+    errorAcceptTerms: '\u05E2\u05DC\u05D9\u05DA \u05DC\u05D0\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E0\u05D0\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05D4\u05DE\u05E9\u05D9\u05DA',
+    acceptTerms: '\u05D0\u05E0\u05D9 \u05DE\u05D0\u05E9\u05E8 \u05D0\u05EA',
+    termsLink: '\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9',
+    privacyLink: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA',
+    eulaLink: '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF',
+    andThe: '\u05D5\u05D0\u05EA',
+    comma: ', ',
+    ageConfirm: '\u05D0\u05E0\u05D9 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D0\u05E0\u05D9 \u05D1\u05DF 18 \u05D0\u05D5 \u05D9\u05D5\u05EA\u05E8',
+    byContinuing: '\u05D1\u05D4\u05DE\u05E9\u05DA, \u05D0\u05EA\u05D4 \u05DE\u05E1\u05DB\u05D9\u05DD \u05DC',
     checkEmail: '\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA',
     checkEmailDesc: '\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.',
   },
@@ -163,8 +194,18 @@ const content = {
     errorFileSize: 'La imagen debe pesar menos de 5MB.',
     errorEmailTaken: 'Este correo ya esta registrado',
     errorUsernameTaken: 'Este nombre de usuario ya esta en uso',
+    errorPasswordShort: 'La contrasena debe tener al menos 6 caracteres',
     errorPhoneRequired: 'Verifica tu numero de telefono antes de continuar',
     errorBlocked: 'Registro bloqueado',
+    errorAcceptTerms: 'Debes aceptar los terminos para continuar',
+    acceptTerms: 'Acepto los',
+    termsLink: 'Terminos de servicio',
+    privacyLink: 'Politica de privacidad',
+    eulaLink: 'CLUF',
+    andThe: 'y el',
+    comma: ', la',
+    ageConfirm: 'Confirmo que tengo 18 anos o mas',
+    byContinuing: 'Al continuar, aceptas nuestros',
     checkEmail: 'Revisa tu correo',
     checkEmailDesc: 'Se ha enviado un enlace de confirmacion a tu correo electronico.',
   },
@@ -188,12 +229,15 @@ export default function Register() {
   const [confirmEmail, setConfirmEmail] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedAge, setAcceptedAge] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, loading: authLoading, signUp, signInWithGoogle, signInWithApple } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   // Referral code from URL (?ref=CODE) or localStorage
   const [referralCode, setReferralCode] = useState(() => {
@@ -246,8 +290,26 @@ export default function Register() {
     e.preventDefault()
     setError('')
 
-    // Phone number required
-    if (!phoneLocal || phoneLocal.length < 4) {
+    // Terms + age acceptance required
+    if (!acceptedTerms || !acceptedAge) {
+      setError(c.errorAcceptTerms)
+      return
+    }
+
+    // Email format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError(c.errorInvalidEmail || 'Invalid email address')
+      return
+    }
+
+    // Password minimum length
+    if (password.length < 8) {
+      setError(c.errorPasswordShort)
+      return
+    }
+
+    // Phone number required (7-15 digits)
+    if (!phoneLocal || phoneLocal.length < 7) {
       setError(c.errorPhoneRequired)
       return
     }
@@ -297,9 +359,14 @@ export default function Register() {
         if (user) {
           const ext = avatarFile.name.split('.').pop()
           const path = `${user.id}/avatar.${ext}`
-          await supabase.storage.from('avatars').upload(path, avatarFile, { upsert: true })
-          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-          await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', user.id)
+          const { error: uploadError } = await supabase.storage.from('avatars').upload(path, avatarFile, { upsert: true })
+          if (uploadError) {
+            console.error('Avatar upload failed:', uploadError.message)
+          } else {
+            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+            const { error: updateError } = await supabase.from('profiles').update({ avatar_url: urlData.publicUrl }).eq('id', user.id)
+            if (updateError) console.error('Avatar URL update failed:', updateError.message)
+          }
         }
       }
       sessionStorage.setItem('shapop_fresh_login', '1')
@@ -410,6 +477,16 @@ export default function Register() {
         {c.continueGoogle}
       </button>
 
+      {/* Legal notice for OAuth */}
+      <p style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5 }}>
+        {c.byContinuing}{' '}
+        <Link to="/terms" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.termsLink}</Link>
+        {c.comma}{' '}
+        <Link to="/privacy" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.privacyLink}</Link>
+        {' '}{c.andThe}{' '}
+        <Link to="/eula" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.eulaLink}</Link>.
+      </p>
+
       {/* Divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#222' }} />
@@ -438,7 +515,7 @@ export default function Register() {
             }}
           >
             {avatarPreview ? (
-              <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={avatarPreview} alt="Avatar" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1.5">
@@ -469,6 +546,7 @@ export default function Register() {
             </label>
             <input
               type="text"
+              autoComplete="username"
               value={username}
               onChange={e => setUsername(e.target.value)}
               placeholder={c.usernamePlaceholder}
@@ -510,6 +588,7 @@ export default function Register() {
           <input
             type="email"
             inputMode="email"
+            autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder={c.emailPlaceholder}
@@ -526,6 +605,7 @@ export default function Register() {
           <div style={{ position: 'relative' }}>
             <input
               type={showPassword ? 'text' : 'password'}
+              autoComplete="new-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={c.passwordPlaceholder}
@@ -537,6 +617,7 @@ export default function Register() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
               style={{
                 position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -575,6 +656,7 @@ export default function Register() {
             <input
               type="tel"
               inputMode="tel"
+              autoComplete="tel-national"
               value={phoneLocal}
               onChange={e => setPhoneLocal(e.target.value.replace(/[^0-9]/g, ''))}
               placeholder={c.phonePlaceholder}
@@ -600,14 +682,45 @@ export default function Register() {
           />
         </div>
 
+        {/* Terms acceptance checkbox */}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={e => setAcceptedTerms(e.target.checked)}
+            style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
+          />
+          <span style={{ fontSize: '14px', color: '#999', lineHeight: 1.5 }}>
+            {c.acceptTerms}{' '}
+            <Link to="/terms" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.termsLink}</Link>
+            {c.comma}{' '}
+            <Link to="/privacy" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.privacyLink}</Link>
+            {' '}{c.andThe}{' '}
+            <Link to="/eula" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.eulaLink}</Link>
+          </span>
+        </label>
+
+        {/* Age confirmation checkbox */}
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '24px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={acceptedAge}
+            onChange={e => setAcceptedAge(e.target.checked)}
+            style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
+          />
+          <span style={{ fontSize: '14px', color: '#999', lineHeight: 1.5 }}>
+            {c.ageConfirm}
+          </span>
+        </label>
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !acceptedTerms || !acceptedAge}
           style={{
             width: '100%', padding: '17px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
             color: '#fff', fontSize: '17px', fontWeight: 700, border: 'none',
-            cursor: 'pointer', opacity: loading ? 0.5 : 1,
+            cursor: 'pointer', opacity: (loading || !acceptedTerms || !acceptedAge) ? 0.5 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
             letterSpacing: '0.2px',
           }}

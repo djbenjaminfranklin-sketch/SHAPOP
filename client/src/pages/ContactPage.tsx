@@ -3,8 +3,29 @@ import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
+  fr: {
+    title: 'Nous contacter',
+    subtitle: 'Comment pouvons-nous vous aider ?',
+    topics: [
+      { id: 'order', label: 'Problème de commande' },
+      { id: 'account', label: 'Problème de compte' },
+      { id: 'payment', label: 'Question de paiement' },
+      { id: 'seller', label: 'Support vendeur' },
+      { id: 'bug', label: 'Signaler un bug' },
+      { id: 'other', label: 'Autre' },
+    ],
+    messagePlaceholder: 'Décrivez votre problème...',
+    send: 'Envoyer le message',
+    sent: 'Message envoyé !',
+    sentDesc: 'Nous vous répondrons dans les 24 heures à votre adresse e-mail enregistrée.',
+    back: 'Retour à l\'application',
+    email: 'Ou écrivez-nous directement :',
+    hours: 'Délai de réponse : sous 24 heures',
+  },
   en: {
     title: 'Contact Us',
     subtitle: 'How can we help you?',
@@ -43,25 +64,6 @@ const content = {
     email: '\u05D0\u05D5 \u05E9\u05DC\u05D7\u05D5 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA:',
     hours: '\u05D6\u05DE\u05DF \u05EA\u05D2\u05D5\u05D1\u05D4: \u05E2\u05D3 24 \u05E9\u05E2\u05D5\u05EA',
   },
-  fr: {
-    title: 'Nous contacter',
-    subtitle: 'Comment pouvons-nous vous aider ?',
-    topics: [
-      { id: 'order', label: 'Problème de commande' },
-      { id: 'account', label: 'Problème de compte' },
-      { id: 'payment', label: 'Question de paiement' },
-      { id: 'seller', label: 'Support vendeur' },
-      { id: 'bug', label: 'Signaler un bug' },
-      { id: 'other', label: 'Autre' },
-    ],
-    messagePlaceholder: 'Décrivez votre problème...',
-    send: 'Envoyer le message',
-    sent: 'Message envoyé !',
-    sentDesc: 'Nous vous répondrons dans les 24 heures à votre adresse e-mail enregistrée.',
-    back: 'Retour à l\'application',
-    email: 'Ou écrivez-nous directement :',
-    hours: 'Délai de réponse : sous 24 heures',
-  },
   es: {
     title: 'Contactanos',
     subtitle: 'Como podemos ayudarte?',
@@ -88,6 +90,7 @@ export default function ContactPage() {
   const { user } = useAuth()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
   const [topic, setTopic] = useState('')
   const [message, setMessage] = useState('')
   const [sent, setSent] = useState(false)
@@ -96,6 +99,10 @@ export default function ContactPage() {
 
   const handleSend = async () => {
     if (!topic || !message.trim() || !user) return
+    if (message.trim().length > 2000) {
+      setSendError(c.tooLong || 'Message trop long (2000 caracteres max)')
+      return
+    }
     setSending(true)
     setSendError('')
 
@@ -159,8 +166,8 @@ export default function ContactPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>

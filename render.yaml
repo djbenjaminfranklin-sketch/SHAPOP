@@ -14,10 +14,6 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
-      - key: MUX_TOKEN_ID
-        sync: false
-      - key: MUX_TOKEN_SECRET
-        sync: false
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: STRIPE_PUBLISHABLE_KEY
@@ -33,4 +29,24 @@ services:
       - key: PAYPAL_WEBHOOK_ID
         sync: false
       - key: ALLOWED_ORIGINS
+        sync: false
+      - key: APP_BASE_URL
+        value: https://shapop.app
+      - key: PLATFORM_COMMISSION
+        value: "0.08"
+      - key: LAPOSTE_API_KEY
+        sync: false
+      - key: LIVEKIT_API_KEY
+        sync: false
+      - key: LIVEKIT_API_SECRET
+        sync: false
+      - key: LIVEKIT_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: ADMIN_EMAILS
         sync: false

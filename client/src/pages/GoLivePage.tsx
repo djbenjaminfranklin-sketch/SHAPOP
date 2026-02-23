@@ -6,6 +6,8 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import { categories } from '../components/CategoryIcons'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 // Compress image to max 800px and JPEG quality 0.7 (~100-200KB)
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
@@ -298,6 +300,7 @@ export default function GoLivePage() {
   const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = goLiveContent[lang] || goLiveContent.fr
+  usePageTitle(ct.title)
 
   // Block non-sellers
   useEffect(() => {
@@ -383,7 +386,7 @@ export default function GoLivePage() {
 
   const handleDeleteStream = (streamId: string) => {
     setConfirmModal({
-      title: (ct as any).deleteStreamTitle || ct.delete,
+      title: ct.deleteStreamTitle || ct.delete,
       message: ct.deleteConfirm,
       onConfirm: async () => {
         setConfirmModal(null)
@@ -406,8 +409,8 @@ export default function GoLivePage() {
   const handleBulkDelete = () => {
     if (selectedIds.size === 0) return
     setConfirmModal({
-      title: (ct as any).bulkDeleteTitle || ct.delete,
-      message: (ct as any).bulkDeleteConfirm || ct.deleteConfirm,
+      title: ct.bulkDeleteTitle || ct.delete,
+      message: ct.bulkDeleteConfirm || ct.deleteConfirm,
       onConfirm: async () => {
         setConfirmModal(null)
         const { data: { session } } = await supabase.auth.getSession()
@@ -619,10 +622,10 @@ export default function GoLivePage() {
         }}>
           <button
             onClick={() => navigate(-1)}
-            aria-label="Back"
+            aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}>
               <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
@@ -692,7 +695,7 @@ export default function GoLivePage() {
           }}>
             {langTips.map((_, i) => (
               <div
-                key={i}
+                key={`tip-dot-${i}`}
                 onClick={() => setTipIndex(i)}
                 style={{
                   width: i === tipIndex ? '24px' : '8px',
@@ -753,7 +756,7 @@ export default function GoLivePage() {
       }}>
         <button
           onClick={() => navigate(-1)}
-          aria-label="Back"
+          aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -854,6 +857,7 @@ export default function GoLivePage() {
               <img
                 src={thumbnailPreview}
                 alt=""
+                loading="lazy"
                 style={{
                   width: '80px', height: '80px', borderRadius: '12px',
                   objectFit: 'cover', border: '1px solid #222',
@@ -961,7 +965,7 @@ export default function GoLivePage() {
         </button></>}
 
         {/* My Lives section */}
-        {(myStreams.length > 0 || manageMode) && (
+        {(myStreams.length > 0 || manageMode || !streamsLoading) && (
           <div style={{ marginTop: manageMode ? '0' : '40px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h2 style={{
@@ -981,7 +985,7 @@ export default function GoLivePage() {
                         color: '#ccc', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
-                      {(ct as any).selectAll || 'Tout selectionner'}
+                      {ct.selectAll}
                     </button>
                   )}
                   <button
@@ -994,7 +998,7 @@ export default function GoLivePage() {
                       fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
-                    {selectionMode ? ((ct as any).cancel || 'Annuler') : ((ct as any).select || 'Selectionner')}
+                    {selectionMode ? ct.cancel : ct.select}
                   </button>
                 </div>
               )}
@@ -1161,7 +1165,7 @@ export default function GoLivePage() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
             </svg>
-            {(ct as any).deleteSelected || 'Supprimer'} ({selectedIds.size})
+            {ct.deleteSelected} ({selectedIds.size})
           </button>
         </div>
       )}
@@ -1178,8 +1182,8 @@ export default function GoLivePage() {
         open={!!confirmModal}
         title={confirmModal?.title || ''}
         message={confirmModal?.message || ''}
-        confirmLabel={(ct as any).confirmDelete || ct.delete}
-        cancelLabel={(ct as any).confirmCancel || ct.cancel}
+        confirmLabel={ct.confirmDelete || ct.delete}
+        cancelLabel={ct.confirmCancel || ct.cancel}
         onConfirm={() => confirmModal?.onConfirm()}
         onCancel={() => setConfirmModal(null)}
         danger

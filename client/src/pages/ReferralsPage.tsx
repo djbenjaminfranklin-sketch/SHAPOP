@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
   fr: {
@@ -81,7 +83,9 @@ export default function ReferralsPage() {
   const { user } = useAuth()
   const lang = getLang()
   const c = (content as Record<string, typeof content.fr>)[lang] || content.fr
+  usePageTitle(c.title)
   const [copied, setCopied] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<{ total_referrals: number; rewards_earned: number; reward_codes: string[]; my_welcome_code: string | null } | null>(null)
 
   useEffect(() => {
@@ -97,7 +101,9 @@ export default function ReferralsPage() {
           const data = await resp.json()
           setStats(data)
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        setLoading(false)
+      }
     })()
   }, [user])
 
@@ -137,11 +143,21 @@ export default function ReferralsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
+          <div style={{
+            width: '32px', height: '32px', border: '3px solid #333',
+            borderTopColor: '#F0908A', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      ) : (
       <div style={{ padding: '20px' }}>
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
@@ -169,7 +185,7 @@ export default function ReferralsPage() {
               </div>
             )}
             {stats.reward_codes.map((code, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#0A0A0A', borderRadius: '10px', marginBottom: i < stats.reward_codes.length - 1 ? '8px' : 0 }}>
+              <div key={code} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#0A0A0A', borderRadius: '10px', marginBottom: i < stats.reward_codes.length - 1 ? '8px' : 0 }}>
                 <p style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A', margin: 0, letterSpacing: '2px' }}>{code}</p>
                 <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>-5%</span>
               </div>
@@ -187,7 +203,7 @@ export default function ReferralsPage() {
         <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '20px', marginBottom: '24px' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>{c.howTitle}</h2>
           {[c.step1, c.step2, c.step3].map((step, i) => (
-            <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: i < 2 ? '14px' : 0 }}>
+            <div key={`step-${i}`} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: i < 2 ? '14px' : 0 }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#F0908A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
               <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.5, paddingTop: '3px' }}>{step}</p>
             </div>
@@ -204,6 +220,7 @@ export default function ReferralsPage() {
           {copied ? c.copied : c.share}
         </button>
       </div>
+      )}
     </div>
   )
 }

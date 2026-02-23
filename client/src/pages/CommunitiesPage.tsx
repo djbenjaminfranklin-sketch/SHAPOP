@@ -7,10 +7,11 @@ import {
   detectUserCountry,
   COUNTRIES,
   getCountryDisplayName,
-} from '../lib/communitiesData'
-import type { CommunityDisplay, CountryCode } from '../lib/communitiesData'
+} from '../lib/data/communitiesData'
+import type { CommunityDisplay, CountryCode } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -104,6 +105,7 @@ export default function CommunitiesPage() {
   const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.communities)
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => {
     return (profile?.country as CountryCode) || detectUserCountry()
@@ -129,7 +131,7 @@ export default function CommunitiesPage() {
         .select('id, member_count')
       if (communitiesData) {
         const counts: Record<string, number> = {}
-        communitiesData.forEach((c: any) => {
+        communitiesData.forEach((c: { id: string; member_count: number | null }) => {
           counts[c.id] = c.member_count ?? 0
         })
         setRealMemberCounts(counts)
@@ -143,7 +145,7 @@ export default function CommunitiesPage() {
         .not('community_id', 'is', null)
       if (liveStreams) {
         const liveCounts: Record<string, number> = {}
-        liveStreams.forEach((s: any) => {
+        liveStreams.forEach((s: { community_id: string | null }) => {
           if (s.community_id) {
             liveCounts[s.community_id] = (liveCounts[s.community_id] || 0) + 1
           }
@@ -164,7 +166,9 @@ export default function CommunitiesPage() {
   // Save country preference to Supabase
   useEffect(() => {
     if (user) {
-      supabase.from('profiles').update({ country: selectedCountry }).eq('id', user.id)
+      supabase.from('profiles').update({ country: selectedCountry }).eq('id', user.id).then(({ error }) => {
+        if (error) console.error('Failed to update country preference:', error)
+      })
     }
   }, [selectedCountry, user])
 
@@ -175,7 +179,8 @@ export default function CommunitiesPage() {
       : [...joinedIds, communityId]
     setJoinedIds(updated)
     if (user) {
-      await supabase.from('profiles').update({ joined_communities: updated }).eq('id', user.id)
+      const { error } = await supabase.from('profiles').update({ joined_communities: updated }).eq('id', user.id)
+      if (error) console.error('Failed to update joined communities:', error)
     }
   }
 
@@ -342,8 +347,8 @@ export default function CommunitiesPage() {
           { value: String(communities.length), label: ct.communities },
           { value: formattedMembers, label: ct.membersLabel },
           { value: String(totalLives), label: ct.activeLives },
-        ].map((stat, i) => (
-          <div key={i} style={{ textAlign: 'center' }}>
+        ].map((stat) => (
+          <div key={stat.label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#F0908A' }}>{stat.value}</div>
             <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{stat.label}</div>
           </div>
@@ -458,6 +463,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
         <img
           src={community.image_url || ''}
           alt={community.name}
+          loading="lazy"
           style={{
             width: '100%', height: '100%', objectFit: 'cover', display: 'block',
           }}

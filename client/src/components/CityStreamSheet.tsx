@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import StreamCard from './StreamCard'
+import StreamCard from './stream/StreamCard'
 import type { CityStreamData } from '../hooks/useCityStreamCounts'
 
 interface CityStreamSheetProps {
@@ -100,7 +100,7 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
             gap: '12px 12px',
           }}>
             {data.streams.map(stream => (
-              <StreamCard key={stream.id} stream={stream as any} />
+              <StreamCard key={stream.id} stream={stream as unknown as Parameters<typeof StreamCard>[0]['stream']} />
             ))}
           </div>
         </div>

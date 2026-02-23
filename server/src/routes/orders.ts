@@ -15,7 +15,7 @@ const ShipOrderProof = z.object({
 
 const ShipOrderBody = z.object({
   shipping_proof_url: z.string().url().optional(),
-  proofs: z.array(ShipOrderProof).optional(),
+  proofs: z.array(ShipOrderProof).max(10).optional(),
   tracking_number: z.string().max(100).optional(),
 })
 
@@ -227,7 +227,8 @@ router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequ
 
     if (process.env.NODE_ENV !== 'production') console.log(`[orders] Order ${orderId} cancelled by user ${userId}`)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -480,7 +481,8 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
     }
 
     res.json(updated)
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -631,7 +633,8 @@ router.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: Authent
     }
 
     res.json(updated)
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -710,7 +713,8 @@ router.post('/api/orders/:id/request-return', requireAuth, async (req: Authentic
     notifyUser(order.seller_id, 'return_requested', 'Return requested', `A buyer has requested a return: ${reason.trim().slice(0, 100)}`, { order_id: String(orderId) })
 
     res.json(updated)
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -773,7 +777,8 @@ router.post('/api/orders/:id/approve-return', requireAuth, async (req: Authentic
     notifyUser(order.buyer_id, 'return_approved', 'Return approved', 'Your return has been approved and a refund is being processed.', { order_id: String(orderId) })
 
     res.json(updated)
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -825,7 +830,8 @@ router.post('/api/orders/:id/reject-return', requireAuth, async (req: Authentica
     notifyUser(order.buyer_id, 'return_rejected', 'Return rejected', reason.trim() ? `Your return was rejected: ${reason.trim().slice(0, 100)}` : 'Your return request was rejected by the seller.', { order_id: String(orderId) })
 
     res.json(updated)
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -880,7 +886,8 @@ router.post('/api/orders/:id/conversation', requireAuth, async (req: Authenticat
     }
 
     res.json(conv)
-  } catch {
+  } catch (err) {
+    console.error('[orders]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

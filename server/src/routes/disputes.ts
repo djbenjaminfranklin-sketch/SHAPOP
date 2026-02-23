@@ -189,7 +189,8 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
     })
 
     res.json(dispute)
-  } catch {
+  } catch (err) {
+    console.error('[disputes]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -211,7 +212,8 @@ router.get('/api/disputes/mine', requireAuth, async (req: AuthenticatedRequest, 
     }
 
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[disputes]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -238,7 +240,8 @@ router.get('/api/disputes/order/:orderId', requireAuth, async (req: Authenticate
     }
 
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[disputes]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -288,7 +291,8 @@ router.post('/api/disputes/:id/seller-photos', requireAuth, async (req: Authenti
     }
 
     res.json(updated)
-  } catch {
+  } catch (err) {
+    console.error('[disputes]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

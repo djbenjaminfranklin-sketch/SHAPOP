@@ -103,7 +103,8 @@ router.get('/api/items/direct-sales', async (req: Request, res: Response) => {
       return
     }
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -121,7 +122,8 @@ router.get('/api/items/:id', async (req: Request, res: Response) => {
       return
     }
     res.json(data)
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -343,7 +345,8 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
     }
 
     res.json({ success: true, status, winner_id: winnerId, final_price: topBid?.amount || 0 })
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -399,7 +402,8 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
     await notifyUser(buyerId, 'auction_won', 'Achat confirme !', `${item.title} — ${item.buy_now_price}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
 
     res.json({ success: true, price: item.buy_now_price })
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -587,7 +591,8 @@ router.delete('/api/items/:id', requireAuth, async (req: AuthenticatedRequest, r
     const { error } = await supabase.from('items').delete().eq('id', itemId)
     if (error) { res.status(500).json({ error: error.message }); return }
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -750,7 +755,7 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
     const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
     const userId = req.user!.id
 
-    if (!amount || isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0 || amount > 100000) {
       res.status(400).json({ error: 'Invalid bid amount' })
       return
     }
@@ -858,7 +863,7 @@ router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, async (req: Authe
     const maxAmount = Math.round(parseFloat(req.body.max_amount) * 100) / 100
     const userId = req.user!.id
 
-    if (!maxAmount || isNaN(maxAmount) || maxAmount <= 0) {
+    if (!maxAmount || isNaN(maxAmount) || maxAmount <= 0 || maxAmount > 100000) {
       res.status(400).json({ error: 'Invalid max amount' })
       return
     }
@@ -962,7 +967,8 @@ router.get('/api/items/:id/max-bid', requireAuth, async (req: AuthenticatedReque
       .maybeSingle()
 
     res.json(data || null)
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -976,7 +982,7 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
     const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
     const userId = req.user!.id
 
-    if (!amount || isNaN(amount) || amount <= 0) {
+    if (!amount || isNaN(amount) || amount <= 0 || amount > 100000) {
       res.status(400).json({ error: 'Invalid pre-bid amount' })
       return
     }
@@ -1072,7 +1078,8 @@ router.get('/api/items/:id/pre-bid', requireAuth, async (req: AuthenticatedReque
       .maybeSingle()
 
     res.json(data || null)
-  } catch {
+  } catch (err) {
+    console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -1181,7 +1188,8 @@ Return ONLY the JSON, no other text.`
     }
 
     res.json({ item, ai_analysis: listing })
-  } catch {
+  } catch (err) {
+    console.error('[items] AI analysis:', err)
     res.status(500).json({ error: 'AI analysis failed' })
   }
 })
@@ -1310,7 +1318,8 @@ Retourne UNIQUEMENT le JSON, rien d'autre.`
       generated_image_url: generatedImageUrl,
       inspiration_image: image_url,
     })
-  } catch {
+  } catch (err) {
+    console.error('[items] banner generation:', err)
     res.status(500).json({ error: 'Banner generation failed' })
   }
 })

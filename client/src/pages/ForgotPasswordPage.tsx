@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -15,6 +17,7 @@ const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
   const lang = getLang()
+  usePageTitle(tx('Mot de passe oublie', 'Forgot Password', 'שכחתי סיסמה', 'Olvidé la contraseña', lang))
 
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,6 +34,10 @@ export default function ForgotPasswordPage() {
       showToast(tx('Veuillez entrer votre adresse e-mail', 'Please enter your email address', 'נא להזין כתובת אימייל', 'Por favor ingrese su correo electronico', lang), 'error')
       return
     }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      showToast(tx('Adresse e-mail invalide', 'Invalid email address', 'כתובת אימייל לא תקינה', 'Direccion de correo invalida', lang), 'error')
+      return
+    }
 
     setLoading(true)
     try {
@@ -39,8 +46,8 @@ export default function ForgotPasswordPage() {
       })
       if (error) throw error
       setSent(true)
-    } catch (err: any) {
-      showToast(err.message || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+    } catch (err: unknown) {
+      showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
     }
     setLoading(false)
   }
@@ -66,8 +73,8 @@ export default function ForgotPasswordPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
           {tx('Mot de passe oublie', 'Forgot password', 'שכחתי סיסמה', 'Olvide mi contrasena', lang)}
@@ -129,6 +136,7 @@ export default function ForgotPasswordPage() {
             <input
               type="email"
               inputMode="email"
+              autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder={tx('Entrez votre adresse e-mail', 'Enter your email', 'הזן את האימייל שלך', 'Ingrese su correo', lang)}

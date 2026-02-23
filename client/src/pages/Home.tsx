@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import StreamCard from '../components/StreamCard'
+import StreamCard from '../components/stream/StreamCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
 import { useLocation } from '../hooks/useLocation'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,11 +12,12 @@ import { getBehaviorData } from '../lib/behaviorTracker'
 import { cacheGet, cacheSet } from '../lib/cache'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string }
 
 import { t } from '../lib/i18n'
-import { getCommunitiesByCountry, detectUserCountry } from '../lib/communitiesData'
+import { getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
 import { getStoredGPSCountry } from '../lib/geolocation'
 
 const homeContent = {
@@ -56,15 +57,36 @@ const directSalesBanner = {
   es: 'Ver ventas directas',
 } as Record<string, string>
 
-// Category ID → demo category label mapping (matches CategoryIcons IDs)
-const catIdToLabel: Record<string, string> = {
-  fashion_w: 'Mode femme', fashion_m: 'Mode homme', sneakers: 'Sneakers', bags: 'Sacs',
-  jewelry: 'Bijoux', watches: 'Montres', beauty: 'Beaute', electronics: 'High-tech',
-  gaming: 'Gaming', cards: 'Cartes', toys: 'Jouets', vintage: 'Vintage',
-  art: 'Art', furniture: 'Meubles', home: 'Maison', sports: 'Sport',
-  fitness: 'Fitness', music: 'Musique', books: 'Livres', kids: 'Enfants',
-  pets: 'Animaux', auto: 'Auto-Moto', garden: 'Jardin', food: 'Food',
-  handmade: 'Fait main', collect: 'Collection', photo: 'Photo', tools: 'Bricolage',
+// Category ID → localized label mapping (matches CategoryIcons IDs)
+const catLabels: Record<string, Record<string, string>> = {
+  fashion_w: { fr: 'Mode femme', en: "Women's fashion", he: 'אופנת נשים', es: 'Moda mujer' },
+  fashion_m: { fr: 'Mode homme', en: "Men's fashion", he: 'אופנת גברים', es: 'Moda hombre' },
+  sneakers: { fr: 'Sneakers', en: 'Sneakers', he: 'סניקרס', es: 'Sneakers' },
+  bags: { fr: 'Sacs', en: 'Bags', he: 'תיקים', es: 'Bolsos' },
+  jewelry: { fr: 'Bijoux', en: 'Jewelry', he: 'תכשיטים', es: 'Joyería' },
+  watches: { fr: 'Montres', en: 'Watches', he: 'שעונים', es: 'Relojes' },
+  beauty: { fr: 'Beaute', en: 'Beauty', he: 'יופי', es: 'Belleza' },
+  electronics: { fr: 'High-tech', en: 'Electronics', he: 'אלקטרוניקה', es: 'Electrónica' },
+  gaming: { fr: 'Gaming', en: 'Gaming', he: 'גיימינג', es: 'Gaming' },
+  cards: { fr: 'Cartes', en: 'Cards', he: 'קלפים', es: 'Cartas' },
+  toys: { fr: 'Jouets', en: 'Toys', he: 'צעצועים', es: 'Juguetes' },
+  vintage: { fr: 'Vintage', en: 'Vintage', he: 'וינטג׳', es: 'Vintage' },
+  art: { fr: 'Art', en: 'Art', he: 'אמנות', es: 'Arte' },
+  furniture: { fr: 'Meubles', en: 'Furniture', he: 'רהיטים', es: 'Muebles' },
+  home: { fr: 'Maison', en: 'Home', he: 'בית', es: 'Hogar' },
+  sports: { fr: 'Sport', en: 'Sports', he: 'ספורט', es: 'Deportes' },
+  fitness: { fr: 'Fitness', en: 'Fitness', he: 'כושר', es: 'Fitness' },
+  music: { fr: 'Musique', en: 'Music', he: 'מוזיקה', es: 'Música' },
+  books: { fr: 'Livres', en: 'Books', he: 'ספרים', es: 'Libros' },
+  kids: { fr: 'Enfants', en: 'Kids', he: 'ילדים', es: 'Niños' },
+  pets: { fr: 'Animaux', en: 'Pets', he: 'חיות מחמד', es: 'Mascotas' },
+  auto: { fr: 'Auto-Moto', en: 'Auto-Moto', he: 'רכב', es: 'Auto-Moto' },
+  garden: { fr: 'Jardin', en: 'Garden', he: 'גינה', es: 'Jardín' },
+  food: { fr: 'Food', en: 'Food', he: 'אוכל', es: 'Comida' },
+  handmade: { fr: 'Fait main', en: 'Handmade', he: 'עבודת יד', es: 'Hecho a mano' },
+  collect: { fr: 'Collection', en: 'Collectibles', he: 'אספנות', es: 'Colección' },
+  photo: { fr: 'Photo', en: 'Photo', he: 'צילום', es: 'Foto' },
+  tools: { fr: 'Bricolage', en: 'DIY & Tools', he: 'כלי עבודה', es: 'Bricolaje' },
 }
 
 const emptyStateText: Record<string, { title: string; subtitle: string }> = {
@@ -109,6 +131,7 @@ const welcomeContent = {
 } as Record<string, { tagline: string; subtitle: string; signIn: string; createAccount: string }>
 
 export default function Home() {
+  usePageTitle('ShaPop — Live Shopping')
   const [streams, setStreams] = useState<StreamWithSeller[]>(() => {
     // Load cached streams instantly (5 min TTL — stale streams disappear fast)
     return cacheGet<StreamWithSeller[]>('home_streams', 5 * 60 * 1000) || []
@@ -144,7 +167,7 @@ export default function Home() {
   const [promoBannerDismissed, setPromoBannerDismissed] = useState(false)
   const navigate = useNavigate()
   const { city, loading: locationLoading, setManualCity } = useLocation()
-  const { user, updateCity } = useAuth()
+  const { user, loading: authLoading, updateCity } = useAuth()
 
   // Track page view on mount
   useEffect(() => {
@@ -153,18 +176,20 @@ export default function Home() {
 
   // Fetch active promotions
   useEffect(() => {
+    const controller = new AbortController()
     const fetchPromo = async () => {
       try {
-        const res = await apiFetch('/api/promotions/active')
-        if (res.ok) {
+        const res = await apiFetch('/api/promotions/active', { signal: controller.signal })
+        if (!controller.signal.aborted && res.ok) {
           const data = await res.json()
-          if (Array.isArray(data) && data.length > 0) {
+          if (!controller.signal.aborted && Array.isArray(data) && data.length > 0) {
             setActivePromotion(data[0])
           }
         }
       } catch { /* ignore */ }
     }
     fetchPromo()
+    return () => controller.abort()
   }, [])
 
   // Sync detected city to user profile
@@ -220,20 +245,25 @@ export default function Home() {
   // Fetch favorite IDs for heart buttons
   useEffect(() => {
     if (!user) return
+    const controller = new AbortController()
     const fetchFavorites = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (!session) return
+        if (!session || controller.signal.aborted) return
         const res = await apiFetch('/api/favorites', {
           headers: { Authorization: `Bearer ${session.access_token}` },
+          signal: controller.signal,
         })
-        if (res.ok) {
+        if (!controller.signal.aborted && res.ok) {
           const data = await res.json()
           setFavoriteIds(new Set(data.map((s: { id: string }) => s.id)))
         }
-      } catch (err) { console.error('fetchFavorites failed:', err) }
+      } catch (err) {
+        if (!controller.signal.aborted) console.error('fetchFavorites failed:', err)
+      }
     }
     fetchFavorites()
+    return () => controller.abort()
   }, [user])
 
   const toggleFavorite = useCallback(async (streamId: string) => {
@@ -286,13 +316,13 @@ export default function Home() {
     }
     if (selectedCategory === 'following') return streams
     // Filter by category label
-    const expectedLabel = catIdToLabel[selectedCategory]
+    const expectedLabel = catLabels[selectedCategory]?.[lang] || catLabels[selectedCategory]?.fr
     if (expectedLabel) {
       const filtered = streams.filter(s => s.category === expectedLabel)
       if (filtered.length > 0) return filtered
     }
     return streams
-  }, [streams, selectedCategory])
+  }, [streams, selectedCategory, lang])
 
   const displayStreams = useMemo(() => {
     const blocked: string[] = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
@@ -316,7 +346,7 @@ export default function Home() {
       )
     }
     return result
-  }, [filteredStreams, searchQuery])
+  }, [filteredStreams, searchQuery, filterCity, filterMinRating])
 
   const handleCitySelect = (selectedCity: string) => {
     setManualCity(selectedCity)
@@ -343,7 +373,7 @@ export default function Home() {
   const wc = welcomeContent[lang] || welcomeContent.fr
 
   // ═══ WELCOME SCREEN — shown when user is not logged in ═══
-  if (!user) {
+  if (!user && !authLoading) {
     return (
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
@@ -426,7 +456,7 @@ export default function Home() {
           {/* Filter button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            aria-label="Filters"
+            aria-label={lang === 'fr' ? 'Filtres' : lang === 'es' ? 'Filtros' : lang === 'he' ? 'מסננים' : 'Filters'}
             style={{
               padding: '8px', background: 'none', border: 'none', cursor: 'pointer',
               position: 'relative',
@@ -442,13 +472,13 @@ export default function Home() {
             )}
           </button>
           {/* Chat icon */}
-          <button onClick={() => navigate('/messages')} aria-label="Messages" style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/messages')} aria-label={lang === 'fr' ? 'Messages' : lang === 'es' ? 'Mensajes' : lang === 'he' ? 'הודעות' : 'Messages'} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           {/* Notifications */}
-          <button onClick={() => navigate('/notifications')} aria-label="Notifications" style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
+          <button onClick={() => navigate('/notifications')} aria-label={lang === 'fr' ? 'Notifications' : lang === 'es' ? 'Notificaciones' : lang === 'he' ? 'התראות' : 'Notifications'} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
@@ -458,7 +488,7 @@ export default function Home() {
           <div style={{ position: 'relative' }}>
             <button
               onClick={() => setShowLangPicker(!showLangPicker)}
-              aria-label="Language"
+              aria-label={lang === 'fr' ? 'Langue' : lang === 'es' ? 'Idioma' : lang === 'he' ? 'שפה' : 'Language'}
               style={{
                 width: '36px', height: '36px', borderRadius: '50%',
                 backgroundColor: '#F5C518', border: 'none',
@@ -532,7 +562,7 @@ export default function Home() {
         <div style={{ padding: '0 16px 6px', display: 'flex', alignItems: 'center', position: 'relative' }}>
           <button
             onClick={() => setShowCityPicker(!showCityPicker)}
-            aria-label="City"
+            aria-label={lang === 'fr' ? 'Ville' : lang === 'es' ? 'Ciudad' : lang === 'he' ? 'עיר' : 'City'}
             style={{
               background: 'transparent', border: 'none',
               padding: '2px 0', color: '#888', fontSize: '13px',
@@ -678,7 +708,7 @@ export default function Home() {
                     fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                   }}
                 >
-                  {r === 0 ? (lang === 'fr' ? 'Tous' : 'All') : `${r}+`}
+                  {r === 0 ? (lang === 'fr' ? 'Tous' : lang === 'es' ? 'Todos' : lang === 'he' ? 'הכל' : 'All') : `${r}+`}
                 </button>
               ))}
             </div>
@@ -871,7 +901,7 @@ export default function Home() {
 
       {/* Streams grid — 2 columns */}
       {loading ? (
-        <div className="flex justify-center py-20" role="status" aria-label="Loading streams">
+        <div className="flex justify-center py-20" role="status" aria-label={lang === 'fr' ? 'Chargement des lives' : lang === 'es' ? 'Cargando directos' : lang === 'he' ? 'טוען שידורים' : 'Loading streams'}>
           <div className="w-8 h-8 border-2 border-[#333] border-t-accent rounded-full animate-spin" />
         </div>
       ) : fetchError ? (

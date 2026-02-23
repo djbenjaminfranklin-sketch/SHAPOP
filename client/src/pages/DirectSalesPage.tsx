@@ -5,19 +5,43 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ItemCard from '../components/ItemCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
+import { getLang } from '../lib/i18n'
 import type { Item } from '../types/database'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
 
-// Category ID → label mapping (matches CategoryIcons)
-const catIdToLabel: Record<string, string> = {
-  fashion_w: 'Mode femme', fashion_m: 'Mode homme', sneakers: 'Sneakers', bags: 'Sacs',
-  jewelry: 'Bijoux', watches: 'Montres', beauty: 'Beaute', electronics: 'High-tech',
-  gaming: 'Gaming', cards: 'Cartes', toys: 'Jouets', vintage: 'Vintage',
-  art: 'Art', furniture: 'Meubles', home: 'Maison', sports: 'Sport',
-  fitness: 'Fitness', music: 'Musique', books: 'Livres', kids: 'Enfants',
-  pets: 'Animaux', auto: 'Auto-Moto', garden: 'Jardin', food: 'Food',
-  handmade: 'Fait main', collect: 'Collection', photo: 'Photo', tools: 'Bricolage',
+// Category ID → localized label mapping (matches CategoryIcons)
+const catLabels: Record<string, Record<string, string>> = {
+  fashion_w: { fr: 'Mode femme', en: "Women's fashion", he: 'אופנת נשים', es: 'Moda mujer' },
+  fashion_m: { fr: 'Mode homme', en: "Men's fashion", he: 'אופנת גברים', es: 'Moda hombre' },
+  sneakers: { fr: 'Sneakers', en: 'Sneakers', he: 'סניקרס', es: 'Sneakers' },
+  bags: { fr: 'Sacs', en: 'Bags', he: 'תיקים', es: 'Bolsos' },
+  jewelry: { fr: 'Bijoux', en: 'Jewelry', he: 'תכשיטים', es: 'Joyería' },
+  watches: { fr: 'Montres', en: 'Watches', he: 'שעונים', es: 'Relojes' },
+  beauty: { fr: 'Beaute', en: 'Beauty', he: 'יופי', es: 'Belleza' },
+  electronics: { fr: 'High-tech', en: 'Electronics', he: 'אלקטרוניקה', es: 'Electrónica' },
+  gaming: { fr: 'Gaming', en: 'Gaming', he: 'גיימינג', es: 'Gaming' },
+  cards: { fr: 'Cartes', en: 'Cards', he: 'קלפים', es: 'Cartas' },
+  toys: { fr: 'Jouets', en: 'Toys', he: 'צעצועים', es: 'Juguetes' },
+  vintage: { fr: 'Vintage', en: 'Vintage', he: 'וינטג׳', es: 'Vintage' },
+  art: { fr: 'Art', en: 'Art', he: 'אמנות', es: 'Arte' },
+  furniture: { fr: 'Meubles', en: 'Furniture', he: 'רהיטים', es: 'Muebles' },
+  home: { fr: 'Maison', en: 'Home', he: 'בית', es: 'Hogar' },
+  sports: { fr: 'Sport', en: 'Sports', he: 'ספורט', es: 'Deportes' },
+  fitness: { fr: 'Fitness', en: 'Fitness', he: 'כושר', es: 'Fitness' },
+  music: { fr: 'Musique', en: 'Music', he: 'מוזיקה', es: 'Música' },
+  books: { fr: 'Livres', en: 'Books', he: 'ספרים', es: 'Libros' },
+  kids: { fr: 'Enfants', en: 'Kids', he: 'ילדים', es: 'Niños' },
+  pets: { fr: 'Animaux', en: 'Pets', he: 'חיות מחמד', es: 'Mascotas' },
+  auto: { fr: 'Auto-Moto', en: 'Auto-Moto', he: 'רכב', es: 'Auto-Moto' },
+  garden: { fr: 'Jardin', en: 'Garden', he: 'גינה', es: 'Jardín' },
+  food: { fr: 'Food', en: 'Food', he: 'אוכל', es: 'Comida' },
+  handmade: { fr: 'Fait main', en: 'Handmade', he: 'עבודת יד', es: 'Hecho a mano' },
+  collect: { fr: 'Collection', en: 'Collectibles', he: 'אספנות', es: 'Colección' },
+  photo: { fr: 'Photo', en: 'Photo', he: 'צילום', es: 'Foto' },
+  tools: { fr: 'Bricolage', en: 'DIY & Tools', he: 'כלי עבודה', es: 'Bricolaje' },
 }
 
 const content = {
@@ -33,6 +57,7 @@ const content = {
     offerPlaceholder: 'Ton offre',
     offerConfirm: 'Envoyer l\'offre',
     offerSent: 'Offre envoyee !',
+    offerInvalid: 'Entre un montant valide superieur a 0',
   },
   en: {
     title: 'Direct Sales',
@@ -46,6 +71,7 @@ const content = {
     offerPlaceholder: 'Your offer',
     offerConfirm: 'Send offer',
     offerSent: 'Offer sent!',
+    offerInvalid: 'Enter a valid amount greater than 0',
   },
   he: {
     title: 'מכירות ישירות',
@@ -59,6 +85,7 @@ const content = {
     offerPlaceholder: 'ההצעה שלך',
     offerConfirm: 'שלח הצעה',
     offerSent: 'ההצעה נשלחה!',
+    offerInvalid: 'הזן סכום תקין גדול מ-0',
   },
   es: {
     title: 'Ventas directas',
@@ -72,8 +99,9 @@ const content = {
     offerPlaceholder: 'Tu oferta',
     offerConfirm: 'Enviar oferta',
     offerSent: 'Oferta enviada!',
+    offerInvalid: 'Ingresa un monto valido mayor a 0',
   },
-} as Record<string, any>
+} as Record<string, Record<string, string>>
 
 const retryTranslations: Record<string, string> = {
   fr: 'Reessayer',
@@ -94,10 +122,12 @@ export default function DirectSalesPage() {
   const [offerItemTitle, setOfferItemTitle] = useState('')
   const [offerAmount, setOfferAmount] = useState('')
   const [offerLoading, setOfferLoading] = useState(false)
+  const [offerError, setOfferError] = useState('')
   const navigate = useNavigate()
   const { user, session } = useAuth()
-  const lang = localStorage.getItem('shapop_lang') || 'fr'
+  const lang = getLang()
   const tx = content[lang] || content.fr
+  usePageTitle(tx.title)
 
   // Fetch item favorites
   useEffect(() => {
@@ -105,10 +135,13 @@ export default function DirectSalesPage() {
     apiFetch('/api/item-favorites', {
       headers: { Authorization: `Bearer ${session.access_token}` },
     })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('Failed to fetch favorites')
+        return r.json()
+      })
       .then(data => {
         if (Array.isArray(data)) {
-          setFavoriteIds(new Set(data.map((i: any) => i.id)))
+          setFavoriteIds(new Set(data.map((i: { id: string }) => i.id)))
         }
       })
       .catch(() => {})
@@ -148,7 +181,7 @@ export default function DirectSalesPage() {
     setFetchError(false)
     try {
       const cat = categories.find(c => c.id === selectedCategory)
-      const categoryLabel = cat && cat.id !== 'for_you' && cat.id !== 'following' ? catIdToLabel[cat.id] : null
+      const categoryLabel = cat && cat.id !== 'for_you' && cat.id !== 'following' ? (catLabels[cat.id]?.[lang] || catLabels[cat.id]?.fr) : null
       const params = categoryLabel ? `?category=${encodeURIComponent(categoryLabel)}` : ''
       const res = await apiFetch(`/api/items/direct-sales${params}`)
       const data = await res.json()
@@ -158,7 +191,7 @@ export default function DirectSalesPage() {
     } finally {
       setLoading(false)
     }
-  }, [selectedCategory])
+  }, [selectedCategory, lang])
 
   useEffect(() => {
     fetchItems()
@@ -183,8 +216,8 @@ export default function DirectSalesPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
         padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
-        <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <button onClick={() => navigate(-1)} aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
@@ -221,7 +254,7 @@ export default function DirectSalesPage() {
             }}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} aria-label="Clear search" style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            <button onClick={() => setSearchQuery('')} aria-label={lang === 'fr' ? 'Effacer la recherche' : lang === 'es' ? 'Borrar busqueda' : lang === 'he' ? 'נקה חיפוש' : 'Clear search'} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
@@ -316,6 +349,7 @@ export default function DirectSalesPage() {
                     setOfferItemId(item.id)
                     setOfferItemTitle(item.title)
                     setOfferAmount(String(Math.round((item.current_price ?? item.starting_price) * 0.8)))
+                    setOfferError('')
                     setShowOfferModal(true)
                   }}
                   style={{
@@ -362,21 +396,28 @@ export default function DirectSalesPage() {
             <input
               type="number"
               value={offerAmount}
-              onChange={e => setOfferAmount(e.target.value)}
+              onChange={e => { setOfferAmount(e.target.value); setOfferError('') }}
               placeholder={tx.offerPlaceholder}
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px',
-                backgroundColor: '#111', border: '1px solid #333',
+                backgroundColor: '#111', border: offerError ? '1px solid #E8344E' : '1px solid #333',
                 color: '#fff', fontSize: '18px', fontWeight: 700,
                 textAlign: 'center', outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
+            {offerError && (
+              <p style={{ fontSize: '13px', color: '#E8344E', margin: '8px 0 0', textAlign: 'center' }}>{offerError}</p>
+            )}
             <button
               onClick={async () => {
                 if (!offerItemId || !user) return
                 const amount = parseFloat(offerAmount)
-                if (isNaN(amount) || amount <= 0) return
+                if (isNaN(amount) || amount <= 0) {
+                  setOfferError(tx.offerInvalid)
+                  return
+                }
+                setOfferError('')
                 setOfferLoading(true)
                 try {
                   const { data: { session: s } } = await supabase.auth.getSession()

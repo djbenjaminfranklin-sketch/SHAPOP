@@ -50,7 +50,8 @@ router.post('/api/chat/send', messageLimiter, requireAuth, async (req: Authentic
     }
 
     res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -98,7 +99,8 @@ router.delete('/api/chat/:messageId', requireAuth, async (req: AuthenticatedRequ
 
     await supabase.from('chat_messages').delete().eq('id', messageId)
     res.json({ ok: true })
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -130,7 +132,8 @@ router.post('/api/streams/:streamId/timeout', requireAuth, async (req: Authentic
     })
 
     res.json({ ok: true, until: new Date(Date.now() + duration_minutes * 60000).toISOString() })
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -173,7 +176,8 @@ router.post('/api/streams/:streamId/moderators', requireAuth, async (req: Authen
     })
 
     res.json({ ok: true, moderator_ids: updated })
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -201,7 +205,8 @@ router.delete('/api/streams/:streamId/moderators/:modId', requireAuth, async (re
     await supabase.from('streams').update({ moderator_ids: updated }).eq('id', streamId)
 
     res.json({ ok: true, moderator_ids: updated })
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -248,7 +253,8 @@ router.get('/api/conversations', requireAuth, async (req: AuthenticatedRequest, 
     }))
 
     res.json(enriched)
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -299,7 +305,8 @@ router.get('/api/conversations/:id/messages', requireAuth, async (req: Authentic
     }
 
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -363,7 +370,8 @@ router.post('/api/conversations/:id/messages', messageLimiter, requireAuth, asyn
     }
 
     res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
-  } catch {
+  } catch (err) {
+    console.error('[messages]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

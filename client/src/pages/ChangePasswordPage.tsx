@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -17,6 +19,7 @@ export default function ChangePasswordPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
+  usePageTitle(tx('Changer le mot de passe', 'Change Password', 'שינוי סיסמה', 'Cambiar contraseña', lang))
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -67,8 +70,8 @@ export default function ChangePasswordPage() {
       showToast(tx('Les mots de passe ne correspondent pas', 'Passwords do not match', 'הסיסמאות אינן תואמות', 'Las contrasenas no coinciden', lang), 'error')
       return
     }
-    if (newPassword.length < 6) {
-      showToast(tx('Le mot de passe doit contenir au moins 6 caracteres', 'Password must be at least 6 characters', 'הסיסמה חייבת להכיל לפחות 6 תווים', 'La contrasena debe tener al menos 6 caracteres', lang), 'error')
+    if (newPassword.length < 8) {
+      showToast(tx('Le mot de passe doit contenir au moins 8 caracteres', 'Password must be at least 8 characters', 'הסיסמה חייבת להכיל לפחות 8 תווים', 'La contrasena debe tener al menos 8 caracteres', lang), 'error')
       return
     }
 
@@ -95,8 +98,8 @@ export default function ChangePasswordPage() {
       setNewPassword('')
       setConfirmPassword('')
       setTimeout(() => navigate(-1), 1500)
-    } catch (err: any) {
-      const msg = err.message || ''
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : ''
       if (msg.includes('same_password') || msg.includes('different')) {
         showToast(tx('Le nouveau mot de passe doit etre different de l\'ancien', 'New password must be different from current', 'הסיסמה החדשה חייבת להיות שונה מהנוכחית', 'La nueva contrasena debe ser diferente', lang), 'error')
       } else {
@@ -127,8 +130,8 @@ export default function ChangePasswordPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
           {tx('Modifier le mot de passe', 'Change password', 'שנה סיסמה', 'Cambiar contrasena', lang)}
@@ -144,6 +147,7 @@ export default function ChangePasswordPage() {
         <div style={{ position: 'relative', marginBottom: '20px' }}>
           <input
             type={showCurrentPassword ? 'text' : 'password'}
+            autoComplete="current-password"
             value={currentPassword}
             onChange={e => setCurrentPassword(e.target.value)}
             placeholder={tx('Entrez votre mot de passe actuel', 'Enter your current password', 'הזן את סיסמתך הנוכחית', 'Ingrese su contrasena actual', lang)}
@@ -154,6 +158,7 @@ export default function ChangePasswordPage() {
           <button
             type="button"
             onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+            aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
             style={{
               position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -175,6 +180,7 @@ export default function ChangePasswordPage() {
         <div style={{ position: 'relative', marginBottom: '8px' }}>
           <input
             type={showNewPassword ? 'text' : 'password'}
+            autoComplete="new-password"
             value={newPassword}
             onChange={e => setNewPassword(e.target.value)}
             placeholder={tx('Entrez votre nouveau mot de passe', 'Enter your new password', 'הזן סיסמה חדשה', 'Ingrese su nueva contrasena', lang)}
@@ -185,6 +191,7 @@ export default function ChangePasswordPage() {
           <button
             type="button"
             onClick={() => setShowNewPassword(!showNewPassword)}
+            aria-label={showNewPassword ? 'Hide password' : 'Show password'}
             style={{
               position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -227,6 +234,7 @@ export default function ChangePasswordPage() {
         <div style={{ position: 'relative', marginBottom: '32px' }}>
           <input
             type={showConfirmPassword ? 'text' : 'password'}
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}
             placeholder={tx('Confirmez votre nouveau mot de passe', 'Confirm your new password', 'אשר את סיסמתך החדשה', 'Confirme su nueva contrasena', lang)}
@@ -237,6 +245,7 @@ export default function ChangePasswordPage() {
           <button
             type="button"
             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
             style={{
               position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
               background: 'none', border: 'none', cursor: 'pointer', padding: 0,

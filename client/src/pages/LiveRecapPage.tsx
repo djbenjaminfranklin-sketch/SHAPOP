@@ -5,8 +5,10 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Item, Order, Profile } from '../types/database'
-import ShippingLabel from '../components/ShippingLabel'
-import VodPlayer from '../components/VodPlayer'
+import ShippingLabel from '../components/checkout/ShippingLabel'
+import VodPlayer from '../components/stream/VodPlayer'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -218,6 +220,7 @@ export default function LiveRecapPage() {
   const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.title)
 
   const [sales, setSales] = useState<SaleRow[]>([])
   const [allItems, setAllItems] = useState<Item[]>([])
@@ -476,7 +479,7 @@ export default function LiveRecapPage() {
           onClick={() => navigate('/')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
@@ -632,7 +635,7 @@ export default function LiveRecapPage() {
                   flexShrink: 0, overflow: 'hidden',
                 }}>
                   {sale.item.image_urls?.[0] ? (
-                    <img src={sale.item.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={sale.item.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <span style={{ fontSize: '11px', fontWeight: 800, color: '#F0908A' }}>
                       {formatLot(sale.lotNumber)}

@@ -61,7 +61,7 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
         {audioTracks.map((at, i) => at.publication?.track && (
-          <AudioTrack key={i} trackRef={at} volume={muted ? 0 : 1} />
+          <AudioTrack key={at.publication?.trackSid || `audio-${i}`} trackRef={at} volume={muted ? 0 : 1} />
         ))}
       </div>
     )
@@ -78,7 +78,7 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', ...style }}>
       {sorted.map((vt, i) => (
-        <div key={i} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <div key={vt.participant.identity || `video-${i}`} style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <VideoTrack
             trackRef={vt}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}

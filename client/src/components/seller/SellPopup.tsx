@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
-import { supabase } from '../lib/supabase'
-import { apiFetch } from '../lib/api'
+import { useAuth } from '../../contexts/AuthContext'
+import { getLang } from '../../lib/i18n'
+import { rtlTextAlign, rtlFlip } from '../../lib/rtl'
+import { supabase } from '../../lib/supabase'
+import { apiFetch } from '../../lib/api'
 
 interface SellPopupProps {
   isOpen: boolean
@@ -305,7 +306,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               boxShadow: '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
             }}>
               {steps.map((step, i) => (
-                <div key={i} style={{
+                <div key={step} style={{
                   display: 'flex', alignItems: 'center', gap: '14px',
                   padding: '16px 20px',
                   borderBottom: i < steps.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
@@ -433,7 +434,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '14px',
-                  textAlign: 'left',
+                  ...rtlTextAlign('left'),
                   position: 'relative',
                   overflow: 'hidden',
                   touchAction: 'manipulation',
@@ -475,7 +476,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     {action.description}
                   </div>
                 </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
@@ -501,7 +502,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     flexDirection: 'column',
                     alignItems: 'flex-start',
                     gap: '12px',
-                    textAlign: 'left',
+                    ...rtlTextAlign('left'),
                     touchAction: 'manipulation',
                   }}
                 >

@@ -6,6 +6,7 @@ import { getLang } from '../lib/i18n'
 import { showToast } from '../lib/toast'
 import { apiFetch } from '../lib/api'
 import CartoonAvatar from '../components/CartoonAvatar'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -28,6 +29,7 @@ interface MyStream {
 export default function Profile() {
   const { user, profile, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
+  usePageTitle(profile?.display_name ? `${profile.display_name} — Profil` : 'Profil')
   const lang = getLang()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
@@ -80,7 +82,7 @@ export default function Profile() {
         })
         if (res.ok) {
           const data = await res.json()
-          console.log('[Profile] buyer stats:', data)
+          if (import.meta.env.DEV) console.log('[Profile] buyer stats:', data)
           setBuyerStats(data)
         } else {
           console.warn('[Profile] buyer stats failed:', res.status, await res.text().catch(() => ''))
@@ -106,7 +108,7 @@ export default function Profile() {
         })
         if (res.ok) {
           const data = await res.json()
-          console.log('[Profile] loyalty:', data)
+          if (import.meta.env.DEV) console.log('[Profile] loyalty:', data)
           setLoyalty(data)
         } else {
           console.warn('[Profile] loyalty failed:', res.status, await res.text().catch(() => ''))
@@ -123,24 +125,27 @@ export default function Profile() {
   useEffect(() => {
     if (!user || !profile?.is_seller) return
     const fetchStreams = async () => {
-      const { data } = await supabase
-        .from('streams')
-        .select('id, title, category, status, created_at')
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
-      if (data) {
-        const withCounts = await Promise.all(
-          data.map(async (s) => {
-            const { count } = await supabase
-              .from('items')
-              .select('*', { count: 'exact', head: true })
-              .eq('stream_id', s.id)
-            return { ...s, item_count: count || 0 } as MyStream
-          })
-        )
-        setMyStreams(withCounts)
+      try {
+        const { data, error } = await supabase
+          .from('streams')
+          .select('id, title, category, status, created_at, items(count)')
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+        if (error) { console.error('[Profile] streams fetch:', error.message); setStreamsLoaded(true); return }
+        if (data) {
+          const withCounts = data.map((s: any) => ({
+            ...s,
+            item_count: s.items?.[0]?.count || 0,
+            items: undefined,
+          }) as MyStream)
+          setMyStreams(withCounts)
+        }
+      } catch (err) {
+        console.error('[Profile] streams fetch error:', err)
+      } finally {
+        setStreamsLoaded(true)
       }
-      setStreamsLoaded(true)
     }
     fetchStreams()
   }, [user, profile?.is_seller])
@@ -180,7 +185,12 @@ export default function Profile() {
       if (uploadError) throw uploadError
       const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
       const newUrl = urlData.publicUrl + '?t=' + Date.now()
-      await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', user.id)
+      const { error: updateError } = await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', user.id)
+      if (updateError) {
+        showToast(tx('Erreur lors de la mise a jour de l\'avatar.', 'Failed to update avatar.', 'שגיאה בעדכון התמונה.', 'Error al actualizar el avatar.', lang), 'error')
+        console.error('Avatar profile update failed:', updateError)
+        return
+      }
       setAvatarUrl(newUrl)
     } catch (err) {
       console.error('Avatar upload failed:', err)
@@ -270,7 +280,7 @@ export default function Profile() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
       }}>
-        <div role="status" aria-label="Loading profile" style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div role="status" aria-label={lang === 'fr' ? 'Chargement du profil' : lang === 'es' ? 'Cargando perfil' : lang === 'he' ? 'טוען פרופיל' : 'Loading profile'} style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -477,7 +487,7 @@ export default function Profile() {
   // ── Render a single menu row ──
   const renderRow = (item: MenuItem, isLast: boolean, idx: number) => (
     <button
-      key={idx}
+      key={`${item.to}-${idx}`}
       onClick={() => item.to && navigate(item.to)}
       style={{
         display: 'flex', alignItems: 'center', gap: '14px',
@@ -538,7 +548,7 @@ export default function Profile() {
               opacity: uploading ? 0.5 : 1, transition: 'opacity 0.3s',
             }}>
               {avatarUrl ? (
-                <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={avatarUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               ) : (
                 <CartoonAvatar seed={user.id} size={80} />
               )}
@@ -639,7 +649,7 @@ export default function Profile() {
               maxLength={200}
               rows={3}
               placeholder={tx('Parle-nous de toi...', 'Tell us about yourself...', '\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DA...', 'Cuentanos sobre ti...', lang)}
-              aria-label="Bio"
+              aria-label={lang === 'fr' ? 'Bio' : lang === 'es' ? 'Biografía' : lang === 'he' ? 'ביוגרפיה' : 'Bio'}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '10px',
                 backgroundColor: '#1A1A1A', border: '1.5px solid #333',

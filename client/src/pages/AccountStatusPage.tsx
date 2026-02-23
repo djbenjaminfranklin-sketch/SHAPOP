@@ -4,6 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -19,7 +21,9 @@ export default function AccountStatusPage() {
   const { user, profile } = useAuth()
   const lang = getLang() as Lang
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
   const [score, setScore] = useState<{ score: number; total_orders: number; total_disputes: number; risk_level: string } | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchScore = async () => {
@@ -33,7 +37,9 @@ export default function AccountStatusPage() {
           const data = await res.json()
           setScore(data)
         }
-      } catch { /* ignore */ }
+      } catch { /* ignore */ } finally {
+        setLoading(false)
+      }
     }
     fetchScore()
   }, [])
@@ -65,12 +71,22 @@ export default function AccountStatusPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button aria-label="Back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
+          <div style={{
+            width: '32px', height: '32px', border: '3px solid #333',
+            borderTopColor: '#F0908A', borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      ) : (<>
       {/* Score card — Uber-style */}
       {score && (
         <div style={{ margin: '20px', padding: '20px', borderRadius: '16px', background: 'linear-gradient(135deg, #111, #1A1A1A)', border: '1px solid #222' }}>
@@ -105,13 +121,14 @@ export default function AccountStatusPage() {
       )}
 
       <div style={{ padding: '0 20px' }}>
-        {rows.map((row, i) => (
-          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #1A1A1A' }}>
+        {rows.map((row) => (
+          <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #1A1A1A' }}>
             <span style={{ fontSize: '15px', color: '#888' }}>{row.label}</span>
             <span style={{ fontSize: '15px', color: row.accent ? '#4ade80' : '#fff', fontWeight: 500 }}>{row.value}</span>
           </div>
         ))}
       </div>
+      </>)}
     </div>
   )
 }

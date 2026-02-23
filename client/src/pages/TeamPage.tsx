@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { apiFetch } from '../lib/api'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -127,6 +129,7 @@ export default function TeamPage() {
   const { user, session, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = content[lang] || content.fr
+  usePageTitle(ct.title)
 
   const [members, setMembers] = useState<TeamMember[]>([])
   const [invitations, setInvitations] = useState<Invitation[]>([])
@@ -135,22 +138,27 @@ export default function TeamPage() {
   const [inviteRole, setInviteRole] = useState('moderator')
   const [inviting, setInviting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!session?.access_token) return
+    if (!session?.access_token) { setLoading(false); return }
     const headers = { Authorization: `Bearer ${session.access_token}` }
+
+    const promises: Promise<void>[] = []
 
     // Fetch team members (for sellers)
     if (profile?.is_seller) {
-      apiFetch('/api/team/members', { headers }).then(async r => {
+      promises.push(apiFetch('/api/team/members', { headers }).then(async r => {
         if (r.ok) setMembers(await r.json())
-      }).catch(() => {})
+      }).catch(() => {}))
     }
 
     // Fetch invitations (for everyone)
-    apiFetch('/api/team/invitations', { headers }).then(async r => {
+    promises.push(apiFetch('/api/team/invitations', { headers }).then(async r => {
       if (r.ok) setInvitations(await r.json())
-    }).catch(() => {})
+    }).catch(() => {}))
+
+    Promise.all(promises).finally(() => setLoading(false))
   }, [session?.access_token, profile?.is_seller])
 
   if (!user) {
@@ -160,6 +168,10 @@ export default function TeamPage() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !session?.access_token) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())) {
+      setError(lang === 'fr' ? 'Adresse e-mail invalide' : lang === 'es' ? 'Correo invalido' : lang === 'he' ? 'אימייל לא תקין' : 'Invalid email address')
+      return
+    }
     setInviting(true)
     setError(null)
     try {
@@ -183,37 +195,49 @@ export default function TeamPage() {
 
   const handleAccept = async (sellerId: string) => {
     if (!session?.access_token) return
-    const resp = await apiFetch('/api/team/accept', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ seller_id: sellerId }),
-    })
-    if (resp.ok) {
-      setInvitations(prev => prev.filter(i => i.seller_id !== sellerId))
-    }
+    try {
+      const resp = await apiFetch('/api/team/accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ seller_id: sellerId }),
+      })
+      if (resp.ok) {
+        setInvitations(prev => prev.filter(i => i.seller_id !== sellerId))
+      } else {
+        setError('Error')
+      }
+    } catch { setError('Network error') }
   }
 
   const handleDecline = async (sellerId: string) => {
     if (!session?.access_token) return
-    const resp = await apiFetch('/api/team/decline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-      body: JSON.stringify({ seller_id: sellerId }),
-    })
-    if (resp.ok) {
-      setInvitations(prev => prev.filter(i => i.seller_id !== sellerId))
-    }
+    try {
+      const resp = await apiFetch('/api/team/decline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ seller_id: sellerId }),
+      })
+      if (resp.ok) {
+        setInvitations(prev => prev.filter(i => i.seller_id !== sellerId))
+      } else {
+        setError('Error')
+      }
+    } catch { setError('Network error') }
   }
 
   const handleRemove = async (userId: string) => {
     if (!session?.access_token) return
-    const resp = await apiFetch(`/api/team/members/${userId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-    if (resp.ok) {
-      setMembers(prev => prev.filter(m => m.user_id !== userId))
-    }
+    try {
+      const resp = await apiFetch(`/api/team/members/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (resp.ok) {
+        setMembers(prev => prev.filter(m => m.user_id !== userId))
+      } else {
+        setError('Error')
+      }
+    } catch { setError('Network error') }
   }
 
   const roleLabel = (role: string) => {
@@ -233,12 +257,25 @@ export default function TeamPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
       </div>
 
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
+          <div
+            role="status"
+            style={{
+              width: '32px', height: '32px', border: '3px solid #333',
+              borderTopColor: '#F0908A', borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      ) : (
       <div style={{ padding: '20px' }}>
         {/* Received invitations */}
         {invitations.length > 0 && (
@@ -255,7 +292,7 @@ export default function TeamPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {inv.seller?.avatar_url ? (
-                    <img src={inv.seller.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={inv.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
                     <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A' }}>
                       {(inv.seller?.display_name || '?')[0].toUpperCase()}
@@ -323,6 +360,7 @@ export default function TeamPage() {
               }}>
                 <input
                   type="email"
+                  autoComplete="email"
                   placeholder={ct.email}
                   value={inviteEmail}
                   onChange={e => { setInviteEmail(e.target.value); setError(null) }}
@@ -392,7 +430,7 @@ export default function TeamPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
                       {member.user?.avatar_url ? (
-                        <img src={member.user.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={member.user.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       ) : (
                         <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A' }}>
                           {(member.user?.display_name || '?')[0].toUpperCase()}
@@ -438,6 +476,7 @@ export default function TeamPage() {
           </>
         )}
       </div>
+      )}
     </div>
   )
 }

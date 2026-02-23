@@ -6,7 +6,8 @@ import { apiFetch } from '../lib/api'
 import OnboardingWizard from '../components/seller/OnboardingWizard'
 import OnboardingCelebration from '../components/seller/OnboardingCelebration'
 import CreateLiveWizard from '../components/seller/CreateLiveWizard'
-import EngagementSummary from '../components/EngagementSummary'
+import EngagementSummary from '../components/seller/EngagementSummary'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface HealthMetrics {
   dispute_rate: number
@@ -56,6 +57,7 @@ export default function Dashboard() {
   const { user, profile, session } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
+  usePageTitle('Dashboard')
   const [showFaq, setShowFaq] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [wizardState, setWizardState] = useState<WizardState>('idle')
@@ -65,26 +67,30 @@ export default function Dashboard() {
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
 
-  const fetchDashboard = useCallback(async () => {
+  const fetchDashboard = useCallback(async (signal?: AbortSignal) => {
     if (!session?.access_token || !profile?.is_seller) return
     setDashboardLoading(true)
     try {
       const res = await apiFetch('/api/seller/dashboard', {
         headers: { Authorization: `Bearer ${session.access_token}` },
+        signal,
       })
+      if (signal?.aborted) return
       if (res.ok) {
         const data = await res.json()
-        setDashboardData(data)
+        if (!signal?.aborted) setDashboardData(data)
       }
     } catch {
       // silently fail
     } finally {
-      setDashboardLoading(false)
+      if (!signal?.aborted) setDashboardLoading(false)
     }
   }, [session?.access_token, profile?.is_seller])
 
   useEffect(() => {
-    fetchDashboard()
+    const controller = new AbortController()
+    fetchDashboard(controller.signal)
+    return () => controller.abort()
   }, [fetchDashboard])
 
   if (!user) {
@@ -405,7 +411,7 @@ export default function Dashboard() {
           transition: 'all 0.6s ease 0.5s',
         }}>
           {stats.map((stat, i) => (
-            <div key={i} style={{
+            <div key={stat.label} style={{
               flex: 1, textAlign: 'center', position: 'relative',
             }}>
               <p style={{ fontSize: '24px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{stat.value}</p>
@@ -425,7 +431,7 @@ export default function Dashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {features.map((feat, i) => (
               <div
-                key={i}
+                key={feat.title}
                 style={{
                   padding: '18px 14px', borderRadius: '18px',
                   backgroundColor: '#0D0D0D',
@@ -467,7 +473,7 @@ export default function Dashboard() {
               { emoji: '\u{1F4E6}', title: t.fmtRipShip, desc: t.fmtRipShipDesc, gradient: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)', shadow: 'rgba(245,158,11,0.2)' },
             ].map((fmt, i) => (
               <div
-                key={i}
+                key={fmt.title}
                 style={{
                   padding: '18px 14px', borderRadius: '18px',
                   backgroundColor: '#0D0D0D',
@@ -537,7 +543,7 @@ export default function Dashboard() {
           {showFaq && (
             <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid #1A1A1A' }}>
               {faqItems.map((item, i) => (
-                <div key={i} style={{ borderBottom: i < faqItems.length - 1 ? '1px solid #1A1A1A' : 'none' }}>
+                <div key={item.q} style={{ borderBottom: i < faqItems.length - 1 ? '1px solid #1A1A1A' : 'none' }}>
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     style={{
@@ -855,8 +861,8 @@ export default function Dashboard() {
                     </span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                    {healthItems.map((item, i) => (
-                      <div key={i} style={{
+                    {healthItems.map((item) => (
+                      <div key={item.label} style={{
                         display: 'flex', alignItems: 'center', gap: '8px',
                         padding: '10px 12px', borderRadius: '12px',
                         backgroundColor: '#111', border: `1px solid ${item.color}20`,

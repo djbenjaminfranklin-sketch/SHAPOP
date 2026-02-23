@@ -41,7 +41,7 @@ export function usePushNotifications() {
         }),
       })
       if (res.ok) {
-        console.log('Device token registered successfully')
+        if (import.meta.env.DEV) console.log('Device token registered successfully')
       } else {
         console.warn('Failed to register device token:', res.status)
       }
@@ -85,7 +85,7 @@ export function usePushNotifications() {
     registeredRef.current = true
 
     PushNotifications.addListener('registration', (token) => {
-      console.log('Push token received:', token.value.slice(0, 12) + '...')
+      if (import.meta.env.DEV) console.log('Push token received:', token.value.slice(0, 12) + '...')
       // Use ref so we always call the latest version with current user/session
       saveTokenRef.current?.(token.value)
     })
@@ -95,7 +95,7 @@ export function usePushNotifications() {
     })
 
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      console.log('Push received in foreground:', notification.title)
+      if (import.meta.env.DEV) console.log('Push received in foreground:', notification.title)
       // Night mode: suppress foreground notifications during quiet hours
       if (isNightModeActive()) {
         PushNotifications.removeAllDeliveredNotifications()

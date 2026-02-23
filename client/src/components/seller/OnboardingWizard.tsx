@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api'
 import { getLang, t as i18nT } from '../../lib/i18n'
 import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
+import { rtlFlip, rtlTextAlign } from '../../lib/rtl'
 import {
   subCategories,
   sellingLocations,
@@ -349,7 +350,11 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     setSaving(true)
     try {
       // Update profile to seller
-      await supabase.from('profiles').update({ is_seller: true }).eq('id', user.id)
+      const { error: profileError } = await supabase.from('profiles').update({ is_seller: true }).eq('id', user.id)
+      if (profileError) {
+        console.error('Failed to update seller status:', profileError)
+        throw profileError
+      }
 
       // Check if seller record exists
       const { data: existingSeller } = await supabase
@@ -377,9 +382,17 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       }
 
       if (existingSeller) {
-        await supabase.from('sellers').update(sellerData).eq('id', user.id)
+        const { error: updateError } = await supabase.from('sellers').update(sellerData).eq('id', user.id)
+        if (updateError) {
+          console.error('Failed to update seller record:', updateError)
+          throw updateError
+        }
       } else {
-        await supabase.from('sellers').insert({ id: user.id, ...sellerData })
+        const { error: insertError } = await supabase.from('sellers').insert({ id: user.id, ...sellerData })
+        if (insertError) {
+          console.error('Failed to create seller record:', insertError)
+          throw insertError
+        }
       }
 
       // If PayPal selected, save email via API
@@ -535,7 +548,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               boxShadow: '0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)',
             }}>
               {rules.map((rule, i) => (
-                <div key={i} style={{
+                <div key={rule.text} style={{
                   display: 'flex', alignItems: 'center', gap: '16px',
                   padding: '18px 20px',
                   borderBottom: i < rules.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
@@ -596,7 +609,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#fff' }}>{t.feesTitle}</h3>
               </div>
               {[t.fee1, t.fee2, t.fee3, t.fee4].map((fee, i) => (
-                <div key={i} style={{
+                <div key={fee} style={{
                   display: 'flex', gap: '10px', alignItems: 'flex-start',
                   padding: '10px 0',
                   borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none',
@@ -775,7 +788,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => setSellerType(opt.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '16px', width: '100%',
-                    padding: '20px 18px', marginBottom: '14px', textAlign: 'left',
+                    padding: '20px 18px', marginBottom: '14px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -818,7 +831,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => toggleMultiSelect(selectedLocations, setSelectedLocations, loc.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
-                    padding: '18px', marginBottom: '10px', textAlign: 'left',
+                    padding: '18px', marginBottom: '10px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -849,7 +862,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     onClick={() => toggleMultiSelect(selectedPlatforms, setSelectedPlatforms, plat.id)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
-                      padding: '16px 18px', marginBottom: '10px', textAlign: 'left',
+                      padding: '16px 18px', marginBottom: '10px', ...rtlTextAlign('left'),
                       ...glassCard(selected),
                     }}
                   >
@@ -899,7 +912,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => setRevenue(range.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
-                    padding: '18px', marginBottom: '10px', textAlign: 'left',
+                    padding: '18px', marginBottom: '10px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -931,7 +944,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => setTeamSize(size.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
-                    padding: '18px', marginBottom: '10px', textAlign: 'left',
+                    padding: '18px', marginBottom: '10px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -963,7 +976,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => setLiveHours(hours.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
-                    padding: '18px', marginBottom: '10px', textAlign: 'left',
+                    padding: '18px', marginBottom: '10px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -1078,7 +1091,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => setReturnPolicy(opt.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '14px', width: '100%',
-                    padding: '18px', marginBottom: '10px', textAlign: 'left',
+                    padding: '18px', marginBottom: '10px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -1120,7 +1133,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   onClick={() => setBankChoice(opt.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '16px', width: '100%',
-                    padding: '20px 18px', marginBottom: '12px', textAlign: 'left',
+                    padding: '20px 18px', marginBottom: '12px', ...rtlTextAlign('left'),
                     ...glassCard(selected),
                   }}
                 >
@@ -1207,7 +1220,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               border: '1px solid #2A2A2A', cursor: 'pointer', padding: '10px',
               borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" style={{...rtlFlip()}}>
                 <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>

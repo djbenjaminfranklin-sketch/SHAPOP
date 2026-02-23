@@ -105,7 +105,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
           const isCircle = i % 3 === 0
           return (
             <div
-              key={i}
+              key={`confetti-${i}`}
               style={{
                 position: 'absolute',
                 left: `${left}%`,
@@ -178,7 +178,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
         }}>
           {steps.map((step, i) => (
             <div
-              key={i}
+              key={step.num}
               style={{
                 display: 'flex', alignItems: 'center', gap: '14px',
                 padding: '14px 16px', marginBottom: '8px',

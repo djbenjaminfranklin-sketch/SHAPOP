@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const texts = {
   fr: { title: 'Page introuvable', desc: 'La page que vous cherchez n\'existe pas.', btn: 'Retour a l\'accueil' },
@@ -12,6 +13,7 @@ export default function NotFoundPage() {
   const navigate = useNavigate()
   const lang = getLang() as keyof typeof texts
   const t = texts[lang] || texts.fr
+  usePageTitle(t.title)
 
   return (
     <div style={{

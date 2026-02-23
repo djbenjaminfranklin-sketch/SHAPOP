@@ -5,7 +5,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
-import VodPlayer from '../components/VodPlayer'
+import VodPlayer from '../components/stream/VodPlayer'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -443,6 +445,7 @@ export default function SellerProfilePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [profile, setProfile] = useState<SellerProfile | null>(null)
+  usePageTitle(profile?.display_name || t.back)
   const [sellerData, setSellerData] = useState<SellerData | null>(null)
   const [isFollowing, setIsFollowing] = useState(false)
   const [followersCount, setFollowersCount] = useState(0)
@@ -502,7 +505,7 @@ export default function SellerProfilePage() {
   // =============================================
   // Fetch seller profile data
   // =============================================
-  const fetchProfile = useCallback(async () => {
+  const fetchProfile = useCallback(async (cancelledRef?: { current: boolean }) => {
     if (!sellerId) return
     setLoading(true)
     setError(false)
@@ -514,6 +517,7 @@ export default function SellerProfilePage() {
         .eq('id', sellerId)
         .single()
 
+      if (cancelledRef?.current) return
       if (!prof) {
         setError(true)
         setLoading(false)
@@ -527,6 +531,7 @@ export default function SellerProfilePage() {
         .select('store_name, store_description, shipping_delay_days, total_sales')
         .eq('id', sellerId)
         .single()
+      if (cancelledRef?.current) return
       if (seller) setSellerData(seller as SellerData)
 
       // Fetch follower count
@@ -534,6 +539,7 @@ export default function SellerProfilePage() {
         .from('followers')
         .select('id', { count: 'exact', head: true })
         .eq('seller_id', sellerId)
+      if (cancelledRef?.current) return
       setFollowersCount(fCount || 0)
 
       // Fetch following count (users this seller follows)
@@ -541,10 +547,12 @@ export default function SellerProfilePage() {
         .from('followers')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', sellerId)
+      if (cancelledRef?.current) return
       setFollowingCount(fgCount || 0)
 
       // Fetch reviews summary
       const reviewRes = await apiFetch(`/api/sellers/${sellerId}/reviews`)
+      if (cancelledRef?.current) return
       if (reviewRes.ok) {
         const reviewData = await reviewRes.json()
         setReviews(reviewData.reviews || [])
@@ -554,6 +562,7 @@ export default function SellerProfilePage() {
 
       // Fetch shipping delay
       const delayRes = await apiFetch(`/api/seller/${sellerId}/shipping-delay`)
+      if (cancelledRef?.current) return
       if (delayRes.ok) {
         const delayData = await delayRes.json()
         setShippingDelay(delayData.shipping_delay_days ?? 2)
@@ -567,6 +576,7 @@ export default function SellerProfilePage() {
         .in('status', ['active', 'sold'])
         .order('created_at', { ascending: false })
         .limit(50)
+      if (cancelledRef?.current) return
       setItems((itemsData || []) as ItemData[])
 
       // Count sold items
@@ -575,6 +585,7 @@ export default function SellerProfilePage() {
         .select('id', { count: 'exact', head: true })
         .eq('seller_id', sellerId)
         .in('status', ['paid', 'shipped', 'delivered', 'completed'])
+      if (cancelledRef?.current) return
       setTotalSold(soldCount || 0)
 
       // Fetch streams
@@ -584,28 +595,35 @@ export default function SellerProfilePage() {
         .eq('seller_id', sellerId)
         .order('created_at', { ascending: false })
         .limit(30)
+      if (cancelledRef?.current) return
       setStreams((streamsData || []) as StreamData[])
 
       setLoading(false)
     } catch {
+      if (cancelledRef?.current) return
       setError(true)
       setLoading(false)
     }
   }, [sellerId])
 
   useEffect(() => {
-    fetchProfile()
+    const cancelledRef = { current: false }
+    fetchProfile(cancelledRef)
+    return () => { cancelledRef.current = true }
   }, [fetchProfile])
 
   // Check follow status
   useEffect(() => {
     if (!sellerId || !session?.access_token || !user || isOwnProfile) return
+    const controller = new AbortController()
     apiFetch(`/api/follow/${sellerId}/status`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
+      signal: controller.signal,
     })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setIsFollowing(d.following) })
+      .then(d => { if (d && !controller.signal.aborted) setIsFollowing(d.following) })
       .catch(() => {})
+    return () => controller.abort()
   }, [sellerId, session, user, isOwnProfile])
 
   // Lazy-load dashboard data when Orders or Finances tab is clicked
@@ -613,17 +631,21 @@ export default function SellerProfilePage() {
     if (!isOwnProfile || !session?.access_token) return
     if (activeTab !== 'orders' && activeTab !== 'finances') return
     if (dashboardFetched) return
+    const controller = new AbortController()
     setDashboardLoading(true)
     apiFetch('/api/seller/dashboard', {
       headers: { Authorization: `Bearer ${session.access_token}` },
+      signal: controller.signal,
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
+        if (controller.signal.aborted) return
         if (d) setDashboardData(d)
         setDashboardFetched(true)
       })
       .catch(() => {})
-      .finally(() => setDashboardLoading(false))
+      .finally(() => { if (!controller.signal.aborted) setDashboardLoading(false) })
+    return () => controller.abort()
   }, [activeTab, isOwnProfile, session, dashboardFetched])
 
   // Lazy-load Stripe status when Finances tab is clicked
@@ -631,11 +653,14 @@ export default function SellerProfilePage() {
     if (!isOwnProfile || !session?.access_token) return
     if (activeTab !== 'finances') return
     if (stripeStatusFetched) return
+    const controller = new AbortController()
     apiFetch('/api/stripe/account-status', {
       headers: { Authorization: `Bearer ${session.access_token}` },
+      signal: controller.signal,
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
+        if (controller.signal.aborted) return
         if (d) {
           if (d.charges_enabled) setStripeStatus('connected')
           else if (d.details_submitted) setStripeStatus('pending')
@@ -643,7 +668,8 @@ export default function SellerProfilePage() {
         }
         setStripeStatusFetched(true)
       })
-      .catch(() => { setStripeStatusFetched(true) })
+      .catch(() => { if (!controller.signal.aborted) setStripeStatusFetched(true) })
+    return () => controller.abort()
   }, [activeTab, isOwnProfile, session, stripeStatusFetched])
 
   const toggleFollow = async () => {
@@ -699,7 +725,7 @@ export default function SellerProfilePage() {
     for (let i = 1; i <= 5; i++) {
       const fill = i <= Math.round(rating) ? '#F0908A' : '#333'
       stars.push(
-        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="none">
+        <svg key={`star-${i}`} width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="none">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
         </svg>
       )
@@ -716,7 +742,7 @@ export default function SellerProfilePage() {
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div
           role="status"
-          aria-label="Loading"
+          aria-label={lang === 'fr' ? 'Chargement' : lang === 'es' ? 'Cargando' : lang === 'he' ? 'טוען' : 'Loading'}
           style={{
             width: '32px', height: '32px', border: '3px solid #333',
             borderTopColor: '#E8344E', borderRadius: '50%',
@@ -733,7 +759,7 @@ export default function SellerProfilePage() {
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
         <p style={{ color: '#888', fontSize: '16px' }}>{t.notFound}</p>
         <button
-          onClick={fetchProfile}
+          onClick={() => fetchProfile()}
           style={{
             background: 'none', border: 'none', color: '#E8344E',
             fontSize: '14px', fontWeight: 600, cursor: 'pointer',
@@ -766,7 +792,7 @@ export default function SellerProfilePage() {
           onClick={() => navigate(-1)}
           style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
@@ -787,7 +813,7 @@ export default function SellerProfilePage() {
           border: '3px solid #F0908A',
         }}>
           {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={profile.avatar_url} alt={displayName} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
           ) : (
             <span style={{ fontSize: '36px', fontWeight: 700, color: '#888' }}>
               {displayName.charAt(0).toUpperCase()}
@@ -983,7 +1009,7 @@ export default function SellerProfilePage() {
                 >
                   <div style={{ width: '100%', aspectRatio: '1/1', backgroundColor: '#111', position: 'relative' }}>
                     {item.image_urls?.[0] ? (
-                      <img src={item.image_urls[0]} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                      <img src={item.image_urls[0]} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                     ) : (
                       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5">
@@ -1059,7 +1085,7 @@ export default function SellerProfilePage() {
                       overflow: 'hidden', flexShrink: 0, position: 'relative',
                     }}>
                       {stream.thumbnail_url ? (
-                        <img src={stream.thumbnail_url} alt={stream.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
+                        <img src={stream.thumbnail_url} alt={stream.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                       ) : (
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1160,7 +1186,7 @@ export default function SellerProfilePage() {
                         flexShrink: 0,
                       }}>
                         {buyerAvatar ? (
-                          <img src={buyerAvatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={buyerAvatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                         ) : (
                           <span style={{ fontSize: '14px', fontWeight: 600, color: '#888' }}>
                             {buyerName.charAt(0).toUpperCase()}
@@ -1391,7 +1417,7 @@ export default function SellerProfilePage() {
                   </div>
                 ))}
                 <button
-                  onClick={() => navigate('/activity?tab=sales')}
+                  onClick={() => navigate('/activity', { state: { tab: 'sales' } })}
                   style={{
                     width: '100%', padding: '14px', borderRadius: '12px',
                     border: '1px solid #333', backgroundColor: 'transparent',

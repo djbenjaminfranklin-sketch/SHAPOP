@@ -286,7 +286,7 @@ export interface Conversation {
   created_at: string
   other_participant?: Profile
   last_message?: ConversationMessage
-  order?: Order
+  order?: Order & { item?: { title?: string } }
 }
 
 export interface ConversationMessage {

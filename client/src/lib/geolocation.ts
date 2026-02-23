@@ -1,4 +1,4 @@
-import type { CountryCode } from './communitiesData'
+import type { CountryCode } from './data/communitiesData'
 
 // Bounding boxes for supported countries (order matters: smaller/specific first)
 const COUNTRY_BOUNDS: { code: CountryCode; latMin: number; latMax: number; lonMin: number; lonMax: number }[] = [

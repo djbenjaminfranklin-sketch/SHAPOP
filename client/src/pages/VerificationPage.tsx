@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = ReturnType<typeof getLang>
 
@@ -19,6 +21,7 @@ export default function VerificationPage() {
   const navigate = useNavigate()
   const { user, session } = useAuth()
   const lang = getLang()
+  usePageTitle(tx('Verification', 'Verification', 'אימות', 'Verificacion', lang))
 
   const selfieInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
@@ -77,7 +80,8 @@ export default function VerificationPage() {
     const url = await uploadFile(file, 'selfie')
     if (url) {
       setSelfieUrl(url)
-      await supabase.from('profiles').update({ selfie_url: url }).eq('id', user!.id)
+      const { error } = await supabase.from('profiles').update({ selfie_url: url }).eq('id', user!.id)
+      if (error) console.error('Failed to save selfie URL:', error)
     }
     setUploadingSelfie(false)
   }
@@ -89,7 +93,8 @@ export default function VerificationPage() {
     const url = await uploadFile(file, 'id_document')
     if (url) {
       setIdDocUrl(url)
-      await supabase.from('profiles').update({ id_document_url: url }).eq('id', user!.id)
+      const { error } = await supabase.from('profiles').update({ id_document_url: url }).eq('id', user!.id)
+      if (error) console.error('Failed to save ID document URL:', error)
     }
     setUploadingId(false)
   }
@@ -97,7 +102,12 @@ export default function VerificationPage() {
   const handleSubmit = async () => {
     if (!selfieUrl || !idDocUrl || !session?.access_token) return
     setSubmitting(true)
-    await supabase.from('profiles').update({ identity_status: 'pending' }).eq('id', user!.id)
+    const { error } = await supabase.from('profiles').update({ identity_status: 'pending' }).eq('id', user!.id)
+    if (error) {
+      console.error('Failed to submit verification:', error)
+      setSubmitting(false)
+      return
+    }
     setStatus('pending')
     setSubmitting(false)
   }
@@ -151,7 +161,7 @@ export default function VerificationPage() {
         borderBottom: '1px solid #1A1A1A',
       }}>
         <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
@@ -230,7 +240,7 @@ export default function VerificationPage() {
 
           {selfieUrl ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img src={selfieUrl} alt="Selfie" style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover' }} />
+              <img src={selfieUrl} alt="Selfie" loading="lazy" style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <button
                 onClick={() => selfieInputRef.current?.click()}
                 disabled={status === 'pending' || status === 'verified'}
@@ -300,7 +310,7 @@ export default function VerificationPage() {
 
           {idDocUrl ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img src={idDocUrl} alt="ID" style={{ width: '80px', height: '52px', borderRadius: '8px', objectFit: 'cover' }} />
+              <img src={idDocUrl} alt="ID" loading="lazy" style={{ width: '80px', height: '52px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <button
                 onClick={() => idInputRef.current?.click()}
                 disabled={status === 'pending' || status === 'verified'}

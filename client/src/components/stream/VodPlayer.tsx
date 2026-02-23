@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { getLang } from '../lib/i18n'
+import { getLang } from '../../lib/i18n'
 
 const content: Record<string, Record<string, string>> = {
   fr: {

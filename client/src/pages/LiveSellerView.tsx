@@ -7,6 +7,7 @@ import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage, Giveaway } from '../types/database'
 import { getStreamQualityConstraints } from '../lib/settings'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -338,6 +339,7 @@ export default function LiveSellerView() {
   const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.live)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -451,7 +453,8 @@ export default function LiveSellerView() {
   useEffect(() => {
     if (!user) return
     supabase.from('sellers').select('return_policy').eq('id', user.id).single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('Failed to fetch return policy:', error); return }
         if (data?.return_policy) setReturnPolicy(data.return_policy)
       })
   }, [user])
@@ -485,7 +488,7 @@ export default function LiveSellerView() {
           apiFetch(`/api/streams/${streamId}/mark-live`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${sessionToken}` },
-          }).catch(() => {})
+          }).catch(err => console.error('Mark-live fallback failed:', err))
         }
       })
   }, [isBroadcasting, streamId, sessionToken])
@@ -896,7 +899,7 @@ export default function LiveSellerView() {
         })
 
         const result = await resp.json().catch(() => ({}))
-        console.log('[autoResolve] resp.ok=', resp.ok, 'status=', resp.status, 'result=', JSON.stringify(result))
+        if (import.meta.env.DEV) console.log('[autoResolve] resp.ok=', resp.ok, 'status=', resp.status, 'result=', JSON.stringify(result))
 
         // If API failed, check DB directly as safety net
         if (!resp.ok) {
@@ -1020,7 +1023,7 @@ export default function LiveSellerView() {
         },
       })
       const activateBody = await activateResp.json().catch(() => ({}))
-      console.log('[ACTIVATE] status:', activateResp.status, 'response:', JSON.stringify(activateBody))
+      if (import.meta.env.DEV) console.log('[ACTIVATE] status:', activateResp.status, 'response:', JSON.stringify(activateBody))
 
       if (activateResp.ok && activateBody.success) {
         activated = true
@@ -1144,6 +1147,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
+      if (!token) { showToast('Session expirée'); setCohostSearching(false); return }
       const resp = await apiFetch('/api/sellers/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1159,6 +1163,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
+      if (!token) { showToast('Session expirée'); return }
       const resp = await apiFetch(`/api/streams/${streamId}/cohost`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1177,10 +1182,12 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      await apiFetch(`/api/streams/${streamId}/cohost`, {
+      if (!token) { showToast('Session expirée'); return }
+      const resp = await apiFetch(`/api/streams/${streamId}/cohost`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (!resp.ok) { showToast('Erreur lors du retrait du co-hote'); return }
       setCohost(null)
     } catch (err) { console.error('Cohost remove error:', err) }
   }
@@ -1192,6 +1199,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
+      if (!token) { showToast('Session expirée'); setMulticastLoading(false); return }
       const resp = await apiFetch(`/api/streams/${streamId}/multicast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1210,10 +1218,12 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      await apiFetch(`/api/streams/${streamId}/multicast/${egressId}`, {
+      if (!token) { showToast('Session expirée'); return }
+      const resp = await apiFetch(`/api/streams/${streamId}/multicast/${egressId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (!resp.ok) { showToast('Erreur arret multicast'); return }
       setMulticastDestinations(prev => prev.filter(d => d.egressId !== egressId))
     } catch (err) { console.error('Stop multicast error:', err) }
   }
@@ -1800,7 +1810,7 @@ export default function LiveSellerView() {
                 flexShrink: 0, overflow: 'hidden',
               }}>
                 {currentItem.image_urls?.[0] ? (
-                  <img src={currentItem.image_urls[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={currentItem.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
                   <span style={{ fontSize: '9px', fontWeight: 800, color: '#F0908A' }}>
                     {formatLot(currentIndex + 1)}
@@ -2398,7 +2408,7 @@ export default function LiveSellerView() {
                     overflow: 'hidden', flexShrink: 0,
                   }}>
                     {s.avatar_url ? (
-                      <img src={s.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={s.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (
                       <span style={{ color: '#888', fontSize: '14px', fontWeight: 700 }}>
                         {(s.store_name || s.display_name || '?').charAt(0).toUpperCase()}

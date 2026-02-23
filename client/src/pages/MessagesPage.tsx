@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
+import { usePageTitle } from '../hooks/usePageTitle'
 import type { Conversation } from '../types/database'
 
 const pageContent = {
@@ -24,6 +25,10 @@ const pageContent = {
     timeHour: 'h',
     timeDay: 'j',
     timeWeek: 'sem',
+    notConnected: 'Non connecté',
+    serverError: 'Erreur serveur',
+    unknownError: 'Erreur inconnue',
+    defaultUser: 'Utilisateur',
   },
   en: {
     title: 'Messages',
@@ -42,6 +47,10 @@ const pageContent = {
     timeHour: 'h',
     timeDay: 'd',
     timeWeek: 'w',
+    notConnected: 'Not connected',
+    serverError: 'Server error',
+    unknownError: 'Unknown error',
+    defaultUser: 'User',
   },
   he: {
     title: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
@@ -60,6 +69,10 @@ const pageContent = {
     timeHour: '\u05E9\u05F3',
     timeDay: '\u05D9\u05F3',
     timeWeek: '\u05E9\u05D1\u05F3',
+    notConnected: '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8',
+    serverError: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05E9\u05E8\u05EA',
+    unknownError: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05DC\u05D0 \u05D9\u05D3\u05D5\u05E2\u05D4',
+    defaultUser: '\u05DE\u05E9\u05EA\u05DE\u05E9',
   },
   es: {
     title: 'Mensajes',
@@ -78,6 +91,10 @@ const pageContent = {
     timeHour: 'h',
     timeDay: 'd',
     timeWeek: 'sem',
+    notConnected: 'No conectado',
+    serverError: 'Error del servidor',
+    unknownError: 'Error desconocido',
+    defaultUser: 'Usuario',
   },
 } as const
 
@@ -96,6 +113,7 @@ export default function MessagesPage() {
 
   const lang = getLang()
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.title)
 
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime()
@@ -131,17 +149,17 @@ export default function MessagesPage() {
     setError(null)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Non connecte')
+      if (!session) throw new Error(ct.notConnected)
 
       const res = await apiFetch('/api/conversations', {
         headers: { Authorization: `Bearer ${session.access_token}` },
       })
-      if (!res.ok) throw new Error('Erreur serveur')
+      if (!res.ok) throw new Error(ct.serverError)
 
-      const data = await res.json()
+      const data: Conversation[] = await res.json()
 
       // Sort by last message time (most recent first)
-      data.sort((a: any, b: any) => {
+      data.sort((a, b) => {
         const timeA = a.last_message?.created_at || a.created_at
         const timeB = b.last_message?.created_at || b.created_at
         return new Date(timeB).getTime() - new Date(timeA).getTime()
@@ -149,7 +167,7 @@ export default function MessagesPage() {
 
       setConversations(data)
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Erreur inconnue'
+      const message = err instanceof Error ? err.message : ct.unknownError
       setError(message)
     } finally {
       setLoading(false)
@@ -217,9 +235,9 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="divide-y divide-white/5">
-            {conversations.map((conv: any) => {
+            {conversations.map((conv) => {
               const other = conv.other_participant
-              const displayName = other?.display_name || 'Utilisateur'
+              const displayName = other?.display_name || ct.defaultUser
               const avatarUrl = other?.avatar_url
               const badge = typeBadge[conv.type] || typeBadge.support
               const lastMsg = conv.last_message
@@ -244,6 +262,8 @@ export default function MessagesPage() {
                         src={avatarUrl}
                         alt={displayName}
                         className="w-12 h-12 rounded-full object-cover"
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-semibold text-sm">

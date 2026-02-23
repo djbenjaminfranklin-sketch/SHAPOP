@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
+import { usePageTitle } from '../hooks/usePageTitle'
 import type { Conversation, ConversationMessage } from '../types/database'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
@@ -158,6 +159,7 @@ export default function ConversationPage() {
   const { user, session } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = pageContent[lang] || pageContent.fr
+  usePageTitle(ct.messages)
   const locale = langLocaleMap[lang] || 'fr-FR'
 
   const [conversation, setConversation] = useState<Conversation | null>(null)
@@ -220,10 +222,11 @@ export default function ConversationPage() {
         .from('conversation_messages')
         .select('*, sender:profiles!conversation_messages_sender_id_fkey(id, display_name, avatar_url)')
         .eq('conversation_id', id)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(100)
 
       if (msgErr) throw msgErr
-      setMessages((msgData || []) as ConversationMessage[])
+      setMessages(((msgData || []) as ConversationMessage[]).reverse())
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ct.unknownError
       setError(message)
@@ -457,7 +460,9 @@ export default function ConversationPage() {
               <img
                 src={otherAvatar}
                 alt={otherName}
+                loading="lazy"
                 style={{ width: '38px', height: '38px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
               />
             ) : (
               <div style={{
@@ -606,7 +611,9 @@ export default function ConversationPage() {
                       <img
                         src={msg.sender.avatar_url}
                         alt={msg.sender?.display_name || ''}
+                        loading="lazy"
                         style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                     ) : (
                       <div style={{
@@ -645,22 +652,24 @@ export default function ConversationPage() {
                     {/* Attachments */}
                     {msg.attachment_urls && msg.attachment_urls.length > 0 && (
                       <div style={{ marginTop: msg.message ? '6px' : '0' }}>
-                        {msg.attachment_urls.map((url, i) => {
+                        {msg.attachment_urls.map((url) => {
                           const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
                           if (isImage) {
                             return (
-                              <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                              <a key={url} href={url} target="_blank" rel="noopener noreferrer">
                                 <img
                                   src={url}
                                   alt={ct.attachment}
+                                  loading="lazy"
                                   style={{ maxWidth: '100%', borderRadius: '8px', maxHeight: '200px', objectFit: 'cover', display: 'block' }}
+                                  onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
                                 />
                               </a>
                             )
                           }
                           return (
                             <a
-                              key={i}
+                              key={url}
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"

@@ -3,10 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getLang } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
+import { rtlPos, rtlFlip } from '../lib/rtl'
 import type { Stream, Item, ChatMessage, Order, Giveaway } from '../types/database'
-import EngagementDashboard from '../components/EngagementDashboard'
-import ViewerReactions from '../components/ViewerReactions'
-import LiveKitViewer from '../components/LiveKitViewer'
+import EngagementDashboard from '../components/seller/EngagementDashboard'
+import ViewerReactions from '../components/stream/ViewerReactions'
+import LiveKitViewer from '../components/stream/LiveKitViewer'
 import SellerProfileHeader from '../components/stream/SellerProfileHeader'
 import StreamSidebar from '../components/stream/StreamSidebar'
 import ActiveItemBar from '../components/stream/ActiveItemBar'
@@ -17,8 +18,9 @@ import { track } from '../lib/analytics'
 import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } from '../lib/settings'
 import { hapticTap } from '../lib/haptics'
 import { Share } from '@capacitor/share'
-import RelayPointPicker from '../components/RelayPointPicker'
+import RelayPointPicker from '../components/checkout/RelayPointPicker'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -598,6 +600,7 @@ export default function StreamView() {
   }, [])
 
   const [stream, setStream] = useState<Stream | null>(null)
+  usePageTitle(stream?.title ? `${stream.title} — Live` : 'Live')
   const [activeAuction, setActiveAuction] = useState<Item | null>(null)
   const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string; avatar_url?: string | null } })[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -730,7 +733,7 @@ export default function StreamView() {
 
   // Determine if user is the seller or co-host of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
-  const isCohost = !!(user && stream && (stream as any).cohost_id === user.id)
+  const isCohost = !!(user && stream && (stream as unknown as { cohost_id?: string }).cohost_id === user.id)
   const isLive = stream?.status === 'live'
 
   // Redirect seller to prepare-live page for their own scheduled streams
@@ -761,7 +764,7 @@ export default function StreamView() {
   useEffect(() => {
     if (isSeller || !isLive) return
     if (isWatchLimitExceeded()) {
-      const lang = (localStorage.getItem('shapop_lang') || 'fr') as 'fr' | 'en' | 'he' | 'es'
+      const lang = getLang()
       const msgs = {
         fr: 'Tu as atteint ta limite de visionnage. Reviens plus tard !',
         en: 'You\'ve reached your watch time limit. Come back later!',
@@ -1097,13 +1100,13 @@ export default function StreamView() {
 
   // Multi-view: fetch available live streams
   const fetchAvailableLives = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('streams')
       .select('id, title, thumbnail_url, seller_id')
       .eq('status', 'live')
       .neq('id', id || '')
       .limit(10)
-    if (!data) return
+    if (error || !data) return
     // Get seller names
     const sellerIds = [...new Set(data.map(s => s.seller_id))]
     const { data: profiles } = await supabase
@@ -1170,11 +1173,11 @@ export default function StreamView() {
       // Subscribe to realtime changes
       const ch = supabase.channel(`multi-items-${ms.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `stream_id=eq.${ms.id}` }, (payload) => {
-          const item = payload.new as any
+          const item = payload.new as Record<string, unknown>
           if (item?.status === 'active') {
-            setMultiStreamItems(prev => ({ ...prev, [ms.id]: { id: item.id, title: item.title, current_price: item.current_price, starting_price: item.starting_price, image_url: item.image_urls?.[0] } }))
+            setMultiStreamItems(prev => ({ ...prev, [ms.id]: { id: item.id as string, title: item.title as string, current_price: item.current_price as number, starting_price: item.starting_price as number, image_url: (item.image_urls as string[] | undefined)?.[0] } }))
           } else if (payload.eventType === 'UPDATE' && item?.status !== 'active') {
-            setMultiStreamItems(prev => { const next = { ...prev }; if (next[ms.id]?.id === item?.id) delete next[ms.id]; return next })
+            setMultiStreamItems(prev => { const next = { ...prev }; if (next[ms.id]?.id === (item?.id as string)) delete next[ms.id]; return next })
           }
         })
         .subscribe()
@@ -1272,7 +1275,7 @@ export default function StreamView() {
           .eq('stream_id', id)
           .in('status', ['draft', 'pending'])
           .order('created_at', { ascending: true })
-        console.log('[PRE-BID] upcoming items:', data?.length, data?.map((d: any) => `${d.title}(${d.status})`))
+        if (import.meta.env.DEV) console.log('[PRE-BID] upcoming items:', data?.length, data?.map((d: { title: string; status: string }) => `${d.title}(${d.status})`))
         setUpcomingItems((data as Item[]) || [])
       } catch (err) { console.error('[PRE-BID] fetch error:', err) }
     }
@@ -1324,7 +1327,7 @@ export default function StreamView() {
       if (!item?.id) return
 
       // Debug: log what Realtime sends
-      console.log('[RT-ITEMS]', item.id.slice(0, 8), 'status=', item.status, 'winner=', item.winner_id?.slice(0, 8), 'price=', item.current_price, 'keys=', Object.keys(payload.new))
+      if (import.meta.env.DEV) console.log('[RT-ITEMS]', item.id.slice(0, 8), 'status=', item.status, 'winner=', item.winner_id?.slice(0, 8), 'price=', item.current_price, 'keys=', Object.keys(payload.new))
 
       // Sequence counter: discard stale async handlers
       const seq = ++itemEventSeqRef.current
@@ -1334,7 +1337,7 @@ export default function StreamView() {
         const { data: fetched } = await supabase.from('items').select('*').eq('id', item.id).single()
         if (!fetched || itemEventSeqRef.current !== seq) return
         Object.assign(item, fetched)
-        console.log('[RT-ITEMS] refetched status=', item.status)
+        if (import.meta.env.DEV) console.log('[RT-ITEMS] refetched status=', item.status)
       }
 
       // Update upcoming items: remove when no longer draft/pending, add if newly draft/pending
@@ -1660,7 +1663,7 @@ export default function StreamView() {
         auctionTimerRef.current = null
       }
     }
-  }, [activeAuction])
+  }, [activeAuction?.id, activeAuction?.started_at, activeAuction?.duration_seconds])
 
   // Sudden Death countdown: separate interval that ticks every second
   useEffect(() => {
@@ -1729,10 +1732,14 @@ export default function StreamView() {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
       if (!token) return
-      await apiFetch(`/api/chat/${msgId}`, {
+      const resp = await apiFetch(`/api/chat/${msgId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      if (!resp.ok) {
+        showToast(lang === 'fr' ? 'Erreur lors de la suppression' : 'Failed to delete message')
+        return
+      }
       setMessages(prev => prev.filter(m => m.id !== msgId))
       setModMenuMsg(null)
     } catch (err) { console.error('Delete msg failed:', err) }
@@ -1744,11 +1751,15 @@ export default function StreamView() {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
       if (!token) return
-      await apiFetch(`/api/streams/${id}/timeout`, {
+      const resp = await apiFetch(`/api/streams/${id}/timeout`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ target_user_id: targetUserId, duration_minutes: 5 }),
       })
+      if (!resp.ok) {
+        showToast(lang === 'fr' ? 'Erreur lors du timeout' : 'Failed to timeout user')
+        return
+      }
       setModMenuMsg(null)
     } catch (err) { console.error('Timeout failed:', err) }
   }
@@ -1893,9 +1904,9 @@ export default function StreamView() {
       }
       hapticTap()
       if (id) track('buy_now', { stream_id: id, item_id: activeAuction.id, price: activeAuction.buy_now_price })
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Buy now failed:', err)
-      alert('Achat immediat echoue: ' + (err?.message || 'Veuillez reessayer.'))
+      alert('Achat immediat echoue: ' + (err instanceof Error ? err.message : 'Veuillez reessayer.'))
     }
   }
 
@@ -1928,9 +1939,9 @@ export default function StreamView() {
       hapticTap()
       showToast(ct.tipSent)
       setShowTipModal(false)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Tip failed:', err)
-      alert(err?.message || 'Tip echoue')
+      alert(err instanceof Error ? err.message : 'Tip echoue')
     }
     setTipSending(false)
   }
@@ -2014,7 +2025,7 @@ export default function StreamView() {
           alert(err)
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Pre-bid submit error:', e)
     }
     setPreBidLoading(false)
@@ -2108,13 +2119,17 @@ export default function StreamView() {
 
     // Update stream status to 'ended'
     if (id) {
-      await supabase
+      const { error: endError } = await supabase
         .from('streams')
         .update({
           status: 'ended',
           ended_at: new Date().toISOString(),
         })
         .eq('id', id)
+      if (endError) {
+        console.error('[StreamView] end stream failed:', endError.message)
+        showToast(lang === 'fr' ? 'Erreur lors de la fin du live' : 'Failed to end stream')
+      }
     }
 
     setShowEndConfirm(false)
@@ -2126,11 +2141,16 @@ export default function StreamView() {
 
     // If pickup mode, set shipping cost to 0 on the order
     if (pickupMode && paymentOrder) {
-      await supabase.from('orders').update({
+      const { error: pickupError } = await supabase.from('orders').update({
         shipping_cost: 0,
         total_amount: paymentOrder.amount,
         carrier: 'pickup',
       }).eq('id', paymentOrder.id)
+      if (pickupError) {
+        showToast('Failed to update pickup order')
+        console.error('Pickup order update error:', pickupError)
+        return
+      }
       setPaymentOrder({ ...paymentOrder, shipping_cost: 0, total_amount: paymentOrder.amount, carrier: 'pickup' } as typeof paymentOrder)
     }
 
@@ -2170,19 +2190,22 @@ export default function StreamView() {
         .single()
 
       if (existing) {
-        await supabase.from('addresses').update({
+        const { error: addrErr } = await supabase.from('addresses').update({
           name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone,
         }).eq('id', existing.id)
+        if (addrErr) console.error('[StreamView] address update failed:', addrErr.message)
       } else {
-        await supabase.from('addresses').insert({
+        const { error: addrErr } = await supabase.from('addresses').insert({
           user_id: user.id, name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, is_default: true,
         })
+        if (addrErr) console.error('[StreamView] address insert failed:', addrErr.message)
       }
 
       if (paymentOrder) {
-        await supabase.from('orders').update({
+        const { error: orderErr } = await supabase.from('orders').update({
           shipping_address: { name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, country: addr.country },
         }).eq('id', paymentOrder.id)
+        if (orderErr) console.error('[StreamView] order address update failed:', orderErr.message)
       }
     } catch (err) {
       console.error('Address save error (non-blocking):', err)
@@ -2195,7 +2218,7 @@ export default function StreamView() {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
       if (token && paymentOrder) {
-        await apiFetch('/api/stripe/confirm-payment', {
+        const resp = await apiFetch('/api/stripe/confirm-payment', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -2206,9 +2229,14 @@ export default function StreamView() {
             payment_intent_id: paymentIntentId,
           }),
         })
+        if (!resp.ok) {
+          showToast('Payment confirmation failed. Please contact support.')
+          console.error('Server payment confirmation failed with status:', resp.status)
+        }
       }
     } catch (err) {
       // Even if server confirm fails, Stripe already processed the payment
+      showToast('Payment confirmation failed. Please contact support.')
       if (import.meta.env.DEV) console.error('Server payment confirmation failed (Stripe already processed):', err)
     }
     setPaymentSuccess(true)
@@ -2232,7 +2260,7 @@ export default function StreamView() {
       <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
         <div
           role="status"
-          aria-label="Loading stream"
+          aria-label={lang === 'fr' ? 'Chargement du live' : lang === 'es' ? 'Cargando directo' : lang === 'he' ? 'טוען שידור' : 'Loading stream'}
           style={{
             width: '32px', height: '32px',
             border: '3px solid #333', borderTopColor: '#F0908A',
@@ -2577,7 +2605,7 @@ export default function StreamView() {
                             {cell.item ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 {cell.item.image_url && (
-                                  <img src={cell.item.image_url} alt="" style={{ width: '26px', height: '26px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
+                                  <img src={cell.item.image_url} alt="" loading="lazy" style={{ width: '26px', height: '26px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                                 )}
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                   <p style={{ fontSize: '9px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</p>
@@ -2689,6 +2717,7 @@ export default function StreamView() {
                       <img
                         src={stream.thumbnail_url}
                         alt=""
+                        loading="lazy"
                         style={{
                           position: 'absolute', inset: 0,
                           width: '100%', height: '100%',
@@ -2734,7 +2763,7 @@ export default function StreamView() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '40px', padding: '0 12px' }}>
                         {Array.from({ length: 12 }).map((_, i) => (
                           <div
-                            key={i}
+                            key={`wave-bar-${i}`}
                             style={{
                               width: '3px', borderRadius: '2px',
                               backgroundColor: '#F0908A',
@@ -2803,14 +2832,14 @@ export default function StreamView() {
                   <button
                     onClick={() => navigate(-1)}
                     style={{
-                      position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '16px',
+                      position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', ...rtlPos('left', '16px'),
                       zIndex: 20, background: 'rgba(0,0,0,0.5)', border: 'none',
                       borderRadius: '50%', width: '40px', height: '40px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       cursor: 'pointer',
                     }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
                       <path d="M19 12H5M12 19l-7-7 7-7"/>
                     </svg>
                   </button>
@@ -2884,7 +2913,7 @@ export default function StreamView() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <button
                     onClick={() => navigate(-1)}
-                    aria-label="Back"
+                    aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
                     style={{
                       width: '32px', height: '32px', borderRadius: '50%',
                       backgroundColor: 'rgba(0,0,0,0.45)',
@@ -2893,7 +2922,7 @@ export default function StreamView() {
                       cursor: 'pointer', flexShrink: 0,
                     }}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" style={{...rtlFlip()}}>
                       <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </button>
@@ -2943,7 +2972,7 @@ export default function StreamView() {
                   {/* Multi-view grid button */}
                   <button
                     onClick={() => { fetchAvailableLives(); setShowMultiPicker(true) }}
-                    aria-label="Multi-view"
+                    aria-label={lang === 'fr' ? 'Multi-vue' : lang === 'es' ? 'Multi-vista' : lang === 'he' ? 'תצוגה מרובה' : 'Multi-view'}
                     style={{
                       width: '32px', height: '32px', borderRadius: '8px',
                       backgroundColor: isMultiView ? 'rgba(232,52,78,0.7)' : 'rgba(0,0,0,0.45)',
@@ -2974,7 +3003,7 @@ export default function StreamView() {
               }}>
                 <button
                   onClick={() => { setMultiViewStreams([]); setActiveMultiIdx(0) }}
-                  aria-label="Exit multi-view"
+                  aria-label={lang === 'fr' ? 'Quitter multi-vue' : lang === 'es' ? 'Salir de multi-vista' : lang === 'he' ? 'יציאה מתצוגה מרובה' : 'Exit multi-view'}
                   style={{
                     width: '32px', height: '32px', borderRadius: '50%',
                     backgroundColor: 'rgba(0,0,0,0.6)', border: 'none',
@@ -2982,7 +3011,7 @@ export default function StreamView() {
                     cursor: 'pointer',
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" style={{...rtlFlip()}}>
                     <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
@@ -3279,7 +3308,7 @@ export default function StreamView() {
             {isSeller && isLive && (
               <button
                 onClick={() => setShowEngagement(!showEngagement)}
-                aria-label="Toggle engagement dashboard"
+                aria-label={lang === 'fr' ? "Tableau d'engagement" : lang === 'es' ? 'Panel de interaccion' : lang === 'he' ? 'לוח מעורבות' : 'Toggle engagement dashboard'}
                 aria-expanded={showEngagement}
                 style={{
                   position: 'absolute',
@@ -3573,6 +3602,7 @@ export default function StreamView() {
                   <img
                     src={activeAuction.image_urls[0]}
                     alt=""
+                    loading="lazy"
                     style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
                   />
                 )}
@@ -4932,6 +4962,7 @@ export default function StreamView() {
                         <img
                           src={live.thumbnail_url}
                           alt=""
+                          loading="lazy"
                           style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }}
                         />
                       ) : (

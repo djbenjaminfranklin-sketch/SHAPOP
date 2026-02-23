@@ -206,7 +206,8 @@ router.get('/api/offers', requireAuth, async (req: AuthenticatedRequest, res: Re
     }
 
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[offers]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

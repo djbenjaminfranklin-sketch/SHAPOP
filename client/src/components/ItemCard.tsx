@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { Item } from '../types/database'
 import { getLang } from '../lib/i18n'
+import { rtlPos } from '../lib/rtl'
 
 interface ItemCardProps {
   item: Item & { seller?: { display_name?: string; avatar_url?: string | null } }
@@ -10,7 +11,7 @@ interface ItemCardProps {
 
 export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCardProps) {
   const lang = getLang()
-  const sellerName = item.seller?.display_name || 'Vendeur'
+  const sellerName = item.seller?.display_name || ({ fr: 'Vendeur', en: 'Seller', he: 'מוכר', es: 'Vendedor' })[getLang()]
   const price = item.current_price ?? item.starting_price
   const imageUrl = item.image_urls?.[0]
 
@@ -31,7 +32,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
           fontSize: '11px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0
         }}>
           {item.seller?.avatar_url ? (
-            <img src={item.seller.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={item.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
           ) : (
             sellerName.charAt(0).toUpperCase()
           )}
@@ -44,7 +45,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
       {/* Thumbnail */}
       <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#111', aspectRatio: '3/4' }}>
         {imageUrl ? (
-          <img src={imageUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          <img src={imageUrl} alt={item.title} loading="lazy" width={300} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg, #1a1a2e, #16213e)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5">
@@ -56,7 +57,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
         )}
 
         {/* AI badge — top left */}
-        <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
+        <div style={{ position: 'absolute', top: '10px', ...rtlPos('left', '10px') }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
@@ -73,7 +74,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
 
         {/* Condition badge — top right */}
         {item.ai_condition && (
-          <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
+          <div style={{ position: 'absolute', top: '10px', ...rtlPos('right', '10px') }}>
             <span style={{
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff',
               fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: '8px',
@@ -91,10 +92,11 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
               e.stopPropagation()
               onToggleFavorite(item.id)
             }}
+            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
             style={{
               position: 'absolute',
               bottom: '10px',
-              right: '10px',
+              ...rtlPos('right', '10px'),
               zIndex: 5,
               background: 'rgba(0,0,0,0.5)',
               backdropFilter: 'blur(8px)',
@@ -116,7 +118,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
         )}
 
         {/* Price badge — bottom left */}
-        <div style={{ position: 'absolute', bottom: '10px', left: '10px' }}>
+        <div style={{ position: 'absolute', bottom: '10px', ...rtlPos('left', '10px') }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center',
             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',

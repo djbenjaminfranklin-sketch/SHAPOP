@@ -1,7 +1,28 @@
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
+  fr: {
+    title: 'Contrat de licence utilisateur final',
+    updated: 'Dernière mise à jour : 14 février 2026',
+    sections: [
+      { h: '1. Accord', p: 'Le présent Contrat de licence utilisateur final (« CLUF ») est un accord juridique entre vous et ShaPop Ltd. (« ShaPop ») régissant l\'utilisation de l\'application mobile ShaPop (« l\'Application »). En installant ou en utilisant l\'Application, vous acceptez d\'être lié par le présent CLUF.' },
+      { h: '2. Concession de licence', p: 'ShaPop vous accorde une licence limitée, non exclusive, non transférable et révocable pour utiliser l\'Application sur tout appareil de marque Apple que vous possédez ou contrôlez, sous réserve des règles d\'utilisation définies dans les Conditions générales des services multimédia Apple.' },
+      { h: '3. Restrictions de la licence', p: 'Vous ne pouvez pas : (a) copier, modifier ou distribuer l\'Application ; (b) procéder à la rétro-ingénierie, décompiler ou désassembler l\'Application ; (c) louer, prêter, vendre ou sous-licencier l\'Application ; (d) utiliser l\'Application à des fins illégales ; (e) supprimer les mentions de propriété de l\'Application.' },
+      { h: '4. Propriété intellectuelle', p: 'L\'Application ainsi que l\'ensemble de son contenu, de ses fonctionnalités et de ses caractéristiques sont la propriété de ShaPop et sont protégés par les lois internationales sur le droit d\'auteur, les marques et la propriété intellectuelle. Le présent CLUF ne vous confère aucun droit de propriété.' },
+      { h: '5. Achats intégrés', p: 'L\'Application peut proposer des produits et services à l\'achat (« Achats intégrés »). Il s\'agit de transactions de marketplace entre acheteurs et vendeurs facilitées par ShaPop. Tous les achats sont définitifs une fois expédiés, sauf disposition contraire de la Politique de retour ou de la loi applicable.' },
+      { h: '6. Services tiers', p: 'L\'Application peut s\'intégrer à des services tiers (prestataires de paiement, infrastructure de streaming, etc.). Votre utilisation de ces services est soumise à leurs conditions et politiques de confidentialité respectives. ShaPop n\'est pas responsable des services tiers.' },
+      { h: '7. Mises à jour', p: 'ShaPop peut publier des mises à jour de l\'Application de temps à autre. Les mises à jour peuvent être nécessaires pour continuer à utiliser l\'Application. Vous acceptez que l\'Application puisse télécharger et installer automatiquement les mises à jour.' },
+      { h: '8. Résiliation', p: 'Le présent CLUF est en vigueur jusqu\'à sa résiliation. ShaPop peut résilier le présent CLUF si vous ne respectez pas ses conditions. En cas de résiliation, vous devez cesser toute utilisation de l\'Application et supprimer toutes les copies.' },
+      { h: '9. Exclusion de garanties', p: 'L\'APPLICATION EST FOURNIE « EN L\'ÉTAT » SANS GARANTIE D\'AUCUNE SORTE. SHAPOP DÉCLINE TOUTE GARANTIE, EXPRESSE OU IMPLICITE, Y COMPRIS LES GARANTIES DE QUALITÉ MARCHANDE, D\'ADÉQUATION À UN USAGE PARTICULIER ET D\'ABSENCE DE CONTREFAÇON.' },
+      { h: '10. Limitation de responsabilité', p: 'DANS TOUTE LA MESURE PERMISE PAR LA LOI, SHAPOP NE POURRA ÊTRE TENUE RESPONSABLE DES DOMMAGES INDIRECTS, ACCESSOIRES, SPÉCIAUX OU CONSÉCUTIFS RÉSULTANT DE VOTRE UTILISATION DE L\'APPLICATION.' },
+      { h: '11. Conditions spécifiques à Apple', p: 'Le présent CLUF est conclu entre vous et ShaPop uniquement, et non avec Apple Inc. Apple n\'a aucune obligation de fournir des services de maintenance ou d\'assistance. En cas de non-conformité de l\'Application aux garanties applicables, vous pouvez en informer Apple pour obtenir un remboursement du prix d\'achat (le cas échéant). Apple n\'est pas responsable du traitement des réclamations relatives à l\'Application. Apple et ses filiales sont des tiers bénéficiaires du présent CLUF.' },
+      { h: '12. Droit applicable', p: 'Le présent CLUF est régi par les lois de la France. Les litiges seront tranchés par les tribunaux de Paris.' },
+      { h: '13. Contact', p: 'Pour toute question relative au présent CLUF : shapopcontact@gmail.com' },
+    ],
+  },
   en: {
     title: 'End User License Agreement',
     updated: 'Last updated: February 14, 2026',
@@ -40,25 +61,6 @@ const content = {
       { h: '13. \u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', p: '\u05DC\u05E9\u05D0\u05DC\u05D5\u05EA: shapopcontact@gmail.com' },
     ],
   },
-  fr: {
-    title: 'Contrat de licence utilisateur final',
-    updated: 'Dernière mise à jour : 14 février 2026',
-    sections: [
-      { h: '1. Accord', p: 'Le présent Contrat de licence utilisateur final (« CLUF ») est un accord juridique entre vous et ShaPop Ltd. (« ShaPop ») régissant l\'utilisation de l\'application mobile ShaPop (« l\'Application »). En installant ou en utilisant l\'Application, vous acceptez d\'être lié par le présent CLUF.' },
-      { h: '2. Concession de licence', p: 'ShaPop vous accorde une licence limitée, non exclusive, non transférable et révocable pour utiliser l\'Application sur tout appareil de marque Apple que vous possédez ou contrôlez, sous réserve des règles d\'utilisation définies dans les Conditions générales des services multimédia Apple.' },
-      { h: '3. Restrictions de la licence', p: 'Vous ne pouvez pas : (a) copier, modifier ou distribuer l\'Application ; (b) procéder à la rétro-ingénierie, décompiler ou désassembler l\'Application ; (c) louer, prêter, vendre ou sous-licencier l\'Application ; (d) utiliser l\'Application à des fins illégales ; (e) supprimer les mentions de propriété de l\'Application.' },
-      { h: '4. Propriété intellectuelle', p: 'L\'Application ainsi que l\'ensemble de son contenu, de ses fonctionnalités et de ses caractéristiques sont la propriété de ShaPop et sont protégés par les lois internationales sur le droit d\'auteur, les marques et la propriété intellectuelle. Le présent CLUF ne vous confère aucun droit de propriété.' },
-      { h: '5. Achats intégrés', p: 'L\'Application peut proposer des produits et services à l\'achat (« Achats intégrés »). Il s\'agit de transactions de marketplace entre acheteurs et vendeurs facilitées par ShaPop. Tous les achats sont définitifs une fois expédiés, sauf disposition contraire de la Politique de retour ou de la loi applicable.' },
-      { h: '6. Services tiers', p: 'L\'Application peut s\'intégrer à des services tiers (prestataires de paiement, infrastructure de streaming, etc.). Votre utilisation de ces services est soumise à leurs conditions et politiques de confidentialité respectives. ShaPop n\'est pas responsable des services tiers.' },
-      { h: '7. Mises à jour', p: 'ShaPop peut publier des mises à jour de l\'Application de temps à autre. Les mises à jour peuvent être nécessaires pour continuer à utiliser l\'Application. Vous acceptez que l\'Application puisse télécharger et installer automatiquement les mises à jour.' },
-      { h: '8. Résiliation', p: 'Le présent CLUF est en vigueur jusqu\'à sa résiliation. ShaPop peut résilier le présent CLUF si vous ne respectez pas ses conditions. En cas de résiliation, vous devez cesser toute utilisation de l\'Application et supprimer toutes les copies.' },
-      { h: '9. Exclusion de garanties', p: 'L\'APPLICATION EST FOURNIE « EN L\'ÉTAT » SANS GARANTIE D\'AUCUNE SORTE. SHAPOP DÉCLINE TOUTE GARANTIE, EXPRESSE OU IMPLICITE, Y COMPRIS LES GARANTIES DE QUALITÉ MARCHANDE, D\'ADÉQUATION À UN USAGE PARTICULIER ET D\'ABSENCE DE CONTREFAÇON.' },
-      { h: '10. Limitation de responsabilité', p: 'DANS TOUTE LA MESURE PERMISE PAR LA LOI, SHAPOP NE POURRA ÊTRE TENUE RESPONSABLE DES DOMMAGES INDIRECTS, ACCESSOIRES, SPÉCIAUX OU CONSÉCUTIFS RÉSULTANT DE VOTRE UTILISATION DE L\'APPLICATION.' },
-      { h: '11. Conditions spécifiques à Apple', p: 'Le présent CLUF est conclu entre vous et ShaPop uniquement, et non avec Apple Inc. Apple n\'a aucune obligation de fournir des services de maintenance ou d\'assistance. En cas de non-conformité de l\'Application aux garanties applicables, vous pouvez en informer Apple pour obtenir un remboursement du prix d\'achat (le cas échéant). Apple n\'est pas responsable du traitement des réclamations relatives à l\'Application. Apple et ses filiales sont des tiers bénéficiaires du présent CLUF.' },
-      { h: '12. Droit applicable', p: 'Le présent CLUF est régi par les lois de la France. Les litiges seront tranchés par les tribunaux de Paris.' },
-      { h: '13. Contact', p: 'Pour toute question relative au présent CLUF : shapopcontact@gmail.com' },
-    ],
-  },
   es: {
     title: 'Acuerdo de Licencia de Usuario Final',
     updated: 'Ultima actualizacion: 14 de febrero de 2026',
@@ -84,19 +86,20 @@ export default function EulaPage() {
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
       <div style={{ padding: '20px 20px' }}>
         <p style={{ fontSize: '12px', color: '#666', marginBottom: '24px' }}>{c.updated}</p>
-        {c.sections.map((s, i) => (
-          <div key={i} style={{ marginBottom: '20px' }}>
+        {c.sections.map((s) => (
+          <div key={s.h} style={{ marginBottom: '20px' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{s.h}</h2>
             <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.6 }}>{s.p}</p>
           </div>

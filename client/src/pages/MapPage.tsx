@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
 import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
-import { COUNTRIES, getCountryDisplayName } from '../lib/communitiesData'
-import type { CountryCode } from '../lib/communitiesData'
+import { COUNTRIES, getCountryDisplayName } from '../lib/data/communitiesData'
+import type { CountryCode } from '../lib/data/communitiesData'
 import CityStreamSheet from '../components/CityStreamSheet'
 import { useCityStreamCounts } from '../hooks/useCityStreamCounts'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -126,6 +127,7 @@ export default function MapPage() {
   const { user, profile } = useAuth()
   const lang = (getLang() || 'fr') as Lang
   const ct = mapContent[lang] || mapContent.fr
+  usePageTitle(ct.title)
 
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => {
     // Priority: GPS cache > profile country > language fallback
@@ -152,7 +154,9 @@ export default function MapPage() {
       if (country) {
         setSelectedCountry(country)
         if (user) {
-          supabase.from('profiles').update({ country }).eq('id', user.id)
+          supabase.from('profiles').update({ country }).eq('id', user.id).then(({ error }) => {
+            if (error) console.error('Failed to update country:', error)
+          })
         }
       } else {
         // GPS permission denied or timed out — fallback to Paris / France
@@ -227,7 +231,9 @@ export default function MapPage() {
               setSelectedCountry(country.code)
               setSelectedCity(null)
               if (user) {
-                supabase.from('profiles').update({ country: country.code }).eq('id', user.id)
+                supabase.from('profiles').update({ country: country.code }).eq('id', user.id).then(({ error }) => {
+                  if (error) console.error('Failed to update country:', error)
+                })
               }
             }}
             style={{
@@ -324,6 +330,7 @@ export default function MapPage() {
                 <img
                   src={cityImages[city] || 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&h=250&fit=crop'}
                   alt={city}
+                  loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
                 <div style={{
@@ -383,6 +390,7 @@ export default function MapPage() {
                           <img
                             src={stream.seller.avatar_url}
                             alt=""
+                            loading="lazy"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         ) : (

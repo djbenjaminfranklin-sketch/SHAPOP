@@ -7,7 +7,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Set dark background to prevent white flash during overscroll / rubber-banding
+        if let window = self.window {
+            window.backgroundColor = UIColor(red: 10/255, green: 10/255, blue: 10/255, alpha: 1.0) // #0a0a0a
+        }
         return true
     }
 

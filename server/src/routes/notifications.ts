@@ -26,7 +26,8 @@ router.get('/api/notification-prefs', requireAuth, async (req: AuthenticatedRequ
       notify_live: true, notify_orders: true, notify_deals: false,
       notify_messages: true, notify_reminders: true, notify_community: false,
     })
-  } catch {
+  } catch (err) {
+    console.error('[notifications]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -117,7 +118,8 @@ router.get('/api/notifications', requireAuth, async (req: AuthenticatedRequest, 
       return
     }
     res.json(data || [])
-  } catch {
+  } catch (err) {
+    console.error('[notifications]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
@@ -127,7 +129,8 @@ router.delete('/api/notifications', requireAuth, async (req: AuthenticatedReques
   try {
     await supabase.from('notifications').delete().eq('user_id', req.user!.id)
     res.json({ success: true })
-  } catch {
+  } catch (err) {
+    console.error('[notifications]', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

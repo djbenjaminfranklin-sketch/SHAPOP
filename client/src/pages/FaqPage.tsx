@@ -1,10 +1,41 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getLang } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 interface FaqItem { q: string; a: string }
 
 const content = {
+  fr: {
+    title: 'Centre d\'aide',
+    subtitle: 'Questions fréquentes',
+    buyer: 'Achats',
+    seller: 'Ventes',
+    general: 'Général',
+    buyerFaq: [
+      { q: 'Comment acheter un article sur ShaPop ?', a: 'Rejoignez un live, appuyez sur l\'article souhaité lorsque le vendeur le présente, et finalisez votre achat instantanément. Vous pouvez aussi parcourir les lives programmés et activer des rappels.' },
+      { q: 'Comment fonctionnent les paiements ?', a: 'Nous acceptons les cartes de crédit/débit et Apple Pay. Les paiements sont traités de manière sécurisée via notre prestataire de paiement. Vos coordonnées bancaires ne sont jamais stockées sur nos serveurs.' },
+      { q: 'Puis-je retourner un article ?', a: 'Oui ! Vous disposez de 14 jours après la livraison pour demander un retour, conformément à le Code de la consommation français. Les articles doivent être dans leur état d\'origine. Contactez le vendeur via l\'application pour initier un retour.' },
+      { q: 'Combien de temps dure la livraison ?', a: 'Les délais de livraison dépendent du vendeur. La plupart des vendeurs expédient sous 1 à 3 jours ouvrés. Le délai de livraison estimé est affiché avant l\'achat.' },
+      { q: 'Que faire si je reçois un article endommagé ?', a: 'Contactez immédiatement le vendeur via l\'application. Si le vendeur ne répond pas sous 48 heures, contactez notre équipe d\'assistance et nous vous aiderons à résoudre le problème.' },
+      { q: 'Mon paiement est-il sécurisé ?', a: 'Absolument. Toutes les transactions sont chiffrées avec une sécurité de niveau bancaire (TLS 1.3). Nous ne conservons jamais votre numéro de carte complet.' },
+    ] as FaqItem[],
+    sellerFaq: [
+      { q: 'Comment commencer à vendre sur ShaPop ?', a: 'Rendez-vous dans l\'onglet Vendre, configurez votre profil vendeur et lancez votre premier live ! Aucun frais initial ni abonnement mensuel.' },
+      { q: 'Quels sont les frais pour les vendeurs ?', a: 'Sur chaque vente effectuée, ShaPop déduit du versement au vendeur : 8% de commission plateforme + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur l\'ensemble des frais. Exemple : sur une vente de 50\u20AC, les frais totaux sont de 6,90\u20AC TTC, le vendeur reçoit 43,10\u20AC. Aucun frais initial ni abonnement mensuel.' },
+      { q: 'Quand suis-je payé ?', a: 'Les versements sont traités chaque semaine (tous les dimanches) sur votre compte bancaire enregistré. Le seuil minimum de versement est de 50\u20AC.' },
+      { q: 'Que puis-je vendre ?', a: 'Vous pouvez vendre la plupart des biens physiques : mode, électronique, objets de collection, articles faits main, et plus encore. Consultez notre liste d\'articles interdits dans les Conditions d\'utilisation.' },
+      { q: 'Comment fonctionnent les lives ?', a: 'Lancez un live depuis l\'onglet Vendre. Présentez vos articles, interagissez avec les spectateurs en temps réel et réalisez des ventes en direct. Les lives peuvent durer jusqu\'à 4 heures.' },
+      { q: 'Comment gérer les expéditions ?', a: 'Vous êtes responsable de l\'expédition des articles aux acheteurs. Nous recommandons d\'utiliser des services de livraison avec suivi. Imprimez vos étiquettes d\'expédition directement depuis l\'application.' },
+    ] as FaqItem[],
+    generalFaq: [
+      { q: 'Où ShaPop est-il disponible ?', a: 'ShaPop est disponible en France, en Espagne, au Royaume-Uni et aux États-Unis. Nous prévoyons de nous étendre à d\'autres pays prochainement.' },
+      { q: 'Comment supprimer mon compte ?', a: 'Allez dans Profil > Préférences > Supprimer le compte. Vos données personnelles seront supprimées sous 30 jours. Les enregistrements de transactions sont conservés 7 ans conformément à la loi.' },
+      { q: 'Comment signaler un problème ?', a: 'Utilisez l\'option « Nous contacter » dans votre Profil, ou envoyez-nous un e-mail à shapopcontact@gmail.com. Nous répondons sous 24 heures.' },
+      { q: 'ShaPop est-il gratuit ?', a: 'Oui ! L\'application est gratuite à télécharger et à utiliser. Les acheteurs ne paient aucun frais. Les vendeurs paient uniquement sur les ventes effectuées (~13% total TTC).' },
+    ] as FaqItem[],
+  },
   en: {
     title: 'Help Center',
     subtitle: 'Frequently Asked Questions',
@@ -63,35 +94,6 @@ const content = {
       { q: '\u05D4\u05D0\u05DD ShaPop \u05D7\u05D9\u05E0\u05DE\u05D9\u05EA?', a: '\u05DB\u05DF! \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D7\u05D9\u05E0\u05DE\u05D9\u05EA \u05DC\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D5\u05DC\u05E9\u05D9\u05DE\u05D5\u05E9. \u05E7\u05D5\u05E0\u05D9\u05DD \u05DC\u05D0 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05E2\u05DE\u05DC\u05D5\u05EA. \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05E2\u05DE\u05DC\u05D4 \u05E7\u05D8\u05E0\u05D4 \u05E8\u05E7 \u05DE\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E9\u05D4\u05D5\u05E9\u05DC\u05DE\u05D5.' },
     ] as FaqItem[],
   },
-  fr: {
-    title: 'Centre d\'aide',
-    subtitle: 'Questions fréquentes',
-    buyer: 'Achats',
-    seller: 'Ventes',
-    general: 'Général',
-    buyerFaq: [
-      { q: 'Comment acheter un article sur ShaPop ?', a: 'Rejoignez un live, appuyez sur l\'article souhaité lorsque le vendeur le présente, et finalisez votre achat instantanément. Vous pouvez aussi parcourir les lives programmés et activer des rappels.' },
-      { q: 'Comment fonctionnent les paiements ?', a: 'Nous acceptons les cartes de crédit/débit et Apple Pay. Les paiements sont traités de manière sécurisée via notre prestataire de paiement. Vos coordonnées bancaires ne sont jamais stockées sur nos serveurs.' },
-      { q: 'Puis-je retourner un article ?', a: 'Oui ! Vous disposez de 14 jours après la livraison pour demander un retour, conformément à le Code de la consommation français. Les articles doivent être dans leur état d\'origine. Contactez le vendeur via l\'application pour initier un retour.' },
-      { q: 'Combien de temps dure la livraison ?', a: 'Les délais de livraison dépendent du vendeur. La plupart des vendeurs expédient sous 1 à 3 jours ouvrés. Le délai de livraison estimé est affiché avant l\'achat.' },
-      { q: 'Que faire si je reçois un article endommagé ?', a: 'Contactez immédiatement le vendeur via l\'application. Si le vendeur ne répond pas sous 48 heures, contactez notre équipe d\'assistance et nous vous aiderons à résoudre le problème.' },
-      { q: 'Mon paiement est-il sécurisé ?', a: 'Absolument. Toutes les transactions sont chiffrées avec une sécurité de niveau bancaire (TLS 1.3). Nous ne conservons jamais votre numéro de carte complet.' },
-    ] as FaqItem[],
-    sellerFaq: [
-      { q: 'Comment commencer à vendre sur ShaPop ?', a: 'Rendez-vous dans l\'onglet Vendre, configurez votre profil vendeur et lancez votre premier live ! Aucun frais initial ni abonnement mensuel.' },
-      { q: 'Quels sont les frais pour les vendeurs ?', a: 'Sur chaque vente effectuée, ShaPop déduit du versement au vendeur : 8% de commission plateforme + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur l\'ensemble des frais. Exemple : sur une vente de 50\u20AC, les frais totaux sont de 6,90\u20AC TTC, le vendeur reçoit 43,10\u20AC. Aucun frais initial ni abonnement mensuel.' },
-      { q: 'Quand suis-je payé ?', a: 'Les versements sont traités chaque semaine (tous les dimanches) sur votre compte bancaire enregistré. Le seuil minimum de versement est de 50\u20AC.' },
-      { q: 'Que puis-je vendre ?', a: 'Vous pouvez vendre la plupart des biens physiques : mode, électronique, objets de collection, articles faits main, et plus encore. Consultez notre liste d\'articles interdits dans les Conditions d\'utilisation.' },
-      { q: 'Comment fonctionnent les lives ?', a: 'Lancez un live depuis l\'onglet Vendre. Présentez vos articles, interagissez avec les spectateurs en temps réel et réalisez des ventes en direct. Les lives peuvent durer jusqu\'à 4 heures.' },
-      { q: 'Comment gérer les expéditions ?', a: 'Vous êtes responsable de l\'expédition des articles aux acheteurs. Nous recommandons d\'utiliser des services de livraison avec suivi. Imprimez vos étiquettes d\'expédition directement depuis l\'application.' },
-    ] as FaqItem[],
-    generalFaq: [
-      { q: 'Où ShaPop est-il disponible ?', a: 'ShaPop est disponible en France, en Espagne, au Royaume-Uni et aux États-Unis. Nous prévoyons de nous étendre à d\'autres pays prochainement.' },
-      { q: 'Comment supprimer mon compte ?', a: 'Allez dans Profil > Préférences > Supprimer le compte. Vos données personnelles seront supprimées sous 30 jours. Les enregistrements de transactions sont conservés 7 ans conformément à la loi.' },
-      { q: 'Comment signaler un problème ?', a: 'Utilisez l\'option « Nous contacter » dans votre Profil, ou envoyez-nous un e-mail à shapopcontact@gmail.com. Nous répondons sous 24 heures.' },
-      { q: 'ShaPop est-il gratuit ?', a: 'Oui ! L\'application est gratuite à télécharger et à utiliser. Les acheteurs ne paient aucun frais. Les vendeurs paient uniquement sur les ventes effectuées (~13% total TTC).' },
-    ] as FaqItem[],
-  },
   es: {
     title: 'Centro de Ayuda',
     subtitle: 'Preguntas Frecuentes',
@@ -127,6 +129,7 @@ export default function FaqPage() {
   const navigate = useNavigate()
   const lang = getLang()
   const c = content[lang] || content.fr
+  usePageTitle(c.title)
   const [tab, setTab] = useState<'buyer' | 'seller' | 'general'>('buyer')
   const [open, setOpen] = useState<number | null>(null)
 
@@ -136,8 +139,8 @@ export default function FaqPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 16px 12px' }}>
-          <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
         </div>

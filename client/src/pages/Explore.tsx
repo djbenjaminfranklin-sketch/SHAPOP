@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang } from '../lib/i18n'
 import { track } from '../lib/analytics'
+import { usePageTitle } from '../hooks/usePageTitle'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -132,6 +133,7 @@ export default function Explore() {
   const navigate = useNavigate()
   const lang = (getLang() || 'fr') as Lang
   const ct = exploreContent[lang] || exploreContent.fr
+  usePageTitle(ct.categoriesLabel)
   const allCategories = ct.categoryNames.map((name, i) => ({ name, img: categoryImages[i], idx: i }))
   const [search, setSearch] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
@@ -305,6 +307,7 @@ export default function Explore() {
                 <img
                   src={cat.img}
                   alt={cat.name}
+                  loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                 />
                 <div style={{

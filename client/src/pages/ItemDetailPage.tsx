@@ -3,8 +3,12 @@ import ConfirmModal from '../components/ConfirmModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { rtlFlip } from '../lib/rtl'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
+import { showToast } from '../lib/toast'
+import { getLang } from '../lib/i18n'
+import { usePageTitle } from '../hooks/usePageTitle'
 import type { Item } from '../types/database'
 
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
@@ -34,6 +38,7 @@ const content = {
     offerConfirm: 'Envoyer l\'offre',
     offerSent: 'Offre envoyee !',
     offerPending: 'Offre en attente',
+    offerInvalid: 'Entre un montant valide superieur a 0',
   },
   en: {
     notFound: 'Item not found',
@@ -59,6 +64,7 @@ const content = {
     offerConfirm: 'Send offer',
     offerSent: 'Offer sent!',
     offerPending: 'Offer pending',
+    offerInvalid: 'Enter a valid amount greater than 0',
   },
   he: {
     notFound: 'הפריט לא נמצא',
@@ -84,6 +90,7 @@ const content = {
     offerConfirm: 'שלח הצעה',
     offerSent: 'ההצעה נשלחה!',
     offerPending: 'הצעה בהמתנה',
+    offerInvalid: 'הזן סכום תקין גדול מ-0',
   },
   es: {
     notFound: 'Articulo no encontrado',
@@ -109,6 +116,7 @@ const content = {
     offerConfirm: 'Enviar oferta',
     offerSent: 'Oferta enviada!',
     offerPending: 'Oferta pendiente',
+    offerInvalid: 'Ingresa un monto valido mayor a 0',
   },
 } as Record<string, Record<string, string>>
 
@@ -123,10 +131,11 @@ export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, session } = useAuth()
-  const lang = localStorage.getItem('shapop_lang') || 'fr'
+  const lang = getLang()
   const t = content[lang] || content.fr
 
   const [item, setItem] = useState<ItemWithSeller | null>(null)
+  usePageTitle(item?.title || t.notFound)
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState(false)
   const [isFollowing, setIsFollowing] = useState(false)
@@ -137,31 +146,38 @@ export default function ItemDetailPage() {
   const [showOfferModal, setShowOfferModal] = useState(false)
   const [offerAmount, setOfferAmount] = useState('')
   const [offerLoading, setOfferLoading] = useState(false)
+  const [offerError, setOfferError] = useState('')
   const [hasOffer, setHasOffer] = useState(false)
 
   const retryLabel = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Reessayer'
 
-  const fetchItem = useCallback(() => {
+  const fetchItem = useCallback((signal?: AbortSignal) => {
     if (!id) return
     setLoading(true)
     setFetchError(false)
-    apiFetch(`/api/items/${id}`)
+    apiFetch(`/api/items/${id}`, { signal })
       .then(r => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`)
         return r.json()
       })
       .then(data => {
+        if (signal?.aborted) return
         if (data && data.id) setItem(data)
       })
       .catch((err) => {
+        if (signal?.aborted) return
         console.error('Failed to fetch item:', err)
         setFetchError(true)
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!signal?.aborted) setLoading(false)
+      })
   }, [id])
 
   useEffect(() => {
-    fetchItem()
+    const controller = new AbortController()
+    fetchItem(controller.signal)
+    return () => controller.abort()
   }, [fetchItem])
 
   // Track page view on mount
@@ -173,12 +189,15 @@ export default function ItemDetailPage() {
   useEffect(() => {
     if (!item?.seller_id || !session?.access_token || !user) return
     if (item.seller_id === user.id) return
+    const controller = new AbortController()
     apiFetch(`/api/follow/${item.seller_id}/status`, {
       headers: { Authorization: `Bearer ${session.access_token}` },
+      signal: controller.signal,
     })
       .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setIsFollowing(d.following) })
-      .catch((err) => { console.error('fetchFollowStatus failed:', err) })
+      .then(d => { if (d && !controller.signal.aborted) setIsFollowing(d.following) })
+      .catch((err) => { if (!controller.signal.aborted) console.error('fetchFollowStatus failed:', err) })
+    return () => controller.abort()
   }, [item, session, user])
 
   const toggleFollow = async () => {
@@ -193,19 +212,31 @@ export default function ItemDetailPage() {
 
   // Check if user already has a pending offer on this item
   useEffect(() => {
-    if (!id || !user || !session?.access_token) return
-    apiFetch(`/api/items/${id}/offer/status`, {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => { if (d) setHasOffer(!!d.has_offer) })
-      .catch(() => {})
-  }, [id, user, session])
+    if (!id || !user) return
+    let cancelled = false
+    supabase
+      .from('offers')
+      .select('id')
+      .eq('item_id', id)
+      .eq('buyer_id', user.id)
+      .eq('status', 'pending')
+      .limit(1)
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (error) { console.error('checkPendingOffer failed:', error); return }
+        setHasOffer(!!data && data.length > 0)
+      })
+    return () => { cancelled = true }
+  }, [id, user])
 
   const handleOfferSubmit = async () => {
     if (!id || !user) return
     const amount = parseFloat(offerAmount)
-    if (isNaN(amount) || amount <= 0) return
+    if (isNaN(amount) || amount <= 0) {
+      setOfferError(t.offerInvalid)
+      return
+    }
+    setOfferError('')
     setOfferLoading(true)
     try {
       const { data: { session: s } } = await supabase.auth.getSession()
@@ -219,13 +250,17 @@ export default function ItemDetailPage() {
         setHasOffer(true)
         setShowOfferModal(false)
         setOfferAmount('')
+      } else {
+        showToast(lang === 'fr' ? "Erreur lors de l'envoi de l'offre" : 'Failed to send offer', 'error')
       }
-    } catch { /* ignore */ }
+    } catch {
+      showToast(lang === 'fr' ? 'Erreur reseau' : 'Network error', 'error')
+    }
     setOfferLoading(false)
   }
 
   const price = item ? (item.current_price ?? item.starting_price) : 0
-  const sellerName = item?.seller?.display_name || 'Vendeur'
+  const sellerName = item?.seller?.display_name || ({ fr: 'Vendeur', en: 'Seller', he: 'מוכר', es: 'Vendedor' })[lang]
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
@@ -234,8 +269,8 @@ export default function ItemDetailPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
         padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
-        <button aria-label="Back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <button aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
@@ -245,7 +280,7 @@ export default function ItemDetailPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }} role="status" aria-label="Loading item">
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }} role="status" aria-label={lang === 'fr' ? 'Chargement de l\'article' : lang === 'es' ? 'Cargando articulo' : lang === 'he' ? 'טוען פריט' : 'Loading item'}>
           <div style={{
             width: '32px', height: '32px', border: '3px solid #333',
             borderTopColor: '#E8344E', borderRadius: '50%',
@@ -258,7 +293,7 @@ export default function ItemDetailPage() {
           <p style={{ fontSize: '16px', color: '#888', marginBottom: '16px' }}>{t.notFound}</p>
           {fetchError && (
             <button
-              onClick={fetchItem}
+              onClick={() => fetchItem()}
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
                 color: '#E8344E', fontSize: '14px', fontWeight: 600,
@@ -280,7 +315,9 @@ export default function ItemDetailPage() {
               <img
                 src={item.image_urls[selectedImage]}
                 alt={item.title}
+                loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
               />
             ) : (
               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -316,7 +353,7 @@ export default function ItemDetailPage() {
             <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', overflowX: 'auto' }}>
               {item.image_urls.map((url, i) => (
                 <button
-                  key={i}
+                  key={url}
                   onClick={() => setSelectedImage(i)}
                   aria-label={`Image ${i + 1}${i === selectedImage ? ' (selected)' : ''}`}
                   aria-pressed={i === selectedImage}
@@ -326,7 +363,7 @@ export default function ItemDetailPage() {
                     padding: 0, background: 'none', cursor: 'pointer', flexShrink: 0,
                   }}
                 >
-                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </button>
               ))}
             </div>
@@ -380,7 +417,7 @@ export default function ItemDetailPage() {
                   fontSize: '16px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
                 }}>
                   {item.seller?.avatar_url ? (
-                    <img src={item.seller.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={item.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
                     sellerName.charAt(0).toUpperCase()
                   )}
@@ -417,8 +454,8 @@ export default function ItemDetailPage() {
             {/* Tags */}
             {item.ai_tags?.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px' }}>
-                {item.ai_tags.map((tag, i) => (
-                  <span key={i} style={{
+                {item.ai_tags.map((tag) => (
+                  <span key={tag} style={{
                     fontSize: '12px', color: '#888', backgroundColor: '#1a1a1a',
                     padding: '4px 10px', borderRadius: '8px', border: '1px solid #222',
                   }}>
@@ -439,11 +476,19 @@ export default function ItemDetailPage() {
                       onConfirm: async () => {
                         setConfirmModal(null)
                         if (!session?.access_token) return
-                        const res = await apiFetch(`/api/items/${item.id}`, {
-                          method: 'DELETE',
-                          headers: { Authorization: `Bearer ${session.access_token}` },
-                        })
-                        if (res.ok) navigate(-1)
+                        try {
+                          const res = await apiFetch(`/api/items/${item.id}`, {
+                            method: 'DELETE',
+                            headers: { Authorization: `Bearer ${session.access_token}` },
+                          })
+                          if (res.ok) {
+                            navigate(-1)
+                          } else {
+                            showToast(lang === 'fr' ? 'Erreur lors de la suppression' : 'Failed to delete item', 'error')
+                          }
+                        } catch {
+                          showToast(lang === 'fr' ? 'Erreur reseau' : 'Network error', 'error')
+                        }
                       },
                     })
                   }}
@@ -475,6 +520,7 @@ export default function ItemDetailPage() {
                   onClick={() => {
                     if (!user) { navigate('/login'); return }
                     setOfferAmount(String(Math.round(price * 0.8)))
+                    setOfferError('')
                     setShowOfferModal(true)
                   }}
                   style={{
@@ -533,16 +579,19 @@ export default function ItemDetailPage() {
             <input
               type="number"
               value={offerAmount}
-              onChange={e => setOfferAmount(e.target.value)}
+              onChange={e => { setOfferAmount(e.target.value); setOfferError('') }}
               placeholder={t.offerPlaceholder}
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px',
-                backgroundColor: '#111', border: '1px solid #333',
+                backgroundColor: '#111', border: offerError ? '1px solid #E8344E' : '1px solid #333',
                 color: '#fff', fontSize: '18px', fontWeight: 700,
                 textAlign: 'center', outline: 'none',
                 boxSizing: 'border-box',
               }}
             />
+            {offerError && (
+              <p style={{ fontSize: '13px', color: '#E8344E', margin: '8px 0 0', textAlign: 'center' }}>{offerError}</p>
+            )}
             <button
               onClick={handleOfferSubmit}
               disabled={offerLoading}
