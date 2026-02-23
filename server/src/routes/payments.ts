@@ -4,7 +4,7 @@ import Stripe from 'stripe'
 import { supabase, stripe, APP_BASE_URL, PAYPAL_BASE_URL, PAYPAL_MODE, ADMIN_EMAILS } from '../config'
 import { requireAuth, paymentLimiter } from '../middleware'
 import { calculateFees, getPaypalAccessToken } from '../utils'
-import { getActivePromotion } from './promotions'
+import { getActivePromotion, getValidPromoCode } from './promotions'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -299,7 +299,7 @@ router.delete('/api/stripe/card', requireAuth, async (req: AuthenticatedRequest,
 // Create a PaymentIntent when a buyer wins an auction
 router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { order_id } = req.body
+    const { order_id, promo_code } = req.body
     const buyerId = req.user!.id
 
     // Get order details
@@ -376,7 +376,35 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       }
     }
 
-    const totalAmount = order.amount
+    // Apply promo code discount (user-facing coupon)
+    let promoCodeId: string | null = null
+    let promoDiscount = 0
+    let totalAmount = order.amount
+
+    if (promo_code) {
+      const validCode = await getValidPromoCode(promo_code, buyerId)
+      if (validCode) {
+        promoCodeId = validCode.id
+        if (validCode.discount_type === 'item') {
+          // Discount on the item price
+          promoDiscount = Math.round(order.amount * (validCode.discount_percent / 100) * 100) / 100
+          totalAmount = Math.round((order.amount - promoDiscount) * 100) / 100
+          if (totalAmount < 0.50) totalAmount = 0.50 // Stripe minimum
+          // Recalculate fees on discounted amount
+          fees = calculateFees(totalAmount)
+          if (process.env.NODE_ENV !== 'production') {
+            console.log(`[PromoCode] ${validCode.code}: -${validCode.discount_percent}% on item = -${promoDiscount}€ → ${totalAmount}€`)
+          }
+        } else if (validCode.discount_type === 'commission') {
+          const discountFactor = validCode.discount_percent / 100
+          const discountedPlatformFee = Math.round(fees.platformFee * (1 - discountFactor) * 100) / 100
+          const newTotalFees = Math.round((discountedPlatformFee + fees.processingFee) * 100) / 100
+          const newSellerPayout = Math.round((order.amount - newTotalFees) * 100) / 100
+          fees = { ...fees, platformFee: discountedPlatformFee, totalFees: newTotalFees, sellerPayout: newSellerPayout }
+        }
+      }
+    }
+
     const amountCents = Math.round(totalAmount * 100)
     const feeCents = Math.round(fees.totalFees * 100)
 
@@ -467,6 +495,10 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     if (promotionId) {
       updateData.promotion_id = promotionId
     }
+    if (promoCodeId) {
+      updateData.promo_code_id = promoCodeId
+      updateData.promo_discount = promoDiscount
+    }
     if (autoCharged) {
       updateData.paid_at = new Date().toISOString()
       updateData.payout_status = 'held'
@@ -504,6 +536,20 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       return
     }
 
+    // Record promo code usage (async, non-blocking)
+    if (promoCodeId) {
+      ;(async () => {
+        try {
+          await supabase.from('promo_code_uses').insert({ promo_code_id: promoCodeId, user_id: buyerId, order_id: order_id })
+          // Increment usage count
+          const { data: pc } = await supabase.from('promo_codes').select('current_uses').eq('id', promoCodeId).single()
+          if (pc) await supabase.from('promo_codes').update({ current_uses: (pc.current_uses || 0) + 1 }).eq('id', promoCodeId)
+        } catch (err) {
+          console.error('[PromoCode] Usage record failed:', err)
+        }
+      })()
+    }
+
     res.json({
       client_secret: paymentIntent.client_secret,
       payment_intent_id: paymentIntent.id,
@@ -511,6 +557,7 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       auto_charged: autoCharged,
       shipping_cost: shippingCost,
       total_amount: totalAmount,
+      promo_discount: promoDiscount || undefined,
     })
   } catch (err: any) {
     console.error('Stripe PaymentIntent error:', err)

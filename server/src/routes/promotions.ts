@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import type { Response } from 'express'
 import { supabase } from '../config'
-import { requireAdmin, adminLimiter } from '../middleware'
+import { requireAdmin, adminLimiter, requireAuth } from '../middleware'
 import { sendApnsPush, logAdminAction } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
@@ -246,6 +246,171 @@ router.post('/api/admin/promotions/:id/notify', adminLimiter, requireAdmin, asyn
   } catch (err) {
     console.error('Notify promotion error:', err)
     res.status(500).json({ error: 'Failed to send notifications' })
+  }
+})
+
+// =============================================
+// PROMO CODES (user-facing coupon codes)
+// Table: promo_codes (code, discount_percent, discount_type, max_uses, current_uses, expires_at, is_active)
+// Table: promo_code_uses (promo_code_id, user_id, order_id)
+// =============================================
+
+// Helper: validate and get a promo code
+export async function getValidPromoCode(code: string, userId?: string): Promise<{
+  id: string
+  code: string
+  discount_percent: number
+  discount_type: 'item' | 'commission' | 'shipping'
+  max_uses: number | null
+  current_uses: number
+} | null> {
+  const { data } = await supabase
+    .from('promo_codes')
+    .select('*')
+    .eq('code', code.toUpperCase().trim())
+    .eq('is_active', true)
+    .maybeSingle()
+
+  if (!data) return null
+
+  // Check expiry
+  if (data.expires_at && new Date(data.expires_at) < new Date()) return null
+
+  // Check max uses
+  if (data.max_uses !== null && data.current_uses >= data.max_uses) return null
+
+  // Check if user already used this code
+  if (userId) {
+    const { data: used } = await supabase
+      .from('promo_code_uses')
+      .select('id')
+      .eq('promo_code_id', data.id)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (used) return null
+  }
+
+  return data
+}
+
+// PUBLIC: Validate a promo code (buyer checks before payment)
+router.post('/api/promo-codes/validate', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { code } = req.body
+    if (!code) {
+      res.status(400).json({ error: 'Code required' })
+      return
+    }
+
+    const promo = await getValidPromoCode(code, req.user!.id)
+
+    if (!promo) {
+      res.json({ valid: false })
+      return
+    }
+
+    res.json({
+      valid: true,
+      discount_percent: promo.discount_percent,
+      discount_type: promo.discount_type,
+      code: promo.code,
+    })
+  } catch (err) {
+    console.error('Validate promo code error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ADMIN: Create promo code
+router.post('/api/admin/promo-codes', adminLimiter, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { code, discount_percent, discount_type, max_uses, expires_at } = req.body
+
+    if (!code || !discount_percent) {
+      res.status(400).json({ error: 'code and discount_percent required' })
+      return
+    }
+
+    const type = discount_type || 'item'
+    if (!['item', 'commission', 'shipping'].includes(type)) {
+      res.status(400).json({ error: 'discount_type must be item, commission, or shipping' })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('promo_codes')
+      .insert({
+        code: code.toUpperCase().trim(),
+        discount_percent: Number(discount_percent),
+        discount_type: type,
+        max_uses: max_uses ? Number(max_uses) : null,
+        expires_at: expires_at || null,
+        created_by: req.user!.id,
+      })
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === '23505') {
+        res.status(409).json({ error: 'Code already exists' })
+        return
+      }
+      console.error('Create promo code error:', error.message)
+      res.status(500).json({ error: 'Failed to create promo code' })
+      return
+    }
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'create_promo_code', 'promo_code', data.id, { code, discount_percent })
+
+    res.json(data)
+  } catch (err) {
+    console.error('Create promo code error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ADMIN: List promo codes
+router.get('/api/admin/promo-codes', adminLimiter, requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { data, error } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch promo codes' })
+      return
+    }
+
+    res.json(data || [])
+  } catch (err) {
+    console.error('Fetch promo codes error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// ADMIN: Deactivate promo code
+router.delete('/api/admin/promo-codes/:id', adminLimiter, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const codeId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+
+    const { error } = await supabase
+      .from('promo_codes')
+      .update({ is_active: false })
+      .eq('id', codeId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to deactivate promo code' })
+      return
+    }
+
+    await logAdminAction(req.user!.id, req.user!.email || '', 'deactivate_promo_code', 'promo_code', codeId)
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('Deactivate promo code error:', err)
+    res.status(500).json({ error: 'Internal server error' })
   }
 })
 

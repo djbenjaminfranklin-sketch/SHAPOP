@@ -131,6 +131,10 @@ export default function Home() {
     return false
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchFocused, setSearchFocused] = useState(false)
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('shapop_search_history') || '[]') } catch { return [] }
+  })
   const [showFilters, setShowFilters] = useState(false)
   const [filterCity, setFilterCity] = useState('')
   const [filterMinRating, setFilterMinRating] = useState(0) // 0 = no filter, 3, 4, 4.5
@@ -319,6 +323,20 @@ export default function Home() {
     setShowCityPicker(false)
   }
 
+  const saveSearchHistory = (query: string) => {
+    const q = query.trim()
+    if (!q || q.length < 2) return
+    const updated = [q, ...searchHistory.filter(h => h.toLowerCase() !== q.toLowerCase())].slice(0, 10)
+    setSearchHistory(updated)
+    localStorage.setItem('shapop_search_history', JSON.stringify(updated))
+  }
+
+  const removeSearchHistoryItem = (item: string) => {
+    const updated = searchHistory.filter(h => h !== item)
+    setSearchHistory(updated)
+    localStorage.setItem('shapop_search_history', JSON.stringify(updated))
+  }
+
   // Pull-to-refresh (disabled — causes glitchy behavior on iOS WKWebView)
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -392,10 +410,18 @@ export default function Home() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
+              onKeyDown={e => { if (e.key === 'Enter') { saveSearchHistory(searchQuery); setSearchFocused(false); (e.target as HTMLInputElement).blur() } }}
               placeholder={t(lang, 'search_placeholder')}
               aria-label={t(lang, 'search_placeholder')}
               style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
             />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            )}
           </div>
           {/* Filter button */}
           <button
@@ -468,6 +494,39 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        {/* Search history dropdown */}
+        {searchFocused && !searchQuery && searchHistory.length > 0 && (
+          <div style={{ padding: '4px 16px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span style={{ fontSize: '12px', color: '#888', fontWeight: 600 }}>
+                {lang === 'fr' ? 'Recherches recentes' : lang === 'es' ? 'Busquedas recientes' : lang === 'he' ? 'חיפושים אחרונים' : 'Recent searches'}
+              </span>
+              <button
+                onClick={() => { setSearchHistory([]); localStorage.removeItem('shapop_search_history') }}
+                style={{ background: 'none', border: 'none', color: '#F0908A', fontSize: '12px', cursor: 'pointer' }}
+              >
+                {lang === 'fr' ? 'Effacer' : lang === 'es' ? 'Borrar' : lang === 'he' ? 'נקה' : 'Clear'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {searchHistory.map(item => (
+                <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#1C1C1E', borderRadius: '16px', padding: '6px 10px' }}>
+                  <button
+                    onClick={() => { setSearchQuery(item); setSearchFocused(false) }}
+                    style={{ background: 'none', border: 'none', color: '#ccc', fontSize: '13px', cursor: 'pointer', padding: 0 }}
+                  >{item}</button>
+                  <button
+                    onClick={() => removeSearchHistoryItem(item)}
+                    style={{ background: 'none', border: 'none', padding: '0 0 0 2px', cursor: 'pointer' }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* City indicator — compact, under search */}
         <div style={{ padding: '0 16px 6px', display: 'flex', alignItems: 'center', position: 'relative' }}>

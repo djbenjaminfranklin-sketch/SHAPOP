@@ -667,6 +667,8 @@ export default function StreamView() {
   const [walletAddress, setWalletAddress] = useState<{ name: string; street: string; city: string; zip: string } | null>(null)
   const [walletCard, setWalletCard] = useState<{ brand?: string; last4?: string } | null>(null)
   const [promoCode, setPromoCode] = useState('')
+  const [promoStatus, setPromoStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle')
+  const [promoDiscount, setPromoDiscount] = useState<{ percent: number; type: string } | null>(null)
   const [showRelayPicker, setShowRelayPicker] = useState(false)
   const [selectedRelay, setSelectedRelay] = useState<{ id: string; name: string } | null>(() => {
     try { const s = localStorage.getItem('shapop_relay_point'); return s ? JSON.parse(s) : null } catch { return null }
@@ -1452,7 +1454,7 @@ export default function StreamView() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
               },
-              body: JSON.stringify({ order_id: order.id }),
+              body: JSON.stringify({ order_id: order.id, promo_code: localStorage.getItem('shapop_promo_code') || undefined }),
             })
             if (!resp.ok) {
               const err = await resp.json().catch(() => ({}))
@@ -4341,34 +4343,63 @@ export default function StreamView() {
                 <input
                   type="text"
                   value={promoCode}
-                  onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                  onChange={e => { setPromoCode(e.target.value.toUpperCase()); setPromoStatus('idle'); setPromoDiscount(null) }}
                   placeholder={ct.walletPromoPlaceholder}
                   style={{
                     flex: 1, padding: '12px 14px', borderRadius: '10px',
-                    backgroundColor: '#0A0A0A', border: '1px solid #333',
+                    backgroundColor: '#0A0A0A',
+                    border: `1px solid ${promoStatus === 'valid' ? '#22C55E' : promoStatus === 'invalid' ? '#EF4444' : '#333'}`,
                     color: '#fff', fontSize: '14px', outline: 'none',
                   }}
                 />
                 <button
-                  onClick={() => {
-                    if (promoCode.trim()) {
-                      hapticTap()
-                      // Store promo code for use during checkout
-                      localStorage.setItem('shapop_promo_code', promoCode.trim())
-                      setShowWallet(false)
+                  onClick={async () => {
+                    if (!promoCode.trim()) return
+                    hapticTap()
+                    setPromoStatus('validating')
+                    try {
+                      const { data: session } = await supabase.auth.getSession()
+                      const resp = await apiFetch('/api/promo-codes/validate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.session?.access_token}` },
+                        body: JSON.stringify({ code: promoCode.trim() }),
+                      })
+                      const data = await resp.json()
+                      if (data.valid) {
+                        setPromoStatus('valid')
+                        setPromoDiscount({ percent: data.discount_percent, type: data.discount_type })
+                        localStorage.setItem('shapop_promo_code', promoCode.trim())
+                      } else {
+                        setPromoStatus('invalid')
+                        setPromoDiscount(null)
+                        localStorage.removeItem('shapop_promo_code')
+                      }
+                    } catch {
+                      setPromoStatus('invalid')
                     }
                   }}
-                  disabled={!promoCode.trim()}
+                  disabled={!promoCode.trim() || promoStatus === 'validating'}
                   style={{
                     padding: '12px 20px', borderRadius: '10px',
-                    background: promoCode.trim() ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
+                    background: promoCode.trim() && promoStatus !== 'validating' ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
                     border: 'none', color: '#fff', fontSize: '14px', fontWeight: 600,
-                    cursor: promoCode.trim() ? 'pointer' : 'not-allowed',
+                    cursor: promoCode.trim() && promoStatus !== 'validating' ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  {ct.walletApply}
+                  {promoStatus === 'validating' ? '...' : ct.walletApply}
                 </button>
               </div>
+              {promoStatus === 'valid' && promoDiscount && (
+                <p style={{ fontSize: '13px', color: '#22C55E', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
+                  -{promoDiscount.percent}% {promoDiscount.type === 'item' ? (lang === 'fr' ? 'sur le prix' : 'on price') : promoDiscount.type === 'commission' ? (lang === 'fr' ? 'sur la commission' : 'on commission') : (lang === 'fr' ? 'sur la livraison' : 'on shipping')}
+                </p>
+              )}
+              {promoStatus === 'invalid' && (
+                <p style={{ fontSize: '13px', color: '#EF4444', margin: '6px 0 0' }}>
+                  {lang === 'fr' ? 'Code invalide ou deja utilise' : lang === 'es' ? 'Codigo invalido o ya usado' : lang === 'he' ? 'קוד לא תקף או כבר בשימוש' : 'Invalid or already used code'}
+                </p>
+              )}
             </div>
           </div>
         </div>
