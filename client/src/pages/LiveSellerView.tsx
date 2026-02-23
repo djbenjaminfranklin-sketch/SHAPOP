@@ -74,6 +74,17 @@ const pageContent = {
     boostConfirmNo: 'Annuler',
     boostNoCard: 'Ajoutez une carte bancaire dans Parametres > Paiements.',
     boostPayFailed: 'Le paiement a echoue. Verifiez votre carte.',
+    cohostInvite: 'Inviter un co-host',
+    cohostSearch: 'Rechercher un vendeur...',
+    cohostRemove: 'Retirer le co-host',
+    cohostNone: 'Aucun vendeur trouve',
+    cohostActive: 'Co-host',
+    multicast: 'Multicast',
+    multicastTitle: 'Diffuser sur d\'autres plateformes',
+    multicastAdd: 'Ajouter une destination RTMP',
+    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
+    multicastStart: 'Diffuser',
+    multicastStop: 'Arreter',
   },
   en: {
     live: 'LIVE',
@@ -138,6 +149,17 @@ const pageContent = {
     boostConfirmNo: 'Cancel',
     boostNoCard: 'Please add a card in Settings > Payments first.',
     boostPayFailed: 'Payment failed. Please check your card.',
+    cohostInvite: 'Invite co-host',
+    cohostSearch: 'Search a seller...',
+    cohostRemove: 'Remove co-host',
+    cohostNone: 'No seller found',
+    cohostActive: 'Co-host',
+    multicast: 'Multicast',
+    multicastTitle: 'Stream to other platforms',
+    multicastAdd: 'Add RTMP destination',
+    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
+    multicastStart: 'Start',
+    multicastStop: 'Stop',
   },
   he: {
     live: 'שידור',
@@ -202,6 +224,17 @@ const pageContent = {
     boostConfirmNo: 'ביטול',
     boostNoCard: 'הוסף כרטיס בהגדרות > תשלומים.',
     boostPayFailed: 'התשלום נכשל. בדוק את הכרטיס.',
+    cohostInvite: 'הזמן שותף',
+    cohostSearch: '...חפש מוכר',
+    cohostRemove: 'הסר שותף',
+    cohostNone: 'לא נמצא מוכר',
+    cohostActive: 'שותף',
+    multicast: 'שידור מרובה',
+    multicastTitle: 'שדר לפלטפורמות אחרות',
+    multicastAdd: 'הוסף יעד RTMP',
+    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
+    multicastStart: 'התחל',
+    multicastStop: 'עצור',
   },
   es: {
     live: 'EN VIVO',
@@ -266,6 +299,17 @@ const pageContent = {
     boostConfirmNo: 'Cancelar',
     boostNoCard: 'Anade una tarjeta en Ajustes > Pagos.',
     boostPayFailed: 'El pago fallo. Revisa tu tarjeta.',
+    cohostInvite: 'Invitar co-host',
+    cohostSearch: 'Buscar vendedor...',
+    cohostRemove: 'Quitar co-host',
+    cohostNone: 'Ningun vendedor encontrado',
+    cohostActive: 'Co-host',
+    multicast: 'Multicast',
+    multicastTitle: 'Transmitir a otras plataformas',
+    multicastAdd: 'Agregar destino RTMP',
+    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
+    multicastStart: 'Iniciar',
+    multicastStop: 'Detener',
   },
 }
 
@@ -298,6 +342,8 @@ export default function LiveSellerView() {
   const videoRef = useRef<HTMLVideoElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  const [isStreamOwner, setIsStreamOwner] = useState(true) // false if co-host
 
   const [items, setItems] = useState<Item[]>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
@@ -339,6 +385,19 @@ export default function LiveSellerView() {
   const [isBoosted, setIsBoosted] = useState(false)
   const [showBoostConfirm, setShowBoostConfirm] = useState(false)
   const [boostLoading, setBoostLoading] = useState(false)
+
+  // Co-host
+  const [showCohostModal, setShowCohostModal] = useState(false)
+  const [cohostSearch, setCohostSearch] = useState('')
+  const [cohostResults, setCohostResults] = useState<{ id: string; display_name: string; avatar_url: string | null; store_name?: string }[]>([])
+  const [cohostSearching, setCohostSearching] = useState(false)
+  const [cohost, setCohost] = useState<{ id: string; display_name: string; avatar_url: string | null } | null>(null)
+
+  // Multicast
+  const [showMulticastModal, setShowMulticastModal] = useState(false)
+  const [multicastUrl, setMulticastUrl] = useState('')
+  const [multicastDestinations, setMulticastDestinations] = useState<{ url: string; egressId: string }[]>([])
+  const [multicastLoading, setMulticastLoading] = useState(false)
 
   // OBS/RTMP
   const [showObsModal, setShowObsModal] = useState(false)
@@ -512,10 +571,16 @@ export default function LiveSellerView() {
     const fetchViewerCount = async () => {
       const { data } = await supabase
         .from('streams')
-        .select('viewer_count')
+        .select('viewer_count, seller_id, cohost_id')
         .eq('id', streamId)
         .single()
-      if (data) setViewerCount(data.viewer_count || 0)
+      if (data) {
+        setViewerCount(data.viewer_count || 0)
+        // Detect if current user is co-host (not the stream owner)
+        if (user && data.seller_id !== user.id && data.cohost_id === user.id) {
+          setIsStreamOwner(false)
+        }
+      }
     }
     fetchViewerCount()
 
@@ -1071,6 +1136,88 @@ export default function LiveSellerView() {
     setBoostLoading(false)
   }
 
+  // Co-host search
+  const handleCohostSearch = async (q: string) => {
+    setCohostSearch(q)
+    if (q.length < 2) { setCohostResults([]); return }
+    setCohostSearching(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      const resp = await apiFetch('/api/sellers/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ query: q }),
+      })
+      const data = await resp.json()
+      setCohostResults(data.sellers || [])
+    } catch { setCohostResults([]) }
+    setCohostSearching(false)
+  }
+
+  const handleInviteCohost = async (sellerId: string, name: string, avatar: string | null) => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      const resp = await apiFetch(`/api/streams/${streamId}/cohost`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ cohost_id: sellerId }),
+      })
+      if (resp.ok) {
+        setCohost({ id: sellerId, display_name: name, avatar_url: avatar })
+        setShowCohostModal(false)
+        setCohostSearch('')
+        setCohostResults([])
+      }
+    } catch (err) { console.error('Cohost invite error:', err) }
+  }
+
+  const handleRemoveCohost = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      await apiFetch(`/api/streams/${streamId}/cohost`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      setCohost(null)
+    } catch (err) { console.error('Cohost remove error:', err) }
+  }
+
+  // Multicast
+  const handleStartMulticast = async () => {
+    if (!multicastUrl.trim() || multicastLoading) return
+    setMulticastLoading(true)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      const resp = await apiFetch(`/api/streams/${streamId}/multicast`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ rtmp_url: multicastUrl.trim() }),
+      })
+      const data = await resp.json()
+      if (resp.ok && data.egress_id) {
+        setMulticastDestinations(prev => [...prev, { url: multicastUrl.trim(), egressId: data.egress_id }])
+        setMulticastUrl('')
+      }
+    } catch (err) { console.error('Multicast error:', err) }
+    setMulticastLoading(false)
+  }
+
+  const handleStopMulticast = async (egressId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      await apiFetch(`/api/streams/${streamId}/multicast/${egressId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      setMulticastDestinations(prev => prev.filter(d => d.egressId !== egressId))
+    } catch (err) { console.error('Stop multicast error:', err) }
+  }
+
   const handleEndLive = async () => {
     // Stop LiveKit broadcast
     stopBroadcast()
@@ -1409,6 +1556,30 @@ export default function LiveSellerView() {
               <polyline points="16 12 12 16 8 12"/>
             </svg>
           </button>
+          {isStreamOwner && <><button
+            onClick={() => cohost ? handleRemoveCohost() : setShowCohostModal(true)}
+            title="Co-host"
+            style={{
+              height: '34px', padding: '0 10px',
+              borderRadius: '100px',
+              background: cohost ? 'linear-gradient(135deg, #8B5CF6, #7C3AED)' : 'rgba(0,0,0,0.5)',
+              backdropFilter: cohost ? 'none' : 'blur(8px)',
+              border: cohost ? 'none' : '1px solid rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', gap: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <path d="M20 8v6M23 11h-6"/>
+            </svg>
+            {cohost && (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {cohost.display_name}
+              </span>
+            )}
+          </button>
           <button
             onClick={handleGetRtmpUrl}
             title="OBS"
@@ -1467,6 +1638,26 @@ export default function LiveSellerView() {
             </span>
           </button>
           <button
+            onClick={() => setShowMulticastModal(true)}
+            style={{
+              height: '34px', padding: '0 10px',
+              borderRadius: '100px',
+              background: multicastDestinations.length > 0 ? 'linear-gradient(135deg, #3B82F6, #2563EB)' : 'rgba(0,0,0,0.5)',
+              backdropFilter: multicastDestinations.length > 0 ? 'none' : 'blur(8px)',
+              border: multicastDestinations.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.15)',
+              display: 'flex', alignItems: 'center', gap: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/>
+              <line x1="2" y1="20" x2="2.01" y2="20"/>
+            </svg>
+            {multicastDestinations.length > 0 && (
+              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff' }}>{multicastDestinations.length}</span>
+            )}
+          </button>
+          <button
             onClick={() => setShowEndConfirm(true)}
             style={{
               height: '34px', padding: '0 10px',
@@ -1481,7 +1672,7 @@ export default function LiveSellerView() {
             <svg width="10" height="10" viewBox="0 0 24 24" fill="#E8344E">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
             </svg>
-          </button>
+          </button></>}
         </div>
       </div>
 
@@ -1587,8 +1778,8 @@ export default function LiveSellerView() {
           </button>
         </div>
 
-        {/* Item + controls panel with solid background */}
-        <div style={{
+        {/* Item + controls panel with solid background (hidden for co-host) */}
+        {isStreamOwner && <div style={{
           backgroundColor: 'rgba(0,0,0,0.88)',
           backdropFilter: 'blur(16px)',
           borderRadius: '14px',
@@ -1942,7 +2133,7 @@ export default function LiveSellerView() {
               </div>
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {/* Giveaway form/panel overlay */}
@@ -2149,6 +2340,160 @@ export default function LiveSellerView() {
             }}>
               ⭐ ✨ 🌟 ✨ ⭐
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ CO-HOST INVITE MODAL ═══ */}
+      {showCohostModal && (
+        <div
+          onClick={() => setShowCohostModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{
+            backgroundColor: '#1A1A1A', borderRadius: '20px 20px 0 0',
+            padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            width: '100%', maxHeight: '70vh',
+          }}>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
+              {ct.cohostInvite}
+            </h3>
+            <input
+              type="text"
+              value={cohostSearch}
+              onChange={(e) => handleCohostSearch(e.target.value)}
+              placeholder={ct.cohostSearch}
+              autoFocus
+              style={{
+                width: '100%', padding: '12px 14px', boxSizing: 'border-box',
+                backgroundColor: '#0D0D0D', border: '1px solid #333',
+                borderRadius: '12px', color: '#fff', fontSize: '15px', outline: 'none',
+                marginBottom: '12px',
+              }}
+            />
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {cohostSearching && (
+                <p style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>...</p>
+              )}
+              {!cohostSearching && cohostSearch.length >= 2 && cohostResults.length === 0 && (
+                <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>{ct.cohostNone}</p>
+              )}
+              {cohostResults.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => handleInviteCohost(s.id, s.store_name || s.display_name, s.avatar_url)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '12px', backgroundColor: 'transparent', border: 'none',
+                    borderBottom: '1px solid #222', cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#333',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', flexShrink: 0,
+                  }}>
+                    {s.avatar_url ? (
+                      <img src={s.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ color: '#888', fontSize: '14px', fontWeight: 700 }}>
+                        {(s.store_name || s.display_name || '?').charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ color: '#fff', fontSize: '15px', fontWeight: 600 }}>
+                    {s.store_name || s.display_name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ MULTICAST MODAL ═══ */}
+      {showMulticastModal && (
+        <div
+          onClick={() => setShowMulticastModal(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{
+            backgroundColor: '#1A1A1A', borderRadius: '20px 20px 0 0',
+            padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            width: '100%',
+          }}>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
+              {ct.multicastTitle}
+            </h3>
+
+            {/* Active destinations */}
+            {multicastDestinations.map((d) => (
+              <div key={d.egressId} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 12px', marginBottom: '8px',
+                backgroundColor: 'rgba(59,130,246,0.1)',
+                border: '1px solid rgba(59,130,246,0.3)',
+                borderRadius: '10px',
+              }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22C55E', flexShrink: 0 }} />
+                <span style={{ flex: 1, fontSize: '12px', color: '#93C5FD', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {d.url.replace(/\/[^/]+$/, '/****')}
+                </span>
+                <button
+                  onClick={() => handleStopMulticast(d.egressId)}
+                  style={{
+                    padding: '4px 10px', borderRadius: '8px', border: 'none',
+                    backgroundColor: 'rgba(232,52,78,0.2)', color: '#E8344E',
+                    fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                  }}
+                >
+                  {ct.multicastStop}
+                </button>
+              </div>
+            ))}
+
+            {/* Add new destination */}
+            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 8px' }}>{ct.multicastAdd}</p>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                value={multicastUrl}
+                onChange={(e) => setMulticastUrl(e.target.value)}
+                placeholder={ct.multicastPlaceholder}
+                style={{
+                  flex: 1, padding: '10px 12px', boxSizing: 'border-box',
+                  backgroundColor: '#0D0D0D', border: '1px solid #333',
+                  borderRadius: '10px', color: '#fff', fontSize: '13px', outline: 'none',
+                }}
+              />
+              <button
+                onClick={handleStartMulticast}
+                disabled={!multicastUrl.trim() || multicastLoading}
+                style={{
+                  padding: '10px 16px', borderRadius: '10px', border: 'none',
+                  background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+                  color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  opacity: !multicastUrl.trim() || multicastLoading ? 0.5 : 1,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {multicastLoading ? '...' : ct.multicastStart}
+              </button>
+            </div>
+
+            <p style={{ fontSize: '11px', color: '#555', margin: '12px 0 0', lineHeight: 1.4 }}>
+              YouTube: rtmp://a.rtmp.youtube.com/live2/KEY<br/>
+              Instagram: rtmp://live-upload.instagram.com:443/rtmp/KEY<br/>
+              TikTok: rtmp://push.tiktokcdn.com/live/KEY
+            </p>
           </div>
         </div>
       )}

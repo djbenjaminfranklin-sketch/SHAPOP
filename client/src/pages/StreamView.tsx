@@ -726,8 +726,9 @@ export default function StreamView() {
     setTimeout(() => setToastMessage(null), 2000)
   }, [])
 
-  // Determine if user is the seller of this stream
+  // Determine if user is the seller or co-host of this stream
   const isSeller = !!(user && stream && stream.seller_id === user.id)
+  const isCohost = !!(user && stream && (stream as any).cohost_id === user.id)
   const isLive = stream?.status === 'live'
 
   // Redirect seller to prepare-live page for their own scheduled streams
@@ -2633,6 +2634,22 @@ export default function StreamView() {
                         muted={viewerMuted}
                         style={{ width: '100%', height: '100%' }}
                       />
+                      {/* Co-host join button */}
+                      {isCohost && isLive && (
+                        <button
+                          onClick={() => navigate(`/live-seller/${id}`)}
+                          style={{
+                            position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 60px)',
+                            left: '50%', transform: 'translateX(-50%)', zIndex: 30,
+                            padding: '10px 20px', borderRadius: '12px', border: 'none',
+                            background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
+                            color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                            boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
+                          }}
+                        >
+                          Rejoindre en co-host
+                        </button>
+                      )}
                       {/* Unmute button */}
                       {viewerMuted && (
                         <button

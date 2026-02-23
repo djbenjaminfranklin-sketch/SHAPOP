@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { AccessToken } from 'livekit-server-sdk'
 import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
-import { EncodedFileOutput, S3Upload } from 'livekit-server-sdk'
+import { EncodedFileOutput, S3Upload, StreamOutput, StreamProtocol } from 'livekit-server-sdk'
 import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore } from '../utils'
 import type { AuthenticatedRequest } from '../types'
@@ -668,7 +668,7 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
 
     const { data: stream } = await supabase
       .from('streams')
-      .select('seller_id, livekit_room_name')
+      .select('seller_id, cohost_id, livekit_room_name')
       .eq('id', streamId)
       .single()
 
@@ -683,7 +683,8 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
     }
 
     const isSeller = stream.seller_id === userId
-    const identity = isSeller ? `seller-${userId}` : `viewer-${userId}`
+    const isCohost = stream.cohost_id === userId
+    const identity = isSeller ? `seller-${userId}` : isCohost ? `cohost-${userId}` : `viewer-${userId}`
 
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
       identity,
@@ -693,7 +694,7 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
     token.addGrant({
       room: stream.livekit_room_name,
       roomJoin: true,
-      canPublish: isSeller,
+      canPublish: isSeller || isCohost,
       canSubscribe: true,
     })
 
@@ -1218,6 +1219,187 @@ router.post('/api/streams/:id/boost', requireAuth, async (req: AuthenticatedRequ
       return
     }
     res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// Co-hosting
+// =============================================
+
+// POST /api/streams/:id/cohost — invite a co-host by username/email
+router.post('/api/streams/:id/cohost', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = String(req.params.id)
+    const userId = req.user!.id
+    const { cohost_id } = req.body
+
+    if (!cohost_id) {
+      res.status(400).json({ error: 'cohost_id required' })
+      return
+    }
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, cohost_id, status')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    if (cohost_id === userId) {
+      res.status(400).json({ error: 'Cannot co-host your own stream' })
+      return
+    }
+
+    // Verify cohost exists and is a seller
+    const { data: cohostProfile } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, store_name, is_seller')
+      .eq('id', cohost_id)
+      .single()
+
+    if (!cohostProfile) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    await supabase.from('streams').update({ cohost_id }).eq('id', streamId)
+
+    res.json({ ok: true, cohost: { id: cohostProfile.id, display_name: cohostProfile.store_name || cohostProfile.display_name, avatar_url: cohostProfile.avatar_url } })
+  } catch (err) {
+    console.error('POST /api/streams/:id/cohost error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// DELETE /api/streams/:id/cohost — remove co-host
+router.delete('/api/streams/:id/cohost', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = String(req.params.id)
+    const userId = req.user!.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, cohost_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || (stream.seller_id !== userId && stream.cohost_id !== userId)) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    await supabase.from('streams').update({ cohost_id: null }).eq('id', streamId)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('DELETE /api/streams/:id/cohost error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/sellers/search — search sellers by name (for co-host invite)
+router.post('/api/sellers/search', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { query } = req.body
+    if (!query || typeof query !== 'string' || query.length < 2) {
+      res.json({ sellers: [] })
+      return
+    }
+
+    const { data: sellers } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, store_name')
+      .eq('is_seller', true)
+      .neq('id', req.user!.id)
+      .or(`display_name.ilike.%${query}%,store_name.ilike.%${query}%`)
+      .limit(10)
+
+    res.json({ sellers: sellers || [] })
+  } catch (err) {
+    console.error('POST /api/sellers/search error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// Multicasting — stream to external RTMP destinations (YouTube, Instagram, TikTok)
+// =============================================
+
+// POST /api/streams/:id/multicast — start streaming to an external RTMP URL
+router.post('/api/streams/:id/multicast', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = String(req.params.id)
+    const userId = req.user!.id
+    const { rtmp_url } = req.body // full RTMP URL including stream key, e.g. rtmp://a.rtmp.youtube.com/live2/xxxx-xxxx
+
+    if (!rtmp_url || typeof rtmp_url !== 'string' || !rtmp_url.startsWith('rtmp')) {
+      res.status(400).json({ error: 'Valid RTMP URL required' })
+      return
+    }
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id, status, livekit_room_name')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    if (stream.status !== 'live') {
+      res.status(400).json({ error: 'Stream must be live to multicast' })
+      return
+    }
+
+    if (!livekitEgressClient || !stream.livekit_room_name) {
+      res.status(500).json({ error: 'LiveKit not configured' })
+      return
+    }
+
+    // Start a room composite egress to the external RTMP destination
+    const streamOutput = new StreamOutput({ urls: [rtmp_url], protocol: StreamProtocol.RTMP })
+    const egress = await livekitEgressClient.startRoomCompositeEgress(stream.livekit_room_name, streamOutput)
+
+    res.json({ ok: true, egress_id: egress.egressId })
+  } catch (err) {
+    console.error('POST /api/streams/:id/multicast error:', err)
+    res.status(500).json({ error: 'Failed to start multicast' })
+  }
+})
+
+// DELETE /api/streams/:id/multicast/:egressId — stop an external stream
+router.delete('/api/streams/:id/multicast/:egressId', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const streamId = String(req.params.id)
+    const egressId = String(req.params.egressId)
+    const userId = req.user!.id
+
+    const { data: stream } = await supabase
+      .from('streams')
+      .select('seller_id')
+      .eq('id', streamId)
+      .single()
+
+    if (!stream || stream.seller_id !== userId) {
+      res.status(403).json({ error: 'Not authorized' })
+      return
+    }
+
+    if (!livekitEgressClient) {
+      res.status(500).json({ error: 'LiveKit not configured' })
+      return
+    }
+
+    await livekitEgressClient.stopEgress(egressId)
+    res.json({ ok: true })
+  } catch (err) {
+    console.error('DELETE /api/streams/:id/multicast error:', err)
+    res.status(500).json({ error: 'Failed to stop multicast' })
   }
 })
 
