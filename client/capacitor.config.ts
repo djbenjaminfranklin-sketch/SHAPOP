@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
     allowsLinkPreview: false,
-    allowsInlineMediaPlayback: true
+    allowsInlineMediaPlayback: true,
   },
   server: {
     allowNavigation: ['*.supabase.co', '*.stripe.com', '*.onrender.com']

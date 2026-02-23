@@ -13,7 +13,7 @@ import { cacheGet, cacheSet } from '../lib/cache'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
 
-type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
+type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string }
 
 import { t } from '../lib/i18n'
 import { getCommunitiesByCountry, detectUserCountry } from '../lib/communitiesData'
@@ -131,6 +131,9 @@ export default function Home() {
     return false
   })
   const [searchQuery, setSearchQuery] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterCity, setFilterCity] = useState('')
+  const [filterMinRating, setFilterMinRating] = useState(0) // 0 = no filter, 3, 4, 4.5
   const [fetchError, setFetchError] = useState(false)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [activePromotion, setActivePromotion] = useState<{ id: string; title: string; description: string | null; type: string; discount_percent: number } | null>(null)
@@ -290,6 +293,15 @@ export default function Home() {
   const displayStreams = useMemo(() => {
     const blocked: string[] = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
     let result = filteredStreams.filter(s => !blocked.includes(s.seller_id))
+    // City filter
+    if (filterCity) {
+      const fc = filterCity.toLowerCase()
+      result = result.filter(s => (s.city || '').toLowerCase().includes(fc))
+    }
+    // Seller rating filter
+    if (filterMinRating > 0) {
+      result = result.filter(s => (s.seller_score || 0) >= filterMinRating)
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       result = result.filter(s =>
@@ -385,6 +397,24 @@ export default function Home() {
               style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
             />
           </div>
+          {/* Filter button */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            aria-label="Filters"
+            style={{
+              padding: '8px', background: 'none', border: 'none', cursor: 'pointer',
+              position: 'relative',
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(filterCity || filterMinRating > 0) ? '#F0908A' : '#999'} strokeWidth="1.5">
+              <line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/>
+              <line x1="7" y1="12" x2="17" y2="12" strokeLinecap="round"/>
+              <line x1="10" y1="18" x2="14" y2="18" strokeLinecap="round"/>
+            </svg>
+            {(filterCity || filterMinRating > 0) && (
+              <div style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F0908A' }} />
+            )}
+          </button>
           {/* Chat icon */}
           <button onClick={() => navigate('/messages')} aria-label="Messages" style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
@@ -544,6 +574,71 @@ export default function Home() {
       <div style={{ marginTop: '2px', marginBottom: '16px' }}>
         <CategoryScroll selected={selectedCategory} onSelect={setSelectedCategory} lang={lang} />
       </div>
+
+      {/* Filter panel */}
+      {showFilters && (
+        <div style={{
+          margin: '0 16px 12px', padding: '14px 16px',
+          backgroundColor: '#1A1A1A', borderRadius: '14px',
+          border: '1px solid #333',
+          display: 'flex', flexDirection: 'column', gap: '12px',
+        }}>
+          {/* City filter */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
+              {lang === 'fr' ? 'Ville' : lang === 'es' ? 'Ciudad' : lang === 'he' ? 'עיר' : 'City'}
+            </label>
+            <input
+              type="text"
+              value={filterCity}
+              onChange={e => setFilterCity(e.target.value)}
+              placeholder={lang === 'fr' ? 'Paris, Lyon...' : 'Paris, Madrid...'}
+              style={{
+                width: '100%', padding: '10px 12px', boxSizing: 'border-box',
+                backgroundColor: '#0D0D0D', border: '1px solid #333',
+                borderRadius: '10px', color: '#fff', fontSize: '14px', outline: 'none',
+              }}
+            />
+          </div>
+          {/* Seller rating filter */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
+              {lang === 'fr' ? 'Note vendeur minimum' : lang === 'es' ? 'Calificacion minima' : lang === 'he' ? 'דירוג מינימלי' : 'Min seller rating'}
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {[0, 3, 4, 4.5].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setFilterMinRating(r)}
+                  style={{
+                    flex: 1, padding: '8px 0',
+                    backgroundColor: filterMinRating === r ? 'rgba(240,144,138,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: filterMinRating === r ? '1px solid #F0908A' : '1px solid #333',
+                    borderRadius: '8px',
+                    color: filterMinRating === r ? '#F0908A' : '#888',
+                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {r === 0 ? (lang === 'fr' ? 'Tous' : 'All') : `${r}+`}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Reset */}
+          {(filterCity || filterMinRating > 0) && (
+            <button
+              onClick={() => { setFilterCity(''); setFilterMinRating(0) }}
+              style={{
+                padding: '8px', backgroundColor: 'transparent',
+                border: '1px solid #444', borderRadius: '8px',
+                color: '#888', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {lang === 'fr' ? 'Reinitialiser' : lang === 'es' ? 'Restablecer' : lang === 'he' ? 'איפוס' : 'Reset'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Promotion banner */}
       {activePromotion && !promoBannerDismissed && (() => {

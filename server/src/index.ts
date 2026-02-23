@@ -14,7 +14,7 @@ import authRoutes from './routes/auth'
 import streamRoutes from './routes/streams'
 import itemRoutes from './routes/items'
 import orderRoutes from './routes/orders'
-import { cancelOverdueOrders, remindShipDeadline } from './routes/orders'
+import { cancelOverdueOrders, remindShipDeadline, remindPendingPayments } from './routes/orders'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
 import messageRoutes from './routes/messages'
@@ -173,4 +173,15 @@ server.listen(PORT, () => {
       console.error('[Ship-Deadline] Error:', err)
     }
   }, 60 * 60 * 1000) // 1 hour
+
+  // Remind buyers about pending payments every 6 hours
+  console.log('[Payments] Payment reminder enabled (every 6h)')
+  setInterval(async () => {
+    try {
+      const reminded = await remindPendingPayments()
+      if (reminded > 0) console.log(`[Payments] Reminded ${reminded} buyer(s) about pending payment`)
+    } catch (err) {
+      console.error('[Payments] Reminder error:', err)
+    }
+  }, 6 * 60 * 60 * 1000) // 6 hours
 })

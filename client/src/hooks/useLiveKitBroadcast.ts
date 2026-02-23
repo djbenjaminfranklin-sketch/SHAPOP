@@ -92,8 +92,26 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
         return
       }
 
-      // Publish camera and microphone
+      // Publish camera and microphone with HD quality
       await room.localParticipant.enableCameraAndMicrophone()
+      // Upgrade video encoding to higher resolution if possible
+      const camPub = Array.from(room.localParticipant.trackPublications.values()).find(
+        p => p.track && p.source === 'camera'
+      )
+      if (camPub?.track) {
+        try {
+          const mediaTrack = camPub.track.mediaStreamTrack
+          if (mediaTrack && 'applyConstraints' in mediaTrack) {
+            await mediaTrack.applyConstraints({
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              frameRate: { ideal: 30 },
+            })
+          }
+        } catch {
+          // constraints not supported, continue with defaults
+        }
+      }
       setIsBroadcasting(true)
     } catch (err) {
       setError(`LiveKit error: ${(err as Error).message}`)

@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateFees, calculateShippingCost, getCarrierForZone, getZoneFromCountry, notifyUser } from '../utils'
+import { calculateFees, calculateShippingCost, getCarrierForZone, getZoneFromCountry, notifyUser, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -52,7 +52,7 @@ router.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: R
     // Fetch the item — must be sold with a winner
     const { data: item, error: itemError } = await supabase
       .from('items')
-      .select('id, status, winner_id, current_price, seller_id, stream_id')
+      .select('id, title, status, winner_id, current_price, seller_id, stream_id')
       .eq('id', item_id)
       .single()
 
@@ -166,6 +166,20 @@ router.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: R
     }
 
     res.json(order)
+
+    // Send confirmation email (async, don't block response)
+    const { data: sellerProfile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', item.seller_id)
+      .single()
+
+    sendOrderConfirmationEmail(item.winner_id, {
+      id: order.id,
+      itemTitle: item.title || 'Article',
+      amount: item.current_price,
+      sellerName: sellerProfile?.display_name || 'Vendeur',
+    }).catch(err => console.error('[email] Order confirmation failed:', err))
   } catch (err) {
     console.error('POST /api/orders error:', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -979,6 +993,57 @@ export async function remindShipDeadline(): Promise<number> {
       reminded++
     } catch {
       // ignore notification errors
+    }
+  }
+
+  return reminded
+}
+
+// =============================================
+// CRON: Remind buyers about pending payments (24h after order)
+// =============================================
+export async function remindPendingPayments(): Promise<number> {
+  const now = new Date()
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
+  const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString()
+
+  // Find pending_payment orders created between 24h and 48h ago (remind once)
+  const { data: pendingOrders, error } = await supabase
+    .from('orders')
+    .select('id, buyer_id, amount, item_id')
+    .eq('status', 'pending_payment')
+    .lt('created_at', oneDayAgo)
+    .gt('created_at', twoDaysAgo)
+    .limit(50)
+
+  if (error || !pendingOrders || pendingOrders.length === 0) return 0
+
+  let reminded = 0
+
+  for (const order of pendingOrders) {
+    try {
+      const { data: item } = await supabase
+        .from('items')
+        .select('title')
+        .eq('id', order.item_id)
+        .single()
+
+      sendPaymentReminderEmail(order.buyer_id, {
+        orderId: order.id,
+        itemTitle: item?.title || 'Article',
+        amount: order.amount,
+      }).catch(() => {})
+
+      notifyUser(
+        order.buyer_id,
+        'payment_reminder',
+        'Paiement en attente',
+        `N'oubliez pas de payer votre article "${item?.title || 'Article'}" (${order.amount}€)`,
+        { order_id: order.id },
+      )
+      reminded++
+    } catch {
+      // ignore errors
     }
   }
 

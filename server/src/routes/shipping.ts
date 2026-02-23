@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateShippingCost, getCarrierForZone, getShippingOptions, getZoneFromCountry, paramStr } from '../utils'
+import { calculateShippingCost, getCarrierForZone, getShippingOptions, getZoneFromCountry, paramStr, sendShippingEmail } from '../utils'
 import {
   searchRelayPoints,
   createShipment,
@@ -495,6 +495,14 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       console.log(`[${carrier}] Label created for order ${orderId}: ${shipResult.shipmentNumber}`)
     }
 
+    // Send shipping email to buyer (async)
+    sendShippingEmail(order.buyer_id, {
+      orderId,
+      itemTitle: item?.title || 'Article',
+      trackingNumber: shipResult.shipmentNumber,
+      carrier,
+    }).catch(err => console.error('[email] Shipping notification failed:', err))
+
     res.json({
       shipment_number: shipResult.shipmentNumber,
       label_url: shipResult.labelUrl,
@@ -808,6 +816,14 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       : getMondialRelayTrackingUrl(groupShipResult.shipmentNumber)
 
     console.log(`[${groupCarrier}] Group label for ${order_ids.length} orders: ${groupShipResult.shipmentNumber}`)
+
+    // Send shipping email to buyer (async)
+    sendShippingEmail(buyerIds[0], {
+      orderId: primaryOrder.id,
+      itemTitle: `${order_ids.length} articles groupés`,
+      trackingNumber: groupShipResult.shipmentNumber,
+      carrier: groupCarrier,
+    }).catch(err => console.error('[email] Group shipping notification failed:', err))
 
     res.json({
       shipment_number: groupShipResult.shipmentNumber,

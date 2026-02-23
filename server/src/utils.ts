@@ -1,7 +1,7 @@
 import http2 from 'http2'
 import crypto from 'crypto'
 import fs from 'fs'
-import { supabase, PLATFORM_COMMISSION, PROCESSING_FEE_RATE, PROCESSING_FEE_FIXED, VAT_RATE, PAYPAL_BASE_URL } from './config'
+import { supabase, resend, PLATFORM_COMMISSION, PROCESSING_FEE_RATE, PROCESSING_FEE_FIXED, VAT_RATE, PAYPAL_BASE_URL } from './config'
 
 // =============================================
 // Pure helper functions
@@ -558,5 +558,105 @@ export async function handleAutoSanction(userId: string, flagLabel: string): Pro
     }
   } catch (err) {
     console.error('[Moderation] Auto-sanction error:', err)
+  }
+}
+
+// =============================================
+// Transactional Emails (Resend)
+// =============================================
+
+const FROM_EMAIL = 'ShaPop <noreply@shapop.app>'
+
+async function getUserEmail(userId: string): Promise<string | null> {
+  const { data } = await supabase.auth.admin.getUserById(userId)
+  return data?.user?.email || null
+}
+
+/** Send order confirmation email to buyer */
+export async function sendOrderConfirmationEmail(buyerId: string, orderData: { id: string; itemTitle: string; amount: number; sellerName: string }) {
+  if (!resend) return
+  const email = await getUserEmail(buyerId)
+  if (!email) return
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Commande confirmee - ${orderData.itemTitle}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px">
+          <h2 style="color:#E8344E">Commande confirmee !</h2>
+          <p>Votre commande <strong>#${orderData.id.slice(0, 8)}</strong> a bien ete enregistree.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:8px 0;color:#666">Article</td><td style="padding:8px 0;font-weight:600">${escapeHtml(orderData.itemTitle)}</td></tr>
+            <tr><td style="padding:8px 0;color:#666">Vendeur</td><td style="padding:8px 0">${escapeHtml(orderData.sellerName)}</td></tr>
+            <tr><td style="padding:8px 0;color:#666">Montant</td><td style="padding:8px 0;font-weight:700;color:#E8344E">${orderData.amount.toFixed(2)} EUR</td></tr>
+          </table>
+          <p style="color:#888;font-size:13px">Vous recevrez un email quand le vendeur expediera votre colis.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#aaa;font-size:11px">ShaPop — Shopping en live, reinvente.</p>
+        </div>
+      `,
+    })
+  } catch (err) {
+    console.error('[Email] Order confirmation error:', err)
+  }
+}
+
+/** Send shipping notification email to buyer */
+export async function sendShippingEmail(buyerId: string, data: { orderId: string; itemTitle: string; trackingNumber?: string; carrier?: string }) {
+  if (!resend) return
+  const email = await getUserEmail(buyerId)
+  if (!email) return
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Colis expedie - ${data.itemTitle}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px">
+          <h2 style="color:#22C55E">Colis expedie !</h2>
+          <p>Votre commande <strong>#${data.orderId.slice(0, 8)}</strong> a ete expediee.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:8px 0;color:#666">Article</td><td style="padding:8px 0;font-weight:600">${escapeHtml(data.itemTitle)}</td></tr>
+            ${data.carrier ? `<tr><td style="padding:8px 0;color:#666">Transporteur</td><td style="padding:8px 0">${escapeHtml(data.carrier)}</td></tr>` : ''}
+            ${data.trackingNumber ? `<tr><td style="padding:8px 0;color:#666">N° de suivi</td><td style="padding:8px 0;font-weight:600">${escapeHtml(data.trackingNumber)}</td></tr>` : ''}
+          </table>
+          <p style="color:#888;font-size:13px">Vous pouvez suivre votre colis dans l'application.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#aaa;font-size:11px">ShaPop — Shopping en live, reinvente.</p>
+        </div>
+      `,
+    })
+  } catch (err) {
+    console.error('[Email] Shipping notification error:', err)
+  }
+}
+
+/** Send payment reminder email to buyer */
+export async function sendPaymentReminderEmail(buyerId: string, data: { orderId: string; itemTitle: string; amount: number }) {
+  if (!resend) return
+  const email = await getUserEmail(buyerId)
+  if (!email) return
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `Rappel de paiement - ${data.itemTitle}`,
+      html: `
+        <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px">
+          <h2 style="color:#F59E0B">Rappel de paiement</h2>
+          <p>Votre commande <strong>#${data.orderId.slice(0, 8)}</strong> est en attente de paiement.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr><td style="padding:8px 0;color:#666">Article</td><td style="padding:8px 0;font-weight:600">${escapeHtml(data.itemTitle)}</td></tr>
+            <tr><td style="padding:8px 0;color:#666">Montant</td><td style="padding:8px 0;font-weight:700;color:#E8344E">${data.amount.toFixed(2)} EUR</td></tr>
+          </table>
+          <p style="color:#888;font-size:13px">Ouvrez l'application pour finaliser votre paiement. Sans paiement, la commande sera automatiquement annulee.</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#aaa;font-size:11px">ShaPop — Shopping en live, reinvente.</p>
+        </div>
+      `,
+    })
+  } catch (err) {
+    console.error('[Email] Payment reminder error:', err)
   }
 }
