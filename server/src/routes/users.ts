@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, STREAMS_SAFE_COLUMNS, ADMIN_EMAILS } from '../config'
 import { requireAuth, reportLimiter, createLimiter } from '../middleware'
+import { notifyUser } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -950,5 +951,224 @@ router.get('/api/loyalty', requireAuth, async (req: AuthenticatedRequest, res: R
     res.status(500).json({ error: 'Internal server error' })
   }
 })
+
+// =============================================
+// REFERRAL PROGRAM
+// =============================================
+
+// Record a referral (called after registration)
+router.post('/api/referrals/record', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const referredId = req.user!.id
+    const { referral_code } = req.body
+
+    if (!referral_code) {
+      res.status(400).json({ error: 'referral_code required' })
+      return
+    }
+
+    // Find referrer by code (first 8 chars of user ID uppercase)
+    const code = referral_code.toUpperCase().trim()
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id')
+
+    const referrer = (profiles || []).find((p: { id: string }) => p.id.slice(0, 8).toUpperCase() === code)
+
+    if (!referrer) {
+      res.status(404).json({ error: 'Invalid referral code' })
+      return
+    }
+
+    // Can't refer yourself
+    if (referrer.id === referredId) {
+      res.status(400).json({ error: 'Cannot refer yourself' })
+      return
+    }
+
+    // Check if already referred
+    const { data: existing } = await supabase
+      .from('referrals')
+      .select('id')
+      .eq('referred_id', referredId)
+      .maybeSingle()
+
+    if (existing) {
+      res.json({ success: true, already_recorded: true })
+      return
+    }
+
+    // Record the referral
+    const { error } = await supabase
+      .from('referrals')
+      .insert({
+        referrer_id: referrer.id,
+        referred_id: referredId,
+        referral_code: code,
+      })
+
+    if (error) {
+      console.error('Referral record error:', error.message)
+      res.status(500).json({ error: 'Failed to record referral' })
+      return
+    }
+
+    // Create promo codes for both users (5% off item price)
+    const referrerCode = `REF${code}${Date.now().toString(36).slice(-4)}`.toUpperCase()
+    const referredCode = `WELCOME${referredId.slice(0, 4)}${Date.now().toString(36).slice(-4)}`.toUpperCase()
+
+    await supabase.from('promo_codes').insert([
+      { code: referrerCode, discount_percent: 5, discount_type: 'item', max_uses: 1, created_by: referrer.id },
+      { code: referredCode, discount_percent: 5, discount_type: 'item', max_uses: 1, created_by: referredId },
+    ])
+
+    // Notify referrer
+    notifyUser(referrer.id, 'referral', 'Nouveau filleul !', 'Un ami a rejoint ShaPop grace a toi ! Tu as recu un code promo de 5%.', { promo_code: referrerCode })
+
+    // Update referral with promo codes
+    await supabase
+      .from('referrals')
+      .update({ referrer_reward_code: referrerCode, referred_reward_code: referredCode, reward_granted: true })
+      .eq('referred_id', referredId)
+      .eq('referrer_id', referrer.id)
+
+    res.json({ success: true, promo_code: referredCode })
+  } catch (err) {
+    console.error('Record referral error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Get referral stats for current user
+router.get('/api/referrals/stats', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    // Count referrals made by this user
+    const { data: referrals, error } = await supabase
+      .from('referrals')
+      .select('id, referred_id, reward_granted, referrer_reward_code, created_at')
+      .eq('referrer_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch referral stats' })
+      return
+    }
+
+    const total = (referrals || []).length
+    const rewarded = (referrals || []).filter((r: Record<string, unknown>) => r.reward_granted).length
+    const codes = (referrals || []).filter((r: Record<string, unknown>) => r.referrer_reward_code).map((r: Record<string, unknown>) => r.referrer_reward_code as string)
+
+    // Check if current user was referred (has a welcome code)
+    const { data: myReferral } = await supabase
+      .from('referrals')
+      .select('referred_reward_code')
+      .eq('referred_id', userId)
+      .maybeSingle()
+
+    res.json({
+      total_referrals: total,
+      rewards_earned: rewarded,
+      reward_codes: codes,
+      my_welcome_code: myReferral?.referred_reward_code || null,
+    })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// PRICE DROP ALERTS
+// =============================================
+
+// Subscribe to price alerts for an item
+router.post('/api/price-alerts/:item_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const itemId = req.params.item_id
+
+    const { error } = await supabase
+      .from('price_alerts')
+      .upsert({ user_id: userId, item_id: itemId }, { onConflict: 'user_id,item_id' })
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to subscribe' })
+      return
+    }
+
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Unsubscribe from price alerts
+router.delete('/api/price-alerts/:item_id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const itemId = req.params.item_id
+
+    await supabase
+      .from('price_alerts')
+      .delete()
+      .eq('user_id', userId)
+      .eq('item_id', itemId)
+
+    res.json({ success: true })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Get user's price alerts
+router.get('/api/price-alerts', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    const { data, error } = await supabase
+      .from('price_alerts')
+      .select('item_id')
+      .eq('user_id', userId)
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to fetch price alerts' })
+      return
+    }
+
+    res.json((data || []).map((d: { item_id: string }) => d.item_id))
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Notify users when an item price drops (called from items.ts on price update)
+export async function notifyPriceDropSubscribers(itemId: string, oldPrice: number, newPrice: number, itemTitle: string) {
+  if (newPrice >= oldPrice) return 0
+
+  const { data: subscribers } = await supabase
+    .from('price_alerts')
+    .select('user_id')
+    .eq('item_id', itemId)
+
+  if (!subscribers || subscribers.length === 0) return 0
+
+  let notified = 0
+  for (const sub of subscribers) {
+    try {
+      notifyUser(
+        sub.user_id,
+        'price_drop',
+        'Baisse de prix !',
+        `"${itemTitle}" est passe de ${oldPrice}€ a ${newPrice}€`,
+        { item_id: itemId },
+      )
+      notified++
+    } catch {
+      // ignore
+    }
+  }
+  return notified
+}
 
 export default router

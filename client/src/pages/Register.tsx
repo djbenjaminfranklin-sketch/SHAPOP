@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
@@ -191,8 +191,20 @@ export default function Register() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user, loading: authLoading, signUp, signInWithGoogle, signInWithApple } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const lang = getLang()
   const c = content[lang] || content.fr
+
+  // Referral code from URL (?ref=CODE) or localStorage
+  const [referralCode, setReferralCode] = useState(() => {
+    return searchParams.get('ref') || localStorage.getItem('shapop_referral_code') || ''
+  })
+
+  // Save referral code to localStorage when set via URL
+  useEffect(() => {
+    const urlRef = searchParams.get('ref')
+    if (urlRef) localStorage.setItem('shapop_referral_code', urlRef)
+  }, [searchParams])
 
   // Phone state (simple field, no OTP)
   const [phonePrefix, setPhonePrefix] = useState('+33')
@@ -264,6 +276,19 @@ export default function Register() {
         setConfirmEmail(true)
         setLoading(false)
         return
+      }
+
+      // Record referral if code present
+      if (referralCode.trim()) {
+        const { data: sess } = await supabase.auth.getSession()
+        if (sess.session) {
+          apiFetch('/api/referrals/record', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${sess.session.access_token}` },
+            body: JSON.stringify({ referral_code: referralCode.trim() }),
+          }).catch(() => {})
+          localStorage.removeItem('shapop_referral_code')
+        }
       }
 
       // Upload avatar if selected
@@ -558,6 +583,21 @@ export default function Register() {
               style={{ ...inputStyle, flex: 1 }}
             />
           </div>
+        </div>
+
+        {/* Referral code (optional) */}
+        <div style={{ marginBottom: '24px' }}>
+          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+            {lang === 'fr' ? 'Code de parrainage (optionnel)' : lang === 'es' ? 'Codigo de referido (opcional)' : lang === 'he' ? '(קוד הפניה (אופציונלי' : 'Referral code (optional)'}
+          </label>
+          <input
+            type="text"
+            value={referralCode}
+            onChange={e => setReferralCode(e.target.value.toUpperCase())}
+            placeholder={lang === 'fr' ? 'Ex: AB12CD34' : 'Ex: AB12CD34'}
+            onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+            style={inputStyle}
+          />
         </div>
 
         <button

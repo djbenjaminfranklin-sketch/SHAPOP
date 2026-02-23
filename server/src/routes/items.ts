@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { supabase, AI_MODEL } from '../config'
 import { requireAuth, createLimiter, aiLimiter, bidLimiter } from '../middleware'
 import { calculateFees, notifyUser, paramStr } from '../utils'
+import { notifyPriceDropSubscribers } from './users'
 import { stripe } from '../config'
 import type { AuthenticatedRequest } from '../types'
 
@@ -512,6 +513,62 @@ router.post('/api/items/create-listing', createLimiter, requireAuth, async (req:
   } catch (err: any) {
     console.error('Create listing error:', err?.message || err)
     res.status(500).json({ error: err?.message || 'Failed to create listing' })
+  }
+})
+
+// Update an item (owner only, draft/unsold items)
+router.put('/api/items/:id', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const itemId = paramStr(req.params.id)
+
+    // Fetch current item
+    const { data: item } = await supabase
+      .from('items')
+      .select('id, seller_id, status, starting_price, current_price, buy_now_price, title')
+      .eq('id', itemId)
+      .single()
+
+    if (!item || item.seller_id !== userId) {
+      res.status(403).json({ error: 'Not your item' })
+      return
+    }
+
+    if (!['draft', 'unsold', 'pending'].includes(item.status)) {
+      res.status(400).json({ error: 'Cannot update active/sold items' })
+      return
+    }
+
+    const updates: Record<string, unknown> = {}
+    const { title, description, starting_price, buy_now_price, image_urls, category } = req.body
+
+    if (title !== undefined) updates.title = title
+    if (description !== undefined) updates.description = description
+    if (category !== undefined) updates.category = category
+    if (image_urls !== undefined) updates.image_urls = image_urls
+    if (starting_price !== undefined) {
+      updates.starting_price = parseFloat(starting_price)
+      updates.current_price = parseFloat(starting_price)
+    }
+    if (buy_now_price !== undefined) {
+      updates.buy_now_price = buy_now_price ? parseFloat(buy_now_price) : null
+    }
+
+    const { error } = await supabase.from('items').update(updates).eq('id', itemId)
+    if (error) throw error
+
+    // Price drop alerts
+    const oldPrice = item.buy_now_price || item.starting_price
+    const newPrice = (buy_now_price !== undefined ? parseFloat(buy_now_price) : null) || (starting_price !== undefined ? parseFloat(starting_price) : null)
+
+    if (newPrice && oldPrice && newPrice < oldPrice) {
+      notifyPriceDropSubscribers(itemId, oldPrice, newPrice, title || item.title).catch(() => {})
+    }
+
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('Update item error:', err?.message || err)
+    res.status(500).json({ error: 'Failed to update item' })
   }
 })
 

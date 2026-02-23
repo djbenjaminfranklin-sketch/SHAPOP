@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useMemo } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { MiniPlayerProvider } from './contexts/MiniPlayerContext'
 import MiniPlayerOverlay from './components/MiniPlayerOverlay'
@@ -75,6 +75,13 @@ function PageLoader() {
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
+}
+
+/** Referral deep link redirect */
+function RefRedirect() {
+  const code = window.location.pathname.split('/ref/')[1] || ''
+  if (code) localStorage.setItem('shapop_referral_code', code)
+  return <Navigate to={`/register?ref=${code}`} replace />
 }
 
 /** Auto-register push token if user is logged in */
@@ -256,6 +263,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/ref/:code" element={<RefRedirect />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/stream/:id" element={<StreamView />} />
                 <Route path="/dashboard" element={<Dashboard />} />
