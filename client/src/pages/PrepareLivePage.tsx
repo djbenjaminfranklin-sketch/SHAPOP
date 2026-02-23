@@ -70,6 +70,8 @@ const pageContent = {
     muxError: 'La configuration du streaming video a echoue. Les spectateurs pourraient ne pas voir votre video.',
     minPrice: 'Prix minimum (optionnel)',
     minPriceHint: 'Si aucune enchere n\'atteint ce prix, l\'article sera invendu',
+    buyNowPrice: 'Prix achat immediat (optionnel)',
+    buyNowHint: 'Permet d\'acheter l\'article sans encherir',
     deleteStream: 'Supprimer ce live',
     deleteStreamConfirm: 'Supprimer ce live et tous ses articles ? Cette action est irreversible.',
     scheduledDate: 'Date programmee',
@@ -117,6 +119,8 @@ const pageContent = {
     muxError: 'Video streaming setup failed. Viewers may not see your video.',
     minPrice: 'Minimum price (optional)',
     minPriceHint: 'If no bid reaches this price, the item will be unsold',
+    buyNowPrice: 'Buy now price (optional)',
+    buyNowHint: 'Allows instant purchase without bidding',
     deleteStream: 'Delete this live',
     deleteStreamConfirm: 'Delete this live and all its items? This action cannot be undone.',
     scheduledDate: 'Scheduled date',
@@ -164,6 +168,8 @@ const pageContent = {
     muxError: 'הגדרת הזרמת הווידאו נכשלה. הצופים עלולים לא לראות את הווידאו שלך.',
     minPrice: '(מחיר מינימום (אופציונלי',
     minPriceHint: 'אם אף הצעה לא מגיעה למחיר זה, הפריט יהיה לא נמכר',
+    buyNowPrice: '(מחיר קנייה מיידית (אופציונלי',
+    buyNowHint: 'מאפשר קנייה מיידית ללא הצעות',
     deleteStream: 'מחק שידור זה',
     deleteStreamConfirm: 'למחוק את השידור ואת כל הפריטים? פעולה זו בלתי הפיכה.',
     scheduledDate: 'תאריך מתוזמן',
@@ -211,6 +217,8 @@ const pageContent = {
     muxError: 'La configuracion del streaming de video fallo. Los espectadores podrian no ver tu video.',
     minPrice: 'Precio minimo (opcional)',
     minPriceHint: 'Si ninguna puja alcanza este precio, el articulo no se vendera',
+    buyNowPrice: 'Precio compra inmediata (opcional)',
+    buyNowHint: 'Permite comprar sin pujar',
     deleteStream: 'Eliminar este directo',
     deleteStreamConfirm: 'Eliminar este directo y todos sus articulos? Esta accion es irreversible.',
     scheduledDate: 'Fecha programada',
@@ -243,6 +251,7 @@ interface DraftItem {
   title: string
   starting_price: number
   min_price: number | null
+  buy_now_price: number | null
   category: string
   image_url: string | null
   lot_number: number
@@ -276,6 +285,7 @@ export default function PrepareLivePage() {
   const [formMinPrice, setFormMinPrice] = useState('')
   const [formWeight, setFormWeight] = useState('')
   const [formShippingOverride, setFormShippingOverride] = useState('')
+  const [formBuyNowPrice, setFormBuyNowPrice] = useState('')
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
   const [loadingShipping, setLoadingShipping] = useState(false)
   const [formError, setFormError] = useState('')
@@ -323,6 +333,7 @@ export default function PrepareLivePage() {
           title: item.title,
           starting_price: item.starting_price,
           min_price: item.min_price || null,
+          buy_now_price: item.buy_now_price || null,
           category: item.category,
           image_url: item.image_urls?.[0] || null,
           lot_number: i + 1,
@@ -474,6 +485,7 @@ export default function PrepareLivePage() {
       const minPrice = formMinPrice ? parseFloat(formMinPrice) : null
       const weightGrams = formWeight ? parseInt(formWeight, 10) : null
       const shippingOverride = formShippingOverride ? parseFloat(formShippingOverride) : null
+      const buyNowPrice = formBuyNowPrice ? parseFloat(formBuyNowPrice) : null
       const { data, error } = await supabase
         .from('items')
         .insert({
@@ -483,6 +495,7 @@ export default function PrepareLivePage() {
           starting_price: price,
           current_price: price,
           min_price: (minPrice && minPrice > 0) ? minPrice : null,
+          buy_now_price: (buyNowPrice && buyNowPrice > 0) ? buyNowPrice : null,
           category,
           status: 'draft' as const,
           image_urls: imageUrls,
@@ -505,6 +518,7 @@ export default function PrepareLivePage() {
           title: data.title,
           starting_price: data.starting_price,
           min_price: data.min_price || null,
+          buy_now_price: data.buy_now_price || null,
           category: data.category,
           image_url: imageUrls[0] || null,
           lot_number: lotNumber,
@@ -528,6 +542,7 @@ export default function PrepareLivePage() {
     setFormQuantity(1)
     setFormDuration(60)
     setFormMinPrice('')
+    setFormBuyNowPrice('')
     setFormWeight('')
     setFormShippingOverride('')
     setShippingOptions([])
@@ -624,7 +639,7 @@ export default function PrepareLivePage() {
   }
 
   const handleGoLive = async () => {
-    if (!streamId || items.length === 0) return
+    if (!streamId) return
     setGoingLive(true)
 
     // Provision LiveKit room
@@ -664,7 +679,7 @@ export default function PrepareLivePage() {
 
   const formatLot = (n: number) => `#${String(n).padStart(3, '0')}`
 
-  const canGoLive = items.length > 0 && !goingLive
+  const canGoLive = !goingLive
 
   return (
     <div style={{
@@ -904,6 +919,11 @@ export default function PrepareLivePage() {
                     min {item.min_price} €
                   </span>
                 )}
+                {item.buy_now_price != null && item.buy_now_price > 0 && (
+                  <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 600 }}>
+                    ⚡ {item.buy_now_price} €
+                  </span>
+                )}
                 {item.weight_grams != null && item.weight_grams > 0 && (
                   <span style={{ fontSize: '11px', color: '#888' }}>
                     {item.weight_grams >= 1000
@@ -1086,6 +1106,30 @@ export default function PrepareLivePage() {
               />
               <p style={{ fontSize: '11px', color: '#666', margin: '4px 0 0 4px' }}>
                 {ct.minPriceHint}
+              </p>
+            </div>
+
+            {/* Buy Now price (optional) */}
+            <div style={{ marginBottom: '10px' }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={formBuyNowPrice}
+                onChange={e => setFormBuyNowPrice(e.target.value)}
+                placeholder={ct.buyNowPrice}
+                min="0"
+                step="1"
+                style={{
+                  width: '100%', padding: '12px 14px',
+                  backgroundColor: '#0D0D0D',
+                  border: '1px solid #222',
+                  borderRadius: '10px',
+                  color: '#fff', fontSize: '15px',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              <p style={{ fontSize: '11px', color: '#666', margin: '4px 0 0 4px' }}>
+                {ct.buyNowHint}
               </p>
             </div>
 
@@ -1308,6 +1352,24 @@ export default function PrepareLivePage() {
                     {sec}s
                   </button>
                 ))}
+                <button
+                  onClick={() => setFormDuration(-1)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 0',
+                    borderRadius: '8px',
+                    background: formDuration === -1
+                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                      : '#111',
+                    border: formDuration === -1 ? 'none' : '1px solid #222',
+                    color: formDuration === -1 ? '#fff' : '#888',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  SD
+                </button>
               </div>
             </div>
 

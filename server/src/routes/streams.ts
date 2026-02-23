@@ -831,22 +831,21 @@ router.post('/api/streams/:id/giveaway', requireAuth, async (req: AuthenticatedR
       return
     }
 
-    const { prize_description, title } = req.body
+    const { prize_description, title, buyers_only } = req.body
     if (!prize_description || typeof prize_description !== 'string' || !prize_description.trim()) {
       res.status(400).json({ error: 'prize_description is required' })
       return
     }
 
-    // Check no active giveaway already exists on this stream
-    const { data: existing } = await supabase
+    // Check max 5 active giveaways per stream
+    const { count: activeCount } = await supabase
       .from('giveaways')
-      .select('id')
+      .select('id', { count: 'exact', head: true })
       .eq('stream_id', streamId)
       .eq('status', 'active')
-      .maybeSingle()
 
-    if (existing) {
-      res.status(409).json({ error: 'A giveaway is already active on this stream' })
+    if ((activeCount ?? 0) >= 5) {
+      res.status(409).json({ error: 'Maximum 5 active giveaways per stream' })
       return
     }
 
@@ -857,6 +856,7 @@ router.post('/api/streams/:id/giveaway', requireAuth, async (req: AuthenticatedR
         seller_id: userId,
         title: title?.trim() || 'Cadeau Surprise',
         prize_description: prize_description.trim(),
+        buyers_only: buyers_only === true,
       })
       .select('*')
       .single()
@@ -973,7 +973,7 @@ router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedReq
     // Verify ownership
     const { data: giveaway } = await supabase
       .from('giveaways')
-      .select('id, stream_id, seller_id, title, status, entry_count')
+      .select('id, stream_id, seller_id, title, status, entry_count, buyers_only')
       .eq('id', giveawayId)
       .single()
 
@@ -1001,8 +1001,23 @@ router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedReq
       return
     }
 
+    // If buyers_only, filter to users who have an order in this stream
+    let eligible = entries
+    if (giveaway.buyers_only) {
+      const { data: buyerOrders } = await supabase
+        .from('orders')
+        .select('buyer_id')
+        .eq('stream_id', giveaway.stream_id)
+      const buyerIds = new Set((buyerOrders || []).map((o: { buyer_id: string }) => o.buyer_id))
+      eligible = entries.filter(e => buyerIds.has(e.user_id))
+      if (eligible.length === 0) {
+        res.status(400).json({ error: 'No buyers among participants' })
+        return
+      }
+    }
+
     // Random winner
-    const winner = entries[Math.floor(Math.random() * entries.length)]
+    const winner = eligible[Math.floor(Math.random() * eligible.length)]
 
     // Get winner display name (fallback to profile if not on entry)
     let winnerName = winner.display_name

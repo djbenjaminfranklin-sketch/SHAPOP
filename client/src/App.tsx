@@ -1,6 +1,8 @@
 import { useState, useEffect, lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { MiniPlayerProvider } from './contexts/MiniPlayerContext'
+import MiniPlayerOverlay from './components/MiniPlayerOverlay'
 import { hapticTap } from './lib/haptics'
 import { usePushNotifications } from './hooks/usePushNotifications'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
@@ -118,12 +120,12 @@ function useAppSettings() {
     const applySettings = () => {
       try {
         const raw = localStorage.getItem('shapop_account_controls')
-        if (!raw) return
-        const s = JSON.parse(raw)
+        const s = raw ? JSON.parse(raw) : {}
 
-        // Theme
+        // Theme — default to light mode when no preference is set
         const html = document.documentElement
-        const isLight = s.appearance === 'light' || (s.appearance === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
+        const appearance = s.appearance || 'light'
+        const isLight = appearance === 'light' || (appearance === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
 
         // Manage the counter-inversion stylesheet for media elements
         let styleEl = document.getElementById('shapop-theme-fix') as HTMLStyleElement | null
@@ -136,7 +138,11 @@ function useAppSettings() {
             styleEl.id = 'shapop-theme-fix'
             document.head.appendChild(styleEl)
           }
-          styleEl.textContent = 'video, img, canvas, svg image { filter: invert(1) hue-rotate(180deg) !important; }'
+          styleEl.textContent = `
+            video, img, canvas, svg image { filter: invert(1) hue-rotate(180deg) !important; }
+            .no-theme-invert { filter: invert(1) hue-rotate(180deg) !important; }
+            .no-theme-invert video, .no-theme-invert img, .no-theme-invert canvas, .no-theme-invert svg image { filter: none !important; }
+          `
         } else {
           html.style.filter = ''
           html.style.backgroundColor = ''
@@ -228,6 +234,7 @@ export default function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
+          <MiniPlayerProvider>
           <PushAutoRegister />
           <div dir={dir} className="min-h-screen bg-black" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%' }}>
             <a
@@ -293,8 +300,10 @@ export default function App() {
               </Routes>
               </main>
             </Suspense>
+            <MiniPlayerOverlay />
             <BottomNav />
           </div>
+          </MiniPlayerProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

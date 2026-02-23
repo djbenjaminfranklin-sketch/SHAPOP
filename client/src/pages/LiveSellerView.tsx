@@ -44,6 +44,8 @@ const pageContent = {
     addItem: 'Ajouter un article',
     addItemTitle: 'Titre',
     addItemPrice: 'Prix de depart (€)',
+    addItemMinPrice: 'Prix minimum (€)',
+    addItemBuyNow: 'Achat immediat (€)',
     addItemAdd: 'Ajouter',
     addItemCancel: 'Annuler',
     messageFlagged: '[Message masque]',
@@ -91,6 +93,8 @@ const pageContent = {
     addItem: 'Add item',
     addItemTitle: 'Title',
     addItemPrice: 'Starting price (€)',
+    addItemMinPrice: 'Minimum price (€)',
+    addItemBuyNow: 'Buy now price (€)',
     addItemAdd: 'Add',
     addItemCancel: 'Cancel',
     messageFlagged: '[Hidden message]',
@@ -138,6 +142,8 @@ const pageContent = {
     addItem: 'הוסף פריט',
     addItemTitle: 'כותרת',
     addItemPrice: 'מחיר התחלתי (€)',
+    addItemMinPrice: 'מחיר מינימום (€)',
+    addItemBuyNow: '(€) מחיר קנייה מיידית',
     addItemAdd: 'הוסף',
     addItemCancel: 'ביטול',
     messageFlagged: '[הודעה מוסתרת]',
@@ -185,6 +191,8 @@ const pageContent = {
     addItem: 'Agregar articulo',
     addItemTitle: 'Titulo',
     addItemPrice: 'Precio inicial (€)',
+    addItemMinPrice: 'Precio minimo (€)',
+    addItemBuyNow: 'Compra inmediata (€)',
     addItemAdd: 'Agregar',
     addItemCancel: 'Cancelar',
     messageFlagged: '[Mensaje oculto]',
@@ -260,11 +268,16 @@ export default function LiveSellerView() {
   const [showAddItem, setShowAddItem] = useState(false)
   const [addItemTitle, setAddItemTitle] = useState('')
   const [addItemPrice, setAddItemPrice] = useState('')
+  const [addItemMinPrice, setAddItemMinPrice] = useState('')
+  const [addItemBuyNowPrice, setAddItemBuyNowPrice] = useState('')
+  const [addItemQuantity, setAddItemQuantity] = useState(1)
+  const [addItemDuration, setAddItemDuration] = useState(60)
   const [addingItem, setAddingItem] = useState(false)
 
   // Giveaway
   const [showGiveawayForm, setShowGiveawayForm] = useState(false)
   const [giveawayPrize, setGiveawayPrize] = useState('')
+  const [giveawayBuyersOnly, setGiveawayBuyersOnly] = useState(false)
   const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
   const [giveawayDrawing, setGiveawayDrawing] = useState(false)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
@@ -517,7 +530,12 @@ export default function LiveSellerView() {
       filter: `stream_id=eq.${streamId}`,
     }, (payload) => {
       const updated = payload.new as Item
+      const old = payload.old as Partial<Item>
       setItems(prev => prev.map(it => it.id === updated.id ? updated : it))
+      // Sudden Death: reset timer to 10s on new bid (price changed while active)
+      if (updated.status === 'active' && updated.duration_seconds === -1 && old.current_price !== undefined && updated.current_price > old.current_price) {
+        setTimeLeft(10)
+      }
     })
 
     channel.subscribe()
@@ -572,7 +590,7 @@ export default function LiveSellerView() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ prize_description: giveawayPrize.trim() }),
+        body: JSON.stringify({ prize_description: giveawayPrize.trim(), buyers_only: giveawayBuyersOnly }),
       })
       if (resp.ok) {
         const gw = await resp.json()
@@ -610,12 +628,12 @@ export default function LiveSellerView() {
       })
       if (resp.ok) {
         const drawn = await resp.json()
-        setActiveGiveaway(drawn)
+        // Always clear activeGiveaway so a new one can be created
+        setActiveGiveaway(null)
         if (drawn.winner_name) {
           setGiveawayWinner({ name: drawn.winner_name })
           setTimeout(() => {
             setGiveawayWinner(null)
-            setActiveGiveaway(null)
           }, 5000)
         }
       } else {
@@ -806,7 +824,14 @@ export default function LiveSellerView() {
 
   const handleActivateItem = async () => {
     if (!currentItem || !streamId) return
-    const duration = currentItem.duration_seconds || 60
+    const isSuddenDeath = currentItem.duration_seconds === -1
+    const duration = isSuddenDeath ? 10 : (currentItem.duration_seconds || 60)
+
+    // CRITICAL: Set timer BEFORE the API call to prevent auto-resolve race condition.
+    // Without this, the realtime subscription can set status='active' while timeLeft is still 0,
+    // triggering auto-resolve and immediately marking the item as sold.
+    setTimeLeft(duration)
+    autoResolvedRef.current = ''
 
     // Always get a fresh token — stale tokens are a common failure cause
     const { data: fs } = await supabase.auth.getSession()
@@ -814,6 +839,7 @@ export default function LiveSellerView() {
     if (!tk) {
       showToast('Erreur: reconnecte-toi')
       console.error('[ACTIVATE] No session token — cannot activate')
+      setTimeLeft(0)
       return
     }
 
@@ -850,12 +876,10 @@ export default function LiveSellerView() {
       if (dbErr) {
         console.error('[ACTIVATE] Direct DB fallback also failed:', dbErr.message)
         showToast('Erreur activation')
+        setTimeLeft(0)
         return
       }
     }
-
-    // Start the local countdown
-    setTimeLeft(duration)
 
     // Update local state
     setItems(prev => prev.map((it, i) =>
@@ -983,29 +1007,55 @@ export default function LiveSellerView() {
     if (!addItemTitle.trim() || !addItemPrice || !user || !streamId) return
     const price = parseFloat(addItemPrice)
     if (isNaN(price) || price <= 0) return
+    const minPrice = addItemMinPrice ? parseFloat(addItemMinPrice) : 0
+    const buyNowPrice = addItemBuyNowPrice ? parseFloat(addItemBuyNowPrice) : 0
+    const qty = Math.max(1, Math.min(addItemQuantity, 50))
 
     setAddingItem(true)
-    const { data, error } = await supabase
-      .from('items')
-      .insert({
-        seller_id: user.id,
-        stream_id: streamId,
-        title: addItemTitle.trim(),
-        category: 'other',
-        starting_price: price,
-        current_price: price,
-        status: 'draft' as const,
-        duration_seconds: 60,
-      })
-      .select()
-      .single()
+    const newItems: Item[] = []
+    for (let i = 0; i < qty; i++) {
+      const title = qty > 1 ? `${addItemTitle.trim()} #${i + 1}` : addItemTitle.trim()
+      const { data, error } = await supabase
+        .from('items')
+        .insert({
+          seller_id: user.id,
+          stream_id: streamId,
+          title,
+          category: 'other',
+          starting_price: price,
+          current_price: price,
+          min_price: minPrice > 0 ? minPrice : null,
+          buy_now_price: buyNowPrice > 0 ? buyNowPrice : null,
+          status: 'draft' as const,
+          duration_seconds: addItemDuration,
+        })
+        .select()
+        .single()
 
-    if (!error && data) {
-      setItems(prev => [...prev, data])
+      if (error) {
+        console.error('Add item error:', error)
+        showToast('Erreur: ' + (error.message || 'echec'))
+        break
+      }
+      if (data) newItems.push(data)
+    }
+
+    if (newItems.length > 0) {
+      setItems(prev => {
+        const updated = [...prev, ...newItems]
+        if (prev.length === 0 || currentIndex < 0) {
+          setCurrentIndex(updated.length - 1)
+        }
+        return updated
+      })
       setAddItemTitle('')
       setAddItemPrice('')
+      setAddItemMinPrice('')
+      setAddItemBuyNowPrice('')
+      setAddItemQuantity(1)
+      setAddItemDuration(60)
       setShowAddItem(false)
-      showToast(ct.addItem + ' ✓')
+      showToast(`${newItems.length} ${ct.articlesLabel} ✓`)
     }
     setAddingItem(false)
   }
@@ -1252,7 +1302,7 @@ export default function LiveSellerView() {
         ))}
       </div>
 
-      {/* ===== BOTTOM OVERLAY: chat + item + button ===== */}
+      {/* ===== BOTTOM OVERLAY: chat + input + item panel ===== */}
       <div style={{
         position: 'fixed',
         bottom: 'calc(env(safe-area-inset-bottom, 34px) + 16px)',
@@ -1552,9 +1602,103 @@ export default function LiveSellerView() {
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
+              <input
+                type="number"
+                inputMode="decimal"
+                value={addItemMinPrice}
+                onChange={e => setAddItemMinPrice(e.target.value)}
+                placeholder={ct.addItemMinPrice}
+                min="0"
+                step="0.01"
+                style={{
+                  width: '100%', padding: '8px 10px',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,215,0,0.2)',
+                  borderRadius: '8px',
+                  color: '#fff', fontSize: '12px',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              <input
+                type="number"
+                inputMode="decimal"
+                value={addItemBuyNowPrice}
+                onChange={e => setAddItemBuyNowPrice(e.target.value)}
+                placeholder={ct.addItemBuyNow}
+                min="0"
+                step="0.01"
+                style={{
+                  width: '100%', padding: '8px 10px',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                  borderRadius: '8px',
+                  color: '#fff', fontSize: '12px',
+                  outline: 'none', boxSizing: 'border-box',
+                }}
+              />
+              {/* Quantity selector */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                <button
+                  onClick={() => setAddItemQuantity(q => Math.max(1, q - 1))}
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >−</button>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff', minWidth: '28px', textAlign: 'center' }}>
+                  {addItemQuantity}
+                </span>
+                <button
+                  onClick={() => setAddItemQuantity(q => Math.min(50, q + 1))}
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.15)',
+                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >+</button>
+              </div>
+              {/* Duration selector */}
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[30, 45, 60].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => setAddItemDuration(d)}
+                    style={{
+                      flex: 1, padding: '7px 0',
+                      backgroundColor: addItemDuration === d ? 'rgba(232,52,78,0.2)' : 'rgba(255,255,255,0.06)',
+                      border: addItemDuration === d ? '1px solid #E8344E' : '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: '8px',
+                      color: addItemDuration === d ? '#E8344E' : '#888',
+                      fontSize: '11px', fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {d}{ct.seconds}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setAddItemDuration(-1)}
+                  style={{
+                    flex: 1, padding: '7px 0',
+                    backgroundColor: addItemDuration === -1 ? 'rgba(232,52,78,0.2)' : 'rgba(255,255,255,0.06)',
+                    border: addItemDuration === -1 ? '1px solid #E8344E' : '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: '8px',
+                    color: addItemDuration === -1 ? '#E8344E' : '#888',
+                    fontSize: '11px', fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  SD
+                </button>
+              </div>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
-                  onClick={() => { setShowAddItem(false); setAddItemTitle(''); setAddItemPrice('') }}
+                  onClick={() => { setShowAddItem(false); setAddItemTitle(''); setAddItemPrice(''); setAddItemMinPrice(''); setAddItemBuyNowPrice(''); setAddItemQuantity(1); setAddItemDuration(60) }}
                   style={{
                     flex: 1, padding: '8px',
                     backgroundColor: 'rgba(255,255,255,0.06)',
@@ -1618,7 +1762,7 @@ export default function LiveSellerView() {
               </span>
             </div>
 
-            {!activeGiveaway ? (
+            {!activeGiveaway || activeGiveaway.status !== 'active' ? (
               <>
                 <input
                   type="text"
@@ -1635,9 +1779,28 @@ export default function LiveSellerView() {
                     outline: 'none', boxSizing: 'border-box',
                   }}
                 />
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  marginTop: '10px', marginBottom: '10px',
+                  padding: '10px 12px',
+                  backgroundColor: giveawayBuyersOnly ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.05)',
+                  border: giveawayBuyersOnly ? '1px solid rgba(255,215,0,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={giveawayBuyersOnly}
+                    onChange={e => setGiveawayBuyersOnly(e.target.checked)}
+                    style={{ accentColor: '#FFD700', width: '18px', height: '18px', flexShrink: 0 }}
+                  />
+                  <span style={{ fontSize: '13px', color: giveawayBuyersOnly ? '#FFD700' : '#aaa', fontWeight: 600 }}>
+                    {lang === 'fr' ? 'Acheteurs seulement' : lang === 'he' ? 'קונים בלבד' : lang === 'es' ? 'Solo compradores' : 'Buyers only'}
+                  </span>
+                </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={() => { setShowGiveawayForm(false); setGiveawayPrize('') }}
+                    onClick={() => { setShowGiveawayForm(false); setGiveawayPrize(''); setGiveawayBuyersOnly(false) }}
                     style={{
                       flex: 1, padding: '12px',
                       backgroundColor: 'rgba(255,255,255,0.08)',

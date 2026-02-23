@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Browser } from '@capacitor/browser'
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
+import { Share } from '@capacitor/share'
+import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
@@ -1273,6 +1276,49 @@ export default function ActivityPage() {
     return amount.toFixed(2) + ' \u20AC'
   }
 
+  const exportOrdersCSV = async (type: 'purchases' | 'sales') => {
+    const orders = type === 'purchases' ? filterOrders(purchases) : filterOrders(sales)
+    if (orders.length === 0) return
+    const headers = ['Date', 'Article', 'Montant', 'Statut', 'Tracking', type === 'sales' ? 'Acheteur' : 'Vendeur']
+    const escape = (v: string) => `"${(v || '').replace(/"/g, '""')}"`
+    const rows = orders.map(o => {
+      const saleO = o as SaleOrder
+      const otherName = type === 'sales'
+        ? (saleO.buyer_profile?.display_name || saleO.buyer_profile?.username || '')
+        : ''
+      return [
+        new Date(o.created_at).toLocaleDateString('fr-FR'),
+        escape(o.item?.title || ''),
+        o.amount.toFixed(2),
+        getOrderStatusLabel(o.status),
+        o.tracking_number || '',
+        escape(otherName),
+      ].join(',')
+    })
+    const csv = [headers.join(','), ...rows].join('\n')
+    const fileName = `shapop_${type}_${new Date().toISOString().slice(0, 10)}.csv`
+
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const result = await Filesystem.writeFile({
+          path: fileName,
+          data: csv,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+        })
+        await Share.share({ title: fileName, url: result.uri })
+      } catch { /* user cancelled share */ }
+    } else {
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = fileName
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+  }
+
   const getItemImage = (item?: Pick<Item, 'image_urls'>) => {
     if (item?.image_urls && item.image_urls.length > 0) {
       return item.image_urls[0]
@@ -2069,6 +2115,20 @@ export default function ActivityPage() {
                 {filter.label}
               </button>
             ))}
+            <button
+              onClick={() => exportOrdersCSV(mainTab as 'purchases' | 'sales')}
+              style={{
+                marginLeft: 'auto', padding: '6px 10px', borderRadius: '100px', flexShrink: 0,
+                backgroundColor: 'transparent', border: '1px solid #333',
+                color: '#888', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              {lang === 'fr' ? 'Exporter CSV' : lang === 'he' ? 'ייצוא CSV' : lang === 'es' ? 'Exportar CSV' : 'Export CSV'}
+            </button>
           </div>
         )}
 

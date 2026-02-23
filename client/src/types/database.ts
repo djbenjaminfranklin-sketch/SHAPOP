@@ -115,6 +115,7 @@ export interface Item {
   ai_confidence: number | null
   weight_grams: number | null
   seller_shipping_override: number | null
+  buy_now_price: number | null
   status: 'draft' | 'pending' | 'active' | 'sold' | 'unsold'
   winner_id: string | null
   duration_seconds: number

@@ -347,6 +347,62 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
   }
 })
 
+// Buy Now — instant purchase at buy_now_price
+router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const buyerId = req.user!.id
+    const { data: item } = await supabase
+      .from('items')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+
+    if (!item) { res.status(404).json({ error: 'Item not found' }); return }
+    if (item.status !== 'active') { res.status(400).json({ error: 'Item is not active' }); return }
+    if (!item.buy_now_price || item.buy_now_price <= 0) { res.status(400).json({ error: 'No buy now price set' }); return }
+    if (item.seller_id === buyerId) { res.status(400).json({ error: 'Cannot buy your own item' }); return }
+
+    // Mark as sold
+    const { error: updateError } = await supabase.from('items').update({
+      status: 'sold',
+      winner_id: buyerId,
+      current_price: item.buy_now_price,
+      ended_at: new Date().toISOString(),
+    }).eq('id', item.id).eq('status', 'active') // optimistic lock
+
+    if (updateError) { res.status(500).json({ error: 'Failed to purchase' }); return }
+
+    // Calculate stream offset
+    let purchaseStreamOffsetSeconds: number | null = null
+    if (item.stream_id) {
+      const { data: stream } = await supabase.from('streams').select('started_at').eq('id', item.stream_id).single()
+      if (stream?.started_at) {
+        purchaseStreamOffsetSeconds = Math.floor((Date.now() - new Date(stream.started_at).getTime()) / 1000)
+      }
+    }
+
+    // Create order
+    const fees = calculateFees(item.buy_now_price)
+    await supabase.from('orders').insert({
+      buyer_id: buyerId,
+      seller_id: item.seller_id,
+      item_id: item.id,
+      stream_id: item.stream_id,
+      amount: item.buy_now_price,
+      platform_fee: fees.platformFee,
+      processing_fee: fees.processingFee,
+      seller_payout: fees.sellerPayout,
+      purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
+    })
+
+    await notifyUser(buyerId, 'auction_won', 'Achat confirme !', `${item.title} — ${item.buy_now_price}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
+
+    res.json({ success: true, price: item.buy_now_price })
+  } catch {
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // Create AI Express listing (bypasses RLS)
 router.post('/api/items/create-listing', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {

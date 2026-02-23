@@ -12,6 +12,7 @@ type EventName =
   | 'push_enabled'
   | 'search'
   | 'share'
+  | 'buy_now'
 
 interface AnalyticsEvent {
   name: EventName

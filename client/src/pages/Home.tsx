@@ -287,14 +287,18 @@ export default function Home() {
   }, [streams, selectedCategory])
 
   const displayStreams = useMemo(() => {
-    if (!searchQuery.trim()) return filteredStreams
-    const q = searchQuery.toLowerCase()
-    return filteredStreams.filter(s =>
-      s.title.toLowerCase().includes(q)
-      || s.category.toLowerCase().includes(q)
-      || (s.seller?.store_name || s.seller?.display_name || '').toLowerCase().includes(q)
-      || (s.city || '').toLowerCase().includes(q)
-    )
+    const blocked: string[] = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
+    let result = filteredStreams.filter(s => !blocked.includes(s.seller_id))
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(s =>
+        s.title.toLowerCase().includes(q)
+        || s.category.toLowerCase().includes(q)
+        || (s.seller?.store_name || s.seller?.display_name || '').toLowerCase().includes(q)
+        || (s.city || '').toLowerCase().includes(q)
+      )
+    }
+    return result
   }, [filteredStreams, searchQuery])
 
   const handleCitySelect = (selectedCity: string) => {

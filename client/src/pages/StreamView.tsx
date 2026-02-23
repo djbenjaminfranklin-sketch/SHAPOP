@@ -17,6 +17,8 @@ import { track } from '../lib/analytics'
 import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } from '../lib/settings'
 import { hapticTap } from '../lib/haptics'
 import { Share } from '@capacitor/share'
+import RelayPointPicker from '../components/RelayPointPicker'
+import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -109,6 +111,11 @@ const streamContent = {
     preBidConfirm: 'Placer la pre-enchere',
     preBidPlaced: 'Pre-enchere placee',
     bundleDiscount: 'Shipping groupe : -15%',
+    bundleMessage: 'Vos achats seront regroupes dans un seul colis',
+    walletRelay: 'Point Relais Mondial Relay',
+    walletNoRelay: 'Aucun point relais',
+    pickupOption: 'Retrait en main propre (0€)',
+    pickupSelected: 'Retrait en main propre — pas de frais de port',
   },
   en: {
     viewers: 'viewers',
@@ -198,6 +205,11 @@ const streamContent = {
     preBidConfirm: 'Place pre-bid',
     preBidPlaced: 'Pre-bid placed',
     bundleDiscount: 'Grouped shipping: -15%',
+    bundleMessage: 'Your purchases will be bundled in a single package',
+    walletRelay: 'Mondial Relay Point',
+    walletNoRelay: 'No relay point',
+    pickupOption: 'Self pickup (free)',
+    pickupSelected: 'Self pickup — no shipping fees',
   },
   he: {
     viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
@@ -287,6 +299,11 @@ const streamContent = {
     preBidConfirm: 'הגש הצעה מוקדמת',
     preBidPlaced: 'הצעה מוקדמת הוגשה',
     bundleDiscount: 'משלוח מרוכז: -15%',
+    bundleMessage: 'הרכישות שלך יאוחדו בחבילה אחת',
+    walletRelay: 'נקודת איסוף Mondial Relay',
+    walletNoRelay: 'אין נקודת איסוף',
+    pickupOption: 'איסוף עצמי (חינם)',
+    pickupSelected: 'איסוף עצמי — ללא דמי משלוח',
   },
   es: {
     viewers: 'espectadores',
@@ -376,6 +393,11 @@ const streamContent = {
     preBidConfirm: 'Colocar pre-puja',
     preBidPlaced: 'Pre-puja colocada',
     bundleDiscount: 'Envio agrupado: -15%',
+    bundleMessage: 'Sus compras se agruparan en un solo paquete',
+    walletRelay: 'Punto de Recogida Mondial Relay',
+    walletNoRelay: 'Sin punto de recogida',
+    pickupOption: 'Recoger en persona (gratis)',
+    pickupSelected: 'Recoger en persona — sin gastos de envio',
   },
 }
 
@@ -516,12 +538,14 @@ export default function StreamView() {
   const lang = (getLang() || 'fr') as Lang
   const ct = streamContent[lang] || streamContent.fr
   const { user } = useAuth()
+  const { minimizeStream } = useMiniPlayer()
   const userRef = useRef(user)
   useEffect(() => { userRef.current = user }, [user])
   const videoRef = useRef<HTMLVideoElement>(null)
   const chatEndRef = useRef<HTMLDivElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const auctionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const sdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const isMountedRef = useRef(true)
   const itemEventSeqRef = useRef(0)
   useEffect(() => {
@@ -595,6 +619,12 @@ export default function StreamView() {
   const [walletAddress, setWalletAddress] = useState<{ name: string; street: string; city: string; zip: string } | null>(null)
   const [walletCard, setWalletCard] = useState<{ brand?: string; last4?: string } | null>(null)
   const [promoCode, setPromoCode] = useState('')
+  const [showRelayPicker, setShowRelayPicker] = useState(false)
+  const [selectedRelay, setSelectedRelay] = useState<{ id: string; name: string } | null>(() => {
+    try { const s = localStorage.getItem('shapop_relay_point'); return s ? JSON.parse(s) : null } catch { return null }
+  })
+  const [hasBundleOrders, setHasBundleOrders] = useState(false)
+  const [pickupMode, setPickupMode] = useState(false)
 
   // Giveaway state
   const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
@@ -606,6 +636,19 @@ export default function StreamView() {
 
   // More menu state
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+
+  // Multi-view state
+  const [multiViewStreams, setMultiViewStreams] = useState<{ id: string; title: string; sellerName: string; lkUrl: string; lkToken: string }[]>([])
+  const [activeMultiIdx, setActiveMultiIdx] = useState(0)
+  const [showMultiPicker, setShowMultiPicker] = useState(false)
+  const [availableLives, setAvailableLives] = useState<{ id: string; title: string; seller_name: string; thumbnail_url: string | null }[]>([])
+  const isMultiView = multiViewStreams.length > 0
+  const isMultiViewRef = useRef(false)
+  isMultiViewRef.current = isMultiView
+  const [multiStreamItems, setMultiStreamItems] = useState<Record<string, { id: string; title: string; current_price: number; starting_price: number; image_url?: string }>>({})
+  const [multiBidLoading, setMultiBidLoading] = useState<string | null>(null)
+  const [pendingWonItem, setPendingWonItem] = useState<{ title: string; price: number } | null>(null)
+  const [likedCells, setLikedCells] = useState<Record<string, boolean>>({})
 
   // Clip capture state
 
@@ -730,7 +773,20 @@ export default function StreamView() {
     fetchWalletData()
   }, [showWallet, user])
 
-
+  // Check for existing orders in this stream (for bundling message)
+  useEffect(() => {
+    if (!showPaymentModal || !user || !id) return
+    const checkBundle = async () => {
+      const { count } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('buyer_id', user.id)
+        .eq('stream_id', id)
+        .in('status', ['pending_payment', 'paid'])
+      setHasBundleOrders((count ?? 0) > 0)
+    }
+    checkBundle()
+  }, [showPaymentModal, user, id])
 
   // Fetch LiveKit viewer token when stream has a livekit room and is live
   useEffect(() => {
@@ -943,21 +999,158 @@ export default function StreamView() {
     }
   }, [isSeller, isLive])
 
-  // PiP (Picture-in-Picture) handler
-  const handlePiP = useCallback(async () => {
-    try {
-      const videoEl = document.querySelector('video') as HTMLVideoElement | null
-      if (!videoEl) return
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture()
-      } else if (videoEl.requestPictureInPicture) {
-        await videoEl.requestPictureInPicture()
+  // PiP (Picture-in-Picture) handler → now uses mini player overlay
+  const handlePiP = useCallback(() => {
+    if (!viewerLkUrl || !viewerLkToken || !id || !stream) return
+    minimizeStream({
+      streamId: id,
+      streamTitle: stream.title,
+      sellerName,
+      sellerAvatar,
+      lkUrl: viewerLkUrl,
+      lkToken: viewerLkToken,
+    })
+  }, [id, stream, sellerName, sellerAvatar, viewerLkUrl, viewerLkToken, minimizeStream])
+
+  // Ref for swipe handler to access latest handlePiP
+  const handlePiPRef = useRef(handlePiP)
+  useEffect(() => { handlePiPRef.current = handlePiP }, [handlePiP])
+
+  // Global swipe detection: horizontal >80px or downward >120px triggers PiP
+  useEffect(() => {
+    let startX = 0, startY = 0, startTime = 0
+    const onStart = (e: TouchEvent) => {
+      startX = e.touches[0].clientX
+      startY = e.touches[0].clientY
+      startTime = Date.now()
+    }
+    const onEnd = (e: TouchEvent) => {
+      const dx = e.changedTouches[0].clientX - startX
+      const dy = e.changedTouches[0].clientY - startY
+      const elapsed = Date.now() - startTime
+      if (elapsed < 400 && Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        handlePiPRef.current()
+        return
       }
-    } catch {
-      // PiP not supported or user denied
+      if (elapsed < 400 && dy > 120 && dy > Math.abs(dx) * 1.5) {
+        handlePiPRef.current()
+      }
+    }
+    document.addEventListener('touchstart', onStart, { passive: true })
+    document.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', onStart)
+      document.removeEventListener('touchend', onEnd)
     }
   }, [])
 
+  // Multi-view: fetch available live streams
+  const fetchAvailableLives = useCallback(async () => {
+    const { data } = await supabase
+      .from('streams')
+      .select('id, title, thumbnail_url, seller_id')
+      .eq('status', 'live')
+      .neq('id', id || '')
+      .limit(10)
+    if (!data) return
+    // Get seller names
+    const sellerIds = [...new Set(data.map(s => s.seller_id))]
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, display_name, username')
+      .in('id', sellerIds)
+    const nameMap = new Map(profiles?.map(p => [p.id, p.display_name || p.username || '']) || [])
+    setAvailableLives(data.map(s => ({
+      id: s.id,
+      title: s.title || '',
+      seller_name: nameMap.get(s.seller_id) || '',
+      thumbnail_url: s.thumbnail_url,
+    })))
+  }, [id])
+
+  // Multi-view: add a stream to the grid
+  const addMultiStream = useCallback(async (streamId: string, title: string, sellerName: string) => {
+    // Get LiveKit token for this stream
+    const { data: session } = await supabase.auth.getSession()
+    const token = session?.session?.access_token
+    if (!token) return
+    try {
+      const resp = await apiFetch(`/api/streams/${streamId}/livekit-token`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      })
+      if (!resp.ok) return
+      const { url, token: lkToken } = await resp.json()
+      setMultiViewStreams(prev => {
+        if (prev.length >= 3) return prev // max 4 total (main + 3)
+        if (prev.some(s => s.id === streamId)) return prev
+        return [...prev, { id: streamId, title, sellerName, lkUrl: url, lkToken: lkToken }]
+      })
+      setShowMultiPicker(false)
+    } catch { /* failed */ }
+  }, [])
+
+  // Multi-view: remove a stream from the grid
+  const removeMultiStream = useCallback((idx: number) => {
+    setMultiViewStreams(prev => {
+      const next = prev.filter((_, i) => i !== idx)
+      if (activeMultiIdx > idx) setActiveMultiIdx(a => a - 1)
+      else if (activeMultiIdx === idx) setActiveMultiIdx(0)
+      return next
+    })
+  }, [activeMultiIdx])
+
+  // Multi-view: fetch active items + subscribe to realtime for each additional stream
+  useEffect(() => {
+    if (multiViewStreams.length === 0) {
+      setMultiStreamItems({})
+      return
+    }
+    const channels: ReturnType<typeof supabase.channel>[] = []
+    multiViewStreams.forEach(ms => {
+      // Fetch current active item
+      supabase.from('items').select('id, title, current_price, starting_price, image_urls, status')
+        .eq('stream_id', ms.id).eq('status', 'active').limit(1).single()
+        .then(({ data }) => {
+          if (data) {
+            setMultiStreamItems(prev => ({ ...prev, [ms.id]: { id: data.id, title: data.title, current_price: data.current_price, starting_price: data.starting_price, image_url: data.image_urls?.[0] } }))
+          }
+        })
+      // Subscribe to realtime changes
+      const ch = supabase.channel(`multi-items-${ms.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `stream_id=eq.${ms.id}` }, (payload) => {
+          const item = payload.new as any
+          if (item?.status === 'active') {
+            setMultiStreamItems(prev => ({ ...prev, [ms.id]: { id: item.id, title: item.title, current_price: item.current_price, starting_price: item.starting_price, image_url: item.image_urls?.[0] } }))
+          } else if (payload.eventType === 'UPDATE' && item?.status !== 'active') {
+            setMultiStreamItems(prev => { const next = { ...prev }; if (next[ms.id]?.id === item?.id) delete next[ms.id]; return next })
+          }
+        })
+        .subscribe()
+      channels.push(ch)
+    })
+    return () => { channels.forEach(ch => supabase.removeChannel(ch)) }
+  }, [multiViewStreams])
+
+  // Multi-view: bid on an additional stream's active item
+  const handleMultiBid = useCallback(async (streamId: string) => {
+    const item = multiStreamItems[streamId]
+    if (!item || !user || multiBidLoading) return
+    setMultiBidLoading(streamId)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session?.session?.access_token
+      if (!token) return
+      const bidAmount = item.current_price > 0 ? item.current_price + 1 : item.starting_price + 1
+      const resp = await apiFetch(`/api/items/${item.id}/bid`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: bidAmount }),
+      })
+      if (resp.ok) hapticTap()
+    } catch { /* */ }
+    finally { setMultiBidLoading(null) }
+  }, [multiStreamItems, user, multiBidLoading])
 
   // Charger les donnees du stream
   const retryFetchStream = useCallback(async () => {
@@ -1124,8 +1317,12 @@ export default function StreamView() {
         // Show payment modal if current user is the winner
         if (userRef.current && item.winner_id === userRef.current.id) {
           setPaymentItem(item)
-          // Show modal immediately with loading state while order is being created
-          setShowPaymentModal(true)
+          // In multi-view: show mini banner in cell instead of auto-opening full-screen modal
+          if (isMultiViewRef.current) {
+            setPendingWonItem({ title: item.title, price: item.current_price })
+          } else {
+            setShowPaymentModal(true)
+          }
           // Fetch the order with retry (seller may still be creating it)
           const initPayment = async () => {
             // Fix #6: Null check for session
@@ -1386,6 +1583,12 @@ export default function StreamView() {
 
     if (!activeAuction?.started_at) return
 
+    // Sudden Death mode: duration_seconds === -1 → fixed 10s countdown, reset on each price change
+    if (activeAuction.duration_seconds === -1) {
+      setTimeLeft(10)
+      return
+    }
+
     auctionTimerRef.current = setInterval(() => {
       const elapsed = (Date.now() - new Date(activeAuction.started_at!).getTime()) / 1000
       const remaining = Math.max(0, activeAuction.duration_seconds - elapsed)
@@ -1406,6 +1609,32 @@ export default function StreamView() {
       }
     }
   }, [activeAuction])
+
+  // Sudden Death countdown: separate interval that ticks every second
+  useEffect(() => {
+    if (sdTimerRef.current) { clearInterval(sdTimerRef.current); sdTimerRef.current = null }
+    if (!activeAuction || activeAuction.duration_seconds !== -1 || !activeAuction.started_at) return
+
+    sdTimerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          if (sdTimerRef.current) { clearInterval(sdTimerRef.current); sdTimerRef.current = null }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => { if (sdTimerRef.current) { clearInterval(sdTimerRef.current); sdTimerRef.current = null } }
+  }, [activeAuction?.id, activeAuction?.duration_seconds, activeAuction?.started_at])
+
+  // Sudden Death: reset timer to 10s when current_price changes
+  useEffect(() => {
+    if (!activeAuction || activeAuction.duration_seconds !== -1) return
+    if (activeAuction.status === 'active') {
+      setTimeLeft(10)
+    }
+  }, [activeAuction?.current_price])
 
   // Auto-scroll du chat
   useEffect(() => {
@@ -1530,6 +1759,42 @@ export default function StreamView() {
     } catch (err) {
       console.error('Failed to place bid:', err)
       alert('Failed to place bid. Please try again.')
+    }
+  }
+
+  // ═══ BUY NOW: instant purchase at buy_now_price ═══
+  const handleBuyNow = async () => {
+    if (!activeAuction || !user) return
+    if (!activeAuction.buy_now_price || activeAuction.buy_now_price <= 0) return
+
+    if (hasCard !== true) { openCardSetup(); return }
+    if (hasAddress !== true) { navigate('/addresses'); return }
+
+    if (!confirm(`Acheter maintenant pour ${activeAuction.buy_now_price}€ ?`)) return
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+
+      const resp = await apiFetch(`/api/items/${activeAuction.id}/buy-now`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        if (err.error === 'card_required') { setHasCard(false); openCardSetup(); return }
+        if (err.error === 'address_required') { setHasAddress(false); navigate('/addresses'); return }
+        throw new Error(err.error || 'Buy now failed')
+      }
+      hapticTap()
+      if (id) track('buy_now', { stream_id: id, item_id: activeAuction.id, price: activeAuction.buy_now_price })
+    } catch (err: any) {
+      console.error('Buy now failed:', err)
+      alert('Achat immediat echoue: ' + (err?.message || 'Veuillez reessayer.'))
     }
   }
 
@@ -1722,6 +1987,16 @@ export default function StreamView() {
   const handleConfirmAddress = async () => {
     if (!user) return
 
+    // If pickup mode, set shipping cost to 0 on the order
+    if (pickupMode && paymentOrder) {
+      await supabase.from('orders').update({
+        shipping_cost: 0,
+        total_amount: paymentOrder.amount,
+        carrier: 'pickup',
+      }).eq('id', paymentOrder.id)
+      setPaymentOrder({ ...paymentOrder, shipping_cost: 0, total_amount: paymentOrder.amount, carrier: 'pickup' } as typeof paymentOrder)
+    }
+
     // If auto-charged, show success directly after saving address
     if (autoChargedRef.current) {
       setPaymentSuccess(true)
@@ -1865,7 +2140,7 @@ export default function StreamView() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#000', overflow: 'hidden' }}>
+    <div className="no-theme-invert" style={{ position: 'fixed', inset: 0, backgroundColor: '#000', overflow: 'hidden' }}>
       {/* Fullscreen video container */}
       <div style={{ position: 'absolute', inset: 0 }}>
 
@@ -1891,43 +2166,369 @@ export default function StreamView() {
                 overflow: 'hidden',
               }}>
                 {viewerLkUrl && viewerLkToken ? (
-                  <>
-                    {/* LiveKit WebRTC Player (sub-300ms latency) */}
-                    <LiveKitViewer
-                      livekitUrl={viewerLkUrl}
-                      livekitToken={viewerLkToken}
-                      muted={viewerMuted}
-                      style={{ width: '100%', height: '100%' }}
-                    />
-                    {/* Unmute button */}
-                    {viewerMuted && (
-                      <button
-                        onClick={() => setViewerMuted(false)}
-                        aria-label={ct.unmuteViewer}
-                        style={{
-                          position: 'absolute',
-                          bottom: '16px', left: '16px',
-                          padding: '8px 16px',
-                          borderRadius: '100px',
-                          backgroundColor: 'rgba(0,0,0,0.7)',
-                          backdropFilter: 'blur(8px)',
-                          WebkitBackdropFilter: 'blur(8px)',
-                          border: '1px solid rgba(255,255,255,0.2)',
-                          color: '#fff', fontSize: '13px', fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: '6px',
-                          zIndex: 15,
-                        }}
-                      >
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
-                          <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                        {ct.unmuteViewer}
-                      </button>
-                    )}
-                  </>
+                  isMultiView ? (
+                    /* ═══ MULTI-VIEW GRID ═══ */
+                    <div style={{
+                      width: '100%', height: '100%',
+                      display: 'grid',
+                      gridTemplateColumns: multiViewStreams.length >= 2 ? '1fr 1fr' : '1fr',
+                      gridTemplateRows: multiViewStreams.length >= 2 ? '1fr 1fr' : '1fr 1fr',
+                      gap: '2px',
+                      backgroundColor: '#000',
+                    }}>
+                      {/* Build all cells: main (index 0) + additional streams */}
+                      {[
+                        { cellIdx: 0, lkUrl: viewerLkUrl, lkToken: viewerLkToken, name: sellerName, streamId: id || '', item: activeAuction ? { id: activeAuction.id, title: activeAuction.title, current_price: activeAuction.current_price, starting_price: activeAuction.starting_price, image_url: activeAuction.image_urls?.[0] } : null, isMain: true },
+                        ...multiViewStreams.map((ms, idx) => ({ cellIdx: idx + 1, lkUrl: ms.lkUrl, lkToken: ms.lkToken, name: ms.sellerName, streamId: ms.id, item: multiStreamItems[ms.id] || null, isMain: false })),
+                      ].map((cell) => (
+                        <div
+                          key={cell.streamId}
+                          onClick={() => { setActiveMultiIdx(cell.cellIdx); setViewerMuted(false) }}
+                          style={{
+                            position: 'relative', overflow: 'hidden',
+                            border: activeMultiIdx === cell.cellIdx ? '2px solid #E8344E' : '2px solid transparent',
+                            borderRadius: '4px',
+                          }}
+                        >
+                          <LiveKitViewer
+                            livekitUrl={cell.lkUrl}
+                            livekitToken={cell.lkToken}
+                            muted={activeMultiIdx !== cell.cellIdx}
+                            style={{ width: '100%', height: '100%' }}
+                          />
+
+                          {/* X button — close this cell */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              if (cell.isMain) {
+                                setMultiViewStreams([]); setActiveMultiIdx(0)
+                              } else {
+                                removeMultiStream(cell.cellIdx - 1)
+                              }
+                            }}
+                            style={{
+                              position: 'absolute', top: '6px', left: '6px',
+                              width: '26px', height: '26px', borderRadius: '50%',
+                              backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.3)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', zIndex: 10,
+                            }}
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+
+                          {/* Giveaway mini banner (main cell only) */}
+                          {cell.isMain && activeGiveaway && activeGiveaway.status === 'active' && (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); if (!hasEnteredGiveaway && user) handleEnterGiveaway() }}
+                              style={{
+                                position: 'absolute', top: '6px', left: '38px', right: '42px',
+                                zIndex: 8,
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '5px 8px',
+                                background: hasEnteredGiveaway
+                                  ? 'rgba(0,0,0,0.6)'
+                                  : 'linear-gradient(135deg, rgba(30,20,0,0.9), rgba(10,10,12,0.9))',
+                                border: '1px solid rgba(255,215,0,0.5)',
+                                borderRadius: '10px',
+                                cursor: hasEnteredGiveaway ? 'default' : 'pointer',
+                              }}
+                            >
+                              <span style={{ fontSize: '16px', flexShrink: 0 }}>🎁</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '9px', fontWeight: 800, color: '#FFD700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {hasEnteredGiveaway ? ct.giftEntered : ct.giftTitle}
+                                </p>
+                                <p style={{ fontSize: '8px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                                  {activeGiveaway.entry_count} {ct.giftParticipants}
+                                </p>
+                              </div>
+                              {!hasEnteredGiveaway && user && (
+                                <span style={{
+                                  fontSize: '9px', fontWeight: 800, color: '#000',
+                                  padding: '3px 8px', borderRadius: '6px',
+                                  background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                                  whiteSpace: 'nowrap', flexShrink: 0,
+                                }}>
+                                  {ct.giftEnter}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Mini SOLD / UNSOLD animation inside cell */}
+                          {cell.isMain && soldAnimation && (
+                            <div style={{
+                              position: 'absolute', inset: 0,
+                              display: 'flex', flexDirection: 'column',
+                              alignItems: 'center', justifyContent: 'center',
+                              backgroundColor: 'rgba(0,0,0,0.6)',
+                              zIndex: 15, pointerEvents: 'none',
+                              animation: 'soldFadeIn 0.3s ease',
+                            }}>
+                              <p style={{
+                                fontSize: '28px', fontWeight: 900,
+                                color: soldAnimation.isUnsold ? '#FF9632' : '#22C55E',
+                                textShadow: soldAnimation.isUnsold
+                                  ? '0 0 20px rgba(255,150,50,0.6)'
+                                  : '0 0 20px rgba(34,197,94,0.6)',
+                                animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                margin: 0,
+                              }}>
+                                {soldAnimation.isUnsold ? ct.unsoldBang : ct.soldBang}
+                              </p>
+                              {!soldAnimation.isUnsold && soldAnimation.winner && (
+                                <p style={{
+                                  fontSize: '12px', fontWeight: 700, color: '#fff', margin: '4px 0 0',
+                                  animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
+                                }}>
+                                  @{soldAnimation.winner} — {soldAnimation.price} EUR
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Mini giveaway winner inside cell */}
+                          {cell.isMain && giveawayWinner && (
+                            <div
+                              onClick={(e) => { e.stopPropagation(); setGiveawayWinner(null) }}
+                              style={{
+                                position: 'absolute', inset: 0,
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                backgroundColor: 'rgba(0,0,0,0.8)',
+                                zIndex: 15, cursor: 'pointer',
+                                animation: 'soldFadeIn 0.4s ease',
+                              }}
+                            >
+                              <div style={{ fontSize: '32px', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
+                              <p style={{
+                                fontSize: '18px', fontWeight: 900, color: '#FFD700',
+                                textShadow: '0 2px 12px rgba(255,215,0,0.5)',
+                                margin: '8px 0 0', textAlign: 'center',
+                              }}>
+                                {giveawayWinner.name}
+                              </p>
+                              <p style={{
+                                fontSize: '10px', fontWeight: 600, color: '#fff',
+                                opacity: 0.8, margin: '4px 0 0',
+                              }}>
+                                {ct.giftWinner}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Mini "Tu as gagné" banner inside cell — tap to open payment */}
+                          {cell.isMain && pendingWonItem && !showPaymentModal && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setPendingWonItem(null)
+                                setShowPaymentModal(true)
+                              }}
+                              style={{
+                                position: 'absolute', bottom: '60px', left: '6px', right: '40px',
+                                zIndex: 16,
+                                display: 'flex', alignItems: 'center', gap: '8px',
+                                padding: '8px 12px',
+                                background: 'linear-gradient(135deg, rgba(34,197,94,0.9), rgba(22,163,74,0.9))',
+                                borderRadius: '12px',
+                                cursor: 'pointer',
+                                animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                border: '1px solid rgba(255,255,255,0.3)',
+                              }}
+                            >
+                              <span style={{ fontSize: '18px' }}>🏆</span>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontSize: '11px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                                  {ct.youWon}
+                                </p>
+                                <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {pendingWonItem.title} — {pendingWonItem.price} EUR
+                                </p>
+                              </div>
+                              <span style={{
+                                fontSize: '10px', fontWeight: 800, color: '#fff',
+                                padding: '4px 10px', borderRadius: '8px',
+                                backgroundColor: 'rgba(255,255,255,0.25)',
+                                whiteSpace: 'nowrap', flexShrink: 0,
+                              }}>
+                                {ct.payNow}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Sidebar buttons — right side */}
+                          <div style={{
+                            position: 'absolute', right: '5px', top: '50%', transform: 'translateY(-50%)',
+                            display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
+                          }}>
+                            {/* Like */}
+                            <button onClick={(e) => {
+                              e.stopPropagation()
+                              hapticTap()
+                              setLikedCells(prev => ({ ...prev, [cell.streamId]: !prev[cell.streamId] }))
+                            }} style={{
+                              width: '30px', height: '30px', borderRadius: '50%',
+                              backgroundColor: 'rgba(0,0,0,0.55)', border: 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill={likedCells[cell.streamId] ? '#E8344E' : 'none'} stroke={likedCells[cell.streamId] ? '#E8344E' : '#fff'} strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                            </button>
+                            {/* Share */}
+                            <button onClick={(e) => {
+                              e.stopPropagation()
+                              hapticTap()
+                              const shareUrl = `https://shapop.com/stream/${cell.streamId}`
+                              const shareTitle = `${cell.name} est en live sur ShaPop !`
+                              const shareText = `Rejoins le live de ${cell.name} sur ShaPop ! 🔴\n${shareUrl}`
+                              const doShare = async () => {
+                                try {
+                                  await Share.share({ title: shareTitle, text: shareText, url: shareUrl, dialogTitle: shareTitle })
+                                } catch {
+                                  try { await navigator.clipboard.writeText(shareUrl); showToast(ct.linkCopied) } catch { /* ignore */ }
+                                }
+                              }
+                              doShare()
+                            }} style={{
+                              width: '30px', height: '30px', borderRadius: '50%',
+                              backgroundColor: 'rgba(0,0,0,0.55)', border: 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></svg>
+                            </button>
+                            {/* Home — go back to home page */}
+                            <button onClick={(e) => {
+                              e.stopPropagation()
+                              hapticTap()
+                              navigate('/')
+                            }} style={{
+                              width: '30px', height: '30px', borderRadius: '50%',
+                              backgroundColor: 'rgba(0,0,0,0.55)', border: 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                            </button>
+                            {/* Wallet */}
+                            <button onClick={(e) => { e.stopPropagation(); hapticTap(); setShowWallet(true) }} style={{
+                              width: '30px', height: '30px', borderRadius: '50%',
+                              backgroundColor: 'rgba(0,0,0,0.55)', border: 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                            </button>
+                          </div>
+
+                          {/* Bottom overlay — seller name + item + bid */}
+                          <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
+                            padding: '20px 6px 6px',
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '3px' }}>
+                              {activeMultiIdx === cell.cellIdx && (
+                                <svg width="9" height="9" viewBox="0 0 24 24" fill="#E8344E" stroke="none">
+                                  <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                                  <path d="M19.07 4.93a10 10 0 010 14.14" fill="none" stroke="#E8344E" strokeWidth="2"/>
+                                </svg>
+                              )}
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff' }}>{cell.name}</span>
+                            </div>
+                            {cell.item ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                {cell.item.image_url && (
+                                  <img src={cell.item.image_url} alt="" style={{ width: '26px', height: '26px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
+                                )}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: '9px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</p>
+                                  <p style={{ fontSize: '12px', fontWeight: 800, color: '#F0908A', margin: 0 }}>{cell.item.current_price} EUR</p>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (cell.isMain) handlePlaceBid()
+                                    else handleMultiBid(cell.streamId)
+                                  }}
+                                  disabled={!cell.isMain && multiBidLoading === cell.streamId}
+                                  style={{
+                                    padding: '6px 12px', borderRadius: '100px', border: 'none',
+                                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                                    color: '#fff', fontSize: '11px', fontWeight: 800, cursor: 'pointer', flexShrink: 0,
+                                  }}
+                                >
+                                  {(!cell.isMain && multiBidLoading === cell.streamId) ? '...' : `${cell.item.current_price + 1} EUR`}
+                                </button>
+                              </div>
+                            ) : cell.isMain && upcomingItems.length > 0 ? (
+                              /* Pre-bid mini banner for main cell */
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  const nextItem = upcomingItems.find(i => i.id !== activeAuction?.id)
+                                  if (nextItem) { setPreBidItemId(nextItem.id); setPreBidAmount(''); setShowPreBidModal(true) }
+                                }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  padding: '5px 8px', borderRadius: '8px',
+                                  backgroundColor: 'rgba(59,130,246,0.5)',
+                                  border: '1px solid rgba(59,130,246,0.4)',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <p style={{ fontSize: '9px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  {upcomingItems[0].title} — {upcomingItems[0].starting_price}&euro;
+                                </p>
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#fff', padding: '3px 8px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  {ct.preBid}
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* ═══ SINGLE VIEW ═══ */
+                    <>
+                      <LiveKitViewer
+                        livekitUrl={viewerLkUrl}
+                        livekitToken={viewerLkToken}
+                        muted={viewerMuted}
+                        style={{ width: '100%', height: '100%' }}
+                      />
+                      {/* Unmute button */}
+                      {viewerMuted && (
+                        <button
+                          onClick={() => setViewerMuted(false)}
+                          aria-label={ct.unmuteViewer}
+                          style={{
+                            position: 'absolute',
+                            bottom: '16px', left: '16px',
+                            padding: '8px 16px',
+                            borderRadius: '100px',
+                            backgroundColor: 'rgba(0,0,0,0.7)',
+                            backdropFilter: 'blur(8px)',
+                            WebkitBackdropFilter: 'blur(8px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            color: '#fff', fontSize: '13px', fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: '6px',
+                            zIndex: 15,
+                          }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+                            <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M11 5L6 9H2v6h4l5 4V5z" strokeLinecap="round" strokeLinejoin="round"/>
+                            <path d="M19.07 4.93a10 10 0 010 14.14M15.54 8.46a5 5 0 010 7.07" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                          {ct.unmuteViewer}
+                        </button>
+                      )}
+                    </>
+                  )
                 ) : (
                   /* Fallback: thumbnail or animated placeholder */
                   <>
@@ -2116,8 +2717,8 @@ export default function StreamView() {
               </div>
             )}
 
-            {/* Viewer: top bar with back button + seller info + viewer count */}
-            {!isSeller && (
+            {/* Viewer: top bar with back button + seller info + viewer count (hidden in multi-view) */}
+            {!isSeller && !isMultiView && (
               <div style={{
                 position: 'absolute',
                 top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
@@ -2186,30 +2787,83 @@ export default function StreamView() {
                     }} />
                     {stream.viewer_count || 0}
                   </span>
-                  {stream.status === 'live' && (
-                    <button
-                      onClick={handlePiP}
-                      aria-label={ct.morePiP}
-                      style={{
-                        width: '32px', height: '32px', borderRadius: '50%',
-                        backgroundColor: 'rgba(0,0,0,0.45)',
-                        border: 'none',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="2" y="3" width="20" height="14" rx="2" />
-                        <rect x="12" y="9" width="8" height="6" rx="1" fill="rgba(255,255,255,0.3)" />
-                      </svg>
-                    </button>
-                  )}
+                  {/* Multi-view grid button */}
+                  <button
+                    onClick={() => { fetchAvailableLives(); setShowMultiPicker(true) }}
+                    aria-label="Multi-view"
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '8px',
+                      backgroundColor: isMultiView ? 'rgba(232,52,78,0.7)' : 'rgba(0,0,0,0.45)',
+                      border: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="1" y="1" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                      <rect x="9" y="1" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                      <rect x="1" y="9" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                      <rect x="9" y="9" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* ═══ GIVEAWAY BANNER (viewer) ═══ */}
-            {!isSeller && activeGiveaway && activeGiveaway.status === 'active' && (
+            {/* ═══ MULTI-VIEW TOP BAR ═══ */}
+            {!isSeller && isMultiView && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(env(safe-area-inset-top, 0px) + 8px)',
+                left: '8px', right: '8px',
+                zIndex: 20,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              }}>
+                <button
+                  onClick={() => { setMultiViewStreams([]); setActiveMultiIdx(0) }}
+                  aria-label="Exit multi-view"
+                  style={{
+                    width: '32px', height: '32px', borderRadius: '50%',
+                    backgroundColor: 'rgba(0,0,0,0.6)', border: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5">
+                    <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: '100px',
+                    fontSize: '11px', fontWeight: 700, color: '#fff',
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                  }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E8344E', animation: 'liveDot 1.5s ease-in-out infinite' }} />
+                    {multiViewStreams.length + 1} lives
+                  </span>
+                  <button
+                    onClick={() => { fetchAvailableLives(); setShowMultiPicker(true) }}
+                    style={{
+                      width: '32px', height: '32px', borderRadius: '8px',
+                      backgroundColor: 'rgba(232,52,78,0.7)', border: 'none',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <rect x="1" y="1" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                      <rect x="9" y="1" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                      <rect x="1" y="9" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                      <rect x="9" y="9" width="6" height="6" rx="1" stroke="#fff" strokeWidth="1.5"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ GIVEAWAY BANNER (viewer, hidden in multi-view) ═══ */}
+            {!isSeller && !isMultiView && activeGiveaway && activeGiveaway.status === 'active' && (
               hasEnteredGiveaway ? (
                 /* Collapsed pill after entry */
                 <div style={{
@@ -2515,8 +3169,8 @@ export default function StreamView() {
             {/* Viewer reactions moved to bottom overlay */}
           </div>
 
-      {/* ═══ PRE-BID THIN BANNER (viewer, next item only) ═══ */}
-      {!isSeller && isLive && (() => {
+      {/* ═══ PRE-BID THIN BANNER (viewer, next item only, hidden in multi-view) ═══ */}
+      {!isSeller && isLive && !isMultiView && (() => {
         const nextItem = upcomingItems.find(i => i.id !== activeAuction?.id)
         if (!nextItem) return null
         return (
@@ -2525,15 +3179,15 @@ export default function StreamView() {
             style={{
               position: 'absolute',
               top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-              left: '8px', right: '8px',
+              left: '8px', right: '60px',
               zIndex: 25,
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '8px 12px',
               borderRadius: '10px',
-              backgroundColor: 'rgba(59,130,246,0.15)',
-              backdropFilter: 'blur(8px)',
-              WebkitBackdropFilter: 'blur(8px)',
-              border: '1px solid rgba(59,130,246,0.3)',
+              backgroundColor: 'rgba(59,130,246,0.5)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(59,130,246,0.6)',
               cursor: 'pointer',
             }}
           >
@@ -2552,8 +3206,8 @@ export default function StreamView() {
         )
       })()}
 
-      {/* ═══ StreamSidebar (viewer only, right side) ═══ */}
-      {!isSeller && isLive && (
+      {/* ═══ StreamSidebar (viewer only, right side, hidden in multi-view) ═══ */}
+      {!isSeller && isLive && !isMultiView && (
         <div style={{
           position: 'absolute',
           right: '8px',
@@ -2627,14 +3281,17 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* ═══ BOTTOM GRADIENT ═══ */}
-      <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0, height: '50%',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.5) 60%, transparent)',
-        pointerEvents: 'none', zIndex: 5,
-      }} />
+      {/* ═══ BOTTOM GRADIENT (hidden in multi-view) ═══ */}
+      {!isMultiView && (
+        <div style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
+          background: 'linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0.3) 70%, transparent)',
+          pointerEvents: 'none', zIndex: 5,
+        }} />
+      )}
 
-      {/* ═══ BOTTOM OVERLAY: stream info + auction + chat + input ═══ */}
+      {/* ═══ BOTTOM OVERLAY: stream info + auction + chat + input (hidden in multi-view) ═══ */}
+      {!isMultiView && (
       <div style={{
         position: 'absolute',
         bottom: activeAuction && !isSeller && isLive
@@ -2647,7 +3304,10 @@ export default function StreamView() {
       }}>
         {/* Chat messages — last 5, WhatNot style: transparent, float up */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '75%' }}>
-          {messages.slice(-5).map((msg, i, arr) => {
+          {messages.filter(m => {
+            const blocked = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
+            return !blocked.includes(m.user_id)
+          }).slice(-5).map((msg, i, arr) => {
             const isJoin = msg.message === '__system:join__'
             const joinText: Record<string, string> = { fr: 'a rejoint', en: 'joined', he: '\u05D4\u05E6\u05D8\u05E8\u05E3', es: 'se unio' }
             // Older messages fade out
@@ -2798,12 +3458,13 @@ export default function StreamView() {
               onMaxBid={() => { setMaxBidAmount(String(activeAuction.current_price + 10)); setShowMaxBidModal(true) }}
               hasActiveMaxBid={hasActiveMaxBid}
               bundleCount={boughtItemCount}
+              onBuyNow={activeAuction.buy_now_price ? handleBuyNow : undefined}
             />
           </div>
         )}
 
-        {/* Waiting for next item (viewer, no active auction, live is on) */}
-        {!activeAuction && !isSeller && isLive && !soldAnimation && (
+        {/* Waiting for next item (viewer, no active auction, live is on, hidden in multi-view) */}
+        {!activeAuction && !isSeller && isLive && !soldAnimation && !isMultiView && (
           <div style={{
             position: 'fixed',
             bottom: 0,
@@ -2842,9 +3503,10 @@ export default function StreamView() {
           </p>
         </div>
       </div>
+      )}
 
-      {/* SOLD / UNSOLD animation overlay */}
-      {soldAnimation && (
+      {/* SOLD / UNSOLD animation overlay (full screen, hidden in multi-view) */}
+      {soldAnimation && !isMultiView && (
         <div style={{
           position: 'fixed', inset: 0,
           display: 'flex', flexDirection: 'column',
@@ -3009,6 +3671,20 @@ export default function StreamView() {
                     )}
                   </div>
                 </div>
+                {hasBundleOrders && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    padding: '10px 14px', marginBottom: '12px',
+                    backgroundColor: 'rgba(59,130,246,0.1)',
+                    border: '1px solid rgba(59,130,246,0.25)',
+                    borderRadius: '10px',
+                  }}>
+                    <span style={{ fontSize: '16px', flexShrink: 0 }}>📦</span>
+                    <p style={{ fontSize: '12px', color: '#93C5FD', margin: 0, fontWeight: 500 }}>
+                      {ct.bundleMessage}
+                    </p>
+                  </div>
+                )}
                 <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#ccc', margin: '0 0 12px' }}>
                   {ct.confirmAddress}
                 </h4>
@@ -3111,18 +3787,36 @@ export default function StreamView() {
                     <option value="US">USA</option>
                   </select>
                 </div>
+                {/* Pickup option */}
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  padding: '12px 14px', marginBottom: '12px',
+                  backgroundColor: pickupMode ? 'rgba(34,197,94,0.1)' : '#0D0D0D',
+                  border: pickupMode ? '1px solid rgba(34,197,94,0.3)' : '1px solid #222',
+                  borderRadius: '10px', cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={pickupMode}
+                    onChange={e => setPickupMode(e.target.checked)}
+                    style={{ accentColor: '#22C55E', width: '18px', height: '18px' }}
+                  />
+                  <span style={{ fontSize: '14px', color: pickupMode ? '#22C55E' : '#aaa', fontWeight: 600 }}>
+                    {ct.pickupOption}
+                  </span>
+                </label>
                 <button
                   onClick={handleConfirmAddress}
-                  disabled={!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip}
+                  disabled={!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)}
                   style={{
                     width: '100%', padding: '16px',
-                    background: (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)
+                    background: (!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip))
                       ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
                     borderRadius: '14px', border: 'none',
                     color: '#fff', fontSize: '16px', fontWeight: 700,
-                    cursor: (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)
+                    cursor: (!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip))
                       ? 'not-allowed' : 'pointer',
-                    opacity: (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)
+                    opacity: (!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip))
                       ? 0.5 : 1,
                   }}
                 >
@@ -3393,6 +4087,8 @@ export default function StreamView() {
               width: '100%', maxWidth: '500px',
               padding: '24px',
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              maxHeight: '80vh',
+              overflowY: 'auto',
               animation: 'slideUp 0.3s ease',
             }}
           >
@@ -3424,6 +4120,32 @@ export default function StreamView() {
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletAddress}</p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
                   {walletAddress ? `${walletAddress.street}, ${walletAddress.zip} ${walletAddress.city}` : ct.walletNoAddress}
+                </p>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            </div>
+
+            {/* Point relais Mondial Relay */}
+            <div
+              onClick={() => setShowRelayPicker(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '14px',
+                padding: '14px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#1A1A1A',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletRelay}</p>
+                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                  {selectedRelay ? selectedRelay.name : ct.walletNoRelay}
                 </p>
               </div>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -3494,6 +4216,21 @@ export default function StreamView() {
         </div>
       )}
 
+      {/* ═══ RELAY POINT PICKER ═══ */}
+      {showRelayPicker && (
+        <RelayPointPicker
+          zip={walletAddress?.zip || addressForm.zip || '75000'}
+          selectedId={selectedRelay?.id || null}
+          onSelect={(point) => {
+            const relay = { id: point.id, name: point.name }
+            setSelectedRelay(relay)
+            localStorage.setItem('shapop_relay_point', JSON.stringify(relay))
+            setShowRelayPicker(false)
+          }}
+          onClose={() => setShowRelayPicker(false)}
+        />
+      )}
+
       {/* ═══ MORE MENU ═══ */}
       {showMoreMenu && (
         <div
@@ -3518,22 +4255,7 @@ export default function StreamView() {
               <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#333' }} />
             </div>
 
-            {/* PiP / Mini player */}
-            <button
-              onClick={() => { setShowMoreMenu(false); handlePiP() }}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
-                padding: '14px 0', borderBottom: '1px solid #1A1A1A',
-                background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
-                cursor: 'pointer', textAlign: 'left',
-              }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" />
-                <rect x="12" y="9" width="8" height="6" rx="1" fill="rgba(255,255,255,0.2)" />
-              </svg>
-              <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>{ct.morePiP}</span>
-            </button>
+            {/* PiP removed — swipe gesture handles PiP */}
 
             {/* Report */}
             <button
@@ -3560,9 +4282,20 @@ export default function StreamView() {
 
             {/* Block */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowMoreMenu(false)
-                if (stream) {
+                if (stream && user) {
+                  try {
+                    const { data: session } = await supabase.auth.getSession()
+                    const token = session.session?.access_token
+                    if (token) {
+                      await apiFetch(`/api/users/${stream.seller_id}/block`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${token}` },
+                      })
+                    }
+                  } catch { /* ignore */ }
+                  // Also keep localStorage for immediate local filtering
                   const blocked = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
                   if (!blocked.includes(stream.seller_id)) {
                     blocked.push(stream.seller_id)
@@ -3587,8 +4320,8 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* ═══ GIVEAWAY WINNER OVERLAY — tap anywhere to dismiss ═══ */}
-      {giveawayWinner && (
+      {/* ═══ GIVEAWAY WINNER OVERLAY — tap anywhere to dismiss (hidden in multi-view) ═══ */}
+      {giveawayWinner && !isMultiView && (
         <div
           onClick={() => setGiveawayWinner(null)}
           style={{
@@ -3798,6 +4531,115 @@ export default function StreamView() {
               >
                 {ct.maxBidCancel}
               </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Multi-view stream picker modal */}
+      {showMultiPicker && (
+        <div
+          onClick={() => setShowMultiPicker(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', maxWidth: '400px',
+              maxHeight: '60vh',
+              backgroundColor: '#1A1A1A', borderRadius: '20px 20px 0 0',
+              padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 20px)',
+              overflowY: 'auto',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                {lang === 'fr' ? 'Ajouter un live' : lang === 'he' ? 'הוסף שידור' : lang === 'es' ? 'Agregar un live' : 'Add a live'}
+              </h3>
+              <button
+                onClick={() => setShowMultiPicker(false)}
+                style={{ background: 'none', border: 'none', color: '#888', fontSize: '24px', cursor: 'pointer', padding: '4px' }}
+              >
+                ×
+              </button>
+            </div>
+            {isMultiView && (
+              <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: '10px', backgroundColor: 'rgba(232,52,78,0.1)', border: '1px solid rgba(232,52,78,0.2)' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#E8344E' }}>
+                  {multiViewStreams.length + 1}/4 {lang === 'fr' ? 'ecrans actifs' : lang === 'he' ? 'מסכים פעילים' : lang === 'es' ? 'pantallas activas' : 'screens active'}
+                </span>
+              </div>
+            )}
+            {availableLives.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', padding: '20px 0' }}>
+                {lang === 'fr' ? 'Aucun autre live en cours' : lang === 'he' ? 'אין שידורים חיים אחרים' : lang === 'es' ? 'No hay otros lives en curso' : 'No other lives available'}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {availableLives.map(live => {
+                  const alreadyAdded = multiViewStreams.some(s => s.id === live.id)
+                  return (
+                    <button
+                      key={live.id}
+                      disabled={alreadyAdded || multiViewStreams.length >= 3}
+                      onClick={() => addMultiStream(live.id, live.title, live.seller_name)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '12px',
+                        padding: '12px', borderRadius: '14px',
+                        backgroundColor: alreadyAdded ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)',
+                        border: alreadyAdded ? '1px solid rgba(232,52,78,0.3)' : '1px solid rgba(255,255,255,0.1)',
+                        cursor: alreadyAdded || multiViewStreams.length >= 3 ? 'default' : 'pointer',
+                        opacity: alreadyAdded ? 0.5 : multiViewStreams.length >= 3 ? 0.4 : 1,
+                        textAlign: 'left', width: '100%',
+                      }}
+                    >
+                      {live.thumbnail_url ? (
+                        <img
+                          src={live.thumbnail_url}
+                          alt=""
+                          style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '56px', height: '56px', borderRadius: '10px', flexShrink: 0,
+                          backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                          </svg>
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {live.title}
+                        </p>
+                        <p style={{ fontSize: '12px', fontWeight: 500, color: '#888', margin: 0 }}>
+                          {live.seller_name}
+                        </p>
+                      </div>
+                      {alreadyAdded ? (
+                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#E8344E', flexShrink: 0 }}>
+                          {lang === 'fr' ? 'Ajoute' : 'Added'}
+                        </span>
+                      ) : (
+                        <div style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          backgroundColor: 'rgba(232,52,78,0.2)', flexShrink: 0,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             )}
           </div>
         </div>

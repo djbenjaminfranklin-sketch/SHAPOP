@@ -17,6 +17,7 @@ interface ActiveItemBarProps {
   onMaxBid?: () => void
   hasActiveMaxBid?: boolean
   bundleCount?: number
+  onBuyNow?: () => void
 }
 
 const LABELS: Record<string, {
@@ -30,6 +31,7 @@ const LABELS: Record<string, {
   maxBid: string
   maxBidActive: string
   bundleDiscount: string
+  buyNow: string
 }> = {
   fr: {
     bid: 'Encherir',
@@ -42,6 +44,7 @@ const LABELS: Record<string, {
     maxBid: 'Enchere max',
     maxBidActive: 'Auto-enchere active',
     bundleDiscount: 'Shipping groupe : -15%',
+    buyNow: 'Acheter',
   },
   en: {
     bid: 'Bid',
@@ -54,6 +57,7 @@ const LABELS: Record<string, {
     maxBid: 'Max bid',
     maxBidActive: 'Auto-bid active',
     bundleDiscount: 'Grouped shipping: -15%',
+    buyNow: 'Buy now',
   },
   he: {
     bid: 'הצע',
@@ -66,6 +70,7 @@ const LABELS: Record<string, {
     maxBid: 'הצעה מקסימלית',
     maxBidActive: 'הצעה אוטומטית פעילה',
     bundleDiscount: 'משלוח מרוכז: -15%',
+    buyNow: 'קנה עכשיו',
   },
   es: {
     bid: 'Pujar',
@@ -78,6 +83,7 @@ const LABELS: Record<string, {
     maxBid: 'Puja max',
     maxBidActive: 'Auto-puja activa',
     bundleDiscount: 'Envio agrupado: -15%',
+    buyNow: 'Comprar',
   },
 }
 
@@ -96,6 +102,7 @@ export default function ActiveItemBar({
   onMaxBid,
   hasActiveMaxBid,
   bundleCount,
+  onBuyNow,
 }: ActiveItemBarProps) {
   const [bidFlash, setBidFlash] = useState(false)
 
@@ -280,6 +287,32 @@ export default function ActiveItemBar({
           >
             {labels.bid} : {currentBid}€
           </button>
+
+          {/* Buy Now button — only when buy_now_price is set */}
+          {item.buy_now_price && item.buy_now_price > 0 && onBuyNow && (
+            <button
+              onClick={() => { if (!disabled) { hapticTap(); onBuyNow() } }}
+              disabled={disabled}
+              style={{
+                height: '42px',
+                padding: '0 12px',
+                borderRadius: '100px',
+                border: '1.5px solid #10B981',
+                backgroundColor: 'rgba(16,185,129,0.15)',
+                color: '#10B981',
+                fontSize: '10px',
+                fontWeight: 800,
+                letterSpacing: '0.3px',
+                cursor: disabled ? 'default' : 'pointer',
+                opacity: disabled ? 0.4 : 1,
+                flexShrink: 0,
+                WebkitTapHighlightColor: 'transparent',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {labels.buyNow} {item.buy_now_price}€
+            </button>
+          )}
 
           {/* Enchere max button */}
           <button
