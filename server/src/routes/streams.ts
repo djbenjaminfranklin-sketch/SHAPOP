@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { AccessToken } from 'livekit-server-sdk'
-import { supabase, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
+import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
 import { EncodedFileOutput, S3Upload } from 'livekit-server-sdk'
 import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore } from '../utils'
@@ -1139,6 +1139,7 @@ router.post('/api/streams/:id/boost', requireAuth, async (req: AuthenticatedRequ
   try {
     const streamId = req.params.id
     const userId = req.user!.id
+    const BOOST_AMOUNT_CENTS = 499 // 4.99€
 
     const { data: stream } = await supabase
       .from('streams')
@@ -1161,7 +1162,48 @@ router.post('/api/streams/:id/boost', requireAuth, async (req: AuthenticatedRequ
       return
     }
 
-    // Boost for 24 hours
+    // Get seller's saved card
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!profile?.stripe_customer_id) {
+      res.status(400).json({ error: 'no_card', message: 'No saved payment method. Please add a card in Settings > Payments first.' })
+      return
+    }
+
+    const pms = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id,
+      type: 'card',
+      limit: 1,
+    })
+
+    if (pms.data.length === 0) {
+      res.status(400).json({ error: 'no_card', message: 'No saved card found. Please add a card first.' })
+      return
+    }
+
+    // Charge 4.99€ off-session on seller's saved card
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: BOOST_AMOUNT_CENTS,
+      currency: 'eur',
+      customer: profile.stripe_customer_id,
+      payment_method: pms.data[0].id,
+      off_session: true,
+      confirm: true,
+      payment_method_types: ['card'],
+      metadata: { stream_id: String(streamId), seller_id: userId, type: 'boost' },
+      description: `ShaPop Boost – Stream ${String(streamId).slice(0, 8)}`,
+    })
+
+    if (paymentIntent.status !== 'succeeded') {
+      res.status(402).json({ error: 'payment_failed', message: 'Payment could not be completed. Please check your card.' })
+      return
+    }
+
+    // Payment succeeded — activate boost for 24 hours
     const boostedUntil = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
     await supabase.from('streams').update({
       is_boosted: true,
@@ -1169,8 +1211,12 @@ router.post('/api/streams/:id/boost', requireAuth, async (req: AuthenticatedRequ
     }).eq('id', streamId)
 
     res.json({ ok: true, boosted_until: boostedUntil })
-  } catch (err) {
+  } catch (err: any) {
     console.error('POST /api/streams/:id/boost error:', err)
+    if (err.type === 'StripeCardError') {
+      res.status(402).json({ error: 'card_declined', message: 'Card declined. Please update your payment method.' })
+      return
+    }
     res.status(500).json({ error: 'Internal server error' })
   }
 })

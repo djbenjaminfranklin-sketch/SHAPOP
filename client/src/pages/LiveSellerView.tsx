@@ -69,6 +69,11 @@ const pageContent = {
     obsDesc: 'Collez ces infos dans OBS > Parametres > Stream',
     boostLive: 'Booster',
     boostActive: 'Booste !',
+    boostConfirm: 'Booster votre live pour 4,99€ ? Votre live sera mis en avant pendant 24h.',
+    boostConfirmYes: 'Payer 4,99€',
+    boostConfirmNo: 'Annuler',
+    boostNoCard: 'Ajoutez une carte bancaire dans Parametres > Paiements.',
+    boostPayFailed: 'Le paiement a echoue. Verifiez votre carte.',
   },
   en: {
     live: 'LIVE',
@@ -128,6 +133,11 @@ const pageContent = {
     obsDesc: 'Paste these in OBS > Settings > Stream',
     boostLive: 'Boost',
     boostActive: 'Boosted!',
+    boostConfirm: 'Boost your live for €4.99? Your stream will be featured for 24h.',
+    boostConfirmYes: 'Pay €4.99',
+    boostConfirmNo: 'Cancel',
+    boostNoCard: 'Please add a card in Settings > Payments first.',
+    boostPayFailed: 'Payment failed. Please check your card.',
   },
   he: {
     live: 'שידור',
@@ -187,6 +197,11 @@ const pageContent = {
     obsDesc: 'הדבק ב-OBS > הגדרות > שידור',
     boostLive: 'בוסט',
     boostActive: '!בוסט פעיל',
+    boostConfirm: 'לבוסט את השידור ב-4.99€? השידור יודגש למשך 24 שעות.',
+    boostConfirmYes: '€4.99 שלם',
+    boostConfirmNo: 'ביטול',
+    boostNoCard: 'הוסף כרטיס בהגדרות > תשלומים.',
+    boostPayFailed: 'התשלום נכשל. בדוק את הכרטיס.',
   },
   es: {
     live: 'EN VIVO',
@@ -246,6 +261,11 @@ const pageContent = {
     obsDesc: 'Pega esto en OBS > Ajustes > Emision',
     boostLive: 'Impulsar',
     boostActive: 'Impulsado!',
+    boostConfirm: 'Impulsar tu directo por 4,99€? Sera destacado durante 24h.',
+    boostConfirmYes: 'Pagar 4,99€',
+    boostConfirmNo: 'Cancelar',
+    boostNoCard: 'Anade una tarjeta en Ajustes > Pagos.',
+    boostPayFailed: 'El pago fallo. Revisa tu tarjeta.',
   },
 }
 
@@ -317,6 +337,8 @@ export default function LiveSellerView() {
 
   // Boost
   const [isBoosted, setIsBoosted] = useState(false)
+  const [showBoostConfirm, setShowBoostConfirm] = useState(false)
+  const [boostLoading, setBoostLoading] = useState(false)
 
   // OBS/RTMP
   const [showObsModal, setShowObsModal] = useState(false)
@@ -1026,23 +1048,27 @@ export default function LiveSellerView() {
   }
 
   const handleBoostLive = async () => {
-    if (isBoosted) return
+    if (isBoosted || boostLoading) return
+    setShowBoostConfirm(false)
+    setBoostLoading(true)
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { alert('No token'); return }
+      if (!token) { alert('No token'); setBoostLoading(false); return }
       const resp = await apiFetch(`/api/streams/${streamId}/boost`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
       })
+      const result = await resp.json().catch(() => ({}))
       if (resp.ok) {
         setIsBoosted(true)
+      } else if (result.error === 'no_card') {
+        alert(ct.boostNoCard)
       } else {
-        const err = await resp.json().catch(() => ({}))
-        console.error('Boost failed:', resp.status, err)
-        alert(`Boost failed: ${err.error || resp.status}`)
+        alert(ct.boostPayFailed)
       }
-    } catch (err) { console.error('Boost error:', err); alert('Boost error: ' + err) }
+    } catch (err) { console.error('Boost error:', err); alert(ct.boostPayFailed) }
+    setBoostLoading(false)
   }
 
   const handleEndLive = async () => {
@@ -1402,22 +1428,24 @@ export default function LiveSellerView() {
             </svg>
           </button>
           <button
-            onClick={handleBoostLive}
+            onClick={() => !isBoosted && !boostLoading && setShowBoostConfirm(true)}
             style={{
               height: '34px', padding: '0 10px',
               borderRadius: '100px',
               background: isBoosted
                 ? 'linear-gradient(135deg, #10B981, #059669)'
-                : 'linear-gradient(135deg, #F59E0B, #D97706)',
+                : boostLoading
+                  ? 'linear-gradient(135deg, #9CA3AF, #6B7280)'
+                  : 'linear-gradient(135deg, #F59E0B, #D97706)',
               border: 'none',
               display: 'flex', alignItems: 'center', gap: '4px',
-              cursor: isBoosted ? 'default' : 'pointer',
-              opacity: isBoosted ? 0.8 : 1,
+              cursor: isBoosted || boostLoading ? 'default' : 'pointer',
+              opacity: isBoosted || boostLoading ? 0.8 : 1,
             }}
           >
             <span style={{ fontSize: '12px', lineHeight: 1 }}>⚡</span>
             <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff' }}>
-              {isBoosted ? ct.boostActive : ct.boostLive}
+              {isBoosted ? ct.boostActive : boostLoading ? '...' : ct.boostLive}
             </span>
           </button>
           <button
@@ -2121,6 +2149,50 @@ export default function LiveSellerView() {
             }}>
               ⭐ ✨ 🌟 ✨ ⭐
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ BOOST CONFIRM MODAL ═══ */}
+      {showBoostConfirm && (
+        <div
+          onClick={() => setShowBoostConfirm(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 500,
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{
+            backgroundColor: '#1A1A1A', borderRadius: '16px', padding: '24px',
+            width: '90%', maxWidth: '340px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚡</div>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 12px' }}>Boost</h3>
+            <p style={{ color: '#aaa', fontSize: '14px', lineHeight: 1.5, margin: '0 0 24px' }}>
+              {ct.boostConfirm}
+            </p>
+            <button
+              onClick={handleBoostLive}
+              style={{
+                width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
+                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                color: '#fff', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+                marginBottom: '10px',
+              }}
+            >
+              {ct.boostConfirmYes}
+            </button>
+            <button
+              onClick={() => setShowBoostConfirm(false)}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px',
+                border: '1px solid #333', backgroundColor: 'transparent',
+                color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              {ct.boostConfirmNo}
+            </button>
           </div>
         </div>
       )}
