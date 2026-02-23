@@ -1,7 +1,8 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "vite build",
+  "installCommand": "npm install",
   "outputDirectory": "dist",
-  "framework": "vite",
+  "framework": null,
   "rewrites": [
     { "source": "/((?!api|assets|sw\\.js|workbox-|manifest\\.webmanifest|sitemap\\.xml|robots\\.txt|og-image\\.png|logo\\.png|pwa-|apple-touch-).*)", "destination": "/index.html" }
   ],
