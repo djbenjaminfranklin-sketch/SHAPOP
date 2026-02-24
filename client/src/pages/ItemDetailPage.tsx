@@ -450,7 +450,7 @@ export default function ItemDetailPage() {
                       const resp = await apiFetch('/api/conversations/direct', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                        body: JSON.stringify({ user_id: item.seller_id }),
+                        body: JSON.stringify({ user_id: item.seller_id, item_id: item.id }),
                       })
                       const data = await resp.json()
                       if (resp.ok && data.id) {
@@ -473,7 +473,7 @@ export default function ItemDetailPage() {
 
                       const { data: conv, error } = await supabase
                         .from('conversations')
-                        .insert({ type: 'direct', participant_1: user.id, participant_2: sellerId, status: 'active' })
+                        .insert({ type: 'direct', participant_1: user.id, participant_2: sellerId, status: 'active', item_id: item.id })
                         .select('id')
                         .single()
                       if (error) throw error

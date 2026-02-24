@@ -278,8 +278,9 @@ export interface ShippingProof {
 
 export interface Conversation {
   id: string
-  type: 'order' | 'support' | 'dispute'
+  type: 'order' | 'support' | 'dispute' | 'direct'
   order_id: string | null
+  item_id: string | null
   participant_1: string
   participant_2: string
   status: 'active' | 'closed' | 'archived'
@@ -287,6 +288,7 @@ export interface Conversation {
   other_participant?: Profile
   last_message?: ConversationMessage
   order?: Order & { item?: { title?: string } }
+  item?: { id: string; title: string; image_urls?: string[]; current_price?: number }
 }
 
 export interface ConversationMessage {

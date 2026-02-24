@@ -219,7 +219,7 @@ router.delete('/api/streams/:streamId/moderators/:modId', requireAuth, async (re
 router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
-    const { user_id } = req.body
+    const { user_id, item_id } = req.body
 
     if (!user_id || typeof user_id !== 'string') {
       res.status(400).json({ error: 'user_id is required' })
@@ -237,8 +237,8 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
       return
     }
 
-    // Check if a direct conversation already exists between the two users
-    const { data: existing } = await supabase
+    // Check if a direct conversation already exists between the two users for this item
+    let existingQuery = supabase
       .from('conversations')
       .select('id')
       .is('order_id', null)
@@ -246,8 +246,14 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
         `and(participant_1.eq.${userId},participant_2.eq.${user_id}),and(participant_1.eq.${user_id},participant_2.eq.${userId})`
       )
       .eq('status', 'active')
-      .limit(1)
-      .maybeSingle()
+
+    if (item_id) {
+      existingQuery = existingQuery.eq('item_id', item_id)
+    } else {
+      existingQuery = existingQuery.is('item_id', null)
+    }
+
+    const { data: existing } = await existingQuery.limit(1).maybeSingle()
 
     if (existing) {
       res.json(existing)
@@ -255,14 +261,17 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
     }
 
     // Create new direct conversation
+    const insertData: Record<string, unknown> = {
+      type: 'direct',
+      participant_1: userId,
+      participant_2: user_id,
+      status: 'active',
+    }
+    if (item_id) insertData.item_id = item_id
+
     const { data: conv, error } = await supabase
       .from('conversations')
-      .insert({
-        type: 'direct',
-        participant_1: userId,
-        participant_2: user_id,
-        status: 'active',
-      })
+      .insert(insertData)
       .select('id')
       .single()
 
@@ -287,7 +296,7 @@ router.get('/api/conversations/:id', requireAuth, async (req: AuthenticatedReque
 
     const { data: conv, error } = await supabase
       .from('conversations')
-      .select('*')
+      .select('*, item:items!conversations_item_id_fkey(id, title, image_urls, current_price)')
       .eq('id', convId)
       .single()
 
@@ -324,7 +333,7 @@ router.get('/api/conversations', requireAuth, async (req: AuthenticatedRequest, 
 
     const { data, error } = await supabase
       .from('conversations')
-      .select('*, order:orders(id, amount, status, item:items(title, image_urls))')
+      .select('*, order:orders(id, amount, status, item:items(title, image_urls)), item:items!conversations_item_id_fkey(id, title, image_urls, current_price)')
       .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
       .eq('status', 'active')
       .order('created_at', { ascending: false })

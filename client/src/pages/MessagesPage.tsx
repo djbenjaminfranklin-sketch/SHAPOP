@@ -130,6 +130,7 @@ export default function MessagesPage() {
 
   const typeBadge: Record<string, { label: string; color: string }> = {
     order: { label: ct.order, color: 'bg-blue-500/20 text-blue-400' },
+    direct: { label: ct.order, color: 'bg-blue-500/20 text-blue-400' },
     dispute: { label: ct.dispute, color: 'bg-red-500/20 text-red-400' },
     support: { label: ct.support, color: 'bg-gray-500/20 text-gray-400' },
   }
@@ -239,7 +240,6 @@ export default function MessagesPage() {
               const other = conv.other_participant
               const displayName = other?.display_name || ct.defaultUser
               const avatarUrl = other?.avatar_url
-              const badge = typeBadge[conv.type] || typeBadge.support
               const lastMsg = conv.last_message
               const preview = lastMsg?.message
                 ? lastMsg.message.length > 50
@@ -247,7 +247,9 @@ export default function MessagesPage() {
                   : lastMsg.message
                 : ct.noMessage
               const lastTime = lastMsg?.created_at || conv.created_at
-              const orderTitle = conv.order?.item?.title
+              // Item context: from direct conversation item_id or from order
+              const itemTitle = conv.item?.title || conv.order?.item?.title
+              const itemImage = conv.item?.image_urls?.[0] || conv.order?.item?.image_urls?.[0] as string | undefined
 
               return (
                 <button
@@ -255,8 +257,8 @@ export default function MessagesPage() {
                   onClick={() => navigate(`/conversation/${conv.id}`)}
                   className="w-full flex items-center gap-3 py-3 text-left hover:bg-white/5 rounded-lg transition-colors"
                 >
-                  {/* Avatar */}
-                  <div className="flex-shrink-0">
+                  {/* Avatar with item thumbnail overlay */}
+                  <div className="flex-shrink-0 relative">
                     {avatarUrl ? (
                       <img
                         src={avatarUrl}
@@ -270,6 +272,15 @@ export default function MessagesPage() {
                         {getInitials(displayName)}
                       </div>
                     )}
+                    {itemImage && (
+                      <img
+                        src={itemImage}
+                        alt=""
+                        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-md object-cover border-2 border-black"
+                        loading="lazy"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+                    )}
                   </div>
 
                   {/* Content */}
@@ -278,17 +289,10 @@ export default function MessagesPage() {
                       <span className="font-medium text-sm truncate">{displayName}</span>
                       <span className="text-xs text-gray-500 flex-shrink-0">{timeAgo(lastTime)}</span>
                     </div>
+                    {itemTitle && (
+                      <p className="text-[11px] text-gray-500 truncate">{itemTitle}</p>
+                    )}
                     <p className="text-xs text-gray-400 truncate mt-0.5">{preview}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${badge.color}`}>
-                        {badge.label}
-                      </span>
-                      {orderTitle && (
-                        <span className="text-[10px] text-gray-500 truncate">
-                          {orderTitle}
-                        </span>
-                      )}
-                    </div>
                   </div>
 
                   {/* Chevron */}

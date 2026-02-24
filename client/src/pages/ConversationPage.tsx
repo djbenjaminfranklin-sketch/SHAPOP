@@ -501,16 +501,30 @@ export default function ConversationPage() {
                 {getInitials(otherName)}
               </div>
             )}
-            <div style={{ minWidth: 0 }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <p style={{ fontSize: '15px', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>
                 {otherName}
               </p>
-              {conversation?.order_id && (
+              {conversation?.item?.title && (
+                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {conversation.item.title}{conversation.item.current_price ? ` — ${conversation.item.current_price}€` : ''}
+                </p>
+              )}
+              {!conversation?.item?.title && conversation?.order_id && (
                 <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {ct.order}{conversation.order_id.slice(0, 8)}
                 </p>
               )}
             </div>
+            {conversation?.item?.image_urls?.[0] && (
+              <img
+                src={conversation.item.image_urls[0]}
+                alt=""
+                loading="lazy"
+                style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+              />
+            )}
           </div>
         </div>
       </div>
