@@ -247,7 +247,7 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
       )
       .eq('status', 'active')
       .limit(1)
-      .single()
+      .maybeSingle()
 
     if (existing) {
       res.json(existing)
@@ -258,7 +258,7 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
     const { data: conv, error } = await supabase
       .from('conversations')
       .insert({
-        type: 'order',
+        type: 'direct',
         participant_1: userId,
         participant_2: user_id,
         status: 'active',
@@ -267,7 +267,8 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
       .single()
 
     if (error) {
-      res.status(500).json({ error: 'Failed to create conversation' })
+      console.error('[conversations/direct] insert error:', error)
+      res.status(500).json({ error: 'Failed to create conversation', detail: error.message })
       return
     }
 

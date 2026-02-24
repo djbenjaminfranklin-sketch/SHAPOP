@@ -447,48 +447,39 @@ export default function ItemDetailPage() {
                     if (!user || !session?.access_token) { navigate('/login'); return }
                     try {
                       // Try API first
-                      let convId: string | null = null
-                      try {
-                        const resp = await apiFetch('/api/conversations/direct', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                          body: JSON.stringify({ user_id: item.seller_id }),
-                        })
-                        if (resp.ok) {
-                          const data = await resp.json()
-                          convId = data.id
-                        }
-                      } catch { /* fallback below */ }
-
-                      // Fallback: create via Supabase direct
-                      if (!convId) {
-                        const { data: existing } = await supabase
-                          .from('conversations')
-                          .select('id')
-                          .is('order_id', null)
-                          .or(`and(participant_1.eq.${user.id},participant_2.eq.${item.seller_id}),and(participant_1.eq.${item.seller_id},participant_2.eq.${user.id})`)
-                          .eq('status', 'active')
-                          .limit(1)
-                          .single()
-                        if (existing) {
-                          convId = existing.id
-                        } else {
-                          const { data: created } = await supabase
-                            .from('conversations')
-                            .insert({ type: 'order', participant_1: user.id, participant_2: item.seller_id, status: 'active' })
-                            .select('id')
-                            .single()
-                          convId = created?.id || null
-                        }
+                      const resp = await apiFetch('/api/conversations/direct', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ user_id: item.seller_id }),
+                      })
+                      const data = await resp.json()
+                      if (resp.ok && data.id) {
+                        navigate(`/conversation/${data.id}`)
+                        return
                       }
+                    } catch { /* fallback below */ }
 
-                      if (convId) {
-                        navigate(`/conversation/${convId}`)
-                      } else {
-                        navigate('/messages')
-                      }
-                    } catch {
-                      navigate('/messages')
+                    // Fallback: create/find conversation directly via Supabase
+                    try {
+                      const sellerId = item.seller_id
+                      const { data: existing } = await supabase
+                        .from('conversations')
+                        .select('id')
+                        .or(`and(participant_1.eq.${user.id},participant_2.eq.${sellerId}),and(participant_1.eq.${sellerId},participant_2.eq.${user.id})`)
+                        .eq('status', 'active')
+                        .limit(1)
+                        .maybeSingle()
+                      if (existing) { navigate(`/conversation/${existing.id}`); return }
+
+                      const { data: conv, error } = await supabase
+                        .from('conversations')
+                        .insert({ type: 'direct', participant_1: user.id, participant_2: sellerId, status: 'active' })
+                        .select('id')
+                        .single()
+                      if (error) throw error
+                      navigate(`/conversation/${conv.id}`)
+                    } catch (err) {
+                      alert('Erreur: ' + (err instanceof Error ? err.message : 'connexion'))
                     }
                   }}
                   style={{
