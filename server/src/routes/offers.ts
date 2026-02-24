@@ -70,14 +70,14 @@ router.post('/api/items/:id/offer', createLimiter, requireAuth, async (req: Auth
       return
     }
 
-    // Notify seller
+    // Notify seller (fire-and-forget, errors logged)
     notifyUser(
       item.seller_id,
       'offer_received',
       'Nouvelle offre',
       `Vous avez recu une offre de ${amount}EUR pour "${item.title}"`,
       { item_id: itemId, offer_id: offer.id },
-    )
+    ).catch(err => console.error('[offers] notifyUser failed:', err))
 
     res.json(offer)
   } catch (err) {
@@ -162,14 +162,14 @@ router.post('/api/offers/:id/respond', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Notify buyer
+    // Notify buyer (fire-and-forget, errors logged)
     notifyUser(
       offer.buyer_id,
       'offer_response',
       notifTitle,
       notifBody,
       { item_id: offer.item_id, offer_id: offerId },
-    )
+    ).catch(err => console.error('[offers] notifyUser respond failed:', err))
 
     res.json(updated)
   } catch (err) {
@@ -193,9 +193,11 @@ router.get('/api/offers', requireAuth, async (req: AuthenticatedRequest, res: Re
 
     if (role === 'seller') {
       query = query.eq('seller_id', userId)
-    } else {
-      // Default to buyer
+    } else if (role === 'buyer') {
       query = query.eq('buyer_id', userId)
+    } else {
+      // No role specified: return all offers where user is buyer OR seller
+      query = query.or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
     }
 
     const { data, error } = await query

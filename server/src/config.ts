@@ -98,6 +98,13 @@ export const MONDIAL_RELAY_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || ''
 export const MONDIAL_RELAY_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || ''
 
 // =============================================
+// Sendcloud API (multi-carrier shipping)
+// =============================================
+export const SENDCLOUD_PUBLIC_KEY = process.env.SENDCLOUD_PUBLIC_KEY || ''
+export const SENDCLOUD_SECRET_KEY = process.env.SENDCLOUD_SECRET_KEY || ''
+export const SENDCLOUD_ENABLED = !!(SENDCLOUD_PUBLIC_KEY && SENDCLOUD_SECRET_KEY)
+
+// =============================================
 // Admin config
 // =============================================
 export const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'djbenjaminfranklin@gmail.com').split(',').map(e => e.trim())

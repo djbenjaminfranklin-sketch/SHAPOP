@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import crypto from 'crypto'
 import { supabase } from '../config'
 import { otpLimiter } from '../middleware'
+import { notifyUser } from '../utils'
 
 const router = Router()
 
@@ -141,6 +142,22 @@ router.post('/api/auth/verify-otp', otpLimiter, async (req: Request, res: Respon
 
     // Success — remove from store
     otpStore.delete(normalized)
+
+    // Send welcome push notification on first verification
+    // Look up user by phone to send welcome notification
+    const { data: verifiedProfile } = await supabase
+      .from('profiles')
+      .select('id, created_at')
+      .eq('phone_number', normalized)
+      .maybeSingle()
+    if (verifiedProfile) {
+      // Only send welcome if profile was created recently (within last 5 minutes = new signup)
+      const profileAge = Date.now() - new Date(verifiedProfile.created_at).getTime()
+      if (profileAge < 5 * 60 * 1000) {
+        notifyUser(verifiedProfile.id, 'welcome', 'Bienvenue sur ShaPop !', 'Découvre les lives et commence à acheter ou vendre.').catch(() => {})
+      }
+    }
+
     res.json({ verified: true })
   } catch (err) {
     console.error('[auth] verification:', err)

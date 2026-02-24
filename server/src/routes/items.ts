@@ -760,10 +760,10 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
       return
     }
 
-    // Verify item exists and is active
+    // Verify item exists and is active (include title and stream_id for outbid notification)
     const { data: item } = await supabase
       .from('items')
-      .select('id, current_price, status, seller_id')
+      .select('id, current_price, status, seller_id, title, stream_id')
       .eq('id', itemId)
       .single()
 
@@ -823,6 +823,16 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
       return
     }
 
+    // Find previous top bidder before inserting the new bid (for outbid notification)
+    const { data: previousTopBid } = await supabase
+      .from('bids')
+      .select('bidder_id')
+      .eq('item_id', itemId)
+      .order('amount', { ascending: false })
+      .limit(1)
+      .single()
+    const previousBidderId = previousTopBid?.bidder_id
+
     // Insert bid
     const { error: bidError } = await supabase.from('bids').insert({
       item_id: itemId,
@@ -842,6 +852,11 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
     if (!updatedItem || updatedItem.length === 0) {
       // A higher concurrent bid already updated the price — bid is recorded but price not overwritten
       if (process.env.NODE_ENV !== 'production') console.log(`[Bid] Concurrent bid detected: item ${itemId}, amount ${amount} not applied (higher bid exists)`)
+    }
+
+    // Notify previous top bidder that they've been outbid
+    if (previousBidderId && previousBidderId !== userId) {
+      notifyUser(previousBidderId, 'outbid', 'Tu as été surenchéri !', `Quelqu'un a enchéri ${amount}€ sur "${item.title}"`, { item_id: item.id, stream_id: item.stream_id || '' }).catch(() => {})
     }
 
     // Run proxy bidding: check if any OTHER user has an active max_bid that can outbid

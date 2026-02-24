@@ -421,16 +421,16 @@ export default function Home() {
     <div
       ref={scrollRef}
       className="pb-20 min-h-screen"
-      style={{ overflowX: 'hidden', maxWidth: '100vw', backgroundColor: '#0A0A0A' }}
+      style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0A0A0A' }}
     >
       {/* Top bar — WhatNot-style clean header */}
       <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)', backgroundColor: '#0A0A0A', position: 'sticky', top: 0, zIndex: 40 }}>
 
         {/* Search bar + icons — priority layout like WhatNot */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px 6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 12px 6px' }}>
           <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: '12px',
-            backgroundColor: '#1C1C1E', borderRadius: '12px', padding: '12px 16px',
+            flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '8px',
+            backgroundColor: '#1C1C1E', borderRadius: '12px', padding: '10px 12px',
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
               <circle cx="11" cy="11" r="8"/>
@@ -445,7 +445,7 @@ export default function Home() {
               onKeyDown={e => { if (e.key === 'Enter') { saveSearchHistory(searchQuery); setSearchFocused(false); (e.target as HTMLInputElement).blur() } }}
               placeholder={t(lang, 'search_placeholder')}
               aria-label={t(lang, 'search_placeholder')}
-              style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1 }}
+              style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1, minWidth: 0 }}
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
@@ -458,8 +458,8 @@ export default function Home() {
             onClick={() => setShowFilters(!showFilters)}
             aria-label={lang === 'fr' ? 'Filtres' : lang === 'es' ? 'Filtros' : lang === 'he' ? 'מסננים' : 'Filters'}
             style={{
-              padding: '8px', background: 'none', border: 'none', cursor: 'pointer',
-              position: 'relative',
+              padding: '6px', background: 'none', border: 'none', cursor: 'pointer',
+              position: 'relative', flexShrink: 0,
             }}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(filterCity || filterMinRating > 0) ? '#F0908A' : '#999'} strokeWidth="1.5">
@@ -472,14 +472,14 @@ export default function Home() {
             )}
           </button>
           {/* Chat icon */}
-          <button onClick={() => navigate('/messages')} aria-label={lang === 'fr' ? 'Messages' : lang === 'es' ? 'Mensajes' : lang === 'he' ? 'הודעות' : 'Messages'} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
+          <button onClick={() => navigate('/messages')} aria-label={lang === 'fr' ? 'Messages' : lang === 'es' ? 'Mensajes' : lang === 'he' ? 'הודעות' : 'Messages'} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           {/* Notifications */}
-          <button onClick={() => navigate('/notifications')} aria-label={lang === 'fr' ? 'Notifications' : lang === 'es' ? 'Notificaciones' : lang === 'he' ? 'התראות' : 'Notifications'} style={{ padding: '8px', background: 'none', border: 'none', cursor: 'pointer' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
+          <button onClick={() => navigate('/notifications')} aria-label={lang === 'fr' ? 'Notifications' : lang === 'es' ? 'Notificaciones' : lang === 'he' ? 'התראות' : 'Notifications'} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5" style={{ overflow: 'visible', display: 'block' }}>
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -490,10 +490,10 @@ export default function Home() {
               onClick={() => setShowLangPicker(!showLangPicker)}
               aria-label={lang === 'fr' ? 'Langue' : lang === 'es' ? 'Idioma' : lang === 'he' ? 'שפה' : 'Language'}
               style={{
-                width: '36px', height: '36px', borderRadius: '50%',
+                width: '32px', height: '32px', borderRadius: '50%',
                 backgroundColor: '#F5C518', border: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: '16px',
+                cursor: 'pointer', fontSize: '14px', flexShrink: 0,
               }}
             >
               {lang === 'fr' ? '🇫🇷' : lang === 'he' ? '🇮🇱' : lang === 'es' ? '🇪🇸' : '🇬🇧'}
@@ -942,7 +942,7 @@ export default function Home() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-x-3 gap-y-6 px-4 pt-2">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', columnGap: '12px', rowGap: '24px', padding: '8px 16px 0' }}>
           {displayStreams.map(stream => (
             <StreamCard key={stream.id} stream={stream} isFavorited={favoriteIds.has(stream.id)} onToggleFavorite={toggleFavorite} />
           ))}

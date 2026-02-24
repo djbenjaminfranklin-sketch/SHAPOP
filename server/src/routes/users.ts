@@ -279,6 +279,11 @@ router.post('/api/follow/:sellerId', createLimiter, requireAuth, async (req: Aut
       return
     }
 
+    // Notify the seller about their new follower
+    const { data: followerProfile } = await supabase.from('profiles').select('display_name').eq('id', userId).single()
+    const followerName = followerProfile?.display_name || 'Quelqu\'un'
+    notifyUser(String(sellerId), 'new_follower', 'Nouveau follower !', `${followerName} te suit maintenant`, { follower_id: userId }).catch(() => {})
+
     res.json({ status: 'followed' })
   } catch (err) {
     console.error('[users]', err)

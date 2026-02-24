@@ -253,7 +253,7 @@ export default function App() {
         <AuthProvider>
           <MiniPlayerProvider>
           <PushAutoRegister />
-          <div dir={dir} className="min-h-screen" style={{ overflowX: 'hidden', maxWidth: '100vw', width: '100%', backgroundColor: '#0a0a0a', minHeight: '100dvh' }}>
+          <div dir={dir} className="min-h-screen" style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0a0a0a', minHeight: '100dvh' }}>
             <a
               href="#main-content"
               style={{

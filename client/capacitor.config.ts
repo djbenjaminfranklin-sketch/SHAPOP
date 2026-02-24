@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'ShaPop',
   webDir: 'dist',
   ios: {
-    contentInset: 'always',
+    contentInset: 'never',
     allowsLinkPreview: false,
     allowsInlineMediaPlayback: true,
     backgroundColor: '#0a0a0a',

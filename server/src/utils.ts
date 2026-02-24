@@ -1,7 +1,8 @@
 import http2 from 'http2'
 import crypto from 'crypto'
 import fs from 'fs'
-import { supabase, resend, PLATFORM_COMMISSION, PROCESSING_FEE_RATE, PROCESSING_FEE_FIXED, VAT_RATE, PAYPAL_BASE_URL } from './config'
+import { supabase, resend, PLATFORM_COMMISSION, PROCESSING_FEE_RATE, PROCESSING_FEE_FIXED, VAT_RATE, PAYPAL_BASE_URL, SENDCLOUD_ENABLED } from './config'
+import { isSendcloudConfigured, findShippingMethod, getShippingPrice as sendcloudGetPrice } from './services/sendcloud'
 
 // =============================================
 // Pure helper functions
@@ -185,6 +186,45 @@ export function getShippingOptions(weightGrams: number, zone?: string): { carrie
   return [{ carrier, cost, zone: zoneKey }]
 }
 
+/** Async shipping cost calculation that tries Sendcloud API first, falls back to hardcoded rates */
+export async function calculateShippingCostAsync(
+  weightGrams: number,
+  carrier: string,
+  zone?: string,
+  itemCount?: number,
+  fromCountry?: string,
+  toCountry?: string,
+): Promise<number> {
+  // Try Sendcloud dynamic pricing if enabled
+  if (SENDCLOUD_ENABLED && isSendcloudConfigured() && fromCountry && toCountry) {
+    try {
+      const weightKg = weightGrams / 1000
+      const method = await findShippingMethod(
+        fromCountry, toCountry, weightKg,
+        carrier === 'mondial_relay' ? 'mondial' : carrier,
+      )
+      if (method) {
+        const price = await sendcloudGetPrice(method.id, fromCountry, toCountry, weightKg)
+        if (price) {
+          let cost = price.price * (1 + SHIPPING_SAFETY_MARGIN)
+          // Apply bundling discount
+          if (itemCount && itemCount >= 4) {
+            cost *= 0.75
+          } else if (itemCount && itemCount >= 2) {
+            cost *= 0.85
+          }
+          return Math.round(cost * 100) / 100
+        }
+      }
+    } catch (err) {
+      console.error('[Sendcloud] Price lookup failed, falling back to hardcoded rates:', err)
+    }
+  }
+
+  // Fallback to hardcoded rates
+  return calculateShippingCost(weightGrams, carrier, zone, itemCount)
+}
+
 // Compute a seller score out of 10 from their trust data
 export function computeSellerScore(trust: Record<string, unknown>): number {
   const baseScores: Record<string, number> = { new: 8.0, standard: 8.5, trusted: 9.0, premium: 9.5 }
@@ -330,29 +370,49 @@ export async function notifyUser(userId: string, type: string, title: string, bo
     order_delivered: 'notify_orders',
     deal: 'notify_deals',
     reminder: 'notify_reminders',
+    scheduled_reminder: 'notify_reminders',
     community: 'notify_community',
+    new_follower: 'notify_community',
+    outbid: 'notify_live',
   }
-  const prefColumn = prefColumnMap[type] || 'notify_orders'
-
-  // Push notification — check user preference before sending
-  const { data: tokens } = await supabase
-    .from('device_tokens')
-    .select('token, notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
-    .eq('user_id', userId)
-    .neq('token', `prefs-${userId}`)
-  if (tokens) {
-    for (const t of tokens) {
-      // Only send push if the user has the relevant notification preference enabled
-      const prefs = t as Record<string, unknown>
-      if (prefs[prefColumn] !== false) {
-        await sendApnsPush(t.token, title, body, data)
-      }
-    }
-  }
-  // In-app notification (always insert regardless of push preferences)
+  // In-app notification FIRST (always insert, regardless of push success)
   await supabase.from('notifications').insert({
     user_id: userId, type, title, body, data: data || {},
   })
+
+  // Push notification — best-effort, errors don't block
+  try {
+    if (type === 'welcome') {
+      const { data: tokens } = await supabase
+        .from('device_tokens')
+        .select('token')
+        .eq('user_id', userId)
+        .neq('token', `prefs-${userId}`)
+      if (tokens) {
+        for (const t of tokens) {
+          await sendApnsPush(t.token, title, body, data).catch(() => {})
+        }
+      }
+      return
+    }
+
+    const prefColumn = prefColumnMap[type] || 'notify_orders'
+    const { data: tokens } = await supabase
+      .from('device_tokens')
+      .select('token, notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
+      .eq('user_id', userId)
+      .neq('token', `prefs-${userId}`)
+    if (tokens) {
+      for (const t of tokens) {
+        const prefs = t as Record<string, unknown>
+        if (prefs[prefColumn] !== false) {
+          await sendApnsPush(t.token, title, body, data).catch(() => {})
+        }
+      }
+    }
+  } catch (err) {
+    console.error(`[notifyUser] Push failed for ${userId} (${type}):`, err)
+  }
 }
 
 /** Send push notification to all followers of a seller who have notify_live enabled */

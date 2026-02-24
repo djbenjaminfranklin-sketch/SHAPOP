@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, supabaseUrl } from '../config'
 import { requireAuth, messageLimiter } from '../middleware'
-import { escapeHtml, detectContactInfo, handleAutoSanction } from '../utils'
+import { escapeHtml, detectContactInfo, handleAutoSanction, notifyUser } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -368,6 +368,11 @@ router.post('/api/conversations/:id/messages', messageLimiter, requireAuth, asyn
     if (isFlagged) {
       handleAutoSanction(userId, flagReason!).catch(err => { if (process.env.NODE_ENV !== 'production') console.error('handleAutoSanction failed:', err) })
     }
+
+    // Push notification to the other participant
+    const recipientId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1
+    const senderName = data.sender?.display_name || 'Quelqu\'un'
+    notifyUser(recipientId, 'message', 'Nouveau message', `${senderName} t'a envoyé un message`, { conversation_id: String(convId) }).catch(() => {})
 
     res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
   } catch (err) {

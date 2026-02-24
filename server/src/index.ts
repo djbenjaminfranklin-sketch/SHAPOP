@@ -6,7 +6,8 @@ import compression from 'compression'
 import cors from 'cors'
 import helmet from 'helmet'
 import { createServer } from 'http'
-import { PAYPAL_MODE } from './config'
+import { PAYPAL_MODE, supabase } from './config'
+import { notifyFollowersSellerLive } from './utils'
 import { globalLimiter, webhookLimiter } from './middleware'
 
 // Route modules
@@ -23,7 +24,7 @@ import userRoutes from './routes/users'
 import disputeRoutes from './routes/disputes'
 import trackingRoutes from './routes/tracking'
 import { checkTrackingStatuses } from './routes/tracking'
-import shippingRoutes from './routes/shipping'
+import shippingRoutes, { sendcloudWebhookHandler } from './routes/shipping'
 import adminRoutes from './routes/admin'
 import analyticsRoutes from './routes/analytics'
 import promotionRoutes from './routes/promotions'
@@ -81,6 +82,9 @@ app.post('/api/webhooks/livekit', webhookLimiter, express.raw({ type: 'applicati
 
 // PayPal webhook uses express.json() (registered inline with its own parser)
 app.post('/api/paypal/webhook', express.json(), paypalWebhookHandler as express.RequestHandler)
+
+// Sendcloud webhook needs raw body for HMAC-SHA256 signature verification
+app.post('/api/webhooks/sendcloud', webhookLimiter, express.raw({ type: 'application/json' }), sendcloudWebhookHandler as express.RequestHandler)
 
 // Body parsing + compression (AFTER webhook raw body routes)
 app.use(express.json({ limit: '10mb' }))
@@ -187,4 +191,39 @@ server.listen(PORT, () => {
       console.error('[Payments] Reminder error:', err)
     }
   }, 6 * 60 * 60 * 1000) // 6 hours
+
+  // Remind followers about scheduled lives starting in ~15 minutes (check every 5 min)
+  console.log('[Live-Reminder] Scheduled live reminder enabled (every 5min)')
+  setInterval(async () => {
+    try {
+      const now = new Date()
+      const in15min = new Date(now.getTime() + 15 * 60 * 1000)
+      // Find streams scheduled within the next 15 minutes that haven't been reminded yet
+      const { data: upcomingStreams } = await supabase
+        .from('streams')
+        .select('id, title, seller_id, scheduled_at')
+        .eq('status', 'scheduled')
+        .eq('reminder_sent', false)
+        .lte('scheduled_at', in15min.toISOString())
+        .gte('scheduled_at', now.toISOString())
+      if (upcomingStreams && upcomingStreams.length > 0) {
+        for (const stream of upcomingStreams) {
+          // Get seller name for the notification
+          const { data: seller } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('id', stream.seller_id)
+            .single()
+          const sellerName = seller?.display_name || 'Un vendeur'
+          // Notify all followers of the seller
+          await notifyFollowersSellerLive(stream.seller_id, `${sellerName} est bientôt en direct — "${stream.title}" commence dans 15 minutes`, stream.id)
+          // Mark as reminded to avoid duplicate notifications
+          await supabase.from('streams').update({ reminder_sent: true }).eq('id', stream.id)
+        }
+        if (process.env.NODE_ENV !== 'production') console.log(`[Live-Reminder] Sent reminders for ${upcomingStreams.length} upcoming stream(s)`)
+      }
+    } catch (err) {
+      console.error('[Live-Reminder] Error:', err)
+    }
+  }, 5 * 60 * 1000) // 5 minutes
 })

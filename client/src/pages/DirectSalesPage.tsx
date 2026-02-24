@@ -431,8 +431,11 @@ export default function DirectSalesPage() {
                     setShowOfferModal(false)
                     setOfferItemId(null)
                     setOfferAmount('')
+                  } else {
+                    const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }))
+                    setOfferError(err.error || 'Erreur lors de l\'envoi')
                   }
-                } catch { /* ignore */ }
+                } catch { setOfferError('Erreur de connexion') }
                 setOfferLoading(false)
               }}
               disabled={offerLoading}

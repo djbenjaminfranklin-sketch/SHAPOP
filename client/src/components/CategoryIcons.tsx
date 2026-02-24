@@ -69,7 +69,7 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   return (
-    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '8px 16px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
+    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '8px 0 8px 16px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
       {categories.map(cat => {
         const isActive = selected === cat.id
         const imageFailed = failedImages.has(cat.id)
@@ -143,6 +143,8 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
           </button>
         )
       })}
+      {/* Spacer to ensure right padding in scrollable container (padding-right is ignored by WebKit on scroll containers) */}
+      <div style={{ flexShrink: 0, width: '16px', minWidth: '16px' }} aria-hidden="true" />
     </div>
   )
 }

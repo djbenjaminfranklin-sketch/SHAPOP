@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { supabase, stripe } from '../config'
+import { supabase, stripe, SENDCLOUD_ENABLED } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateShippingCost, getCarrierForZone, getShippingOptions, getZoneFromCountry, paramStr, sendShippingEmail } from '../utils'
+import { calculateShippingCost, getCarrierForZone, getShippingOptions, getZoneFromCountry, paramStr, sendShippingEmail, notifyUser } from '../utils'
 import {
   searchRelayPoints,
   createShipment,
@@ -13,6 +13,17 @@ import {
 } from '../services/mondialrelay'
 import { isDpdConfigured, createDpdShipment, getDpdTrackingUrl } from '../services/dpd'
 import { isDhlConfigured, createDhlShipment, getDhlTrackingUrl } from '../services/dhl'
+import {
+  isSendcloudConfigured,
+  searchServicePoints,
+  mapServicePointToRelay,
+  createParcel,
+  findShippingMethod,
+  getLabelUrl,
+  verifySendcloudWebhook,
+  mapSendcloudStatus,
+  getSendcloudTrackingUrl,
+} from '../services/sendcloud'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -152,6 +163,23 @@ router.get('/api/shipping/relay-points', async (req: Request, res: Response) => 
     return
   }
 
+  // Use Sendcloud if configured, otherwise fall back to direct Mondial Relay
+  if (SENDCLOUD_ENABLED && isSendcloudConfigured()) {
+    try {
+      const result = await searchServicePoints({ country, zip, carrier: 'mondial_relay', nb })
+      if (result.error) {
+        res.status(502).json({ error: result.error })
+        return
+      }
+      const points = result.points.map(mapServicePointToRelay)
+      res.json({ points })
+    } catch (err) {
+      console.error('[shipping] Sendcloud service point search error:', err)
+      res.status(500).json({ error: 'Failed to search service points' })
+    }
+    return
+  }
+
   if (!isMondialRelayConfigured()) {
     res.status(503).json({ error: 'Mondial Relay not configured' })
     return
@@ -255,7 +283,10 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
 
     // Return existing label if already generated
     if (order.label_url && order.tracking_number) {
-      const trackingUrl = carrier === 'dpd' ? getDpdTrackingUrl(order.tracking_number)
+      const orderCarrier = order.carrier || carrier
+      const trackingUrl = orderCarrier?.startsWith('sendcloud_')
+        ? getSendcloudTrackingUrl(order.tracking_number, orderCarrier.replace('sendcloud_', ''))
+        : carrier === 'dpd' ? getDpdTrackingUrl(order.tracking_number)
         : carrier === 'dhl' ? getDhlTrackingUrl(order.tracking_number)
         : getMondialRelayTrackingUrl(order.tracking_number)
       res.json({
@@ -272,16 +303,16 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       return
     }
 
-    // Check carrier configuration
-    if (carrier === 'mondial_relay' && !isMondialRelayShipmentConfigured()) {
+    // Check carrier configuration (Sendcloud overrides individual carrier checks)
+    if (SENDCLOUD_ENABLED && isSendcloudConfigured()) {
+      // Sendcloud handles all carriers
+    } else if (carrier === 'mondial_relay' && !isMondialRelayShipmentConfigured()) {
       res.status(503).json({ error: 'Mondial Relay shipment API not configured' })
       return
-    }
-    if (carrier === 'dpd' && !isDpdConfigured()) {
+    } else if (carrier === 'dpd' && !isDpdConfigured()) {
       res.status(503).json({ error: 'DPD not configured yet' })
       return
-    }
-    if (carrier === 'dhl' && !isDhlConfigured()) {
+    } else if (carrier === 'dhl' && !isDhlConfigured()) {
       res.status(503).json({ error: 'DHL Express not configured yet' })
       return
     }
@@ -384,7 +415,50 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     // Dispatch to the right carrier
     let shipResult: { shipmentNumber: string; labelUrl: string; error?: string }
 
-    if (carrier === 'mondial_relay') {
+    if (SENDCLOUD_ENABLED && isSendcloudConfigured()) {
+      // Use Sendcloud for all carriers
+      const weightKg = weight / 1000
+      const fromCountry = returnAddr.country || 'FR'
+      const toCountry = buyerAddr.country || 'FR'
+      const method = await findShippingMethod(fromCountry, toCountry, weightKg, carrier === 'mondial_relay' ? 'mondial' : carrier)
+
+      if (!method) {
+        res.status(400).json({ error: `No Sendcloud shipping method found for ${carrier} (${weightKg}kg, ${fromCountry} → ${toCountry})` })
+        return
+      }
+
+      const buyerName = buyerAddr.name || 'Acheteur ShaPop'
+      const parcelResult = await createParcel({
+        name: buyerName,
+        address: buyerAddr.street || '',
+        city: buyerAddr.city || '',
+        postal_code: buyerAddr.zip || '',
+        country: toCountry,
+        telephone: buyerAddr.phone || buyerProfile?.phone_number || sellerProfile?.phone_number || '0600000000',
+        email: buyerEmail,
+        order_number: orderId.slice(0, 50),
+        weight: parseFloat(weightKg.toFixed(3)),
+        shipment: { id: method.id },
+        request_label: true,
+        to_service_point: order.relay_point_id ? parseInt(order.relay_point_id, 10) || undefined : undefined,
+      })
+
+      if (parcelResult.error || !parcelResult.parcel) {
+        shipResult = { shipmentNumber: '', labelUrl: '', error: parcelResult.error || 'Sendcloud parcel creation failed' }
+      } else {
+        const p = parcelResult.parcel
+        const labelUrl = p.label?.normal_printer?.[0] || getLabelUrl(p.id)
+        shipResult = {
+          shipmentNumber: p.tracking_number || String(p.id),
+          labelUrl,
+        }
+
+        // Store Sendcloud parcel ID for future label downloads (column may not exist yet)
+        try {
+          await supabase.from('orders').update({ sendcloud_parcel_id: p.id }).eq('id', orderId)
+        } catch { /* ignore if column doesn't exist */ }
+      }
+    } else if (carrier === 'mondial_relay') {
       shipResult = await createShipment({
         orderNo: orderId.slice(0, 15),
         weight,
@@ -473,11 +547,12 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
     }
 
     // Store label URL and tracking number — status 'shipped' until carrier scans the parcel
+    const carrierValue = SENDCLOUD_ENABLED ? `sendcloud_${carrier}` : carrier
     const { error: updateErr } = await supabase
       .from('orders')
       .update({
         tracking_number: shipResult.shipmentNumber,
-        carrier,
+        carrier: carrierValue,
         label_url: shipResult.labelUrl,
         status: 'shipped',
       })
@@ -487,7 +562,9 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
       console.error(`[shipping] Failed to save label to order ${orderId}:`, updateErr.message)
     }
 
-    const trackingUrl = carrier === 'dpd' ? getDpdTrackingUrl(shipResult.shipmentNumber)
+    const trackingUrl = SENDCLOUD_ENABLED
+      ? getSendcloudTrackingUrl(shipResult.shipmentNumber, carrier)
+      : carrier === 'dpd' ? getDpdTrackingUrl(shipResult.shipmentNumber)
       : carrier === 'dhl' ? getDhlTrackingUrl(shipResult.shipmentNumber)
       : getMondialRelayTrackingUrl(shipResult.shipmentNumber)
 
@@ -577,7 +654,10 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     // If any order already has a label, return it
     const existingLabel = orders.find(o => o.label_url && o.tracking_number)
     if (existingLabel) {
-      const existingTrackingUrl = groupCarrier === 'dpd' ? getDpdTrackingUrl(existingLabel.tracking_number!)
+      const existingCarrier = existingLabel.carrier || groupCarrier
+      const existingTrackingUrl = existingCarrier?.startsWith('sendcloud_')
+        ? getSendcloudTrackingUrl(existingLabel.tracking_number!, existingCarrier.replace('sendcloud_', ''))
+        : groupCarrier === 'dpd' ? getDpdTrackingUrl(existingLabel.tracking_number!)
         : groupCarrier === 'dhl' ? getDhlTrackingUrl(existingLabel.tracking_number!)
         : getMondialRelayTrackingUrl(existingLabel.tracking_number!)
       res.json({
@@ -589,16 +669,16 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       return
     }
 
-    // Check carrier configuration
-    if (groupCarrier === 'mondial_relay' && !isMondialRelayShipmentConfigured()) {
+    // Check carrier configuration (Sendcloud overrides individual carrier checks)
+    if (SENDCLOUD_ENABLED && isSendcloudConfigured()) {
+      // Sendcloud handles all carriers
+    } else if (groupCarrier === 'mondial_relay' && !isMondialRelayShipmentConfigured()) {
       res.status(503).json({ error: 'Mondial Relay shipment API not configured' })
       return
-    }
-    if (groupCarrier === 'dpd' && !isDpdConfigured()) {
+    } else if (groupCarrier === 'dpd' && !isDpdConfigured()) {
       res.status(503).json({ error: 'DPD not configured yet' })
       return
-    }
-    if (groupCarrier === 'dhl' && !isDhlConfigured()) {
+    } else if (groupCarrier === 'dhl' && !isDhlConfigured()) {
       res.status(503).json({ error: 'DHL Express not configured yet' })
       return
     }
@@ -702,7 +782,45 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     // Dispatch to the right carrier
     let groupShipResult: { shipmentNumber: string; labelUrl: string; error?: string }
 
-    if (groupCarrier === 'mondial_relay') {
+    if (SENDCLOUD_ENABLED && isSendcloudConfigured()) {
+      // Use Sendcloud for all carriers
+      const weightKg = Number(weight_grams) / 1000
+      const fromCountry = returnAddr.country || 'FR'
+      const toCountry = buyerAddr.country || 'FR'
+      const method = await findShippingMethod(fromCountry, toCountry, weightKg, groupCarrier === 'mondial_relay' ? 'mondial' : groupCarrier)
+
+      if (!method) {
+        res.status(400).json({ error: `No Sendcloud shipping method found for ${groupCarrier} (${weightKg}kg, ${fromCountry} → ${toCountry})` })
+        return
+      }
+
+      const buyerName = buyerAddr.name || 'Acheteur ShaPop'
+      const parcelResult = await createParcel({
+        name: buyerName,
+        address: buyerAddr.street || '',
+        city: buyerAddr.city || '',
+        postal_code: buyerAddr.zip || '',
+        country: toCountry,
+        telephone: buyerAddr.phone || buyerProfile?.phone_number || sellerProfile?.phone_number || '0600000000',
+        email: buyerEmail,
+        order_number: primaryOrder.id.slice(0, 50),
+        weight: parseFloat(weightKg.toFixed(3)),
+        shipment: { id: method.id },
+        request_label: true,
+        to_service_point: primaryOrder.relay_point_id ? parseInt(primaryOrder.relay_point_id, 10) || undefined : undefined,
+      })
+
+      if (parcelResult.error || !parcelResult.parcel) {
+        groupShipResult = { shipmentNumber: '', labelUrl: '', error: parcelResult.error || 'Sendcloud parcel creation failed' }
+      } else {
+        const p = parcelResult.parcel
+        const labelUrl = p.label?.normal_printer?.[0] || getLabelUrl(p.id)
+        groupShipResult = {
+          shipmentNumber: p.tracking_number || String(p.id),
+          labelUrl,
+        }
+      }
+    } else if (groupCarrier === 'mondial_relay') {
       groupShipResult = await createShipment({
         orderNo: primaryOrder.id.slice(0, 15),
         weight: Number(weight_grams),
@@ -793,12 +911,13 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
     }
 
     // Update ALL orders with tracking info — status 'shipped' until carrier scans the parcel
+    const groupCarrierValue = SENDCLOUD_ENABLED ? `sendcloud_${groupCarrier}` : groupCarrier
     console.log(`[shipping] Saving label to ${order_ids.length} orders: ${JSON.stringify(order_ids.slice(0, 3))}...`)
     const { error: groupUpdateErr, data: groupUpdateData, count: groupUpdateCount } = await supabase
       .from('orders')
       .update({
         tracking_number: groupShipResult.shipmentNumber,
-        carrier: groupCarrier,
+        carrier: groupCarrierValue,
         label_url: groupShipResult.labelUrl,
         status: 'shipped',
       })
@@ -811,7 +930,9 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
       console.error(`[shipping] Failed to save group label to orders:`, groupUpdateErr.message, groupUpdateErr.details, groupUpdateErr.hint)
     }
 
-    const groupTrackingUrl = groupCarrier === 'dpd' ? getDpdTrackingUrl(groupShipResult.shipmentNumber)
+    const groupTrackingUrl = SENDCLOUD_ENABLED
+      ? getSendcloudTrackingUrl(groupShipResult.shipmentNumber, groupCarrier)
+      : groupCarrier === 'dpd' ? getDpdTrackingUrl(groupShipResult.shipmentNumber)
       : groupCarrier === 'dhl' ? getDhlTrackingUrl(groupShipResult.shipmentNumber)
       : getMondialRelayTrackingUrl(groupShipResult.shipmentNumber)
 
@@ -848,7 +969,7 @@ router.get(['/api/orders/:id/mondial-relay-tracking', '/api/orders/:id/tracking-
 
     const { data: order, error: fetchErr } = await supabase
       .from('orders')
-      .select('id, buyer_id, seller_id, tracking_number, carrier')
+      .select('id, buyer_id, seller_id, tracking_number, carrier, status')
       .eq('id', orderId)
       .single()
 
@@ -867,7 +988,20 @@ router.get(['/api/orders/:id/mondial-relay-tracking', '/api/orders/:id/tracking-
       return
     }
 
-    if (order.carrier === 'mondial_relay') {
+    // Sendcloud-managed carriers: return tracking URL (tracking updates come via webhook)
+    if (order.carrier?.startsWith('sendcloud_')) {
+      const underlyingCarrier = order.carrier.replace('sendcloud_', '')
+      const trackingUrl = getSendcloudTrackingUrl(order.tracking_number, underlyingCarrier)
+      res.json({
+        status: order.status || '',
+        statusDetail: '',
+        relayName: null,
+        relayId: null,
+        events: [],
+        delivered: order.status === 'delivered',
+        tracking_url: trackingUrl,
+      })
+    } else if (order.carrier === 'mondial_relay') {
       const result = await trackShipment(order.tracking_number)
       if (result.error) {
         res.status(502).json({ error: result.error })
@@ -961,5 +1095,135 @@ router.get('/api/shipping/test-save', async (_req: Request, res: Response) => {
     res.json({ test: 'EXCEPTION', error: err?.message })
   }
 })
+
+// =============================================
+// POST /api/webhooks/sendcloud — Sendcloud tracking webhook
+// Receives parcel_status_changed events, updates order status
+// NOTE: This handler expects raw body for HMAC verification.
+//       It is registered in index.ts BEFORE express.json().
+// =============================================
+export async function sendcloudWebhookHandler(req: Request, res: Response) {
+  try {
+    const signature = req.headers['sendcloud-signature'] as string
+    const rawBody = (req as any).body as Buffer
+
+    if (!rawBody || !signature) {
+      res.status(400).json({ error: 'Missing body or signature' })
+      return
+    }
+
+    // Verify HMAC-SHA256 signature
+    if (!verifySendcloudWebhook(rawBody, signature)) {
+      console.warn('[Sendcloud Webhook] Invalid signature')
+      res.status(401).json({ error: 'Invalid signature' })
+      return
+    }
+
+    const payload = JSON.parse(rawBody.toString('utf8'))
+    const action = payload.action
+
+    if (action !== 'parcel_status_changed') {
+      // Acknowledge but ignore non-status events
+      res.json({ received: true, action })
+      return
+    }
+
+    const parcel = payload.parcel
+    if (!parcel) {
+      res.status(400).json({ error: 'Missing parcel data' })
+      return
+    }
+
+    const statusId = parcel.status?.id
+    const trackingNumber = parcel.tracking_number
+    const orderNumber = parcel.order_number
+
+    if (!statusId) {
+      res.json({ received: true, skipped: 'no status id' })
+      return
+    }
+
+    // Map Sendcloud status to ShaPop order status
+    const newStatus = mapSendcloudStatus(statusId)
+    if (!newStatus) {
+      // Unknown status, acknowledge but don't update
+      res.json({ received: true, sendcloud_status: statusId, mapped: null })
+      return
+    }
+
+    // Find the order by tracking number or order number
+    let orderId: string | null = null
+    if (trackingNumber) {
+      const { data } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('tracking_number', trackingNumber)
+        .limit(1)
+        .single()
+      orderId = data?.id || null
+    }
+    if (!orderId && orderNumber) {
+      const { data } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('id', orderNumber)
+        .limit(1)
+        .single()
+      orderId = data?.id || null
+    }
+
+    if (!orderId) {
+      console.warn(`[Sendcloud Webhook] Order not found for tracking=${trackingNumber}, order_number=${orderNumber}`)
+      res.json({ received: true, warning: 'Order not found' })
+      return
+    }
+
+    // Get current order to avoid downgrading status
+    const { data: currentOrder } = await supabase
+      .from('orders')
+      .select('id, status, buyer_id')
+      .eq('id', orderId)
+      .single()
+
+    if (!currentOrder) {
+      res.json({ received: true, warning: 'Order not found' })
+      return
+    }
+
+    // Don't downgrade: delivered > shipped, don't go back to shipped if already delivered
+    const statusPriority: Record<string, number> = { shipped: 1, delivered: 2, returned: 3 }
+    const currentPriority = statusPriority[currentOrder.status] || 0
+    const newPriority = statusPriority[newStatus] || 0
+
+    if (newPriority <= currentPriority && currentPriority > 0) {
+      res.json({ received: true, skipped: `Current status ${currentOrder.status} >= ${newStatus}` })
+      return
+    }
+
+    // Update order status
+    await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId)
+
+    console.log(`[Sendcloud Webhook] Order ${orderId} status updated: ${currentOrder.status} → ${newStatus} (sendcloud status ${statusId})`)
+
+    // Send push notification to buyer
+    if (currentOrder.buyer_id) {
+      if (newStatus === 'delivered') {
+        notifyUser(currentOrder.buyer_id, 'order_delivered', 'Colis livre !', 'Votre colis a ete livre. Verifiez votre commande.', { order_id: orderId })
+          .catch(err => console.error('[Sendcloud Webhook] Push notification error:', err))
+      } else if (newStatus === 'shipped' && currentOrder.status !== 'shipped') {
+        notifyUser(currentOrder.buyer_id, 'order_shipped', 'Colis en route', 'Votre colis est en cours de livraison.', { order_id: orderId })
+          .catch(err => console.error('[Sendcloud Webhook] Push notification error:', err))
+      }
+    }
+
+    res.json({ received: true, order_id: orderId, new_status: newStatus })
+  } catch (err) {
+    console.error('[Sendcloud Webhook] Error:', err)
+    res.status(500).json({ error: 'Webhook processing failed' })
+  }
+}
 
 export default router

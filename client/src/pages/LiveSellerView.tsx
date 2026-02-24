@@ -397,6 +397,7 @@ export default function LiveSellerView() {
 
   // Multicast
   const [showMulticastModal, setShowMulticastModal] = useState(false)
+  const [showToolsMenu, setShowToolsMenu] = useState(false)
   const [multicastUrl, setMulticastUrl] = useState('')
   const [multicastDestinations, setMulticastDestinations] = useState<{ url: string; egressId: string }[]>([])
   const [multicastLoading, setMulticastLoading] = useState(false)
@@ -1377,7 +1378,7 @@ export default function LiveSellerView() {
         position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: '24px', padding: '32px',
-        overflow: 'hidden', width: '100vw', height: '100vh',
+        overflow: 'hidden', width: '100%', height: '100vh',
       }}>
         <div style={{
           width: '80px', height: '80px', borderRadius: '50%',
@@ -1428,7 +1429,7 @@ export default function LiveSellerView() {
       ref={containerRef}
       style={{
         position: 'fixed', inset: 0,
-        width: '100vw', height: '100vh',
+        width: '100%', height: '100vh',
         backgroundColor: '#000', zIndex: 200,
         overflow: 'hidden',
         touchAction: 'none',
@@ -1547,12 +1548,28 @@ export default function LiveSellerView() {
           </div>
         )}
 
-        {/* Right: camera + gift + end */}
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+        {/* Right: end + camera + gift + more menu */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {isStreamOwner && <button
+            onClick={() => setShowEndConfirm(true)}
+            style={{
+              height: '36px', padding: '0 12px',
+              borderRadius: '100px',
+              backgroundColor: '#E8344E',
+              border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              cursor: 'pointer',
+            }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+            </svg>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{ct.endLive}</span>
+          </button>}
           <button
             onClick={handleFlipCamera}
             style={{
-              width: '34px', height: '34px', borderRadius: '50%',
+              width: '36px', height: '36px', borderRadius: '50%',
               backgroundColor: 'rgba(0,0,0,0.5)',
               backdropFilter: 'blur(8px)',
               border: 'none',
@@ -1560,129 +1577,124 @@ export default function LiveSellerView() {
               cursor: 'pointer',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 16v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4M4 8V4a2 2 0 012-2h12a2 2 0 012 2v4"/>
               <polyline points="16 12 12 8 8 12"/>
               <polyline points="16 12 12 16 8 12"/>
             </svg>
           </button>
-          {isStreamOwner && <><button
-            onClick={() => cohost ? handleRemoveCohost() : setShowCohostModal(true)}
-            title="Co-host"
-            style={{
-              height: '34px', padding: '0 10px',
-              borderRadius: '100px',
-              background: cohost ? 'linear-gradient(135deg, #8B5CF6, #7C3AED)' : 'rgba(0,0,0,0.5)',
-              backdropFilter: cohost ? 'none' : 'blur(8px)',
-              border: cohost ? 'none' : '1px solid rgba(255,255,255,0.15)',
-              display: 'flex', alignItems: 'center', gap: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-              <circle cx="8.5" cy="7" r="4"/>
-              <path d="M20 8v6M23 11h-6"/>
-            </svg>
-            {cohost && (
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {cohost.display_name}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={handleGetRtmpUrl}
-            title="OBS"
-            style={{
-              width: '34px', height: '34px', borderRadius: '50%',
-              backgroundColor: obsData ? 'rgba(96,165,250,0.3)' : 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              border: obsData ? '1px solid rgba(96,165,250,0.4)' : 'none',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={obsData ? '#60a5fa' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-          </button>
-          <button
-            onClick={() => !isBoosted && !boostLoading && setShowBoostConfirm(true)}
-            style={{
-              height: '34px', padding: '0 10px',
-              borderRadius: '100px',
-              background: isBoosted
-                ? 'linear-gradient(135deg, #10B981, #059669)'
-                : boostLoading
-                  ? 'linear-gradient(135deg, #9CA3AF, #6B7280)'
-                  : 'linear-gradient(135deg, #F59E0B, #D97706)',
-              border: 'none',
-              display: 'flex', alignItems: 'center', gap: '4px',
-              cursor: isBoosted || boostLoading ? 'default' : 'pointer',
-              opacity: isBoosted || boostLoading ? 0.8 : 1,
-            }}
-          >
-            <span style={{ fontSize: '12px', lineHeight: 1 }}>⚡</span>
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#fff' }}>
-              {isBoosted ? ct.boostActive : boostLoading ? '...' : ct.boostLive}
-            </span>
-          </button>
+          {isStreamOwner && <>
           <button
             onClick={() => setShowGiveawayForm(true)}
             style={{
-              height: '34px', padding: '0 10px',
-              borderRadius: '100px',
+              width: '36px', height: '36px', borderRadius: '50%',
               background: 'linear-gradient(135deg, #FFD700, #FFA500)',
               border: 'none',
-              display: 'flex', alignItems: 'center', gap: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            <span style={{ fontSize: '14px', lineHeight: 1 }}>🎁</span>
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#000' }}>
-              {activeGiveaway && activeGiveaway.status === 'active'
-                ? activeGiveaway.entry_count
-                : ct.giftTitle.split(' ')[0]}
-            </span>
-          </button>
-          <button
-            onClick={() => setShowMulticastModal(true)}
-            style={{
-              height: '34px', padding: '0 10px',
-              borderRadius: '100px',
-              background: multicastDestinations.length > 0 ? 'linear-gradient(135deg, #3B82F6, #2563EB)' : 'rgba(0,0,0,0.5)',
-              backdropFilter: multicastDestinations.length > 0 ? 'none' : 'blur(8px)',
-              border: multicastDestinations.length > 0 ? 'none' : '1px solid rgba(255,255,255,0.15)',
-              display: 'flex', alignItems: 'center', gap: '4px',
-              cursor: 'pointer',
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/>
-              <line x1="2" y1="20" x2="2.01" y2="20"/>
-            </svg>
-            {multicastDestinations.length > 0 && (
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff' }}>{multicastDestinations.length}</span>
-            )}
-          </button>
-          <button
-            onClick={() => setShowEndConfirm(true)}
-            style={{
-              height: '34px', padding: '0 10px',
-              borderRadius: '100px',
-              backgroundColor: 'rgba(0,0,0,0.5)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(232,52,78,0.4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer',
+              position: 'relative',
             }}
           >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#E8344E">
-              <rect x="4" y="4" width="16" height="16" rx="2"/>
-            </svg>
-          </button></>}
+            <span style={{ fontSize: '16px', lineHeight: 1 }}>🎁</span>
+            {activeGiveaway && activeGiveaway.status === 'active' && (
+              <span style={{ position: 'absolute', top: '-4px', right: '-4px', fontSize: '9px', fontWeight: 800, color: '#fff', backgroundColor: '#E8344E', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {activeGiveaway.entry_count}
+              </span>
+            )}
+          </button>
+          {/* More tools menu */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowToolsMenu(!showToolsMenu)}
+              style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                <circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/>
+              </svg>
+            </button>
+            {showToolsMenu && (
+              <div style={{
+                position: 'absolute', top: '42px', right: 0,
+                backgroundColor: 'rgba(20,20,20,0.95)',
+                backdropFilter: 'blur(12px)',
+                borderRadius: '14px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                padding: '6px',
+                display: 'flex', flexDirection: 'column', gap: '2px',
+                minWidth: '160px',
+                zIndex: 50,
+              }}>
+                <button
+                  onClick={() => { setShowToolsMenu(false); !isBoosted && !boostLoading && setShowBoostConfirm(true) }}
+                  style={{
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: 'none', border: 'none',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    cursor: 'pointer', width: '100%',
+                  }}
+                >
+                  <span style={{ fontSize: '14px' }}>⚡</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: isBoosted ? '#10B981' : '#fff' }}>
+                    {isBoosted ? ct.boostActive : ct.boostLive}
+                  </span>
+                </button>
+                <button
+                  onClick={() => { setShowToolsMenu(false); cohost ? handleRemoveCohost() : setShowCohostModal(true) }}
+                  style={{
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: 'none', border: 'none',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    cursor: 'pointer', width: '100%',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cohost ? '#8B5CF6' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>
+                  </svg>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: cohost ? '#8B5CF6' : '#fff' }}>
+                    Co-host{cohost ? `: ${cohost.display_name}` : ''}
+                  </span>
+                </button>
+                <button
+                  onClick={() => { setShowToolsMenu(false); handleGetRtmpUrl() }}
+                  style={{
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: 'none', border: 'none',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    cursor: 'pointer', width: '100%',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={obsData ? '#60a5fa' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: obsData ? '#60a5fa' : '#fff' }}>OBS / RTMP</span>
+                </button>
+                <button
+                  onClick={() => { setShowToolsMenu(false); setShowMulticastModal(true) }}
+                  style={{
+                    padding: '10px 14px', borderRadius: '10px',
+                    background: 'none', border: 'none',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    cursor: 'pointer', width: '100%',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={multicastDestinations.length > 0 ? '#3B82F6' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><line x1="2" y1="20" x2="2.01" y2="20"/>
+                  </svg>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: multicastDestinations.length > 0 ? '#3B82F6' : '#fff' }}>
+                    Multicast{multicastDestinations.length > 0 ? ` (${multicastDestinations.length})` : ''}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+          </>}
         </div>
       </div>
 
