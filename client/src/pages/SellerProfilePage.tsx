@@ -933,7 +933,24 @@ export default function SellerProfilePage() {
                 {isFollowing ? t.unfollow : t.follow}
               </button>
               <button
-                onClick={() => navigate(`/conversation/${sellerId}`)}
+                onClick={async () => {
+                  if (!user || !session?.access_token) { navigate('/login'); return }
+                  try {
+                    const resp = await apiFetch('/api/conversations/direct', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                      body: JSON.stringify({ user_id: sellerId }),
+                    })
+                    if (resp.ok) {
+                      const data = await resp.json()
+                      navigate(`/conversation/${data.id}`)
+                    } else {
+                      navigate('/messages')
+                    }
+                  } catch {
+                    navigate('/messages')
+                  }
+                }}
                 style={{
                   flex: 1, maxWidth: '160px', padding: '12px 16px', borderRadius: '12px',
                   backgroundColor: '#1A1A1A', border: '1px solid #333',

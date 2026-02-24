@@ -33,12 +33,9 @@ const content = {
     editPrice: 'Modifier le prix',
     confirmDelete: 'Supprimer',
     confirmCancel: 'Annuler',
-    makeOffer: 'Faire une offre',
-    offerPlaceholder: 'Ton offre',
-    offerConfirm: 'Envoyer l\'offre',
-    offerSent: 'Offre envoyee !',
-    offerPending: 'Offre en attente',
-    offerInvalid: 'Entre un montant valide superieur a 0',
+    buy: 'Acheter',
+    buyConfirm: 'Acheter pour',
+    bought: 'Achete !',
   },
   en: {
     notFound: 'Item not found',
@@ -59,12 +56,9 @@ const content = {
     editPrice: 'Edit price',
     confirmDelete: 'Delete',
     confirmCancel: 'Cancel',
-    makeOffer: 'Make an offer',
-    offerPlaceholder: 'Your offer',
-    offerConfirm: 'Send offer',
-    offerSent: 'Offer sent!',
-    offerPending: 'Offer pending',
-    offerInvalid: 'Enter a valid amount greater than 0',
+    buy: 'Buy',
+    buyConfirm: 'Buy for',
+    bought: 'Purchased!',
   },
   he: {
     notFound: 'הפריט לא נמצא',
@@ -85,12 +79,9 @@ const content = {
     editPrice: 'ערוך מחיר',
     confirmDelete: 'מחק',
     confirmCancel: 'ביטול',
-    makeOffer: 'הגש הצעה',
-    offerPlaceholder: 'ההצעה שלך',
-    offerConfirm: 'שלח הצעה',
-    offerSent: 'ההצעה נשלחה!',
-    offerPending: 'הצעה בהמתנה',
-    offerInvalid: 'הזן סכום תקין גדול מ-0',
+    buy: 'קנה',
+    buyConfirm: 'קנה ב',
+    bought: '!נרכש',
   },
   es: {
     notFound: 'Articulo no encontrado',
@@ -111,12 +102,9 @@ const content = {
     editPrice: 'Editar precio',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
-    makeOffer: 'Hacer una oferta',
-    offerPlaceholder: 'Tu oferta',
-    offerConfirm: 'Enviar oferta',
-    offerSent: 'Oferta enviada!',
-    offerPending: 'Oferta pendiente',
-    offerInvalid: 'Ingresa un monto valido mayor a 0',
+    buy: 'Comprar',
+    buyConfirm: 'Comprar por',
+    bought: 'Comprado!',
   },
 } as Record<string, Record<string, string>>
 
@@ -142,12 +130,9 @@ export default function ItemDetailPage() {
   const [selectedImage, setSelectedImage] = useState(0)
   const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
 
-  // Offer state
-  const [showOfferModal, setShowOfferModal] = useState(false)
-  const [offerAmount, setOfferAmount] = useState('')
-  const [offerLoading, setOfferLoading] = useState(false)
-  const [offerError, setOfferError] = useState('')
-  const [hasOffer, setHasOffer] = useState(false)
+  // Buy state
+  const [buyLoading, setBuyLoading] = useState(false)
+  const [bought, setBought] = useState(false)
 
   const retryLabel = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Reessayer'
 
@@ -210,54 +195,7 @@ export default function ItemDetailPage() {
     if (res.ok) setIsFollowing(!isFollowing)
   }
 
-  // Check if user already has a pending offer on this item
-  useEffect(() => {
-    if (!id || !user) return
-    let cancelled = false
-    supabase
-      .from('offers')
-      .select('id')
-      .eq('item_id', id)
-      .eq('buyer_id', user.id)
-      .eq('status', 'pending')
-      .limit(1)
-      .then(({ data, error }) => {
-        if (cancelled) return
-        if (error) { console.error('checkPendingOffer failed:', error); return }
-        setHasOffer(!!data && data.length > 0)
-      })
-    return () => { cancelled = true }
-  }, [id, user])
 
-  const handleOfferSubmit = async () => {
-    if (!id || !user) return
-    const amount = parseFloat(offerAmount)
-    if (isNaN(amount) || amount <= 0) {
-      setOfferError(t.offerInvalid)
-      return
-    }
-    setOfferError('')
-    setOfferLoading(true)
-    try {
-      const { data: { session: s } } = await supabase.auth.getSession()
-      if (!s) { setOfferLoading(false); return }
-      const resp = await apiFetch(`/api/items/${id}/offer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s.access_token}` },
-        body: JSON.stringify({ amount }),
-      })
-      if (resp.ok) {
-        setHasOffer(true)
-        setShowOfferModal(false)
-        setOfferAmount('')
-      } else {
-        showToast(lang === 'fr' ? "Erreur lors de l'envoi de l'offre" : 'Failed to send offer', 'error')
-      }
-    } catch {
-      showToast(lang === 'fr' ? 'Erreur reseau' : 'Network error', 'error')
-    }
-    setOfferLoading(false)
-  }
 
   const price = item ? (item.current_price ?? item.starting_price) : 0
   const sellerName = item?.seller?.display_name || ({ fr: 'Vendeur', en: 'Seller', he: 'מוכר', es: 'Vendedor' })[lang]
@@ -505,7 +443,24 @@ export default function ItemDetailPage() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
-                  onClick={() => navigate(`/conversation/${item.seller_id}`)}
+                  onClick={async () => {
+                    if (!user || !session?.access_token) { navigate('/login'); return }
+                    try {
+                      const resp = await apiFetch('/api/conversations/direct', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ user_id: item.seller_id }),
+                      })
+                      if (resp.ok) {
+                        const data = await resp.json()
+                        navigate(`/conversation/${data.id}`)
+                      } else {
+                        navigate('/messages')
+                      }
+                    } catch {
+                      navigate('/messages')
+                    }
+                  }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
@@ -515,24 +470,39 @@ export default function ItemDetailPage() {
                 >
                   {t.contact}
                 </button>
-                {/* Make an offer button */}
+                {/* Buy now button */}
                 <button
-                  onClick={() => {
-                    if (!user) { navigate('/login'); return }
-                    setOfferAmount(String(Math.round(price * 0.8)))
-                    setOfferError('')
-                    setShowOfferModal(true)
+                  disabled={buyLoading || bought}
+                  onClick={async () => {
+                    if (!user || !session?.access_token) { navigate('/login'); return }
+                    if (!confirm(`${t.buyConfirm} ${price}€ ?`)) return
+                    setBuyLoading(true)
+                    try {
+                      const resp = await apiFetch(`/api/items/${id}/buy-now`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                      })
+                      if (resp.ok) {
+                        setBought(true)
+                        setTimeout(() => navigate('/activity'), 1200)
+                      } else {
+                        const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }))
+                        alert(err.error || 'Erreur')
+                      }
+                    } catch { alert('Erreur de connexion') }
+                    setBuyLoading(false)
                   }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
-                    background: hasOffer ? 'rgba(139,92,246,0.15)' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-                    border: hasOffer ? '1px solid rgba(139,92,246,0.3)' : 'none',
-                    color: hasOffer ? '#8B5CF6' : '#fff',
-                    fontSize: '16px', fontWeight: 700,
-                    cursor: 'pointer',
+                    background: bought
+                      ? 'linear-gradient(135deg, #22C55E, #16A34A)'
+                      : buyLoading ? '#555' : 'linear-gradient(135deg, #E8344E, #D42A42)',
+                    border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
+                    cursor: buyLoading ? 'default' : 'pointer',
+                    opacity: buyLoading ? 0.7 : 1,
                   }}
                 >
-                  {hasOffer ? t.offerPending : t.makeOffer}
+                  {bought ? t.bought : buyLoading ? '...' : `${t.buy} — ${price}€`}
                 </button>
               </div>
             )}
@@ -551,64 +521,6 @@ export default function ItemDetailPage() {
         danger
       />
 
-      {/* Offer modal */}
-      {showOfferModal && (
-        <div
-          onClick={() => setShowOfferModal(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 500,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px',
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              width: '100%', maxWidth: '340px',
-              backgroundColor: '#1A1A1A', borderRadius: '20px',
-              padding: '24px', border: '1px solid rgba(139,92,246,0.3)',
-            }}
-          >
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 4px', textAlign: 'center' }}>
-              {t.makeOffer}
-            </h3>
-            <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
-              {item?.title || ''}
-            </p>
-            <input
-              type="number"
-              value={offerAmount}
-              onChange={e => { setOfferAmount(e.target.value); setOfferError('') }}
-              placeholder={t.offerPlaceholder}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '12px',
-                backgroundColor: '#111', border: offerError ? '1px solid #E8344E' : '1px solid #333',
-                color: '#fff', fontSize: '18px', fontWeight: 700,
-                textAlign: 'center', outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
-            {offerError && (
-              <p style={{ fontSize: '13px', color: '#E8344E', margin: '8px 0 0', textAlign: 'center' }}>{offerError}</p>
-            )}
-            <button
-              onClick={handleOfferSubmit}
-              disabled={offerLoading}
-              style={{
-                width: '100%', marginTop: '14px', padding: '14px',
-                borderRadius: '100px', border: 'none',
-                background: offerLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
-                cursor: offerLoading ? 'default' : 'pointer',
-                opacity: offerLoading ? 0.7 : 1,
-              }}
-            >
-              {offerLoading ? '...' : t.offerConfirm}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

@@ -351,7 +351,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
   }
 })
 
-// Buy Now — instant purchase at buy_now_price
+// Buy Now — instant purchase at buy_now_price (or current_price for direct sales)
 router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const buyerId = req.user!.id
@@ -362,19 +362,35 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
       .single()
 
     if (!item) { res.status(404).json({ error: 'Item not found' }); return }
-    if (item.status !== 'active') { res.status(400).json({ error: 'Item is not active' }); return }
-    if (!item.buy_now_price || item.buy_now_price <= 0) { res.status(400).json({ error: 'No buy now price set' }); return }
     if (item.seller_id === buyerId) { res.status(400).json({ error: 'Cannot buy your own item' }); return }
+    if (item.status === 'sold') { res.status(400).json({ error: 'Item is already sold' }); return }
+
+    // For stream items, require active status; for direct sales accept draft/pending/active
+    const isDirectSale = !item.stream_id
+    if (!isDirectSale && item.status !== 'active') {
+      res.status(400).json({ error: 'Item is not active' }); return
+    }
+    if (isDirectSale && !['draft', 'pending', 'active'].includes(item.status)) {
+      res.status(400).json({ error: 'Item is not available' }); return
+    }
+
+    // Determine price: buy_now_price for stream items, current_price for direct sales
+    const price = (item.buy_now_price && item.buy_now_price > 0)
+      ? item.buy_now_price
+      : (isDirectSale && item.current_price > 0)
+        ? item.current_price
+        : null
+    if (!price) { res.status(400).json({ error: 'No price set' }); return }
 
     // Mark as sold
-    const { error: updateError } = await supabase.from('items').update({
+    const { error: updateError, count } = await supabase.from('items').update({
       status: 'sold',
       winner_id: buyerId,
-      current_price: item.buy_now_price,
+      current_price: price,
       ended_at: new Date().toISOString(),
-    }).eq('id', item.id).eq('status', 'active') // optimistic lock
+    }).eq('id', item.id).neq('status', 'sold') // optimistic lock: prevent double purchase
 
-    if (updateError) { res.status(500).json({ error: 'Failed to purchase' }); return }
+    if (updateError || count === 0) { res.status(500).json({ error: 'Failed to purchase' }); return }
 
     // Calculate stream offset
     let purchaseStreamOffsetSeconds: number | null = null
@@ -386,22 +402,22 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
     }
 
     // Create order
-    const fees = calculateFees(item.buy_now_price)
+    const fees = calculateFees(price)
     await supabase.from('orders').insert({
       buyer_id: buyerId,
       seller_id: item.seller_id,
       item_id: item.id,
       stream_id: item.stream_id,
-      amount: item.buy_now_price,
+      amount: price,
       platform_fee: fees.platformFee,
       processing_fee: fees.processingFee,
       seller_payout: fees.sellerPayout,
       purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
     })
 
-    await notifyUser(buyerId, 'auction_won', 'Achat confirme !', `${item.title} — ${item.buy_now_price}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
+    await notifyUser(buyerId, 'auction_won', 'Achat confirme !', `${item.title} — ${price}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
 
-    res.json({ success: true, price: item.buy_now_price })
+    res.json({ success: true, price })
   } catch (err) {
     console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })

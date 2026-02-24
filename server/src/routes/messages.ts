@@ -215,6 +215,69 @@ router.delete('/api/streams/:streamId/moderators/:modId', requireAuth, async (re
 // CONVERSATIONS (Internal messaging — Phase 3)
 // =============================================
 
+// Create or get a direct conversation between two users
+router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { user_id } = req.body
+
+    if (!user_id || typeof user_id !== 'string') {
+      res.status(400).json({ error: 'user_id is required' })
+      return
+    }
+    if (user_id === userId) {
+      res.status(400).json({ error: 'Cannot message yourself' })
+      return
+    }
+
+    // Verify target user exists
+    const { data: target } = await supabase.from('profiles').select('id').eq('id', user_id).single()
+    if (!target) {
+      res.status(404).json({ error: 'User not found' })
+      return
+    }
+
+    // Check if a direct conversation already exists between the two users
+    const { data: existing } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('type', 'direct')
+      .or(
+        `and(participant_1.eq.${userId},participant_2.eq.${user_id}),and(participant_1.eq.${user_id},participant_2.eq.${userId})`
+      )
+      .eq('status', 'active')
+      .limit(1)
+      .single()
+
+    if (existing) {
+      res.json(existing)
+      return
+    }
+
+    // Create new direct conversation
+    const { data: conv, error } = await supabase
+      .from('conversations')
+      .insert({
+        type: 'direct',
+        participant_1: userId,
+        participant_2: user_id,
+        status: 'active',
+      })
+      .select('id')
+      .single()
+
+    if (error) {
+      res.status(500).json({ error: 'Failed to create conversation' })
+      return
+    }
+
+    res.json(conv)
+  } catch (err) {
+    console.error('[messages]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // List user's conversations
 router.get('/api/conversations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
