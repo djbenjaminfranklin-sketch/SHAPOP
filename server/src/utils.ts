@@ -286,12 +286,20 @@ const APNS_KEY_PATH = process.env.APNS_KEY_PATH || ''
 const APNS_PRODUCTION = process.env.APNS_PRODUCTION === 'true'
 
 let apnsPrivateKey: string | null = null
-if (APNS_KEY_PATH && fs.existsSync(APNS_KEY_PATH)) {
+if (APNS_KEY_PATH && fs.existsSync(APNS_KEY_PATH) && fs.statSync(APNS_KEY_PATH).size > 0) {
   apnsPrivateKey = fs.readFileSync(APNS_KEY_PATH, 'utf8')
   console.log('APNs key loaded from', APNS_KEY_PATH)
 } else if (process.env.APNS_PRIVATE_KEY) {
-  apnsPrivateKey = process.env.APNS_PRIVATE_KEY.replace(/\\n/g, '\n')
-  console.log('APNs key loaded from env')
+  let raw = process.env.APNS_PRIVATE_KEY
+  // Normalize: handle literal \n, forward slashes used as line separators, or already correct newlines
+  raw = raw.replace(/\\n/g, '\n')
+  // If the key is on a single line with / separators (common in Render env vars), reconstruct PEM
+  if (!raw.includes('\n') || raw.split('\n').length < 3) {
+    const parts = raw.split('/')
+    raw = parts.join('\n')
+  }
+  apnsPrivateKey = raw.trim() + '\n'
+  console.log('APNs key loaded from env, lines:', apnsPrivateKey.split('\n').length)
 } else {
   console.warn('WARNING: APNs key not configured — push notifications will not work')
 }
@@ -344,11 +352,17 @@ export async function sendApnsPush(deviceToken: string, title: string, body: str
     req.on('response', (headers) => {
       const status = headers[':status'] as number
       if (status !== 200) {
-        console.warn(`APNs error ${status} for token ${deviceToken.slice(0, 8)}...`)
+        let body = ''
+        req.on('data', (chunk: Buffer) => { body += chunk.toString() })
+        req.on('end', () => {
+          console.warn(`APNs error ${status} for token ${deviceToken.slice(0, 8)}...: ${body}`)
+          resolve(false)
+        })
+      } else {
+        resolve(true)
       }
-      resolve(status === 200)
     })
-    req.on('error', () => resolve(false))
+    req.on('error', (err) => { console.warn('APNs request error:', err.message); resolve(false) })
     req.end(payload)
 
     // Close HTTP/2 session after response
