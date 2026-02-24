@@ -517,13 +517,18 @@ export default function ConversationPage() {
               )}
             </div>
             {conversation?.item?.image_urls?.[0] && (
-              <img
-                src={conversation.item.image_urls[0]}
-                alt=""
-                loading="lazy"
-                style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-              />
+              <button
+                onClick={() => conversation.item?.id && navigate(`/item/${conversation.item.id}`)}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', flexShrink: 0 }}
+              >
+                <img
+                  src={conversation.item.image_urls[0]}
+                  alt=""
+                  loading="lazy"
+                  style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', display: 'block' }}
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              </button>
             )}
           </div>
         </div>

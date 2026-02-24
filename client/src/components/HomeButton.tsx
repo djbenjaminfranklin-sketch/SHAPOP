@@ -15,6 +15,8 @@ export default function HomeButton() {
   if (path === '/go-live') return null
   if (path === '/schedule-live') return null
   if (path === '/ai-listing') return null
+  if (path.startsWith('/conversation/')) return null
+  if (path === '/messages') return null
 
   return (
     <>
