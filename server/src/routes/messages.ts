@@ -241,7 +241,7 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
     const { data: existing } = await supabase
       .from('conversations')
       .select('id')
-      .eq('type', 'direct')
+      .is('order_id', null)
       .or(
         `and(participant_1.eq.${userId},participant_2.eq.${user_id}),and(participant_1.eq.${user_id},participant_2.eq.${userId})`
       )
@@ -258,7 +258,7 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
     const { data: conv, error } = await supabase
       .from('conversations')
       .insert({
-        type: 'direct',
+        type: 'order',
         participant_1: userId,
         participant_2: user_id,
         status: 'active',

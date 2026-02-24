@@ -953,7 +953,7 @@ export default function SellerProfilePage() {
                       const { data: existing } = await supabase
                         .from('conversations')
                         .select('id')
-                        .eq('type', 'direct')
+                        .is('order_id', null)
                         .or(`and(participant_1.eq.${user.id},participant_2.eq.${sellerId}),and(participant_1.eq.${sellerId},participant_2.eq.${user.id})`)
                         .eq('status', 'active')
                         .limit(1)
@@ -963,7 +963,7 @@ export default function SellerProfilePage() {
                       } else {
                         const { data: created } = await supabase
                           .from('conversations')
-                          .insert({ type: 'direct', participant_1: user.id, participant_2: sellerId, status: 'active' })
+                          .insert({ type: 'order', participant_1: user.id, participant_2: sellerId, status: 'active' })
                           .select('id')
                           .single()
                         convId = created?.id || null
