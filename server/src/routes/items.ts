@@ -417,6 +417,9 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
 
     await notifyUser(buyerId, 'auction_won', 'Achat confirme !', `${item.title} — ${price}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
 
+    // Notify seller about the sale
+    notifyUser(item.seller_id, 'item_sold', 'Article vendu !', `"${item.title}" a ete achete pour ${price}€.`, { item_id: item.id }).catch(err => console.error('[items] notifyUser seller failed:', err))
+
     res.json({ success: true, price })
   } catch (err) {
     console.error('[items]', err)

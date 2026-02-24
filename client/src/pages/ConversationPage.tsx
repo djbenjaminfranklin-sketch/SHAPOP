@@ -187,53 +187,34 @@ export default function ConversationPage() {
 
   // Fetch conversation + messages
   const fetchData = useCallback(async () => {
-    if (!user || !id) return
+    if (!user || !id || !session) return
     setLoading(true)
     setError(null)
     try {
-      // Fetch conversation
-      const { data: convData, error: convErr } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', id)
-        .single()
-
-      if (convErr) throw convErr
-      if (!convData) throw new Error(ct.notFound)
-
-      const conv = convData as Conversation
-
-      // Fetch other participant's profile
-      const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
-      const { data: otherProfile } = await supabase
-        .from('profiles')
-        .select('id, display_name, avatar_url, username, bio, is_seller, city, country, language, joined_communities, created_at')
-        .eq('id', otherId)
-        .single()
-
-      if (otherProfile) {
-        conv.other_participant = otherProfile as Conversation['other_participant']
-      }
+      // Fetch conversation via API (bypasses RLS)
+      const convResp = await apiFetch(`/api/conversations/${id}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!convResp.ok) throw new Error(ct.notFound)
+      const conv = await convResp.json() as Conversation
 
       setConversation(conv)
 
-      // Fetch messages
-      const { data: msgData, error: msgErr } = await supabase
-        .from('conversation_messages')
-        .select('*, sender:profiles!conversation_messages_sender_id_fkey(id, display_name, avatar_url)')
-        .eq('conversation_id', id)
-        .order('created_at', { ascending: false })
-        .limit(100)
+      // Fetch messages via API
+      const msgResp = await apiFetch(`/api/conversations/${id}/messages`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!msgResp.ok) throw new Error(ct.unknownError)
+      const msgData = await msgResp.json() as ConversationMessage[]
 
-      if (msgErr) throw msgErr
-      setMessages(((msgData || []) as ConversationMessage[]).reverse())
+      setMessages(msgData || [])
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ct.unknownError
       setError(message)
     } finally {
       setLoading(false)
     }
-  }, [user, id, ct.notFound, ct.unknownError])
+  }, [user, id, session, ct.notFound, ct.unknownError])
 
   useEffect(() => {
     fetchData()

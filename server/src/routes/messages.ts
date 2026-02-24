@@ -278,6 +278,44 @@ router.post('/api/conversations/direct', requireAuth, async (req: AuthenticatedR
   }
 })
 
+// Get a single conversation by ID
+router.get('/api/conversations/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const convId = req.params.id
+
+    const { data: conv, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('id', convId)
+      .single()
+
+    if (error || !conv) {
+      res.status(404).json({ error: 'Conversation not found' })
+      return
+    }
+
+    // Verify user is a participant
+    if (conv.participant_1 !== userId && conv.participant_2 !== userId) {
+      res.status(403).json({ error: 'Access denied' })
+      return
+    }
+
+    // Enrich with other participant profile
+    const otherId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, username')
+      .eq('id', otherId)
+      .single()
+
+    res.json({ ...conv, other_participant: profile })
+  } catch (err) {
+    console.error('[messages]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // List user's conversations
 router.get('/api/conversations', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
