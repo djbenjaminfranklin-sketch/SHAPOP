@@ -187,27 +187,69 @@ export default function ConversationPage() {
 
   // Fetch conversation + messages
   const fetchData = useCallback(async () => {
-    if (!user || !id || !session) return
+    if (!user || !id) return
     setLoading(true)
     setError(null)
     try {
-      // Fetch conversation via API (bypasses RLS)
-      const convResp = await apiFetch(`/api/conversations/${id}`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (!convResp.ok) throw new Error(ct.notFound)
-      const conv = await convResp.json() as Conversation
+      let conv: Conversation | null = null
+
+      // Try API first (bypasses RLS), fallback to Supabase direct
+      if (session?.access_token) {
+        try {
+          const convResp = await apiFetch(`/api/conversations/${id}`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+          if (convResp.ok) {
+            conv = await convResp.json() as Conversation
+          }
+        } catch { /* fallback below */ }
+      }
+
+      if (!conv) {
+        const { data: convData, error: convErr } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('id', id)
+          .single()
+        if (convErr || !convData) throw new Error(ct.notFound)
+        conv = convData as Conversation
+
+        // Fetch other participant profile
+        const otherId = conv.participant_1 === user.id ? conv.participant_2 : conv.participant_1
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url, username')
+          .eq('id', otherId)
+          .single()
+        if (profile) conv.other_participant = profile as Conversation['other_participant']
+      }
 
       setConversation(conv)
 
-      // Fetch messages via API
-      const msgResp = await apiFetch(`/api/conversations/${id}/messages`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (!msgResp.ok) throw new Error(ct.unknownError)
-      const msgData = await msgResp.json() as ConversationMessage[]
+      // Fetch messages via API if available, fallback to Supabase
+      let msgs: ConversationMessage[] = []
+      if (session?.access_token) {
+        try {
+          const msgResp = await apiFetch(`/api/conversations/${id}/messages`, {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          })
+          if (msgResp.ok) {
+            msgs = await msgResp.json() as ConversationMessage[]
+          }
+        } catch { /* fallback below */ }
+      }
 
-      setMessages(msgData || [])
+      if (msgs.length === 0) {
+        const { data: msgData } = await supabase
+          .from('conversation_messages')
+          .select('*, sender:profiles!conversation_messages_sender_id_fkey(id, display_name, avatar_url)')
+          .eq('conversation_id', id)
+          .order('created_at', { ascending: true })
+          .limit(100)
+        msgs = (msgData || []) as ConversationMessage[]
+      }
+
+      setMessages(msgs)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : ct.unknownError
       setError(message)
