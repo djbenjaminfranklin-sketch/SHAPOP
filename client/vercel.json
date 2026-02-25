@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
-    { "source": "/((?!api|assets|sw\\.js|workbox-|manifest\\.webmanifest|sitemap\\.xml|robots\\.txt|og-image\\.png|logo\\.png|pwa-|apple-touch-).*)", "destination": "/index.html" }
+    { "source": "/((?!api|assets|sw\\.js|workbox-|manifest\\.webmanifest|sitemap\\.xml|robots\\.txt|og-image\\.png|logo\\.png|pwa-|apple-touch-|reset-password\\.html).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
