@@ -29,7 +29,7 @@ export default function ChangePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false)
+  const [isRecoveryMode, setIsRecoveryMode] = useState(() => window.location.hash.includes('type=recovery'))
   const [sessionReady, setSessionReady] = useState(false)
 
   // Detect recovery mode from URL hash (Supabase appends #access_token=...&type=recovery)
