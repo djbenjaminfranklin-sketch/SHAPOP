@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://shapop.vercel.app/change-password',
+        redirectTo: 'https://shapop.vercel.app/reset-password.html',
       })
       if (error) throw error
       setSent(true)
