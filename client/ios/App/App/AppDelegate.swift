@@ -1,51 +1,79 @@
 import UIKit
 import Capacitor
+import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    private var pipPluginRegistered = false
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Set dark background to prevent white flash during overscroll / rubber-banding
         if let window = self.window {
             window.backgroundColor = UIColor(red: 10/255, green: 10/255, blue: 10/255, alpha: 1.0) // #0a0a0a
         }
+
+        // Configure AVAudioSession for PiP — allows audio to continue in background
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .moviePlayback)
+            try session.setActive(true)
+        } catch {
+            print("[PiP] AVAudioSession configuration failed: \(error)")
+        }
+
+        // Enable PiP on the WKWebView and register LiveKitPiP plugin once the bridge is loaded
+        DispatchQueue.main.async {
+            if let vc = self.window?.rootViewController as? CAPBridgeViewController,
+               let webView = vc.webView {
+                webView.configuration.allowsPictureInPictureMediaPlayback = true
+            }
+            self.registerPiPPlugin()
+        }
+
         return true
     }
 
+    private func registerPiPPlugin() {
+        guard !pipPluginRegistered else { return }
+        if let vc = self.window?.rootViewController as? CAPBridgeViewController,
+           let bridge = vc.bridge {
+            bridge.registerPluginInstance(LiveKitPiPPlugin())
+            pipPluginRegistered = true
+            print("[PiPBridge] LiveKitPiP plugin registered from AppDelegate")
+        } else {
+            // Bridge not ready yet — retry shortly
+            print("[PiPBridge] Bridge not ready, retrying in 0.5s...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.registerPiPPlugin()
+            }
+        }
+    }
+
     func applicationWillResignActive(_ application: UIApplication) {
-        // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
-        // Use this method to pause ongoing tasks, disable timers, and invalidate graphics rendering callbacks. Games should use this method to pause the game.
     }
 
     func applicationDidEnterBackground(_ application: UIApplication) {
-        // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
-        // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
-        // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Clear badge count when app becomes active
+        application.applicationIconBadgeNumber = 0
+        UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
-        // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Called when the app was launched with a url. Feel free to add additional processing here,
-        // but if you want the App API to support tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)
     }
 
     func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
-        // Called when the app was launched with an activity, including Universal Links.
-        // Feel free to add additional processing here, but if you want the App API to support
-        // tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 

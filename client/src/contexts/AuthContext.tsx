@@ -152,6 +152,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
           await Browser.close()
+        } else if (url.includes('reset-callback')) {
+          // Password reset deep link — extract tokens, set session, navigate to change password
+          const hashPart = url.split('#')[1]
+          if (hashPart) {
+            const params = new URLSearchParams(hashPart)
+            const accessToken = params.get('access_token')
+            const refreshToken = params.get('refresh_token')
+            if (accessToken && refreshToken) {
+              try {
+                await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                })
+              } catch {
+                // Session restoration failed
+              }
+            }
+          }
+          window.location.hash = ''
+          window.location.href = '/change-password'
         } else if (url.includes('/payments')) {
           // Stripe Connect return — just close the browser, PaymentsPage will refetch
           await Browser.close()

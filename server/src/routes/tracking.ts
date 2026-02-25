@@ -398,6 +398,43 @@ export async function checkTrackingStatuses(): Promise<number> {
         }
       }
 
+      // Sendcloud carriers: strip prefix and try underlying carrier API as webhook fallback
+      if (!isDelivered && order.carrier?.startsWith('sendcloud_')) {
+        const underlyingCarrier = order.carrier.replace('sendcloud_', '')
+        // Try Mondial Relay for sendcloud_mondial_relay
+        if (isMondialRelayConfigured() && underlyingCarrier === 'mondial_relay') {
+          try {
+            const mrResult = await mrTrackShipment(order.tracking_number)
+            if (!mrResult.error) {
+              if (mrResult.delivered) {
+                isDelivered = true
+              } else if (mrResult.events.length > 0 && order.tracking_status === 'shipped') {
+                await supabase
+                  .from('orders')
+                  .update({ tracking_status: 'in_transit' })
+                  .eq('id', order.id)
+              }
+            }
+          } catch (err) {
+            if (process.env.NODE_ENV !== 'production') console.error(`[tracking-check] Sendcloud/MR fallback error for order ${order.id}:`, err)
+          }
+        }
+        // Try DPD for sendcloud_dpd
+        if (!isDelivered && isDpdConfigured() && underlyingCarrier === 'dpd') {
+          try {
+            const dpdResult = await trackDpdShipment(order.tracking_number)
+            if (!dpdResult.error && dpdResult.delivered) isDelivered = true
+          } catch { /* ignore */ }
+        }
+        // Try DHL for sendcloud_dhl
+        if (!isDelivered && isDhlConfigured() && underlyingCarrier === 'dhl') {
+          try {
+            const dhlResult = await trackDhlShipment(order.tracking_number)
+            if (!dhlResult.error && dhlResult.delivered) isDelivered = true
+          } catch { /* ignore */ }
+        }
+      }
+
       // No auto-release fallback: payment is ONLY released when tracking confirms delivery
       // or when the buyer manually confirms receipt
 

@@ -23,6 +23,8 @@ const content = {
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
     eula: 'License Agreement',
+    communityGuidelines: 'Community Guidelines',
+    returnPolicy: 'Return Policy',
   },
   he: {
     title: '\u05D0\u05D5\u05D3\u05D5\u05EA ShaPop',
@@ -42,6 +44,8 @@ const content = {
     terms: '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9',
     privacy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA',
     eula: '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF',
+    communityGuidelines: '\u05DB\u05DC\u05DC\u05D9 \u05D4\u05E7\u05D4\u05D9\u05DC\u05D4',
+    returnPolicy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA',
   },
   fr: {
     title: 'À propos de ShaPop',
@@ -61,25 +65,29 @@ const content = {
     terms: 'Conditions d\'utilisation',
     privacy: 'Politique de confidentialité',
     eula: 'Contrat de licence',
+    communityGuidelines: 'Règles de la communauté',
+    returnPolicy: 'Politique de retours',
   },
   es: {
     title: 'Sobre ShaPop',
     tagline: 'Compras en vivo, reinventadas.',
     desc: 'ShaPop es el marketplace de compras en vivo de Europa donde los vendedores transmiten en vivo, muestran sus productos en tiempo real y se conectan directamente con compradores. Sin intermediarios, sin algoritmos \u2014 solo personas reales, productos reales, ofertas reales.',
-    missionTitle: 'Nuestra Mision',
-    mission: 'Hacer que vender y comprar sea accesible para todos a traves del poder del video en vivo. Creemos que el futuro del comercio electronico es humano, interactivo y divertido.',
+    missionTitle: 'Nuestra Misión',
+    mission: 'Hacer que vender y comprar sea accesible para todos a través del poder del video en vivo. Creemos que el futuro del comercio electrónico es humano, interactivo y divertido.',
     features: [
       { icon: 'video', title: 'Transmisiones en Vivo', desc: 'Mira a vendedores presentar sus productos en tiempo real. Pregunta, negocia y compra al instante.' },
       { icon: 'map', title: 'Primero Local', desc: 'Descubre vendedores cerca de ti con nuestro mapa interactivo. Apoya negocios locales.' },
-      { icon: 'shield', title: 'Proteccion al Comprador', desc: 'Politica de devolucion de 14 dias. Pagos seguros con encriptacion bancaria.' },
-      { icon: 'zap', title: 'Venta Instantanea', desc: 'Transmite en segundos. Sin comisiones de listado. Empieza a vender hoy.' },
+      { icon: 'shield', title: 'Protección al Comprador', desc: 'Política de devolución de 14 días. Pagos seguros con encriptación bancaria.' },
+      { icon: 'zap', title: 'Venta Instantánea', desc: 'Transmite en segundos. Sin comisiones de listado. Empieza a vender hoy.' },
     ],
     version: 'Version',
-    made: 'Hecho con amor en Paris',
+    made: 'Hecho con amor en París',
     legal: 'Legal',
-    terms: 'Terminos de Servicio',
-    privacy: 'Politica de Privacidad',
+    terms: 'Términos de Servicio',
+    privacy: 'Política de Privacidad',
     eula: 'Acuerdo de Licencia',
+    communityGuidelines: 'Reglas de la Comunidad',
+    returnPolicy: 'Política de Devoluciones',
   },
 }
 
@@ -137,6 +145,8 @@ export default function AboutPage() {
             { label: c.terms, to: '/terms' },
             { label: c.privacy, to: '/privacy' },
             { label: c.eula, to: '/eula' },
+            { label: c.communityGuidelines, to: '/community-guidelines' },
+            { label: c.returnPolicy, to: '/return-policy' },
           ].map(link => (
             <button
               key={link.to}

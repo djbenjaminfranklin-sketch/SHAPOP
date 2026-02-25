@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import ConfirmModal from '../components/ConfirmModal'
+import PrePermissionModal from '../components/PrePermissionModal'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -46,12 +47,12 @@ type Lang = 'fr' | 'en' | 'he' | 'es'
 
 const pageContent = {
   fr: {
-    title: 'Preparer le live',
+    title: 'Préparer le live',
     addItem: 'Ajouter un article',
     photo: 'Photo',
     itemTitle: 'Titre de l\'article',
-    startingPrice: 'Prix de depart (EUR)',
-    category: 'Categorie (optionnel)',
+    startingPrice: 'Prix de départ (EUR)',
+    category: 'Catégorie (optionnel)',
     add: 'Ajouter',
     cancel: 'Annuler',
     goLive: 'Passer en direct',
@@ -63,39 +64,39 @@ const pageContent = {
     choosePhoto: 'Choisir dans la galerie',
     saving: 'Enregistrement...',
     items: 'articles',
-    duration: 'Duree par article',
+    duration: 'Durée par article',
     seconds: 'sec',
-    durationHint: 'Temps d\'enchere pour chaque article',
-    quantity: 'Quantite',
+    durationHint: 'Temps d\'enchère pour chaque article',
+    quantity: 'Quantité',
     quantityHint: 'Chaque article aura un code unique',
-    generating: 'Generation de {n} articles...',
-    muxError: 'La configuration du streaming video a echoue. Les spectateurs pourraient ne pas voir votre video.',
+    generating: 'Génération de {n} articles...',
+    muxError: 'La configuration du streaming video a échoué. Les spectateurs pourraient ne pas voir votre video.',
     minPrice: 'Prix minimum (optionnel)',
-    minPriceHint: 'Si aucune enchere n\'atteint ce prix, l\'article sera invendu',
+    minPriceHint: 'Si aucune enchère n\'atteint ce prix, l\'article sera invendu',
     buyNowPrice: 'Prix achat immediat (optionnel)',
-    buyNowHint: 'Permet d\'acheter l\'article sans encherir',
+    buyNowHint: 'Permet d\'acheter l\'article sans enchérir',
     csvUpload: 'Importer CSV',
     csvImporting: 'Import en cours...',
     csvImported: '{n} articles importes',
     csvError: 'Erreur CSV',
     deleteStream: 'Supprimer ce live',
-    deleteStreamConfirm: 'Supprimer ce live et tous ses articles ? Cette action est irreversible.',
-    scheduledDate: 'Date programmee',
+    deleteStreamConfirm: 'Supprimer ce live et tous ses articles ? Cette action est irréversible.',
+    scheduledDate: 'Date programmée',
     changeDate: 'Modifier la date',
     saveDate: 'Enregistrer',
     deleteError: 'Echec de la suppression',
     confirmDelete: 'Supprimer',
     confirmCancel: 'Annuler',
-    shippingDelay: 'Delai d\'expedition',
-    shippingDelayHint: 'Delai maximum avant expedition',
+    shippingDelay: 'Délai d\'expédition',
+    shippingDelayHint: 'Délai maximum avant expédition',
     day: 'jour',
     days: 'jours',
     weight: 'Poids (grammes)',
     weightHint: 'Poids de l\'article pour le calcul des frais de port',
-    suggestedShipping: 'Prix suggere',
-    shippingOverride: 'Prix de livraison personnalise (EUR)',
-    shippingOverrideHint: 'Laissez vide pour utiliser le prix calcule',
-    shippingWarning: 'Attention: si le cout reel est superieur, la difference sera deduite de vos gains',
+    suggestedShipping: 'Prix suggéré',
+    shippingOverride: 'Prix de livraison personnalisé (EUR)',
+    shippingOverrideHint: 'Laissez vide pour utiliser le prix calculé',
+    shippingWarning: 'Attention: si le coût réel est supérieur, la différence sera déduite de vos gains',
     perCarrier: 'selon le transporteur',
   },
   en: {
@@ -259,6 +260,13 @@ const pageContent = {
   },
 }
 
+const cameraModalContent = {
+  fr: { title: 'Camera & Microphone', desc: 'ShaPop a besoin de ta camera et de ton micro pour les lives', allow: 'Continuer', skip: 'Continuer' },
+  en: { title: 'Camera & Microphone', desc: 'ShaPop needs your camera and microphone for live streaming', allow: 'Continue', skip: 'Continue' },
+  he: { title: '\u05DE\u05E6\u05DC\u05DE\u05D4 \u05D5\u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF', desc: 'ShaPop \u05E6\u05E8\u05D9\u05DA \u05D0\u05EA \u05D4\u05DE\u05E6\u05DC\u05DE\u05D4 \u05D5\u05D4\u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF \u05E9\u05DC\u05DA \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9', allow: '\u05D4\u05DE\u05E9\u05DA', skip: '\u05D4\u05DE\u05E9\u05DA' },
+  es: { title: 'Camara y Microfono', desc: 'ShaPop necesita tu camara y microfono para las transmisiones en vivo', allow: 'Continuar', skip: 'Continuar' },
+}
+
 interface ShippingOption {
   carrier: string
   cost: number
@@ -315,6 +323,8 @@ export default function PrepareLivePage() {
   const [deleteError, setDeleteError] = useState('')
   const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
   const [shippingDelay, setShippingDelay] = useState(2)
+  const [showCameraModal, setShowCameraModal] = useState(false)
+  const camContent = cameraModalContent[lang as keyof typeof cameraModalContent] || cameraModalContent.fr
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -751,6 +761,21 @@ export default function PrepareLivePage() {
       setEditingDate(false)
     }
   }
+
+  const handleGoLiveClick = useCallback(() => {
+    const alreadyShown = localStorage.getItem('shapop_camera_prepermission_shown')
+    if (!alreadyShown) {
+      setShowCameraModal(true)
+      return
+    }
+    handleGoLive()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleCameraModalDismiss = useCallback(() => {
+    localStorage.setItem('shapop_camera_prepermission_shown', '1')
+    setShowCameraModal(false)
+    handleGoLive()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGoLive = async () => {
     if (!streamId) return
@@ -1708,7 +1733,7 @@ export default function PrepareLivePage() {
         )}
 
         <button
-          onClick={handleGoLive}
+          onClick={handleGoLiveClick}
           disabled={!canGoLive}
           style={{
             width: '100%', padding: '18px',
@@ -1756,6 +1781,22 @@ export default function PrepareLivePage() {
         onConfirm={() => confirmModal?.onConfirm()}
         onCancel={() => setConfirmModal(null)}
         danger
+      />
+
+      <PrePermissionModal
+        open={showCameraModal}
+        icon={
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+            <path d="M23 7l-7 5 7 5V7z" strokeLinecap="round" strokeLinejoin="round"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        }
+        title={camContent.title}
+        description={camContent.desc}
+        allowLabel={camContent.allow}
+        skipLabel={camContent.skip}
+        onAllow={handleCameraModalDismiss}
+        onSkip={handleCameraModalDismiss}
       />
     </div>
   )

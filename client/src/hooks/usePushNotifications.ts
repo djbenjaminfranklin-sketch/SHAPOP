@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { useAuth } from '../contexts/AuthContext'
@@ -12,14 +13,16 @@ const PENDING_DEEPLINK_KEY = 'shapop_pending_deeplink'
  * Call `requestPermission()` to trigger the iOS permission prompt.
  *
  * On cold start, deep links from push notifications are stored in localStorage
- * and consumed once React Router is mounted, since window.location.hash changes
- * that happen before the router is ready are silently lost.
+ * and consumed once React Router is mounted.
  */
 export function usePushNotifications() {
   const { user, session } = useAuth()
+  const navigate = useNavigate()
   const registeredRef = useRef(false)
   const pendingTokenRef = useRef<string | null>(null)
   const saveTokenRef = useRef<((token: string) => Promise<void>) | null>(null)
+  const navigateRef = useRef(navigate)
+  navigateRef.current = navigate
 
   // Keep saveTokenRef always up-to-date with latest user/session
   saveTokenRef.current = async (token: string) => {
@@ -62,9 +65,8 @@ export function usePushNotifications() {
     const pending = localStorage.getItem(PENDING_DEEPLINK_KEY)
     if (pending) {
       localStorage.removeItem(PENDING_DEEPLINK_KEY)
-      // Small delay to ensure React Router is fully mounted
       setTimeout(() => {
-        window.location.hash = pending
+        navigateRef.current(pending)
       }, 100)
     }
   }, [])
@@ -86,7 +88,6 @@ export function usePushNotifications() {
 
     PushNotifications.addListener('registration', (token) => {
       if (import.meta.env.DEV) console.log('Push token received:', token.value.slice(0, 12) + '...')
-      // Use ref so we always call the latest version with current user/session
       saveTokenRef.current?.(token.value)
     })
 
@@ -96,7 +97,6 @@ export function usePushNotifications() {
 
     PushNotifications.addListener('pushNotificationReceived', (notification) => {
       if (import.meta.env.DEV) console.log('Push received in foreground:', notification.title)
-      // Night mode: suppress foreground notifications during quiet hours
       if (isNightModeActive()) {
         PushNotifications.removeAllDeliveredNotifications()
         return
@@ -105,12 +105,19 @@ export function usePushNotifications() {
 
     PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
       const data = action.notification.data
-      if (data?.stream_id) {
-        const deepLink = `/stream/${data.stream_id}`
-        // Store in localStorage for cold start (React Router may not be mounted yet)
+      let deepLink = ''
+      if (data?.conversation_id) {
+        deepLink = `/conversation/${data.conversation_id}`
+      } else if (data?.stream_id) {
+        deepLink = `/stream/${data.stream_id}`
+      } else if (data?.order_id) {
+        deepLink = `/orders`
+      }
+      if (deepLink) {
+        // Store for cold start (router may not be mounted yet)
         localStorage.setItem(PENDING_DEEPLINK_KEY, deepLink)
-        // Also set hash immediately as fallback for warm start (app already open)
-        window.location.hash = deepLink
+        // Navigate immediately for warm start (app already open)
+        navigateRef.current(deepLink)
       }
     })
 

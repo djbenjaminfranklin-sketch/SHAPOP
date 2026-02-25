@@ -104,7 +104,7 @@ export default function AccountControlsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const lang = getLang()
-  usePageTitle(tx('Controles du compte', 'Account Controls', 'בקרת חשבון', 'Controles de cuenta', lang))
+  usePageTitle(tx('Contrôles du compte', 'Account Controls', 'בקרת חשבון', 'Controles de cuenta', lang))
 
   const [activeTab, setActiveTab] = useState<Tab>('watch')
   const [settings, setSettings] = useState<ControlSettings>(loadSettings)
@@ -253,9 +253,9 @@ export default function AccountControlsPage() {
       : tx('Ce mois-ci', 'This month', 'החודש', 'Este mes', lang)
 
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'watch', label: tx('Duree de visionnage', 'Watch time', 'זמן צפייה', 'Tiempo de visualizacion', lang) },
-    { key: 'spending', label: tx('Controles des depenses', 'Spending controls', 'בקרת הוצאות', 'Control de gastos', lang) },
-    { key: 'settings', label: tx('Parametres', 'Settings', 'הגדרות', 'Parametros', lang) },
+    { key: 'watch', label: tx('Durée de visionnage', 'Watch time', 'זמן צפייה', 'Tiempo de visualización', lang) },
+    { key: 'spending', label: tx('Contrôles des dépenses', 'Spending controls', 'בקרת הוצאות', 'Control de gastos', lang) },
+    { key: 'settings', label: tx('Paramètres', 'Settings', 'הגדרות', 'Parámetros', lang) },
   ]
 
   // Swipe between tabs
@@ -308,7 +308,7 @@ export default function AccountControlsPage() {
           </svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
-          {tx('Controles de compte', 'Account controls', 'בקרות חשבון', 'Controles de cuenta', lang)}
+          {tx('Contrôles de compte', 'Account controls', 'בקרות חשבון', 'Controles de cuenta', lang)}
         </h1>
       </div>
 
@@ -342,7 +342,7 @@ export default function AccountControlsPage() {
             {/* Watch time counter */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '20px' }}>
               <p style={{ fontSize: '13px', color: '#888', margin: '0 0 4px' }}>
-                {tx('Duree de visionnage', 'Watch time', 'זמן צפייה', 'Tiempo de visualizacion', lang)}
+                {tx('Durée de visionnage', 'Watch time', 'זמן צפייה', 'Tiempo de visualización', lang)}
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                 <p style={{ fontSize: '36px', fontWeight: 800, color: '#fff', margin: 0 }}>
@@ -365,7 +365,7 @@ export default function AccountControlsPage() {
               </div>
               <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0' }}>
                 {settings.watchLimitPeriod === 'week'
-                  ? tx('15-21 fevr. 2026', '15-21 Feb 2026', '15-21 פבר׳ 2026', '15-21 feb. 2026', lang)
+                  ? tx('15-21 févr. 2026', '15-21 Feb 2026', '15-21 פבר׳ 2026', '15-21 feb. 2026', lang)
                   : tx('Janvier 2026', 'January 2026', 'ינואר 2026', 'Enero 2026', lang)}
               </p>
             </div>
@@ -391,7 +391,7 @@ export default function AccountControlsPage() {
                   {tx('Alerte de temps de visionnage', 'Watch time alert', 'התראת זמן צפייה', 'Alerta de tiempo', lang)}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                  {tx('Definis une limite et recois une notification.', 'Set a limit and receive a notification.', 'הגדר מגבלה וקבל התראה.', 'Define un limite y recibe una notificacion.', lang)}
+                  {tx('Définis une limite et reçois une notification.', 'Set a limit and receive a notification.', 'הגדר מגבלה וקבל התראה.', 'Define un límite y recibe una notificación.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.watchAlertEnabled)}>
@@ -420,7 +420,7 @@ export default function AccountControlsPage() {
                   {tx('Limite de visionnage', 'Watch time limit', 'מגבלת זמן צפייה', 'Limite de tiempo', lang)}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                  {tx('Le visionnage s\'arrete lorsque la limite est atteinte.', 'Watching stops when the limit is reached.', 'הצפייה נעצרת כשהמגבלה מושגת.', 'La visualizacion se detiene al alcanzar el limite.', lang)}
+                  {tx('Le visionnage s\'arrête lorsque la limite est atteinte.', 'Watching stops when the limit is reached.', 'הצפייה נעצרת כשהמגבלה מושגת.', 'La visualización se detiene al alcanzar el límite.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.watchLimitEnabled)}>
@@ -431,7 +431,7 @@ export default function AccountControlsPage() {
             {settings.watchLimitEnabled && (
               <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
                 <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
-                  {tx('Definir la limite', 'Set the limit', 'הגדר מגבלה', 'Definir limite', lang)}
+                  {tx('Définir la limite', 'Set the limit', 'הגדר מגבלה', 'Definir límite', lang)}
                 </p>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
@@ -474,10 +474,10 @@ export default function AccountControlsPage() {
 
             <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>
               {tx(
-                'Reprends le controle de ton temps d\'ecran et regarde les lives a ton rythme en definissant des limites ou des alertes.',
+                'Reprends le contrôle de ton temps d\'écran et regarde les lives à ton rythme en définissant des limites ou des alertes.',
                 'Take back control of your screen time and watch lives at your own pace by setting limits or alerts.',
                 'קח שליטה על זמן המסך שלך וצפה בשידורים בקצב שלך על ידי הגדרת מגבלות או התראות.',
-                'Retoma el control de tu tiempo de pantalla y mira los directos a tu ritmo definiendo limites o alertas.',
+                'Retoma el control de tu tiempo de pantalla y mira los directos a tu ritmo definiendo límites o alertas.',
                 lang
               )}
             </p>
@@ -490,7 +490,7 @@ export default function AccountControlsPage() {
             {/* Spending counter */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '20px' }}>
               <p style={{ fontSize: '13px', color: '#888', margin: '0 0 4px' }}>
-                {tx('Depenses', 'Spending', 'הוצאות', 'Gastos', lang)}
+                {tx('Dépenses', 'Spending', 'הוצאות', 'Gastos', lang)}
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
                 <p style={{ fontSize: '36px', fontWeight: 800, color: '#fff', margin: 0 }}>
@@ -531,10 +531,10 @@ export default function AccountControlsPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tx('Rappel de depenses', 'Spending reminder', 'תזכורת הוצאות', 'Recordatorio de gastos', lang)}
+                  {tx('Rappel de dépenses', 'Spending reminder', 'תזכורת הוצאות', 'Recordatorio de gastos', lang)}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                  {tx('Definis une limite et recois une notification.', 'Set a limit and receive a notification.', 'הגדר מגבלה וקבל התראה.', 'Define un limite y recibe una notificacion.', lang)}
+                  {tx('Définis une limite et reçois une notification.', 'Set a limit and receive a notification.', 'הגדר מגבלה וקבל התראה.', 'Define un límite y recibe una notificación.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.spendingAlertEnabled)}>
@@ -560,10 +560,10 @@ export default function AccountControlsPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tx('Limite de depenses', 'Spending limit', 'מגבלת הוצאות', 'Limite de gastos', lang)}
+                  {tx('Limite de dépenses', 'Spending limit', 'מגבלת הוצאות', 'Límite de gastos', lang)}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                  {tx('Les depenses s\'arretent a ta limite.', 'Spending stops at your limit.', 'ההוצאות נעצרות במגבלה שלך.', 'Los gastos se detienen en tu limite.', lang)}
+                  {tx('Les dépenses s\'arrêtent à ta limite.', 'Spending stops at your limit.', 'ההוצאות נעצרות במגבלה שלך.', 'Los gastos se detienen en tu límite.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.spendingLimitEnabled)}>
@@ -575,7 +575,7 @@ export default function AccountControlsPage() {
               <>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
                   <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
-                    {tx('Montant maximum', 'Maximum amount', 'סכום מקסימלי', 'Monto maximo', lang)}
+                    {tx('Montant maximum', 'Maximum amount', 'סכום מקסימלי', 'Monto máximo', lang)}
                   </p>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -606,8 +606,8 @@ export default function AccountControlsPage() {
                     }}
                   >
                     {savingLimits
-                      ? tx('Sauvegarde...', 'Saving...', '...שומר', 'Guardando...', lang)
-                      : tx('Enregistrer la limite', 'Save limit', 'שמור מגבלה', 'Guardar limite', lang)}
+                      ? tx('Sauvegardé...', 'Saving...', '...שומר', 'Guardando...', lang)
+                      : tx('Enregistrer la limite', 'Save limit', 'שמור מגבלה', 'Guardar límite', lang)}
                   </button>
                 </div>
 
@@ -640,11 +640,11 @@ export default function AccountControlsPage() {
                       </div>
                       {exceeded ? (
                         <p style={{ fontSize: '12px', color: '#EF4444', margin: '8px 0 0', fontWeight: 600 }}>
-                          {tx('Limite depassee !', 'Limit exceeded!', 'המגבלה חורגה!', 'Limite superado!', lang)}
+                          {tx('Limite dépassée !', 'Limit exceeded!', 'המגבלה חורגה!', '¡Límite superado!', lang)}
                         </p>
                       ) : ratio > 0.75 && (
                         <p style={{ fontSize: '12px', color: '#F59E0B', margin: '8px 0 0', fontWeight: 600 }}>
-                          {tx('Attention : limite presque atteinte !', 'Warning: limit almost reached!', 'אזהרה: המגבלה כמעט הושגה!', 'Atencion: limite casi alcanzado!', lang)}
+                          {tx('Attention : limite presque atteinte !', 'Warning: limit almost reached!', 'אזהרה: המגבלה כמעט הושגה!', '¡Atención: límite casi alcanzado!', lang)}
                         </p>
                       )}
                     </div>
@@ -655,10 +655,10 @@ export default function AccountControlsPage() {
 
             <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>
               {tx(
-                'Gere tes depenses et achete selon tes conditions en configurant des limites ou des rappels.',
+                'Gère tes dépenses et achète selon tes conditions en configurant des limites ou des rappels.',
                 'Manage your spending and buy on your own terms by setting limits or reminders.',
                 'נהל את ההוצאות שלך וקנה לפי התנאים שלך על ידי הגדרת מגבלות או תזכורות.',
-                'Gestiona tus gastos y compra segun tus condiciones configurando limites o recordatorios.',
+                'Gestiona tus gastos y compra según tus condiciones configurando límites o recordatorios.',
                 lang
               )}
             </p>
@@ -680,7 +680,7 @@ export default function AccountControlsPage() {
                 {tx('Apparence', 'Appearance', 'מראה', 'Apariencia', lang)}
               </p>
               <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
-                {tx('Choisis le theme de l\'application.', 'Choose the app theme.', 'בחר את ערכת הנושא של האפליקציה.', 'Elige el tema de la aplicacion.', lang)}
+                {tx('Choisis le thème de l\'application.', 'Choose the app theme.', 'בחר את ערכת הנושא של האפליקציה.', 'Elige el tema de la aplicación.', lang)}
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {([
@@ -708,12 +708,12 @@ export default function AccountControlsPage() {
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  {tx('Qualite du stream', 'Stream quality', 'איכות שידור', 'Calidad del stream', lang)}
+                  {tx('Qualité du stream', 'Stream quality', 'איכות שידור', 'Calidad del stream', lang)}
                 </p>
                 <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>NEW</span>
               </div>
               <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
-                {tx('Reduis la qualite pour economiser des donnees mobiles.', 'Lower quality to save mobile data.', 'הפחת איכות כדי לחסוך בנתונים ניידים.', 'Baja la calidad para ahorrar datos moviles.', lang)}
+                {tx('Réduis la qualité pour économiser des données mobiles.', 'Lower quality to save mobile data.', 'הפחת איכות כדי לחסוך בנתונים ניידים.', 'Baja la calidad para ahorrar datos móviles.', lang)}
               </p>
               <div style={{ display: 'flex', gap: '6px' }}>
                 {([
@@ -741,16 +741,16 @@ export default function AccountControlsPage() {
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                 <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  {tx('Taille du texte', 'Text size', 'גודל טקסט', 'Tamano de texto', lang)}
+                  {tx('Taille du texte', 'Text size', 'גודל טקסט', 'Tamaño de texto', lang)}
                 </p>
                 <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>NEW</span>
               </div>
               <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
-                {tx('Ajuste la taille du texte pour plus de confort.', 'Adjust text size for comfort.', 'התאם את גודל הטקסט לנוחות.', 'Ajusta el tamano del texto para mayor comodidad.', lang)}
+                {tx('Ajuste la taille du texte pour plus de confort.', 'Adjust text size for comfort.', 'התאם את גודל הטקסט לנוחות.', 'Ajusta el tamaño del texto para mayor comodidad.', lang)}
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {([
-                  { v: 'small' as const, l: tx('Petit', 'Small', 'קטן', 'Pequeno', lang), sz: '12px' },
+                  { v: 'small' as const, l: tx('Petit', 'Small', 'קטן', 'Pequeño', lang), sz: '12px' },
                   { v: 'normal' as const, l: tx('Normal', 'Normal', 'רגיל', 'Normal', lang), sz: '15px' },
                   { v: 'large' as const, l: tx('Grand', 'Large', 'גדול', 'Grande', lang), sz: '18px' },
                 ]).map(opt => (
@@ -783,7 +783,7 @@ export default function AccountControlsPage() {
                   {tx('Langue', 'Language', 'שפה', 'Idioma', lang)}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
-                  {lang === 'fr' ? '🇫🇷 Francais' : lang === 'en' ? '🇬🇧 English' : lang === 'he' ? '🇮🇱 עברית' : '🇪🇸 Espanol'}
+                  {lang === 'fr' ? '🇫🇷 Français' : lang === 'en' ? '🇬🇧 English' : lang === 'he' ? '🇮🇱 עברית' : '🇪🇸 Español'}
                 </p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
@@ -791,7 +791,7 @@ export default function AccountControlsPage() {
 
             {/* ─── SECTION: NOTIFICATIONS & COMMUNICATION ─── */}
             <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingLeft: '2px' }}>
-              {tx('Notifications & Communication', 'Notifications & Communication', 'התראות ותקשורת', 'Notificaciones y comunicacion', lang)}
+              {tx('Notifications & Communication', 'Notifications & Communication', 'התראות ותקשורת', 'Notificaciones y comunicación', lang)}
             </p>
 
             {/* DMs */}
@@ -817,10 +817,10 @@ export default function AccountControlsPage() {
             >
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tx('Participation privee', 'Private participation', 'השתתפות פרטית', 'Participacion privada', lang)}
+                  {tx('Participation privée', 'Private participation', 'השתתפות פרטית', 'Participación privada', lang)}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
-                  {tx('Rejoins les lives sans etre annonce(e).', 'Join lives without being announced.', 'הצטרף לשידורים בלי להיות מוכרז.', 'Unete a directos sin ser anunciado.', lang)}
+                  {tx('Rejoins les lives sans être annoncé(e).', 'Join lives without being announced.', 'הצטרף לשידורים בלי להיות מוכרז.', 'Únete a directos sin ser anunciado.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.privateParticipation)}><div style={toggleDot(settings.privateParticipation)} /></div>
@@ -833,10 +833,10 @@ export default function AccountControlsPage() {
             >
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tx('Statut de l\'activite', 'Activity status', 'סטטוס פעילות', 'Estado de actividad', lang)}
+                  {tx('Statut de l\'activité', 'Activity status', 'סטטוס פעילות', 'Estado de actividad', lang)}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
-                  {tx('Partage tes activites avec tes amis.', 'Share your activities with friends.', 'שתף את הפעילות שלך עם חברים.', 'Comparte tus actividades con amigos.', lang)}
+                  {tx('Partage tes activités avec tes amis.', 'Share your activities with friends.', 'שתף את הפעילות שלך עם חברים.', 'Comparte tus actividades con amigos.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.activityStatus)}><div style={toggleDot(settings.activityStatus)} /></div>
@@ -887,7 +887,7 @@ export default function AccountControlsPage() {
                   <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>NEW</span>
                 </div>
                 <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
-                  {tx('Sois notifie(e) quand un vendeur suivi baisse ses prix.', 'Get notified when a followed seller drops prices.', 'קבל התראה כשמוכר שאתה עוקב אחריו מוריד מחירים.', 'Recibe alertas cuando un vendedor seguido baja precios.', lang)}
+                  {tx('Sois notifié(e) quand un vendeur suivi baisse ses prix.', 'Get notified when a followed seller drops prices.', 'קבל התראה כשמוכר שאתה עוקב אחריו מוריד מחירים.', 'Recibe alertas cuando un vendedor seguido baja precios.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.priceDropAlerts)}><div style={toggleDot(settings.priceDropAlerts)} /></div>
@@ -906,7 +906,7 @@ export default function AccountControlsPage() {
                   <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>NEW</span>
                 </div>
                 <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
-                  {tx('L\'IA filtre les notifications selon tes centres d\'interet.', 'AI filters notifications based on your interests.', 'AI מסנן התראות לפי תחומי העניין שלך.', 'La IA filtra notificaciones segun tus intereses.', lang)}
+                  {tx('L\'IA filtre les notifications selon tes centres d\'intérêt.', 'AI filters notifications based on your interests.', 'AI מסנן התראות לפי תחומי העניין שלך.', 'La IA filtra notificaciones según tus intereses.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.smartNotifications)}><div style={toggleDot(settings.smartNotifications)} /></div>
@@ -914,7 +914,7 @@ export default function AccountControlsPage() {
 
             {/* ─── SECTION: EXPÉRIENCE ─── */}
             <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingLeft: '2px' }}>
-              {tx('Experience', 'Experience', 'חוויה', 'Experiencia', lang)}
+              {tx('Expérience', 'Experience', 'חוויה', 'Experiencia', lang)}
             </p>
 
             {/* Auction haptics */}
@@ -924,10 +924,10 @@ export default function AccountControlsPage() {
             >
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tx('Retour haptique encheres', 'Auction haptic feedback', 'משוב הפטי במכירות', 'Vibracion en subastas', lang)}
+                  {tx('Retour haptique enchères', 'Auction haptic feedback', 'משוב הפטי במכירות', 'Vibración en subastas', lang)}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
-                  {tx('Vibration lors des encheres et des achats.', 'Vibration on bids and purchases.', 'רטט בהצעות ורכישות.', 'Vibracion en pujas y compras.', lang)}
+                  {tx('Vibration lors des enchères et des achats.', 'Vibration on bids and purchases.', 'רטט בהצעות ורכישות.', 'Vibración en pujas y compras.', lang)}
                 </p>
               </div>
               <div style={toggleStyle(settings.auctionHaptics)}><div style={toggleDot(settings.auctionHaptics)} /></div>

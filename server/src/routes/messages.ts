@@ -20,7 +20,7 @@ router.post('/api/chat/send', messageLimiter, requireAuth, async (req: Authentic
 
     const msgType = type === 'reaction' ? 'reaction' : 'message'
 
-    const trimmed = escapeHtml(message.trim().slice(0, 500)) // Max 500 chars, XSS-safe
+    const trimmed = message.trim().slice(0, 500)
     if (!trimmed) {
       res.status(400).json({ error: 'Message cannot be empty' })
       return
@@ -457,7 +457,7 @@ router.post('/api/conversations/:id/messages', messageLimiter, requireAuth, asyn
       return
     }
 
-    const trimmed = escapeHtml(message.trim().slice(0, 2000))
+    const trimmed = message.trim().slice(0, 2000)
     const flagReason = detectContactInfo(trimmed)
     const isFlagged = flagReason !== null
 

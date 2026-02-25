@@ -61,6 +61,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const [bankChoice, setBankChoice] = useState('')
   const [paypalEmail, setPaypalEmail] = useState('')
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   /* ─── Animated step transitions ─── */
   const [slideDir, setSlideDir] = useState<'left' | 'right'>('left')
@@ -348,6 +349,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const handleFinish = async () => {
     if (!user) return
     setSaving(true)
+    setError('')
     try {
       // Update profile to seller
       const { error: profileError } = await supabase.from('profiles').update({ is_seller: true }).eq('id', user.id)
@@ -361,7 +363,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         .from('sellers')
         .select('id')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       const sellerData = {
         store_name: profile?.display_name || profile?.username || 'My Store',
@@ -415,8 +417,9 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       }
 
       onComplete()
-    } catch {
-      // Onboarding save failed
+    } catch (err) {
+      console.error('[OnboardingWizard] Save failed:', err)
+      setError(lang === 'fr' ? 'Erreur lors de l\'enregistrement. Réessaye.' : lang === 'he' ? 'שגיאה בשמירה. נסה שוב.' : lang === 'es' ? 'Error al guardar. Inténtalo de nuevo.' : 'Save failed. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -1286,8 +1289,11 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
         background: 'linear-gradient(to top, #000 60%, transparent)',
       }}>
+        {error && (
+          <p style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '8px' }}>{error}</p>
+        )}
         <button
-          onClick={handleNext}
+          onClick={() => { setError(''); handleNext() }}
           disabled={!able || saving}
           style={{
             width: '100%', padding: '18px',

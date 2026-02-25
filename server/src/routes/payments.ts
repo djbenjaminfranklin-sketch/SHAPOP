@@ -492,6 +492,9 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       payout_method: isPaypalSeller ? 'paypal' : 'stripe',
       shipping_cost: shippingCost,
       total_amount: totalAmount,
+      platform_fee: fees.platformFee,
+      processing_fee: fees.processingFee,
+      seller_payout: fees.sellerPayout,
     }
     if (promotionId) {
       updateData.promotion_id = promotionId
@@ -513,7 +516,7 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
 
     // If auto-charged + PayPal seller, create payout record immediately
     if (autoCharged && isPaypalSeller && seller?.paypal_email) {
-      const fees = calculateFees(order.amount)
+      // Use already-calculated fees (accounts for promo code discounts)
       const paypalPayoutAmount = fees.sellerPayout
       await supabase.from('paypal_payouts').insert({
         order_id: order_id,
@@ -537,18 +540,20 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       return
     }
 
-    // Record promo code usage (async, non-blocking)
+    // Record promo code usage synchronously to prevent abuse on limited coupons
     if (promoCodeId) {
-      ;(async () => {
-        try {
-          await supabase.from('promo_code_uses').insert({ promo_code_id: promoCodeId, user_id: buyerId, order_id: order_id })
+      try {
+        const { error: useErr } = await supabase.from('promo_code_uses').insert({ promo_code_id: promoCodeId, user_id: buyerId, order_id: order_id })
+        if (!useErr) {
           // Increment usage count
           const { data: pc } = await supabase.from('promo_codes').select('current_uses').eq('id', promoCodeId).single()
           if (pc) await supabase.from('promo_codes').update({ current_uses: (pc.current_uses || 0) + 1 }).eq('id', promoCodeId)
-        } catch (err) {
-          console.error('[PromoCode] Usage record failed:', err)
+        } else {
+          console.error('[PromoCode] Usage insert failed (possible duplicate):', useErr.message)
         }
-      })()
+      } catch (err) {
+        console.error('[PromoCode] Usage record failed:', err)
+      }
     }
 
     res.json({
@@ -665,8 +670,8 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
 
       // If PayPal seller, create a paypal_payouts record (status 'pending' — will become 'ready' when delivery confirmed)
       if (payoutMethod === 'paypal' && sellerInfo?.paypal_email) {
-        const fees = calculateFees(order.amount)
-        const paypalPayoutAmount = fees.sellerPayout
+        // Use stored fees from order (accounts for promo code discounts), fallback to recalculation
+        const paypalPayoutAmount = order.seller_payout ?? calculateFees(order.amount).sellerPayout
 
         // Check if payout record already exists (webhook may have created it)
         const { data: existingPayout } = await supabase

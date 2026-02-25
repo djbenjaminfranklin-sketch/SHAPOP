@@ -17,7 +17,7 @@ const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
   const lang = getLang()
-  usePageTitle(tx('Mot de passe oublie', 'Forgot Password', 'שכחתי סיסמה', 'Olvidé la contraseña', lang))
+  usePageTitle(tx('Mot de passe oublié', 'Forgot Password', 'שכחתי סיסמה', 'Olvidé la contraseña', lang))
 
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,23 +31,23 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      showToast(tx('Veuillez entrer votre adresse e-mail', 'Please enter your email address', 'נא להזין כתובת אימייל', 'Por favor ingrese su correo electronico', lang), 'error')
+      showToast(tx('Veuillez entrer votre adresse e-mail', 'Please enter your email address', 'נא להזין כתובת אימייל', 'Por favor ingrese su correo electrónico', lang), 'error')
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      showToast(tx('Adresse e-mail invalide', 'Invalid email address', 'כתובת אימייל לא תקינה', 'Direccion de correo invalida', lang), 'error')
+      showToast(tx('Adresse e-mail invalide', 'Invalid email address', 'כתובת אימייל לא תקינה', 'Dirección de correo inválida', lang), 'error')
       return
     }
 
     setLoading(true)
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: 'https://shapop.app/change-password',
+        redirectTo: 'https://shapop.vercel.app/change-password',
       })
       if (error) throw error
       setSent(true)
     } catch (err: unknown) {
-      showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+      showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrió un error', lang), 'error')
     }
     setLoading(false)
   }
@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-          {tx('Mot de passe oublie', 'Forgot password', 'שכחתי סיסמה', 'Olvide mi contrasena', lang)}
+          {tx('Mot de passe oublié', 'Forgot password', 'שכחתי סיסמה', 'Olvidé mi contraseña', lang)}
         </h1>
       </div>
 
@@ -95,14 +95,14 @@ export default function ForgotPasswordPage() {
               </svg>
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
-              {tx('E-mail envoye !', 'Email sent!', '!נשלח אימייל', 'Correo enviado!', lang)}
+              {tx('E-mail envoyé !', 'Email sent!', '!נשלח אימייל', '¡Correo enviado!', lang)}
             </h2>
             <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, maxWidth: '300px', margin: '0 auto 32px' }}>
               {tx(
-                'Consultez votre boite e-mail et suivez le lien pour reinitialiser votre mot de passe.',
+                'Consultez votre boîte e-mail et suivez le lien pour réinitialiser votre mot de passe.',
                 'Check your inbox and follow the link to reset your password.',
                 'בדוק את תיבת הדואר שלך ולחץ על הקישור לאיפוס הסיסמה.',
-                'Revise su bandeja de entrada y siga el enlace para restablecer su contrasena.',
+                'Revise su bandeja de entrada y siga el enlace para restablecer su contraseña.',
                 lang
               )}
             </p>
@@ -115,23 +115,23 @@ export default function ForgotPasswordPage() {
                 boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
               }}
             >
-              {tx('Retour a la connexion', 'Back to login', 'חזרה להתחברות', 'Volver al inicio de sesion', lang)}
+              {tx('Retour à la connexion', 'Back to login', 'חזרה להתחברות', 'Volver al inicio de sesión', lang)}
             </Link>
           </div>
         ) : (
           <>
             <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
               {tx(
-                'Entrez votre adresse e-mail et nous vous enverrons un lien pour reinitialiser votre mot de passe.',
+                'Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
                 'Enter your email address and we will send you a link to reset your password.',
                 'הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה.',
-                'Ingrese su direccion de correo y le enviaremos un enlace para restablecer su contrasena.',
+                'Ingrese su dirección de correo y le enviaremos un enlace para restablecer su contraseña.',
                 lang
               )}
             </p>
 
             <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-              {tx('Adresse e-mail', 'Email address', 'כתובת אימייל', 'Direccion de correo', lang)}
+              {tx('Adresse e-mail', 'Email address', 'כתובת אימייל', 'Dirección de correo', lang)}
             </label>
             <input
               type="email"
@@ -164,7 +164,7 @@ export default function ForgotPasswordPage() {
 
             <p style={{ textAlign: 'center', fontSize: '14px', color: '#666', marginTop: '24px' }}>
               <Link to="/login" style={{ color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>
-                {tx('Retour a la connexion', 'Back to login', 'חזרה להתחברות', 'Volver al inicio de sesion', lang)}
+                {tx('Retour à la connexion', 'Back to login', 'חזרה להתחברות', 'Volver al inicio de sesión', lang)}
               </Link>
             </p>
           </>

@@ -8,7 +8,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 const content = {
   fr: {
     title: 'Connexion',
-    subtitle: 'Connecte-toi a ton compte',
+    subtitle: 'Connecte-toi à ton compte',
     continueApple: 'Continuer avec Apple',
     continueGoogle: 'Continuer avec Google',
     or: 'ou',
@@ -20,7 +20,7 @@ const content = {
     signingIn: 'Connexion...',
     noAccount: 'Pas de compte ?',
     createAccount: "S'inscrire",
-    forgotPassword: 'Mot de passe oublie ?',
+    forgotPassword: 'Mot de passe oublié ?',
     errorDefault: 'Erreur de connexion',
     errorInvalidCredentials: 'Email ou mot de passe incorrect',
   },
@@ -74,7 +74,7 @@ const content = {
     signingIn: 'Iniciando sesión...',
     noAccount: '¿Sin cuenta?',
     createAccount: 'Crear cuenta',
-    forgotPassword: '¿Olvidó su contraseña?',
+    forgotPassword: '¿Olvidaste tu contraseña?',
     errorDefault: 'Error de inicio de sesión',
     errorInvalidCredentials: 'Email o contraseña incorrectos',
   },
@@ -296,10 +296,10 @@ export default function Login() {
       {/* Legal links */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px', flexWrap: 'wrap' }}>
         <Link to="/terms" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
-          {lang === 'fr' ? "Conditions d'utilisation" : lang === 'es' ? 'Terminos de servicio' : lang === 'he' ? '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9' : 'Terms of Service'}
+          {lang === 'fr' ? "Conditions d'utilisation" : lang === 'es' ? 'Términos de servicio' : lang === 'he' ? '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9' : 'Terms of Service'}
         </Link>
         <Link to="/privacy" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
-          {lang === 'fr' ? 'Confidentialite' : lang === 'es' ? 'Privacidad' : lang === 'he' ? '\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA' : 'Privacy'}
+          {lang === 'fr' ? 'Confidentialité' : lang === 'es' ? 'Privacidad' : lang === 'he' ? '\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA' : 'Privacy'}
         </Link>
         <Link to="/eula" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
           {lang === 'fr' ? 'CLUF' : lang === 'es' ? 'CLUF' : lang === 'he' ? '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF' : 'EULA'}

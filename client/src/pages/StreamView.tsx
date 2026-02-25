@@ -702,6 +702,12 @@ export default function StreamView() {
   const [multiBidLoading, setMultiBidLoading] = useState<string | null>(null)
   const [pendingWonItem, setPendingWonItem] = useState<{ title: string; price: number } | null>(null)
   const [likedCells, setLikedCells] = useState<Record<string, boolean>>({})
+  const [multiStreamGiveaways, setMultiStreamGiveaways] = useState<Record<string, { id: string; prize_description: string; entry_count: number; status: string }>>({})
+  const [multiStreamGiveawayEntered, setMultiStreamGiveawayEntered] = useState<Record<string, boolean>>({})
+  const [multiStreamSold, setMultiStreamSold] = useState<Record<string, { winner: string; price: number; isUnsold?: boolean } | null>>({})
+  const [multiStreamGiveawayWinner, setMultiStreamGiveawayWinner] = useState<Record<string, { name: string } | null>>({})
+  const multiGiveawayWinnerShownRef = useRef<Record<string, string>>({})
+  const prevMultiItemIds = useRef<Record<string, string>>({})
 
   // Clip capture state
 
@@ -845,10 +851,11 @@ export default function StreamView() {
   // Fetch LiveKit viewer token when stream has a livekit room and is live
   useEffect(() => {
     if (!stream?.livekit_room_name || stream.status !== 'live' || isSeller) return
+    let cancelled = false
     const fetchLkToken = async () => {
       const { data: session } = await supabase.auth.getSession()
       const token = session?.session?.access_token
-      if (!token) return
+      if (!token || cancelled) return
       try {
         const resp = await apiFetch(`/api/streams/${stream.id}/livekit-token`, {
           method: 'POST',
@@ -858,6 +865,7 @@ export default function StreamView() {
           },
         })
         const data = await resp.json()
+        if (cancelled) return
         if (data.token && data.url) {
           setViewerLkToken(data.token)
           setViewerLkUrl(data.url)
@@ -867,6 +875,7 @@ export default function StreamView() {
       }
     }
     fetchLkToken()
+    return () => { cancelled = true }
   }, [stream?.id, stream?.livekit_room_name, stream?.status, isSeller])
 
   // Track viewer count
@@ -1053,7 +1062,7 @@ export default function StreamView() {
     }
   }, [isSeller, isLive])
 
-  // PiP (Picture-in-Picture) handler → now uses mini player overlay
+  // PiP handler — minimize to in-app mini player
   const handlePiP = useCallback(() => {
     if (!viewerLkUrl || !viewerLkToken || !id || !stream) return
     minimizeStream({
@@ -1097,6 +1106,7 @@ export default function StreamView() {
       document.removeEventListener('touchend', onEnd)
     }
   }, [])
+
 
   // Multi-view: fetch available live streams
   const fetchAvailableLives = useCallback(async () => {
@@ -1158,33 +1168,176 @@ export default function StreamView() {
   useEffect(() => {
     if (multiViewStreams.length === 0) {
       setMultiStreamItems({})
+      prevMultiItemIds.current = {}
       return
     }
     const channels: ReturnType<typeof supabase.channel>[] = []
     multiViewStreams.forEach(ms => {
       // Fetch current active item
       supabase.from('items').select('id, title, current_price, starting_price, image_urls, status')
-        .eq('stream_id', ms.id).eq('status', 'active').limit(1).single()
+        .eq('stream_id', ms.id).eq('status', 'active').limit(1).maybeSingle()
         .then(({ data }) => {
           if (data) {
+            prevMultiItemIds.current[ms.id] = data.id
             setMultiStreamItems(prev => ({ ...prev, [ms.id]: { id: data.id, title: data.title, current_price: data.current_price, starting_price: data.starting_price, image_url: data.image_urls?.[0] } }))
           }
         })
       // Subscribe to realtime changes
       const ch = supabase.channel(`multi-items-${ms.id}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `stream_id=eq.${ms.id}` }, (payload) => {
-          const item = payload.new as Record<string, unknown>
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'items', filter: `stream_id=eq.${ms.id}` }, async (payload) => {
+          let item = payload.new as Record<string, unknown>
+          // If status missing (REPLICA IDENTITY not FULL), re-fetch
+          if (!item?.status && item?.id) {
+            const { data: fetched } = await supabase.from('items').select('*').eq('id', item.id as string).single()
+            if (fetched) item = fetched as Record<string, unknown>
+          }
           if (item?.status === 'active') {
+            prevMultiItemIds.current[ms.id] = item.id as string
             setMultiStreamItems(prev => ({ ...prev, [ms.id]: { id: item.id as string, title: item.title as string, current_price: item.current_price as number, starting_price: item.starting_price as number, image_url: (item.image_urls as string[] | undefined)?.[0] } }))
-          } else if (payload.eventType === 'UPDATE' && item?.status !== 'active') {
+          } else if (item?.status === 'sold' || item?.status === 'unsold') {
+            delete prevMultiItemIds.current[ms.id]
+            setMultiStreamItems(prev => { const next = { ...prev }; if (next[ms.id]?.id === (item?.id as string)) delete next[ms.id]; return next })
+            // Show SOLD/UNSOLD animation in this cell
+            const isUnsold = item.status === 'unsold'
+            setMultiStreamSold(prev => ({ ...prev, [ms.id]: { winner: '', price: item.current_price as number, isUnsold } }))
+            setTimeout(() => { setMultiStreamSold(prev => ({ ...prev, [ms.id]: null })) }, 3000)
+          } else if (item?.status && item.status !== 'active') {
             setMultiStreamItems(prev => { const next = { ...prev }; if (next[ms.id]?.id === (item?.id as string)) delete next[ms.id]; return next })
           }
         })
         .subscribe()
       channels.push(ch)
     })
-    return () => { channels.forEach(ch => supabase.removeChannel(ch)) }
+    // Poll items every 3s as fallback (realtime may miss events)
+    // Also detect sold/unsold transitions by tracking previous active item IDs
+    const pollInterval = setInterval(() => {
+      multiViewStreams.forEach(ms => {
+        supabase.from('items').select('id, title, current_price, starting_price, image_urls, status')
+          .eq('stream_id', ms.id).eq('status', 'active').limit(1).maybeSingle()
+          .then(({ data }) => {
+            if (data) {
+              prevMultiItemIds.current[ms.id] = data.id
+              setMultiStreamItems(prev => {
+                const existing = prev[ms.id]
+                if (existing && existing.id === data.id && existing.current_price === data.current_price) return prev
+                return { ...prev, [ms.id]: { id: data.id, title: data.title, current_price: data.current_price, starting_price: data.starting_price, image_url: data.image_urls?.[0] } }
+              })
+            } else {
+              // No active item — check if the previous active item was sold/unsold
+              const prevId = prevMultiItemIds.current[ms.id]
+              if (prevId) {
+                delete prevMultiItemIds.current[ms.id]
+                setMultiStreamItems(prev => { const next = { ...prev }; delete next[ms.id]; return next })
+                supabase.from('items').select('id, status, current_price, title').eq('id', prevId).single()
+                  .then(({ data: item }) => {
+                    if (item && (item.status === 'sold' || item.status === 'unsold')) {
+                      setMultiStreamSold(prev => ({ ...prev, [ms.id]: { winner: '', price: item.current_price, isUnsold: item.status === 'unsold' } }))
+                      setTimeout(() => { setMultiStreamSold(prev => ({ ...prev, [ms.id]: null })) }, 3000)
+                    }
+                  })
+              }
+            }
+          })
+      })
+    }, 3000)
+    return () => { channels.forEach(ch => supabase.removeChannel(ch)); clearInterval(pollInterval) }
   }, [multiViewStreams])
+
+  // Multi-view: fetch giveaways + subscribe for each additional stream
+  useEffect(() => {
+    if (multiViewStreams.length === 0) {
+      setMultiStreamGiveaways({})
+      setMultiStreamGiveawayEntered({})
+      return
+    }
+    const channels: ReturnType<typeof supabase.channel>[] = []
+    multiViewStreams.forEach(ms => {
+      // Fetch current giveaway
+      apiFetch(`/api/streams/${ms.id}/giveaway`)
+        .then(r => r.json())
+        .then(gw => {
+          if (gw && gw.id) {
+            setMultiStreamGiveaways(prev => ({ ...prev, [ms.id]: { id: gw.id, prize_description: gw.prize_description, entry_count: gw.entry_count, status: gw.status } }))
+            // Check if user entered
+            if (user) {
+              supabase.from('giveaway_entries').select('id').eq('giveaway_id', gw.id).eq('user_id', user.id).maybeSingle()
+                .then(({ data }) => { if (data) setMultiStreamGiveawayEntered(prev => ({ ...prev, [ms.id]: true })) })
+            }
+          }
+        })
+        .catch(() => {})
+      // Subscribe to giveaway changes
+      const ch = supabase.channel(`multi-giveaway-${ms.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'giveaways', filter: `stream_id=eq.${ms.id}` }, (payload) => {
+          const gw = payload.new as Record<string, unknown>
+          if (gw) {
+            setMultiStreamGiveaways(prev => ({ ...prev, [ms.id]: { id: gw.id as string, prize_description: gw.prize_description as string, entry_count: gw.entry_count as number, status: gw.status as string } }))
+            // Detect drawn giveaway — show winner once
+            if (gw.status === 'drawn' && gw.winner_name && multiGiveawayWinnerShownRef.current[ms.id] !== (gw.id as string)) {
+              multiGiveawayWinnerShownRef.current[ms.id] = gw.id as string
+              setMultiStreamGiveawayWinner(prev => ({ ...prev, [ms.id]: { name: gw.winner_name as string } }))
+              setTimeout(() => { setMultiStreamGiveawayWinner(prev => ({ ...prev, [ms.id]: null })) }, 6000)
+            }
+          }
+        })
+        .subscribe()
+      channels.push(ch)
+    })
+    // Poll giveaways every 3s as fallback (realtime may miss events)
+    const gwPollInterval = setInterval(() => {
+      multiViewStreams.forEach(ms => {
+        apiFetch(`/api/streams/${ms.id}/giveaway`)
+          .then(r => r.json())
+          .then(gw => {
+            if (gw && gw.id) {
+              setMultiStreamGiveaways(prev => {
+                const existing = prev[ms.id]
+                if (existing && existing.id === gw.id && existing.entry_count === gw.entry_count && existing.status === gw.status) return prev
+                return { ...prev, [ms.id]: { id: gw.id, prize_description: gw.prize_description, entry_count: gw.entry_count, status: gw.status } }
+              })
+              // Detect drawn giveaway — show winner once
+              if (gw.status === 'drawn' && gw.winner_name && multiGiveawayWinnerShownRef.current[ms.id] !== gw.id) {
+                multiGiveawayWinnerShownRef.current[ms.id] = gw.id
+                setMultiStreamGiveawayWinner(prev => ({ ...prev, [ms.id]: { name: gw.winner_name } }))
+                setTimeout(() => { setMultiStreamGiveawayWinner(prev => ({ ...prev, [ms.id]: null })) }, 6000)
+              }
+              if (user) {
+                supabase.from('giveaway_entries').select('id').eq('giveaway_id', gw.id).eq('user_id', user.id).maybeSingle()
+                  .then(({ data }) => { if (data) setMultiStreamGiveawayEntered(prev => ({ ...prev, [ms.id]: true })) })
+              }
+            } else {
+              // No active giveaway — clear it
+              setMultiStreamGiveaways(prev => {
+                if (!prev[ms.id]) return prev
+                const next = { ...prev }; delete next[ms.id]; return next
+              })
+            }
+          })
+          .catch(() => {})
+      })
+    }, 3000)
+    return () => { channels.forEach(ch => supabase.removeChannel(ch)); clearInterval(gwPollInterval) }
+  }, [multiViewStreams, user])
+
+  // Multi-view: enter giveaway on an additional stream
+  const handleMultiGiveawayEnter = useCallback(async (streamId: string) => {
+    const gw = multiStreamGiveaways[streamId]
+    if (!gw || !user || multiStreamGiveawayEntered[streamId]) return
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      const token = session.session?.access_token
+      if (!token) return
+      const resp = await apiFetch(`/api/giveaways/${gw.id}/enter`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (resp.ok) {
+        setMultiStreamGiveawayEntered(prev => ({ ...prev, [streamId]: true }))
+        setMultiStreamGiveaways(prev => prev[streamId] ? { ...prev, [streamId]: { ...prev[streamId], entry_count: prev[streamId].entry_count + 1 } } : prev)
+        hapticTap()
+      }
+    } catch { /* ignore */ }
+  }, [multiStreamGiveaways, multiStreamGiveawayEntered, user])
 
   // Multi-view: bid on an additional stream's active item
   const handleMultiBid = useCallback(async (streamId: string) => {
@@ -1356,6 +1509,7 @@ export default function StreamView() {
         setBidAmount(String(item.current_price + 1))
       } else if (item.status === 'sold') {
         setActiveAuction(null)
+        console.log('[SOLD] Showing sold animation, isMultiView:', isMultiViewRef.current)
         // Show sold animation
         let winnerName = ''
         if (item.winner_id) {
@@ -2358,7 +2512,7 @@ export default function StreamView() {
                           <LiveKitViewer
                             livekitUrl={cell.lkUrl}
                             livekitToken={cell.lkToken}
-                            muted={activeMultiIdx !== cell.cellIdx}
+                            muted={activeMultiIdx !== cell.cellIdx || viewerMuted}
                             style={{ width: '100%', height: '100%' }}
                           />
 
@@ -2385,47 +2539,61 @@ export default function StreamView() {
                             </svg>
                           </button>
 
-                          {/* Giveaway mini banner (main cell only) */}
-                          {cell.isMain && activeGiveaway && activeGiveaway.status === 'active' && (
-                            <div
-                              onClick={(e) => { e.stopPropagation(); if (!hasEnteredGiveaway && user) handleEnterGiveaway() }}
-                              style={{
-                                position: 'absolute', top: '6px', left: '38px', right: '42px',
-                                zIndex: 8,
-                                display: 'flex', alignItems: 'center', gap: '6px',
-                                padding: '5px 8px',
-                                background: hasEnteredGiveaway
-                                  ? 'rgba(0,0,0,0.6)'
-                                  : 'linear-gradient(135deg, rgba(30,20,0,0.9), rgba(10,10,12,0.9))',
-                                border: '1px solid rgba(255,215,0,0.5)',
-                                borderRadius: '10px',
-                                cursor: hasEnteredGiveaway ? 'default' : 'pointer',
-                              }}
-                            >
-                              <span style={{ fontSize: '16px', flexShrink: 0 }}>🎁</span>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: '9px', fontWeight: 800, color: '#FFD700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {hasEnteredGiveaway ? ct.giftEntered : ct.giftTitle}
-                                </p>
-                                <p style={{ fontSize: '8px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                                  {activeGiveaway.entry_count} {ct.giftParticipants}
-                                </p>
+                          {/* Giveaway mini banner inside each cell */}
+                          {(() => {
+                            // Get giveaway data for this cell's stream
+                            const cellGw = cell.isMain ? (activeGiveaway && activeGiveaway.status === 'active' ? { id: activeGiveaway.id, prize_description: activeGiveaway.prize_description, entry_count: activeGiveaway.entry_count, status: activeGiveaway.status } : null) : (multiStreamGiveaways[cell.streamId]?.status === 'active' ? multiStreamGiveaways[cell.streamId] : null)
+                            const cellEntered = cell.isMain ? hasEnteredGiveaway : (multiStreamGiveawayEntered[cell.streamId] || false)
+                            if (!cellGw) return null
+                            return (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (!cellEntered && user) {
+                                    if (cell.isMain) handleEnterGiveaway()
+                                    else handleMultiGiveawayEnter(cell.streamId)
+                                  }
+                                }}
+                                style={{
+                                  position: 'absolute', top: cell.cellIdx === 0 ? 'calc(env(safe-area-inset-top, 47px) + 44px)' : '36px', left: '6px', right: '42px',
+                                  zIndex: 12,
+                                  display: 'flex', alignItems: 'center', gap: '6px',
+                                  padding: '6px 10px',
+                                  background: cellEntered
+                                    ? 'rgba(0,0,0,0.7)'
+                                    : 'linear-gradient(135deg, rgba(30,20,0,0.95), rgba(10,10,12,0.95))',
+                                  border: cellEntered ? '1px solid rgba(255,215,0,0.35)' : '2px solid rgba(255,215,0,0.7)',
+                                  borderRadius: '10px',
+                                  cursor: cellEntered ? 'default' : 'pointer',
+                                  boxShadow: cellEntered ? 'none' : '0 2px 12px rgba(255,215,0,0.25)',
+                                  animation: cellEntered ? 'none' : 'giftBadgePulse 2s ease-in-out infinite',
+                                }}
+                              >
+                                <span style={{ fontSize: '16px', flexShrink: 0 }}>🎁</span>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ fontSize: '10px', fontWeight: 800, color: '#FFD700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {cellEntered ? ct.giftEntered : ct.giftTitle}
+                                  </p>
+                                  <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                                    {cellGw.entry_count} {ct.giftParticipants}
+                                  </p>
+                                </div>
+                                {!cellEntered && user && (
+                                  <span style={{
+                                    fontSize: '10px', fontWeight: 800, color: '#000',
+                                    padding: '4px 10px', borderRadius: '6px',
+                                    background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                                    whiteSpace: 'nowrap', flexShrink: 0,
+                                  }}>
+                                    {ct.giftEnter}
+                                  </span>
+                                )}
                               </div>
-                              {!hasEnteredGiveaway && user && (
-                                <span style={{
-                                  fontSize: '9px', fontWeight: 800, color: '#000',
-                                  padding: '3px 8px', borderRadius: '6px',
-                                  background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
-                                  whiteSpace: 'nowrap', flexShrink: 0,
-                                }}>
-                                  {ct.giftEnter}
-                                </span>
-                              )}
-                            </div>
-                          )}
+                            )
+                          })()}
 
-                          {/* Mini SOLD / UNSOLD animation inside cell */}
-                          {cell.isMain && soldAnimation && (
+                          {/* Mini SOLD / UNSOLD animation inside cell — main uses soldAnimation, others use multiStreamSold */}
+                          {(cell.isMain ? soldAnimation : multiStreamSold[cell.streamId]) && (
                             <div style={{
                               position: 'absolute', inset: 0,
                               display: 'flex', flexDirection: 'column',
@@ -2436,55 +2604,63 @@ export default function StreamView() {
                             }}>
                               <p style={{
                                 fontSize: '28px', fontWeight: 900,
-                                color: soldAnimation.isUnsold ? '#FF9632' : '#22C55E',
-                                textShadow: soldAnimation.isUnsold
+                                color: (cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold) ? '#FF9632' : '#22C55E',
+                                textShadow: (cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold)
                                   ? '0 0 20px rgba(255,150,50,0.6)'
                                   : '0 0 20px rgba(34,197,94,0.6)',
                                 animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
                                 margin: 0,
                               }}>
-                                {soldAnimation.isUnsold ? ct.unsoldBang : ct.soldBang}
+                                {(cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold) ? ct.unsoldBang : ct.soldBang}
                               </p>
-                              {!soldAnimation.isUnsold && soldAnimation.winner && (
+                              {!(cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold) && (cell.isMain ? soldAnimation?.winner : multiStreamSold[cell.streamId]?.winner) && (
                                 <p style={{
                                   fontSize: '12px', fontWeight: 700, color: '#fff', margin: '4px 0 0',
                                   animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
                                 }}>
-                                  @{soldAnimation.winner} — {soldAnimation.price} EUR
+                                  @{(cell.isMain ? soldAnimation?.winner : multiStreamSold[cell.streamId]?.winner)} — {(cell.isMain ? soldAnimation?.price : multiStreamSold[cell.streamId]?.price)} EUR
                                 </p>
                               )}
                             </div>
                           )}
 
                           {/* Mini giveaway winner inside cell */}
-                          {cell.isMain && giveawayWinner && (
-                            <div
-                              onClick={(e) => { e.stopPropagation(); setGiveawayWinner(null) }}
-                              style={{
-                                position: 'absolute', inset: 0,
-                                display: 'flex', flexDirection: 'column',
-                                alignItems: 'center', justifyContent: 'center',
-                                backgroundColor: 'rgba(0,0,0,0.8)',
-                                zIndex: 15, cursor: 'pointer',
-                                animation: 'soldFadeIn 0.4s ease',
-                              }}
-                            >
-                              <div style={{ fontSize: '32px', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
-                              <p style={{
-                                fontSize: '18px', fontWeight: 900, color: '#FFD700',
-                                textShadow: '0 2px 12px rgba(255,215,0,0.5)',
-                                margin: '8px 0 0', textAlign: 'center',
-                              }}>
-                                {giveawayWinner.name}
-                              </p>
-                              <p style={{
-                                fontSize: '10px', fontWeight: 600, color: '#fff',
-                                opacity: 0.8, margin: '4px 0 0',
-                              }}>
-                                {ct.giftWinner}
-                              </p>
-                            </div>
-                          )}
+                          {(() => {
+                            const cellWinner = cell.isMain ? giveawayWinner : multiStreamGiveawayWinner[cell.streamId]
+                            if (!cellWinner) return null
+                            return (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  if (cell.isMain) setGiveawayWinner(null)
+                                  else setMultiStreamGiveawayWinner(prev => ({ ...prev, [cell.streamId]: null }))
+                                }}
+                                style={{
+                                  position: 'absolute', inset: 0,
+                                  display: 'flex', flexDirection: 'column',
+                                  alignItems: 'center', justifyContent: 'center',
+                                  backgroundColor: 'rgba(0,0,0,0.8)',
+                                  zIndex: 15, cursor: 'pointer',
+                                  animation: 'soldFadeIn 0.4s ease',
+                                }}
+                              >
+                                <div style={{ fontSize: '32px', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
+                                <p style={{
+                                  fontSize: '18px', fontWeight: 900, color: '#FFD700',
+                                  textShadow: '0 2px 12px rgba(255,215,0,0.5)',
+                                  margin: '8px 0 0', textAlign: 'center',
+                                }}>
+                                  {cellWinner.name}
+                                </p>
+                                <p style={{
+                                  fontSize: '10px', fontWeight: 600, color: '#fff',
+                                  opacity: 0.8, margin: '4px 0 0',
+                                }}>
+                                  {ct.giftWinner}
+                                </p>
+                              </div>
+                            )
+                          })()}
 
                           {/* Mini "Tu as gagné" banner inside cell — tap to open payment */}
                           {cell.isMain && pendingWonItem && !showPaymentModal && (
@@ -2529,7 +2705,7 @@ export default function StreamView() {
                           {/* Sidebar buttons — right side */}
                           <div style={{
                             position: 'absolute', right: '5px', top: '50%', transform: 'translateY(-50%)',
-                            display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 5,
+                            display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10,
                           }}>
                             {/* Like */}
                             <button onClick={(e) => {
@@ -2585,32 +2761,63 @@ export default function StreamView() {
                             }}>
                               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                             </button>
+                            {/* Mute/Unmute — toggle sound for active cell */}
+                            <button onClick={(e) => {
+                              e.stopPropagation()
+                              hapticTap()
+                              if (activeMultiIdx === cell.cellIdx) {
+                                setViewerMuted(prev => !prev)
+                              } else {
+                                setActiveMultiIdx(cell.cellIdx)
+                                setViewerMuted(false)
+                              }
+                            }} style={{
+                              width: '30px', height: '30px', borderRadius: '50%',
+                              backgroundColor: (activeMultiIdx === cell.cellIdx && !viewerMuted) ? 'rgba(0,0,0,0.55)' : 'rgba(232,52,78,0.6)',
+                              border: 'none',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                            }}>
+                              {(activeMultiIdx !== cell.cellIdx || viewerMuted) ? (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+                                </svg>
+                              ) : (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 010 14.14"/><path d="M15.54 8.46a5 5 0 010 7.07"/>
+                                </svg>
+                              )}
+                            </button>
                           </div>
 
-                          {/* Bottom overlay — seller name + item + bid */}
+                          {/* Bottom overlay — seller name + full bid controls */}
                           <div style={{
                             position: 'absolute', bottom: 0, left: 0, right: 0,
-                            background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)',
-                            padding: '20px 6px 6px',
+                            zIndex: 8,
+                            background: 'linear-gradient(to top, rgba(0,0,0,0.95), rgba(0,0,0,0.7) 80%, transparent)',
+                            padding: '12px 6px 6px',
+                            pointerEvents: 'auto',
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '3px' }}>
+                            {/* Seller name row */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
                               {activeMultiIdx === cell.cellIdx && (
                                 <svg width="9" height="9" viewBox="0 0 24 24" fill="#E8344E" stroke="none">
                                   <path d="M11 5L6 9H2v6h4l5 4V5z"/>
                                   <path d="M19.07 4.93a10 10 0 010 14.14" fill="none" stroke="#E8344E" strokeWidth="2"/>
                                 </svg>
                               )}
-                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff' }}>{cell.name}</span>
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.name}</span>
                             </div>
                             {cell.item ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                {cell.item.image_url && (
-                                  <img src={cell.item.image_url} alt="" loading="lazy" style={{ width: '26px', height: '26px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
-                                )}
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontSize: '9px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</p>
-                                  <p style={{ fontSize: '12px', fontWeight: 800, color: '#F0908A', margin: 0 }}>{cell.item.current_price} EUR</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {/* Item info row */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  {cell.item.image_url && (
+                                    <img src={cell.item.image_url} alt="" loading="lazy" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
+                                  )}
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</span>
+                                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>{cell.item.current_price}€</span>
                                 </div>
+                                {/* Bid button — full width */}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation()
@@ -2619,38 +2826,120 @@ export default function StreamView() {
                                   }}
                                   disabled={!cell.isMain && multiBidLoading === cell.streamId}
                                   style={{
-                                    padding: '6px 12px', borderRadius: '100px', border: 'none',
+                                    width: '100%', padding: '7px 0', borderRadius: '100px', border: 'none',
                                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                                    color: '#fff', fontSize: '11px', fontWeight: 800, cursor: 'pointer', flexShrink: 0,
+                                    color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer',
                                   }}
                                 >
-                                  {(!cell.isMain && multiBidLoading === cell.streamId) ? '...' : `${cell.item.current_price + 1} EUR`}
+                                  {(!cell.isMain && multiBidLoading === cell.streamId) ? '...' : `${ct.bid} ${cell.item.current_price + 1}€`}
                                 </button>
+                                {/* Enchère max + MAX — second row, all cells */}
+                                <div style={{ display: 'flex', gap: '4px' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      if (cell.isMain && activeAuction) {
+                                        setMaxBidAmount(String(activeAuction.current_price + 10)); setShowMaxBidModal(true)
+                                      } else if (!cell.isMain && cell.item) {
+                                        // For non-main cells, bid +10 directly
+                                        hapticTap()
+                                        const bidItem = multiStreamItems[cell.streamId]
+                                        if (bidItem) {
+                                          const highBid = bidItem.current_price + 10
+                                          ;(async () => {
+                                            try {
+                                              const { data: session } = await supabase.auth.getSession()
+                                              const token = session?.session?.access_token
+                                              if (!token) return
+                                              await apiFetch(`/api/items/${bidItem.id}/bid`, {
+                                                method: 'POST',
+                                                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ amount: highBid }),
+                                              })
+                                            } catch { /* ignore */ }
+                                          })()
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      flex: 1, padding: '5px 0', borderRadius: '100px',
+                                      border: '1px solid rgba(139,92,246,0.4)',
+                                      backgroundColor: 'rgba(139,92,246,0.15)',
+                                      color: '#8B5CF6', fontSize: '10px', fontWeight: 800, cursor: 'pointer',
+                                    }}
+                                  >
+                                    {ct.maxBidTitle}
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      hapticTap()
+                                      if (cell.isMain && activeAuction) {
+                                        setBidAmount(String(activeAuction.current_price + 50))
+                                        setTimeout(() => handlePlaceBid(), 50)
+                                      } else if (!cell.isMain && cell.item) {
+                                        const bidItem = multiStreamItems[cell.streamId]
+                                        if (bidItem) {
+                                          const maxBid = bidItem.current_price + 50
+                                          ;(async () => {
+                                            try {
+                                              const { data: session } = await supabase.auth.getSession()
+                                              const token = session?.session?.access_token
+                                              if (!token) return
+                                              await apiFetch(`/api/items/${bidItem.id}/bid`, {
+                                                method: 'POST',
+                                                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ amount: maxBid }),
+                                              })
+                                            } catch { /* ignore */ }
+                                          })()
+                                        }
+                                      }
+                                    }}
+                                    style={{
+                                      padding: '5px 12px', borderRadius: '100px',
+                                      border: '1px solid rgba(255,215,0,0.3)',
+                                      backgroundColor: 'rgba(255,215,0,0.15)',
+                                      color: '#FFD700', fontSize: '10px', fontWeight: 800, cursor: 'pointer', flexShrink: 0,
+                                    }}
+                                  >
+                                    MAX
+                                  </button>
+                                </div>
                               </div>
-                            ) : cell.isMain && upcomingItems.length > 0 ? (
-                              /* Pre-bid mini banner for main cell */
-                              <div
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  const nextItem = upcomingItems.find(i => i.id !== activeAuction?.id)
-                                  if (nextItem) { setPreBidItemId(nextItem.id); setPreBidAmount(''); setShowPreBidModal(true) }
-                                }}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: '6px',
-                                  padding: '5px 8px', borderRadius: '8px',
-                                  backgroundColor: 'rgba(59,130,246,0.5)',
-                                  border: '1px solid rgba(59,130,246,0.4)',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <p style={{ fontSize: '9px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {upcomingItems[0].title} — {upcomingItems[0].starting_price}&euro;
-                                </p>
-                                <span style={{ fontSize: '9px', fontWeight: 700, color: '#fff', padding: '3px 8px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                                  {ct.preBid}
-                                </span>
-                              </div>
-                            ) : null}
+                            ) : (() => {
+                              /* Pre-bid or waiting */
+                              const nextItem = cell.isMain ? upcomingItems.find(i => i.id !== activeAuction?.id) : null
+                              // For non-main cells: no pre-bid data available, show waiting
+                              if (nextItem) return (
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setPreBidItemId(nextItem.id); setPreBidAmount(''); setShowPreBidModal(true)
+                                  }}
+                                  style={{
+                                    display: 'flex', alignItems: 'center', gap: '5px',
+                                    padding: '6px 8px', borderRadius: '8px',
+                                    backgroundColor: 'rgba(59,130,246,0.5)',
+                                    border: '1px solid rgba(59,130,246,0.4)',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <p style={{ fontSize: '10px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {nextItem.title} — {nextItem.starting_price}€
+                                  </p>
+                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', padding: '4px 10px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                    {ct.preBid}
+                                  </span>
+                                </div>
+                              )
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '6px 0' }}>
+                                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite' }} />
+                                  <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{ct.waitingNextItem}</span>
+                                </div>
+                              )
+                            })()}
                           </div>
                         </div>
                       ))}
@@ -3044,109 +3333,6 @@ export default function StreamView() {
               </div>
             )}
 
-            {/* ═══ GIVEAWAY BANNER (viewer, hidden in multi-view) ═══ */}
-            {!isSeller && !isMultiView && activeGiveaway && activeGiveaway.status === 'active' && (
-              hasEnteredGiveaway ? (
-                /* Collapsed pill after entry */
-                <div style={{
-                  position: 'absolute',
-                  top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 25,
-                }}>
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 14px',
-                    background: 'rgba(0,0,0,0.6)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(255,215,0,0.35)',
-                    borderRadius: '100px',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    <span style={{ fontSize: '14px' }}>🎁</span>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#FFD700' }}>{ct.giftEntered}</span>
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
-                      · {activeGiveaway.entry_count} 👥
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                /* Full card before entry */
-                <div style={{
-                  position: 'absolute',
-                  top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-                  left: '8px', right: '8px',
-                  zIndex: 25,
-                  animation: 'giftCardIn 0.4s ease',
-                }}>
-                  <div style={{
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                    padding: '16px 18px 14px',
-                    background: 'linear-gradient(135deg, rgba(30,20,0,0.92), rgba(10,10,12,0.95))',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    border: '2px solid rgba(255,215,0,0.6)',
-                    borderRadius: '18px',
-                    boxShadow: '0 4px 24px rgba(255,215,0,0.15), 0 0 0 1px rgba(255,215,0,0.1)',
-                    animation: 'giftBadgePulse 2s ease-in-out infinite',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-                      <span style={{ fontSize: '36px', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '18px', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
-                          {ct.giftTitle}
-                        </p>
-                        <p style={{ fontSize: '14px', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
-                          {activeGiveaway.prize_description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                      padding: '6px 16px',
-                      backgroundColor: 'rgba(255,215,0,0.12)',
-                      borderRadius: '100px',
-                      border: '1px solid rgba(255,215,0,0.2)',
-                    }}>
-                      <span style={{ fontSize: '20px' }}>👥</span>
-                      <span style={{ fontSize: '22px', fontWeight: 900, color: '#FFD700' }}>
-                        {activeGiveaway.entry_count}
-                      </span>
-                      <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
-                        {ct.giftParticipants}
-                      </span>
-                    </div>
-
-                    {user && (
-                      <button
-                        onClick={handleEnterGiveaway}
-                        disabled={enteringGiveaway}
-                        style={{
-                          width: '100%',
-                          padding: '14px',
-                          background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
-                          border: 'none',
-                          borderRadius: '100px',
-                          color: '#000',
-                          fontSize: '16px', fontWeight: 900,
-                          cursor: 'pointer',
-                          WebkitTapHighlightColor: 'transparent',
-                          touchAction: 'manipulation',
-                          boxShadow: '0 2px 12px rgba(255,165,0,0.4)',
-                          letterSpacing: '0.3px',
-                        }}
-                      >
-                        {enteringGiveaway ? '...' : ct.giftEnter}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )
-            )}
-
             {/* ═══ SELLER: Camera Controls Overlay ═══ */}
             {isSeller && isLive && cameraActive && (
               <div style={{
@@ -3350,43 +3536,6 @@ export default function StreamView() {
 
             {/* Viewer reactions moved to bottom overlay */}
           </div>
-
-      {/* ═══ PRE-BID THIN BANNER (viewer, next item only, hidden in multi-view) ═══ */}
-      {!isSeller && isLive && !isMultiView && (() => {
-        const nextItem = upcomingItems.find(i => i.id !== activeAuction?.id)
-        if (!nextItem) return null
-        return (
-          <div
-            onClick={() => { setPreBidItemId(nextItem.id); setPreBidAmount(''); setShowPreBidModal(true) }}
-            style={{
-              position: 'absolute',
-              top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-              left: '8px', right: '60px',
-              zIndex: 25,
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '8px 12px',
-              borderRadius: '10px',
-              backgroundColor: 'rgba(59,130,246,0.5)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              border: '1px solid rgba(59,130,246,0.6)',
-              cursor: 'pointer',
-            }}
-          >
-            <p style={{ fontSize: '12px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {nextItem.title} — {nextItem.starting_price}&euro;
-            </p>
-            <span style={{
-              fontSize: '11px', fontWeight: 700, color: '#fff',
-              padding: '5px 12px', borderRadius: '8px',
-              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-              whiteSpace: 'nowrap', flexShrink: 0,
-            }}>
-              {ct.preBid}
-            </span>
-          </div>
-        )
-      })()}
 
       {/* ═══ StreamSidebar (viewer only, right side, hidden in multi-view) ═══ */}
       {!isSeller && isLive && !isMultiView && (
@@ -3631,57 +3780,6 @@ export default function StreamView() {
             </div>
           </div>
         )}
-        {activeAuction && !isSeller && isLive && (
-          <div id="active-item-bar">
-            <ActiveItemBar
-              item={activeAuction}
-              bidAmount={bidAmount}
-              onBidAmountChange={setBidAmount}
-              onBid={handlePlaceBid}
-              hasCard={hasCard}
-              hasAddress={hasAddress}
-              onAddCard={openCardSetup}
-              onAddAddress={() => navigate('/addresses')}
-              disabled={timeLeft <= 0}
-              timeLeft={timeLeft}
-              lang={lang}
-              onMaxBid={() => { setMaxBidAmount(String(activeAuction.current_price + 10)); setShowMaxBidModal(true) }}
-              hasActiveMaxBid={hasActiveMaxBid}
-              bundleCount={boughtItemCount}
-              onBuyNow={activeAuction.buy_now_price ? handleBuyNow : undefined}
-            />
-          </div>
-        )}
-
-        {/* Waiting for next item (viewer, no active auction, live is on, hidden in multi-view) */}
-        {!activeAuction && !isSeller && isLive && !soldAnimation && !isMultiView && (
-          <div style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            zIndex: 100,
-            backgroundColor: 'rgba(18,18,20,0.9)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderTop: '1px solid rgba(255,255,255,0.08)',
-            padding: '14px 16px',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-          }}>
-            <div style={{
-              width: '6px', height: '6px', borderRadius: '50%',
-              backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite',
-            }} />
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.3px' }}>
-              {ct.waitingNextItem}
-            </span>
-          </div>
-        )}
-
         {/* Stream title */}
         <div style={{
           padding: '6px 10px',
@@ -3695,7 +3793,199 @@ export default function StreamView() {
       </div>
       )}
 
-      {/* SOLD / UNSOLD animation overlay (full screen, hidden in multi-view) */}
+      {/* ActiveItemBar — top-level (single-view only, multi-view has in-cell controls) */}
+      {activeAuction && !isSeller && isLive && !isMultiView && (
+        <div id="active-item-bar">
+          <ActiveItemBar
+            item={activeAuction}
+            bidAmount={bidAmount}
+            onBidAmountChange={setBidAmount}
+            onBid={handlePlaceBid}
+            hasCard={hasCard}
+            hasAddress={hasAddress}
+            onAddCard={openCardSetup}
+            onAddAddress={() => navigate('/addresses')}
+            disabled={timeLeft <= 0}
+            timeLeft={timeLeft}
+            lang={lang}
+            onMaxBid={() => { setMaxBidAmount(String(activeAuction.current_price + 10)); setShowMaxBidModal(true) }}
+            hasActiveMaxBid={hasActiveMaxBid}
+            bundleCount={boughtItemCount}
+            onBuyNow={activeAuction.buy_now_price ? handleBuyNow : undefined}
+          />
+        </div>
+      )}
+
+      {/* Waiting for next item — top-level (single-view only) */}
+      {!activeAuction && !isSeller && isLive && !soldAnimation && !isMultiView && (
+        <div style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          backgroundColor: 'rgba(18,18,20,0.9)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          padding: '14px 16px',
+          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+        }}>
+          <div style={{
+            width: '6px', height: '6px', borderRadius: '50%',
+            backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite',
+          }} />
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.3px' }}>
+            {ct.waitingNextItem}
+          </span>
+        </div>
+      )}
+
+      {/* ═══ PRE-BID THIN BANNER (viewer, single-view only — multi-view has in-cell pre-bid) ═══ */}
+      {!isSeller && isLive && !isMultiView && (() => {
+        const nextItem = upcomingItems.find(i => i.id !== activeAuction?.id)
+        if (!nextItem) return null
+        return (
+          <div
+            onClick={() => { setPreBidItemId(nextItem.id); setPreBidAmount(''); setShowPreBidModal(true) }}
+            style={{
+              position: 'fixed',
+              top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+              left: '8px', right: '60px',
+              zIndex: 205,
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              backgroundColor: 'rgba(59,130,246,0.5)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(59,130,246,0.6)',
+              cursor: 'pointer',
+            }}
+          >
+            <p style={{ fontSize: '12px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {nextItem.title} — {nextItem.starting_price}&euro;
+            </p>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, color: '#fff',
+              padding: '5px 12px', borderRadius: '8px',
+              background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
+              whiteSpace: 'nowrap', flexShrink: 0,
+            }}>
+              {ct.preBid}
+            </span>
+          </div>
+        )
+      })()}
+
+      {/* ═══ GIVEAWAY BANNER (viewer, single-view only — multi-view has in-cell giveaway) ═══ */}
+      {!isSeller && !isMultiView && activeGiveaway && activeGiveaway.status === 'active' && (
+        hasEnteredGiveaway ? (
+          /* Collapsed pill after entry */
+          <div style={{
+            position: 'fixed',
+            top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 210,
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '6px 14px',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,215,0,0.35)',
+              borderRadius: '100px',
+              whiteSpace: 'nowrap',
+            }}>
+              <span style={{ fontSize: '14px' }}>🎁</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#FFD700' }}>{ct.giftEntered}</span>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+                · {activeGiveaway.entry_count} 👥
+              </span>
+            </div>
+          </div>
+        ) : (
+          /* Full card before entry */
+          <div style={{
+            position: 'fixed',
+            top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
+            left: '8px', right: '8px',
+            zIndex: 210,
+            animation: 'giftCardIn 0.4s ease',
+          }}>
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
+              padding: '16px 18px 14px',
+              background: 'linear-gradient(135deg, rgba(30,20,0,0.92), rgba(10,10,12,0.95))',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '2px solid rgba(255,215,0,0.6)',
+              borderRadius: '18px',
+              boxShadow: '0 4px 24px rgba(255,215,0,0.15), 0 0 0 1px rgba(255,215,0,0.1)',
+              animation: 'giftBadgePulse 2s ease-in-out infinite',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                <span style={{ fontSize: '36px', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '18px', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                    {ct.giftTitle}
+                  </p>
+                  <p style={{ fontSize: '14px', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                    {activeGiveaway.prize_description}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                padding: '6px 16px',
+                backgroundColor: 'rgba(255,215,0,0.12)',
+                borderRadius: '100px',
+                border: '1px solid rgba(255,215,0,0.2)',
+              }}>
+                <span style={{ fontSize: '20px' }}>👥</span>
+                <span style={{ fontSize: '22px', fontWeight: 900, color: '#FFD700' }}>
+                  {activeGiveaway.entry_count}
+                </span>
+                <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
+                  {ct.giftParticipants}
+                </span>
+              </div>
+
+              {user && (
+                <button
+                  onClick={handleEnterGiveaway}
+                  disabled={enteringGiveaway}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                    border: 'none',
+                    borderRadius: '100px',
+                    color: '#000',
+                    fontSize: '16px', fontWeight: 900,
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'manipulation',
+                    boxShadow: '0 2px 12px rgba(255,165,0,0.4)',
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  {enteringGiveaway ? '...' : ct.giftEnter}
+                </button>
+              )}
+            </div>
+          </div>
+        )
+      )}
+
+      {/* SOLD / UNSOLD animation overlay (full screen, single-view only) */}
       {soldAnimation && !isMultiView && (
         <div style={{
           position: 'fixed', inset: 0,
@@ -4624,7 +4914,7 @@ export default function StreamView() {
                 setShowMoreMenu(false)
                 if (stream) {
                   const subject = encodeURIComponent(`Signalement live ${stream.id}`)
-                  window.open(`mailto:support@shapop.com?subject=${subject}`, '_blank')
+                  window.open(`mailto:shapopcontact@gmail.com?subject=${subject}`, '_blank')
                 }
               }}
               style={{
@@ -4681,7 +4971,7 @@ export default function StreamView() {
         </div>
       )}
 
-      {/* ═══ GIVEAWAY WINNER OVERLAY — tap anywhere to dismiss (hidden in multi-view) ═══ */}
+      {/* ═══ GIVEAWAY WINNER OVERLAY — tap anywhere to dismiss (single-view only) ═══ */}
       {giveawayWinner && !isMultiView && (
         <div
           onClick={() => setGiveawayWinner(null)}

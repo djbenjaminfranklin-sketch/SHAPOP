@@ -38,17 +38,17 @@ interface DashboardData {
 // FAQ data
 const faqItems = [
   { qFr: 'Comment devenir vendeur ?', q: 'How do I unlock seller access?', qHe: '\u05D0\u05D9\u05DA \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05DE\u05D5\u05DB\u05E8?', qEs: '\u00BFC\u00F3mo desbloqueo el acceso de vendedor?',
-    aFr: 'Appuie sur "C\'est parti !" et commence a vendre instantanement.', a: 'Tap the "Become a seller" button and start streaming instantly.', aHe: '\u05DC\u05D7\u05E5 \u05E2\u05DC "\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8" \u05D5\u05EA\u05EA\u05D7\u05D9\u05DC \u05DC\u05E9\u05D3\u05E8.', aEs: 'Toca "Convertirme en vendedor" y empieza a transmitir al instante.' },
+    aFr: 'Appuie sur "C\'est parti !" et commence à vendre instantanément.', a: 'Tap the "Become a seller" button and start streaming instantly.', aHe: '\u05DC\u05D7\u05E5 \u05E2\u05DC "\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8" \u05D5\u05EA\u05EA\u05D7\u05D9\u05DC \u05DC\u05E9\u05D3\u05E8.', aEs: 'Toca "Convertirme en vendedor" y empieza a transmitir al instante.' },
   { qFr: 'Quand puis-je planifier un live ?', q: 'When can I schedule a live?', qHe: '\u05DE\u05EA\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05EA\u05D6\u05DE\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8?', qEs: '\u00BFCu\u00E1ndo puedo programar un directo?',
-    aFr: 'A tout moment ! Planifie a l\'avance ou passe en live maintenant.', a: 'Anytime! Schedule ahead or go live right now.', aHe: '\u05D1\u05DB\u05DC \u05E2\u05EA! \u05EA\u05D6\u05DE\u05DF \u05DE\u05E8\u05D0\u05E9 \u05D0\u05D5 \u05E6\u05D0 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5.', aEs: '\u00A1En cualquier momento! Programa con antelaci\u00F3n o transmite ahora.' },
-  { qFr: 'Comment et quand suis-je paye ?', q: 'How and when do I get paid?', qHe: '\u05D0\u05D9\u05DA \u05D5\u05DE\u05EA\u05D9 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05D9?', qEs: '\u00BFC\u00F3mo y cu\u00E1ndo me pagan?',
-    aFr: 'Les paiements sont traites via Stripe sous 3 a 5 jours ouvrables.', a: 'Payments are processed via Stripe within 3-5 business days.', aHe: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D3\u05E8\u05DA Stripe \u05EA\u05D5\u05DA 3-5 \u05D9\u05DE\u05D9 \u05E2\u05E1\u05E7\u05D9\u05DD.', aEs: 'Los pagos se procesan v\u00EDa Stripe en 3-5 d\u00EDas h\u00E1biles.' },
+    aFr: 'À tout moment ! Planifie à l\'avance ou passe en live maintenant.', a: 'Anytime! Schedule ahead or go live right now.', aHe: '\u05D1\u05DB\u05DC \u05E2\u05EA! \u05EA\u05D6\u05DE\u05DF \u05DE\u05E8\u05D0\u05E9 \u05D0\u05D5 \u05E6\u05D0 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5.', aEs: '\u00A1En cualquier momento! Programa con antelaci\u00F3n o transmite ahora.' },
+  { qFr: 'Comment et quand suis-je payé ?', q: 'How and when do I get paid?', qHe: '\u05D0\u05D9\u05DA \u05D5\u05DE\u05EA\u05D9 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05D9?', qEs: '\u00BFC\u00F3mo y cu\u00E1ndo me pagan?',
+    aFr: 'Les paiements sont traités via Stripe sous 3 à 5 jours ouvrables.', a: 'Payments are processed via Stripe within 3-5 business days.', aHe: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D3\u05E8\u05DA Stripe \u05EA\u05D5\u05DA 3-5 \u05D9\u05DE\u05D9 \u05E2\u05E1\u05E7\u05D9\u05DD.', aEs: 'Los pagos se procesan v\u00EDa Stripe en 3-5 d\u00EDas h\u00E1biles.' },
   { qFr: 'Quels sont les frais ?', q: 'What are the fees?', qHe: '\u05DE\u05D4 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA?', qEs: '\u00BFCu\u00E1les son las comisiones?',
     aFr: '8% de commission + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur les frais. Exemple : sur 50\u20AC, frais totaux 6,90\u20AC TTC, vous recevez 43,10\u20AC.', a: '8% commission + 2.9% + \u20AC0.30 Stripe fees + 20% VAT on fees. Example: on a \u20AC50 sale, total fees \u20AC6.90 incl. VAT, you receive \u20AC43.10.', aHe: '8% \u05E2\u05DE\u05DC\u05D4 + 2.9% + 0.30\u20AC Stripe + \u05DE\u05E2"\u05DE 20%. \u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC.', aEs: '8% comisi\u00F3n + 2,9% + 0,30\u20AC Stripe + IVA 20% sobre comisiones. Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC.' },
   { qFr: 'Que puis-je vendre ?', q: 'What can I sell?', qHe: '\u05DE\u05D4 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05DB\u05D5\u05E8?', qEs: '\u00BFQu\u00E9 puedo vender?',
     aFr: 'Mode, sneakers, cartes, high-tech, art, bijoux et plus encore !', a: 'Fashion, sneakers, cards, electronics, art, jewelry and more!', aHe: '\u05D0\u05D5\u05E4\u05E0\u05D4, \u05E1\u05E0\u05D9\u05E7\u05E8\u05E1, \u05E7\u05DC\u05E4\u05D9\u05DD, \u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9\u05E7\u05D4, \u05D0\u05DE\u05E0\u05D5\u05EA \u05D5\u05E2\u05D5\u05D3!', aEs: '\u00A1Moda, sneakers, cartas, electr\u00F3nica, arte, joyer\u00EDa y mucho m\u00E1s!' },
   { qFr: 'Comment fonctionne la livraison ?', q: 'How does shipping work?', qHe: '\u05D0\u05D9\u05DA \u05E2\u05D5\u05D1\u05D3\u05EA \u05D4\u05DE\u05E9\u05DC\u05D5\u05D7?', qEs: '\u00BFC\u00F3mo funciona el env\u00EDo?',
-    aFr: 'Le vendeur expedie sous 3 jours. Le suivi est envoye automatiquement a l\'acheteur.', a: 'Seller ships within 3 days. Tracking provided to buyer automatically.', aHe: '\u05D4\u05DE\u05D5\u05DB\u05E8 \u05E9\u05D5\u05DC\u05D7 \u05EA\u05D5\u05DA 3 \u05D9\u05DE\u05D9\u05DD. \u05DE\u05E2\u05E7\u05D1 \u05E0\u05E9\u05DC\u05D7 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA.', aEs: 'El vendedor env\u00EDa en 3 d\u00EDas. El seguimiento se env\u00EDa autom\u00E1ticamente al comprador.' },
+    aFr: 'Le vendeur expédie sous 3 jours. Le suivi est envoyé automatiquement à l\'acheteur.', a: 'Seller ships within 3 days. Tracking provided to buyer automatically.', aHe: '\u05D4\u05DE\u05D5\u05DB\u05E8 \u05E9\u05D5\u05DC\u05D7 \u05EA\u05D5\u05DA 3 \u05D9\u05DE\u05D9\u05DD. \u05DE\u05E2\u05E7\u05D1 \u05E0\u05E9\u05DC\u05D7 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA.', aEs: 'El vendedor env\u00EDa en 3 d\u00EDas. El seguimiento se env\u00EDa autom\u00E1ticamente al comprador.' },
 ]
 
 type WizardState = 'idle' | 'onboarding' | 'celebration'
@@ -100,30 +100,30 @@ export default function Dashboard() {
 
   const txt = {
     fr: {
-      badge: 'COMMENCEZ A VENDRE',
-      title: 'Passez en live.\nVendez instantanement.',
-      subtitle: 'Rejoignez des milliers de vendeurs qui gagnent de l\'argent reel avec la vente en live sur ShaPop.',
+      badge: 'COMMENCEZ À VENDRE',
+      title: 'Passez en live.\nVendez instantanément.',
+      subtitle: 'Rejoignez des milliers de vendeurs qui gagnent de l\'argent réel avec la vente en live sur ShaPop.',
       sellFast: 'Vendez en secondes',
       sellFastDesc: 'La vente en live est rapide. Gagnez plus par heure que sur n\'importe quelle marketplace.',
       keepMore: 'Frais parmi les plus bas',
       keepMoreDesc: '8% commission + frais Stripe. Vous gardez plus que sur les autres plateformes.',
-      bestBuyers: 'Acheteurs engages',
-      bestBuyersDesc: 'Les acheteurs en live sont fideles, enthousiastes et prets a depenser.',
+      bestBuyers: 'Acheteurs engagés',
+      bestBuyersDesc: 'Les acheteurs en live sont fidèles, enthousiastes et prêts à dépenser.',
       trusted: 'Plateforme de confiance',
-      trustedDesc: 'Paiements securises, protection acheteur et support 24/7.',
+      trustedDesc: 'Paiements sécurisés, protection acheteur et support 24/7.',
       formatsTitle: 'Comment vendre ?',
-      fmtAuction: 'Encheres',
-      fmtAuctionDesc: 'Les spectateurs encherissent en direct. Celui qui offre le plus remporte l\'article.',
+      fmtAuction: 'Enchères',
+      fmtAuctionDesc: 'Les spectateurs enchérissent en direct. Celui qui offre le plus remporte l\'article.',
       fmtBuyNow: 'Achat direct',
-      fmtBuyNowDesc: 'Vendez a prix fixe, sans encheres. L\'acheteur clique et achete instantanement.',
-      fmtMystery: 'Boite mystere',
-      fmtMysteryDesc: 'Surprenez vos acheteurs avec un lot mystere a prix unique.',
+      fmtBuyNowDesc: 'Vendez à prix fixe, sans enchères. L\'acheteur clique et achète instantanément.',
+      fmtMystery: 'Boîte mystère',
+      fmtMysteryDesc: 'Surprenez vos acheteurs avec un lot mystère à prix unique.',
       fmtRipShip: 'Ouverture & envoi',
-      fmtRipShipDesc: 'Ouvrez les packs en direct devant les acheteurs et expediez aussitot.',
+      fmtRipShipDesc: 'Ouvrez les packs en direct devant les acheteurs et expédiez aussitôt.',
       stats1: '~13%',
       stats1Label: 'Total fees',
       stats2: '0€',
-      stats2Label: 'Frais de demarrage',
+      stats2Label: 'Frais de démarrage',
       stats3: '24/7',
       stats3Label: 'Support',
       faq: 'FAQ',
@@ -662,11 +662,11 @@ export default function Dashboard() {
   const statusLabel = (status: string) => {
     const labels: Record<string, string> = {
       pending_payment: tx('En attente', 'Pending', '\u05DE\u05DE\u05EA\u05D9\u05DF', 'Pendiente'),
-      paid: tx('Paye', 'Paid', '\u05E9\u05D5\u05DC\u05DD', 'Pagado'),
-      shipped: tx('Expedie', 'Shipped', '\u05E0\u05E9\u05DC\u05D7', 'Enviado'),
-      delivered: tx('Livre', 'Delivered', '\u05E0\u05DE\u05E1\u05E8', 'Entregado'),
-      completed: tx('Termine', 'Completed', '\u05D4\u05D5\u05E9\u05DC\u05DD', 'Completado'),
-      refunded: tx('Rembourse', 'Refunded', '\u05D4\u05D5\u05D7\u05D6\u05E8', 'Reembolsado'),
+      paid: tx('Payé', 'Paid', '\u05E9\u05D5\u05DC\u05DD', 'Pagado'),
+      shipped: tx('Expédié', 'Shipped', '\u05E0\u05E9\u05DC\u05D7', 'Enviado'),
+      delivered: tx('Livré', 'Delivered', '\u05E0\u05DE\u05E1\u05E8', 'Entregado'),
+      completed: tx('Terminé', 'Completed', '\u05D4\u05D5\u05E9\u05DC\u05DD', 'Completado'),
+      refunded: tx('Remboursé', 'Refunded', '\u05D4\u05D5\u05D7\u05D6\u05E8', 'Reembolsado'),
       disputed: tx('Litige', 'Disputed', '\u05DE\u05D5\u05E4\u05E8\u05E2', 'Disputado'),
     }
     return labels[status] || status
@@ -740,20 +740,20 @@ export default function Dashboard() {
                   {dashboardData.total_sales}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  {tx('Commandes payees', 'Paid orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05E9\u05E9\u05D5\u05DC\u05DE\u05D5', 'Pedidos pagados')}
+                  {tx('Commandes payées', 'Paid orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05E9\u05E9\u05D5\u05DC\u05DE\u05D5', 'Pedidos pagados')}
                 </p>
               </div>
 
               {/* Followers Card */}
               <div style={cardStyle}>
                 <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  {tx('Abonnes', 'Followers', '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Seguidores')}
+                  {tx('Abonnés', 'Followers', '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Seguidores')}
                 </p>
                 <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.total_followers}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  {tx('Total abonnes', 'Total followers', '\u05E1\u05D4\"\u05DB \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Total seguidores')}
+                  {tx('Total abonnés', 'Total followers', '\u05E1\u05D4\"\u05DB \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Total seguidores')}
                 </p>
               </div>
 
@@ -796,10 +796,43 @@ export default function Dashboard() {
               </div>
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  {tx('Mon equipe', 'My team', '\u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05D9', 'Mi equipo')}
+                  {tx('Mon équipe', 'My team', '\u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05D9', 'Mi equipo')}
                 </p>
                 <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
                   {tx('Inviter des collaborateurs', 'Invite team members', '\u05D4\u05D6\u05DE\u05DF \u05D7\u05D1\u05E8\u05D9 \u05E6\u05D5\u05D5\u05EA', 'Invitar miembros')}
+                </p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+
+            {/* ─── Quick Actions: Shipments ─── */}
+            <button
+              onClick={() => navigate('/shipments')}
+              style={{
+                width: '100%', padding: '14px 16px',
+                backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
+                borderRadius: '14px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '12px',
+                marginBottom: '12px',
+              }}
+            >
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+                </svg>
+              </div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                  {tx('Mes envois', 'My Shipments', '\u05D4\u05DE\u05E9\u05DC\u05D5\u05D7\u05D9\u05DD \u05E9\u05DC\u05D9', 'Mis env\u00edos')}
+                </p>
+                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                  {tx('Suivre vos colis', 'Track your packages', '\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA', 'Seguir tus paquetes')}
                 </p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
@@ -898,7 +931,7 @@ export default function Dashboard() {
                   fontSize: '14px', fontWeight: 700, color: '#fff',
                   marginBottom: '14px',
                 }}>
-                  {tx('Dernieres commandes', 'Recent orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA', 'Pedidos recientes')}
+                  {tx('Dernières commandes', 'Recent orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA', 'Pedidos recientes')}
                 </p>
                 {dashboardData.recent_orders.map((order, i) => (
                   <div

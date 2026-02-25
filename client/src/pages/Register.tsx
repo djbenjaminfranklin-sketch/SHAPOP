@@ -22,16 +22,16 @@ const COUNTRY_PREFIXES = [
 
 const content = {
   fr: {
-    title: 'Creer un compte',
-    subtitle: 'Rejoins ShaPop et commence a acheter ou vendre en live',
+    title: 'Créer un compte',
+    subtitle: 'Rejoins ShaPop et commence à acheter ou vendre en live',
     continueApple: 'Continuer avec Apple',
     continueGoogle: 'Continuer avec Google',
     or: 'ou',
     username: "Nom d'utilisateur",
-    displayName: 'Nom affiche',
+    displayName: 'Nom affiché',
     email: 'Email',
     password: 'Mot de passe',
-    phone: 'Telephone',
+    phone: 'Téléphone',
     usernamePlaceholder: "nom d'utilisateur",
     displayNamePlaceholder: 'Alex',
     emailPlaceholder: 'ton@email.com',
@@ -40,33 +40,33 @@ const content = {
     photoLabel: 'Photo',
     sendCode: 'Envoyer le code',
     sendingCode: 'Envoi...',
-    otpCode: 'Code de verification',
-    verify: 'Verifier',
-    verifying: 'Verification...',
-    phoneVerified: 'Numero verifie',
+    otpCode: 'Code de vérification',
+    verify: 'Vérifier',
+    verifying: 'Vérification...',
+    phoneVerified: 'Numéro vérifié',
     signUp: "S'inscrire",
-    signingUp: 'Creation...',
+    signingUp: 'Création...',
     alreadyHaveAccount: 'Deja un compte ?',
     signIn: 'Se connecter',
     errorDefault: "Erreur lors de l'inscription",
-    errorFileType: 'Seuls les formats JPEG, PNG et WebP sont acceptes.',
+    errorFileType: 'Seuls les formats JPEG, PNG et WebP sont acceptés.',
     errorFileSize: "L'image doit faire moins de 5 Mo.",
-    errorEmailTaken: 'Cet email est deja utilise',
-    errorUsernameTaken: "Ce nom d'utilisateur est deja pris",
-    errorPasswordShort: 'Le mot de passe doit contenir au moins 6 caracteres',
-    errorPhoneRequired: 'Le numero de telephone est obligatoire',
-    errorBlocked: 'Inscription bloquee',
+    errorEmailTaken: 'Cet email est déjà utilisé',
+    errorUsernameTaken: "Ce nom d'utilisateur est déjà pris",
+    errorPasswordShort: 'Le mot de passe doit contenir au moins 6 caractères',
+    errorPhoneRequired: 'Le numéro de téléphone est obligatoire',
+    errorBlocked: 'Inscription bloquée',
     errorAcceptTerms: 'Tu dois accepter les conditions pour continuer',
     acceptTerms: "J'accepte les",
     termsLink: "Conditions d'utilisation",
-    privacyLink: 'Politique de confidentialite',
+    privacyLink: 'Politique de confidentialité',
     eulaLink: 'CLUF',
     andThe: 'et le',
     comma: ', la',
     ageConfirm: "Je confirme avoir 18 ans ou plus",
-    byContinuing: "En continuant, tu acceptes nos",
-    checkEmail: 'Verifie ton email',
-    checkEmailDesc: 'Un lien de confirmation a ete envoye a ton adresse email.',
+    byContinuing: "En continuant, tu confirmes avoir 18 ans ou plus et acceptes nos",
+    checkEmail: 'Vérifie ton email',
+    checkEmailDesc: 'Un lien de confirmation a été envoyé à ton adresse email.',
   },
   en: {
     title: 'Create Account',
@@ -111,7 +111,7 @@ const content = {
     andThe: 'and the',
     comma: ',',
     ageConfirm: 'I confirm I am 18 years or older',
-    byContinuing: 'By continuing, you agree to our',
+    byContinuing: 'By continuing, you confirm you are 18 or older and agree to our',
     checkEmail: 'Check your email',
     checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
@@ -158,7 +158,7 @@ const content = {
     andThe: '\u05D5\u05D0\u05EA',
     comma: ', ',
     ageConfirm: '\u05D0\u05E0\u05D9 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D0\u05E0\u05D9 \u05D1\u05DF 18 \u05D0\u05D5 \u05D9\u05D5\u05EA\u05E8',
-    byContinuing: '\u05D1\u05D4\u05DE\u05E9\u05DA, \u05D0\u05EA\u05D4 \u05DE\u05E1\u05DB\u05D9\u05DD \u05DC',
+    byContinuing: '\u05D1\u05D4\u05DE\u05E9\u05DA, \u05D0\u05EA\u05D4 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D0\u05EA\u05D4 \u05D1\u05DF 18 \u05D0\u05D5 \u05D9\u05D5\u05EA\u05E8 \u05D5\u05DE\u05E1\u05DB\u05D9\u05DD \u05DC',
     checkEmail: '\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA',
     checkEmailDesc: '\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.',
   },
@@ -172,42 +172,42 @@ const content = {
     displayName: 'Nombre visible',
     email: 'Correo electr\u00F3nico',
     password: 'Contrase\u00F1a',
-    phone: 'Telefono',
+    phone: 'Teléfono',
     usernamePlaceholder: 'nombre de usuario',
     displayNamePlaceholder: 'Alex',
     emailPlaceholder: 'tu@email.com',
     passwordPlaceholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
     phonePlaceholder: '612345678',
     photoLabel: 'Foto',
-    sendCode: 'Enviar codigo',
+    sendCode: 'Enviar código',
     sendingCode: 'Enviando...',
-    otpCode: 'Codigo de verificacion',
+    otpCode: 'Código de verificación',
     verify: 'Verificar',
     verifying: 'Verificando...',
-    phoneVerified: 'Numero verificado',
+    phoneVerified: 'Número verificado',
     signUp: 'Registrarse',
     signingUp: 'Creando...',
     alreadyHaveAccount: '\u00BFYa tienes cuenta?',
     signIn: 'Iniciar sesi\u00F3n',
     errorDefault: 'Error de registro',
-    errorFileType: 'Solo se permiten imagenes JPEG, PNG y WebP.',
+    errorFileType: 'Solo se permiten imágenes JPEG, PNG y WebP.',
     errorFileSize: 'La imagen debe pesar menos de 5MB.',
-    errorEmailTaken: 'Este correo ya esta registrado',
-    errorUsernameTaken: 'Este nombre de usuario ya esta en uso',
-    errorPasswordShort: 'La contrasena debe tener al menos 6 caracteres',
-    errorPhoneRequired: 'Verifica tu numero de telefono antes de continuar',
+    errorEmailTaken: 'Este correo ya está registrado',
+    errorUsernameTaken: 'Este nombre de usuario ya está en uso',
+    errorPasswordShort: 'La contraseña debe tener al menos 6 caracteres',
+    errorPhoneRequired: 'Verifica tu número de teléfono antes de continuar',
     errorBlocked: 'Registro bloqueado',
-    errorAcceptTerms: 'Debes aceptar los terminos para continuar',
+    errorAcceptTerms: 'Debes aceptar los términos para continuar',
     acceptTerms: 'Acepto los',
-    termsLink: 'Terminos de servicio',
-    privacyLink: 'Politica de privacidad',
+    termsLink: 'Términos de servicio',
+    privacyLink: 'Política de privacidad',
     eulaLink: 'CLUF',
     andThe: 'y el',
     comma: ', la',
-    ageConfirm: 'Confirmo que tengo 18 anos o mas',
-    byContinuing: 'Al continuar, aceptas nuestros',
+    ageConfirm: 'Confirmo que tengo 18 años o más',
+    byContinuing: 'Al continuar, confirmas que tienes 18 años o más y aceptas nuestros',
     checkEmail: 'Revisa tu correo',
-    checkEmailDesc: 'Se ha enviado un enlace de confirmacion a tu correo electronico.',
+    checkEmailDesc: 'Se ha enviado un enlace de confirmación a tu correo electrónico.',
   },
 }
 
@@ -441,15 +441,49 @@ export default function Register() {
         </div>
       )}
 
-      {/* Social buttons FIRST */}
+      {/* Terms + age checkboxes — required for ALL signup methods */}
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px', cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={acceptedTerms}
+          onChange={e => setAcceptedTerms(e.target.checked)}
+          style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
+        />
+        <span style={{ fontSize: '13px', color: '#999', lineHeight: 1.5 }}>
+          {c.acceptTerms}{' '}
+          <Link to="/terms" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.termsLink}</Link>
+          {c.comma}{' '}
+          <Link to="/privacy" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.privacyLink}</Link>
+          {' '}{c.andThe}{' '}
+          <Link to="/eula" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.eulaLink}</Link>
+        </span>
+      </label>
+
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '24px', cursor: 'pointer' }}>
+        <input
+          type="checkbox"
+          checked={acceptedAge}
+          onChange={e => setAcceptedAge(e.target.checked)}
+          style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
+        />
+        <span style={{ fontSize: '13px', color: '#999', lineHeight: 1.5 }}>
+          {c.ageConfirm}
+        </span>
+      </label>
+
+      {/* Social buttons */}
       <button
-        onClick={signInWithApple}
+        onClick={() => {
+          if (!acceptedTerms || !acceptedAge) { setError(c.errorAcceptTerms); return }
+          signInWithApple()
+        }}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
           width: '100%', padding: '16px', borderRadius: '14px',
           backgroundColor: '#fff', border: 'none',
           fontSize: '17px', fontWeight: 600, color: '#000',
           cursor: 'pointer', marginBottom: '12px',
+          opacity: (!acceptedTerms || !acceptedAge) ? 0.5 : 1,
         }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="#000">
@@ -459,13 +493,17 @@ export default function Register() {
       </button>
 
       <button
-        onClick={signInWithGoogle}
+        onClick={() => {
+          if (!acceptedTerms || !acceptedAge) { setError(c.errorAcceptTerms); return }
+          signInWithGoogle()
+        }}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
           width: '100%', padding: '16px', borderRadius: '14px',
           backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
           fontSize: '17px', fontWeight: 600, color: '#fff',
           cursor: 'pointer', marginBottom: '24px',
+          opacity: (!acceptedTerms || !acceptedAge) ? 0.5 : 1,
         }}
       >
         <svg width="22" height="22" viewBox="0 0 24 24">
@@ -476,16 +514,6 @@ export default function Register() {
         </svg>
         {c.continueGoogle}
       </button>
-
-      {/* Legal notice for OAuth */}
-      <p style={{ fontSize: '12px', color: '#666', textAlign: 'center', marginBottom: '24px', lineHeight: 1.5 }}>
-        {c.byContinuing}{' '}
-        <Link to="/terms" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.termsLink}</Link>
-        {c.comma}{' '}
-        <Link to="/privacy" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.privacyLink}</Link>
-        {' '}{c.andThe}{' '}
-        <Link to="/eula" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.eulaLink}</Link>.
-      </p>
 
       {/* Divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
@@ -670,7 +698,7 @@ export default function Register() {
         {/* Referral code (optional) */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
-            {lang === 'fr' ? 'Code de parrainage (optionnel)' : lang === 'es' ? 'Codigo de referido (opcional)' : lang === 'he' ? '(קוד הפניה (אופציונלי' : 'Referral code (optional)'}
+            {lang === 'fr' ? 'Code de parrainage (optionnel)' : lang === 'es' ? 'Código de referido (opcional)' : lang === 'he' ? '(קוד הפניה (אופציונלי' : 'Referral code (optional)'}
           </label>
           <input
             type="text"
@@ -681,37 +709,6 @@ export default function Register() {
             style={inputStyle}
           />
         </div>
-
-        {/* Terms acceptance checkbox */}
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '16px', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={acceptedTerms}
-            onChange={e => setAcceptedTerms(e.target.checked)}
-            style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
-          />
-          <span style={{ fontSize: '14px', color: '#999', lineHeight: 1.5 }}>
-            {c.acceptTerms}{' '}
-            <Link to="/terms" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.termsLink}</Link>
-            {c.comma}{' '}
-            <Link to="/privacy" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.privacyLink}</Link>
-            {' '}{c.andThe}{' '}
-            <Link to="/eula" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.eulaLink}</Link>
-          </span>
-        </label>
-
-        {/* Age confirmation checkbox */}
-        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '24px', cursor: 'pointer' }}>
-          <input
-            type="checkbox"
-            checked={acceptedAge}
-            onChange={e => setAcceptedAge(e.target.checked)}
-            style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
-          />
-          <span style={{ fontSize: '14px', color: '#999', lineHeight: 1.5 }}>
-            {c.ageConfirm}
-          </span>
-        </label>
 
         <button
           type="submit"

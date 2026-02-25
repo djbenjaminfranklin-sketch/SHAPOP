@@ -84,7 +84,7 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
           // Look up seller trust for holdback
           const { data: orderData } = await supabase
             .from('orders')
-            .select('seller_id, buyer_id, amount')
+            .select('seller_id, buyer_id, amount, seller_payout')
             .eq('id', orderId)
             .single()
 
@@ -156,17 +156,17 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
               .single()
 
             if (sellerInfo?.paypal_email) {
-              // Use order.amount (item price only) not pi.amount which includes shipping
-              const fees = calculateFees(orderData.amount)
+              // Use stored seller_payout from order (accounts for promo code discounts)
+              const paypalPayoutAmount = orderData.seller_payout ?? calculateFees(orderData.amount).sellerPayout
               await supabase.from('paypal_payouts').insert({
                 order_id: orderId,
                 seller_id: orderData.seller_id,
                 paypal_email: sellerInfo.paypal_email,
-                amount: fees.sellerPayout,
+                amount: paypalPayoutAmount,
                 currency: 'EUR',
                 status: 'pending',
               })
-              if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${orderId} (${fees.sellerPayout} EUR)`)
+              if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${orderId} (${paypalPayoutAmount} EUR)`)
             }
           }
 
@@ -198,11 +198,13 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
         const pi = event.data.object as Stripe.PaymentIntent
         const orderId = pi.metadata.order_id
         if (orderId) {
+          const failureMessage = pi.last_payment_error?.message || 'Unknown error'
+          const failureCode = pi.last_payment_error?.code || 'unknown'
           await supabase
             .from('orders')
             .update({ status: 'pending_payment' })
             .eq('id', orderId)
-          if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${orderId} payment failed`)
+          console.error(`[Stripe] Order ${orderId} payment failed: ${failureCode} — ${failureMessage}`)
         }
         break
       }

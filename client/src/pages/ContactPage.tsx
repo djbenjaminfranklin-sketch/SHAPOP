@@ -65,8 +65,8 @@ const content = {
     hours: '\u05D6\u05DE\u05DF \u05EA\u05D2\u05D5\u05D1\u05D4: \u05E2\u05D3 24 \u05E9\u05E2\u05D5\u05EA',
   },
   es: {
-    title: 'Contactanos',
-    subtitle: 'Como podemos ayudarte?',
+    title: 'Contáctanos',
+    subtitle: '¿Cómo podemos ayudarte?',
     topics: [
       { id: 'order', label: 'Problema con pedido' },
       { id: 'account', label: 'Problema de cuenta' },
@@ -77,10 +77,10 @@ const content = {
     ],
     messagePlaceholder: 'Describe tu problema...',
     send: 'Enviar mensaje',
-    sent: 'Mensaje enviado!',
+    sent: '¡Mensaje enviado!',
     sentDesc: 'Te responderemos en 24 horas a tu email registrado.',
     back: 'Volver a la app',
-    email: 'O escribenos directamente:',
+    email: 'O escríbenos directamente:',
     hours: 'Tiempo de respuesta: hasta 24 horas',
   },
 }
@@ -100,7 +100,7 @@ export default function ContactPage() {
   const handleSend = async () => {
     if (!topic || !message.trim() || !user) return
     if (message.trim().length > 2000) {
-      setSendError(c.tooLong || 'Message trop long (2000 caracteres max)')
+      setSendError(c.tooLong || 'Message trop long (2000 caractères max)')
       return
     }
     setSending(true)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -29,11 +29,38 @@ export default function ChangePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false)
+  const [sessionReady, setSessionReady] = useState(false)
 
-  if (!user) {
-    navigate('/login', { replace: true })
-    return null
-  }
+  // Detect recovery mode from URL hash (Supabase appends #access_token=...&type=recovery)
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && hash.includes('type=recovery')) {
+      setIsRecoveryMode(true)
+      // Supabase JS client auto-detects hash tokens and sets session
+      // Wait a moment for session to be established
+      const checkSession = async () => {
+        // Give Supabase time to process the hash
+        await new Promise(r => setTimeout(r, 1000))
+        const { data } = await supabase.auth.getSession()
+        if (data.session) {
+          setSessionReady(true)
+          // Clean URL hash
+          window.location.hash = ''
+        }
+      }
+      checkSession()
+    } else if (user) {
+      setSessionReady(true)
+    }
+  }, [user])
+
+  // If not recovery mode and not logged in, redirect to login
+  useEffect(() => {
+    if (!isRecoveryMode && !user) {
+      navigate('/login', { replace: true })
+    }
+  }, [isRecoveryMode, user, navigate])
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type })
@@ -62,7 +89,11 @@ export default function ChangePasswordPage() {
         : tx('Forte', 'Strong', 'חזקה', 'Fuerte', lang)
 
   const handleSubmit = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!isRecoveryMode && !currentPassword) {
+      showToast(tx('Veuillez remplir tous les champs', 'Please fill in all fields', 'נא למלא את כל השדות', 'Por favor complete todos los campos', lang), 'error')
+      return
+    }
+    if (!newPassword || !confirmPassword) {
       showToast(tx('Veuillez remplir tous les champs', 'Please fill in all fields', 'נא למלא את כל השדות', 'Por favor complete todos los campos', lang), 'error')
       return
     }
@@ -77,19 +108,19 @@ export default function ChangePasswordPage() {
 
     setLoading(true)
     try {
-      // Verify current password by signing in (uses same session)
-      const { error: verifyError } = await supabase.auth.signInWithPassword({
-        email: user.email!,
-        password: currentPassword,
-      })
-      if (verifyError) {
-        showToast(tx('Le mot de passe actuel est incorrect', 'Current password is incorrect', 'הסיסמה הנוכחית שגויה', 'La contrasena actual es incorrecta', lang), 'error')
-        setLoading(false)
-        return
+      // If not recovery mode, verify current password first
+      if (!isRecoveryMode && user) {
+        const { error: verifyError } = await supabase.auth.signInWithPassword({
+          email: user.email!,
+          password: currentPassword,
+        })
+        if (verifyError) {
+          showToast(tx('Le mot de passe actuel est incorrect', 'Current password is incorrect', 'הסיסמה הנוכחית שגויה', 'La contrasena actual es incorrecta', lang), 'error')
+          setLoading(false)
+          return
+        }
+        await new Promise(r => setTimeout(r, 200))
       }
-
-      // Small delay to let the session settle after re-auth
-      await new Promise(r => setTimeout(r, 200))
 
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
@@ -97,7 +128,13 @@ export default function ChangePasswordPage() {
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-      setTimeout(() => navigate(-1), 1500)
+      setTimeout(() => {
+        if (isRecoveryMode) {
+          navigate('/login', { replace: true })
+        } else {
+          navigate(-1)
+        }
+      }, 1500)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
       if (msg.includes('same_password') || msg.includes('different')) {
@@ -121,6 +158,20 @@ export default function ChangePasswordPage() {
     boxSizing: 'border-box',
   }
 
+  // Show loading while waiting for recovery session
+  if (isRecoveryMode && !sessionReady) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{
+          width: '32px', height: '32px', border: '3px solid #333',
+          borderTopColor: '#E8344E', borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       {/* Header */}
@@ -130,48 +181,67 @@ export default function ChangePasswordPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(isRecoveryMode ? '/login' : -1 as any)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-          {tx('Modifier le mot de passe', 'Change password', 'שנה סיסמה', 'Cambiar contrasena', lang)}
+          {isRecoveryMode
+            ? tx('Nouveau mot de passe', 'New password', 'סיסמה חדשה', 'Nueva contrasena', lang)
+            : tx('Modifier le mot de passe', 'Change password', 'שנה סיסמה', 'Cambiar contrasena', lang)
+          }
         </h1>
       </div>
 
       {/* Form */}
       <div style={{ padding: '24px 20px' }}>
-        {/* Current password */}
-        <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-          {tx('Mot de passe actuel', 'Current password', 'סיסמה נוכחית', 'Contrasena actual', lang)}
-        </label>
-        <div style={{ position: 'relative', marginBottom: '20px' }}>
-          <input
-            type={showCurrentPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            value={currentPassword}
-            onChange={e => setCurrentPassword(e.target.value)}
-            placeholder={tx('Entrez votre mot de passe actuel', 'Enter your current password', 'הזן את סיסמתך הנוכחית', 'Ingrese su contrasena actual', lang)}
-            style={{ ...inputStyle, paddingRight: '48px' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
-            onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
-          />
-          <button
-            type="button"
-            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-            aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
-            style={{
-              position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {showCurrentPassword ? (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-            ) : (
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        {isRecoveryMode && (
+          <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
+            {tx(
+              'Choisissez votre nouveau mot de passe.',
+              'Choose your new password.',
+              'בחר את הסיסמה החדשה שלך.',
+              'Elija su nueva contrasena.',
+              lang
             )}
-          </button>
-        </div>
+          </p>
+        )}
+
+        {/* Current password — only shown when NOT in recovery mode */}
+        {!isRecoveryMode && (
+          <>
+            <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+              {tx('Mot de passe actuel', 'Current password', 'סיסמה נוכחית', 'Contrasena actual', lang)}
+            </label>
+            <div style={{ position: 'relative', marginBottom: '20px' }}>
+              <input
+                type={showCurrentPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
+                placeholder={tx('Entrez votre mot de passe actuel', 'Enter your current password', 'הזן את סיסמתך הנוכחית', 'Ingrese su contrasena actual', lang)}
+                style={{ ...inputStyle, paddingRight: '48px' }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+                onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
+                style={{
+                  position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {showCurrentPassword ? (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                ) : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                )}
+              </button>
+            </div>
+          </>
+        )}
 
         {/* New password */}
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>

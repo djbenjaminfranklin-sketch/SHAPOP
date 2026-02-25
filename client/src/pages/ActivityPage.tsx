@@ -77,10 +77,10 @@ function InlineShippingSection({ orderId, existingLabel, existingTracking, lang,
 
   const carrierShort = carrier === 'dpd' ? 'DPD' : carrier === 'dhl' ? 'DHL' : 'MR'
   const labels = {
-    fr: { weight: 'Poids en grammes (ex: 500)', generate: `Etiquette ${carrierShort}`, ready: 'Prete', open: 'Ouvrir', shipping: 'Frais de port', paymentFailed: 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.' },
+    fr: { weight: 'Poids en grammes (ex: 500)', generate: `Étiquette ${carrierShort}`, ready: 'Prête', open: 'Ouvrir', shipping: 'Frais de port', paymentFailed: 'Le paiement des frais de port a échoué. L\'acheteur doit mettre à jour sa carte.' },
     en: { weight: 'Weight in grams (e.g. 500)', generate: `${carrierShort} Label`, ready: 'Ready', open: 'Open', shipping: 'Shipping cost', paymentFailed: 'Shipping payment failed. Buyer must update their card.' },
     he: { weight: 'משקל בגרמים (לדוגמה: 500)', generate: `תווית ${carrierShort}`, ready: 'מוכנה', open: 'פתח', shipping: 'דמי משלוח', paymentFailed: 'תשלום המשלוח נכשל. הקונה צריך לעדכן את הכרטיס.' },
-    es: { weight: 'Peso en gramos (ej: 500)', generate: `Etiqueta ${carrierShort}`, ready: 'Lista', open: 'Abrir', shipping: 'Gastos de envio', paymentFailed: 'El pago del envio ha fallado. El comprador debe actualizar su tarjeta.' },
+    es: { weight: 'Peso en gramos (ej: 500)', generate: `Etiqueta ${carrierShort}`, ready: 'Lista', open: 'Abrir', shipping: 'Gastos de envío', paymentFailed: 'El pago del envío ha fallado. El comprador debe actualizar su tarjeta.' },
   }
   const lb = labels[lang as keyof typeof labels] || labels.fr
 
@@ -204,7 +204,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
   const [shippingPreview, setShippingPreview] = useState<number | null>(null)
 
   const paymentFailedMsg = lang === 'fr'
-    ? 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.'
+    ? 'Le paiement des frais de port a échoué. L\'acheteur doit mettre à jour sa carte.'
     : 'Shipping payment failed. Buyer must update their card.'
 
   // Preview shipping cost when weight changes
@@ -265,7 +265,7 @@ function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang,
 
   const gcShort = group[0]?.carrier === 'dpd' ? 'DPD' : group[0]?.carrier === 'dhl' ? 'DHL' : 'MR'
   const groupLabels = {
-    fr: { items: 'articles', total: 'Total', weight: 'Poids en grammes (ex: 500)', generate: `Generer l'etiquette ${gcShort}`, labelReady: 'Etiquette prete', openLabel: 'Ouvrir', groupShip: 'Envoi groupe' },
+    fr: { items: 'articles', total: 'Total', weight: 'Poids en grammes (ex: 500)', generate: `Générer l'étiquette ${gcShort}`, labelReady: 'Étiquette prête', openLabel: 'Ouvrir', groupShip: 'Envoi groupé' },
     en: { items: 'items', total: 'Total', weight: 'Weight in grams (e.g. 500)', generate: `Generate ${gcShort} label`, labelReady: 'Label ready', openLabel: 'Open', groupShip: 'Grouped shipment' },
     he: { items: 'פריטים', total: 'סה"כ', weight: 'משקל בגרמים (לדוגמה: 500)', generate: `הפק תווית ${gcShort}`, labelReady: 'תווית מוכנה', openLabel: 'פתח', groupShip: 'משלוח מרוכז' },
     es: { items: 'articulos', total: 'Total', weight: 'Peso en gramos (ej: 500)', generate: `Generar etiqueta ${gcShort}`, labelReady: 'Etiqueta lista', openLabel: 'Abrir', groupShip: 'Envio agrupado' },
@@ -953,54 +953,57 @@ export default function ActivityPage() {
       emptyPurchases: 'Aucun achat pour le moment',
       emptyPurchasesDesc: 'Les articles que tu achetes apparaitront ici',
       emptySales: 'Aucune vente pour le moment',
-      emptySalesDesc: 'Les articles que tu vends apparaitront ici',
+      emptySalesDesc: 'Les articles que tu vends apparaîtront ici',
       notSeller: 'Tu n\'es pas encore vendeur',
       notSellerDesc: 'Deviens vendeur pour voir tes ventes ici',
-      comingSoon: 'Bientot disponible',
-      comingSoonFollowing: 'Le suivi de tes vendeurs preferes arrive bientot',
-      comingSoonMessages: 'La messagerie directe arrive bientot',
-      comingSoonFavorites: 'Les favoris arrivent bientot',
+      comingSoon: 'Bientôt disponible',
+      comingSoonFollowing: 'Le suivi de tes vendeurs préférés arrive bientôt',
+      comingSoonMessages: 'La messagerie directe arrive bientôt',
+      comingSoonFavorites: 'Les favoris arrivent bientôt',
       emptyFavorites: 'Aucun favori pour le moment',
-      emptyFavoritesDesc: 'Appuie sur le coeur d\'un live pour l\'ajouter ici',
+      emptyFavoritesDesc: 'Appuie sur le cœur d\'un live pour l\'ajouter ici',
       statusPendingPayment: 'En attente',
-      statusPaid: 'Paye',
-      statusPreparing: 'En preparation',
-      statusShipped: 'Expedie',
-      statusDelivered: 'Livre',
-      statusRefunded: 'Rembourse',
+      statusPaid: 'Payé',
+      statusPreparing: 'En préparation',
+      statusShipped: 'Expédié',
+      statusDelivered: 'Livré',
+      statusRefunded: 'Remboursé',
       statusDisputed: 'Litige',
       buyer: 'Acheteur',
       loading: 'Chargement...',
       error: 'Erreur de chargement',
-      retry: 'Reessayer',
-      shipOrder: 'Expedier',
-      shipTitle: 'Confirmer l\'expedition',
+      retry: 'Réessayer',
+      shipOrder: 'Expédier',
+      shipTitle: 'Confirmer l\'expédition',
       addPhoto: 'Ajouter une photo',
-      trackingNumber: 'Numero de suivi (optionnel)',
+      trackingNumber: 'Numéro de suivi (optionnel)',
       confirmShipment: 'Confirmer l\'envoi',
       uploading: 'Envoi en cours...',
-      shippedOn: 'Expedie le',
+      shippedOn: 'Expédié le',
       viewProof: 'Voir la preuve',
-      confirmDelivery: 'Confirmer la reception',
-      deliveredOn: 'Livre le',
+      confirmDelivery: 'Confirmer la réception',
+      deliveredOn: 'Livré le',
       photoRequired: 'La photo est obligatoire',
-      reportProblem: 'Signaler un probleme',
-      deadlineExpired: 'Delai expire',
-      timeRemainingPrefix: 'pour signaler un probleme',
+      reportProblem: 'Signaler un problème',
+      deadlineExpired: 'Délai expiré',
+      timeRemainingPrefix: 'pour signaler un problème',
       disputeOpen: 'Litige ouvert',
       contactSeller: 'Contacter le vendeur',
       contactBuyer: 'Contacter l\'acheteur',
       seeVideoMoment: 'Voir le moment',
-      shippingLabel: 'Etiquette d\'envoi',
+      shippingLabel: 'Étiquette d\'envoi',
       packagePhoto: 'Photo du colis',
       contentPhoto: 'Photo du contenu',
-      packingVideo: 'Video d\'emballage',
+      packingVideo: 'Vidéo d\'emballage',
       emptyFollowing: 'Tu ne suis aucun vendeur',
-      emptyFollowingDesc: 'Suis tes vendeurs preferes pour etre notifie quand ils passent en live',
+      emptyFollowingDesc: 'Suis tes vendeurs préférés pour être notifié quand ils passent en live',
       unfollow: 'Ne plus suivre',
       liveNow: 'EN DIRECT',
-      scheduled: 'Planifie',
-      noUpcoming: 'Aucun live prevu',
+      scheduled: 'Planifié',
+      noUpcoming: 'Aucun live prévu',
+      myShipments: 'Mes envois',
+      myShipmentsDesc: 'Suivre vos colis',
+      shipmentsInProgress: 'en cours',
     },
     en: {
       title: 'Activity',
@@ -1070,6 +1073,9 @@ export default function ActivityPage() {
       liveNow: 'LIVE',
       scheduled: 'Scheduled',
       noUpcoming: 'No upcoming lives',
+      myShipments: 'My Shipments',
+      myShipmentsDesc: 'Track your packages',
+      shipmentsInProgress: 'in progress',
     },
     he: {
       title: '\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA',
@@ -1139,6 +1145,9 @@ export default function ActivityPage() {
       liveNow: '\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9',
       scheduled: '\u05DE\u05EA\u05D5\u05DB\u05E0\u05DF',
       noUpcoming: '\u05D0\u05D9\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05E7\u05E8\u05D5\u05D1\u05D9\u05DD',
+      myShipments: '\u05D4\u05DE\u05E9\u05DC\u05D5\u05D7\u05D9\u05DD \u05E9\u05DC\u05D9',
+      myShipmentsDesc: '\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA',
+      shipmentsInProgress: '\u05D1\u05D3\u05E8\u05DA',
     },
     es: {
       title: 'Actividad',
@@ -1148,8 +1157,8 @@ export default function ActivityPage() {
       messagesTab: 'Mensajes',
       favoritesTab: 'Favoritos',
       offersTab: 'Ofertas',
-      emptyOffers: 'Sin ofertas todavia',
-      emptyOffersDesc: 'Las ofertas que envies y recibas apareceran aqui',
+      emptyOffers: 'Sin ofertas todavía',
+      emptyOffersDesc: 'Las ofertas que envíes y recibas aparecerán aquí',
       offerSent: 'Enviada',
       offerReceived: 'Recibida',
       offerAccept: 'Aceptar',
@@ -1157,21 +1166,21 @@ export default function ActivityPage() {
       offerPending: 'Pendiente',
       offerAccepted: 'Aceptada',
       offerDeclined: 'Rechazada',
-      emptyPurchases: 'Sin compras todavia',
-      emptyPurchasesDesc: 'Los articulos que compres apareceran aqui',
-      emptySales: 'Sin ventas todavia',
-      emptySalesDesc: 'Los articulos que vendas apareceran aqui',
-      notSeller: 'Aun no eres vendedor',
-      notSellerDesc: 'Conviertete en vendedor para ver tus ventas aqui',
-      comingSoon: 'Proximamente',
+      emptyPurchases: 'Sin compras todavía',
+      emptyPurchasesDesc: 'Los artículos que compres aparecerán aquí',
+      emptySales: 'Sin ventas todavía',
+      emptySalesDesc: 'Los artículos que vendas aparecerán aquí',
+      notSeller: 'Aún no eres vendedor',
+      notSellerDesc: 'Conviértete en vendedor para ver tus ventas aquí',
+      comingSoon: 'Próximamente',
       comingSoonFollowing: 'Sigue a tus vendedores favoritos pronto',
-      comingSoonMessages: 'Mensajeria directa proximamente',
-      comingSoonFavorites: 'Favoritos proximamente',
-      emptyFavorites: 'Sin favoritos todavia',
-      emptyFavoritesDesc: 'Pulsa el corazon de un directo para agregarlo aqui',
+      comingSoonMessages: 'Mensajería directa próximamente',
+      comingSoonFavorites: 'Favoritos próximamente',
+      emptyFavorites: 'Sin favoritos todavía',
+      emptyFavoritesDesc: 'Pulsa el corazón de un directo para agregarlo aquí',
       statusPendingPayment: 'Pendiente',
       statusPaid: 'Pagado',
-      statusPreparing: 'En preparacion',
+      statusPreparing: 'En preparación',
       statusShipped: 'Enviado',
       statusDelivered: 'Entregado',
       statusRefunded: 'Reembolsado',
@@ -1181,14 +1190,14 @@ export default function ActivityPage() {
       error: 'Error de carga',
       retry: 'Reintentar',
       shipOrder: 'Enviar',
-      shipTitle: 'Confirmar envio',
+      shipTitle: 'Confirmar envío',
       addPhoto: 'Agregar una foto',
-      trackingNumber: 'Numero de seguimiento (opcional)',
-      confirmShipment: 'Confirmar envio',
+      trackingNumber: 'Número de seguimiento (opcional)',
+      confirmShipment: 'Confirmar envío',
       uploading: 'Enviando...',
       shippedOn: 'Enviado el',
       viewProof: 'Ver prueba',
-      confirmDelivery: 'Confirmar recepcion',
+      confirmDelivery: 'Confirmar recepción',
       deliveredOn: 'Entregado el',
       photoRequired: 'La foto es obligatoria',
       reportProblem: 'Reportar un problema',
@@ -1198,16 +1207,19 @@ export default function ActivityPage() {
       contactSeller: 'Contactar al vendedor',
       contactBuyer: 'Contactar al comprador',
       seeVideoMoment: 'Ver momento',
-      shippingLabel: 'Etiqueta de envio',
+      shippingLabel: 'Etiqueta de envío',
       packagePhoto: 'Foto del paquete',
       contentPhoto: 'Foto del contenido',
-      packingVideo: 'Video de embalaje',
-      emptyFollowing: 'No sigues a ningun vendedor',
+      packingVideo: 'Vídeo de embalaje',
+      emptyFollowing: 'No sigues a ningún vendedor',
       emptyFollowingDesc: 'Sigue a tus vendedores favoritos para recibir notificaciones',
       unfollow: 'Dejar de seguir',
       liveNow: 'EN VIVO',
       scheduled: 'Programado',
       noUpcoming: 'Sin lives programados',
+      myShipments: 'Mis env\u00edos',
+      myShipmentsDesc: 'Seguir tus paquetes',
+      shipmentsInProgress: 'en curso',
     },
   }
 
@@ -1246,7 +1258,7 @@ export default function ActivityPage() {
   const subFilters: { id: SubFilter; label: string }[] = [
     { id: 'all', label: { fr: 'Toutes', en: 'All', he: '\u05D4\u05DB\u05DC', es: 'Todas' }[lang] || 'Toutes' },
     { id: 'active', label: { fr: 'En cours', en: 'Active', he: '\u05E4\u05E2\u05D9\u05DC', es: 'Activas' }[lang] || 'En cours' },
-    { id: 'completed', label: { fr: 'Terminees', en: 'Completed', he: '\u05D4\u05D5\u05E9\u05DC\u05DD', es: 'Finalizadas' }[lang] || 'Terminees' },
+    { id: 'completed', label: { fr: 'Terminées', en: 'Completed', he: '\u05D4\u05D5\u05E9\u05DC\u05DD', es: 'Finalizadas' }[lang] || 'Terminées' },
     { id: 'refunds', label: { fr: 'Remboursements', en: 'Refunds', he: '\u05D4\u05D7\u05D6\u05E8\u05D9\u05DD', es: 'Reembolsos' }[lang] || 'Remboursements' },
   ]
 
@@ -1546,7 +1558,7 @@ export default function ActivityPage() {
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}
             >
-              {'\uD83C\uDFF7\uFE0F'} {order.tracking_number || 'Etiquette'}
+              {'\uD83C\uDFF7\uFE0F'} {order.tracking_number || 'Étiquette'}
             </button>
           </div>
         )}
@@ -1762,16 +1774,65 @@ export default function ActivityPage() {
       )
     }
 
+    const shippedCount = sales.filter(o => o.status === 'shipped' || (o.status === 'delivered' && o.tracking_status !== 'delivered')).length
+
+    const shipmentsButton = (
+      <button
+        onClick={() => navigate('/shipments')}
+        style={{
+          width: '100%', padding: '12px 14px', marginBottom: '14px',
+          backgroundColor: '#111', border: '1px solid #2A2A2A',
+          borderRadius: '14px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '12px',
+        }}
+      >
+        <div style={{
+          width: '36px', height: '36px', borderRadius: '10px',
+          background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+          </svg>
+        </div>
+        <div style={{ flex: 1, textAlign: 'left' }}>
+          <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+            {lt.myShipments}
+          </p>
+          <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+            {lt.myShipmentsDesc}
+          </p>
+        </div>
+        {shippedCount > 0 && (
+          <span style={{
+            fontSize: '11px', fontWeight: 700, color: '#F59E0B',
+            backgroundColor: 'rgba(245,158,11,0.12)', padding: '3px 10px',
+            borderRadius: '10px', whiteSpace: 'nowrap',
+          }}>
+            {shippedCount} {lt.shipmentsInProgress}
+          </span>
+        )}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+          <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+    )
+
     if (loadingSales) return renderLoading()
     if (errorSales) return renderError(errorSales, fetchSales)
 
     const filtered = filterOrders(sales)
     if (filtered.length === 0) {
-      return renderEmpty(
-        '\uD83D\uDCB0',
-        lt.emptySales,
-        lt.emptySalesDesc,
-        'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+      return (
+        <div style={{ padding: '0 16px' }}>
+          {shipmentsButton}
+          {renderEmpty(
+            '\uD83D\uDCB0',
+            lt.emptySales,
+            lt.emptySalesDesc,
+            'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+          )}
+        </div>
       )
     }
 
@@ -1787,6 +1848,9 @@ export default function ActivityPage() {
 
     return (
       <div style={{ padding: '0 16px' }}>
+        {/* Shipments quick access */}
+        {shipmentsButton}
+
         {/* Grouped orders by buyer (2+ items from same buyer) */}
         {buyerGroups.map((group, gi) => {
           const buyer = group[0].buyer_profile
@@ -2312,7 +2376,7 @@ export default function ActivityPage() {
                 marginTop: '8px',
               }}
             >
-              {lt.retry === 'Reessayer' ? 'Annuler' : lang === 'en' ? 'Cancel' : lang === 'he' ? '\u05D1\u05D9\u05D8\u05D5\u05DC' : 'Cancelar'}
+              {lt.retry === 'Réessayer' ? 'Annuler' : lang === 'en' ? 'Cancel' : lang === 'he' ? '\u05D1\u05D9\u05D8\u05D5\u05DC' : 'Cancelar'}
             </button>
           </div>
         </div>

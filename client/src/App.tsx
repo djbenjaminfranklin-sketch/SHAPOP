@@ -1,10 +1,13 @@
-import { useState, useEffect, lazy, Suspense, useMemo } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { MiniPlayerProvider } from './contexts/MiniPlayerContext'
 import MiniPlayerOverlay from './components/stream/MiniPlayerOverlay'
 import { hapticTap } from './lib/haptics'
+import { Capacitor } from '@capacitor/core'
+import { PushNotifications } from '@capacitor/push-notifications'
 import { usePushNotifications } from './hooks/usePushNotifications'
+import PrePermissionModal from './components/PrePermissionModal'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import BottomNav from './components/BottomNav'
 import HomeButton from './components/HomeButton'
@@ -58,6 +61,9 @@ const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
 const VerificationPage = lazy(() => import('./pages/VerificationPage'))
 const AccountControlsPage = lazy(() => import('./pages/AccountControlsPage'))
 const TeamPage = lazy(() => import('./pages/TeamPage'))
+const ShipmentsPage = lazy(() => import('./pages/ShipmentsPage'))
+const CommunityGuidelinesPage = lazy(() => import('./pages/CommunityGuidelinesPage'))
+const ReturnPolicyPage = lazy(() => import('./pages/ReturnPolicyPage'))
 const CreateLiveWizard = lazy(() => import('./components/seller/CreateLiveWizard'))
 
 function PageLoader() {
@@ -95,16 +101,77 @@ function RefRedirect() {
   return <Navigate to={`/register?ref=${code}`} replace />
 }
 
-/** Auto-register push token if user is logged in */
+const pushModalContent = {
+  fr: { title: 'Reste informé', desc: 'Reçois des notifications pour les messages, commandes, et lives', allow: 'Activer', skip: 'Plus tard' },
+  en: { title: 'Stay in the loop', desc: 'Get notified about messages, orders, and lives', allow: 'Enable', skip: 'Later' },
+  he: { title: '\u05D4\u05D9\u05E9\u05D0\u05E8 \u05DE\u05E2\u05D5\u05D3\u05DB\u05DF', desc: '\u05E7\u05D1\u05DC \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E2\u05DC \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA, \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D5\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD', allow: '\u05D4\u05E4\u05E2\u05DC', skip: '\u05DE\u05D0\u05D5\u05D7\u05E8 \u05D9\u05D5\u05EA\u05E8' },
+  es: { title: 'Mantente al día', desc: 'Recibe notificaciones de mensajes, pedidos y directos', allow: 'Activar', skip: 'Más tarde' },
+}
+
+/** Auto-register push token if user is logged in, with pre-permission modal */
 function PushAutoRegister() {
   const { user } = useAuth()
   const { requestPermission } = usePushNotifications()
+  const [showModal, setShowModal] = useState(false)
+  const lang = getLang()
+  const c = pushModalContent[lang as keyof typeof pushModalContent] || pushModalContent.fr
+
+  const doRequest = useCallback(() => {
+    requestPermission()
+  }, [requestPermission])
+
   useEffect(() => {
     if (!user) return
-    // Request permission (shows prompt if not yet granted, then registers for push)
-    requestPermission()
-  }, [user, requestPermission])
-  return null
+    if (!Capacitor.isNativePlatform()) return
+
+    const alreadyShown = localStorage.getItem('shapop_push_prepermission_shown')
+    if (alreadyShown) {
+      doRequest()
+      return
+    }
+
+    // Check current permission status
+    PushNotifications.checkPermissions().then(result => {
+      if (result.receive === 'granted') {
+        // Already granted, just re-register
+        doRequest()
+      } else if (result.receive === 'denied') {
+        // User denied before, don't show anything
+      } else {
+        // Not determined — show pre-permission modal
+        setShowModal(true)
+      }
+    }).catch(() => {})
+  }, [user, doRequest])
+
+  const handleAllow = () => {
+    localStorage.setItem('shapop_push_prepermission_shown', '1')
+    setShowModal(false)
+    doRequest()
+  }
+
+  const handleSkip = () => {
+    localStorage.setItem('shapop_push_prepermission_shown', '1')
+    setShowModal(false)
+  }
+
+  return (
+    <PrePermissionModal
+      open={showModal}
+      icon={
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      }
+      title={c.title}
+      description={c.desc}
+      allowLabel={c.allow}
+      skipLabel={c.skip}
+      onAllow={handleAllow}
+      onSkip={handleSkip}
+    />
+  )
 }
 
 function OfflineBanner() {
@@ -298,7 +365,7 @@ export default function App() {
                 <Route path="/direct-sales" element={<ProtectedRoute><DirectSalesPage /></ProtectedRoute>} />
                 <Route path="/item/:id" element={<ItemDetailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/change-password" element={<ProtectedRoute><ChangePasswordPage /></ProtectedRoute>} />
+                <Route path="/change-password" element={<ChangePasswordPage />} />
                 <Route path="/change-email" element={<ProtectedRoute><ChangeEmailPage /></ProtectedRoute>} />
                 <Route path="/security" element={<ProtectedRoute><SecurityPage /></ProtectedRoute>} />
                 <Route path="/go-live" element={<ProtectedRoute><GoLivePage /></ProtectedRoute>} />
@@ -315,6 +382,9 @@ export default function App() {
                 <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
                 <Route path="/account-controls" element={<ProtectedRoute><AccountControlsPage /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
+                <Route path="/shipments" element={<ProtectedRoute><ShipmentsPage /></ProtectedRoute>} />
+                <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
+                <Route path="/return-policy" element={<ReturnPolicyPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
               </main>

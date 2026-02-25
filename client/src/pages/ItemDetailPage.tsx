@@ -18,11 +18,11 @@ const content = {
     notFound: 'Article introuvable',
     back: 'Retour',
     price: 'Prix',
-    condition: 'Etat',
+    condition: 'État',
     description: 'Description',
-    category: 'Categorie',
+    category: 'Catégorie',
     seller: 'Vendeur',
-    aiGenerated: 'Genere par IA',
+    aiGenerated: 'Généré par IA',
     noDescription: 'Aucune description disponible.',
     contact: 'Contacter le vendeur',
     follow: 'Suivre',
@@ -35,7 +35,7 @@ const content = {
     confirmCancel: 'Annuler',
     buy: 'Acheter',
     buyConfirm: 'Acheter pour',
-    bought: 'Achete !',
+    bought: 'Acheté !',
   },
   en: {
     notFound: 'Item not found',
@@ -84,34 +84,34 @@ const content = {
     bought: '!נרכש',
   },
   es: {
-    notFound: 'Articulo no encontrado',
+    notFound: 'Artículo no encontrado',
     back: 'Volver',
     price: 'Precio',
     condition: 'Estado',
-    description: 'Descripcion',
-    category: 'Categoria',
+    description: 'Descripción',
+    category: 'Categoría',
     seller: 'Vendedor',
     aiGenerated: 'Generado por IA',
-    noDescription: 'Sin descripcion disponible.',
+    noDescription: 'Sin descripción disponible.',
     contact: 'Contactar al vendedor',
     follow: 'Seguir',
     following: 'Siguiendo',
     deleteItem: 'Eliminar anuncio',
-    deleteConfirm: 'Eliminar este anuncio?',
+    deleteConfirm: '¿Eliminar este anuncio?',
     myItem: 'Mi anuncio',
     editPrice: 'Editar precio',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
     buy: 'Comprar',
     buyConfirm: 'Comprar por',
-    bought: 'Comprado!',
+    bought: '¡Comprado!',
   },
 } as Record<string, Record<string, string>>
 
 const conditionLabels: Record<string, Record<string, string>> = {
   new: { fr: 'Neuf', en: 'New', he: 'חדש', es: 'Nuevo' },
   like_new: { fr: 'Comme neuf', en: 'Like new', he: 'כמו חדש', es: 'Como nuevo' },
-  good: { fr: 'Bon etat', en: 'Good', he: 'מצב טוב', es: 'Buen estado' },
+  good: { fr: 'Bon état', en: 'Good', he: 'מצב טוב', es: 'Buen estado' },
   fair: { fr: 'Correct', en: 'Fair', he: 'סביר', es: 'Aceptable' },
 }
 
@@ -134,7 +134,7 @@ export default function ItemDetailPage() {
   const [buyLoading, setBuyLoading] = useState(false)
   const [bought, setBought] = useState(false)
 
-  const retryLabel = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Reessayer'
+  const retryLabel = { fr: 'Réessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }[lang] || 'Réessayer'
 
   const fetchItem = useCallback((signal?: AbortSignal) => {
     if (!id) return
@@ -218,7 +218,7 @@ export default function ItemDetailPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }} role="status" aria-label={lang === 'fr' ? 'Chargement de l\'article' : lang === 'es' ? 'Cargando articulo' : lang === 'he' ? 'טוען פריט' : 'Loading item'}>
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }} role="status" aria-label={lang === 'fr' ? 'Chargement de l\'article' : lang === 'es' ? 'Cargando artículo' : lang === 'he' ? 'טוען פריט' : 'Loading item'}>
           <div style={{
             width: '32px', height: '32px', border: '3px solid #333',
             borderTopColor: '#E8344E', borderRadius: '50%',
@@ -425,7 +425,7 @@ export default function ItemDetailPage() {
                             showToast(lang === 'fr' ? 'Erreur lors de la suppression' : 'Failed to delete item', 'error')
                           }
                         } catch {
-                          showToast(lang === 'fr' ? 'Erreur reseau' : 'Network error', 'error')
+                          showToast(lang === 'fr' ? 'Erreur réseau' : 'Network error', 'error')
                         }
                       },
                     })

@@ -16,7 +16,7 @@ const pageContent = {
     loginRequired: 'Connectez-vous pour voir cette conversation.',
     back: 'Retour',
     startConversation: 'Commencez la conversation',
-    attachment: 'Piece jointe',
+    attachment: 'Pièce jointe',
     warningBanner: 'Toute communication hors plateforme est interdite',
     messages: 'Messages',
     order: 'Commande #',
@@ -26,7 +26,7 @@ const pageContent = {
     unknownError: 'Erreur inconnue',
     sendError: 'Erreur lors de l\'envoi',
     uploadError: 'Erreur lors du chargement',
-    contactWarning: 'Partager des coordonnees personnelles est interdit sur Shapop. Les recidives entrainent une suspension de compte.',
+    contactWarning: 'Partager des coordonnées personnelles est interdit sur ShaPop. Les récidives entrainent une suspension de compte.',
     yesterday: 'Hier',
     noMessages: 'Aucun message pour le moment',
     justNow: 'A l\'instant',
@@ -51,7 +51,7 @@ const pageContent = {
     unknownError: 'Unknown error',
     sendError: 'Failed to send',
     uploadError: 'Upload failed',
-    contactWarning: 'Sharing personal contact information is prohibited on Shapop. Repeat offenses will result in account suspension.',
+    contactWarning: 'Sharing personal contact information is prohibited on ShaPop. Repeat offenses will result in account suspension.',
     yesterday: 'Yesterday',
     noMessages: 'No messages yet',
     justNow: 'Just now',
@@ -76,7 +76,7 @@ const pageContent = {
     unknownError: 'שגיאה לא ידועה',
     sendError: 'השליחה נכשלה',
     uploadError: 'ההעלאה נכשלה',
-    contactWarning: 'שיתוף פרטי קשר אישיים אסור ב-Shapop. עבירות חוזרות יובילו להשעיית חשבון.',
+    contactWarning: 'שיתוף פרטי קשר אישיים אסור ב-ShaPop. עבירות חוזרות יובילו להשעיית חשבון.',
     yesterday: 'אתמול',
     noMessages: 'אין הודעות עדיין',
     justNow: 'עכשיו',
@@ -88,20 +88,20 @@ const pageContent = {
   es: {
     placeholder: 'Tu mensaje...',
     loading: 'Cargando...',
-    loginRequired: 'Inicia sesion para ver esta conversacion.',
+    loginRequired: 'Inicia sesión para ver esta conversación.',
     back: 'Volver',
-    startConversation: 'Comienza la conversacion',
+    startConversation: 'Comienza la conversación',
     attachment: 'Archivo adjunto',
-    warningBanner: 'Toda comunicacion fuera de la plataforma esta prohibida',
+    warningBanner: 'Toda comunicación fuera de la plataforma está prohibida',
     messages: 'Mensajes',
     order: 'Pedido #',
     messageFlagged: '[Mensaje oculto]',
     defaultUser: 'Usuario',
-    notFound: 'Conversacion no encontrada',
+    notFound: 'Conversación no encontrada',
     unknownError: 'Error desconocido',
     sendError: 'Error al enviar',
     uploadError: 'Error al cargar',
-    contactWarning: 'Compartir informacion de contacto personal esta prohibido en Shapop. Las reincidencias resultaran en la suspension de la cuenta.',
+    contactWarning: 'Compartir información de contacto personal está prohibido en ShaPop. Las reincidencias resultarán en la suspensión de la cuenta.',
     yesterday: 'Ayer',
     noMessages: 'Sin mensajes aun',
     justNow: 'Ahora',
@@ -531,11 +531,24 @@ export default function ConversationPage() {
               </button>
             )}
           </div>
+          {/* Home button */}
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+              color: '#888', flexShrink: 0, display: 'flex', alignItems: 'center',
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 22V12h6v10" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Warning banner */}
-      <div style={{ flexShrink: 0, padding: '8px 16px' }}>
+      <div style={{ flexShrink: 0, padding: '8px 16px 12px 16px' }}>
         <div style={{
           padding: '8px 12px',
           backgroundColor: 'rgba(249,115,22,0.08)',
@@ -591,6 +604,9 @@ export default function ConversationPage() {
           const showTimestamp = !prevMsg ||
             (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime()) > 5 * 60 * 1000
 
+          // Group consecutive messages from same sender (hide avatar/name if same sender and <5min gap)
+          const isSameSenderAsPrev = prevMsg && prevMsg.sender_id === msg.sender_id && !showTimestamp && !prevMsg.is_system
+
           // System message
           if (isSystem) {
             return (
@@ -634,7 +650,7 @@ export default function ConversationPage() {
 
           // Regular message
           return (
-            <div key={msg.id} style={{ marginBottom: '4px' }}>
+            <div key={msg.id} style={{ marginBottom: isSameSenderAsPrev ? '2px' : '8px' }}>
               {showTimestamp && (
                 <div style={{ textAlign: 'center', margin: '16px 0 8px 0' }}>
                   <span style={{ fontSize: '11px', color: '#555' }}>
@@ -650,33 +666,35 @@ export default function ConversationPage() {
                 gap: '6px',
                 padding: '0 4px',
               }}>
-                {/* Receiver avatar (left side) */}
+                {/* Receiver avatar (left side) — only show for first message in group */}
                 {!isOwn && (
-                  <div style={{ flexShrink: 0, marginBottom: '2px' }}>
-                    {msg.sender?.avatar_url ? (
-                      <img
-                        src={msg.sender.avatar_url}
-                        alt={msg.sender?.display_name || ''}
-                        loading="lazy"
-                        style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: '28px', height: '28px', borderRadius: '50%',
-                        backgroundColor: '#2A2A2A',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#888', fontSize: '10px', fontWeight: 600,
-                      }}>
-                        {getInitials(msg.sender?.display_name || otherName)}
-                      </div>
+                  <div style={{ flexShrink: 0, marginBottom: '2px', width: '28px' }}>
+                    {!isSameSenderAsPrev && (
+                      msg.sender?.avatar_url ? (
+                        <img
+                          src={msg.sender.avatar_url}
+                          alt={msg.sender?.display_name || ''}
+                          loading="lazy"
+                          style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                      ) : (
+                        <div style={{
+                          width: '28px', height: '28px', borderRadius: '50%',
+                          backgroundColor: '#2A2A2A',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: '#888', fontSize: '10px', fontWeight: 600,
+                        }}>
+                          {getInitials(msg.sender?.display_name || otherName)}
+                        </div>
+                      )
                     )}
                   </div>
                 )}
 
                 <div style={{ maxWidth: '75%' }}>
-                  {/* Sender name for received messages */}
-                  {!isOwn && msg.sender && (
+                  {/* Sender name for received messages — only show for first message in group */}
+                  {!isOwn && msg.sender && !isSameSenderAsPrev && (
                     <p style={{ fontSize: '11px', color: '#666', margin: '0 0 2px 4px' }}>
                       {msg.sender.display_name}
                     </p>

@@ -134,7 +134,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
 
         {/* Match score badge */}
         {stream.matching_score != null && stream.matching_score > 50 && (
-          <div style={{ position: 'absolute', top: '10px', ...rtlPos('right', '8px') }}>
+          <div style={{ position: 'absolute', top: stream.status === 'live' ? '42px' : '10px', ...rtlPos('right', '8px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '3px',
               background: 'linear-gradient(135deg, #F0908A, #E8344E)',

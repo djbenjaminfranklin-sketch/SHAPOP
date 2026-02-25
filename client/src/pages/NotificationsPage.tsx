@@ -8,6 +8,7 @@ import { usePushNotifications } from '../hooks/usePushNotifications'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
+
 type NotifKey = 'live' | 'orders' | 'deals' | 'messages' | 'reminders' | 'community'
 
 interface InAppNotification {
@@ -295,50 +296,68 @@ export default function NotificationsPage() {
         ) : (
           <div style={{ marginBottom: '24px' }}>
             {notifications.map((n) => (
-              <button
+              <div
                 key={n.id}
-                onClick={() => {
-                  if (n.data?.stream_id) {
-                    navigate(`/stream/${n.data.stream_id}`)
-                  } else if (n.data?.item_id) {
-                    navigate(`/item/${n.data.item_id}`)
-                  }
-                }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
                   padding: '14px 0', borderBottom: '1px solid #1A1A1A',
-                  background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
-                  cursor: (n.data?.stream_id || n.data?.item_id) ? 'pointer' : 'default',
-                  textAlign: 'left',
                 }}
               >
-                {/* Live pulse icon */}
-                <div style={{
-                  width: '40px', height: '40px', borderRadius: '50%',
-                  backgroundColor: n.type === 'live' ? '#2a0a0a' : '#1A1A1A',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  position: 'relative',
-                }}>
-                  {n.type === 'live' && (
-                    <div style={{
-                      position: 'absolute', top: '4px', right: '4px',
-                      width: '8px', height: '8px', borderRadius: '50%',
-                      backgroundColor: '#E8344E',
-                      animation: 'pulse 1.5s ease-in-out infinite',
-                    }} />
-                  )}
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={n.type === 'live' ? '#E8344E' : '#888'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+                <div
+                  onClick={() => {
+                    if (n.data?.stream_id) navigate(`/stream/${n.data.stream_id}`)
+                    else if (n.data?.item_id) navigate(`/item/${n.data.item_id}`)
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0,
+                    cursor: (n.data?.stream_id || n.data?.item_id) ? 'pointer' : 'default',
+                  }}
+                >
+                  {/* Icon */}
+                  <div style={{
+                    width: '40px', height: '40px', borderRadius: '50%',
+                    backgroundColor: n.type === 'live' ? '#2a0a0a' : '#1A1A1A',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    position: 'relative',
+                  }}>
+                    {n.type === 'live' && (
+                      <div style={{
+                        position: 'absolute', top: '4px', right: '4px',
+                        width: '8px', height: '8px', borderRadius: '50%',
+                        backgroundColor: '#E8344E',
+                        animation: 'pulse 1.5s ease-in-out infinite',
+                      }} />
+                    )}
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={n.type === 'live' ? '#E8344E' : '#888'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+                    </svg>
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '14px', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</p>
+                    <p style={{ fontSize: '13px', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</p>
+                  </div>
+
+                  <span style={{ fontSize: '12px', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at, lang)}</span>
+                </div>
+
+                {/* Delete button */}
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation()
+                    setNotifications(prev => prev.filter(x => x.id !== n.id))
+                    const { data: { session: s } } = await (await import('../lib/supabase')).supabase.auth.getSession()
+                    if (s) apiFetch(`/api/notifications/${n.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
+                  }}
+                  style={{
+                    background: 'none', border: 'none', padding: '8px', cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6L6 18"/><path d="M6 6l12 12"/>
                   </svg>
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '14px', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</p>
-                  <p style={{ fontSize: '13px', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</p>
-                </div>
-
-                <span style={{ fontSize: '12px', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at, lang)}</span>
-              </button>
+                </button>
+              </div>
             ))}
           </div>
         )}

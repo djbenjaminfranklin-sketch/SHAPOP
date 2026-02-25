@@ -13,9 +13,9 @@ const pageContent = {
     loginPrompt: 'Connectez-vous pour voir vos messages.',
     offPlatformWarning: 'Toute communication hors plateforme est interdite',
     loading: 'Chargement...',
-    retry: 'Reessayer',
+    retry: 'Réessayer',
     noConversations: 'Aucune conversation',
-    messagesWillAppear: 'Vos messages apparaitront ici',
+    messagesWillAppear: 'Vos messages apparaîtront ici',
     noMessage: 'Aucun message',
     order: 'Commande',
     dispute: 'Litige',
@@ -76,12 +76,12 @@ const pageContent = {
   },
   es: {
     title: 'Mensajes',
-    loginPrompt: 'Inicia sesion para ver tus mensajes.',
-    offPlatformWarning: 'Toda comunicacion fuera de la plataforma esta prohibida',
+    loginPrompt: 'Inicia sesión para ver tus mensajes.',
+    offPlatformWarning: 'Toda comunicación fuera de la plataforma está prohibida',
     loading: 'Cargando...',
     retry: 'Reintentar',
     noConversations: 'Sin conversaciones',
-    messagesWillAppear: 'Tus mensajes apareceran aqui',
+    messagesWillAppear: 'Tus mensajes aparecerán aquí',
     noMessage: 'Sin mensajes',
     order: 'Pedido',
     dispute: 'Disputa',
@@ -192,13 +192,18 @@ export default function MessagesPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => navigate(-1)} className="text-gray-400 hover:text-white">
+          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <h1 className="text-lg font-semibold">{ct.title}</h1>
-          <div className="w-6" />
+          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M9 22V12h6v10" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
       </div>
 

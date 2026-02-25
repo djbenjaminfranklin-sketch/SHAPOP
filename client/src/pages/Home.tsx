@@ -38,7 +38,7 @@ const homeContent = {
   },
   es: {
     sortedByRelevance: 'Ordenado por relevancia',
-    basedOnPrefs: 'Segun tus preferencias',
+    basedOnPrefs: 'Según tus preferencias',
     modify: 'Editar',
   },
 } as Record<string, { sortedByRelevance: string; basedOnPrefs: string; modify: string }>
@@ -47,7 +47,7 @@ const promoBannerText = {
   fr: { cta: 'Profitez-en !', commission: 'Commission reduite', shipping: 'Livraison reduite', both: 'Commission + Livraison reduites' },
   en: { cta: 'Take advantage!', commission: 'Reduced commission', shipping: 'Reduced shipping', both: 'Commission + Shipping reduced' },
   he: { cta: '!נצלו את ההזדמנות', commission: 'עמלה מופחתת', shipping: 'משלוח מופחת', both: 'עמלה + משלוח מופחתים' },
-  es: { cta: 'Aprovecha!', commission: 'Comision reducida', shipping: 'Envio reducido', both: 'Comision + Envio reducidos' },
+  es: { cta: 'Aprovecha!', commission: 'Comisión reducida', shipping: 'Envío reducido', both: 'Comisión + Envío reducidos' },
 } as Record<string, { cta: string; commission: string; shipping: string; both: string }>
 
 const directSalesBanner = {
@@ -124,8 +124,8 @@ const welcomeContent = {
   },
   es: {
     tagline: 'Shopping en vivo,\nreinventado.',
-    subtitle: 'Compra, vende y unete a las transmisiones en vivo con miles de apasionados.',
-    signIn: 'Iniciar sesion',
+    subtitle: 'Compra, vende y únete a las transmisiones en vivo con miles de apasionados.',
+    signIn: 'Iniciar sesión',
     createAccount: 'Crear cuenta',
   },
 } as Record<string, { tagline: string; subtitle: string; signIn: string; createAccount: string }>

@@ -135,6 +135,18 @@ router.delete('/api/notifications', requireAuth, async (req: AuthenticatedReques
   }
 })
 
+// Delete a single notification
+router.delete('/api/notifications/:id', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const notifId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+    await supabase.from('notifications').delete().eq('id', notifId).eq('user_id', req.user!.id)
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[notifications]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // =============================================
 // REGISTER DEVICE TOKEN (push notifications)
 // =============================================

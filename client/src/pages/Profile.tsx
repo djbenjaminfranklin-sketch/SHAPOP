@@ -167,7 +167,7 @@ export default function Profile() {
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      showToast(tx('Seuls JPEG, PNG et WebP sont acceptes.', 'Only JPEG, PNG, and WebP images are allowed.', 'רק תמונות JPEG, PNG ו-WebP מותרות.', 'Solo se permiten imagenes JPEG, PNG y WebP.', lang), 'error')
+      showToast(tx('Seuls JPEG, PNG et WebP sont acceptés.', 'Only JPEG, PNG, and WebP images are allowed.', 'רק תמונות JPEG, PNG ו-WebP מותרות.', 'Solo se permiten imágenes JPEG, PNG y WebP.', lang), 'error')
       return
     }
     if (file.size > MAX_SIZE) {
@@ -187,7 +187,7 @@ export default function Profile() {
       const newUrl = urlData.publicUrl + '?t=' + Date.now()
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', user.id)
       if (updateError) {
-        showToast(tx('Erreur lors de la mise a jour de l\'avatar.', 'Failed to update avatar.', 'שגיאה בעדכון התמונה.', 'Error al actualizar el avatar.', lang), 'error')
+        showToast(tx('Erreur lors de la mise à jour de l\'avatar.', 'Failed to update avatar.', 'שגיאה בעדכון התמונה.', 'Error al actualizar el avatar.', lang), 'error')
         console.error('Avatar profile update failed:', updateError)
         return
       }
@@ -211,15 +211,15 @@ export default function Profile() {
   const handleEditSave = async () => {
     if (!user) return
     if (!editDisplayName.trim()) {
-      showToast(tx('Le nom ne peut pas etre vide.', 'Name cannot be empty.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05D9\u05D5\u05EA \u05E8\u05D9\u05E7.', 'El nombre no puede estar vacio.', lang), 'error')
+      showToast(tx('Le nom ne peut pas être vide.', 'Name cannot be empty.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05D9\u05D5\u05EA \u05E8\u05D9\u05E7.', 'El nombre no puede estar vacío.', lang), 'error')
       return
     }
     if (editDisplayName.length > 50) {
-      showToast(tx('Le nom ne peut pas depasser 50 caracteres.', 'Name cannot exceed 50 characters.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-50 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'El nombre no puede superar los 50 caracteres.', lang), 'error')
+      showToast(tx('Le nom ne peut pas dépasser 50 caractères.', 'Name cannot exceed 50 characters.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-50 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'El nombre no puede superar los 50 caracteres.', lang), 'error')
       return
     }
     if (editBio.length > 200) {
-      showToast(tx('La bio ne peut pas depasser 200 caracteres.', 'Bio cannot exceed 200 characters.', '\u05D4\u05D1\u05D9\u05D5 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-200 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'La bio no puede superar los 200 caracteres.', lang), 'error')
+      showToast(tx('La bio ne peut pas dépasser 200 caractères.', 'Bio cannot exceed 200 characters.', '\u05D4\u05D1\u05D9\u05D5 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-200 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'La bio no puede superar los 200 caracteres.', lang), 'error')
       return
     }
     setSaving(true)
@@ -254,11 +254,11 @@ export default function Profile() {
         window.dispatchEvent(new Event('profile-updated'))
       }
       setEditMode(false)
-      showToast(tx('Profil mis a jour !', 'Profile updated!', '\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E2\u05D5\u05D3\u05DB\u05DF!', 'Perfil actualizado!', lang), 'success')
+      showToast(tx('Profil mis à jour !', 'Profile updated!', '\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E2\u05D5\u05D3\u05DB\u05DF!', '¡Perfil actualizado!', lang), 'success')
       // Reload the page to reflect changes from AuthContext
       window.location.reload()
     } catch {
-      showToast(tx('Erreur lors de la mise a jour.', 'Error updating profile.', '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E2\u05D3\u05DB\u05D5\u05DF \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC.', 'Error al actualizar el perfil.', lang), 'error')
+      showToast(tx('Erreur lors de la mise à jour.', 'Error updating profile.', '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E2\u05D3\u05DB\u05D5\u05DF \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC.', 'Error al actualizar el perfil.', lang), 'error')
     }
     setSaving(false)
   }
@@ -309,10 +309,10 @@ export default function Profile() {
           </svg>
         </div>
         <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: '8px' }}>
-          {tx('Connecte-toi a ShaPop', 'Sign in to ShaPop', '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-ShaPop', 'Inicia sesion en ShaPop', lang)}
+          {tx('Connecte-toi à ShaPop', 'Sign in to ShaPop', '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-ShaPop', 'Inicia sesión en ShaPop', lang)}
         </h1>
         <p style={{ fontSize: '14px', color: '#666', textAlign: 'center', marginBottom: '32px', lineHeight: 1.5, maxWidth: '280px' }}>
-          {tx('Achete, vends et participe aux lives en direct', 'Buy, sell and join live streams', '\u05E7\u05E0\u05D4, \u05DE\u05DB\u05D5\u05E8 \u05D5\u05D4\u05E6\u05D8\u05E8\u05E3 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD', 'Compra, vende y unete a los lives', lang)}
+          {tx('Achète, vends et participe aux lives en direct', 'Buy, sell and join live streams', '\u05E7\u05E0\u05D4, \u05DE\u05DB\u05D5\u05E8 \u05D5\u05D4\u05E6\u05D8\u05E8\u05E3 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD', 'Compra, vende y únete a los lives', lang)}
         </p>
         <Link to="/login" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px', borderRadius: '14px',
@@ -320,14 +320,14 @@ export default function Profile() {
           color: '#fff', fontSize: '16px', fontWeight: 700, textAlign: 'center',
           boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
         }}>
-          {tx('Se connecter', 'Sign in', '\u05D4\u05EA\u05D7\u05D1\u05E8', 'Iniciar sesion', lang)}
+          {tx('Se connecter', 'Sign in', '\u05D4\u05EA\u05D7\u05D1\u05E8', 'Iniciar sesión', lang)}
         </Link>
         <Link to="/register" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px', borderRadius: '14px',
           textDecoration: 'none', backgroundColor: 'transparent', border: '1.5px solid #333',
           color: '#ccc', fontSize: '16px', fontWeight: 700, textAlign: 'center',
         }}>
-          {tx('Creer un compte', 'Create account', '\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Crear cuenta', lang)}
+          {tx('Créer un compte', 'Create account', '\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Crear cuenta', lang)}
         </Link>
       </div>
     )
@@ -457,29 +457,29 @@ export default function Profile() {
   }
 
   const accountItems: MenuItem[] = [
-    { icon: ico.shield, label: tx('Etat du compte', 'Account status', '\u05DE\u05E6\u05D1 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Estado de cuenta', lang), to: '/account-status' },
-    { icon: ico.verified, label: tx('Verification d\'identite', 'Identity verification', '\u05D0\u05D9\u05DE\u05D5\u05EA \u05D6\u05D4\u05D5\u05EA', 'Verificacion de identidad', lang), sub: tx('Selfie + piece d\'identite', 'Selfie + ID document', '\u05E1\u05DC\u05E4\u05D9 + \u05EA\u05E2\u05D5\u05D3\u05D4', 'Selfie + documento', lang), to: '/verification' },
-    { icon: ico.card, label: tx('Paiements et livraison', 'Payments & shipping', '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7', 'Pagos y envio', lang), to: '/payments' },
+    { icon: ico.shield, label: tx('État du compte', 'Account status', '\u05DE\u05E6\u05D1 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Estado de cuenta', lang), to: '/account-status' },
+    { icon: ico.verified, label: tx('Vérification d\'identité', 'Identity verification', '\u05D0\u05D9\u05DE\u05D5\u05EA \u05D6\u05D4\u05D5\u05EA', 'Verificación de identidad', lang), sub: tx('Selfie + pièce d\'identité', 'Selfie + ID document', '\u05E1\u05DC\u05E4\u05D9 + \u05EA\u05E2\u05D5\u05D3\u05D4', 'Selfie + documento', lang), to: '/verification' },
+    { icon: ico.card, label: tx('Paiements et livraison', 'Payments & shipping', '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7', 'Pagos y envío', lang), to: '/payments' },
     { icon: ico.pin, label: tx('Adresses', 'Addresses', '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', 'Direcciones', lang), to: '/addresses' },
     { icon: ico.bell, label: tx('Notifications', 'Notifications', '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA', 'Notificaciones', lang), to: '/notifications' },
     { icon: ico.controls, label: tx('Controles de compte', 'Account controls', '\u05D1\u05E7\u05E8\u05D5\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF', 'Controles de cuenta', lang), to: '/account-controls' },
     { icon: ico.mail, label: tx("Modifier l'adresse e-mail", 'Change email', '\u05E9\u05E0\u05D4 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC', 'Cambiar e-mail', lang), sub: user.email || '', to: '/change-email' },
-    { icon: ico.lock, label: tx('Modifier le mot de passe', 'Change password', '\u05E9\u05E0\u05D4 \u05E1\u05D9\u05E1\u05DE\u05D4', 'Cambiar contrasena', lang), to: '/change-password' },
-    { icon: ico.key, label: tx("Cle d'acces", 'Passkey', '\u05DE\u05E4\u05EA\u05D7 \u05D2\u05D9\u05E9\u05D4', 'Clave de acceso', lang), to: '/security' },
+    { icon: ico.lock, label: tx('Modifier le mot de passe', 'Change password', '\u05E9\u05E0\u05D4 \u05E1\u05D9\u05E1\u05DE\u05D4', 'Cambiar contraseña', lang), to: '/change-password' },
+    { icon: ico.key, label: tx("Clé d'accès", 'Passkey', '\u05DE\u05E4\u05EA\u05D7 \u05D2\u05D9\u05E9\u05D4', 'Clave de acceso', lang), to: '/security' },
   ]
 
   // Admin link — only for admin email
   const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
   const adminItems: MenuItem[] = user.email?.toLowerCase() === ADMIN_EMAIL ? [
-    { icon: ico.gear, label: tx('Administration', 'Administration', 'ניהול', 'Administracion', lang), to: '/admin' },
+    { icon: ico.gear, label: tx('Administration', 'Administration', 'ניהול', 'Administración', lang), to: '/admin' },
   ] : []
 
   const supportItems: MenuItem[] = [
-    { icon: ico.chat, label: tx('Nous contacter', 'Contact us', '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', 'Contactanos', lang), to: '/contact' },
+    { icon: ico.chat, label: tx('Nous contacter', 'Contact us', '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', 'Contáctanos', lang), to: '/contact' },
     { icon: ico.warning, label: tx('Rapports des utilisateurs', 'User reports', '\u05D3\u05D9\u05D5\u05D5\u05D7\u05D9 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD', 'Reportes de usuarios', lang), to: '/contact' },
-    { icon: ico.tax, label: tx('Exoneration de la taxe de vente', 'Sales tax exemption', '\u05E4\u05D8\u05D5\u05E8 \u05DE\u05DE\u05E1 \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA', 'Exencion de impuestos', lang), to: '/contact' },
-    { icon: ico.doc, label: tx('Politique de confidentialite', 'Privacy policy', '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA', 'Politica de privacidad', lang), external: true, to: '/privacy' },
-    { icon: ico.doc, label: tx('Conditions generales', 'Terms of Service', '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9', 'Terminos de servicio', lang), external: true, to: '/terms' },
+    { icon: ico.tax, label: tx('Exonération de la taxe de vente', 'Sales tax exemption', '\u05E4\u05D8\u05D5\u05E8 \u05DE\u05DE\u05E1 \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA', 'Exención de impuestos', lang), to: '/contact' },
+    { icon: ico.doc, label: tx('Politique de confidentialité', 'Privacy policy', '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA', 'Política de privacidad', lang), external: true, to: '/privacy' },
+    { icon: ico.doc, label: tx('Conditions générales', 'Terms of Service', '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9', 'Términos de servicio', lang), external: true, to: '/terms' },
     { icon: ico.doc, label: tx('CLUF', 'EULA', '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF', 'CLUF', lang), external: true, to: '/eula' },
     { icon: ico.help, label: 'FAQ', external: true, to: '/faq' },
   ]
@@ -648,7 +648,7 @@ export default function Profile() {
               onChange={e => setEditBio(e.target.value)}
               maxLength={200}
               rows={3}
-              placeholder={tx('Parle-nous de toi...', 'Tell us about yourself...', '\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DA...', 'Cuentanos sobre ti...', lang)}
+              placeholder={tx('Parle-nous de toi...', 'Tell us about yourself...', '\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DA...', 'Cuéntanos sobre ti...', lang)}
               aria-label={lang === 'fr' ? 'Bio' : lang === 'es' ? 'Biografía' : lang === 'he' ? 'ביוגרפיה' : 'Bio'}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '10px',
@@ -728,7 +728,7 @@ export default function Profile() {
                     {(buyerStats?.total_spent ?? 0).toFixed(0)}&euro;
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                    {tx('Total depense', 'Total spent', 'סה"כ הוצאות', 'Total gastado', lang)}
+                    {tx('Total dépensé', 'Total spent', 'סה"כ הוצאות', 'Total gastado', lang)}
                   </p>
                 </div>
 
@@ -897,7 +897,7 @@ export default function Profile() {
                             `${nextThreshold - loyalty.points} puntos para alcanzar ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
                             lang
                           )
-                        : tx('Niveau maximum atteint !', 'Maximum tier reached!', 'הגעת לרמה המקסימלית!', 'Nivel maximo alcanzado!', lang)}
+                        : tx('Niveau maximum atteint !', 'Maximum tier reached!', 'הגעת לרמה המקסימלית!', '¡Nivel máximo alcanzado!', lang)}
                     </p>
                   </div>
                 )}
@@ -992,7 +992,7 @@ export default function Profile() {
             }}
           >
             {ico.logout}
-            {tx('Se deconnecter', 'Sign out', '\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA', 'Cerrar sesion', lang)}
+            {tx('Se déconnecter', 'Sign out', '\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA', 'Cerrar sesión', lang)}
           </button>
         </div>
 

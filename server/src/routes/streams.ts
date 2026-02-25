@@ -690,7 +690,8 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
 
     const isSeller = stream.seller_id === userId
     const isCohost = stream.cohost_id === userId
-    const identity = isSeller ? `seller-${userId}` : isCohost ? `cohost-${userId}` : `viewer-${userId}`
+    const isPip = req.query.pip === 'true' && !isSeller && !isCohost
+    const identity = isSeller ? `seller-${userId}` : isCohost ? `cohost-${userId}` : isPip ? `viewer-pip-${userId}` : `viewer-${userId}`
 
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
       identity,

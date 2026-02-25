@@ -60,8 +60,8 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
           trackRef={videoTracks[0]}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
-        {audioTracks.map((at, i) => at.publication?.track && (
-          <AudioTrack key={at.publication?.trackSid || `audio-${i}`} trackRef={at} volume={muted ? 0 : 1} />
+        {!muted && audioTracks.map((at, i) => at.publication?.track && (
+          <AudioTrack key={at.publication?.trackSid || `audio-${i}`} trackRef={at} volume={1} />
         ))}
       </div>
     )
@@ -94,8 +94,8 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
           </div>
         </div>
       ))}
-      {audioTracks.map((at, i) => at.publication?.track && (
-        <AudioTrack key={`audio-${i}`} trackRef={at} volume={muted ? 0 : 1} />
+      {!muted && audioTracks.map((at, i) => at.publication?.track && (
+        <AudioTrack key={`audio-${i}`} trackRef={at} volume={1} />
       ))}
     </div>
   )

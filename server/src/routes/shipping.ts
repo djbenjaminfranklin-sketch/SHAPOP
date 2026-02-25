@@ -77,6 +77,8 @@ async function chargeShippingOffSession(
         type: 'shipping',
       },
       description: `ShaPop - Frais de port commande ${orderId}`,
+    }, {
+      idempotencyKey: `shipping_${orderId}`,
     })
 
     if (pi.status === 'succeeded') {
@@ -555,6 +557,8 @@ router.post('/api/orders/:id/create-label', requireAuth, async (req: Authenticat
         carrier: carrierValue,
         label_url: shipResult.labelUrl,
         status: 'shipped',
+        tracking_status: 'shipped',
+        shipped_at: new Date().toISOString(),
       })
       .eq('id', orderId)
 
@@ -920,6 +924,8 @@ router.post('/api/orders/group-label', requireAuth, async (req: AuthenticatedReq
         carrier: groupCarrierValue,
         label_url: groupShipResult.labelUrl,
         status: 'shipped',
+        tracking_status: 'shipped',
+        shipped_at: new Date().toISOString(),
       })
       .in('id', order_ids)
       .select('id')
@@ -1043,60 +1049,6 @@ router.get(['/api/orders/:id/mondial-relay-tracking', '/api/orders/:id/tracking-
 })
 
 // =============================================
-// GET /api/shipping/test-save — Test DB write to orders (no MR call)
-// =============================================
-router.get('/api/shipping/test-save', async (_req: Request, res: Response) => {
-  try {
-    // Pick one order to test
-    const { data: orders, error: fetchErr } = await supabase
-      .from('orders')
-      .select('id, label_url, tracking_number, status')
-      .eq('status', 'paid')
-      .is('label_url', null)
-      .limit(1)
-
-    if (fetchErr || !orders || orders.length === 0) {
-      res.json({ test: 'no_orders_found', fetchErr: fetchErr?.message })
-      return
-    }
-
-    const testId = orders[0].id
-    console.log(`[test-save] Testing update on order ${testId}`)
-
-    // Try updating with a test value
-    const { error: updateErr, data: updateData } = await supabase
-      .from('orders')
-      .update({
-        tracking_number: 'TEST_TRACK_123',
-        carrier: 'mondial_relay',
-        label_url: 'https://test-label-url.com/test.pdf',
-        status: 'shipped',
-      })
-      .eq('id', testId)
-      .select('id, label_url, tracking_number, status')
-
-    console.log(`[test-save] Update result: error=${updateErr?.message || 'none'}, data=${JSON.stringify(updateData)}`)
-
-    if (updateErr) {
-      // Revert
-      res.json({ test: 'FAILED', error: updateErr.message, details: updateErr.details, hint: updateErr.hint })
-      return
-    }
-
-    // Revert the test — set status back but keep it valid
-    await supabase
-      .from('orders')
-      .update({ tracking_number: null, label_url: null, status: 'paid' })
-      .eq('id', testId)
-
-    res.json({ test: 'SUCCESS', order_id: testId, updated: updateData })
-  } catch (err: any) {
-    console.error('[test-save] Error:', err)
-    res.json({ test: 'EXCEPTION', error: err?.message })
-  }
-})
-
-// =============================================
 // POST /api/webhooks/sendcloud — Sendcloud tracking webhook
 // Receives parcel_status_changed events, updates order status
 // NOTE: This handler expects raw body for HMAC verification.
@@ -1181,7 +1133,7 @@ export async function sendcloudWebhookHandler(req: Request, res: Response) {
     // Get current order to avoid downgrading status
     const { data: currentOrder } = await supabase
       .from('orders')
-      .select('id, status, buyer_id')
+      .select('id, status, buyer_id, tracking_status')
       .eq('id', orderId)
       .single()
 
@@ -1200,10 +1152,25 @@ export async function sendcloudWebhookHandler(req: Request, res: Response) {
       return
     }
 
-    // Update order status
+    // Update order status + tracking_status + delivery/payout fields
+    const updateFields: Record<string, unknown> = {
+      status: newStatus,
+      tracking_status: newStatus === 'shipped' ? 'shipped' : newStatus === 'delivered' ? 'delivered' : newStatus === 'returned' ? 'returned' : currentOrder.tracking_status,
+    }
+
+    if (newStatus === 'delivered') {
+      updateFields.delivered_at = new Date().toISOString()
+      updateFields.payout_status = 'released'
+      updateFields.payout_scheduled_at = new Date().toISOString()
+      // 48h dispute window
+      const deadline = new Date()
+      deadline.setHours(deadline.getHours() + 48)
+      updateFields.claim_deadline = deadline.toISOString()
+    }
+
     await supabase
       .from('orders')
-      .update({ status: newStatus })
+      .update(updateFields)
       .eq('id', orderId)
 
     console.log(`[Sendcloud Webhook] Order ${orderId} status updated: ${currentOrder.status} → ${newStatus} (sendcloud status ${statusId})`)
