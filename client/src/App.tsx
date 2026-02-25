@@ -262,7 +262,11 @@ function useAppSettings() {
 }
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(() => !localStorage.getItem('shapop_splash_seen'))
+  const [showSplash, setShowSplash] = useState(() => {
+    // Skip splash for password reset links
+    if (window.location.pathname === '/change-password') return false
+    return !localStorage.getItem('shapop_splash_seen')
+  })
   const dir = useMemo(() => getDir(), [])
 
   useAppSettings()
