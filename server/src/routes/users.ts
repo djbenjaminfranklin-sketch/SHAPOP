@@ -1106,6 +1106,48 @@ router.get('/api/referrals/stats', requireAuth, async (req: AuthenticatedRequest
 })
 
 // =============================================
+// DELETE ACCOUNT
+// =============================================
+
+router.delete('/api/account', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+
+    // Delete user data from related tables
+    await Promise.allSettled([
+      supabase.from('push_subscriptions').delete().eq('user_id', userId),
+      supabase.from('followers').delete().eq('user_id', userId),
+      supabase.from('followers').delete().eq('seller_id', userId),
+      supabase.from('user_blocks').delete().eq('blocker_id', userId),
+      supabase.from('user_blocks').delete().eq('blocked_id', userId),
+      supabase.from('stream_favorites').delete().eq('user_id', userId),
+      supabase.from('item_favorites').delete().eq('user_id', userId),
+      supabase.from('price_alerts').delete().eq('user_id', userId),
+      supabase.from('spend_limits').delete().eq('user_id', userId),
+      supabase.from('loyalty_points').delete().eq('user_id', userId),
+      supabase.from('seller_team_members').delete().eq('user_id', userId),
+      supabase.from('seller_team_members').delete().eq('seller_id', userId),
+      supabase.from('buyer_scores').delete().eq('user_id', userId),
+      supabase.from('sellers').delete().eq('id', userId),
+      supabase.from('profiles').delete().eq('id', userId),
+    ])
+
+    // Delete the auth user (this is the critical step)
+    const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+    if (authError) {
+      console.error('[delete-account] Auth delete error:', authError.message)
+      res.status(500).json({ error: 'Failed to delete account' })
+      return
+    }
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[delete-account] Exception:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // PRICE DROP ALERTS
 // =============================================
 

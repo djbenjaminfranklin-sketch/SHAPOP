@@ -102,7 +102,7 @@ function saveSettings(s: ControlSettings) {
 
 export default function AccountControlsPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const lang = getLang()
   usePageTitle(tx('Contrôles du compte', 'Account Controls', 'בקרת חשבון', 'Controles de cuenta', lang))
 
@@ -112,6 +112,9 @@ export default function AccountControlsPage() {
   const [spendingAmount, setSpendingAmount] = useState(0)
   const [, setServerSpendLimit] = useState<{ weekly_limit: number | null; monthly_limit: number | null; is_active: boolean } | null>(null)
   const [savingLimits, setSavingLimits] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   // Compute watch time from localStorage tracker
   useEffect(() => {
@@ -232,6 +235,25 @@ export default function AccountControlsPage() {
       // silently fail
     }
     setSavingLimits(false)
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData.session?.access_token
+      if (!token) throw new Error('No session')
+      const res = await apiFetch('/api/account', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error('Delete failed')
+      await signOut()
+      navigate('/login', { replace: true })
+    } catch {
+      setDeleting(false)
+      alert(tx('Erreur lors de la suppression', 'Error deleting account', 'שגיאה במחיקת החשבון', 'Error al eliminar la cuenta', lang))
+    }
   }
 
   const update = (partial: Partial<ControlSettings>) => {
@@ -1151,23 +1173,77 @@ export default function AccountControlsPage() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
             </div>
 
-            {/* Delete account — link */}
-            <div
-              onClick={() => navigate('/preferences')}
-              style={{
-                backgroundColor: '#1A1A1A', borderRadius: '0 0 14px 14px', padding: '16px',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-              }}
-            >
-              <div>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#E8344E', margin: 0 }}>
-                  {tx('Supprimer mon compte', 'Delete my account', 'מחק את החשבון שלי', 'Eliminar mi cuenta', lang)}
-                </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0' }}>
-                  {tx('Action irreversible', 'Irreversible action', 'פעולה בלתי הפיכה', 'Accion irreversible', lang)}
-                </p>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+            {/* Delete account */}
+            <div style={{ backgroundColor: '#1A1A1A', borderRadius: '0 0 14px 14px', padding: '16px' }}>
+              {!showDeleteConfirm ? (
+                <div
+                  onClick={() => setShowDeleteConfirm(true)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+                >
+                  <div>
+                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#E8344E', margin: 0 }}>
+                      {tx('Supprimer mon compte', 'Delete my account', 'מחק את החשבון שלי', 'Eliminar mi cuenta', lang)}
+                    </p>
+                    <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0' }}>
+                      {tx('Action irréversible', 'Irreversible action', 'פעולה בלתי הפיכה', 'Acción irreversible', lang)}
+                    </p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: '14px', color: '#E8344E', fontWeight: 700, margin: '0 0 8px' }}>
+                    {tx('Êtes-vous sûr ?', 'Are you sure?', '?האם אתה בטוח', '¿Estás seguro?', lang)}
+                  </p>
+                  <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.5 }}>
+                    {tx(
+                      'Cette action est irréversible. Toutes vos données seront supprimées. Tapez SUPPRIMER pour confirmer.',
+                      'This action is irreversible. All your data will be deleted. Type DELETE to confirm.',
+                      'פעולה זו בלתי הפיכה. כל הנתונים שלך יימחקו. הקלד DELETE לאישור.',
+                      'Esta acción es irreversible. Todos tus datos serán eliminados. Escribe DELETE para confirmar.',
+                      lang
+                    )}
+                  </p>
+                  <input
+                    type="text"
+                    value={deleteConfirmText}
+                    onChange={e => setDeleteConfirmText(e.target.value)}
+                    placeholder={tx('SUPPRIMER', 'DELETE', 'DELETE', 'DELETE', lang)}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px',
+                      backgroundColor: '#222', border: '1px solid #333', color: '#fff',
+                      fontSize: '15px', outline: 'none', boxSizing: 'border-box',
+                      marginBottom: '12px',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmText('') }}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px',
+                        backgroundColor: '#333', border: 'none', color: '#fff',
+                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      {tx('Annuler', 'Cancel', 'ביטול', 'Cancelar', lang)}
+                    </button>
+                    <button
+                      onClick={handleDeleteAccount}
+                      disabled={deleting || (deleteConfirmText.toUpperCase() !== tx('SUPPRIMER', 'DELETE', 'DELETE', 'DELETE', lang))}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: '10px',
+                        backgroundColor: '#E8344E', border: 'none', color: '#fff',
+                        fontSize: '14px', fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer',
+                        opacity: (deleting || deleteConfirmText.toUpperCase() !== tx('SUPPRIMER', 'DELETE', 'DELETE', 'DELETE', lang)) ? 0.5 : 1,
+                      }}
+                    >
+                      {deleting
+                        ? tx('Suppression...', 'Deleting...', '...מוחק', 'Eliminando...', lang)
+                        : tx('Supprimer', 'Delete', 'מחק', 'Eliminar', lang)}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bottom spacing */}
