@@ -1560,7 +1560,7 @@ export default function LiveSellerView() {
   // Post-live screen
   if (liveEnded) {
     return (
-      <div style={{
+      <div className="no-theme-invert" style={{
         position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200,
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         gap: '24px', padding: '32px',
@@ -1613,6 +1613,7 @@ export default function LiveSellerView() {
   return (
     <div
       ref={containerRef}
+      className="no-theme-invert"
       style={{
         position: 'fixed', inset: 0,
         width: '100%', height: '100vh',
