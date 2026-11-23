@@ -1,3 +1,5 @@
+import { getLang, getLocale, type Lang, type Localized } from '../../lib/i18n'
+
 interface SellerProfileHeaderProps {
   sellerId: string
   sellerName: string
@@ -6,14 +8,15 @@ interface SellerProfileHeaderProps {
   shippingDelay?: number
   isFollowing: boolean
   onFollowToggle: () => void
-  lang: 'fr' | 'en' | 'he' | 'es'
+  lang?: Lang
 }
 
-const FOLLOW_LABELS: Record<string, { follow: string; following: string }> = {
-  fr: { follow: 'Suivre', following: 'Suivi' },
+const FOLLOW_LABELS: Localized<{ follow: string; following: string }> = {
   en: { follow: 'Follow', following: 'Following' },
-  he: { follow: '\u05E2\u05E7\u05D5\u05D1', following: '\u05E2\u05D5\u05E7\u05D1' },
+  fr: { follow: 'Suivre', following: 'Abonné' },
   es: { follow: 'Seguir', following: 'Siguiendo' },
+  ru: { follow: 'Подписаться', following: 'Вы подписаны' },
+  he: { follow: 'עקוב', following: 'עוקב/ת' },
 }
 
 // Star SVG icon
@@ -56,13 +59,6 @@ function CheckIcon() {
   )
 }
 
-const SHIPPING_SUFFIX: Record<string, { day: string; days: string }> = {
-  fr: { day: 'j', days: 'j' },
-  en: { day: 'd', days: 'd' },
-  he: { day: 'י', days: 'י' },
-  es: { day: 'd', days: 'd' },
-}
-
 export default function SellerProfileHeader({
   sellerName,
   sellerAvatar,
@@ -72,10 +68,14 @@ export default function SellerProfileHeader({
   onFollowToggle,
   lang,
 }: SellerProfileHeaderProps) {
-  const labels = FOLLOW_LABELS[lang] || FOLLOW_LABELS.en
-  const suffix = SHIPPING_SUFFIX[lang] || SHIPPING_SUFFIX.en
+  const l = lang ?? getLang()
+  const labels = FOLLOW_LABELS[l] ?? FOLLOW_LABELS.en
   const days = shippingDelay ?? 2
-  const shippingLabel = `${days}${days === 1 ? suffix.day : suffix.days}`
+  // « 2 j », « 2d », « 2 дн. »… selon la langue
+  let shippingLabel = `${days}`
+  try {
+    shippingLabel = new Intl.NumberFormat(getLocale(l), { style: 'unit', unit: 'day', unitDisplay: 'narrow' }).format(days)
+  } catch { /* navigateur ancien : chiffre seul */ }
 
   return (
     <div style={{

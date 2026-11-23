@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { getLang, type Lang, type Localized } from '../../lib/i18n'
 
 interface StreamSidebarProps {
   streamId: string
@@ -9,17 +10,17 @@ interface StreamSidebarProps {
   onShopClick?: () => void
   onLikeClick?: () => void
   onTipClick?: () => void
-  lang: 'fr' | 'en' | 'he' | 'es'
+  lang?: Lang
 }
 
-const translations: Record<string, Record<StreamSidebarProps['lang'], string>> = {
-  like: { fr: 'J\'aime', en: 'Like', he: 'לייק', es: 'Me gusta' },
-  share: { fr: 'Partager', en: 'Share', he: 'שתף', es: 'Compartir' },
-  clip: { fr: 'Clip', en: 'Clip', he: 'קליפ', es: 'Clip' },
-  shop: { fr: 'Boutique', en: 'Shop', he: 'חנות', es: 'Tienda' },
-  wallet: { fr: 'Paiement', en: 'Payment', he: 'תשלום', es: 'Pago' },
-  more: { fr: 'Plus', en: 'More', he: 'עוד', es: 'Más' },
-  tip: { fr: 'Tip', en: 'Tip', he: 'טיפ', es: 'Tip' },
+type SidebarKey = 'like' | 'share' | 'clip' | 'shop' | 'wallet' | 'more' | 'tip'
+
+const translations: Localized<Record<SidebarKey, string>> = {
+  en: { like: 'Like', share: 'Share', clip: 'Clip', shop: 'Shop', wallet: 'Payment', more: 'More', tip: 'Tip' },
+  fr: { like: "J'aime", share: 'Partager', clip: 'Clip', shop: 'Boutique', wallet: 'Paiement', more: 'Plus', tip: 'Pourboire' },
+  es: { like: 'Me gusta', share: 'Compartir', clip: 'Clip', shop: 'Tienda', wallet: 'Pago', more: 'Más', tip: 'Propina' },
+  ru: { like: 'Нравится', share: 'Поделиться', clip: 'Клип', shop: 'Магазин', wallet: 'Оплата', more: 'Ещё', tip: 'Чаевые' },
+  he: { like: 'לייק', share: 'שיתוף', clip: 'קליפ', shop: 'חנות', wallet: 'תשלום', more: 'עוד', tip: 'טיפ' },
 }
 
 const buttonStyle: React.CSSProperties = {
@@ -50,7 +51,7 @@ const labelStyle: React.CSSProperties = {
 }
 
 export default function StreamSidebar({ streamId, onShare, onWalletClick, onMoreClick, onClipClick, onShopClick, onLikeClick, onTipClick, lang }: StreamSidebarProps) {
-  const t = useCallback((key: string) => translations[key]?.[lang] || key, [lang])
+  const t = useCallback((key: SidebarKey) => (translations[lang ?? getLang()] ?? translations.en)[key], [lang])
   const [liked, setLiked] = useState(false)
 
   const handleShare = useCallback(async () => {

@@ -1,6 +1,7 @@
 import { LiveKitRoom, VideoTrack, AudioTrack, useRemoteParticipants, useTracks } from '@livekit/components-react'
 import { Track } from 'livekit-client'
 import type { CSSProperties } from 'react'
+import { tr } from '../../lib/i18n'
 
 interface LiveKitViewerProps {
   livekitUrl: string
@@ -85,12 +86,14 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
           />
           {/* Label */}
           <div style={{
-            position: 'absolute', bottom: '6px', left: '6px',
+            position: 'absolute', bottom: '6px', insetInlineStart: '6px',
             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
             padding: '2px 8px', borderRadius: '6px',
             fontSize: '10px', fontWeight: 700, color: '#fff',
           }}>
-            {vt.participant.identity?.startsWith('seller-') ? 'Host' : 'Co-host'}
+            {vt.participant.identity?.startsWith('seller-')
+              ? tr({ en: 'Host', fr: 'Hôte', es: 'Anfitrión', ru: 'Ведущий', he: 'מנחה' })
+              : tr({ en: 'Co-host', fr: 'Co-hôte', es: 'Coanfitrión', ru: 'Соведущий', he: 'מנחה שותף' })}
           </div>
         </div>
       ))}

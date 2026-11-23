@@ -3977,6 +3977,7 @@ export default function StreamView() {
             disabled={timeLeft <= 0}
             timeLeft={timeLeft}
             lang={lang}
+            currency={priceCurrency}
             onMaxBid={() => { setMaxBidAmount(String(activeAuction.current_price + 10)); setShowMaxBidModal(true) }}
             hasActiveMaxBid={hasActiveMaxBid}
             bundleCount={boughtItemCount}

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, type Localized } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import { apiFetch } from '../lib/api'
 import OnboardingWizard from '../components/seller/OnboardingWizard'
 import OnboardingCelebration from '../components/seller/OnboardingCelebration'
@@ -37,19 +39,109 @@ interface DashboardData {
 }
 
 // FAQ data
-const faqItems = [
-  { qFr: 'Comment devenir vendeur ?', q: 'How do I unlock seller access?', qHe: '\u05D0\u05D9\u05DA \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D2\u05D9\u05E9\u05D4 \u05DC\u05DE\u05D5\u05DB\u05E8?', qEs: '\u00BFC\u00F3mo desbloqueo el acceso de vendedor?',
-    aFr: 'Appuie sur "C\'est parti !" et commence à vendre instantanément.', a: 'Tap the "Become a seller" button and start streaming instantly.', aHe: '\u05DC\u05D7\u05E5 \u05E2\u05DC "\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8" \u05D5\u05EA\u05EA\u05D7\u05D9\u05DC \u05DC\u05E9\u05D3\u05E8.', aEs: 'Toca "Convertirme en vendedor" y empieza a transmitir al instante.' },
-  { qFr: 'Quand puis-je planifier un live ?', q: 'When can I schedule a live?', qHe: '\u05DE\u05EA\u05D9 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05EA\u05D6\u05DE\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8?', qEs: '\u00BFCu\u00E1ndo puedo programar un directo?',
-    aFr: 'À tout moment ! Planifie à l\'avance ou passe en live maintenant.', a: 'Anytime! Schedule ahead or go live right now.', aHe: '\u05D1\u05DB\u05DC \u05E2\u05EA! \u05EA\u05D6\u05DE\u05DF \u05DE\u05E8\u05D0\u05E9 \u05D0\u05D5 \u05E6\u05D0 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E2\u05DB\u05E9\u05D9\u05D5.', aEs: '\u00A1En cualquier momento! Programa con antelaci\u00F3n o transmite ahora.' },
-  { qFr: 'Comment et quand suis-je payé ?', q: 'How and when do I get paid?', qHe: '\u05D0\u05D9\u05DA \u05D5\u05DE\u05EA\u05D9 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05D9?', qEs: '\u00BFC\u00F3mo y cu\u00E1ndo me pagan?',
-    aFr: 'Les paiements sont traités via Stripe sous 3 à 5 jours ouvrables.', a: 'Payments are processed via Stripe within 3-5 business days.', aHe: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D3\u05E8\u05DA Stripe \u05EA\u05D5\u05DA 3-5 \u05D9\u05DE\u05D9 \u05E2\u05E1\u05E7\u05D9\u05DD.', aEs: 'Los pagos se procesan v\u00EDa Stripe en 3-5 d\u00EDas h\u00E1biles.' },
-  { qFr: 'Quels sont les frais ?', q: 'What are the fees?', qHe: '\u05DE\u05D4 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA?', qEs: '\u00BFCu\u00E1les son las comisiones?',
-    aFr: '8% de commission + 2,9% + 0,30\u20AC de frais Stripe + TVA 20% sur les frais. Exemple : sur 50\u20AC, frais totaux 6,90\u20AC TTC, vous recevez 43,10\u20AC.', a: '8% commission + 2.9% + \u20AC0.30 Stripe fees + 20% VAT on fees. Example: on a \u20AC50 sale, total fees \u20AC6.90 incl. VAT, you receive \u20AC43.10.', aHe: '8% \u05E2\u05DE\u05DC\u05D4 + 2.9% + 0.30\u20AC Stripe + \u05DE\u05E2"\u05DE 20%. \u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC.', aEs: '8% comisi\u00F3n + 2,9% + 0,30\u20AC Stripe + IVA 20% sobre comisiones. Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC.' },
-  { qFr: 'Que puis-je vendre ?', q: 'What can I sell?', qHe: '\u05DE\u05D4 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05DB\u05D5\u05E8?', qEs: '\u00BFQu\u00E9 puedo vender?',
-    aFr: 'Mode, sneakers, cartes, high-tech, art, bijoux et plus encore !', a: 'Fashion, sneakers, cards, electronics, art, jewelry and more!', aHe: '\u05D0\u05D5\u05E4\u05E0\u05D4, \u05E1\u05E0\u05D9\u05E7\u05E8\u05E1, \u05E7\u05DC\u05E4\u05D9\u05DD, \u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9\u05E7\u05D4, \u05D0\u05DE\u05E0\u05D5\u05EA \u05D5\u05E2\u05D5\u05D3!', aEs: '\u00A1Moda, sneakers, cartas, electr\u00F3nica, arte, joyer\u00EDa y mucho m\u00E1s!' },
-  { qFr: 'Comment fonctionne la livraison ?', q: 'How does shipping work?', qHe: '\u05D0\u05D9\u05DA \u05E2\u05D5\u05D1\u05D3\u05EA \u05D4\u05DE\u05E9\u05DC\u05D5\u05D7?', qEs: '\u00BFC\u00F3mo funciona el env\u00EDo?',
-    aFr: 'Le vendeur expédie sous 3 jours. Le suivi est envoyé automatiquement à l\'acheteur.', a: 'Seller ships within 3 days. Tracking provided to buyer automatically.', aHe: '\u05D4\u05DE\u05D5\u05DB\u05E8 \u05E9\u05D5\u05DC\u05D7 \u05EA\u05D5\u05DA 3 \u05D9\u05DE\u05D9\u05DD. \u05DE\u05E2\u05E7\u05D1 \u05E0\u05E9\u05DC\u05D7 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA.', aEs: 'El vendedor env\u00EDa en 3 d\u00EDas. El seguimiento se env\u00EDa autom\u00E1ticamente al comprador.' },
+const faqItems: { id: string; q: Localized<string>; a: Localized<string> }[] = [
+  {
+    id: 'become-seller',
+    q: {
+      en: 'How do I become a seller?',
+      fr: 'Comment devenir vendeur ?',
+      es: '¿Cómo me hago vendedor?',
+      ru: 'Как стать продавцом?',
+      he: 'איך הופכים למוכר/ת?',
+    },
+    a: {
+      en: 'Tap "Let\'s go!" and start selling right away.',
+      fr: 'Appuie sur « C\'est parti ! » et commence à vendre tout de suite.',
+      es: 'Toca «¡Vamos!» y empieza a vender al instante.',
+      ru: 'Нажми «Поехали!» и начинай продавать прямо сейчас.',
+      he: 'לחצו על "יאללה!" והתחילו למכור מיד.',
+    },
+  },
+  {
+    id: 'schedule',
+    q: {
+      en: 'When can I schedule a live?',
+      fr: 'Quand puis-je programmer un live ?',
+      es: '¿Cuándo puedo programar un directo?',
+      ru: 'Когда можно запланировать эфир?',
+      he: 'מתי אפשר לתזמן שידור חי?',
+    },
+    a: {
+      en: 'Anytime! Schedule one ahead or go live right now.',
+      fr: 'Quand tu veux ! Programme-le à l\'avance ou lance-toi tout de suite.',
+      es: '¡Cuando quieras! Prográmalo con antelación o empieza el directo ya.',
+      ru: 'Когда угодно! Запланируй заранее или выходи в эфир прямо сейчас.',
+      he: 'מתי שרוצים! אפשר לתזמן מראש או לעלות לשידור חי עכשיו.',
+    },
+  },
+  {
+    id: 'payouts',
+    q: {
+      en: 'How and when do I get paid?',
+      fr: 'Comment et quand suis-je payé ?',
+      es: '¿Cómo y cuándo cobro?',
+      ru: 'Как и когда я получу деньги?',
+      he: 'איך ומתי מקבלים את הכסף?',
+    },
+    a: {
+      en: 'Payouts are processed through Stripe within 3–5 business days.',
+      fr: 'Les virements passent par Stripe, sous 3 à 5 jours ouvrés.',
+      es: 'Los pagos se procesan con Stripe en 3–5 días hábiles.',
+      ru: 'Выплаты проходят через Stripe в течение 3–5 рабочих дней.',
+      he: 'התשלומים מועברים דרך Stripe תוך 3–5 ימי עסקים.',
+    },
+  },
+  {
+    id: 'fees',
+    q: {
+      en: 'What are the fees?',
+      fr: 'Quels sont les frais ?',
+      es: '¿Cuáles son las comisiones?',
+      ru: 'Какие комиссии?',
+      he: 'מה העמלות?',
+    },
+    a: {
+      en: 'An 8% ShaPop commission, plus Stripe payment processing fees and any taxes that apply in your country. In total, that\'s about 13% of the sale price.',
+      fr: 'Une commission ShaPop de 8 %, plus les frais de paiement Stripe et les taxes applicables dans ton pays. Au total, environ 13 % du prix de vente.',
+      es: 'Una comisión de ShaPop del 8 %, más las comisiones de pago de Stripe y los impuestos aplicables en tu país. En total, alrededor del 13 % del precio de venta.',
+      ru: 'Комиссия ShaPop — 8 %, плюс комиссия Stripe за платёж и налоги, действующие в твоей стране. В сумме — около 13 % от цены продажи.',
+      he: 'עמלת ShaPop של 8%, ועוד עמלות סליקה של Stripe ומסים החלים במדינה שלך. בסך הכול כ-13% ממחיר המכירה.',
+    },
+  },
+  {
+    id: 'what-to-sell',
+    q: {
+      en: 'What can I sell?',
+      fr: 'Que puis-je vendre ?',
+      es: '¿Qué puedo vender?',
+      ru: 'Что можно продавать?',
+      he: 'מה אפשר למכור?',
+    },
+    a: {
+      en: 'Fashion, sneakers, trading cards, tech, art, jewelry and much more!',
+      fr: 'Mode, sneakers, cartes à collectionner, high-tech, art, bijoux et bien plus encore !',
+      es: '¡Moda, zapatillas, cartas coleccionables, tecnología, arte, joyería y mucho más!',
+      ru: 'Одежду, кроссовки, коллекционные карточки, технику, искусство, украшения и многое другое!',
+      he: 'אופנה, סניקרס, קלפי אספנות, אלקטרוניקה, אמנות, תכשיטים ועוד הרבה!',
+    },
+  },
+  {
+    id: 'shipping',
+    q: {
+      en: 'How does shipping work?',
+      fr: 'Comment fonctionne la livraison ?',
+      es: '¿Cómo funciona el envío?',
+      ru: 'Как работает доставка?',
+      he: 'איך עובד המשלוח?',
+    },
+    a: {
+      en: 'The seller ships within 3 days, and the buyer gets the tracking number automatically.',
+      fr: 'Le vendeur expédie sous 3 jours, et l\'acheteur reçoit automatiquement le numéro de suivi.',
+      es: 'El vendedor envía en 3 días y el comprador recibe el número de seguimiento automáticamente.',
+      ru: 'Продавец отправляет заказ в течение 3 дней, а покупатель автоматически получает трек-номер.',
+      he: 'המוכר/ת שולח/ת תוך 3 ימים, והקונה מקבל/ת מספר מעקב אוטומטית.',
+    },
+  },
 ]
 
 type WizardState = 'idle' | 'onboarding' | 'celebration'
@@ -58,7 +150,8 @@ export default function Dashboard() {
   const { user, profile, session } = useAuth()
   const navigate = useNavigate()
   const lang = getLang()
-  usePageTitle('Dashboard')
+  usePageTitle(tr({ en: 'Dashboard', fr: 'Tableau de bord', es: 'Panel', ru: 'Панель', he: 'לוח בקרה' }))
+  const sellerCurrency = currencyForCountry(profile?.country)
   const [showFaq, setShowFaq] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [wizardState, setWizardState] = useState<WizardState>('idle')
@@ -99,63 +192,34 @@ export default function Dashboard() {
     return null
   }
 
-  const txt = {
-    fr: {
-      badge: 'COMMENCEZ À VENDRE',
-      title: 'Passez en live.\nVendez instantanément.',
-      subtitle: 'Rejoignez des milliers de vendeurs qui gagnent de l\'argent réel avec la vente en live sur ShaPop.',
-      sellFast: 'Vendez en secondes',
-      sellFastDesc: 'La vente en live est rapide. Gagnez plus par heure que sur n\'importe quelle marketplace.',
-      keepMore: 'Frais parmi les plus bas',
-      keepMoreDesc: '8% commission + frais Stripe. Vous gardez plus que sur les autres plateformes.',
-      bestBuyers: 'Acheteurs engagés',
-      bestBuyersDesc: 'Les acheteurs en live sont fidèles, enthousiastes et prêts à dépenser.',
-      trusted: 'Plateforme de confiance',
-      trustedDesc: 'Paiements sécurisés, protection acheteur et support 24/7.',
-      formatsTitle: 'Comment vendre ?',
-      fmtAuction: 'Enchères',
-      fmtAuctionDesc: 'Les spectateurs enchérissent en direct. Celui qui offre le plus remporte l\'article.',
-      fmtBuyNow: 'Achat direct',
-      fmtBuyNowDesc: 'Vendez à prix fixe, sans enchères. L\'acheteur clique et achète instantanément.',
-      fmtMystery: 'Boîte mystère',
-      fmtMysteryDesc: 'Surprenez vos acheteurs avec un lot mystère à prix unique.',
-      fmtRipShip: 'Ouverture & envoi',
-      fmtRipShipDesc: 'Ouvrez les packs en direct devant les acheteurs et expédiez aussitôt.',
-      stats1: '~13%',
-      stats1Label: 'Total fees',
-      stats2: '0€',
-      stats2Label: 'Frais de démarrage',
-      stats3: '24/7',
-      stats3Label: 'Support',
-      faq: 'FAQ',
-      letsGo: 'C\'est parti !',
-      free: 'Gratuit pour commencer',
-      freeDesc: 'Aucun frais initial. Vos 7 premiers jours sans commission !',
-    },
+  const zeroFee = (() => {
+    try { return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: sellerCurrency, maximumFractionDigits: 0 }).format(0) } catch { return '0' }
+  })()
+
+  const txt: Localized<Record<string, string>> = {
     en: {
       badge: 'START SELLING TODAY',
       title: 'Go live.\nSell instantly.',
-      subtitle: 'Join thousands of sellers earning real money through live shopping on ShaPop.',
+      subtitle: 'Join thousands of sellers making real money with live shopping on ShaPop.',
       sellFast: 'Sell in seconds',
-      sellFastDesc: 'Live selling is fast. Earn more per hour than any other marketplace.',
-      keepMore: 'Lowest fees around',
+      sellFastDesc: 'Live selling is fast. Earn more per hour than on any other marketplace.',
+      keepMore: 'Some of the lowest fees',
       keepMoreDesc: '8% commission + Stripe fees. You keep more than on other platforms.',
       bestBuyers: 'Engaged buyers',
-      bestBuyersDesc: 'Live shoppers are loyal, excited, and ready to spend.',
+      bestBuyersDesc: 'Live shoppers are loyal, excited and ready to spend.',
       trusted: 'Trusted platform',
-      trustedDesc: 'Secure payments, buyer protection, and 24/7 support.',
+      trustedDesc: 'Secure payments, buyer protection and 24/7 support.',
       formatsTitle: 'How to sell?',
       fmtAuction: 'Auctions',
-      fmtAuctionDesc: 'Viewers bid in real-time. Highest bidder wins the item.',
-      fmtBuyNow: 'Buy Now',
-      fmtBuyNowDesc: 'Sell at a fixed price, no bidding. Buyers click and purchase instantly.',
+      fmtAuctionDesc: 'Viewers bid in real time. The highest bidder wins the item.',
+      fmtBuyNow: 'Buy now',
+      fmtBuyNowDesc: 'Sell at a fixed price, no bidding. Buyers tap and buy instantly.',
       fmtMystery: 'Mystery box',
       fmtMysteryDesc: 'Surprise your buyers with a mystery lot at a set price.',
-      fmtRipShip: 'Rip & Ship',
-      fmtRipShipDesc: 'Open packs live for buyers and ship immediately.',
+      fmtRipShip: 'Rip & ship',
+      fmtRipShipDesc: 'Open packs live in front of buyers and ship right away.',
       stats1: '~13%',
       stats1Label: 'Total fees',
-      stats2: '$0',
       stats2Label: 'Startup fees',
       stats3: '24/7',
       stats3Label: 'Support',
@@ -163,74 +227,149 @@ export default function Dashboard() {
       letsGo: "Let's go!",
       free: 'Free to start',
       freeDesc: 'No upfront fees. Your first 7 days are commission-free!',
+      liveBadge: 'LIVE',
+      previewName: 'ShaPop Live',
+      previewHandle: '@you',
     },
-    he: {
-      badge: 'התחל למכור היום',
-      title: 'צא לשידור.\nמכור מיד.',
-      subtitle: 'הצטרף לאלפי מוכרים שמרוויחים כסף אמיתי דרך מכירות לייב ב-ShaPop.',
-      sellFast: 'מכור בשניות',
-      sellFastDesc: 'מכירת לייב זה מהיר. הרוויח יותר לשעה מכל מרקטפלייס.',
-      keepMore: '\u05E2\u05DE\u05DC\u05D5\u05EA \u05E0\u05DE\u05D5\u05DB\u05D5\u05EA',
-      keepMoreDesc: '8% \u05E2\u05DE\u05DC\u05D4 + \u05D3\u05DE\u05D9 \u05E2\u05D9\u05D1\u05D5\u05D3 Stripe. \u05EA\u05E9\u05DE\u05D5\u05E8 \u05E2\u05DC \u05D9\u05D5\u05EA\u05E8.',
-      bestBuyers: 'קונים מחוברים',
-      bestBuyersDesc: 'קונים בלייב נאמנים, נלהבים ומוכנים לקנות.',
-      trusted: 'פלטפורמה אמינה',
-      trustedDesc: 'תשלומים מאובטחים, הגנת קונים ותמיכה 24/7.',
-      formatsTitle: 'איך למכור?',
-      fmtAuction: 'מכירות פומביות',
-      fmtAuctionDesc: 'צופים מציעים בזמן אמת. המציע הגבוה זוכה.',
-      fmtBuyNow: 'קנייה ישירה',
-      fmtBuyNowDesc: 'מכור במחיר קבוע, בלי הצעות. הקונה לוחץ וקונה מיד.',
-      fmtMystery: 'קופסת הפתעה',
-      fmtMysteryDesc: 'הפתיעו את הקונים עם חבילה מסתורית במחיר אחיד.',
-      fmtRipShip: 'פתיחה ומשלוח',
-      fmtRipShipDesc: 'פתחו חבילות בשידור חי ושלחו מיד.',
-      stats1: '~13%',
-      stats1Label: '\u05E2\u05DE\u05DC\u05D5\u05EA',
-      stats2: '0$',
-      stats2Label: 'עלויות התחלה',
+    fr: {
+      badge: 'COMMENCE À VENDRE',
+      title: 'Passe en live.\nVends en un instant.',
+      subtitle: 'Rejoins des milliers de vendeurs qui gagnent de l\'argent pour de vrai grâce à la vente en live sur ShaPop.',
+      sellFast: 'Vends en quelques secondes',
+      sellFastDesc: 'La vente en live va vite. Tu gagnes plus par heure que sur n\'importe quelle autre marketplace.',
+      keepMore: 'Des frais parmi les plus bas',
+      keepMoreDesc: '8 % de commission + frais Stripe. Tu gardes plus que sur les autres plateformes.',
+      bestBuyers: 'Des acheteurs engagés',
+      bestBuyersDesc: 'Les acheteurs en live sont fidèles, enthousiastes et prêts à acheter.',
+      trusted: 'Une plateforme de confiance',
+      trustedDesc: 'Paiements sécurisés, protection des acheteurs et assistance 24 h/24, 7 j/7.',
+      formatsTitle: 'Comment vendre ?',
+      fmtAuction: 'Enchères',
+      fmtAuctionDesc: 'Les spectateurs enchérissent en direct. La meilleure offre remporte l\'article.',
+      fmtBuyNow: 'Achat immédiat',
+      fmtBuyNowDesc: 'Vends à prix fixe, sans enchères. L\'acheteur appuie et achète aussitôt.',
+      fmtMystery: 'Boîte mystère',
+      fmtMysteryDesc: 'Surprends tes acheteurs avec un lot mystère à prix fixe.',
+      fmtRipShip: 'Ouverture & envoi',
+      fmtRipShipDesc: 'Ouvre les packs en direct devant les acheteurs et expédie dans la foulée.',
+      stats1: '~13 %',
+      stats1Label: 'Frais au total',
+      stats2Label: 'Frais de démarrage',
       stats3: '24/7',
-      stats3Label: 'תמיכה',
+      stats3Label: 'Assistance',
       faq: 'FAQ',
-      letsGo: '!יאללה',
-      free: 'חינם להתחלה',
-      freeDesc: '!בלי עלויות מראש. 7 ימים ראשונים ללא עמלה',
+      letsGo: 'C\'est parti !',
+      free: 'Gratuit pour commencer',
+      freeDesc: 'Aucun frais au départ. Tes 7 premiers jours sont sans commission !',
+      liveBadge: 'LIVE',
+      previewName: 'ShaPop Live',
+      previewHandle: '@toi',
     },
     es: {
       badge: 'EMPIEZA A VENDER HOY',
-      title: 'Transmite en directo.\nVende al instante.',
-      subtitle: '\u00DAnete a miles de vendedores que ganan dinero real con ventas en directo en ShaPop.',
+      title: 'Empieza tu directo.\nVende al instante.',
+      subtitle: 'Únete a miles de vendedores que ganan dinero de verdad con las ventas en directo de ShaPop.',
       sellFast: 'Vende en segundos',
-      sellFastDesc: 'La venta en directo es r\u00E1pida. Gana m\u00E1s por hora que en cualquier marketplace.',
-      keepMore: 'Comisiones de las m\u00E1s bajas',
-      keepMoreDesc: '8% de comisi\u00F3n + comisiones Stripe. Te quedas con m\u00E1s que en otras plataformas.',
+      sellFastDesc: 'Vender en directo es rápido. Gana más por hora que en cualquier otro marketplace.',
+      keepMore: 'Comisiones de las más bajas',
+      keepMoreDesc: '8 % de comisión + comisiones de Stripe. Te quedas con más que en otras plataformas.',
       bestBuyers: 'Compradores comprometidos',
-      bestBuyersDesc: 'Los compradores en directo son fieles, entusiastas y listos para gastar.',
+      bestBuyersDesc: 'Quienes compran en directo son fieles, entusiastas y están listos para gastar.',
       trusted: 'Plataforma de confianza',
-      trustedDesc: 'Pagos seguros, protecci\u00F3n al comprador y soporte 24/7.',
-      formatsTitle: '\u00BFC\u00F3mo vender?',
+      trustedDesc: 'Pagos seguros, protección al comprador y soporte 24/7.',
+      formatsTitle: '¿Cómo vender?',
       fmtAuction: 'Subastas',
-      fmtAuctionDesc: 'Los espectadores pujan en directo. El mejor postor se lleva el art\u00EDculo.',
+      fmtAuctionDesc: 'Los espectadores pujan en tiempo real. La puja más alta se lleva el artículo.',
       fmtBuyNow: 'Compra directa',
-      fmtBuyNowDesc: 'Vende a precio fijo, sin pujas. El comprador hace clic y compra al instante.',
+      fmtBuyNowDesc: 'Vende a precio fijo, sin pujas. El comprador toca y compra al instante.',
       fmtMystery: 'Caja misteriosa',
-      fmtMysteryDesc: 'Sorprende a tus compradores con un lote misterioso a precio \u00FAnico.',
+      fmtMysteryDesc: 'Sorprende a tus compradores con un lote misterioso a precio fijo.',
       fmtRipShip: 'Abrir y enviar',
-      fmtRipShipDesc: 'Abre los packs en directo delante de los compradores y env\u00EDa de inmediato.',
-      stats1: '~13%',
+      fmtRipShipDesc: 'Abre los sobres en directo delante de los compradores y envía al momento.',
+      stats1: '~13 %',
       stats1Label: 'Comisiones totales',
-      stats2: '0\u20AC',
-      stats2Label: 'Costos iniciales',
+      stats2Label: 'Coste inicial',
       stats3: '24/7',
       stats3Label: 'Soporte',
-      faq: 'FAQ',
-      letsGo: '\u00A1Vamos!',
+      faq: 'Preguntas frecuentes',
+      letsGo: '¡Vamos!',
       free: 'Gratis para empezar',
-      freeDesc: '\u00A1Sin costos iniciales. Tus primeros 7 d\u00EDas sin comisi\u00F3n!',
+      freeDesc: 'Sin costes iniciales. ¡Tus primeros 7 días, sin comisión!',
+      liveBadge: 'EN VIVO',
+      previewName: 'ShaPop Live',
+      previewHandle: '@tú',
+    },
+    ru: {
+      badge: 'НАЧНИ ПРОДАВАТЬ СЕГОДНЯ',
+      title: 'Выходи в эфир.\nПродавай мгновенно.',
+      subtitle: 'Присоединяйся к тысячам продавцов, которые зарабатывают реальные деньги на прямых эфирах в ShaPop.',
+      sellFast: 'Продажа за секунды',
+      sellFastDesc: 'В эфире всё происходит быстро. Зарабатывай за час больше, чем на любом другом маркетплейсе.',
+      keepMore: 'Одни из самых низких комиссий',
+      keepMoreDesc: '8 % комиссии + комиссия Stripe. Тебе остаётся больше, чем на других площадках.',
+      bestBuyers: 'Вовлечённые покупатели',
+      bestBuyersDesc: 'Зрители эфиров — лояльные, увлечённые и готовые покупать.',
+      trusted: 'Надёжная платформа',
+      trustedDesc: 'Безопасные платежи, защита покупателей и поддержка 24/7.',
+      formatsTitle: 'Как продавать?',
+      fmtAuction: 'Аукционы',
+      fmtAuctionDesc: 'Зрители делают ставки в реальном времени. Товар получает тот, кто предложит больше всех.',
+      fmtBuyNow: 'Купить сразу',
+      fmtBuyNowDesc: 'Продавай по фиксированной цене, без торгов. Покупатель нажимает — и товар его.',
+      fmtMystery: 'Коробка-сюрприз',
+      fmtMysteryDesc: 'Удиви покупателей лотом-сюрпризом по фиксированной цене.',
+      fmtRipShip: 'Вскрытие и отправка',
+      fmtRipShipDesc: 'Вскрывай бустеры в эфире на глазах у покупателей и сразу отправляй.',
+      stats1: '~13 %',
+      stats1Label: 'Комиссии всего',
+      stats2Label: 'За старт',
+      stats3: '24/7',
+      stats3Label: 'Поддержка',
+      faq: 'Вопросы и ответы',
+      letsGo: 'Поехали!',
+      free: 'Старт бесплатно',
+      freeDesc: 'Никаких платежей заранее. Первые 7 дней — без комиссии!',
+      liveBadge: 'ЭФИР',
+      previewName: 'ShaPop Live',
+      previewHandle: '@ты',
+    },
+    he: {
+      badge: 'מתחילים למכור היום',
+      title: 'עולים לשידור.\nמוכרים מיד.',
+      subtitle: 'הצטרפו לאלפי מוכרים שמרוויחים כסף אמיתי ממכירות בשידור חי ב-ShaPop.',
+      sellFast: 'מוכרים בשניות',
+      sellFastDesc: 'מכירה בשידור חי היא מהירה. מרוויחים יותר לשעה מבכל מרקטפלייס אחר.',
+      keepMore: 'מהעמלות הנמוכות בשוק',
+      keepMoreDesc: '8% עמלה + עמלות Stripe. נשאר לך יותר מאשר בפלטפורמות אחרות.',
+      bestBuyers: 'קונים מעורבים',
+      bestBuyersDesc: 'מי שקונה בשידור חי נאמן, נלהב ומוכן לקנות.',
+      trusted: 'פלטפורמה אמינה',
+      trustedDesc: 'תשלומים מאובטחים, הגנת קונים ותמיכה 24/7.',
+      formatsTitle: 'איך מוכרים?',
+      fmtAuction: 'מכירות פומביות',
+      fmtAuctionDesc: 'הצופים מציעים בזמן אמת. ההצעה הגבוהה ביותר זוכה בפריט.',
+      fmtBuyNow: 'קנייה מיידית',
+      fmtBuyNowDesc: 'מוכרים במחיר קבוע, בלי הצעות. הקונה לוחץ וקונה מיד.',
+      fmtMystery: 'קופסת הפתעה',
+      fmtMysteryDesc: 'הפתיעו את הקונים עם חבילת הפתעה במחיר קבוע.',
+      fmtRipShip: 'פתיחה ומשלוח',
+      fmtRipShipDesc: 'פותחים חבילות בשידור חי מול הקונים ושולחים מיד.',
+      stats1: '~13%',
+      stats1Label: 'סך העמלות',
+      stats2Label: 'עלות פתיחה',
+      stats3: '24/7',
+      stats3Label: 'תמיכה',
+      faq: 'שאלות נפוצות',
+      letsGo: 'יאללה!',
+      free: 'חינם להתחלה',
+      freeDesc: 'בלי תשלום מראש. 7 הימים הראשונים בלי עמלה!',
+      liveBadge: 'שידור חי',
+      previewName: 'ShaPop Live',
+      previewHandle: '@את/ה',
     },
   }
 
-  const t = txt[lang as keyof typeof txt] || txt.fr
+  const t = txt[lang] ?? txt.en
 
   // ═══════════════ NON-SELLER: Premium Landing Page ═══════════════
   if (!profile?.is_seller) {
@@ -263,7 +402,7 @@ export default function Dashboard() {
 
     const stats = [
       { value: t.stats1, label: t.stats1Label },
-      { value: t.stats2, label: t.stats2Label },
+      { value: zeroFee, label: t.stats2Label },
       { value: t.stats3, label: t.stats3Label },
     ]
 
@@ -278,13 +417,13 @@ export default function Dashboard() {
         }}>
           {/* Background gradient orbs */}
           <div style={{
-            position: 'absolute', top: '-60px', left: '-40px',
+            position: 'absolute', top: '-60px', insetInlineStart: '-40px',
             width: '250px', height: '250px', borderRadius: '50%',
             background: 'radial-gradient(circle, rgba(240,144,138,0.25) 0%, transparent 70%)',
             filter: 'blur(40px)',
           }} />
           <div style={{
-            position: 'absolute', top: '40px', right: '-60px',
+            position: 'absolute', top: '40px', insetInlineEnd: '-60px',
             width: '200px', height: '200px', borderRadius: '50%',
             background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)',
             filter: 'blur(40px)',
@@ -348,28 +487,28 @@ export default function Dashboard() {
 
             {/* LIVE badge */}
             <div style={{
-              position: 'absolute', top: '14px', left: '14px',
+              position: 'absolute', top: '14px', insetInlineStart: '14px',
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '5px 12px', borderRadius: '8px',
               background: 'rgba(232,52,78,0.9)',
               backdropFilter: 'blur(8px)',
             }}>
               <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#fff', animation: 'pulse 1.5s ease infinite' }} />
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px' }}>LIVE</span>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px' }}>{t.liveBadge}</span>
             </div>
 
             {/* Viewers count */}
             <div style={{
-              position: 'absolute', top: '14px', right: '14px',
+              position: 'absolute', top: '14px', insetInlineEnd: '14px',
               padding: '5px 10px', borderRadius: '8px',
               background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
             }}>
-              <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>LIVE</span>
+              <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{t.liveBadge}</span>
             </div>
 
             {/* Center play icon */}
             <div style={{
-              position: 'absolute', top: '50%', left: '50%',
+              position: 'absolute', top: '50%', left: '50%', // i18n-ignore (centrage symétrique)
               transform: 'translate(-50%, -50%)',
               width: '60px', height: '60px', borderRadius: '50%',
               background: 'rgba(240,144,138,0.2)', backdropFilter: 'blur(10px)',
@@ -397,8 +536,8 @@ export default function Dashboard() {
                 {'\u{1F3AC}'}
               </div>
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>ShaPop Live</p>
-                <p style={{ fontSize: '11px', color: '#999' }}>@you</p>
+                <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{t.previewName}</p>
+                <p style={{ fontSize: '11px', color: '#999' }}>{t.previewHandle}</p>
               </div>
             </div>
           </div>
@@ -419,7 +558,7 @@ export default function Dashboard() {
               <p style={{ fontSize: '11px', color: '#666', marginTop: '2px', fontWeight: 500 }}>{stat.label}</p>
               {i < stats.length - 1 && (
                 <div style={{
-                  position: 'absolute', right: 0, top: '10%', height: '80%',
+                  position: 'absolute', insetInlineEnd: 0, top: '10%', height: '80%',
                   width: '1px', backgroundColor: '#1A1A1A',
                 }} />
               )}
@@ -544,18 +683,18 @@ export default function Dashboard() {
           {showFaq && (
             <div style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid #1A1A1A' }}>
               {faqItems.map((item, i) => (
-                <div key={item.q} style={{ borderBottom: i < faqItems.length - 1 ? '1px solid #1A1A1A' : 'none' }}>
+                <div key={item.id} style={{ borderBottom: i < faqItems.length - 1 ? '1px solid #1A1A1A' : 'none' }}>
                   <button
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       width: '100%', padding: '16px 18px',
                       background: openFaq === i ? '#0D0D0D' : '#080808',
-                      border: 'none', cursor: 'pointer', textAlign: 'left',
+                      border: 'none', cursor: 'pointer', textAlign: 'start',
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#ccc', paddingRight: '12px' }}>
-                      {lang === 'fr' ? item.qFr : lang === 'he' ? item.qHe : lang === 'es' ? item.qEs : item.q}
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#ccc', paddingInlineEnd: '12px' }}>
+                      {tr(item.q)}
                     </span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
                       style={{ flexShrink: 0, transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>
@@ -565,7 +704,7 @@ export default function Dashboard() {
                   {openFaq === i && (
                     <div style={{ padding: '0 18px 16px', backgroundColor: '#0D0D0D' }}>
                       <p style={{ fontSize: '13px', color: '#777', lineHeight: 1.6 }}>
-                        {lang === 'fr' ? item.aFr : lang === 'he' ? item.aHe : lang === 'es' ? item.aEs : item.a}
+                        {tr(item.a)}
                       </p>
                     </div>
                   )}
@@ -638,39 +777,34 @@ export default function Dashboard() {
 
   // ═══════════════ SELLER: Analytics Dashboard + Create Live Wizard ═══════════════
 
-  const tx = (fr: string, en: string, he: string, es: string) => {
-    if (lang === 'fr') return fr
-    if (lang === 'he') return he
-    if (lang === 'es') return es
-    return en
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : 'en-US', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-    }).format(amount)
-  }
+  const formatCurrency = (amount: number) => formatMoney(amount, sellerCurrency)
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr)
-    return d.toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'fr' ? 'fr-FR' : 'en-US', {
-      month: 'short', day: 'numeric',
-    })
+    return d.toLocaleDateString(getLocale(), { month: 'short', day: 'numeric' })
   }
 
+  const STATUS_LABELS: Record<string, Localized<string>> = {
+    pending_payment: { en: 'Pending', fr: 'En attente', es: 'Pendiente', ru: 'Ожидает оплаты', he: 'ממתין לתשלום' },
+    paid: { en: 'Paid', fr: 'Payée', es: 'Pagado', ru: 'Оплачен', he: 'שולם' },
+    shipped: { en: 'Shipped', fr: 'Expédiée', es: 'Enviado', ru: 'Отправлен', he: 'נשלח' },
+    delivered: { en: 'Delivered', fr: 'Livrée', es: 'Entregado', ru: 'Доставлен', he: 'נמסר' },
+    completed: { en: 'Completed', fr: 'Terminée', es: 'Completado', ru: 'Завершён', he: 'הושלם' },
+    refunded: { en: 'Refunded', fr: 'Remboursée', es: 'Reembolsado', ru: 'Возвращён', he: 'הוחזר' },
+    disputed: { en: 'Disputed', fr: 'En litige', es: 'En disputa', ru: 'Спор', he: 'במחלוקת' },
+  }
   const statusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      pending_payment: tx('En attente', 'Pending', '\u05DE\u05DE\u05EA\u05D9\u05DF', 'Pendiente'),
-      paid: tx('Payé', 'Paid', '\u05E9\u05D5\u05DC\u05DD', 'Pagado'),
-      shipped: tx('Expédié', 'Shipped', '\u05E0\u05E9\u05DC\u05D7', 'Enviado'),
-      delivered: tx('Livré', 'Delivered', '\u05E0\u05DE\u05E1\u05E8', 'Entregado'),
-      completed: tx('Terminé', 'Completed', '\u05D4\u05D5\u05E9\u05DC\u05DD', 'Completado'),
-      refunded: tx('Remboursé', 'Refunded', '\u05D4\u05D5\u05D7\u05D6\u05E8', 'Reembolsado'),
-      disputed: tx('Litige', 'Disputed', '\u05DE\u05D5\u05E4\u05E8\u05E2', 'Disputado'),
-    }
-    return labels[status] || status
+    const l = STATUS_LABELS[status]
+    return l ? tr(l) : status
+  }
+
+  const pluralRules = new Intl.PluralRules(getLocale())
+  // Formes : [un, plusieurs] ; le russe en a 3 : [один, несколько (2–4), много (5+)]
+  const plural = (n: number, forms: Localized<string[]>) => {
+    const f = tr(forms)
+    const cat = pluralRules.select(n)
+    const idx = cat === 'one' ? 0 : f.length === 3 && cat === 'few' ? 1 : f.length - 1
+    return f[idx].replace('{n}', String(n))
   }
 
   const statusColor = (status: string) => {
@@ -702,7 +836,7 @@ export default function Dashboard() {
           fontSize: '20px', fontWeight: 800, color: '#fff',
           marginBottom: '16px', letterSpacing: '-0.3px',
         }}>
-          {tx('Tableau de bord', 'Dashboard', '\u05DC\u05D5\u05D7 \u05D1\u05E7\u05E8\u05D4', 'Panel de control')}
+          {tr({ en: 'Dashboard', fr: 'Tableau de bord', es: 'Panel de control', ru: 'Панель продавца', he: 'לוח בקרה' })}
         </h2>
 
         {dashboardLoading && !dashboardData ? (
@@ -722,54 +856,60 @@ export default function Dashboard() {
               {/* Revenue Card */}
               <div style={cardStyle}>
                 <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  {tx('Revenus', 'Revenue', '\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA', 'Ingresos')}
+                  {tr({ en: 'Revenue', fr: 'Revenus', es: 'Ingresos', ru: 'Выручка', he: 'הכנסות' })}
                 </p>
                 <p style={{ fontSize: '22px', fontWeight: 900, color: '#4ade80', letterSpacing: '-0.5px' }}>
                   {formatCurrency(dashboardData.total_revenue)}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  {tx('Ce mois', 'This month', '\u05D4\u05D7\u05D5\u05D3\u05E9', 'Este mes')}: <span style={{ color: '#F0908A', fontWeight: 700 }}>{formatCurrency(dashboardData.monthly_revenue)}</span>
+                  {tr({ en: 'This month', fr: 'Ce mois-ci', es: 'Este mes', ru: 'В этом месяце', he: 'החודש' })}: <span style={{ color: '#F0908A', fontWeight: 700 }}>{formatCurrency(dashboardData.monthly_revenue)}</span>
                 </p>
               </div>
 
               {/* Sales Card */}
               <div style={cardStyle}>
                 <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  {tx('Ventes', 'Sales', '\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA', 'Ventas')}
+                  {tr({ en: 'Sales', fr: 'Ventes', es: 'Ventas', ru: 'Продажи', he: 'מכירות' })}
                 </p>
                 <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.total_sales}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  {tx('Commandes payées', 'Paid orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05E9\u05E9\u05D5\u05DC\u05DE\u05D5', 'Pedidos pagados')}
+                  {tr({ en: 'Paid orders', fr: 'Commandes payées', es: 'Pedidos pagados', ru: 'Оплаченные заказы', he: 'הזמנות ששולמו' })}
                 </p>
               </div>
 
               {/* Followers Card */}
               <div style={cardStyle}>
                 <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  {tx('Abonnés', 'Followers', '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Seguidores')}
+                  {tr({ en: 'Followers', fr: 'Abonnés', es: 'Seguidores', ru: 'Подписчики', he: 'עוקבים' })}
                 </p>
                 <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.total_followers}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  {tx('Total abonnés', 'Total followers', '\u05E1\u05D4\"\u05DB \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD', 'Total seguidores')}
+                  {tr({ en: 'Total followers', fr: 'Abonnés au total', es: 'Seguidores en total', ru: 'Всего подписчиков', he: 'סה״כ עוקבים' })}
                 </p>
               </div>
 
               {/* Avg Viewers Card */}
               <div style={cardStyle}>
                 <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
-                  {tx('Spectateurs moy.', 'Avg viewers', '\u05E6\u05D5\u05E4\u05D9\u05DD \u05DE\u05DE\u05D5\u05E6\u05E2', 'Espectadores prom.')}
+                  {tr({ en: 'Avg viewers', fr: 'Spectateurs moy.', es: 'Espectadores prom.', ru: 'Ср. число зрителей', he: 'ממוצע צופים' })}
                 </p>
                 <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.avg_viewers}
                 </p>
                 <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-                  {tx(`${dashboardData.total_streams} lives`, `${dashboardData.total_streams} streams`, `${dashboardData.total_streams} \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD`, `${dashboardData.total_streams} directos`)}
+                  {plural(dashboardData.total_streams, {
+                    en: ['{n} live', '{n} lives'],
+                    fr: ['{n} live', '{n} lives'],
+                    es: ['{n} directo', '{n} directos'],
+                    ru: ['{n} эфир', '{n} эфира', '{n} эфиров'],
+                    he: ['שידור אחד', '{n} שידורים'],
+                  })}
                   {dashboardData.active_streams > 0 && (
-                    <span style={{ color: '#4ade80', fontWeight: 700 }}> ({dashboardData.active_streams} live)</span>
+                    <span style={{ color: '#4ade80', fontWeight: 700 }}> ({tr({ en: `${dashboardData.active_streams} live now`, fr: `${dashboardData.active_streams} en direct`, es: `${dashboardData.active_streams} en directo`, ru: `${dashboardData.active_streams} в эфире`, he: `${dashboardData.active_streams} בשידור עכשיו` })})</span>
                   )}
                 </p>
               </div>
@@ -795,15 +935,15 @@ export default function Dashboard() {
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                 </svg>
               </div>
-              <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ flex: 1, textAlign: 'start' }}>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  {tx('Mon équipe', 'My team', '\u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05D9', 'Mi equipo')}
+                  {tr({ en: 'My team', fr: 'Mon équipe', es: 'Mi equipo', ru: 'Моя команда', he: 'הצוות שלי' })}
                 </p>
                 <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-                  {tx('Inviter des collaborateurs', 'Invite team members', '\u05D4\u05D6\u05DE\u05DF \u05D7\u05D1\u05E8\u05D9 \u05E6\u05D5\u05D5\u05EA', 'Invitar miembros')}
+                  {tr({ en: 'Invite team members', fr: 'Invite des collaborateurs', es: 'Invita a tu equipo', ru: 'Пригласи помощников', he: 'הזמנת חברי צוות' })}
                 </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" style={rtlFlip()}>
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -828,15 +968,15 @@ export default function Dashboard() {
                   <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
                 </svg>
               </div>
-              <div style={{ flex: 1, textAlign: 'left' }}>
+              <div style={{ flex: 1, textAlign: 'start' }}>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {ft().to_hand_over}
                 </p>
                 <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-                  {tx('Suivre vos colis', 'Track your packages', '\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA', 'Seguir tus paquetes')}
+                  {tr({ en: 'Track your packages', fr: 'Suis tes colis', es: 'Sigue tus paquetes', ru: 'Отслеживай посылки', he: 'מעקב אחרי החבילות' })}
                 </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" style={rtlFlip()}>
                 <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -846,26 +986,26 @@ export default function Dashboard() {
               const h = dashboardData.health!
               const healthItems = [
                 {
-                  label: tx('Litiges', 'Disputes', 'מחלוקות', 'Disputas'),
+                  label: tr({ en: 'Disputes', fr: 'Litiges', es: 'Disputas', ru: 'Споры', he: 'מחלוקות' }),
                   value: `${h.dispute_rate}%`,
                   color: h.dispute_rate === 0 ? '#4ade80' : h.dispute_rate < 3 ? '#facc15' : '#f87171',
                   icon: '⚖️',
                 },
                 {
-                  label: tx('Annulations', 'Cancellations', 'ביטולים', 'Cancelaciones'),
+                  label: tr({ en: 'Cancellations', fr: 'Annulations', es: 'Cancelaciones', ru: 'Отмены', he: 'ביטולים' }),
                   value: `${h.cancel_rate}%`,
                   color: h.cancel_rate < 5 ? '#4ade80' : h.cancel_rate < 15 ? '#facc15' : '#f87171',
                   icon: '↩️',
                 },
                 {
-                  label: tx('Complétion', 'Completion', 'השלמה', 'Completado'),
+                  label: tr({ en: 'Completion', fr: 'Finalisées', es: 'Completados', ru: 'Завершено', he: 'הושלמו' }),
                   value: `${h.completion_rate}%`,
                   color: h.completion_rate > 90 ? '#4ade80' : h.completion_rate > 70 ? '#facc15' : '#f87171',
                   icon: '✅',
                 },
                 {
-                  label: tx('Délai expédition', 'Ship time', 'זמן משלוח', 'Envío'),
-                  value: `${h.avg_shipping_days}j`,
+                  label: tr({ en: 'Ship time', fr: 'Délai d\'envoi', es: 'Plazo de envío', ru: 'Срок отправки', he: 'זמן משלוח' }),
+                  value: (() => { try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'day', unitDisplay: 'narrow' }).format(h.avg_shipping_days) } catch { return String(h.avg_shipping_days) } })(),
                   color: h.avg_shipping_days <= 2 ? '#4ade80' : h.avg_shipping_days <= 4 ? '#facc15' : '#f87171',
                   icon: '📦',
                 },
@@ -874,16 +1014,16 @@ export default function Dashboard() {
               const colors = healthItems.map(i => i.color)
               const overallColor = colors.includes('#f87171') ? '#f87171' : colors.includes('#facc15') ? '#facc15' : '#4ade80'
               const overallLabel = overallColor === '#4ade80'
-                ? tx('Excellent', 'Excellent', 'מצוין', 'Excelente')
+                ? tr({ en: 'Excellent', fr: 'Excellent', es: 'Excelente', ru: 'Отлично', he: 'מצוין' })
                 : overallColor === '#facc15'
-                  ? tx('Attention', 'Warning', 'אזהרה', 'Atención')
-                  : tx('Critique', 'Critical', 'קריטי', 'Crítico')
+                  ? tr({ en: 'Warning', fr: 'Attention', es: 'Atención', ru: 'Внимание', he: 'אזהרה' })
+                  : tr({ en: 'Critical', fr: 'Critique', es: 'Crítico', ru: 'Критично', he: 'קריטי' })
 
               return (
                 <div style={{ ...cardStyle, marginTop: '4px', marginBottom: '12px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
                     <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
-                      {tx('Santé du compte', 'Account Health', 'בריאות החשבון', 'Salud de la cuenta')}
+                      {tr({ en: 'Account health', fr: 'Santé du compte', es: 'Salud de la cuenta', ru: 'Состояние аккаунта', he: 'מצב החשבון' })}
                     </p>
                     <span style={{
                       fontSize: '10px', fontWeight: 700, color: overallColor,
@@ -910,12 +1050,13 @@ export default function Dashboard() {
                     ))}
                   </div>
                   <p style={{ fontSize: '10px', color: '#555', marginTop: '10px', textAlign: 'center' }}>
-                    {tx(
-                      `Basé sur ${h.total_orders} commandes`,
-                      `Based on ${h.total_orders} orders`,
-                      `מבוסס על ${h.total_orders} הזמנות`,
-                      `Basado en ${h.total_orders} pedidos`
-                    )}
+                    {plural(h.total_orders, {
+                      en: ['Based on {n} order', 'Based on {n} orders'],
+                      fr: ['Sur la base de {n} commande', 'Sur la base de {n} commandes'],
+                      es: ['Según {n} pedido', 'Según {n} pedidos'],
+                      ru: ['На основе {n} заказа', 'На основе {n} заказов'],
+                      he: ['על סמך הזמנה אחת', 'על סמך {n} הזמנות'],
+                    })}
                   </p>
                 </div>
               )
@@ -932,7 +1073,7 @@ export default function Dashboard() {
                   fontSize: '14px', fontWeight: 700, color: '#fff',
                   marginBottom: '14px',
                 }}>
-                  {tx('Dernières commandes', 'Recent orders', '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA', 'Pedidos recientes')}
+                  {tr({ en: 'Recent orders', fr: 'Dernières commandes', es: 'Pedidos recientes', ru: 'Последние заказы', he: 'הזמנות אחרונות' })}
                 </p>
                 {dashboardData.recent_orders.map((order, i) => (
                   <div
@@ -964,7 +1105,7 @@ export default function Dashboard() {
                         </span>
                       </div>
                     </div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A', marginLeft: '12px', flexShrink: 0 }}>
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A', marginInlineStart: '12px', flexShrink: 0 }}>
                       {formatCurrency(order.amount)}
                     </p>
                   </div>

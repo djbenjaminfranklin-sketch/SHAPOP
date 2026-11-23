@@ -2,20 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { getLocale, tr, useLang, LANG_META } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
+import { currencyForCountry } from '../lib/fulfillment'
 import { showToast } from '../lib/toast'
 import { apiFetch } from '../lib/api'
 import CartoonAvatar from '../components/CartoonAvatar'
 import { usePageTitle } from '../hooks/usePageTitle'
-
-type Lang = ReturnType<typeof getLang>
-
-const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
-  if (lang === 'en') return en
-  if (lang === 'he') return he
-  if (lang === 'es') return es
-  return fr
-}
 
 interface MyStream {
   id: string
@@ -29,8 +22,9 @@ interface MyStream {
 export default function Profile() {
   const { user, profile, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
-  usePageTitle(profile?.display_name ? `${profile.display_name} — Profil` : 'Profil')
-  const lang = getLang()
+  const lang = useLang()
+  const profileWord = tr({ en: 'Profile', fr: 'Profil', es: 'Perfil', ru: 'Профиль', he: 'פרופיל' })
+  usePageTitle(profile?.display_name ? `${profile.display_name} — ${profileWord}` : profileWord)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -167,11 +161,11 @@ export default function Profile() {
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      showToast(tx('Seuls JPEG, PNG et WebP sont acceptés.', 'Only JPEG, PNG, and WebP images are allowed.', 'רק תמונות JPEG, PNG ו-WebP מותרות.', 'Solo se permiten imágenes JPEG, PNG y WebP.', lang), 'error')
+      showToast(tr({ en: 'Only JPEG, PNG and WebP images are allowed.', fr: 'Seuls les formats JPEG, PNG et WebP sont acceptés.', es: 'Solo se aceptan imágenes JPEG, PNG y WebP.', ru: 'Подходят только изображения JPEG, PNG и WebP.', he: 'אפשר להעלות רק תמונות JPEG, PNG או WebP.' }), 'error')
       return
     }
     if (file.size > MAX_SIZE) {
-      showToast(tx("L'image doit faire moins de 5 Mo.", 'Image must be smaller than 5MB.', 'התמונה חייבת להיות קטנה מ-5MB.', 'La imagen debe pesar menos de 5MB.', lang), 'error')
+      showToast(tr({ en: 'The image must be under 5 MB.', fr: 'L\'image doit faire moins de 5 Mo.', es: 'La imagen debe pesar menos de 5 MB.', ru: 'Изображение должно быть меньше 5 МБ.', he: 'התמונה צריכה להיות קטנה מ-5MB.' }), 'error')
       return
     }
 
@@ -187,7 +181,7 @@ export default function Profile() {
       const newUrl = urlData.publicUrl + '?t=' + Date.now()
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: newUrl }).eq('id', user.id)
       if (updateError) {
-        showToast(tx('Erreur lors de la mise à jour de l\'avatar.', 'Failed to update avatar.', 'שגיאה בעדכון התמונה.', 'Error al actualizar el avatar.', lang), 'error')
+        showToast(tr({ en: 'Couldn\'t update your photo.', fr: 'Impossible de mettre à jour ta photo.', es: 'No se pudo actualizar tu foto.', ru: 'Не удалось обновить фото.', he: 'לא הצלחנו לעדכן את התמונה.' }), 'error')
         console.error('Avatar profile update failed:', updateError)
         return
       }
@@ -211,15 +205,15 @@ export default function Profile() {
   const handleEditSave = async () => {
     if (!user) return
     if (!editDisplayName.trim()) {
-      showToast(tx('Le nom ne peut pas être vide.', 'Name cannot be empty.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D4\u05D9\u05D5\u05EA \u05E8\u05D9\u05E7.', 'El nombre no puede estar vacío.', lang), 'error')
+      showToast(tr({ en: 'Name can\'t be empty.', fr: 'Le nom ne peut pas être vide.', es: 'El nombre no puede estar vacío.', ru: 'Имя не может быть пустым.', he: 'השם לא יכול להיות ריק.' }), 'error')
       return
     }
     if (editDisplayName.length > 50) {
-      showToast(tx('Le nom ne peut pas dépasser 50 caractères.', 'Name cannot exceed 50 characters.', '\u05D4\u05E9\u05DD \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-50 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'El nombre no puede superar los 50 caracteres.', lang), 'error')
+      showToast(tr({ en: 'Name can\'t be longer than 50 characters.', fr: 'Le nom ne peut pas dépasser 50 caractères.', es: 'El nombre no puede superar los 50 caracteres.', ru: 'Имя не может быть длиннее 50 символов.', he: 'השם יכול להכיל עד 50 תווים.' }), 'error')
       return
     }
     if (editBio.length > 200) {
-      showToast(tx('La bio ne peut pas dépasser 200 caractères.', 'Bio cannot exceed 200 characters.', '\u05D4\u05D1\u05D9\u05D5 \u05DC\u05D0 \u05D9\u05DB\u05D5\u05DC \u05DC\u05D7\u05E8\u05D5\u05D2 \u05DE-200 \u05EA\u05D5\u05D5\u05D9\u05DD.', 'La bio no puede superar los 200 caracteres.', lang), 'error')
+      showToast(tr({ en: 'Bio can\'t be longer than 200 characters.', fr: 'La bio ne peut pas dépasser 200 caractères.', es: 'La bio no puede superar los 200 caracteres.', ru: 'Описание не может быть длиннее 200 символов.', he: 'הביו יכול להכיל עד 200 תווים.' }), 'error')
       return
     }
     setSaving(true)
@@ -254,11 +248,11 @@ export default function Profile() {
         window.dispatchEvent(new Event('profile-updated'))
       }
       setEditMode(false)
-      showToast(tx('Profil mis à jour !', 'Profile updated!', '\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E2\u05D5\u05D3\u05DB\u05DF!', '¡Perfil actualizado!', lang), 'success')
+      showToast(tr({ en: 'Profile updated!', fr: 'Profil mis à jour !', es: '¡Perfil actualizado!', ru: 'Профиль обновлён!', he: 'הפרופיל עודכן!' }), 'success')
       // Reload the page to reflect changes from AuthContext
       window.location.reload()
     } catch {
-      showToast(tx('Erreur lors de la mise à jour.', 'Error updating profile.', '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E2\u05D3\u05DB\u05D5\u05DF \u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC.', 'Error al actualizar el perfil.', lang), 'error')
+      showToast(tr({ en: 'Couldn\'t update your profile.', fr: 'Impossible de mettre à jour ton profil.', es: 'No se pudo actualizar tu perfil.', ru: 'Не удалось обновить профиль.', he: 'לא הצלחנו לעדכן את הפרופיל.' }), 'error')
     }
     setSaving(false)
   }
@@ -280,7 +274,7 @@ export default function Profile() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
       }}>
-        <div role="status" aria-label={lang === 'fr' ? 'Chargement du profil' : lang === 'es' ? 'Cargando perfil' : lang === 'he' ? 'טוען פרופיל' : 'Loading profile'} style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div role="status" aria-label={tr({ en: 'Loading profile', fr: 'Chargement du profil', es: 'Cargando perfil', ru: 'Загрузка профиля', he: 'טוען פרופיל' })} style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -294,7 +288,7 @@ export default function Profile() {
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', paddingLeft: '32px', paddingRight: '32px',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', paddingInline: '32px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ height: '40px', marginBottom: '32px', objectFit: 'contain' }} />
@@ -309,10 +303,10 @@ export default function Profile() {
           </svg>
         </div>
         <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: '8px' }}>
-          {tx('Connecte-toi à ShaPop', 'Sign in to ShaPop', '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DC-ShaPop', 'Inicia sesión en ShaPop', lang)}
+          {tr({ en: 'Sign in to ShaPop', fr: 'Connecte-toi à ShaPop', es: 'Inicia sesión en ShaPop', ru: 'Войди в ShaPop', he: 'התחברות ל-ShaPop' })}
         </h1>
         <p style={{ fontSize: '14px', color: '#666', textAlign: 'center', marginBottom: '32px', lineHeight: 1.5, maxWidth: '280px' }}>
-          {tx('Achète, vends et participe aux lives en direct', 'Buy, sell and join live streams', '\u05E7\u05E0\u05D4, \u05DE\u05DB\u05D5\u05E8 \u05D5\u05D4\u05E6\u05D8\u05E8\u05E3 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD', 'Compra, vende y únete a los lives', lang)}
+          {tr({ en: 'Buy, sell and join live shows', fr: 'Achète, vends et rejoins les lives', es: 'Compra, vende y únete a los directos', ru: 'Покупай, продавай и смотри эфиры', he: 'קונים, מוכרים ומצטרפים לשידורים חיים' })}
         </p>
         <Link to="/login" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px', borderRadius: '14px',
@@ -320,14 +314,14 @@ export default function Profile() {
           color: '#fff', fontSize: '16px', fontWeight: 700, textAlign: 'center',
           boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
         }}>
-          {tx('Se connecter', 'Sign in', '\u05D4\u05EA\u05D7\u05D1\u05E8', 'Iniciar sesión', lang)}
+          {tr({ en: 'Sign in', fr: 'Se connecter', es: 'Iniciar sesión', ru: 'Войти', he: 'התחברות' })}
         </Link>
         <Link to="/register" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px', borderRadius: '14px',
           textDecoration: 'none', backgroundColor: 'transparent', border: '1.5px solid #333',
           color: '#ccc', fontSize: '16px', fontWeight: 700, textAlign: 'center',
         }}>
-          {tx('Créer un compte', 'Create account', '\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Crear cuenta', lang)}
+          {tr({ en: 'Create an account', fr: 'Créer un compte', es: 'Crear una cuenta', ru: 'Создать аккаунт', he: 'יצירת חשבון' })}
         </Link>
       </div>
     )
@@ -433,7 +427,7 @@ export default function Profile() {
   }
 
   const chevron = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}>
       <path d="M9 18l6-6-6-6"/>
     </svg>
   )
@@ -456,32 +450,36 @@ export default function Profile() {
     to?: string
   }
 
+  const langMeta = LANG_META[lang]
+  const languageIcon = <span aria-hidden="true" style={{ fontSize: '20px', lineHeight: 1 }}>{langMeta.flag}</span>
+
   const accountItems: MenuItem[] = [
-    { icon: ico.shield, label: tx('État du compte', 'Account status', '\u05DE\u05E6\u05D1 \u05D7\u05E9\u05D1\u05D5\u05DF', 'Estado de cuenta', lang), to: '/account-status' },
-    { icon: ico.verified, label: tx('Vérification d\'identité', 'Identity verification', '\u05D0\u05D9\u05DE\u05D5\u05EA \u05D6\u05D4\u05D5\u05EA', 'Verificación de identidad', lang), sub: tx('Selfie + pièce d\'identité', 'Selfie + ID document', '\u05E1\u05DC\u05E4\u05D9 + \u05EA\u05E2\u05D5\u05D3\u05D4', 'Selfie + documento', lang), to: '/verification' },
-    { icon: ico.card, label: tx('Paiements et livraison', 'Payments & shipping', '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7', 'Pagos y envío', lang), to: '/payments' },
-    { icon: ico.pin, label: tx('Adresses', 'Addresses', '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', 'Direcciones', lang), to: '/addresses' },
-    { icon: ico.bell, label: tx('Notifications', 'Notifications', '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA', 'Notificaciones', lang), to: '/notifications' },
-    { icon: ico.controls, label: tx('Controles de compte', 'Account controls', '\u05D1\u05E7\u05E8\u05D5\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF', 'Controles de cuenta', lang), to: '/account-controls' },
-    { icon: ico.mail, label: tx("Modifier l'adresse e-mail", 'Change email', '\u05E9\u05E0\u05D4 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC', 'Cambiar e-mail', lang), sub: user.email || '', to: '/change-email' },
-    { icon: ico.lock, label: tx('Modifier le mot de passe', 'Change password', '\u05E9\u05E0\u05D4 \u05E1\u05D9\u05E1\u05DE\u05D4', 'Cambiar contraseña', lang), to: '/change-password' },
-    { icon: ico.key, label: tx("Clé d'accès", 'Passkey', '\u05DE\u05E4\u05EA\u05D7 \u05D2\u05D9\u05E9\u05D4', 'Clave de acceso', lang), to: '/security' },
+    { icon: languageIcon, label: tr({ en: 'Language', fr: 'Langue', es: 'Idioma', ru: 'Язык', he: 'שפה' }), sub: `${langMeta.flag} ${langMeta.name}`, to: '/preferences' },
+    { icon: ico.shield, label: tr({ en: 'Account status', fr: 'État du compte', es: 'Estado de la cuenta', ru: 'Статус аккаунта', he: 'מצב החשבון' }), to: '/account-status' },
+    { icon: ico.verified, label: tr({ en: 'Identity verification', fr: 'Vérification d\'identité', es: 'Verificación de identidad', ru: 'Подтверждение личности', he: 'אימות זהות' }), sub: tr({ en: 'Selfie + ID', fr: 'Selfie + pièce d\'identité', es: 'Selfie + documento de identidad', ru: 'Селфи + документ', he: 'סלפי + תעודה מזהה' }), to: '/verification' },
+    { icon: ico.card, label: tr({ en: 'Payments & shipping', fr: 'Paiements et livraison', es: 'Pagos y envíos', ru: 'Оплата и доставка', he: 'תשלומים ומשלוחים' }), to: '/payments' },
+    { icon: ico.pin, label: tr({ en: 'Addresses', fr: 'Adresses', es: 'Direcciones', ru: 'Адреса', he: 'כתובות' }), to: '/addresses' },
+    { icon: ico.bell, label: tr({ en: 'Notifications', fr: 'Notifications', es: 'Notificaciones', ru: 'Уведомления', he: 'התראות' }), to: '/notifications' },
+    { icon: ico.controls, label: tr({ en: 'Account controls', fr: 'Contrôles du compte', es: 'Controles de la cuenta', ru: 'Настройки аккаунта', he: 'הגדרות חשבון' }), to: '/account-controls' },
+    { icon: ico.mail, label: tr({ en: 'Change email', fr: 'Modifier l\'adresse e-mail', es: 'Cambiar correo electrónico', ru: 'Изменить e-mail', he: 'שינוי אימייל' }), sub: user.email || '', to: '/change-email' },
+    { icon: ico.lock, label: tr({ en: 'Change password', fr: 'Modifier le mot de passe', es: 'Cambiar contraseña', ru: 'Изменить пароль', he: 'שינוי סיסמה' }), to: '/change-password' },
+    { icon: ico.key, label: tr({ en: 'Passkey', fr: 'Clé d\'accès', es: 'Llave de acceso', ru: 'Ключ доступа', he: 'מפתח גישה' }), to: '/security' },
   ]
 
   // Admin link — only for admin email
   const ADMIN_EMAIL = 'djbenjaminfranklin@gmail.com'
   const adminItems: MenuItem[] = user.email?.toLowerCase() === ADMIN_EMAIL ? [
-    { icon: ico.gear, label: tx('Administration', 'Administration', 'ניהול', 'Administración', lang), to: '/admin' },
+    { icon: ico.gear, label: tr({ en: 'Admin', fr: 'Administration', es: 'Administración', ru: 'Администрирование', he: 'ניהול' }), to: '/admin' },
   ] : []
 
   const supportItems: MenuItem[] = [
-    { icon: ico.chat, label: tx('Nous contacter', 'Contact us', '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', 'Contáctanos', lang), to: '/contact' },
-    { icon: ico.warning, label: tx('Rapports des utilisateurs', 'User reports', '\u05D3\u05D9\u05D5\u05D5\u05D7\u05D9 \u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD', 'Reportes de usuarios', lang), to: '/contact' },
-    { icon: ico.tax, label: tx('Exonération de la taxe de vente', 'Sales tax exemption', '\u05E4\u05D8\u05D5\u05E8 \u05DE\u05DE\u05E1 \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA', 'Exención de impuestos', lang), to: '/contact' },
-    { icon: ico.doc, label: tx('Politique de confidentialité', 'Privacy policy', '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA', 'Política de privacidad', lang), external: true, to: '/privacy' },
-    { icon: ico.doc, label: tx('Conditions générales', 'Terms of Service', '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9', 'Términos de servicio', lang), external: true, to: '/terms' },
-    { icon: ico.doc, label: tx('CLUF', 'EULA', '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF', 'CLUF', lang), external: true, to: '/eula' },
-    { icon: ico.help, label: 'FAQ', external: true, to: '/faq' },
+    { icon: ico.chat, label: tr({ en: 'Contact us', fr: 'Nous contacter', es: 'Contáctanos', ru: 'Связаться с нами', he: 'צור קשר' }), to: '/contact' },
+    { icon: ico.warning, label: tr({ en: 'User reports', fr: 'Signalements', es: 'Denuncias de usuarios', ru: 'Жалобы пользователей', he: 'דיווחי משתמשים' }), to: '/contact' },
+    { icon: ico.tax, label: tr({ en: 'Sales tax exemption', fr: 'Exonération de taxe', es: 'Exención de impuestos', ru: 'Освобождение от налога', he: 'פטור ממס' }), to: '/contact' },
+    { icon: ico.doc, label: tr({ en: 'Privacy policy', fr: 'Politique de confidentialité', es: 'Política de privacidad', ru: 'Политика конфиденциальности', he: 'מדיניות פרטיות' }), external: true, to: '/privacy' },
+    { icon: ico.doc, label: tr({ en: 'Terms of service', fr: 'Conditions d\'utilisation', es: 'Términos del servicio', ru: 'Условия использования', he: 'תנאי שימוש' }), external: true, to: '/terms' },
+    { icon: ico.doc, label: tr({ en: 'EULA', fr: 'CLUF', es: 'CLUF', ru: 'Лицензионное соглашение', he: 'הסכם רישיון למשתמש' }), external: true, to: '/eula' },
+    { icon: ico.help, label: tr({ en: 'FAQ', fr: 'FAQ', es: 'Preguntas frecuentes', ru: 'Вопросы и ответы', he: 'שאלות נפוצות' }), external: true, to: '/faq' },
   ]
 
   // ── Render a single menu row ──
@@ -494,7 +492,7 @@ export default function Profile() {
         width: '100%', padding: '15px 16px',
         background: 'none', border: 'none',
         borderBottom: isLast ? 'none' : '1px solid #1A1A1A',
-        cursor: 'pointer', textAlign: 'left',
+        cursor: 'pointer', textAlign: 'start',
       }}
     >
       <div style={{
@@ -534,7 +532,7 @@ export default function Profile() {
           <div
             role="button"
             tabIndex={0}
-            aria-label={tx('Changer la photo de profil', 'Change profile photo', 'שנה תמונת פרופיל', 'Cambiar foto de perfil', lang)}
+            aria-label={tr({ en: 'Change profile photo', fr: 'Changer la photo de profil', es: 'Cambiar foto de perfil', ru: 'Сменить фото профиля', he: 'שינוי תמונת פרופיל' })}
             onClick={handleAvatarTap}
             onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleAvatarTap() } }}
             style={{
@@ -555,7 +553,7 @@ export default function Profile() {
             </div>
             {/* Camera badge */}
             <div style={{
-              position: 'absolute', bottom: 0, right: 0,
+              position: 'absolute', bottom: 0, insetInlineEnd: 0,
               width: '26px', height: '26px', borderRadius: '50%',
               backgroundColor: '#333', border: '2px solid #000',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -606,7 +604,7 @@ export default function Profile() {
                     cursor: 'pointer', letterSpacing: '0.01em',
                   }}
                 >
-                  {tx('Modifier le profil', 'Edit profile', '\u05E2\u05E8\u05D5\u05DA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC', 'Editar perfil', lang)}
+                  {tr({ en: 'Edit profile', fr: 'Modifier le profil', es: 'Editar perfil', ru: 'Редактировать профиль', he: 'עריכת פרופיל' })}
                 </button>
               </>
             )}
@@ -617,8 +615,8 @@ export default function Profile() {
                   value={editDisplayName}
                   onChange={e => setEditDisplayName(e.target.value)}
                   maxLength={50}
-                  placeholder={tx('Nom', 'Name', '\u05E9\u05DD', 'Nombre', lang)}
-                  aria-label={tx('Nom', 'Name', '\u05E9\u05DD', 'Nombre', lang)}
+                  placeholder={tr({ en: 'Name', fr: 'Nom', es: 'Nombre', ru: 'Имя', he: 'שם' })}
+                  aria-label={tr({ en: 'Name', fr: 'Nom', es: 'Nombre', ru: 'Имя', he: 'שם' })}
                   aria-required="true"
                   style={{
                     width: '100%', padding: '8px 12px', borderRadius: '8px',
@@ -629,7 +627,7 @@ export default function Profile() {
                   onFocus={e => { e.target.style.borderColor = '#F0908A' }}
                   onBlur={e => { e.target.style.borderColor = '#333' }}
                 />
-                <span style={{ fontSize: '11px', color: '#555', textAlign: 'right' }}>
+                <span style={{ fontSize: '11px', color: '#555', textAlign: 'end' }}>
                   {editDisplayName.length}/50
                 </span>
               </div>
@@ -641,15 +639,15 @@ export default function Profile() {
         {editMode && (
           <div style={{ padding: '0 20px 12px', ...entrance('20ms') }}>
             <label style={{ fontSize: '13px', color: '#888', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
-              Bio
+              {tr({ en: 'Bio', fr: 'Bio', es: 'Biografía', ru: 'О себе', he: 'ביו' })}
             </label>
             <textarea
               value={editBio}
               onChange={e => setEditBio(e.target.value)}
               maxLength={200}
               rows={3}
-              placeholder={tx('Parle-nous de toi...', 'Tell us about yourself...', '\u05E1\u05E4\u05E8 \u05DC\u05E0\u05D5 \u05E2\u05DC \u05E2\u05E6\u05DE\u05DA...', 'Cuéntanos sobre ti...', lang)}
-              aria-label={lang === 'fr' ? 'Bio' : lang === 'es' ? 'Biografía' : lang === 'he' ? 'ביוגרפיה' : 'Bio'}
+              placeholder={tr({ en: 'Tell us about yourself…', fr: 'Parle-nous de toi…', es: 'Cuéntanos sobre ti…', ru: 'Расскажи о себе…', he: 'ספרו קצת על עצמכם…' })}
+              aria-label={tr({ en: 'Bio', fr: 'Bio', es: 'Biografía', ru: 'О себе', he: 'ביו' })}
               style={{
                 width: '100%', padding: '10px 12px', borderRadius: '10px',
                 backgroundColor: '#1A1A1A', border: '1.5px solid #333',
@@ -660,7 +658,7 @@ export default function Profile() {
               onFocus={e => { e.target.style.borderColor = '#F0908A' }}
               onBlur={e => { e.target.style.borderColor = '#333' }}
             />
-            <span style={{ fontSize: '11px', color: '#555', display: 'block', textAlign: 'right', marginTop: '2px' }}>
+            <span style={{ fontSize: '11px', color: '#555', display: 'block', textAlign: 'end', marginTop: '2px' }}>
               {editBio.length}/200
             </span>
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
@@ -674,7 +672,7 @@ export default function Profile() {
                   cursor: 'pointer',
                 }}
               >
-                {tx('Annuler', 'Cancel', '\u05D1\u05D9\u05D8\u05D5\u05DC', 'Cancelar', lang)}
+                {tr({ en: 'Cancel', fr: 'Annuler', es: 'Cancelar', ru: 'Отмена', he: 'ביטול' })}
               </button>
               <button
                 onClick={handleEditSave}
@@ -689,8 +687,8 @@ export default function Profile() {
                 }}
               >
                 {saving
-                  ? tx('Sauvegarde...', 'Saving...', '\u05E9\u05D5\u05DE\u05E8...', 'Guardando...', lang)
-                  : tx('Enregistrer', 'Save', '\u05E9\u05DE\u05D5\u05E8', 'Guardar', lang)}
+                  ? tr({ en: 'Saving…', fr: 'Enregistrement…', es: 'Guardando…', ru: 'Сохранение…', he: 'שומר…' })
+                  : tr({ en: 'Save', fr: 'Enregistrer', es: 'Guardar', ru: 'Сохранить', he: 'שמירה' })}
               </button>
             </div>
           </div>
@@ -699,7 +697,7 @@ export default function Profile() {
         {/* ── "Compte" header ─────────────────────────────────────── */}
         <div style={{ padding: '4px 20px 12px', ...entrance('40ms') }}>
           <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', margin: 0 }}>
-            {tx('Compte', 'Account', '\u05D7\u05E9\u05D1\u05D5\u05DF', 'Cuenta', lang)}
+            {tr({ en: 'Account', fr: 'Compte', es: 'Cuenta', ru: 'Аккаунт', he: 'חשבון' })}
           </h2>
         </div>
 
@@ -725,10 +723,15 @@ export default function Profile() {
                     </svg>
                   </div>
                   <p style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {(buyerStats?.total_spent ?? 0).toFixed(0)}&euro;
+                    {(() => {
+                      const amount = buyerStats?.total_spent ?? 0
+                      try {
+                        return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: currencyForCountry(profile?.country), maximumFractionDigits: 0 }).format(amount)
+                      } catch { return amount.toFixed(0) }
+                    })()}
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                    {tx('Total dépensé', 'Total spent', 'סה"כ הוצאות', 'Total gastado', lang)}
+                    {tr({ en: 'Total spent', fr: 'Total dépensé', es: 'Total gastado', ru: 'Всего потрачено', he: 'סה״כ הוצאות' })}
                   </p>
                 </div>
 
@@ -750,7 +753,7 @@ export default function Profile() {
                     {buyerStats?.order_count ?? 0}
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                    {tx('Commandes', 'Orders', 'הזמנות', 'Pedidos', lang)}
+                    {tr({ en: 'Orders', fr: 'Commandes', es: 'Pedidos', ru: 'Заказы', he: 'הזמנות' })}
                   </p>
                 </div>
 
@@ -772,7 +775,7 @@ export default function Profile() {
                     {buyerStats?.pending_count ?? 0}
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                    {tx('En cours', 'Pending', 'בתהליך', 'En curso', lang)}
+                    {tr({ en: 'In progress', fr: 'En cours', es: 'En curso', ru: 'В процессе', he: 'בתהליך' })}
                   </p>
                 </div>
 
@@ -794,7 +797,7 @@ export default function Profile() {
                     {buyerStats?.buyer_score ?? 0}<span style={{ fontSize: '13px', fontWeight: 500, color: '#888' }}>/100</span>
                   </p>
                   <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                    {tx('Score acheteur', 'Buyer score', 'ציון קונה', 'Puntaje comprador', lang)}
+                    {tr({ en: 'Buyer score', fr: 'Score acheteur', es: 'Puntuación de comprador', ru: 'Рейтинг покупателя', he: 'ציון קונה' })}
                   </p>
                 </div>
               </div>
@@ -809,7 +812,7 @@ export default function Profile() {
                   color: '#fff', fontSize: '14px', fontWeight: 700,
                 }}
               >
-                {tx('Voir mes achats', 'View my purchases', 'צפה ברכישות שלי', 'Ver mis compras', lang)}
+                {tr({ en: 'View my purchases', fr: 'Voir mes achats', es: 'Ver mis compras', ru: 'Мои покупки', he: 'הרכישות שלי' })}
               </button>
             </div>
           </div>
@@ -821,10 +824,10 @@ export default function Profile() {
             bronze: '#CD7F32', silver: '#C0C0C0', gold: '#FFD700', platinum: '#E5E4E2',
           }
           const tierNames: Record<string, string> = {
-            bronze: tx('Bronze', 'Bronze', 'ארד', 'Bronce', lang),
-            silver: tx('Argent', 'Silver', 'כסף', 'Plata', lang),
-            gold: tx('Or', 'Gold', 'זהב', 'Oro', lang),
-            platinum: tx('Platine', 'Platinum', 'פלטינה', 'Platino', lang),
+            bronze: tr({ en: 'Bronze', fr: 'Bronze', es: 'Bronce', ru: 'Бронза', he: 'ארד' }),
+            silver: tr({ en: 'Silver', fr: 'Argent', es: 'Plata', ru: 'Серебро', he: 'כסף' }),
+            gold: tr({ en: 'Gold', fr: 'Or', es: 'Oro', ru: 'Золото', he: 'זהב' }),
+            platinum: tr({ en: 'Platinum', fr: 'Platine', es: 'Platino', ru: 'Платина', he: 'פלטינה' }),
           }
           const tierThresholds: Record<string, number> = {
             bronze: 0, silver: 100, gold: 500, platinum: 1000,
@@ -858,11 +861,11 @@ export default function Profile() {
                         fontSize: '10px', fontWeight: 700, color: '#000',
                         backgroundColor: color, borderRadius: '4px', padding: '2px 8px',
                       }}>
-                        {tx('NIVEAU', 'TIER', 'רמה', 'NIVEL', lang)}
+                        {tr({ en: 'TIER', fr: 'NIVEAU', es: 'NIVEL', ru: 'УРОВЕНЬ', he: 'רמה' })}
                       </span>
                     </div>
                     <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                      {loyalty.points} {tx('points', 'points', 'נקודות', 'puntos', lang)}
+                      {loyalty.points} {tr({ en: `${loyalty.points} points`, fr: `${loyalty.points} points`, es: `${loyalty.points} puntos`, ru: `Баллы: ${loyalty.points}`, he: `${loyalty.points} נקודות` })}
                     </p>
                   </div>
                 </div>
@@ -890,14 +893,8 @@ export default function Profile() {
                     </div>
                     <p style={{ fontSize: '11px', color: '#666', margin: '6px 0 0', textAlign: 'center' }}>
                       {nextThreshold - loyalty.points > 0
-                        ? tx(
-                            `${nextThreshold - loyalty.points} points pour atteindre ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
-                            `${nextThreshold - loyalty.points} points to reach ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
-                            `${nextThreshold - loyalty.points} נקודות להגיע ל-${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
-                            `${nextThreshold - loyalty.points} puntos para alcanzar ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`,
-                            lang
-                          )
-                        : tx('Niveau maximum atteint !', 'Maximum tier reached!', 'הגעת לרמה המקסימלית!', '¡Nivel máximo alcanzado!', lang)}
+                        ? tr({ en: `${nextThreshold - loyalty.points} points to reach ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`, fr: `Encore ${nextThreshold - loyalty.points} points pour atteindre ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`, es: `${nextThreshold - loyalty.points} puntos para llegar a ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`, ru: `До уровня «${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}» осталось баллов: ${nextThreshold - loyalty.points}`, he: `עוד ${nextThreshold - loyalty.points} נקודות לרמת ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}` })
+                        : tr({ en: 'Top tier reached!', fr: 'Niveau maximum atteint !', es: '¡Nivel máximo alcanzado!', ru: 'Достигнут максимальный уровень!', he: 'הגעת לרמה הגבוהה ביותר!' })}
                     </p>
                   </div>
                 )}
@@ -915,7 +912,7 @@ export default function Profile() {
             <button onClick={() => navigate('/go-live?manage=true')} style={{
               width: '100%',
               backgroundColor: '#1A1A1A', border: 'none', borderRadius: '14px',
-              padding: '16px 14px', cursor: 'pointer', textAlign: 'left',
+              padding: '16px 14px', cursor: 'pointer', textAlign: 'start',
               display: 'flex', alignItems: 'center', gap: '14px',
             }}>
               <div style={{
@@ -930,7 +927,7 @@ export default function Profile() {
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ color: '#fff', fontSize: '15px', fontWeight: 600, margin: 0 }}>
-                  {tx('Mes lives', 'My lives', 'השידורים שלי', 'Mis directos', lang)}
+                  {tr({ en: 'My lives', fr: 'Mes lives', es: 'Mis directos', ru: 'Мои эфиры', he: 'השידורים שלי' })}
                 </p>
                 {!streamsLoaded ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
@@ -940,16 +937,16 @@ export default function Profile() {
                       borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                     }} />
                     <span style={{ color: '#666', fontSize: '12px' }}>
-                      {tx('Chargement...', 'Loading...', '...טוען', 'Cargando...', lang)}
+                      {tr({ en: 'Loading…', fr: 'Chargement…', es: 'Cargando…', ru: 'Загрузка…', he: 'טוען…' })}
                     </span>
                   </div>
                 ) : myStreams.length > 0 ? (
                   <p style={{ color: '#888', fontSize: '13px', margin: '2px 0 0' }}>
-                    {myStreams.length} {tx('lives', 'lives', 'שידורים', 'directos', lang)}
+                    {myStreams.length} {tr({ en: `${myStreams.length} lives`, fr: `${myStreams.length} lives`, es: `${myStreams.length} directos`, ru: `Эфиров: ${myStreams.length}`, he: `${myStreams.length} שידורים` })}
                   </p>
                 ) : null}
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}>
                 <path d="M9 18l6-6-6-6"/>
               </svg>
             </button>
@@ -992,14 +989,14 @@ export default function Profile() {
             }}
           >
             {ico.logout}
-            {tx('Se déconnecter', 'Sign out', '\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA', 'Cerrar sesión', lang)}
+            {tr({ en: 'Sign out', fr: 'Se déconnecter', es: 'Cerrar sesión', ru: 'Выйти', he: 'התנתקות' })}
           </button>
         </div>
 
         {/* ── Version ─────────────────────────────────────────────── */}
         <div style={{ textAlign: 'center', paddingBottom: '24px', ...entrance('280ms') }}>
           <p style={{ fontSize: '12px', color: '#444', margin: 0 }}>v1.0.0 (1)</p>
-          <p style={{ fontSize: '12px', color: '#444', margin: '2px 0 0' }}>&copy; 2026 ShaPop</p>
+          <p style={{ fontSize: '12px', color: '#444', margin: '2px 0 0' }}>&copy; 2026 ShaPop</p>{/* i18n-ignore */}
         </div>
 
       </div>

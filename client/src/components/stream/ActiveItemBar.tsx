@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import type { Item } from '../../types/database'
 import { hapticTap } from '../../lib/haptics'
+import { getLang, type Lang, type Localized } from '../../lib/i18n'
+import { formatMoney, currencyForCountry } from '../../lib/fulfillment'
 
 interface ActiveItemBarProps {
   item: Item | null
@@ -11,14 +13,18 @@ interface ActiveItemBarProps {
   onAddCard: () => void
   disabled?: boolean
   timeLeft?: number
-  lang: 'fr' | 'en' | 'he' | 'es'
+  lang?: Lang
+  /** Pays du vendeur (devise des prix affichés). */
+  sellerCountry?: string | null
+  /** Devise explicite (prioritaire sur sellerCountry). */
+  currency?: string | null
   onMaxBid?: () => void
   hasActiveMaxBid?: boolean
   bundleCount?: number
   onBuyNow?: () => void
 }
 
-const LABELS: Record<string, {
+type Labels = {
   bid: string
   currentPrice: string
   unavailable: string
@@ -29,54 +35,68 @@ const LABELS: Record<string, {
   maxBidActive: string
   bundleDiscount: string
   buyNow: string
-}> = {
-  fr: {
-    bid: 'Encherir',
-    currentPrice: 'Prix actuel',
-    unavailable: 'Article non disponible',
-    addCard: 'Ajoute ta carte',
-    max: 'MAX',
-    shippingGrouped: 'Livraison groupee en fin de live',
-    maxBid: 'Enchere max',
-    maxBidActive: 'Auto-enchere active',
-    bundleDiscount: 'Shipping groupe : -15%',
-    buyNow: 'Acheter',
-  },
+}
+
+const LABELS: Localized<Labels> = {
   en: {
     bid: 'Bid',
     currentPrice: 'Current price',
     unavailable: 'Item unavailable',
     addCard: 'Add your card',
     max: 'MAX',
-    shippingGrouped: 'Shipping grouped at end of live',
+    shippingGrouped: 'Shipping grouped at the end of the live',
     maxBid: 'Max bid',
-    maxBidActive: 'Auto-bid active',
+    maxBidActive: 'Auto-bid on',
     bundleDiscount: 'Grouped shipping: -15%',
     buyNow: 'Buy now',
+  },
+  fr: {
+    bid: 'Enchérir',
+    currentPrice: 'Prix actuel',
+    unavailable: 'Article indisponible',
+    addCard: 'Ajoute ta carte',
+    max: 'MAX',
+    shippingGrouped: 'Livraison groupée en fin de live',
+    maxBid: 'Enchère max',
+    maxBidActive: 'Enchère auto activée',
+    bundleDiscount: 'Livraison groupée : -15 %',
+    buyNow: 'Acheter',
+  },
+  es: {
+    bid: 'Pujar',
+    currentPrice: 'Precio actual',
+    unavailable: 'Artículo no disponible',
+    addCard: 'Añade tu tarjeta',
+    max: 'MÁX',
+    shippingGrouped: 'Envío agrupado al final del directo',
+    maxBid: 'Puja máx.',
+    maxBidActive: 'Puja automática activa',
+    bundleDiscount: 'Envío agrupado: -15 %',
+    buyNow: 'Comprar',
+  },
+  ru: {
+    bid: 'Ставка',
+    currentPrice: 'Текущая цена',
+    unavailable: 'Товар недоступен',
+    addCard: 'Добавь карту',
+    max: 'MAX',
+    shippingGrouped: 'Общая доставка после эфира',
+    maxBid: 'Макс. ставка',
+    maxBidActive: 'Автоставка включена',
+    bundleDiscount: 'Общая доставка: −15 %',
+    buyNow: 'Купить',
   },
   he: {
     bid: 'הצע',
     currentPrice: 'מחיר נוכחי',
-    unavailable: 'פריט לא זמין',
+    unavailable: 'הפריט לא זמין',
     addCard: 'הוסף כרטיס',
     max: 'MAX',
     shippingGrouped: 'משלוח מרוכז בסוף השידור',
     maxBid: 'הצעה מקסימלית',
     maxBidActive: 'הצעה אוטומטית פעילה',
-    bundleDiscount: 'משלוח מרוכז: -15%',
+    bundleDiscount: 'משלוח מרוכז: ‎-15%',
     buyNow: 'קנה עכשיו',
-  },
-  es: {
-    bid: 'Pujar',
-    currentPrice: 'Precio actual',
-    unavailable: 'No disponible',
-    addCard: 'Agrega tu tarjeta',
-    max: 'MAX',
-    shippingGrouped: 'Envio agrupado al final del live',
-    maxBid: 'Puja max',
-    maxBidActive: 'Auto-puja activa',
-    bundleDiscount: 'Envio agrupado: -15%',
-    buyNow: 'Comprar',
   },
 }
 
@@ -90,6 +110,8 @@ export default function ActiveItemBar({
   disabled,
   timeLeft,
   lang,
+  sellerCountry,
+  currency,
   onMaxBid,
   hasActiveMaxBid,
   bundleCount,
@@ -129,7 +151,9 @@ export default function ActiveItemBar({
 
   if (!item) return null
 
-  const labels = LABELS[lang] || LABELS.en
+  const labels = LABELS[lang ?? getLang()] ?? LABELS.en
+  const cur = currency || currencyForCountry(sellerCountry)
+  const money = (n: number) => formatMoney(n, cur, lang ?? getLang())
   const isActive = item.status === 'active'
 
   return (
@@ -182,13 +206,13 @@ export default function ActiveItemBar({
                 fontSize: '15px', fontWeight: 900, color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
                 fontVariantNumeric: 'tabular-nums',
               }}>
-                {timeLeft}s
+                {timeLeft}s {/* i18n-ignore */}
               </span>
             </div>
           )}
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
             <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>{labels.currentPrice}</span>
-            <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{item.current_price}€</span>
+            <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{money(item.current_price)}</span>
           </div>
         </div>
       </div>
@@ -268,7 +292,7 @@ export default function ActiveItemBar({
               transform: bidFlash ? 'scale(0.97)' : 'scale(1)',
             }}
           >
-            {labels.bid} : {currentBid}€
+            {labels.bid} · {money(currentBid)}
           </button>
 
           {/* Buy Now button — only when buy_now_price is set */}
@@ -293,7 +317,7 @@ export default function ActiveItemBar({
                 whiteSpace: 'nowrap',
               }}
             >
-              {labels.buyNow} {item.buy_now_price}€
+              {labels.buyNow} {money(item.buy_now_price)}
             </button>
           )}
 

@@ -2,6 +2,7 @@ import { useRef, useState, useCallback } from 'react'
 import { useMiniPlayer } from '../../contexts/MiniPlayerContext'
 import { rtlPos } from '../../lib/rtl'
 import LiveKitViewer from './LiveKitViewer'
+import { tr } from '../../lib/i18n'
 
 export default function MiniPlayerOverlay() {
   const { miniPlayer, closeMiniPlayer, expandMiniPlayer } = useMiniPlayer()
@@ -76,7 +77,7 @@ export default function MiniPlayerOverlay() {
             backgroundColor: '#E8344E', padding: '1px 4px', borderRadius: '3px',
             lineHeight: '12px',
           }}>
-            LIVE
+            {tr({ en: 'LIVE', fr: 'LIVE', es: 'EN VIVO', ru: 'ЭФИР', he: 'שידור חי' })}
           </span>
           <span style={{
             fontSize: '10px', color: '#fff', fontWeight: 600,
@@ -90,6 +91,7 @@ export default function MiniPlayerOverlay() {
       {/* Close button */}
       <button
         onClick={(e) => { e.stopPropagation(); closeMiniPlayer() }}
+        aria-label={tr({ en: 'Close', fr: 'Fermer', es: 'Cerrar', ru: 'Закрыть', he: 'סגירה' })}
         style={{
           position: 'absolute', top: '4px', ...rtlPos('right', '4px'),
           width: '22px', height: '22px', borderRadius: '50%',

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { tr, type Localized } from '../../lib/i18n'
 
 interface ViewerReactionsProps {
   onReaction: () => void
@@ -13,12 +14,13 @@ interface FloatingReaction {
   startTime: number
 }
 
-const REACTION_EMOJIS = [
-  { emoji: '\u{2764}\u{FE0F}', label: 'coeur' },
-  { emoji: '\u{1F525}', label: 'feu' },
-  { emoji: '\u{1F44F}', label: 'bravo' },
-  { emoji: '\u{1F60D}', label: 'love' },
-  { emoji: '\u{1F389}', label: 'fete' },
+// key : identifiant technique stable ; label : nom lu par le lecteur d'écran
+const REACTION_EMOJIS: { emoji: string; key: string; label: Localized<string> }[] = [
+  { emoji: '\u{2764}\u{FE0F}', key: 'heart', label: { en: 'Heart', fr: 'Cœur', es: 'Corazón', ru: 'Сердце', he: 'לב' } },
+  { emoji: '\u{1F525}', key: 'fire', label: { en: 'Fire', fr: 'Feu', es: 'Fuego', ru: 'Огонь', he: 'אש' } },
+  { emoji: '\u{1F44F}', key: 'clap', label: { en: 'Applause', fr: 'Bravo', es: 'Aplausos', ru: 'Аплодисменты', he: 'מחיאות כפיים' } },
+  { emoji: '\u{1F60D}', key: 'love', label: { en: 'Love it', fr: "J'adore", es: 'Me encanta', ru: 'Обожаю', he: 'מת/ה על זה' } },
+  { emoji: '\u{1F389}', key: 'party', label: { en: 'Party', fr: 'Fête', es: 'Fiesta', ru: 'Праздник', he: 'חגיגה' } },
 ]
 
 let reactionIdCounter = 0
@@ -77,7 +79,7 @@ export default function ViewerReactions({ onReaction, sendReaction }: ViewerReac
               style={{
                 position: 'absolute',
                 bottom: '0',
-                left: `${reaction.x}%`,
+                insetInlineStart: `${reaction.x}%`,
                 fontSize: '32px',
                 animation: 'floatUpReaction 2s ease-out forwards',
                 pointerEvents: 'none',
@@ -103,12 +105,12 @@ export default function ViewerReactions({ onReaction, sendReaction }: ViewerReac
         WebkitBackdropFilter: 'blur(12px)',
         border: '1px solid rgba(255,255,255,0.1)',
       }}>
-        {REACTION_EMOJIS.map(({ emoji, label }) => (
+        {REACTION_EMOJIS.map(({ emoji, key, label }) => (
           <button
-            key={label}
+            key={key}
             onTouchEnd={(e) => { e.preventDefault(); handleReaction(emoji) }}
             onClick={() => handleReaction(emoji)}
-            aria-label={label}
+            aria-label={tr(label)}
             style={{
               width: '44px',
               height: '44px',
