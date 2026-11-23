@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { apiFetch } from '../../lib/api'
 import { getLang, t as i18nT } from '../../lib/i18n'
+import { ft } from '../../lib/fulfillmentText'
 import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
 import { liveFormats } from './SubCategoryData'
@@ -471,6 +472,13 @@ export default function CreateLiveWizard() {
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Erreur creation' }))
+        if (err.error === 'whatsapp_required') {
+          // Numéro WhatsApp obligatoire pour vendre : réglages « Remise des commandes »
+          alert(ft().whatsapp_required_to_sell)
+          setLoading(false)
+          navigate('/payments')
+          return
+        }
         throw new Error(err.error || 'Erreur creation')
       }
 

@@ -17,7 +17,7 @@ export default function HomeButton() {
   if (path === '/ai-listing') return null
   if (path.startsWith('/conversation/')) return null
   if (path === '/messages') return null
-  if (path === '/shipments') return null
+  if (path === '/shipments' || path === '/to-hand-over') return null
 
   return (
     <>

@@ -164,7 +164,7 @@ export default function AccountControlsPage() {
         .select('amount')
         .eq('buyer_id', user.id)
         .gte('created_at', periodStart.toISOString())
-        .in('status', ['paid', 'shipped', 'delivered'])
+        .in('status', ['paid', 'shipped', 'handed_over', 'delivered'])
       if (data) {
         const total = data.reduce((sum: number, o: { amount: number }) => sum + o.amount, 0)
         setSpendingAmount(Math.round(total * 100) / 100)

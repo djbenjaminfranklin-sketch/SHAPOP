@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Browser } from '@capacitor/browser'
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
 import { Share } from '@capacitor/share'
 import { Capacitor } from '@capacitor/core'
@@ -13,13 +12,14 @@ import StreamCard from '../components/stream/StreamCard'
 import ItemCard from '../components/ItemCard'
 import VodPlayer from '../components/stream/VodPlayer'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatMoney } from '../lib/fulfillment'
+import { ft, statusLabel } from '../lib/fulfillmentText'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
 
 type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites' | 'offers'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
-type ProofLevel = 'basic' | 'standard' | 'enhanced'
 
 // Helper function to calculate remaining time before claim deadline
 function formatTimeRemaining(deadline: string): string {
@@ -30,6 +30,8 @@ function formatTimeRemaining(deadline: string): string {
   const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60))
   return ({ fr: `${hours}h ${minutes}min restantes`, en: `${hours}h ${minutes}min remaining`, he: `${hours}h ${minutes}min נותרו`, es: `${hours}h ${minutes}min restantes` })[lang] || `${hours}h ${minutes}min restantes`
 }
+
+type OrderStatusExt = Order['status']
 
 interface PurchaseOrder extends Order {
   item?: Pick<Item, 'title' | 'image_urls' | 'category'>
@@ -57,485 +59,10 @@ interface OfferEntry {
   item?: { title?: string; image_urls?: string[] }
 }
 
-// Inline shipping section for a single paid order (weight + label)
-function InlineShippingSection({ orderId, existingLabel, existingTracking, lang, buyerCountry, carrier, onLabelGenerated }: {
-  orderId: string
-  existingLabel: string | null
-  existingTracking: string | null
-  lang: string
-  buyerCountry?: string
-  carrier?: string
-  onLabelGenerated?: () => void
-}) {
-  const [weightInput, setWeightInput] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(
-    existingLabel && existingTracking ? { label_url: existingLabel, shipment_number: existingTracking } : null
-  )
-  const [error, setError] = useState<string | null>(null)
-  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
-
-  const carrierShort = carrier === 'dpd' ? 'DPD' : carrier === 'dhl' ? 'DHL' : 'MR'
-  const labels = {
-    fr: { weight: 'Poids en grammes (ex: 500)', generate: `Étiquette ${carrierShort}`, ready: 'Prête', open: 'Ouvrir', shipping: 'Frais de port', paymentFailed: 'Le paiement des frais de port a échoué. L\'acheteur doit mettre à jour sa carte.' },
-    en: { weight: 'Weight in grams (e.g. 500)', generate: `${carrierShort} Label`, ready: 'Ready', open: 'Open', shipping: 'Shipping cost', paymentFailed: 'Shipping payment failed. Buyer must update their card.' },
-    he: { weight: 'משקל בגרמים (לדוגמה: 500)', generate: `תווית ${carrierShort}`, ready: 'מוכנה', open: 'פתח', shipping: 'דמי משלוח', paymentFailed: 'תשלום המשלוח נכשל. הקונה צריך לעדכן את הכרטיס.' },
-    es: { weight: 'Peso en gramos (ej: 500)', generate: `Etiqueta ${carrierShort}`, ready: 'Lista', open: 'Abrir', shipping: 'Gastos de envío', paymentFailed: 'El pago del envío ha fallado. El comprador debe actualizar su tarjeta.' },
-  }
-  const lb = labels[lang as keyof typeof labels] || labels.fr
-
-  // Preview shipping cost when weight changes
-  const handleWeightChange = async (value: string) => {
-    setWeightInput(value)
-    setError(null)
-    const weight = parseInt(value)
-    if (!weight || weight <= 0) { setShippingPreview(null); return }
-    try {
-      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${carrier || 'mondial_relay'}&country=${buyerCountry || 'FR'}`)
-      if (resp.ok) {
-        const data = await resp.json()
-        setShippingPreview(data.shipping_cost)
-      }
-    } catch { /* ignore preview errors */ }
-  }
-
-  const handleGenerate = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    const weight = parseInt(weightInput)
-    if (!weight || weight <= 0) { setError(lb.weight); return }
-    setGenerating(true); setError(null)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setError(lang === 'fr' ? 'Non connecte' : lang === 'es' ? 'No conectado' : lang === 'he' ? '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8' : 'Not signed in'); setGenerating(false); return }
-      const resp = await apiFetch(`/api/orders/${orderId}/create-label`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ weight_grams: weight }),
-      })
-      const data = await resp.json()
-      if (resp.ok) {
-        setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
-        if (data.label_url) Browser.open({ url: data.label_url })
-        onLabelGenerated?.()
-      } else if (resp.status === 402) {
-        setError(lb.paymentFailed)
-      } else { setError(data.error || (lang === 'fr' ? 'Erreur' : lang === 'es' ? 'Error' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05D4' : 'Error')) }
-    } catch { setError(lang === 'fr' ? 'Erreur reseau' : lang === 'es' ? 'Error de red' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05EA \u05E8\u05E9\u05EA' : 'Network error') }
-    setGenerating(false)
-  }
-
-  return (
-    <div onClick={e => e.stopPropagation()} style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px' }}>
-      {labelResult ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 12px', borderRadius: '10px',
-          backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
-        }}>
-          <div>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981' }}>{lb.ready}</span>
-            <span style={{ fontSize: '11px', color: '#666', marginLeft: '6px' }}>#{labelResult.shipment_number}</span>
-          </div>
-          <button onClick={() => Browser.open({ url: labelResult.label_url })} style={{
-            padding: '6px 14px', borderRadius: '8px',
-            background: 'linear-gradient(135deg, #10B981, #059669)',
-            border: 'none', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
-          }}>
-            {lb.open}
-          </button>
-        </div>
-      ) : (
-        <div>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <input
-              type="number"
-              placeholder={lb.weight}
-              value={weightInput}
-              onClick={e => e.stopPropagation()}
-              onChange={e => handleWeightChange(e.target.value)}
-              style={{
-                width: '90px', padding: '8px 10px', borderRadius: '8px',
-                backgroundColor: '#111', border: '1px solid #333',
-                color: '#fff', fontSize: '13px', fontWeight: 600, outline: 'none',
-              }}
-            />
-            <button onClick={handleGenerate} disabled={generating} style={{
-              flex: 1, padding: '8px 12px', borderRadius: '8px',
-              background: generating ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
-              border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700,
-              cursor: generating ? 'default' : 'pointer', opacity: generating ? 0.6 : 1,
-              whiteSpace: 'nowrap',
-            }}>
-              {generating ? '...' : lb.generate}
-            </button>
-          </div>
-          {shippingPreview != null && shippingPreview > 0 && (
-            <p style={{ fontSize: '11px', color: '#3B82F6', margin: '6px 0 0', fontWeight: 600 }}>
-              {lb.shipping} : {shippingPreview.toFixed(2)} EUR
-            </p>
-          )}
-        </div>
-      )}
-      {error && <p style={{ fontSize: '11px', color: '#E8344E', marginTop: '4px', margin: '4px 0 0' }}>{error}</p>}
-    </div>
-  )
-}
-
-// Grouped order card for same-buyer shipments (all statuses)
-function GroupedOrderCard({ group, buyerName, totalAmount, index, mounted, lang, formatAmount, formatDate, getItemImage, navigate, onLabelGenerated, onVideoMoment }: {
-  group: SaleOrder[]
-  buyerName: string
-  totalAmount: number
-  index: number
-  mounted: boolean
-  lang: string
-  formatAmount: (n: number) => string
-  formatDate: (s: string) => string
-  getItemImage: (item?: Pick<Item, 'image_urls'>) => string | null
-  navigate: (path: string) => void
-  onLabelGenerated?: () => void
-  onVideoMoment?: (url: string, title: string, offset: number) => void
-}) {
-  const [expanded, setExpanded] = useState(false)
-  const [weightInput, setWeightInput] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
-
-  const paymentFailedMsg = lang === 'fr'
-    ? 'Le paiement des frais de port a échoué. L\'acheteur doit mettre à jour sa carte.'
-    : 'Shipping payment failed. Buyer must update their card.'
-
-  // Preview shipping cost when weight changes
-  const handleWeightChange = async (value: string) => {
-    setWeightInput(value)
-    setError(null)
-    const weight = parseInt(value)
-    if (!weight || weight <= 0) { setShippingPreview(null); return }
-    const primaryAddr = group.find(o => o.shipping_address)?.shipping_address as Record<string, string> | null
-    try {
-      const groupCarrier = group[0]?.carrier || 'mondial_relay'
-      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${groupCarrier}&country=${primaryAddr?.country || 'FR'}`)
-      if (resp.ok) {
-        const data = await resp.json()
-        setShippingPreview(data.shipping_cost)
-      }
-    } catch { /* ignore */ }
-  }
-
-  const handleGenerateLabel = async () => {
-    const weight = parseInt(weightInput)
-    if (!weight || weight <= 0) {
-      setError(lang === 'fr' ? 'Entre le poids du colis (en grammes)' : lang === 'es' ? 'Introduce el peso del paquete (en gramos)' : lang === 'he' ? '\u05D4\u05D6\u05DF \u05DE\u05E9\u05E7\u05DC \u05D4\u05D7\u05D1\u05D9\u05DC\u05D4 (\u05D1\u05D2\u05E8\u05DE\u05D9\u05DD)' : 'Enter package weight (in grams)')
-      return
-    }
-    setGenerating(true)
-    setError(null)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setError(lang === 'fr' ? 'Non connecte' : lang === 'es' ? 'No conectado' : lang === 'he' ? '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8' : 'Not signed in'); setGenerating(false); return }
-
-      const resp = await apiFetch('/api/orders/group-label', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          order_ids: group.filter(o => ['paid', 'preparing'].includes(o.status) && !o.label_url).map(o => o.id),
-          weight_grams: weight,
-        }),
-      })
-      const data = await resp.json()
-      if (resp.ok) {
-        setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
-        if (data.label_url) Browser.open({ url: data.label_url })
-        onLabelGenerated?.()
-      } else if (resp.status === 402) {
-        setError(paymentFailedMsg)
-      } else {
-        setError(data.error || (lang === 'fr' ? 'Erreur' : lang === 'es' ? 'Error' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05D4' : 'Error'))
-      }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : (lang === 'fr' ? 'Erreur reseau' : lang === 'es' ? 'Error de red' : lang === 'he' ? '\u05E9\u05D2\u05D9\u05D0\u05EA \u05E8\u05E9\u05EA' : 'Network error'))
-    }
-    setGenerating(false)
-  }
-
-  const gcShort = group[0]?.carrier === 'dpd' ? 'DPD' : group[0]?.carrier === 'dhl' ? 'DHL' : 'MR'
-  const groupLabels = {
-    fr: { items: 'articles', total: 'Total', weight: 'Poids en grammes (ex: 500)', generate: `Générer l'étiquette ${gcShort}`, labelReady: 'Étiquette prête', openLabel: 'Ouvrir', groupShip: 'Envoi groupé' },
-    en: { items: 'items', total: 'Total', weight: 'Weight in grams (e.g. 500)', generate: `Generate ${gcShort} label`, labelReady: 'Label ready', openLabel: 'Open', groupShip: 'Grouped shipment' },
-    he: { items: 'פריטים', total: 'סה"כ', weight: 'משקל בגרמים (לדוגמה: 500)', generate: `הפק תווית ${gcShort}`, labelReady: 'תווית מוכנה', openLabel: 'פתח', groupShip: 'משלוח מרוכז' },
-    es: { items: 'articulos', total: 'Total', weight: 'Peso en gramos (ej: 500)', generate: `Generar etiqueta ${gcShort}`, labelReady: 'Etiqueta lista', openLabel: 'Abrir', groupShip: 'Envio agrupado' },
-  }
-  const gl = groupLabels[lang as keyof typeof groupLabels] || groupLabels.fr
-
-  return (
-    <div style={{
-      marginBottom: '12px',
-      backgroundColor: '#0D0D0D', borderRadius: '14px',
-      border: '1px solid rgba(59,130,246,0.3)',
-      opacity: mounted ? 1 : 0,
-      transform: mounted ? 'translateX(0)' : 'translateX(-10px)',
-      transition: `all 0.4s ease ${0.1 + index * 0.05}s`,
-      overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div
-        onClick={() => setExpanded(!expanded)}
-        style={{
-          padding: '14px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '12px',
-        }}
-      >
-        {/* Stacked item thumbnails */}
-        <div style={{ position: 'relative', width: '52px', height: '52px', flexShrink: 0 }}>
-          {group.slice(0, 3).map((o, i) => {
-            const img = getItemImage(o.item)
-            return img ? (
-              <img key={o.id} src={img} alt="" loading="lazy" style={{
-                position: 'absolute',
-                top: i * 4, left: i * 4,
-                width: '44px', height: '44px',
-                borderRadius: '10px', objectFit: 'cover',
-                border: '2px solid #0D0D0D',
-                zIndex: 3 - i,
-              }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
-            ) : null
-          })}
-          {!getItemImage(group[0].item) && (
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '12px',
-              backgroundColor: '#111', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: '24px',
-            }}>
-              {'\uD83D\uDCE6'}
-            </div>
-          )}
-        </div>
-
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{buyerName}</span>
-            <span style={{
-              fontSize: '10px', fontWeight: 700, color: '#3B82F6',
-              backgroundColor: 'rgba(59,130,246,0.12)',
-              padding: '2px 8px', borderRadius: '100px',
-              border: '1px solid rgba(59,130,246,0.25)',
-            }}>
-              {group.length} {gl.items}
-            </span>
-          </div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#F0908A', margin: 0 }}>
-            {gl.total}: {formatAmount(totalAmount)}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '3px' }}>
-            <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>
-              {formatDate(group[0].created_at)}
-            </p>
-            {group.some(o => ['paid', 'preparing'].includes(o.status) && !o.label_url) && (
-              <span style={{
-                fontSize: '9px', fontWeight: 700, color: '#F59E0B',
-                backgroundColor: 'rgba(245,158,11,0.12)', padding: '2px 6px',
-                borderRadius: '6px', border: '1px solid rgba(245,158,11,0.25)',
-              }}>
-                {({ fr: 'A expédier', en: 'To ship', he: 'לשליחה', es: 'Para enviar' })[lang] || 'To ship'}
-              </span>
-            )}
-            {group.every(o => o.status === 'delivered') && (
-              <span style={{
-                fontSize: '9px', fontWeight: 700, color: '#10B981',
-                backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 6px',
-                borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)',
-              }}>
-                {({ fr: 'Livré', en: 'Delivered', he: 'נמסר', es: 'Entregado' })[lang] || 'Delivered'}
-              </span>
-            )}
-            {group.every(o => o.label_url) && !group.every(o => o.status === 'delivered') && (
-              <span style={{
-                fontSize: '9px', fontWeight: 700, color: '#10B981',
-                backgroundColor: 'rgba(16,185,129,0.12)', padding: '2px 6px',
-                borderRadius: '6px', border: '1px solid rgba(16,185,129,0.25)',
-              }}>
-                {({ fr: 'Étiquette prête', en: 'Label ready', he: 'תווית מוכנה', es: 'Etiqueta lista' })[lang] || 'Label ready'}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
-          style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }}>
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </div>
-
-      {/* Expanded: item list + weight + label */}
-      {expanded && (
-        <div style={{ padding: '0 14px 14px', borderTop: '1px solid #1A1A1A' }}>
-          {/* Item list with status badges */}
-          {group.map(order => {
-            const sc = order.status === 'paid' ? '#3B82F6' : order.status === 'preparing' ? '#F59E0B' : order.status === 'shipped' ? '#10B981' : order.status === 'delivered' ? '#10B981' : order.status === 'refunded' ? '#8B5CF6' : '#666'
-            const statusLabels: Record<string, Record<string, string>> = {
-              paid: { fr: 'Payé', en: 'Paid', he: 'שולם', es: 'Pagado' },
-              preparing: { fr: 'Prép.', en: 'Prep.', he: 'הכנה', es: 'Prep.' },
-              shipped: { fr: 'Expédié', en: 'Shipped', he: 'נשלח', es: 'Enviado' },
-              delivered: { fr: 'Livré', en: 'Delivered', he: 'נמסר', es: 'Entregado' },
-              refunded: { fr: 'Remboursé', en: 'Refunded', he: 'הוחזר', es: 'Reembolsado' },
-            }
-            const sl = statusLabels[order.status]?.[lang] || order.status
-            return (
-              <div key={order.id} onClick={() => navigate(`/order/${order.id}`)} style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '10px 0', borderBottom: '1px solid #111', cursor: 'pointer',
-              }}>
-                {getItemImage(order.item) ? (
-                  <img src={getItemImage(order.item)!} alt="" loading="lazy" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
-                ) : (
-                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>{'\uD83D\uDCB0'}</div>
-                )}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {order.item?.title || order.id.slice(0, 8)}
-                  </p>
-                </div>
-                <span style={{
-                  fontSize: '10px', fontWeight: 700, color: sc,
-                  backgroundColor: `${sc}14`, padding: '3px 8px', borderRadius: '8px',
-                  border: `1px solid ${sc}30`, whiteSpace: 'nowrap', flexShrink: 0,
-                }}>
-                  {sl}
-                </span>
-                {order.stream?.recording_url && order.purchase_stream_offset_seconds != null && onVideoMoment && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onVideoMoment(order.stream!.recording_url!, order.item?.title || 'Video', order.purchase_stream_offset_seconds!)
-                    }}
-                    style={{
-                      width: '28px', height: '28px', borderRadius: '50%',
-                      background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      cursor: 'pointer', flexShrink: 0, padding: 0,
-                    }}
-                    title={lang === 'fr' ? 'Voir le moment' : 'See moment'}
-                  >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                  </button>
-                )}
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                  {formatAmount(order.amount)}
-                </span>
-              </div>
-            )
-          })}
-
-          {/* Label section — existing label from group, just-generated label, or generate new */}
-          {group.find(o => o.label_url && o.tracking_number) && !labelResult ? (
-            (() => {
-              const lo = group.find(o => o.label_url && o.tracking_number)!
-              return (
-                <div style={{
-                  marginTop: '12px', padding: '12px', borderRadius: '10px',
-                  backgroundColor: 'rgba(16,185,129,0.08)',
-                  border: '1px solid rgba(16,185,129,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>
-                      {gl.labelReady}
-                    </p>
-                    <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>
-                      # {lo.tracking_number}
-                    </p>
-                  </div>
-                  <button onClick={() => Browser.open({ url: lo.label_url! })} style={{
-                    padding: '8px 16px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #10B981, #059669)',
-                    border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-                  }}>
-                    {gl.openLabel}
-                  </button>
-                </div>
-              )
-            })()
-          ) : labelResult ? (
-            <div style={{
-              marginTop: '12px', padding: '12px', borderRadius: '10px',
-              backgroundColor: 'rgba(16,185,129,0.08)',
-              border: '1px solid rgba(16,185,129,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            }}>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>
-                  {gl.labelReady}
-                </p>
-                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>
-                  # {labelResult.shipment_number}
-                </p>
-              </div>
-              <button onClick={() => Browser.open({ url: labelResult.label_url })} style={{
-                padding: '8px 16px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #10B981, #059669)',
-                border: 'none', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
-              }}>
-                {gl.openLabel}
-              </button>
-            </div>
-          ) : group.some(o => ['paid', 'preparing'].includes(o.status) && !o.label_url) ? (
-            <div style={{ marginTop: '12px' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '8px' }}>
-                {gl.groupShip} — {group.filter(o => ['paid', 'preparing'].includes(o.status) && !o.label_url).length} {gl.items}
-              </p>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="number"
-                  placeholder={gl.weight}
-                  value={weightInput}
-                  onChange={e => handleWeightChange(e.target.value)}
-                  style={{
-                    flex: 1, padding: '10px 14px', borderRadius: '10px',
-                    backgroundColor: '#111', border: '1px solid #333',
-                    color: '#fff', fontSize: '14px', fontWeight: 600,
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={handleGenerateLabel}
-                  disabled={generating}
-                  style={{
-                    padding: '10px 18px', borderRadius: '10px',
-                    background: generating ? '#333' : 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                    border: 'none', color: '#fff', fontSize: '13px',
-                    fontWeight: 700, cursor: generating ? 'default' : 'pointer',
-                    whiteSpace: 'nowrap', opacity: generating ? 0.6 : 1,
-                  }}
-                >
-                  {generating ? '...' : gl.generate}
-                </button>
-              </div>
-              {shippingPreview != null && shippingPreview > 0 && (
-                <p style={{ fontSize: '11px', color: '#3B82F6', margin: '6px 0 0', fontWeight: 600 }}>
-                  {lang === 'fr' ? 'Frais de port' : 'Shipping cost'} : {shippingPreview.toFixed(2)} EUR
-                </p>
-              )}
-              {error && (
-                <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '6px' }}>{error}</p>
-              )}
-            </div>
-          ) : null}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function ActivityPage() {
   const { user, profile } = useAuth()
   const lang = getLang()
+  const fx = ft(lang)
   usePageTitle({ fr: 'Activite', en: 'Activity', he: 'פעילות', es: 'Actividad' }[lang] || 'Activite')
   const location = useLocation()
   const navigate = useNavigate()
@@ -560,27 +87,6 @@ export default function ActivityPage() {
   const [errorPurchases, setErrorPurchases] = useState<string | null>(null)
   const [errorSales, setErrorSales] = useState<string | null>(null)
 
-  // Shipping modal states (seller)
-  const [shippingOrderId, setShippingOrderId] = useState<string | null>(null)
-  const [, setSelectedFile] = useState<File | null>(null)
-  const [trackingNumber, setTrackingNumber] = useState('')
-  const [uploading, setUploading] = useState(false)
-  const [shipError, setShipError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  void fileInputRef // kept for future use
-
-  // Multi-proof upload states (seller)
-  const [, setProofLevel] = useState<ProofLevel>('basic')
-  const [proofFiles, setProofFiles] = useState<{ type: string; file: File | null }[]>([{ type: 'photo_package', file: null }])
-  const [loadingProofLevel, setLoadingProofLevel] = useState(false)
-  const proofFileInputRefs = useRef<(HTMLInputElement | null)[]>([])
-
-  // Proof viewer modal (buyer)
-  const [proofImageUrl, setProofImageUrl] = useState<string | null>(null)
-
-  // Confirm delivery loading
-  const [confirmingDelivery, setConfirmingDelivery] = useState<string | null>(null)
-
   // Favorites states
   const [favorites, setFavorites] = useState<StreamWithSeller[]>([])
   const [favoriteItems, setFavoriteItems] = useState<ItemWithSeller[]>([])
@@ -591,44 +97,6 @@ export default function ActivityPage() {
   const [loadingOffers, setLoadingOffers] = useState(false)
 
   useEffect(() => { setTimeout(() => setMounted(true), 80) }, [])
-
-  // Fetch seller proof level when opening shipping modal
-  const fetchProofLevel = useCallback(async () => {
-    if (!user) return
-    setLoadingProofLevel(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-      const res = await apiFetch(`/api/sellers/${user.id}/trust`, {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const level: ProofLevel = data.proof_level || 'basic'
-        setProofLevel(level)
-        // Initialize proof file slots based on level
-        if (level === 'basic') {
-          setProofFiles([{ type: 'photo_package', file: null }])
-        } else if (level === 'standard') {
-          setProofFiles([
-            { type: 'photo_package', file: null },
-            { type: 'photo_content', file: null },
-          ])
-        } else if (level === 'enhanced') {
-          setProofFiles([
-            { type: 'photo_package', file: null },
-            { type: 'photo_content', file: null },
-            { type: 'video_packing', file: null },
-          ])
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch proof level:', err)
-    } finally {
-      setLoadingProofLevel(false)
-    }
-  }, [user])
-  void fetchProofLevel // called when shipping modal opens
 
   // Fetch purchases (orders where user is buyer)
   const fetchPurchases = useCallback(async () => {
@@ -823,109 +291,6 @@ export default function ActivityPage() {
       fetchOffers()
     }
   }, [mainTab, fetchPurchases, fetchSales, fetchFollowing, fetchFavorites, fetchOffers])
-
-  // Upload shipping proofs and mark order as shipped
-  const handleShipOrder = async () => {
-    if (!shippingOrderId) return
-
-    // Validate: at least the first proof (package photo) is required
-    const firstProof = proofFiles[0]
-    if (!firstProof?.file) {
-      setShipError(lt.photoRequired)
-      return
-    }
-
-    setUploading(true)
-    setShipError(null)
-
-    try {
-      const proofs: { type: string; url: string }[] = []
-      let firstProofUrl = ''
-
-      // Upload each proof file
-      for (const proof of proofFiles) {
-        if (!proof.file) continue
-        const ext = proof.type === 'video_packing' ? 'mp4' : 'jpg'
-        const filePath = `shipping-proofs/${shippingOrderId}_${proof.type}_${Date.now()}.${ext}`
-        const { error: uploadError } = await supabase.storage
-          .from('shipping-proofs')
-          .upload(filePath, proof.file)
-
-        if (uploadError) throw new Error(uploadError.message)
-
-        const { data: urlData } = supabase.storage
-          .from('shipping-proofs')
-          .getPublicUrl(filePath)
-
-        proofs.push({ type: proof.type, url: urlData.publicUrl })
-        if (proof.type === 'photo_package') {
-          firstProofUrl = urlData.publicUrl
-        }
-      }
-
-      // Call API endpoint
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Not authenticated')
-
-      const res = await apiFetch(`/api/orders/${shippingOrderId}/ship`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          shipping_proof_url: firstProofUrl,
-          proofs,
-          ...(trackingNumber.trim() ? { tracking_number: trackingNumber.trim() } : {}),
-        }),
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to ship order')
-      }
-
-      // Reset and refresh
-      setShippingOrderId(null)
-      setSelectedFile(null)
-      setProofFiles([{ type: 'photo_package', file: null }])
-      setTrackingNumber('')
-      fetchSales()
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error'
-      setShipError(message)
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  // Confirm delivery (buyer)
-  const handleConfirmDelivery = async (orderId: string) => {
-    setConfirmingDelivery(orderId)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      const res = await apiFetch(`/api/orders/${orderId}/confirm-delivery`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to confirm delivery')
-      }
-
-      fetchPurchases()
-    } catch (err) {
-      console.error('Confirm delivery error:', err)
-    } finally {
-      setConfirmingDelivery(null)
-    }
-  }
 
   if (!user) {
     navigate('/login', { replace: true })
@@ -1262,37 +627,27 @@ export default function ActivityPage() {
     { id: 'refunds', label: { fr: 'Remboursements', en: 'Refunds', he: '\u05D4\u05D7\u05D6\u05E8\u05D9\u05DD', es: 'Reembolsos' }[lang] || 'Remboursements' },
   ]
 
-  const getOrderStatusColor = (status: Order['status']) => {
+  const getOrderStatusColor = (status: OrderStatusExt) => {
     switch (status) {
       case 'pending_payment': return '#F59E0B'
       case 'paid': return '#3B82F6'
-      case 'preparing': return '#F59E0B'
-      case 'shipped': return '#10B981'
+      case 'shipped':
+      case 'handed_over':
       case 'delivered': return '#10B981'
-      case 'refunded': return '#8B5CF6'
+      case 'refunded':
+      case 'cancelled': return '#8B5CF6'
       case 'disputed': return '#E8344E'
       default: return '#666'
     }
   }
 
-  const getOrderStatusLabel = (status: Order['status']) => {
-    switch (status) {
-      case 'pending_payment': return lt.statusPendingPayment
-      case 'paid': return lt.statusPaid
-      case 'preparing': return lt.statusPreparing
-      case 'shipped': return lt.statusShipped
-      case 'delivered': return lt.statusDelivered
-      case 'refunded': return lt.statusRefunded
-      case 'disputed': return lt.statusDisputed
-      default: return status
-    }
-  }
+  const getOrderStatusLabel = (status: OrderStatusExt) => statusLabel(status, lang)
 
-  const filterOrders = <T extends { status: Order['status'] }>(items: T[]): T[] => {
+  const filterOrders = <T extends { status: OrderStatusExt }>(items: T[]): T[] => {
     switch (subFilter) {
-      case 'active': return items.filter(o => ['pending_payment', 'paid', 'preparing', 'shipped'].includes(o.status))
-      case 'completed': return items.filter(o => o.status === 'delivered')
-      case 'refunds': return items.filter(o => ['refunded', 'disputed'].includes(o.status))
+      case 'active': return items.filter(o => ['pending_payment', 'paid'].includes(o.status))
+      case 'completed': return items.filter(o => ['shipped', 'handed_over', 'delivered'].includes(o.status))
+      case 'refunds': return items.filter(o => ['refunded', 'disputed', 'cancelled'].includes(o.status))
       default: return items
     }
   }
@@ -1306,9 +661,7 @@ export default function ActivityPage() {
     })
   }
 
-  const formatAmount = (amount: number) => {
-    return amount.toFixed(2) + ' \u20AC'
-  }
+  const formatAmount = (amount: number | null | undefined, currency?: string | null) => formatMoney(amount, currency, lang)
 
   const exportOrdersCSV = async (type: 'purchases' | 'sales') => {
     const orders = type === 'purchases' ? filterOrders(purchases) : filterOrders(sales)
@@ -1491,10 +844,10 @@ export default function ActivityPage() {
               {itemTitle}
             </p>
             <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600, marginBottom: '3px' }}>
-              {formatAmount(order.amount)}
+              {formatAmount(order.amount, order.currency)}
               {!isSale && order.shipping_cost != null && order.shipping_cost > 0 && (
                 <span style={{ fontSize: '11px', color: '#888', fontWeight: 500 }}>
-                  {' '}+ {formatAmount(order.shipping_cost)} {lang === 'fr' ? 'livraison' : 'shipping'}
+                  {' '}+ {formatAmount(order.shipping_cost, order.currency)} {fx.shipping_fee}
                 </span>
               )}
             </p>
@@ -1533,106 +886,29 @@ export default function ActivityPage() {
           </div>
         </div>
 
-        {/* Seller: inline shipping for paid/preparing orders */}
-        {isSale && (order.status === 'paid' || order.status === 'preparing') && (
-          order.shipping_address ? (
-            <InlineShippingSection orderId={order.id} existingLabel={order.label_url} existingTracking={order.tracking_number} lang={lang} buyerCountry={(order.shipping_address as Record<string, string> | null)?.country} carrier={order.carrier || undefined} onLabelGenerated={fetchSales} />
-          ) : (
-            <div style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px' }}>
-              <p style={{ fontSize: '11px', color: '#F59E0B', margin: 0 }}>
-                {lang === 'fr' ? 'En attente de l\'adresse de l\'acheteur' : 'Waiting for buyer address'}
-              </p>
-            </div>
-          )
-        )}
-
-        {/* Seller: label already generated for shipped orders */}
-        {isSale && order.status === 'shipped' && order.label_url && (
-          <div style={{ marginTop: '10px' }}>
+        {/* Remise : le vendeur saisit le code ou envoie les 2 photos dans le détail de la commande */}
+        {order.status === 'paid' && (order.fulfillment_method === 'pickup' || order.fulfillment_method === 'post') && (
+          <div style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ flex: 1, fontSize: '12px', color: '#F59E0B', fontWeight: 600 }}>
+              {order.fulfillment_method === 'pickup' ? fx.method_pickup : fx.method_post}
+              {isSale ? ` — ${order.fulfillment_method === 'pickup' ? fx.awaiting_code : fx.awaiting_photos}` : ''}
+            </span>
             <button
-              onClick={(e) => { e.stopPropagation(); Browser.open({ url: order.label_url! }) }}
+              onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
               style={{
-                padding: '7px 14px', borderRadius: '8px',
-                background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
-                color: '#10B981', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '4px',
+                padding: '7px 14px', borderRadius: '8px', border: 'none', whiteSpace: 'nowrap',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
               }}
             >
-              {'\uD83C\uDFF7\uFE0F'} {order.tracking_number || 'Étiquette'}
+              {isSale ? (order.fulfillment_method === 'pickup' ? fx.enter_code_button : fx.take_photo) : (order.fulfillment_method === 'pickup' ? fx.your_code_title : fx.contact_title)}
             </button>
           </div>
         )}
 
-        {/* Seller: shipped order — show proof thumbnail + tracking */}
-        {isSale && order.status === 'shipped' && order.shipping_proof_url && (
-          <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img
-              src={order.shipping_proof_url}
-              alt="Shipping proof"
-              loading="lazy"
-              onClick={(e) => { e.stopPropagation(); setProofImageUrl(order.shipping_proof_url) }}
-              style={{
-                width: '48px', height: '48px', borderRadius: '8px',
-                objectFit: 'cover', cursor: 'pointer', border: '1px solid #333',
-              }}
-            />
-            <div style={{ flex: 1 }}>
-              {order.shipped_at && (
-                <p style={{ fontSize: '12px', color: '#10B981', margin: 0 }}>
-                  {lt.shippedOn} {formatDate(order.shipped_at)}
-                </p>
-              )}
-              {order.tracking_number && (
-                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-                  # {order.tracking_number}
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Buyer: shipped order — view proof + confirm delivery */}
-        {!isSale && order.status === 'shipped' && (
-          <div style={{ marginTop: '10px' }}>
-            {order.shipped_at && (
-              <p style={{ fontSize: '12px', color: '#10B981', margin: '0 0 8px' }}>
-                {lt.shippedOn} {formatDate(order.shipped_at)}
-              </p>
-            )}
-            {order.tracking_number && (
-              <p style={{ fontSize: '11px', color: '#888', margin: '0 0 8px' }}>
-                # {order.tracking_number}
-              </p>
-            )}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {order.shipping_proof_url && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setProofImageUrl(order.shipping_proof_url) }}
-                  style={{
-                    padding: '7px 14px', borderRadius: '8px',
-                    background: 'transparent', border: '1px solid #333',
-                    color: '#aaa', fontSize: '12px', fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {lt.viewProof}
-                </button>
-              )}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleConfirmDelivery(order.id) }}
-                disabled={confirmingDelivery === order.id}
-                style={{
-                  padding: '7px 14px', borderRadius: '8px',
-                  background: 'linear-gradient(135deg, #10B981, #059669)',
-                  border: 'none', color: '#fff', fontSize: '12px',
-                  fontWeight: 700, cursor: 'pointer',
-                  opacity: confirmingDelivery === order.id ? 0.6 : 1,
-                }}
-              >
-                {confirmingDelivery === order.id ? lt.uploading : lt.confirmDelivery}
-              </button>
-            </div>
-          </div>
+        {(order.status === 'shipped' || order.status === 'handed_over') && (order.shipped_at || order.handed_over_at) && (
+          <p style={{ fontSize: '12px', color: '#10B981', margin: '10px 0 0' }}>
+            {order.status === 'handed_over' ? fx.handed_over_on : fx.shipped_on} {formatDate((order.handed_over_at || order.shipped_at)!)}
+          </p>
         )}
 
         {/* Buyer: delivered order — show delivery date + report problem button */}
@@ -1706,7 +982,7 @@ export default function ActivityPage() {
         )}
 
         {/* "Contacter" button for paid/shipped/delivered orders */}
-        {['paid', 'shipped', 'delivered'].includes(order.status) && (
+        {['paid', 'shipped', 'handed_over', 'delivered'].includes(order.status) && (
           <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-start' }}>
             <button
               onClick={async (e) => {
@@ -1774,11 +1050,11 @@ export default function ActivityPage() {
       )
     }
 
-    const shippedCount = sales.filter(o => o.status === 'shipped' || (o.status === 'delivered' && o.tracking_status !== 'delivered')).length
+    const toHandOverCount = sales.filter(o => o.status === 'paid' && (o.fulfillment_method === 'pickup' || o.fulfillment_method === 'post')).length
 
     const shipmentsButton = (
       <button
-        onClick={() => navigate('/shipments')}
+        onClick={() => navigate('/to-hand-over')}
         style={{
           width: '100%', padding: '12px 14px', marginBottom: '14px',
           backgroundColor: '#111', border: '1px solid #2A2A2A',
@@ -1797,19 +1073,19 @@ export default function ActivityPage() {
         </div>
         <div style={{ flex: 1, textAlign: 'left' }}>
           <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
-            {lt.myShipments}
+            {fx.to_hand_over}
           </p>
           <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-            {lt.myShipmentsDesc}
+            {fx.method_pickup} · {fx.method_post}
           </p>
         </div>
-        {shippedCount > 0 && (
+        {toHandOverCount > 0 && (
           <span style={{
             fontSize: '11px', fontWeight: 700, color: '#F59E0B',
             backgroundColor: 'rgba(245,158,11,0.12)', padding: '3px 10px',
             borderRadius: '10px', whiteSpace: 'nowrap',
           }}>
-            {shippedCount} {lt.shipmentsInProgress}
+            {toHandOverCount}
           </span>
         )}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
@@ -1836,49 +1112,10 @@ export default function ActivityPage() {
       )
     }
 
-    // Group ALL orders by buyer_id — same buyer = same card
-    const grouped: Record<string, SaleOrder[]> = {}
-    for (const o of filtered) {
-      const key = o.buyer_id
-      if (!grouped[key]) grouped[key] = []
-      grouped[key].push(o)
-    }
-    const buyerGroups = Object.values(grouped).filter(g => g.length > 1)
-    const ungrouped = Object.values(grouped).filter(g => g.length === 1).map(g => g[0])
-
     return (
       <div style={{ padding: '0 16px' }}>
-        {/* Shipments quick access */}
         {shipmentsButton}
-
-        {/* Grouped orders by buyer (2+ items from same buyer) */}
-        {buyerGroups.map((group, gi) => {
-          const buyer = group[0].buyer_profile
-          const buyerName = buyer?.display_name || buyer?.username || 'Acheteur'
-          const totalAmount = group.reduce((sum, o) => sum + o.amount, 0)
-          const groupKey = group[0].buyer_id
-
-          return (
-            <GroupedOrderCard
-              key={groupKey}
-              group={group}
-              buyerName={buyerName}
-              totalAmount={totalAmount}
-              index={gi}
-              mounted={mounted}
-              lang={lang}
-              formatAmount={formatAmount}
-              formatDate={formatDate}
-              getItemImage={getItemImage}
-              navigate={navigate}
-              onLabelGenerated={fetchSales}
-              onVideoMoment={(url, title, offset) => setVodModal({ url, title, offset })}
-            />
-          )
-        })}
-
-        {/* Single orders (only 1 from this buyer) */}
-        {ungrouped.map((order, i) => renderOrderCard(order, buyerGroups.length + i, true))}
+        {filtered.map((order, i) => renderOrderCard(order, i, true))}
       </div>
     )
   }
@@ -2225,200 +1462,6 @@ export default function ActivityPage() {
           {renderContent()}
         </div>
       </div>
-
-      {/* Shipping modal (seller uploads proof) */}
-      {shippingOrderId && (
-        <div
-          onClick={() => setShippingOrderId(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 9999,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px',
-          }}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{
-              backgroundColor: '#111', borderRadius: '20px',
-              padding: '24px', width: '100%', maxWidth: '380px',
-              border: '1px solid #222',
-            }}
-          >
-            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>
-              {lt.shipTitle}
-            </h3>
-
-            {/* Multi-proof file inputs */}
-            {loadingProofLevel ? (
-              <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <div style={{
-                  width: '24px', height: '24px', border: '2px solid #333',
-                  borderTopColor: '#F0908A', borderRadius: '50%',
-                  animation: 'spin 0.8s linear infinite', margin: '0 auto 8px',
-                }} />
-                <p style={{ fontSize: '12px', color: '#666', margin: 0 }}>{lt.loading}</p>
-              </div>
-            ) : (
-              proofFiles.map((proof, idx) => {
-                const proofLabel = proof.type === 'photo_package' ? lt.packagePhoto
-                  : proof.type === 'photo_content' ? lt.contentPhoto
-                  : lt.packingVideo
-                const isVideo = proof.type === 'video_packing'
-                return (
-                  <div key={proof.type} style={{ marginBottom: '12px' }}>
-                    <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>
-                      {proofLabel} {idx === 0 ? '*' : ''}
-                    </p>
-                    <input
-                      ref={el => { proofFileInputRefs.current[idx] = el }}
-                      type="file"
-                      accept={isVideo ? 'video/*' : 'image/*'}
-                      capture={isVideo ? undefined : 'environment'}
-                      onChange={e => {
-                        const file = e.target.files?.[0] || null
-                        setProofFiles(prev => prev.map((p, i) => i === idx ? { ...p, file } : p))
-                        setShipError(null)
-                      }}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      onClick={() => proofFileInputRefs.current[idx]?.click()}
-                      style={{
-                        width: '100%', padding: '12px', borderRadius: '12px',
-                        border: proof.file ? '2px solid #10B981' : '2px dashed #333',
-                        backgroundColor: '#0A0A0A', color: proof.file ? '#10B981' : '#666',
-                        fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {proof.file ? proof.file.name : (isVideo ? lt.packingVideo : lt.addPhoto)}
-                    </button>
-                    {/* Preview for images */}
-                    {proof.file && !isVideo && (
-                      <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                        <img
-                          src={URL.createObjectURL(proof.file)}
-                          alt="Preview"
-                          loading="lazy"
-                          style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px', objectFit: 'contain' }}
-                        />
-                      </div>
-                    )}
-                    {/* Preview for video */}
-                    {proof.file && isVideo && (
-                      <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                        <video
-                          src={URL.createObjectURL(proof.file)}
-                          controls
-                          style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '10px' }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
-
-            {/* Tracking number */}
-            <input
-              type="text"
-              value={trackingNumber}
-              onChange={e => setTrackingNumber(e.target.value)}
-              placeholder={lt.trackingNumber}
-              style={{
-                width: '100%', padding: '12px', borderRadius: '12px',
-                border: '1px solid #222', backgroundColor: '#0A0A0A',
-                color: '#fff', fontSize: '14px', marginBottom: '16px',
-                boxSizing: 'border-box',
-              }}
-            />
-
-            {/* Error */}
-            {shipError && (
-              <p style={{ color: '#E8344E', fontSize: '13px', margin: '0 0 12px', textAlign: 'center' }}>
-                {shipError}
-              </p>
-            )}
-
-            {/* Submit */}
-            <button
-              onClick={() => handleShipOrder()}
-              disabled={uploading}
-              style={{
-                width: '100%', padding: '14px', borderRadius: '14px',
-                background: uploading
-                  ? '#333'
-                  : 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                border: 'none', color: '#fff', fontSize: '15px',
-                fontWeight: 700, cursor: uploading ? 'default' : 'pointer',
-              }}
-            >
-              {uploading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <span style={{
-                    width: '16px', height: '16px', border: '2px solid #666',
-                    borderTopColor: '#fff', borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite', display: 'inline-block',
-                  }} />
-                  {lt.uploading}
-                </span>
-              ) : lt.confirmShipment}
-            </button>
-
-            {/* Cancel */}
-            <button
-              onClick={() => setShippingOrderId(null)}
-              style={{
-                width: '100%', padding: '12px', borderRadius: '12px',
-                background: 'transparent', border: 'none',
-                color: '#666', fontSize: '14px', cursor: 'pointer',
-                marginTop: '8px',
-              }}
-            >
-              {lt.retry === 'Réessayer' ? 'Annuler' : lang === 'en' ? 'Cancel' : lang === 'he' ? '\u05D1\u05D9\u05D8\u05D5\u05DC' : 'Cancelar'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Proof image full-screen viewer */}
-      {proofImageUrl && (
-        <div
-          onClick={() => setProofImageUrl(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 10000,
-            backgroundColor: 'rgba(0,0,0,0.9)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px',
-          }}
-        >
-          {/* Close button */}
-          <button
-            onClick={() => setProofImageUrl(null)}
-            style={{
-              position: 'absolute', top: '20px', right: '20px',
-              width: '40px', height: '40px', borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.15)', border: 'none',
-              color: '#fff', fontSize: '20px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              zIndex: 10001,
-            }}
-          >
-            X
-          </button>
-          <img
-            src={proofImageUrl}
-            alt="Shipping proof"
-            loading="lazy"
-            onClick={e => e.stopPropagation()}
-            style={{
-              maxWidth: '100%', maxHeight: '90vh',
-              objectFit: 'contain', borderRadius: '12px',
-            }}
-          />
-        </div>
-      )}
 
       {/* VodPlayer modal */}
       {vodModal && (

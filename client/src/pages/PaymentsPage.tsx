@@ -11,6 +11,8 @@ import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import FulfillmentSettings from '../components/seller/FulfillmentSettings'
+import { ft } from '../lib/fulfillmentText'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
@@ -446,41 +448,6 @@ export default function PaymentsPage() {
     return saved !== null ? Number(saved) : 0
   })
 
-  // Seller shipping delay
-  const [shippingDelay, setShippingDelay] = useState(2)
-  useEffect(() => {
-    if (!profile?.is_seller || !user) return
-    const fetchDelay = async () => {
-      try {
-        const { data: session } = await supabase.auth.getSession()
-        const token = session.session?.access_token
-        if (!token) return
-        const resp = await apiFetch('/api/seller/shipping-delay', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        if (resp.ok) {
-          const d = await resp.json()
-          if (d.shipping_delay_days != null) setShippingDelay(d.shipping_delay_days)
-        }
-      } catch { /* ignore */ }
-    }
-    fetchDelay()
-  }, [profile?.is_seller, user])
-
-  const handleShippingDelayChange = async (days: number) => {
-    setShippingDelay(days)
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      const token = session.session?.access_token
-      if (!token) return
-      await apiFetch('/api/seller/shipping-delay', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ shipping_delay_days: days }),
-      })
-    } catch { /* ignore */ }
-  }
-
   const fetchStatus = useCallback(async () => {
     // Only fetch Stripe status if user is a seller
     if (!profile?.is_seller) {
@@ -892,42 +859,16 @@ export default function PaymentsPage() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
         </div>
 
-        {/* Shipping delay selector (seller only) */}
+        {/* Remise des commandes (vendeur) : WhatsApp, retrait, prix d'envoi, délai de remise */}
         {profile?.is_seller && (
-          <div style={{
-            padding: '16px 0', borderBottom: '1px solid #1A1A1A',
-            marginBottom: '32px',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+          <div id="remise" style={{ padding: '16px 0', borderBottom: '1px solid #1A1A1A', marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
-                {c.shippingDelay}
-              </span>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{ft().settings_title}</span>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {[2, 3, 4].map(d => (
-                <button
-                  key={d}
-                  onClick={() => handleShippingDelayChange(d)}
-                  style={{
-                    flex: 1, padding: '10px 0', borderRadius: '10px',
-                    background: shippingDelay === d
-                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
-                      : '#111',
-                    border: shippingDelay === d ? 'none' : '1px solid #222',
-                    color: shippingDelay === d ? '#fff' : '#888',
-                    fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-                  }}
-                >
-                  {d} {c.days}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontSize: '11px', color: '#666', margin: '8px 0 0' }}>
-              {c.shippingDelayHint}
-            </p>
+            <FulfillmentSettings />
           </div>
         )}
 

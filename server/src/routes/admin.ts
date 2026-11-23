@@ -120,7 +120,7 @@ router.get('/api/admin/stats', requireAdmin, async (_req: AuthenticatedRequest, 
     ])
 
     // Revenue totals
-    const { data: revenueData } = await supabase.from('orders').select('amount, platform_fee').in('status', ['paid', 'shipped', 'delivered'])
+    const { data: revenueData } = await supabase.from('orders').select('amount, platform_fee').in('status', ['paid', 'shipped', 'handed_over', 'delivered'])
     const totalRevenue = revenueData?.reduce((s, o) => s + Number(o.amount), 0) || 0
     const totalFees = revenueData?.reduce((s, o) => s + Number(o.platform_fee), 0) || 0
 
@@ -385,7 +385,7 @@ router.get('/api/admin/sellers', requireAdmin, async (req: AuthenticatedRequest,
       const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString()
 
       const [ordersAll, orders30d, refundsAll, disputesAll] = await Promise.all([
-        supabase.from('orders').select('amount', { count: 'exact', head: true }).eq('seller_id', sellerId).in('status', ['paid', 'shipped', 'delivered']),
+        supabase.from('orders').select('amount', { count: 'exact', head: true }).eq('seller_id', sellerId).in('status', ['paid', 'shipped', 'handed_over', 'delivered']),
         supabase.from('orders').select('amount', { count: 'exact', head: true }).eq('seller_id', sellerId).gte('created_at', thirtyDaysAgo),
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('seller_id', sellerId).eq('status', 'refunded'),
         supabase.from('orders').select('*', { count: 'exact', head: true }).eq('seller_id', sellerId).eq('status', 'disputed'),

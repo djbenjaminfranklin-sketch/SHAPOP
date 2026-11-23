@@ -8,6 +8,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 
 const content = {
   fr: {
+    tooLong: 'Message trop long (2000 caractères max)',
     title: 'Nous contacter',
     subtitle: 'Comment pouvons-nous vous aider ?',
     topics: [
@@ -27,6 +28,7 @@ const content = {
     hours: 'Délai de réponse : sous 24 heures',
   },
   en: {
+    tooLong: 'Message too long (2000 characters max)',
     title: 'Contact Us',
     subtitle: 'How can we help you?',
     topics: [
@@ -46,6 +48,7 @@ const content = {
     hours: 'Response time: within 24 hours',
   },
   he: {
+    tooLong: 'ההודעה ארוכה מדי (עד 2000 תווים)',
     title: '\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8',
     subtitle: '\u05D0\u05D9\u05DA \u05E0\u05D5\u05DB\u05DC \u05DC\u05E2\u05D6\u05D5\u05E8?',
     topics: [
@@ -65,6 +68,7 @@ const content = {
     hours: '\u05D6\u05DE\u05DF \u05EA\u05D2\u05D5\u05D1\u05D4: \u05E2\u05D3 24 \u05E9\u05E2\u05D5\u05EA',
   },
   es: {
+    tooLong: 'Mensaje demasiado largo (máx. 2000 caracteres)',
     title: 'Contáctanos',
     subtitle: '¿Cómo podemos ayudarte?',
     topics: [

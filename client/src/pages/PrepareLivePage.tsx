@@ -9,6 +9,7 @@ import { getLang } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatMoney } from '../lib/fulfillment'
 
 // Compress image to max 800px and JPEG quality 0.7
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
@@ -87,15 +88,15 @@ const pageContent = {
     deleteError: 'Echec de la suppression',
     confirmDelete: 'Supprimer',
     confirmCancel: 'Annuler',
-    shippingDelay: 'Délai d\'expédition',
-    shippingDelayHint: 'Délai maximum avant expédition',
+    shippingDelay: 'Délai de remise',
+    shippingDelayHint: 'Sans code ni photos dans ce délai, la commande est annulée et remboursée',
     day: 'jour',
     days: 'jours',
     weight: 'Poids (grammes)',
-    weightHint: 'Poids de l\'article pour le calcul des frais de port',
+    weightHint: 'Poids de l\'article (sert au prix d\'envoi suggéré)',
     suggestedShipping: 'Prix suggéré',
-    shippingOverride: 'Prix de livraison personnalisé (EUR)',
-    shippingOverrideHint: 'Laissez vide pour utiliser le prix calculé',
+    shippingOverride: 'Ton prix d\'envoi par la poste pour cet article',
+    shippingOverrideHint: 'Laisse vide pour utiliser le prix de tes réglages (ou le prix suggéré)',
     shippingWarning: 'Attention: si le coût réel est supérieur, la différence sera déduite de vos gains',
     perCarrier: 'selon le transporteur',
   },
@@ -140,15 +141,15 @@ const pageContent = {
     deleteError: 'Failed to delete',
     confirmDelete: 'Delete',
     confirmCancel: 'Cancel',
-    shippingDelay: 'Shipping delay',
-    shippingDelayHint: 'Maximum time before shipping',
+    shippingDelay: 'Handover deadline',
+    shippingDelayHint: 'With no code or photos in time, the order is cancelled and refunded',
     day: 'day',
     days: 'days',
     weight: 'Weight (grams)',
-    weightHint: 'Item weight for shipping cost calculation',
+    weightHint: 'Item weight (used for the suggested shipping price)',
     suggestedShipping: 'Suggested price',
-    shippingOverride: 'Custom shipping price (EUR)',
-    shippingOverrideHint: 'Leave empty to use calculated price',
+    shippingOverride: 'Your shipping price by post for this item',
+    shippingOverrideHint: 'Leave empty to use your settings price (or the suggested one)',
     shippingWarning: 'Warning: if actual cost is higher, the difference will be deducted from your earnings',
     perCarrier: 'depending on carrier',
   },
@@ -193,15 +194,15 @@ const pageContent = {
     deleteError: 'המחיקה נכשלה',
     confirmDelete: 'מחק',
     confirmCancel: 'ביטול',
-    shippingDelay: 'זמן משלוח',
-    shippingDelayHint: 'זמן מקסימלי לפני משלוח',
+    shippingDelay: 'זמן למסירה',
+    shippingDelayHint: 'ללא קוד או תמונות בזמן, ההזמנה מבוטלת והכסף מוחזר',
     day: 'יום',
     days: 'ימים',
     weight: '(משקל (גרם',
-    weightHint: 'משקל הפריט לחישוב עלות משלוח',
+    weightHint: 'משקל הפריט (למחיר המשלוח המומלץ)',
     suggestedShipping: 'מחיר מוצע',
-    shippingOverride: '(מחיר משלוח מותאם (EUR',
-    shippingOverrideHint: 'השאר ריק לשימוש במחיר המחושב',
+    shippingOverride: 'מחיר המשלוח שלך בדואר לפריט הזה',
+    shippingOverrideHint: 'השאר ריק כדי להשתמש במחיר מההגדרות (או במחיר המומלץ)',
     shippingWarning: 'שים לב: אם העלות בפועל גבוהה יותר, ההפרש ינוכה מהרווחים שלך',
     perCarrier: 'בהתאם לשליח',
   },
@@ -246,18 +247,29 @@ const pageContent = {
     deleteError: 'Error al eliminar',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
-    shippingDelay: 'Plazo de envio',
-    shippingDelayHint: 'Tiempo maximo antes del envio',
+    shippingDelay: 'Plazo de entrega',
+    shippingDelayHint: 'Sin código ni fotos a tiempo, el pedido se cancela y se reembolsa',
     day: 'dia',
     days: 'dias',
     weight: 'Peso (gramos)',
-    weightHint: 'Peso del articulo para calcular el envio',
+    weightHint: 'Peso del artículo (para el precio de envío sugerido)',
     suggestedShipping: 'Precio sugerido',
-    shippingOverride: 'Precio de envio personalizado (EUR)',
-    shippingOverrideHint: 'Dejar vacio para usar el precio calculado',
+    shippingOverride: 'Tu precio de envío por correo para este artículo',
+    shippingOverrideHint: 'Déjalo vacío para usar el precio de tus ajustes (o el sugerido)',
     shippingWarning: 'Atencion: si el costo real es mayor, la diferencia se deducira de tus ganancias',
     perCarrier: 'segun el transportista',
   },
+}
+// Russe : seulement les textes de la remise ; le reste retombe sur l'anglais
+// (traduction russe complète faite à part).
+;(pageContent as Record<string, typeof pageContent.en>).ru = {
+  ...pageContent.en,
+  shippingDelay: 'Срок передачи',
+  shippingDelayHint: 'Без кода или фото в срок заказ отменяется, деньги возвращаются',
+  weightHint: 'Вес товара (для рекомендуемой цены отправки)',
+  suggestedShipping: 'Рекомендуемая цена',
+  shippingOverride: 'Твоя цена отправки почтой для этого товара',
+  shippingOverrideHint: 'Оставь пустым, чтобы взять цену из настроек (или рекомендуемую)',
 }
 
 const cameraModalContent = {
@@ -267,9 +279,9 @@ const cameraModalContent = {
   es: { title: 'Camara y Microfono', desc: 'ShaPop necesita tu camara y microfono para las transmisiones en vivo', allow: 'Continuar', skip: 'Continuar' },
 }
 
-interface ShippingOption {
-  carrier: string
-  cost: number
+interface SuggestedShipping {
+  price: number
+  currency: string
 }
 
 interface DraftItem {
@@ -291,7 +303,7 @@ export default function PrepareLivePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
-  const ct = pageContent[lang] || pageContent.fr
+  const ct = (pageContent as Record<string, typeof pageContent.en>)[lang] || pageContent.fr
   usePageTitle(ct.title)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -315,14 +327,15 @@ export default function PrepareLivePage() {
   const [formBuyNowPrice, setFormBuyNowPrice] = useState('')
   const [csvImporting, setCsvImporting] = useState(false)
   const csvInputRef = useRef<HTMLInputElement>(null)
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([])
+  // Prix d'envoi par la poste suggéré (le vendeur fixe le sien, par article ou dans ses réglages)
+  const [suggestedShipping, setSuggestedShipping] = useState<SuggestedShipping | null>(null)
   const [loadingShipping, setLoadingShipping] = useState(false)
   const [formError, setFormError] = useState('')
   const [editingDate, setEditingDate] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
-  const [shippingDelay, setShippingDelay] = useState(2)
+  const [shippingDelay, setShippingDelay] = useState(4)
   const [showCameraModal, setShowCameraModal] = useState(false)
   const camContent = cameraModalContent[lang as keyof typeof cameraModalContent] || cameraModalContent.fr
 
@@ -401,19 +414,25 @@ export default function PrepareLivePage() {
     fetchShippingDelay()
   }, [user])
 
-  // Fetch shipping options when weight changes
+  // Prix d'envoi suggéré selon le poids (pays du vendeur, module unique côté serveur)
   useEffect(() => {
     const weightNum = parseInt(formWeight, 10)
     if (!weightNum || weightNum <= 0) {
-      setShippingOptions([])
+      setSuggestedShipping(null)
       return
     }
     setLoadingShipping(true)
     const controller = new AbortController()
-    apiFetch(`/api/shipping/options?weight_grams=${weightNum}`, { signal: controller.signal })
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token
+      return apiFetch(`/api/shipping/suggested?weight_grams=${weightNum}`, {
+        signal: controller.signal,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
+    })
       .then(resp => resp.json())
       .then(data => {
-        if (data.options) setShippingOptions(data.options)
+        if (typeof data.price === 'number') setSuggestedShipping({ price: data.price, currency: data.currency })
         setLoadingShipping(false)
       })
       .catch(() => setLoadingShipping(false))
@@ -576,7 +595,7 @@ export default function PrepareLivePage() {
     setFormBuyNowPrice('')
     setFormWeight('')
     setFormShippingOverride('')
-    setShippingOptions([])
+    setSuggestedShipping(null)
     setShowForm(false)
     setSaving(false)
   }
@@ -936,7 +955,7 @@ export default function PrepareLivePage() {
               </span>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {[2, 3, 4].map(d => (
+              {[1, 2, 3, 4, 5, 6, 7].map(d => (
                 <button
                   key={d}
                   onClick={() => handleShippingDelayChange(d)}
@@ -1383,7 +1402,7 @@ export default function PrepareLivePage() {
                 {/* Suggested shipping price range */}
                 {loadingShipping ? (
                   <p style={{ fontSize: '12px', color: '#888', margin: '0 0 8px 0' }}>...</p>
-                ) : shippingOptions.length > 0 && (
+                ) : suggestedShipping && (
                   <div style={{
                     backgroundColor: 'rgba(240,144,138,0.08)',
                     border: '1px solid rgba(240,144,138,0.2)',
@@ -1392,7 +1411,7 @@ export default function PrepareLivePage() {
                     marginBottom: '10px',
                   }}>
                     <p style={{ fontSize: '12px', color: '#F0908A', margin: 0, fontWeight: 600 }}>
-                      {ct.suggestedShipping}: {shippingOptions[0].cost.toFixed(2)}&euro; ({shippingOptions[0].carrier.replace('_', ' ')})
+                      {ct.suggestedShipping}: {formatMoney(suggestedShipping.price, suggestedShipping.currency)}
                     </p>
                   </div>
                 )}
@@ -1403,9 +1422,7 @@ export default function PrepareLivePage() {
                   inputMode="decimal"
                   value={formShippingOverride}
                   onChange={e => setFormShippingOverride(e.target.value)}
-                  placeholder={shippingOptions.length > 0
-                    ? `${Math.min(...shippingOptions.map(o => o.cost)).toFixed(2)}`
-                    : '0.00'}
+                  placeholder={suggestedShipping ? suggestedShipping.price.toFixed(2) : '0.00'}
                   min="0"
                   step="0.01"
                   style={{
@@ -1422,22 +1439,6 @@ export default function PrepareLivePage() {
                   {ct.shippingOverrideHint}
                 </p>
 
-                {/* Warning if override is below cheapest carrier */}
-                {formShippingOverride && shippingOptions.length > 0 &&
-                  parseFloat(formShippingOverride) > 0 &&
-                  parseFloat(formShippingOverride) < Math.min(...shippingOptions.map(o => o.cost)) && (
-                  <div style={{
-                    backgroundColor: 'rgba(245,158,11,0.1)',
-                    border: '1px solid rgba(245,158,11,0.3)',
-                    borderRadius: '8px',
-                    padding: '8px 12px',
-                    marginTop: '8px',
-                  }}>
-                    <p style={{ fontSize: '12px', color: '#F59E0B', margin: 0 }}>
-                      {ct.shippingWarning}
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 
@@ -1628,7 +1629,7 @@ export default function PrepareLivePage() {
                   setFormCategory('')
                   setFormWeight('')
                   setFormShippingOverride('')
-                  setShippingOptions([])
+                  setSuggestedShipping(null)
                   if (formImage) URL.revokeObjectURL(formImage)
                   setFormImage(null)
                   setFormImageFile(null)

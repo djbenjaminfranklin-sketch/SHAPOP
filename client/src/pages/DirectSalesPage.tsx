@@ -110,7 +110,7 @@ export default function DirectSalesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null)
-  const [buyError, setBuyError] = useState('')
+  const [, setBuyError] = useState('')
   const [boughtItemId, setBoughtItemId] = useState<string | null>(null)
   const navigate = useNavigate()
   const { user, session } = useAuth()

@@ -61,7 +61,7 @@ const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
 const VerificationPage = lazy(() => import('./pages/VerificationPage'))
 const AccountControlsPage = lazy(() => import('./pages/AccountControlsPage'))
 const TeamPage = lazy(() => import('./pages/TeamPage'))
-const ShipmentsPage = lazy(() => import('./pages/ShipmentsPage'))
+const HandoverPage = lazy(() => import('./pages/HandoverPage'))
 const CommunityGuidelinesPage = lazy(() => import('./pages/CommunityGuidelinesPage'))
 const ReturnPolicyPage = lazy(() => import('./pages/ReturnPolicyPage'))
 const CreateLiveWizard = lazy(() => import('./components/seller/CreateLiveWizard'))
@@ -386,7 +386,8 @@ export default function App() {
                 <Route path="/verification" element={<ProtectedRoute><VerificationPage /></ProtectedRoute>} />
                 <Route path="/account-controls" element={<ProtectedRoute><AccountControlsPage /></ProtectedRoute>} />
                 <Route path="/team" element={<ProtectedRoute><TeamPage /></ProtectedRoute>} />
-                <Route path="/shipments" element={<ProtectedRoute><ShipmentsPage /></ProtectedRoute>} />
+                <Route path="/to-hand-over" element={<ProtectedRoute><HandoverPage /></ProtectedRoute>} />
+                <Route path="/shipments" element={<Navigate to="/to-hand-over" replace />} />
                 <Route path="/community-guidelines" element={<CommunityGuidelinesPage />} />
                 <Route path="/return-policy" element={<ReturnPolicyPage />} />
                 <Route path="*" element={<NotFoundPage />} />

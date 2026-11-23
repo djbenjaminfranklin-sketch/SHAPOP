@@ -515,7 +515,7 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
   try {
     const userId = req.user!.id
 
-    const validStatuses = ['paid', 'shipped', 'delivered', 'completed']
+    const validStatuses = ['paid', 'shipped', 'handed_over', 'delivered', 'completed']
 
     // Fetch orders for this seller with valid statuses
     const { data: orders } = await supabase
@@ -653,7 +653,7 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
 
     // Completion rate (shipped + delivered + completed)
     const completedCount = healthOrders.filter((o: Record<string, unknown>) =>
-      ['shipped', 'delivered', 'completed'].includes(o.status as string)
+      ['shipped', 'handed_over', 'delivered', 'completed'].includes(o.status as string)
     ).length
     const completionRate = totalOrderCount > 0 ? Math.round((completedCount / totalOrderCount) * 1000) / 10 : 0
 

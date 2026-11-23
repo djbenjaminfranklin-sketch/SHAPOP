@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
+import { ft } from '../lib/fulfillmentText'
 import { categories } from '../components/CategoryIcons'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -578,6 +579,13 @@ export default function GoLivePage() {
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: ct.createError }))
+        if (err.error === 'whatsapp_required') {
+          // Numéro WhatsApp obligatoire pour vendre : réglages « Remise des commandes »
+          alert(ft().whatsapp_required_to_sell)
+          setCreating(false)
+          navigate('/payments')
+          return
+        }
         throw new Error(err.error || ct.createError)
       }
 

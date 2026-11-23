@@ -1476,7 +1476,7 @@ export default function AdminPage() {
   const renderPayments = () => (
     <div style={{ padding: '0 16px' }}>
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
-        {['', 'pending_payment', 'paid', 'shipped', 'delivered', 'refunded', 'disputed'].map(s => (
+        {['', 'pending_payment', 'paid', 'shipped', 'handed_over', 'delivered', 'refunded', 'disputed', 'cancelled'].map(s => (
           <button key={s} onClick={() => { setOrdersStatus(s); setTimeout(() => fetchOrders(1), 0) }}
             style={{
               ...btn(ordersStatus === s ? '#F0908A' : '#222'),

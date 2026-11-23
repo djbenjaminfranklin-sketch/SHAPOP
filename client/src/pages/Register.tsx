@@ -22,6 +22,7 @@ const COUNTRY_PREFIXES = [
 
 const content = {
   fr: {
+    errorInvalidEmail: 'Adresse e-mail invalide',
     title: 'Créer un compte',
     subtitle: 'Rejoins ShaPop et commence à acheter ou vendre en live',
     continueApple: 'Continuer avec Apple',
@@ -69,6 +70,7 @@ const content = {
     checkEmailDesc: 'Un lien de confirmation a été envoyé à ton adresse email.',
   },
   en: {
+    errorInvalidEmail: 'Invalid email address',
     title: 'Create Account',
     subtitle: 'Join ShaPop and start buying or selling live',
     continueApple: 'Continue with Apple',
@@ -116,6 +118,7 @@ const content = {
     checkEmailDesc: 'A confirmation link has been sent to your email address.',
   },
   he: {
+    errorInvalidEmail: 'כתובת אימייל לא תקינה',
     title: '\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF',
     subtitle: '\u05D4\u05E6\u05D8\u05E8\u05E3 \u05DC-ShaPop \u05D5\u05D4\u05EA\u05D7\u05DC \u05DC\u05E7\u05E0\u05D5\u05EA \u05D0\u05D5 \u05DC\u05DE\u05DB\u05D5\u05E8 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9',
     continueApple: '\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD Apple',
@@ -163,6 +166,7 @@ const content = {
     checkEmailDesc: '\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.',
   },
   es: {
+    errorInvalidEmail: 'Correo electrónico no válido',
     title: 'Crear cuenta',
     subtitle: '\u00DAnete a ShaPop y empieza a comprar o vender en vivo',
     continueApple: 'Continuar con Apple',

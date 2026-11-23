@@ -7,6 +7,7 @@ import OnboardingWizard from '../components/seller/OnboardingWizard'
 import OnboardingCelebration from '../components/seller/OnboardingCelebration'
 import CreateLiveWizard from '../components/seller/CreateLiveWizard'
 import EngagementSummary from '../components/seller/EngagementSummary'
+import { ft } from '../lib/fulfillmentText'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 interface HealthMetrics {
@@ -807,9 +808,9 @@ export default function Dashboard() {
               </svg>
             </button>
 
-            {/* ─── Quick Actions: Shipments ─── */}
+            {/* ─── Quick Actions: commandes à remettre ─── */}
             <button
-              onClick={() => navigate('/shipments')}
+              onClick={() => navigate('/to-hand-over')}
               style={{
                 width: '100%', padding: '14px 16px',
                 backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
@@ -829,7 +830,7 @@ export default function Dashboard() {
               </div>
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                  {tx('Mes envois', 'My Shipments', '\u05D4\u05DE\u05E9\u05DC\u05D5\u05D7\u05D9\u05DD \u05E9\u05DC\u05D9', 'Mis env\u00edos')}
+                  {ft().to_hand_over}
                 </p>
                 <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
                   {tx('Suivre vos colis', 'Track your packages', '\u05E2\u05E7\u05D5\u05D1 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D7\u05D1\u05D9\u05DC\u05D5\u05EA', 'Seguir tus paquetes')}

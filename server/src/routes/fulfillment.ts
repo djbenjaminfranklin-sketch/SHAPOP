@@ -623,6 +623,14 @@ router.put('/api/seller/fulfillment-settings', requireAuth, async (req: Authenti
   }
 })
 
+// Prix d'envoi suggéré pour un article (selon le pays du vendeur et le poids)
+router.get('/api/shipping/suggested', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const weight = parseInt(String(req.query.weight_grams || ''), 10)
+  const country = await getProfileCountry(req.user!.id)
+  const s = suggestedPostPrice(country, Number.isFinite(weight) && weight > 0 ? weight : null)
+  res.json({ price: s.price, currency: currencyForCountry(country) })
+})
+
 // Numéro WhatsApp de l'utilisateur connecté (jamais celui d'un autre)
 router.get('/api/me/whatsapp', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id

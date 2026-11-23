@@ -128,13 +128,6 @@ export default function MessagesPage() {
     return `${weeks}${ct.timeWeek}`
   }
 
-  const typeBadge: Record<string, { label: string; color: string }> = {
-    order: { label: ct.order, color: 'bg-blue-500/20 text-blue-400' },
-    direct: { label: ct.order, color: 'bg-blue-500/20 text-blue-400' },
-    dispute: { label: ct.dispute, color: 'bg-red-500/20 text-red-400' },
-    support: { label: ct.support, color: 'bg-gray-500/20 text-gray-400' },
-  }
-
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

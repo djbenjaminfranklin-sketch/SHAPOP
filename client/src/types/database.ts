@@ -53,7 +53,11 @@ export interface Seller {
   team_size: string | null
   live_hours: string | null
   return_address: Record<string, string> | null
+  /** « Délai de remise » (jours, 4 par défaut) — nom de colonne historique */
   shipping_delay_days: number | null
+  allow_pickup: boolean
+  pickup_area: string | null
+  post_price: number | null
   return_policy: 'no_return' | 'exchange_only' | 'return_7' | 'return_14' | 'return_30'
   bank_choice: string | null
   paypal_email: string | null
@@ -146,7 +150,16 @@ export interface Order {
   shipping_cost: number
   total_amount: number | null
   carrier: string | null
-  status: 'pending_payment' | 'paid' | 'preparing' | 'shipped' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected' | 'cancelled'
+  status: 'pending_payment' | 'paid' | 'preparing' | 'shipped' | 'handed_over' | 'delivered' | 'refunded' | 'disputed' | 'return_requested' | 'return_approved' | 'return_rejected' | 'cancelled'
+  /** Remise : 'pickup' (code à 4 chiffres) | 'post' (2 photos) | 'legacy_carrier' (anciennes commandes) */
+  fulfillment_method: 'pickup' | 'post' | 'legacy_carrier' | null
+  currency: string
+  handover_deadline: string | null
+  handed_over_at: string | null
+  proof_parcel_path: string | null
+  proof_slip_path: string | null
+  proof_submitted_at: string | null
+  payout_released_at: string | null
   shipping_address: Record<string, string> | null
   shipping_proof_url: string | null
   tracking_number: string | null
@@ -155,7 +168,6 @@ export interface Order {
   shipped_at: string | null
   delivered_at: string | null
   claim_deadline: string | null
-  ship_deadline: string | null
   tracking_status: 'pending' | 'shipped' | 'in_transit' | 'delivered' | 'returned' | null
   buyer_confirmed_at: string | null
   payout_scheduled_at: string | null
@@ -287,7 +299,7 @@ export interface Conversation {
   created_at: string
   other_participant?: Profile
   last_message?: ConversationMessage
-  order?: Order & { item?: { title?: string } }
+  order?: Order & { item?: { title?: string; image_urls?: string[] } }
   item?: { id: string; title: string; image_urls?: string[]; current_price?: number }
 }
 

@@ -21,6 +21,7 @@ interface RecentStream {
 
 const detailContent = {
   fr: {
+    title: 'Communauté',
     members: 'Membres',
     activeSellers: 'Vendeurs actifs',
     livesPerWeek: 'Lives / semaine',
@@ -40,6 +41,7 @@ const detailContent = {
     livePlural: 'lives',
   },
   en: {
+    title: 'Community',
     members: 'Members',
     activeSellers: 'Active sellers',
     livesPerWeek: 'Lives / week',
@@ -59,6 +61,7 @@ const detailContent = {
     livePlural: 'lives',
   },
   he: {
+    title: 'קהילה',
     members: '\u05D7\u05D1\u05E8\u05D9\u05DD',
     activeSellers: '\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC\u05D9\u05DD',
     livesPerWeek: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD / \u05E9\u05D1\u05D5\u05E2',
@@ -78,6 +81,7 @@ const detailContent = {
     livePlural: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
   },
   es: {
+    title: 'Comunidad',
     members: 'Miembros',
     activeSellers: 'Vendedores activos',
     livesPerWeek: 'Lives / semana',

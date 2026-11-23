@@ -5,15 +5,17 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang } from '../lib/i18n'
 import type { Item, Order, Profile } from '../types/database'
-import ShippingLabel from '../components/checkout/ShippingLabel'
 import VodPlayer from '../components/stream/VodPlayer'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { formatMoney } from '../lib/fulfillment'
+import { ft, statusLabel } from '../lib/fulfillmentText'
 
 type Lang = 'fr' | 'en' | 'he' | 'es'
 
 const pageContent = {
   fr: {
+    viewOrder: 'Voir la commande',
     title: 'Recapitulatif du live',
     sales: 'Ventes',
     totalRevenue: 'Chiffre d\'affaires',
@@ -27,13 +29,6 @@ const pageContent = {
     pending: 'En attente',
     shipped: 'Expedie',
     orderRef: 'N° commande',
-    generateLabel: 'Etiquette',
-    generateLabelShort: 'Etiquette',
-    weightPlaceholder: 'Poids en grammes (ex: 500)',
-    generatingLabel: 'Generation...',
-    labelReady: 'Etiquette prete',
-    downloadLabel: 'Ouvrir l\'etiquette',
-    printAllLabels: 'Imprimer toutes les etiquettes',
     back: 'Retour',
     noSales: 'Aucune vente pour ce live',
     buyerDetails: 'Details acheteur',
@@ -43,8 +38,6 @@ const pageContent = {
     email: 'Email',
     close: 'Fermer',
     articles: 'articles',
-    sellerAddress: 'Adresse du vendeur',
-    noAddress: 'Adresse non renseignee',
     watchVod: 'Regarder la VOD',
     peakViewers: 'Pic de spectateurs',
     duration: 'Duree du live',
@@ -62,6 +55,7 @@ const pageContent = {
     last60s: 'Dernieres 60s',
   },
   en: {
+    viewOrder: 'View order',
     title: 'Live recap',
     sales: 'Sales',
     totalRevenue: 'Total revenue',
@@ -75,13 +69,6 @@ const pageContent = {
     pending: 'Pending',
     shipped: 'Shipped',
     orderRef: 'Order #',
-    generateLabel: 'Shipping Label',
-    generateLabelShort: 'Label',
-    weightPlaceholder: 'Weight in grams (e.g. 500)',
-    generatingLabel: 'Generating...',
-    labelReady: 'Label ready',
-    downloadLabel: 'Open label',
-    printAllLabels: 'Print all labels',
     back: 'Back',
     noSales: 'No sales for this live',
     buyerDetails: 'Buyer details',
@@ -91,8 +78,6 @@ const pageContent = {
     email: 'Email',
     close: 'Close',
     articles: 'items',
-    sellerAddress: 'Seller address',
-    noAddress: 'Address not provided',
     watchVod: 'Watch VOD',
     peakViewers: 'Peak viewers',
     duration: 'Live duration',
@@ -110,6 +95,7 @@ const pageContent = {
     last60s: 'Last 60s',
   },
   he: {
+    viewOrder: 'צפה בהזמנה',
     title: 'סיכום השידור',
     sales: 'מכירות',
     totalRevenue: 'מחזור',
@@ -123,13 +109,6 @@ const pageContent = {
     pending: 'ממתין',
     shipped: 'נשלח',
     orderRef: 'מספר הזמנה',
-    generateLabel: 'תווית משלוח',
-    generateLabelShort: 'תווית MR',
-    weightPlaceholder: 'משקל בגרמים (לדוגמה: 500)',
-    generatingLabel: 'יוצר...',
-    labelReady: 'תווית מוכנה',
-    downloadLabel: 'פתח תווית',
-    printAllLabels: 'הדפס את כל התוויות',
     back: 'חזור',
     noSales: 'אין מכירות לשידור זה',
     buyerDetails: 'פרטי קונה',
@@ -139,8 +118,6 @@ const pageContent = {
     email: 'אימייל',
     close: 'סגור',
     articles: 'פריטים',
-    sellerAddress: 'כתובת המוכר',
-    noAddress: 'כתובת לא סופקה',
     watchVod: 'צפה VOD',
     peakViewers: 'שיא צופים',
     duration: 'משך השידור',
@@ -158,6 +135,7 @@ const pageContent = {
     last60s: '60 שניות אחרונות',
   },
   es: {
+    viewOrder: 'Ver el pedido',
     title: 'Resumen del directo',
     sales: 'Ventas',
     totalRevenue: 'Ingreso total',
@@ -171,13 +149,6 @@ const pageContent = {
     pending: 'Pendiente',
     shipped: 'Enviado',
     orderRef: 'N° pedido',
-    generateLabel: 'Etiqueta de envio',
-    generateLabelShort: 'Etiqueta MR',
-    weightPlaceholder: 'Peso en gramos (ej: 500)',
-    generatingLabel: 'Generando...',
-    labelReady: 'Etiqueta lista',
-    downloadLabel: 'Abrir etiqueta',
-    printAllLabels: 'Imprimir todas las etiquetas',
     back: 'Volver',
     noSales: 'Sin ventas para este directo',
     buyerDetails: 'Detalles del comprador',
@@ -187,8 +158,6 @@ const pageContent = {
     email: 'Email',
     close: 'Cerrar',
     articles: 'articulos',
-    sellerAddress: 'Direccion del vendedor',
-    noAddress: 'Direccion no proporcionada',
     watchVod: 'Ver VOD',
     peakViewers: 'Pico de espectadores',
     duration: 'Duracion del directo',
@@ -206,6 +175,9 @@ const pageContent = {
     last60s: 'Ultimos 60s',
   },
 }
+// Russe : seulement le texte ajouté pour la remise ; le reste retombe sur l'anglais
+// (traduction russe complète faite à part).
+;(pageContent as Record<string, typeof pageContent.en>).ru = { ...pageContent.en, viewOrder: 'Открыть заказ' }
 
 interface SaleRow {
   item: Item
@@ -219,24 +191,16 @@ export default function LiveRecapPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const lang = (getLang() || 'fr') as Lang
-  const ct = pageContent[lang] || pageContent.fr
+  const ct = (pageContent as Record<string, typeof pageContent.en>)[lang] || pageContent.fr
+  const fx = ft(lang)
   usePageTitle(ct.title)
 
   const [sales, setSales] = useState<SaleRow[]>([])
   const [allItems, setAllItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSale, setSelectedSale] = useState<SaleRow | null>(null)
-  const [showLabel, setShowLabel] = useState<SaleRow | null>(null)
-  const [showAllLabels, setShowAllLabels] = useState(false)
-  const [sellerProfile, setSellerProfile] = useState<Profile | null>(null)
   const [streamInfo, setStreamInfo] = useState<{ recording_url: string | null; started_at: string | null; ended_at: string | null; peak_viewers: number; title: string } | null>(null)
 
-  // MR label states
-  const [labelWeight, setLabelWeight] = useState('')
-  const [labelGenerating, setLabelGenerating] = useState(false)
-  const [labelError, setLabelError] = useState<string | null>(null)
-  const [labelResult, setLabelResult] = useState<{ label_url: string; shipment_number: string } | null>(null)
-  const [shippingPreview, setShippingPreview] = useState<number | null>(null)
   const [showVod, setShowVod] = useState(false)
 
   // Clips state
@@ -247,26 +211,6 @@ export default function LiveRecapPage() {
   const [clipDuration, setClipDuration] = useState('60')
   const [clipCreating, setClipCreating] = useState(false)
   const [clipPlaying, setClipPlaying] = useState<{ recording_url: string; start_seconds: number; title: string } | null>(null)
-
-  // Preview shipping cost when weight changes
-  const handleLabelWeightChange = async (value: string) => {
-    setLabelWeight(value)
-    setLabelError(null)
-    setShippingPreview(null)
-    const weight = parseInt(value)
-    if (!weight || weight <= 0) return
-    try {
-      const country = selectedSale?.order?.shipping_address
-        ? (selectedSale.order.shipping_address as Record<string, string>).country || 'FR'
-        : 'FR'
-      const orderCarrier = selectedSale?.order?.carrier || 'mondial_relay'
-      const resp = await apiFetch(`/api/shipping/calculate?weight_grams=${weight}&carrier=${orderCarrier}&country=${country}`)
-      if (resp.ok) {
-        const data = await resp.json()
-        setShippingPreview(data.shipping_cost)
-      }
-    } catch { /* ignore */ }
-  }
 
   useEffect(() => {
     if (!streamId || !user) return
@@ -299,14 +243,6 @@ export default function LiveRecapPage() {
         .eq('id', streamId)
         .single()
       if (streamData) setStreamInfo(streamData as { recording_url: string | null; started_at: string | null; ended_at: string | null; peak_viewers: number; title: string })
-
-      // Fetch seller profile
-      const { data: sp } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      if (sp) setSellerProfile(sp)
 
       // Fetch clips
       try {
@@ -361,20 +297,27 @@ export default function LiveRecapPage() {
   const soldCount = allItems.filter(it => it.status === 'sold').length
   const unsoldCount = allItems.filter(it => it.status === 'unsold').length
 
+  const revenueCurrency = sales.find(s => s.order?.currency)?.order?.currency || null
+  const money = (n: number | null | undefined, currency?: string | null) => formatMoney(n ?? 0, currency ?? revenueCurrency, lang)
+
   const getStatusLabel = (order: Order | null) => {
     if (!order) return ct.pending
-    switch (order.status) {
-      case 'paid': return ct.paid
-      case 'shipped': return ct.shipped
-      default: return ct.pending
+    if (order.status === 'paid' && (order.fulfillment_method === 'pickup' || order.fulfillment_method === 'post')) {
+      return order.fulfillment_method === 'pickup' ? fx.awaiting_code : fx.awaiting_photos
     }
+    return statusLabel(order.status, lang)
   }
 
   const getStatusColor = (order: Order | null) => {
     if (!order) return '#F59E0B'
     switch (order.status) {
-      case 'paid': return '#22C55E'
-      case 'shipped': return '#3B82F6'
+      case 'paid': return '#F59E0B'
+      case 'shipped':
+      case 'handed_over':
+      case 'delivered': return '#22C55E'
+      case 'refunded':
+      case 'cancelled':
+      case 'disputed': return '#E8344E'
       default: return '#F59E0B'
     }
   }
@@ -388,76 +331,6 @@ export default function LiveRecapPage() {
           borderRadius: '50%', animation: 'spin 0.8s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    )
-  }
-
-  // Show shipping label
-  if (showLabel) {
-    return (
-      <ShippingLabel
-        sellerName={sellerProfile?.display_name || sellerProfile?.username || ''}
-        sellerAddress={ct.sellerAddress}
-        buyerName={showLabel.buyerProfile?.display_name || showLabel.buyerProfile?.username || ''}
-        buyerAddress={showLabel.order?.shipping_address
-          ? `${showLabel.order.shipping_address.street || ''}, ${showLabel.order.shipping_address.zip || ''} ${showLabel.order.shipping_address.city || ''}`
-          : ct.noAddress}
-        buyerPhone={showLabel.order?.shipping_address?.phone || ''}
-        orderRef={showLabel.order?.stripe_payment_intent_id || ''}
-        lotRef={formatLot(showLabel.lotNumber)}
-        onClose={() => setShowLabel(null)}
-      />
-    )
-  }
-
-  // Show all labels
-  if (showAllLabels) {
-    return (
-      <div style={{ backgroundColor: '#fff', minHeight: '100vh' }}>
-        <div className="no-print" style={{ padding: '16px', display: 'flex', gap: '12px' }}>
-          <button
-            onClick={() => setShowAllLabels(false)}
-            style={{
-              padding: '10px 20px', backgroundColor: '#111',
-              border: 'none', borderRadius: '8px',
-              color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            {ct.back}
-          </button>
-          <button
-            onClick={() => window.print()}
-            style={{
-              padding: '10px 20px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              border: 'none', borderRadius: '8px',
-              color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            {ct.printAllLabels}
-          </button>
-        </div>
-        {sales.map((sale) => (
-          <div key={sale.item.id} style={{ pageBreakAfter: 'always' }}>
-            <ShippingLabel
-              sellerName={sellerProfile?.display_name || sellerProfile?.username || ''}
-              sellerAddress={ct.sellerAddress}
-              buyerName={sale.buyerProfile?.display_name || sale.buyerProfile?.username || ''}
-              buyerAddress={sale.order?.shipping_address
-                ? `${sale.order.shipping_address.street || ''}, ${sale.order.shipping_address.zip || ''} ${sale.order.shipping_address.city || ''}`
-                : ct.noAddress}
-              buyerPhone={sale.order?.shipping_address?.phone || ''}
-              orderRef={sale.order?.stripe_payment_intent_id || ''}
-              lotRef={formatLot(sale.lotNumber)}
-              embedded
-            />
-          </div>
-        ))}
-        <style>{`
-          @media print {
-            .no-print { display: none !important; }
-          }
-        `}</style>
       </div>
     )
   }
@@ -518,7 +391,7 @@ export default function LiveRecapPage() {
           textAlign: 'center',
         }}>
           <p style={{ fontSize: '24px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-            {totalRevenue.toLocaleString()} €
+            {money(totalRevenue)}
           </p>
           <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.totalRevenue}
@@ -587,20 +460,6 @@ export default function LiveRecapPage() {
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
             {ct.sales} ({sales.length})
           </h2>
-          {sales.length > 0 && (
-            <button
-              onClick={() => setShowAllLabels(true)}
-              style={{
-                padding: '8px 16px',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                borderRadius: '8px', border: 'none',
-                color: '#fff', fontSize: '12px', fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {ct.printAllLabels}
-            </button>
-          )}
         </div>
 
         {sales.length === 0 ? (
@@ -615,7 +474,7 @@ export default function LiveRecapPage() {
             {sales.map((sale) => (
               <button
                 key={sale.item.id}
-                onClick={() => { setSelectedSale(sale); setLabelWeight(''); setLabelError(null); setLabelResult(null) }}
+                onClick={() => setSelectedSale(sale)}
                 style={{
                   backgroundColor: '#111',
                   border: '1px solid #222',
@@ -672,7 +531,7 @@ export default function LiveRecapPage() {
                 {/* Price */}
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <p style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                    {sale.item.current_price} €
+                    {money(sale.order?.amount ?? sale.item.current_price, sale.order?.currency)}
                   </p>
                 </div>
 
@@ -731,7 +590,7 @@ export default function LiveRecapPage() {
             }}>
               <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.orderRef}</p>
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#F0908A', margin: 0 }}>
-                {selectedSale.order?.stripe_payment_intent_id || '—'}
+                {selectedSale.order ? `#${selectedSale.order.id.slice(0, 8).toUpperCase()}` : '—'}
               </p>
             </div>
 
@@ -742,7 +601,7 @@ export default function LiveRecapPage() {
               }}>
                 <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.price}</p>
                 <p style={{ fontSize: '20px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                  {selectedSale.item.current_price} €
+                  {money(selectedSale.order?.amount ?? selectedSale.item.current_price, selectedSale.order?.currency)}
                 </p>
               </div>
               <div style={{
@@ -778,7 +637,7 @@ export default function LiveRecapPage() {
                   <p style={{ fontSize: '14px', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.order?.shipping_address
                       ? `${selectedSale.order.shipping_address.street || ''}, ${selectedSale.order.shipping_address.zip || ''} ${selectedSale.order.shipping_address.city || ''}`
-                      : '—'}
+                      : selectedSale.order?.fulfillment_method === 'pickup' ? fx.method_pickup : '—'}
                   </p>
                 </div>
                 <div>
@@ -790,126 +649,17 @@ export default function LiveRecapPage() {
               </div>
             </div>
 
-            {/* MR label generation: weight + button */}
-            {selectedSale.order && ['paid', 'shipped'].includes(selectedSale.order.status) && selectedSale.order.shipping_address ? (
-              selectedSale.order.label_url ? (
-                <div style={{
-                  padding: '14px', borderRadius: '12px',
-                  backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>{ct.labelReady}</p>
-                    {selectedSale.order.tracking_number && (
-                      <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>#{selectedSale.order.tracking_number}</p>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => window.open(selectedSale.order!.label_url!, '_blank')}
-                    style={{
-                      padding: '10px 18px', borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #10B981, #059669)',
-                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
-                    {ct.downloadLabel}
-                  </button>
-                </div>
-              ) : labelResult ? (
-                <div style={{
-                  padding: '14px', borderRadius: '12px',
-                  backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
-                  <div>
-                    <p style={{ fontSize: '13px', fontWeight: 700, color: '#10B981', margin: 0 }}>{ct.labelReady}</p>
-                    <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0' }}>#{labelResult.shipment_number}</p>
-                  </div>
-                  <button
-                    onClick={() => window.open(labelResult.label_url, '_blank')}
-                    style={{
-                      padding: '10px 18px', borderRadius: '10px',
-                      background: 'linear-gradient(135deg, #10B981, #059669)',
-                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >
-                    {ct.downloadLabel}
-                  </button>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <input
-                    type="number"
-                    placeholder={ct.weightPlaceholder}
-                    value={labelWeight}
-                    onChange={e => handleLabelWeightChange(e.target.value)}
-                    style={{
-                      width: '100%', padding: '14px', borderRadius: '12px',
-                      border: '1px solid #333', backgroundColor: '#0D0D0D',
-                      color: '#fff', fontSize: '14px', fontWeight: 600,
-                      boxSizing: 'border-box', outline: 'none',
-                    }}
-                  />
-                  {shippingPreview != null && shippingPreview > 0 && (
-                    <p style={{ fontSize: '12px', color: '#3B82F6', margin: 0, fontWeight: 600 }}>
-                      {lang === 'fr' ? 'Frais de port' : 'Shipping cost'} : {shippingPreview.toFixed(2)} EUR
-                    </p>
-                  )}
-                  <button
-                    onClick={async () => {
-                      if (!selectedSale.order) return
-                      const weight = parseInt(labelWeight)
-                      if (!weight || weight <= 0) { setLabelError(ct.weightPlaceholder); return }
-                      setLabelGenerating(true); setLabelError(null)
-                      try {
-                        const { data: { session } } = await supabase.auth.getSession()
-                        if (!session) { setLabelError('Auth'); setLabelGenerating(false); return }
-                        const resp = await apiFetch(`/api/orders/${selectedSale.order.id}/create-label`, {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-                          body: JSON.stringify({ weight_grams: weight }),
-                        })
-                        const data = await resp.json()
-                        if (resp.ok) {
-                          setLabelResult({ label_url: data.label_url, shipment_number: data.shipment_number })
-                          if (data.label_url) window.open(data.label_url, '_blank')
-                        } else if (resp.status === 402) {
-                          setLabelError(lang === 'fr'
-                            ? 'Le paiement des frais de port a echoue. L\'acheteur doit mettre a jour sa carte.'
-                            : 'Shipping payment failed. Buyer must update their card.')
-                        } else { setLabelError(data.error || 'Erreur') }
-                      } catch { setLabelError('Erreur reseau') }
-                      setLabelGenerating(false)
-                    }}
-                    disabled={labelGenerating}
-                    style={{
-                      width: '100%', padding: '16px',
-                      background: labelGenerating ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)',
-                      borderRadius: '14px', border: 'none',
-                      color: '#fff', fontSize: '16px', fontWeight: 700,
-                      cursor: labelGenerating ? 'default' : 'pointer',
-                      opacity: labelGenerating ? 0.6 : 1,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                    }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                    </svg>
-                    {labelGenerating ? ct.generatingLabel : ct.generateLabel}
-                  </button>
-                  {labelError && <p style={{ color: '#E8344E', fontSize: '12px', textAlign: 'center', margin: 0 }}>{labelError}</p>}
-                </div>
-              )
-            ) : (
+            {/* Remise : code de retrait ou 2 photos, dans le détail de la commande */}
+            {selectedSale.order && selectedSale.order.status !== 'pending_payment' && (
               <button
-                onClick={() => { setSelectedSale(null); setShowLabel(selectedSale) }}
+                onClick={() => navigate(`/order/${selectedSale.order!.id}`)}
                 style={{
-                  width: '100%', padding: '16px',
-                  background: 'transparent', borderRadius: '14px', border: '1px solid #333',
-                  color: '#aaa', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                  width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
+                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                {ct.generateLabel}
+                {ct.viewOrder}
               </button>
             )}
           </div>

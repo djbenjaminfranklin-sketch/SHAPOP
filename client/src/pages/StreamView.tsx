@@ -18,7 +18,9 @@ import { track } from '../lib/analytics'
 import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } from '../lib/settings'
 import { hapticTap } from '../lib/haptics'
 import { Share } from '@capacitor/share'
-import RelayPointPicker from '../components/checkout/RelayPointPicker'
+import DeliveryChoice from '../components/checkout/DeliveryChoice'
+import { formatMoney } from '../lib/fulfillment'
+import { ft } from '../lib/fulfillmentText'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 
@@ -48,10 +50,8 @@ const streamContent = {
     liveNow: 'EN DIRECT',
     soldBang: 'VENDU !',
     unsoldBang: 'INVENDU',
-    confirmAddress: 'Confirme ton adresse de livraison',
     toReceiveItem: 'Pour recevoir ton article',
     fullName: 'Nom complet',
-    addressPlaceholder: 'Adresse',
     cityPlaceholder: 'Ville',
     zipPlaceholder: 'Code postal',
     phonePlaceholder: 'Telephone',
@@ -78,8 +78,6 @@ const streamContent = {
     cardSavedDesc: 'Tu peux maintenant encherir',
     saveCard: 'Enregistrer la carte',
     cardRequired: 'Ajoute ta carte pour encherir',
-    addAddress: 'Ajoute ton adresse',
-    addressRequired: 'Ajoute ton adresse de livraison avant d\'encherir',
     shipping: 'Livraison',
     itemPrice: 'Prix article',
     walletTitle: 'Portefeuille',
@@ -112,12 +110,6 @@ const streamContent = {
     preBidPlaceholder: 'Montant de la pre-enchere',
     preBidConfirm: 'Placer la pre-enchere',
     preBidPlaced: 'Pre-enchere placee',
-    bundleDiscount: 'Shipping groupe : -15%',
-    bundleMessage: 'Vos achats seront regroupes dans un seul colis',
-    walletRelay: 'Point Relais Mondial Relay',
-    walletNoRelay: 'Aucun point relais',
-    pickupOption: 'Retrait en main propre (0€)',
-    pickupSelected: 'Retrait en main propre — pas de frais de port',
     tipTitle: 'Envoyer un pourboire',
     tipSent: 'Pourboire envoye !',
     tipMessage: 'a envoye un tip de',
@@ -152,10 +144,8 @@ const streamContent = {
     liveNow: 'LIVE',
     soldBang: 'SOLD!',
     unsoldBang: 'UNSOLD',
-    confirmAddress: 'Confirm your shipping address',
     toReceiveItem: 'To receive your item',
     fullName: 'Full name',
-    addressPlaceholder: 'Address',
     cityPlaceholder: 'City',
     zipPlaceholder: 'Zip code',
     phonePlaceholder: 'Phone',
@@ -182,8 +172,6 @@ const streamContent = {
     cardSavedDesc: 'You can now place bids',
     saveCard: 'Save card',
     cardRequired: 'Add your card to bid',
-    addAddress: 'Add your address',
-    addressRequired: 'Add your shipping address before bidding',
     shipping: 'Shipping',
     itemPrice: 'Item price',
     walletTitle: 'Wallet',
@@ -216,12 +204,6 @@ const streamContent = {
     preBidPlaceholder: 'Pre-bid amount',
     preBidConfirm: 'Place pre-bid',
     preBidPlaced: 'Pre-bid placed',
-    bundleDiscount: 'Grouped shipping: -15%',
-    bundleMessage: 'Your purchases will be bundled in a single package',
-    walletRelay: 'Mondial Relay Point',
-    walletNoRelay: 'No relay point',
-    pickupOption: 'Self pickup (free)',
-    pickupSelected: 'Self pickup — no shipping fees',
     tipTitle: 'Send a tip',
     tipSent: 'Tip sent!',
     tipMessage: 'sent a tip of',
@@ -256,10 +238,8 @@ const streamContent = {
     liveNow: '\u05E9\u05D9\u05D3\u05D5\u05E8',
     soldBang: '!נמכר',
     unsoldBang: 'לא נמכר',
-    confirmAddress: 'אשר את כתובת המשלוח שלך',
     toReceiveItem: 'כדי לקבל את הפריט שלך',
     fullName: 'שם מלא',
-    addressPlaceholder: 'כתובת',
     cityPlaceholder: 'עיר',
     zipPlaceholder: 'מיקוד',
     phonePlaceholder: 'טלפון',
@@ -286,8 +266,6 @@ const streamContent = {
     cardSavedDesc: 'אתה יכול עכשיו להציע',
     saveCard: 'שמור כרטיס',
     cardRequired: 'הוסף כרטיס כדי להציע',
-    addAddress: 'הוסף כתובת',
-    addressRequired: 'הוסף כתובת משלוח לפני שתציע',
     shipping: 'משלוח',
     itemPrice: 'מחיר פריט',
     walletTitle: 'ארנק',
@@ -320,12 +298,6 @@ const streamContent = {
     preBidPlaceholder: 'סכום הצעה מוקדמת',
     preBidConfirm: 'הגש הצעה מוקדמת',
     preBidPlaced: 'הצעה מוקדמת הוגשה',
-    bundleDiscount: 'משלוח מרוכז: -15%',
-    bundleMessage: 'הרכישות שלך יאוחדו בחבילה אחת',
-    walletRelay: 'נקודת איסוף Mondial Relay',
-    walletNoRelay: 'אין נקודת איסוף',
-    pickupOption: 'איסוף עצמי (חינם)',
-    pickupSelected: 'איסוף עצמי — ללא דמי משלוח',
     tipTitle: 'שלח טיפ',
     tipSent: '!הטיפ נשלח',
     tipMessage: 'שלח טיפ של',
@@ -360,10 +332,8 @@ const streamContent = {
     liveNow: 'EN VIVO',
     soldBang: 'VENDIDO!',
     unsoldBang: 'NO VENDIDO',
-    confirmAddress: 'Confirma tu direccion de envio',
     toReceiveItem: 'Para recibir tu articulo',
     fullName: 'Nombre completo',
-    addressPlaceholder: 'Direccion',
     cityPlaceholder: 'Ciudad',
     zipPlaceholder: 'Codigo postal',
     phonePlaceholder: 'Telefono',
@@ -390,8 +360,6 @@ const streamContent = {
     cardSavedDesc: 'Ya puedes pujar',
     saveCard: 'Guardar tarjeta',
     cardRequired: 'Agrega tu tarjeta para pujar',
-    addAddress: 'Agrega tu direccion',
-    addressRequired: 'Agrega tu direccion de envio antes de pujar',
     shipping: 'Envio',
     itemPrice: 'Precio articulo',
     walletTitle: 'Cartera',
@@ -424,12 +392,6 @@ const streamContent = {
     preBidPlaceholder: 'Monto de pre-puja',
     preBidConfirm: 'Colocar pre-puja',
     preBidPlaced: 'Pre-puja colocada',
-    bundleDiscount: 'Envio agrupado: -15%',
-    bundleMessage: 'Sus compras se agruparan en un solo paquete',
-    walletRelay: 'Punto de Recogida Mondial Relay',
-    walletNoRelay: 'Sin punto de recogida',
-    pickupOption: 'Recoger en persona (gratis)',
-    pickupSelected: 'Recoger en persona — sin gastos de envio',
     tipTitle: 'Enviar propina',
     tipSent: 'Propina enviada!',
     tipMessage: 'envio una propina de',
@@ -641,16 +603,12 @@ export default function StreamView() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
-  const [addressForm, setAddressForm] = useState({ name: '', street: '', city: '', zip: '', phone: '', country: 'FR' })
-  const [addressStep, setAddressStep] = useState(true) // true = show address first, false = show payment
-  const autoChargedRef = useRef(false) // true when payment was auto-charged (off-session)
-
-  // Carrier selection for shipping
-  const [selectedCarrier] = useState('mondial_relay')
+  // Étape 1 : retrait en main propre ou envoi par la poste (DeliveryChoice), étape 2 : paiement
+  const [deliveryStep, setDeliveryStep] = useState(true)
+  const [paymentTotals, setPaymentTotals] = useState<{ amount: number; shipping: number; total: number; currency: string } | null>(null)
 
   // Card setup modal (required before bidding)
   const [hasCard, setHasCard] = useState<boolean | null>(null) // null = not checked yet
-  const [hasAddress, setHasAddress] = useState<boolean | null>(null) // null = not checked yet
   const [showCardModal, setShowCardModal] = useState(false)
   const [setupClientSecret, setSetupClientSecret] = useState<string | null>(null)
   const [cardLoading, setCardLoading] = useState(false)
@@ -672,12 +630,6 @@ export default function StreamView() {
   const [promoCode, setPromoCode] = useState('')
   const [promoStatus, setPromoStatus] = useState<'idle' | 'validating' | 'valid' | 'invalid'>('idle')
   const [promoDiscount, setPromoDiscount] = useState<{ percent: number; type: string } | null>(null)
-  const [showRelayPicker, setShowRelayPicker] = useState(false)
-  const [selectedRelay, setSelectedRelay] = useState<{ id: string; name: string } | null>(() => {
-    try { const s = localStorage.getItem('shapop_relay_point'); return s ? JSON.parse(s) : null } catch { return null }
-  })
-  const [hasBundleOrders, setHasBundleOrders] = useState(false)
-  const [pickupMode, setPickupMode] = useState(false)
 
   // Giveaway state
   const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
@@ -796,7 +748,6 @@ export default function StreamView() {
         if (resp.ok) {
           const data = await resp.json()
           setHasCard(data.has_card)
-          setHasAddress(data.has_address ?? null)
         }
       } catch { /* ignore */ }
     }
@@ -833,20 +784,6 @@ export default function StreamView() {
     fetchWalletData()
   }, [showWallet, user])
 
-  // Check for existing orders in this stream (for bundling message)
-  useEffect(() => {
-    if (!showPaymentModal || !user || !id) return
-    const checkBundle = async () => {
-      const { count } = await supabase
-        .from('orders')
-        .select('id', { count: 'exact', head: true })
-        .eq('buyer_id', user.id)
-        .eq('stream_id', id)
-        .in('status', ['pending_payment', 'paid'])
-      setHasBundleOrders((count ?? 0) > 0)
-    }
-    checkBundle()
-  }, [showPaymentModal, user, id])
 
   // Fetch LiveKit viewer token when stream has a livekit room and is live
   useEffect(() => {
@@ -906,7 +843,7 @@ export default function StreamView() {
 
   // ═══ Payment modal timeout: prevent infinite spinner ═══
   useEffect(() => {
-    if (!showPaymentModal || addressStep || clientSecret || paymentError) return
+    if (!showPaymentModal || deliveryStep || clientSecret || paymentError || paymentSuccess) return
 
     const timeout = setTimeout(() => {
       if (!clientSecret && isMountedRef.current) {
@@ -915,7 +852,7 @@ export default function StreamView() {
     }, 10000)
 
     return () => clearTimeout(timeout)
-  }, [showPaymentModal, addressStep, clientSecret, paymentError])
+  }, [showPaymentModal, deliveryStep, clientSecret, paymentError, paymentSuccess])
 
   // ═══ SELLER: Start camera capture ═══
   useEffect(() => {
@@ -1576,56 +1513,7 @@ export default function StreamView() {
             }
             setPaymentOrder(order)
 
-            // Pre-fill address from saved addresses
-            const { data: savedAddr } = await supabase
-              .from('addresses')
-              .select('*')
-              .eq('user_id', user!.id)
-              .eq('is_default', true)
-              .single()
-            if (savedAddr) {
-              setAddressForm({
-                name: savedAddr.name || '',
-                street: savedAddr.street || '',
-                city: savedAddr.city || '',
-                zip: savedAddr.zip || '',
-                phone: savedAddr.phone || '',
-                country: savedAddr.country || 'FR',
-              })
-            }
-
-            // Set carrier on the order before payment (for shipping cost calculation)
-            await apiFetch(`/api/orders/${order.id}/carrier`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({ carrier: selectedCarrier }),
-            }).catch(() => { /* non-blocking */ })
-
-            // Create PaymentIntent via server
-            const resp = await apiFetch('/api/stripe/create-payment-intent', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify({ order_id: order.id, promo_code: localStorage.getItem('shapop_promo_code') || undefined }),
-            })
-            if (!resp.ok) {
-              const err = await resp.json().catch(() => ({}))
-              if (import.meta.env.DEV) console.error('PaymentIntent error:', err)
-              setPaymentError(err.error || 'Failed to initialize payment. Please try again.')
-              return
-            }
-            const piData = await resp.json()
-            if (piData.auto_charged) {
-              // Card was charged automatically — still show address form first
-              autoChargedRef.current = true
-            } else if (piData.client_secret) {
-              setClientSecret(piData.client_secret)
-            }
+            // Le paiement n'est préparé qu'après le choix retrait / poste (DeliveryChoice)
           }
           initPayment()
         }
@@ -1981,12 +1869,6 @@ export default function StreamView() {
       return
     }
 
-    // Check if user has a shipping address
-    if (hasAddress !== true) {
-      navigate('/addresses')
-      return
-    }
-
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
@@ -2006,12 +1888,6 @@ export default function StreamView() {
         if (err.error === 'card_required') {
           setHasCard(false)
           openCardSetup()
-          return
-        }
-        // Server returns 'address_required' if no shipping address
-        if (err.error === 'address_required') {
-          setHasAddress(false)
-          navigate('/addresses')
           return
         }
         throw new Error(err.error || ct.bidError)
@@ -2034,7 +1910,6 @@ export default function StreamView() {
     if (!activeAuction.buy_now_price || activeAuction.buy_now_price <= 0) return
 
     if (hasCard !== true) { openCardSetup(); return }
-    if (hasAddress !== true) { navigate('/addresses'); return }
 
     if (!confirm(`Acheter maintenant pour ${activeAuction.buy_now_price}€ ?`)) return
 
@@ -2053,7 +1928,6 @@ export default function StreamView() {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
         if (err.error === 'card_required') { setHasCard(false); openCardSetup(); return }
-        if (err.error === 'address_required') { setHasAddress(false); navigate('/addresses'); return }
         throw new Error(err.error || 'Buy now failed')
       }
       hapticTap()
@@ -2173,8 +2047,6 @@ export default function StreamView() {
         const err = body.error || 'Error'
         if (err === 'card_required') {
           alert(lang === 'fr' ? 'Ajoutez une carte bancaire d\'abord' : lang === 'he' ? 'הוסף כרטיס תשלום קודם' : lang === 'es' ? 'Agregue una tarjeta primero' : 'Add a payment card first')
-        } else if (err === 'address_required') {
-          alert(lang === 'fr' ? 'Ajoutez une adresse de livraison d\'abord' : lang === 'he' ? 'הוסף כתובת משלוח קודם' : lang === 'es' ? 'Agregue una dirección primero' : 'Add a shipping address first')
         } else {
           alert(err)
         }
@@ -2198,7 +2070,7 @@ export default function StreamView() {
           .select('id', { count: 'exact', head: true })
           .eq('buyer_id', user.id)
           .eq('stream_id', id)
-          .in('status', ['paid', 'preparing', 'shipped', 'delivered'])
+          .in('status', ['paid', 'preparing', 'shipped', 'handed_over', 'delivered'])
         setBoughtItemCount(count || 0)
       } catch { /* ignore */ }
     }
@@ -2290,79 +2162,52 @@ export default function StreamView() {
     navigate(`/live-recap/${id}`)
   }
 
-  const handleConfirmAddress = async () => {
-    if (!user) return
-
-    // If pickup mode, set shipping cost to 0 on the order
-    if (pickupMode && paymentOrder) {
-      const { error: pickupError } = await supabase.from('orders').update({
-        shipping_cost: 0,
-        total_amount: paymentOrder.amount,
-        carrier: 'pickup',
-      }).eq('id', paymentOrder.id)
-      if (pickupError) {
-        showToast('Failed to update pickup order')
-        console.error('Pickup order update error:', pickupError)
-        return
-      }
-      setPaymentOrder({ ...paymentOrder, shipping_cost: 0, total_amount: paymentOrder.amount, carrier: 'pickup' } as typeof paymentOrder)
-    }
-
-    // If auto-charged, show success directly after saving address
-    if (autoChargedRef.current) {
-      setPaymentSuccess(true)
-    } else {
-      // Move to payment step
-      setAddressStep(false)
-    }
-
-    // Save address (in background for payment step, blocking for auto-charged)
+  // Choix retrait / poste enregistré par le serveur → on prépare le paiement du total (port inclus)
+  const handleDeliveryConfirmed = async (result: { shippingCost: number; totalAmount: number; currency: string }) => {
+    if (!paymentOrder) return
+    setPaymentTotals({
+      amount: Number(paymentOrder.amount),
+      shipping: result.shippingCost,
+      total: result.totalAmount,
+      currency: result.currency,
+    })
+    setClientSecret(null)
+    setPaymentError(null)
+    setDeliveryStep(false)
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-
-      if (paymentOrder && token) {
-        const resp = await apiFetch(`/api/orders/${paymentOrder.id}/address`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(addressForm),
-        })
-        if (resp.ok) return // success
-        console.warn('API address save failed, trying direct Supabase')
+      if (!token) {
+        setPaymentError('Authentication error. Please log in again.')
+        return
       }
-
-      // Fallback: save directly via Supabase
-      const addr = { ...addressForm }
-      const { data: existing } = await supabase
-        .from('addresses')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_default', true)
-        .single()
-
-      if (existing) {
-        const { error: addrErr } = await supabase.from('addresses').update({
-          name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone,
-        }).eq('id', existing.id)
-        if (addrErr) console.error('[StreamView] address update failed:', addrErr.message)
-      } else {
-        const { error: addrErr } = await supabase.from('addresses').insert({
-          user_id: user.id, name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, is_default: true,
-        })
-        if (addrErr) console.error('[StreamView] address insert failed:', addrErr.message)
+      const resp = await apiFetch('/api/stripe/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ order_id: paymentOrder.id, promo_code: localStorage.getItem('shapop_promo_code') || undefined }),
+      })
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}))
+        if (import.meta.env.DEV) console.error('PaymentIntent error:', err)
+        setPaymentError(err.error || 'Failed to initialize payment. Please try again.')
+        return
       }
-
-      if (paymentOrder) {
-        const { error: orderErr } = await supabase.from('orders').update({
-          shipping_address: { name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, country: addr.country },
-        }).eq('id', paymentOrder.id)
-        if (orderErr) console.error('[StreamView] order address update failed:', orderErr.message)
+      const piData = await resp.json()
+      if (typeof piData.total_amount === 'number') {
+        setPaymentTotals(prev => prev ? { ...prev, total: piData.total_amount } : prev)
+      }
+      if (piData.auto_charged) {
+        // Carte enregistrée débitée automatiquement
+        setPaymentSuccess(true)
+      } else if (piData.client_secret) {
+        setClientSecret(piData.client_secret)
       }
     } catch (err) {
-      console.error('Address save error (non-blocking):', err)
+      if (import.meta.env.DEV) console.error('PaymentIntent error:', err)
+      setPaymentError('Failed to initialize payment. Please try again.')
     }
   }
 
@@ -2405,8 +2250,8 @@ export default function StreamView() {
     setPaymentSuccess(false)
     setPaymentError(null)
     setPaymentLoading(false)
-    setAddressStep(true)
-    autoChargedRef.current = false
+    setDeliveryStep(true)
+    setPaymentTotals(null)
   }
 
   if (loading) {
@@ -3802,9 +3647,7 @@ export default function StreamView() {
             onBidAmountChange={setBidAmount}
             onBid={handlePlaceBid}
             hasCard={hasCard}
-            hasAddress={hasAddress}
             onAddCard={openCardSetup}
-            onAddAddress={() => navigate('/addresses')}
             disabled={timeLeft <= 0}
             timeLeft={timeLeft}
             lang={lang}
@@ -4070,6 +3913,18 @@ export default function StreamView() {
                 <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>
                   {ct.paymentSuccessDesc}
                 </p>
+                {paymentOrder && (
+                  <button
+                    onClick={() => { const oid = paymentOrder.id; handleClosePayment(); navigate(`/order/${oid}`) }}
+                    style={{
+                      width: '100%', padding: '14px', marginBottom: '10px',
+                      backgroundColor: 'transparent', border: '1px solid #333', borderRadius: '14px',
+                      color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >
+                    {ft(lang).view_order}
+                  </button>
+                )}
                 <button
                   onClick={handleClosePayment}
                   style={{
@@ -4122,8 +3977,8 @@ export default function StreamView() {
                   {ct.close}
                 </button>
               </div>
-            ) : addressStep ? (
-              /* Step 1: Address */
+            ) : deliveryStep && paymentOrder ? (
+              /* Étape 1 : retrait en main propre ou envoi par la poste */
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                   <div style={{
@@ -4142,166 +3997,11 @@ export default function StreamView() {
                       {ct.youWon}
                     </h3>
                     {paymentItem && (
-                      <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                        {paymentItem.title} — <span style={{ color: '#22C55E', fontWeight: 700 }}>{paymentOrder?.amount} €</span>
-                        {paymentOrder?.shipping_cost != null && paymentOrder.shipping_cost > 0 && (
-                          <span style={{ color: '#F0908A' }}> + {ct.shipping}: {paymentOrder.shipping_cost.toFixed(2)} €</span>
-                        )}
-                      </p>
+                      <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>{paymentItem.title}</p>
                     )}
                   </div>
                 </div>
-                {hasBundleOrders && (
-                  <div style={{
-                    display: 'flex', alignItems: 'center', gap: '8px',
-                    padding: '10px 14px', marginBottom: '12px',
-                    backgroundColor: 'rgba(59,130,246,0.1)',
-                    border: '1px solid rgba(59,130,246,0.25)',
-                    borderRadius: '10px',
-                  }}>
-                    <span style={{ fontSize: '16px', flexShrink: 0 }}>📦</span>
-                    <p style={{ fontSize: '12px', color: '#93C5FD', margin: 0, fontWeight: 500 }}>
-                      {ct.bundleMessage}
-                    </p>
-                  </div>
-                )}
-                <h4 style={{ fontSize: '15px', fontWeight: 600, color: '#ccc', margin: '0 0 12px' }}>
-                  {ct.confirmAddress}
-                </h4>
-                <input
-                  type="text"
-                  value={addressForm.name}
-                  onChange={e => setAddressForm(f => ({ ...f, name: e.target.value }))}
-                  placeholder={ct.fullName}
-                  aria-label={ct.fullName}
-                  aria-required="true"
-                  style={{
-                    width: '100%', padding: '12px 14px',
-                    backgroundColor: '#0D0D0D', border: '1px solid #222',
-                    borderRadius: '10px', color: '#fff', fontSize: '15px',
-                    outline: 'none', boxSizing: 'border-box', marginBottom: '10px',
-                  }}
-                />
-                <input
-                  type="text"
-                  value={addressForm.street}
-                  onChange={e => setAddressForm(f => ({ ...f, street: e.target.value }))}
-                  placeholder={ct.addressPlaceholder}
-                  aria-label={ct.addressPlaceholder}
-                  aria-required="true"
-                  style={{
-                    width: '100%', padding: '12px 14px',
-                    backgroundColor: '#0D0D0D', border: '1px solid #222',
-                    borderRadius: '10px', color: '#fff', fontSize: '15px',
-                    outline: 'none', boxSizing: 'border-box', marginBottom: '10px',
-                  }}
-                />
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                  <input
-                    type="text"
-                    value={addressForm.city}
-                    onChange={e => setAddressForm(f => ({ ...f, city: e.target.value }))}
-                    placeholder={ct.cityPlaceholder}
-                    aria-label={ct.cityPlaceholder}
-                    aria-required="true"
-                    style={{
-                      width: '100%', padding: '12px 14px',
-                      backgroundColor: '#0D0D0D', border: '1px solid #222',
-                      borderRadius: '10px', color: '#fff', fontSize: '15px',
-                      outline: 'none', boxSizing: 'border-box',
-                    }}
-                  />
-                  <input
-                    type="text"
-                    value={addressForm.zip}
-                    onChange={e => setAddressForm(f => ({ ...f, zip: e.target.value }))}
-                    placeholder={ct.zipPlaceholder}
-                    aria-label={ct.zipPlaceholder}
-                    aria-required="true"
-                    style={{
-                      width: '100%', padding: '12px 14px',
-                      backgroundColor: '#0D0D0D', border: '1px solid #222',
-                      borderRadius: '10px', color: '#fff', fontSize: '15px',
-                      outline: 'none', boxSizing: 'border-box',
-                    }}
-                  />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                  <input
-                    type="tel"
-                    inputMode="tel"
-                    value={addressForm.phone}
-                    onChange={e => setAddressForm(f => ({ ...f, phone: e.target.value }))}
-                    placeholder={ct.phonePlaceholder}
-                    aria-label={ct.phonePlaceholder}
-                    style={{
-                      width: '100%', padding: '12px 14px',
-                      backgroundColor: '#0D0D0D', border: '1px solid #222',
-                      borderRadius: '10px', color: '#fff', fontSize: '15px',
-                      outline: 'none', boxSizing: 'border-box',
-                    }}
-                  />
-                  <select
-                    value={addressForm.country}
-                    onChange={e => setAddressForm(f => ({ ...f, country: e.target.value }))}
-                    aria-label={ct.countryPlaceholder}
-                    style={{
-                      width: '100%', padding: '12px 14px',
-                      backgroundColor: '#0D0D0D', border: '1px solid #222',
-                      borderRadius: '10px', color: '#fff', fontSize: '15px',
-                      outline: 'none', boxSizing: 'border-box',
-                      appearance: 'none', WebkitAppearance: 'none',
-                    }}
-                  >
-                    <option value="FR">France</option>
-                    <option value="BE">Belgique</option>
-                    <option value="CH">Suisse</option>
-                    <option value="LU">Luxembourg</option>
-                    <option value="DE">Allemagne</option>
-                    <option value="ES">Espagne</option>
-                    <option value="IT">Italie</option>
-                    <option value="NL">Pays-Bas</option>
-                    <option value="PT">Portugal</option>
-                    <option value="GB">Royaume-Uni</option>
-                    <option value="IL">Israel</option>
-                    <option value="US">USA</option>
-                  </select>
-                </div>
-                {/* Pickup option */}
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '12px 14px', marginBottom: '12px',
-                  backgroundColor: pickupMode ? 'rgba(34,197,94,0.1)' : '#0D0D0D',
-                  border: pickupMode ? '1px solid rgba(34,197,94,0.3)' : '1px solid #222',
-                  borderRadius: '10px', cursor: 'pointer',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={pickupMode}
-                    onChange={e => setPickupMode(e.target.checked)}
-                    style={{ accentColor: '#22C55E', width: '18px', height: '18px' }}
-                  />
-                  <span style={{ fontSize: '14px', color: pickupMode ? '#22C55E' : '#aaa', fontWeight: 600 }}>
-                    {ct.pickupOption}
-                  </span>
-                </label>
-                <button
-                  onClick={handleConfirmAddress}
-                  disabled={!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip)}
-                  style={{
-                    width: '100%', padding: '16px',
-                    background: (!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip))
-                      ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
-                    borderRadius: '14px', border: 'none',
-                    color: '#fff', fontSize: '16px', fontWeight: 700,
-                    cursor: (!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip))
-                      ? 'not-allowed' : 'pointer',
-                    opacity: (!pickupMode && (!addressForm.name || !addressForm.street || !addressForm.city || !addressForm.zip))
-                      ? 0.5 : 1,
-                  }}
-                >
-                  {ct.confirm}
-                </button>
+                <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} />
               </>
             ) : (
               /* Step 2: Payment */
@@ -4322,12 +4022,12 @@ export default function StreamView() {
                       border: '1px solid rgba(34,197,94,0.2)',
                     }}>
                       <p style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
-                        {paymentOrder?.total_amount ?? paymentOrder?.amount} €
+                        {paymentTotals ? formatMoney(paymentTotals.total, paymentTotals.currency) : ''}
                       </p>
                     </div>
                   </div>
-                  {/* Shipping cost breakdown */}
-                  {paymentOrder && (paymentOrder.shipping_cost > 0 || paymentOrder.total_amount) && (
+                  {/* Détail : article + frais de port (payés maintenant) */}
+                  {paymentTotals && (
                     <div style={{
                       padding: '8px 12px',
                       backgroundColor: 'rgba(255,255,255,0.04)',
@@ -4335,18 +4035,16 @@ export default function StreamView() {
                       border: '1px solid rgba(255,255,255,0.08)',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', color: '#888' }}>{ct.itemPrice}</span>
-                        <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{paymentOrder.amount} €</span>
+                        <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).item_price}</span>
+                        <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{formatMoney(paymentTotals.amount, paymentTotals.currency)}</span>
                       </div>
-                      {paymentOrder.shipping_cost > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '12px', color: '#888' }}>{ct.shipping}</span>
-                          <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>{paymentOrder.shipping_cost.toFixed(2)} €</span>
-                        </div>
-                      )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).shipping_fee}</span>
+                        <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>{formatMoney(paymentTotals.shipping, paymentTotals.currency)}</span>
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '4px' }}>
-                        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>{ct.total}</span>
-                        <span style={{ fontSize: '13px', color: '#22C55E', fontWeight: 700 }}>{paymentOrder.total_amount ?? paymentOrder.amount} €</span>
+                        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>{ft(lang).total}</span>
+                        <span style={{ fontSize: '13px', color: '#22C55E', fontWeight: 700 }}>{formatMoney(paymentTotals.total, paymentTotals.currency)}</span>
                       </div>
                     </div>
                   )}
@@ -4400,7 +4098,7 @@ export default function StreamView() {
                 )}
 
                 <button
-                  onClick={() => setAddressStep(true)}
+                  onClick={() => { setClientSecret(null); setPaymentError(null); setDeliveryStep(true) }}
                   style={{
                     width: '100%', marginTop: '12px', padding: '12px',
                     backgroundColor: 'transparent',
@@ -4409,7 +4107,7 @@ export default function StreamView() {
                     cursor: 'pointer',
                   }}
                 >
-                  ← {ct.confirmAddress}
+                  ← {ft(lang).choose_delivery}
                 </button>
               </>
             )}
@@ -4605,32 +4303,6 @@ export default function StreamView() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
             </div>
 
-            {/* Point relais Mondial Relay */}
-            <div
-              onClick={() => setShowRelayPicker(true)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '14px',
-                padding: '14px 0', borderBottom: '1px solid #1A1A1A', cursor: 'pointer',
-              }}
-            >
-              <div style={{
-                width: '44px', height: '44px', borderRadius: '50%', backgroundColor: '#1A1A1A',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
-                  <circle cx="12" cy="10" r="3"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletRelay}</p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                  {selectedRelay ? selectedRelay.name : ct.walletNoRelay}
-                </p>
-              </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-            </div>
-
             {/* Moyen de paiement */}
             <div
               onClick={() => navigate('/payments')}
@@ -4723,21 +4395,6 @@ export default function StreamView() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ═══ RELAY POINT PICKER ═══ */}
-      {showRelayPicker && (
-        <RelayPointPicker
-          zip={walletAddress?.zip || addressForm.zip || '75000'}
-          selectedId={selectedRelay?.id || null}
-          onSelect={(point) => {
-            const relay = { id: point.id, name: point.name }
-            setSelectedRelay(relay)
-            localStorage.setItem('shapop_relay_point', JSON.stringify(relay))
-            setShowRelayPicker(false)
-          }}
-          onClose={() => setShowRelayPicker(false)}
-        />
       )}
 
       {/* ═══ TIP MODAL ═══ */}
