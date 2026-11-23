@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { showToast } from '../lib/toast'
 import { rtlFlip } from '../lib/rtl'
@@ -17,18 +17,145 @@ interface Address {
   is_default?: boolean
 }
 
-const content = {
-  fr: { title: 'Adresses', noAddr: 'Aucune adresse enregistree.', add: 'Ajouter une adresse', name: 'Nom complet', street: 'Adresse', city: 'Ville', zip: 'Code postal', phone: 'Telephone', save: 'Enregistrer', cancel: 'Annuler', edit: 'Modifier', delete: 'Supprimer', saved: 'Adresse enregistree !', confirm: 'Confirmer ?', confirmDelete: 'Confirmer la suppression ?', setDefault: 'Par defaut', defaultLabel: 'Par defaut', nameRequired: 'Le nom est requis', streetRequired: "L'adresse est requise", errorSave: "Erreur lors de l'enregistrement", errorDelete: 'Erreur lors de la suppression', errorDefault: 'Erreur lors du changement', saving: 'Enregistrement...' },
-  en: { title: 'Addresses', noAddr: 'No addresses saved yet.', add: 'Add address', name: 'Full name', street: 'Street address', city: 'City', zip: 'Zip code', phone: 'Phone', save: 'Save address', cancel: 'Cancel', edit: 'Edit', delete: 'Delete', saved: 'Address saved!', confirm: 'Confirm?', confirmDelete: 'Confirm delete?', setDefault: 'Set default', defaultLabel: 'Default', nameRequired: 'Name is required', streetRequired: 'Street is required', errorSave: 'Error saving address', errorDelete: 'Error deleting address', errorDefault: 'Error setting default', saving: 'Saving...' },
-  he: { title: '\u05DB\u05EA\u05D5\u05D1\u05D5\u05EA', noAddr: '\u05D0\u05D9\u05DF \u05DB\u05EA\u05D5\u05D1\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA.', add: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05EA\u05D5\u05D1\u05EA', name: '\u05E9\u05DD \u05DE\u05DC\u05D0', street: '\u05E8\u05D7\u05D5\u05D1', city: '\u05E2\u05D9\u05E8', zip: '\u05DE\u05D9\u05E7\u05D5\u05D3', phone: '\u05D8\u05DC\u05E4\u05D5\u05DF', save: '\u05E9\u05DE\u05D5\u05E8 \u05DB\u05EA\u05D5\u05D1\u05EA', cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC', edit: '\u05E2\u05E8\u05D5\u05DA', delete: '\u05DE\u05D7\u05E7', saved: '!\u05DB\u05EA\u05D5\u05D1\u05EA \u05E0\u05E9\u05DE\u05E8\u05D4', confirm: '?\u05DC\u05D0\u05E9\u05E8', confirmDelete: '?\u05DC\u05D0\u05E9\u05E8 \u05DE\u05D7\u05D9\u05E7\u05D4', setDefault: '\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC', defaultLabel: '\u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC', nameRequired: '\u05E9\u05DD \u05E0\u05D3\u05E8\u05E9', streetRequired: '\u05E8\u05D7\u05D5\u05D1 \u05E0\u05D3\u05E8\u05E9', errorSave: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05D4', errorDelete: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05DE\u05D7\u05D9\u05E7\u05D4', errorDefault: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05D9\u05E0\u05D5\u05D9', saving: '...\u05E9\u05D5\u05DE\u05E8' },
-  es: { title: 'Direcciones', noAddr: 'No hay direcciones guardadas.', add: 'Agregar direccion', name: 'Nombre completo', street: 'Direccion', city: 'Ciudad', zip: 'Codigo postal', phone: 'Telefono', save: 'Guardar direccion', cancel: 'Cancelar', edit: 'Editar', delete: 'Eliminar', saved: 'Direccion guardada!', confirm: 'Confirmar?', confirmDelete: 'Confirmar eliminacion?', setDefault: 'Predeterminada', defaultLabel: 'Predeterminada', nameRequired: 'El nombre es obligatorio', streetRequired: 'La direccion es obligatoria', errorSave: 'Error al guardar', errorDelete: 'Error al eliminar', errorDefault: 'Error al cambiar', saving: 'Guardando...' },
+type AddrText = Record<'title' | 'noAddr' | 'add' | 'name' | 'street' | 'city' | 'zip' | 'phone' | 'save' | 'cancel' | 'edit' | 'delete' | 'saved' | 'confirm' | 'confirmDelete' | 'setDefault' | 'defaultLabel' | 'nameRequired' | 'streetRequired' | 'errorSave' | 'errorDelete' | 'errorDefault' | 'saving' | 'goBack', string>
+
+const content: Localized<AddrText> = {
+  en: {
+    title: 'Addresses',
+    noAddr: 'No saved addresses yet.',
+    add: 'Add an address',
+    name: 'Full name',
+    street: 'Address (street, number, apt.)',
+    city: 'City',
+    zip: 'Postal code',
+    phone: 'Phone',
+    save: 'Save address',
+    cancel: 'Cancel',
+    edit: 'Edit',
+    delete: 'Delete',
+    saved: 'Address saved!',
+    confirm: 'Confirm?',
+    confirmDelete: 'Delete this address?',
+    setDefault: 'Make default',
+    defaultLabel: 'Default',
+    nameRequired: 'Name is required',
+    streetRequired: 'Address is required',
+    errorSave: 'Couldn’t save the address. Please try again.',
+    errorDelete: 'Couldn’t delete the address. Please try again.',
+    errorDefault: 'Couldn’t change your default address. Please try again.',
+    saving: 'Saving...',
+    goBack: 'Go back',
+  },
+  fr: {
+    title: 'Adresses',
+    noAddr: 'Aucune adresse enregistrée pour l’instant.',
+    add: 'Ajouter une adresse',
+    name: 'Nom complet',
+    street: 'Adresse (rue, numéro, appartement)',
+    city: 'Ville',
+    zip: 'Code postal',
+    phone: 'Téléphone',
+    save: 'Enregistrer l’adresse',
+    cancel: 'Annuler',
+    edit: 'Modifier',
+    delete: 'Supprimer',
+    saved: 'Adresse enregistrée !',
+    confirm: 'Confirmer ?',
+    confirmDelete: 'Supprimer cette adresse ?',
+    setDefault: 'Par défaut',
+    defaultLabel: 'Par défaut',
+    nameRequired: 'Le nom est obligatoire',
+    streetRequired: 'L’adresse est obligatoire',
+    errorSave: 'Impossible d’enregistrer l’adresse. Réessaie.',
+    errorDelete: 'Impossible de supprimer l’adresse. Réessaie.',
+    errorDefault: 'Impossible de changer l’adresse par défaut. Réessaie.',
+    saving: 'Enregistrement...',
+    goBack: 'Retour',
+  },
+  es: {
+    title: 'Direcciones',
+    noAddr: 'Aún no tienes direcciones guardadas.',
+    add: 'Añadir dirección',
+    name: 'Nombre completo',
+    street: 'Dirección (calle, número, piso)',
+    city: 'Ciudad',
+    zip: 'Código postal',
+    phone: 'Teléfono',
+    save: 'Guardar dirección',
+    cancel: 'Cancelar',
+    edit: 'Editar',
+    delete: 'Eliminar',
+    saved: '¡Dirección guardada!',
+    confirm: '¿Confirmar?',
+    confirmDelete: '¿Eliminar esta dirección?',
+    setDefault: 'Predeterminar',
+    defaultLabel: 'Predeterminada',
+    nameRequired: 'El nombre es obligatorio',
+    streetRequired: 'La dirección es obligatoria',
+    errorSave: 'No se pudo guardar la dirección. Vuelve a intentarlo.',
+    errorDelete: 'No se pudo eliminar la dirección. Vuelve a intentarlo.',
+    errorDefault: 'No se pudo cambiar la dirección predeterminada. Vuelve a intentarlo.',
+    saving: 'Guardando...',
+    goBack: 'Volver',
+  },
+  ru: {
+    title: 'Адреса',
+    noAddr: 'Сохранённых адресов пока нет.',
+    add: 'Добавить адрес',
+    name: 'Имя и фамилия',
+    street: 'Адрес (улица, дом, квартира)',
+    city: 'Город',
+    zip: 'Почтовый индекс',
+    phone: 'Телефон',
+    save: 'Сохранить адрес',
+    cancel: 'Отмена',
+    edit: 'Изменить',
+    delete: 'Удалить',
+    saved: 'Адрес сохранён!',
+    confirm: 'Подтвердить?',
+    confirmDelete: 'Удалить этот адрес?',
+    setDefault: 'Сделать основным',
+    defaultLabel: 'Основной',
+    nameRequired: 'Укажи имя',
+    streetRequired: 'Укажи адрес',
+    errorSave: 'Не удалось сохранить адрес. Попробуй ещё раз.',
+    errorDelete: 'Не удалось удалить адрес. Попробуй ещё раз.',
+    errorDefault: 'Не удалось изменить основной адрес. Попробуй ещё раз.',
+    saving: 'Сохраняем...',
+    goBack: 'Назад',
+  },
+  he: {
+    title: 'כתובות',
+    noAddr: 'עדיין אין כתובות שמורות.',
+    add: 'הוספת כתובת',
+    name: 'שם מלא',
+    street: 'כתובת (רחוב, מספר, דירה)',
+    city: 'עיר',
+    zip: 'מיקוד',
+    phone: 'טלפון',
+    save: 'שמירת הכתובת',
+    cancel: 'ביטול',
+    edit: 'עריכה',
+    delete: 'מחיקה',
+    saved: 'הכתובת נשמרה!',
+    confirm: 'לאשר?',
+    confirmDelete: 'למחוק את הכתובת?',
+    setDefault: 'הגדרה כברירת מחדל',
+    defaultLabel: 'ברירת מחדל',
+    nameRequired: 'צריך למלא שם',
+    streetRequired: 'צריך למלא כתובת',
+    errorSave: 'לא הצלחנו לשמור את הכתובת. נסו שוב.',
+    errorDelete: 'לא הצלחנו למחוק את הכתובת. נסו שוב.',
+    errorDefault: 'לא הצלחנו לשנות את כתובת ברירת המחדל. נסו שוב.',
+    saving: 'שומרים...',
+    goBack: 'חזרה',
+  },
 }
 
 export default function AddressesPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const lang = getLang()
-  const c = content[lang] || content.fr
+  const c = tr(content)
   usePageTitle(c.title)
 
   const [addresses, setAddresses] = useState<Address[]>([])
@@ -102,7 +229,7 @@ export default function AddressesPage() {
 
       if (error) {
         console.error('Address save error:', error)
-        showToast(`${c.errorSave}: ${error.message || error.code || 'Unknown'}`, 'error')
+        showToast(c.errorSave, 'error')
         return
       }
 
@@ -178,7 +305,7 @@ export default function AddressesPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -213,7 +340,7 @@ export default function AddressesPage() {
                   {addr.street}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '0 0 2px' }}>
-                  {addr.zip} {addr.city}
+                  {[addr.zip, addr.city].filter(Boolean).join(' ')}
                 </p>
                 {addr.phone && (
                   <p style={{ fontSize: '13px', color: '#888', margin: '0 0 8px' }}>
@@ -265,7 +392,7 @@ export default function AddressesPage() {
                         padding: '8px 16px', backgroundColor: '#1A1A1A',
                         border: 'none', borderRadius: '8px',
                         color: '#888', fontSize: '13px', fontWeight: 600,
-                        cursor: 'pointer', marginLeft: 'auto',
+                        cursor: 'pointer', marginInlineStart: 'auto',
                       }}
                     >
                       &#9734; {c.setDefault}
@@ -299,12 +426,12 @@ export default function AddressesPage() {
         ) : (
           <div>
             <input type="text" autoComplete="name" value={formName} onChange={e => { setFormName(e.target.value); if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: false })) }} placeholder={c.name} style={{ ...inputStyle, borderColor: fieldErrors.name ? '#E8344E' : '#222' }} />
-            {fieldErrors.name && <p style={{ fontSize: '12px', color: '#E8344E', margin: '-8px 0 12px 2px' }}>{c.nameRequired}</p>}
+            {fieldErrors.name && <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '-8px', marginBottom: '12px', marginInlineStart: '2px' }}>{c.nameRequired}</p>}
             <input type="text" autoComplete="street-address" value={formStreet} onChange={e => { setFormStreet(e.target.value); if (fieldErrors.street) setFieldErrors(prev => ({ ...prev, street: false })) }} placeholder={c.street} style={{ ...inputStyle, borderColor: fieldErrors.street ? '#E8344E' : '#222' }} />
-            {fieldErrors.street && <p style={{ fontSize: '12px', color: '#E8344E', margin: '-8px 0 12px 2px' }}>{c.streetRequired}</p>}
+            {fieldErrors.street && <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '-8px', marginBottom: '12px', marginInlineStart: '2px' }}>{c.streetRequired}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <input type="text" autoComplete="address-level2" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder={c.city} style={inputStyle} />
-              <input type="text" autoComplete="postal-code" value={formZip} onChange={e => setFormZip(e.target.value)} placeholder={c.zip} style={inputStyle} />
+              <input type="text" autoComplete="postal-code" autoCapitalize="characters" value={formZip} onChange={e => setFormZip(e.target.value)} placeholder={c.zip} style={inputStyle} />
             </div>
             <input type="tel" inputMode="tel" autoComplete="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder={c.phone} style={inputStyle} />
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>

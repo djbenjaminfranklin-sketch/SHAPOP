@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLocale, tr, type Localized } from '../lib/i18n'
 import { usePushNotifications } from '../hooks/usePushNotifications'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -33,108 +33,147 @@ const DEFAULT_TOGGLES: Record<NotifKey, boolean> = {
   live: true, orders: true, deals: false, messages: true, reminders: true, community: false,
 }
 
-function timeAgo(dateStr: string, lang: string): string {
-  const now = Date.now()
-  const then = new Date(dateStr).getTime()
-  const diffSec = Math.floor((now - then) / 1000)
-  if (diffSec < 60) {
-    return lang === 'fr' ? 'maintenant' : lang === 'es' ? 'ahora' : lang === 'he' ? '\u05E2\u05DB\u05E9\u05D9\u05D5' : 'now'
-  }
-  const diffMin = Math.floor(diffSec / 60)
-  if (diffMin < 60) {
-    return lang === 'fr' ? `il y a ${diffMin}min` : lang === 'es' ? `hace ${diffMin}min` : lang === 'he' ? `\u05DC\u05E4\u05E0\u05D9 ${diffMin} \u05D3\u05E7\u05F3` : `${diffMin}m ago`
-  }
-  const diffH = Math.floor(diffMin / 60)
-  if (diffH < 24) {
-    return lang === 'fr' ? `il y a ${diffH}h` : lang === 'es' ? `hace ${diffH}h` : lang === 'he' ? `\u05DC\u05E4\u05E0\u05D9 ${diffH} \u05E9\u05E2\u05D5\u05EA` : `${diffH}h ago`
-  }
-  const diffD = Math.floor(diffH / 24)
-  return lang === 'fr' ? `il y a ${diffD}j` : lang === 'es' ? `hace ${diffD}d` : lang === 'he' ? `\u05DC\u05E4\u05E0\u05D9 ${diffD} \u05D9\u05DE\u05D9\u05DD` : `${diffD}d ago`
+/** Date relative (« il y a 5 min ») dans la langue de l'app. */
+function timeAgo(dateStr: string): string {
+  const diffSec = Math.round((new Date(dateStr).getTime() - Date.now()) / 1000)
+  const rtf = new Intl.RelativeTimeFormat(getLocale(), { numeric: 'auto', style: 'short' })
+  const abs = Math.abs(diffSec)
+  if (abs < 60) return rtf.format(0, 'second')
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), 'minute')
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), 'hour')
+  if (abs < 7 * 86400) return rtf.format(Math.round(diffSec / 86400), 'day')
+  return new Date(dateStr).toLocaleDateString(getLocale(), { day: 'numeric', month: 'short' })
 }
 
-const content = {
-  fr: {
-    title: 'Notifications',
-    push: 'Notifications Push',
-    enablePush: 'Activer les notifications',
-    enablePushDesc: 'Recois des alertes en temps reel quand un vendeur que tu suis passe en live, quand ta commande est expediee, et plus.',
-    enable: 'Activer',
-    enabled: 'Activees',
-    denied: 'Notifications refusees. Active-les dans Reglages > ShaPop > Notifications.',
-    noNotifs: 'Aucune notification',
-    feedTitle: 'Recentes',
-    prefsTitle: 'Preferences',
-    clearAll: 'Tout effacer',
-    items: [
-      { id: 'live' as NotifKey, label: 'Vendeurs en direct', desc: 'Sois notifie quand un vendeur que tu suis lance un live' },
-      { id: 'orders' as NotifKey, label: 'Suivi de commandes', desc: 'Expedition, livraison et retours' },
-      { id: 'deals' as NotifKey, label: 'Bons plans & promos', desc: 'Offres speciales et ventes flash' },
-      { id: 'messages' as NotifKey, label: 'Messages', desc: 'Nouveaux messages de vendeurs ou acheteurs' },
-      { id: 'reminders' as NotifKey, label: 'Rappels de live', desc: 'Rappel avant le debut d\'un live programme' },
-      { id: 'community' as NotifKey, label: 'Communaute', desc: 'Nouveaux abonnes, likes et mentions' },
-    ],
-  },
+interface NotifText {
+  title: string; push: string; enablePush: string; enablePushDesc: string; enable: string; enabled: string; denied: string; noNotifs: string; feedTitle: string; prefsTitle: string; clearAll: string; goBack: string; loading: string; deleteOne: string; loadingShort: string
+  items: { id: NotifKey; label: string; desc: string }[]
+}
+
+const content: Localized<NotifText> = {
   en: {
     title: 'Notifications',
-    push: 'Push Notifications',
-    enablePush: 'Enable notifications',
+    push: 'Push notifications',
+    enablePush: 'Turn on notifications',
     enablePushDesc: 'Get real-time alerts when sellers you follow go live, when your order ships, and more.',
-    enable: 'Enable',
-    enabled: 'Enabled',
-    denied: 'Notifications denied. Enable them in Settings > ShaPop > Notifications.',
-    noNotifs: 'No notifications',
+    enable: 'Turn on',
+    enabled: 'Notifications on',
+    denied: 'Notifications are blocked. Turn them on in Settings > ShaPop > Notifications.',
+    noNotifs: 'No notifications yet',
     feedTitle: 'Recent',
     prefsTitle: 'Preferences',
     clearAll: 'Clear all',
+    goBack: 'Go back',
+    loading: 'Loading notifications',
+    deleteOne: 'Delete notification',
+    loadingShort: 'Loading...',
     items: [
-      { id: 'live' as NotifKey, label: 'Sellers go live', desc: 'Get notified when sellers you follow start a stream' },
-      { id: 'orders' as NotifKey, label: 'Order updates', desc: 'Shipping, delivery, and return notifications' },
-      { id: 'deals' as NotifKey, label: 'Deals & promotions', desc: 'Special offers and flash sales' },
-      { id: 'messages' as NotifKey, label: 'Messages', desc: 'New messages from buyers or sellers' },
-      { id: 'reminders' as NotifKey, label: 'Stream reminders', desc: 'Reminder before a scheduled stream starts' },
-      { id: 'community' as NotifKey, label: 'Community', desc: 'New followers, likes, and mentions' },
+      { id: 'live', label: 'Sellers going live', desc: 'Get notified when a seller you follow starts a live' },
+      { id: 'orders', label: 'Order updates', desc: 'Shipping, delivery and returns' },
+      { id: 'deals', label: 'Deals & promotions', desc: 'Special offers and flash sales' },
+      { id: 'messages', label: 'Messages', desc: 'New messages from buyers or sellers' },
+      { id: 'reminders', label: 'Live reminders', desc: 'A reminder before a scheduled live starts' },
+      { id: 'community', label: 'Community', desc: 'New followers, likes and mentions' },
     ],
   },
-  he: {
-    title: '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA',
-    push: '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E4\u05D5\u05E9',
-    enablePush: '\u05D4\u05E4\u05E2\u05DC \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA',
-    enablePushDesc: '\u05E7\u05D1\u05DC \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA \u05DB\u05E9\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8, \u05DB\u05E9\u05D4\u05D6\u05DE\u05E0\u05D4 \u05E0\u05E9\u05DC\u05D7\u05D4 \u05D5\u05E2\u05D5\u05D3.',
-    enable: '\u05D4\u05E4\u05E2\u05DC',
-    enabled: '\u05DE\u05D5\u05E4\u05E2\u05DC',
-    denied: '\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E0\u05D3\u05D7\u05D5. \u05D4\u05E4\u05E2\u05DC \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA > ShaPop > \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA.',
-    noNotifs: '\u05D0\u05D9\u05DF \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA',
-    feedTitle: '\u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA',
-    prefsTitle: '\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA',
-    clearAll: '\u05E0\u05E7\u05D4 \u05D4\u05DB\u05DC',
+  fr: {
+    title: 'Notifications',
+    push: 'Notifications push',
+    enablePush: 'Active les notifications',
+    enablePushDesc: 'Reçois une alerte en temps réel quand un vendeur que tu suis lance un live, quand ta commande est expédiée, et plus encore.',
+    enable: 'Activer',
+    enabled: 'Notifications activées',
+    denied: 'Notifications bloquées. Active-les dans Réglages > ShaPop > Notifications.',
+    noNotifs: 'Aucune notification pour l’instant',
+    feedTitle: 'Récentes',
+    prefsTitle: 'Préférences',
+    clearAll: 'Tout effacer',
+    goBack: 'Retour',
+    loading: 'Chargement des notifications',
+    deleteOne: 'Supprimer la notification',
+    loadingShort: 'Chargement...',
     items: [
-      { id: 'live' as NotifKey, label: '\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E2\u05D5\u05DC\u05D9\u05DD \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8', desc: '\u05E7\u05D1\u05DC\u05D5 \u05D4\u05EA\u05E8\u05D0\u05D4 \u05DB\u05E9\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E9\u05D0\u05EA\u05DD \u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD \u05E9\u05D9\u05D3\u05D5\u05E8' },
-      { id: 'orders' as NotifKey, label: '\u05E2\u05D3\u05DB\u05D5\u05E0\u05D9 \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA', desc: '\u05DE\u05E9\u05DC\u05D5\u05D7, \u05DE\u05E1\u05D9\u05E8\u05D4 \u05D5\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA' },
-      { id: 'deals' as NotifKey, label: '\u05DE\u05D1\u05E6\u05E2\u05D9\u05DD \u05D5\u05DE\u05D1\u05E6\u05E2\u05D9 \u05D1\u05D6\u05E7', desc: '\u05D4\u05E6\u05E2\u05D5\u05EA \u05DE\u05D9\u05D5\u05D7\u05D3\u05D5\u05EA' },
-      { id: 'messages' as NotifKey, label: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA', desc: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D7\u05D3\u05E9\u05D5\u05EA \u05DE\u05E7\u05D5\u05E0\u05D9\u05DD \u05D0\u05D5 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD' },
-      { id: 'reminders' as NotifKey, label: '\u05EA\u05D6\u05DB\u05D5\u05E8\u05D5\u05EA \u05E9\u05D9\u05D3\u05D5\u05E8', desc: '\u05EA\u05D6\u05DB\u05D5\u05E8\u05EA \u05DC\u05E4\u05E0\u05D9 \u05E9\u05D9\u05D3\u05D5\u05E8 \u05DE\u05EA\u05D5\u05D6\u05DE\u05DF' },
-      { id: 'community' as NotifKey, label: '\u05E7\u05D4\u05D9\u05DC\u05D4', desc: '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD, \u05DC\u05D9\u05D9\u05E7\u05D9\u05DD \u05D5\u05D0\u05D6\u05DB\u05D5\u05E8\u05D9\u05DD' },
+      { id: 'live', label: 'Live des vendeurs', desc: 'Sois prévenu quand un vendeur que tu suis lance un live' },
+      { id: 'orders', label: 'Suivi de commandes', desc: 'Expédition, livraison et retours' },
+      { id: 'deals', label: 'Bons plans et promos', desc: 'Offres spéciales et ventes flash' },
+      { id: 'messages', label: 'Messages', desc: 'Nouveaux messages d’acheteurs ou de vendeurs' },
+      { id: 'reminders', label: 'Rappels de live', desc: 'Un rappel avant le début d’un live programmé' },
+      { id: 'community', label: 'Communauté', desc: 'Nouveaux abonnés, j’aime et mentions' },
     ],
   },
   es: {
     title: 'Notificaciones',
-    push: 'Notificaciones Push',
-    enablePush: 'Activar notificaciones',
-    enablePushDesc: 'Recibe alertas en tiempo real cuando vendedores que sigues transmiten en vivo, cuando tu pedido se envia, y mas.',
+    push: 'Notificaciones push',
+    enablePush: 'Activa las notificaciones',
+    enablePushDesc: 'Recibe avisos al instante cuando un vendedor que sigues empieza un directo, cuando se envía tu pedido y mucho más.',
     enable: 'Activar',
-    enabled: 'Activadas',
-    denied: 'Notificaciones denegadas. Activalas en Ajustes > ShaPop > Notificaciones.',
-    noNotifs: 'Sin notificaciones',
+    enabled: 'Notificaciones activadas',
+    denied: 'Notificaciones bloqueadas. Actívalas en Ajustes > ShaPop > Notificaciones.',
+    noNotifs: 'Aún no tienes notificaciones',
     feedTitle: 'Recientes',
     prefsTitle: 'Preferencias',
     clearAll: 'Borrar todo',
+    goBack: 'Volver',
+    loading: 'Cargando notificaciones',
+    deleteOne: 'Eliminar notificación',
+    loadingShort: 'Cargando...',
     items: [
-      { id: 'live' as NotifKey, label: 'Vendedores en vivo', desc: 'Aviso cuando vendedores que sigues inician una transmision' },
-      { id: 'orders' as NotifKey, label: 'Actualizaciones de pedidos', desc: 'Envio, entrega y devoluciones' },
-      { id: 'deals' as NotifKey, label: 'Ofertas y promociones', desc: 'Ofertas especiales y ventas flash' },
-      { id: 'messages' as NotifKey, label: 'Mensajes', desc: 'Nuevos mensajes de compradores o vendedores' },
-      { id: 'reminders' as NotifKey, label: 'Recordatorios', desc: 'Recordatorio antes de una transmision programada' },
-      { id: 'community' as NotifKey, label: 'Comunidad', desc: 'Nuevos seguidores, likes y menciones' },
+      { id: 'live', label: 'Directos de vendedores', desc: 'Te avisamos cuando un vendedor que sigues empieza un directo' },
+      { id: 'orders', label: 'Estado de los pedidos', desc: 'Envío, entrega y devoluciones' },
+      { id: 'deals', label: 'Ofertas y promociones', desc: 'Ofertas especiales y ventas flash' },
+      { id: 'messages', label: 'Mensajes', desc: 'Nuevos mensajes de compradores o vendedores' },
+      { id: 'reminders', label: 'Recordatorios de directos', desc: 'Un aviso antes de que empiece un directo programado' },
+      { id: 'community', label: 'Comunidad', desc: 'Nuevos seguidores, me gusta y menciones' },
+    ],
+  },
+  ru: {
+    title: 'Уведомления',
+    push: 'Push-уведомления',
+    enablePush: 'Включи уведомления',
+    enablePushDesc: 'Получай мгновенные оповещения, когда продавцы из твоих подписок выходят в эфир, когда твой заказ отправлен, и не только.',
+    enable: 'Включить',
+    enabled: 'Уведомления включены',
+    denied: 'Уведомления заблокированы. Включи их в Настройки > ShaPop > Уведомления.',
+    noNotifs: 'Уведомлений пока нет',
+    feedTitle: 'Недавние',
+    prefsTitle: 'Настройки',
+    clearAll: 'Очистить всё',
+    goBack: 'Назад',
+    loading: 'Загружаем уведомления',
+    deleteOne: 'Удалить уведомление',
+    loadingShort: 'Загрузка...',
+    items: [
+      { id: 'live', label: 'Эфиры продавцов', desc: 'Узнавай, когда продавец из твоих подписок начинает эфир' },
+      { id: 'orders', label: 'Статус заказов', desc: 'Отправка, доставка и возвраты' },
+      { id: 'deals', label: 'Акции и скидки', desc: 'Спецпредложения и флеш-распродажи' },
+      { id: 'messages', label: 'Сообщения', desc: 'Новые сообщения от покупателей и продавцов' },
+      { id: 'reminders', label: 'Напоминания об эфирах', desc: 'Напоминание перед запланированным эфиром' },
+      { id: 'community', label: 'Сообщество', desc: 'Новые подписчики, лайки и упоминания' },
+    ],
+  },
+  he: {
+    title: 'התראות',
+    push: 'התראות פוש',
+    enablePush: 'הפעלת התראות',
+    enablePushDesc: 'קבלו התראות בזמן אמת כשמוכרים שאתם עוקבים אחריהם עולים לשידור חי, כשההזמנה שלכם נשלחת ועוד.',
+    enable: 'הפעלה',
+    enabled: 'ההתראות פועלות',
+    denied: 'ההתראות חסומות. אפשר להפעיל אותן בהגדרות > ShaPop > התראות.',
+    noNotifs: 'אין עדיין התראות',
+    feedTitle: 'אחרונות',
+    prefsTitle: 'העדפות',
+    clearAll: 'ניקוי הכול',
+    goBack: 'חזרה',
+    loading: 'טוענים התראות',
+    deleteOne: 'מחיקת ההתראה',
+    loadingShort: 'טוען...',
+    items: [
+      { id: 'live', label: 'מוכרים בשידור חי', desc: 'קבלו התראה כשמוכר/ת שאתם עוקבים אחריו מתחיל/ה שידור חי' },
+      { id: 'orders', label: 'עדכוני הזמנות', desc: 'משלוח, מסירה והחזרות' },
+      { id: 'deals', label: 'מבצעים והנחות', desc: 'הצעות מיוחדות ומבצעי בזק' },
+      { id: 'messages', label: 'הודעות', desc: 'הודעות חדשות מקונים או ממוכרים' },
+      { id: 'reminders', label: 'תזכורות לשידורים', desc: 'תזכורת לפני ששידור מתוכנן מתחיל' },
+      { id: 'community', label: 'קהילה', desc: 'עוקבים חדשים, לייקים ואזכורים' },
     ],
   },
 }
@@ -142,8 +181,7 @@ const content = {
 export default function NotificationsPage() {
   const { user, session } = useAuth()
   const navigate = useNavigate()
-  const lang = getLang()
-  const c = content[lang] || content.fr
+  const c = tr(content)
   const { requestPermission, checkPermission } = usePushNotifications()
   usePageTitle(c.title)
 
@@ -261,7 +299,7 @@ export default function NotificationsPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -287,7 +325,7 @@ export default function NotificationsPage() {
         </div>
 
         {loadingNotifs ? (
-          <div style={{ padding: '20px 0', textAlign: 'center' }} role="status" aria-label={lang === 'fr' ? 'Chargement des notifications' : lang === 'es' ? 'Cargando notificaciones' : lang === 'he' ? 'טוען התראות' : 'Loading notifications'}>
+          <div style={{ padding: '20px 0', textAlign: 'center' }} role="status" aria-label={c.loading}>
             <div style={{ width: '24px', height: '24px', border: '2px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', margin: '0 auto', animation: 'spin 0.8s linear infinite' }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
           </div>
@@ -322,7 +360,7 @@ export default function NotificationsPage() {
                   }}>
                     {n.type === 'live' && (
                       <div style={{
-                        position: 'absolute', top: '4px', right: '4px',
+                        position: 'absolute', top: '4px', insetInlineEnd: '4px',
                         width: '8px', height: '8px', borderRadius: '50%',
                         backgroundColor: '#E8344E',
                         animation: 'pulse 1.5s ease-in-out infinite',
@@ -338,11 +376,12 @@ export default function NotificationsPage() {
                     <p style={{ fontSize: '13px', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</p>
                   </div>
 
-                  <span style={{ fontSize: '12px', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at, lang)}</span>
+                  <span style={{ fontSize: '12px', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
                 </div>
 
                 {/* Delete button */}
                 <button
+                  aria-label={c.deleteOne}
                   onClick={async (e) => {
                     e.stopPropagation()
                     setNotifications(prev => prev.filter(x => x.id !== n.id))
@@ -396,7 +435,7 @@ export default function NotificationsPage() {
                 opacity: loadingPush ? 0.6 : 1,
               }}
             >
-              {loadingPush ? '...' : c.enable}
+              {loadingPush ? c.loadingShort : c.enable}
             </button>
           </div>
         )}
@@ -429,7 +468,7 @@ export default function NotificationsPage() {
 
         {c.items.map((item) => (
           <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #1A1A1A' }}>
-            <div style={{ flex: 1, marginRight: '16px' }}>
+            <div style={{ flex: 1, marginInlineEnd: '16px' }}>
               <p style={{ fontSize: '15px', color: '#fff', fontWeight: 500 }}>{item.label}</p>
               <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>{item.desc}</p>
             </div>
@@ -447,8 +486,8 @@ export default function NotificationsPage() {
             >
               <div style={{
                 width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#fff', position: 'absolute', top: '3px',
-                left: toggles[item.id] ? '23px' : '3px',
-                transition: 'left 0.2s ease',
+                insetInlineStart: toggles[item.id] ? '23px' : '3px',
+                transition: 'inset-inline-start 0.2s ease',
               }} />
             </button>
           </div>

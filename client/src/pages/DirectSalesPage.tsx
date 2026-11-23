@@ -13,38 +13,6 @@ import { usePageTitle } from '../hooks/usePageTitle'
 
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
 
-// Category ID → localized label mapping (matches CategoryIcons)
-const catLabels: Record<string, Localized<string>> = {
-  fashion_w: { en: "Women's fashion", fr: 'Mode femme', es: 'Moda mujer', ru: 'Женская мода', he: 'אופנת נשים' },
-  fashion_m: { en: "Men's fashion", fr: 'Mode homme', es: 'Moda hombre', ru: 'Мужская мода', he: 'אופנת גברים' },
-  sneakers: { en: 'Sneakers', fr: 'Sneakers', es: 'Sneakers', ru: 'Кроссовки', he: 'סניקרס' },
-  bags: { en: 'Bags', fr: 'Sacs', es: 'Bolsos', ru: 'Сумки', he: 'תיקים' },
-  jewelry: { en: 'Jewelry', fr: 'Bijoux', es: 'Joyería', ru: 'Украшения', he: 'תכשיטים' },
-  watches: { en: 'Watches', fr: 'Montres', es: 'Relojes', ru: 'Часы', he: 'שעונים' },
-  beauty: { en: 'Beauty', fr: 'Beauté', es: 'Belleza', ru: 'Красота', he: 'יופי' },
-  electronics: { en: 'Electronics', fr: 'High-tech', es: 'Electrónica', ru: 'Электроника', he: 'אלקטרוניקה' },
-  gaming: { en: 'Gaming', fr: 'Gaming', es: 'Gaming', ru: 'Игры', he: 'גיימינג' },
-  cards: { en: 'Cards', fr: 'Cartes', es: 'Cartas', ru: 'Карточки', he: 'קלפים' },
-  toys: { en: 'Toys', fr: 'Jouets', es: 'Juguetes', ru: 'Игрушки', he: 'צעצועים' },
-  vintage: { en: 'Vintage', fr: 'Vintage', es: 'Vintage', ru: 'Винтаж', he: 'וינטג׳' },
-  art: { en: 'Art', fr: 'Art', es: 'Arte', ru: 'Искусство', he: 'אמנות' },
-  furniture: { en: 'Furniture', fr: 'Meubles', es: 'Muebles', ru: 'Мебель', he: 'רהיטים' },
-  home: { en: 'Home', fr: 'Maison', es: 'Hogar', ru: 'Дом', he: 'בית' },
-  sports: { en: 'Sports', fr: 'Sport', es: 'Deportes', ru: 'Спорт', he: 'ספורט' },
-  fitness: { en: 'Fitness', fr: 'Fitness', es: 'Fitness', ru: 'Фитнес', he: 'כושר' },
-  music: { en: 'Music', fr: 'Musique', es: 'Música', ru: 'Музыка', he: 'מוזיקה' },
-  books: { en: 'Books', fr: 'Livres', es: 'Libros', ru: 'Книги', he: 'ספרים' },
-  kids: { en: 'Kids', fr: 'Enfants', es: 'Niños', ru: 'Детям', he: 'ילדים' },
-  pets: { en: 'Pets', fr: 'Animaux', es: 'Mascotas', ru: 'Животные', he: 'חיות מחמד' },
-  auto: { en: 'Auto-Moto', fr: 'Auto-Moto', es: 'Auto-Moto', ru: 'Авто и мото', he: 'רכב' },
-  garden: { en: 'Garden', fr: 'Jardin', es: 'Jardín', ru: 'Сад', he: 'גינה' },
-  food: { en: 'Food', fr: 'Food', es: 'Comida', ru: 'Еда', he: 'אוכל' },
-  handmade: { en: 'Handmade', fr: 'Fait main', es: 'Hecho a mano', ru: 'Ручная работа', he: 'עבודת יד' },
-  collect: { en: 'Collectibles', fr: 'Collection', es: 'Colección', ru: 'Коллекционное', he: 'אספנות' },
-  photo: { en: 'Photo', fr: 'Photo', es: 'Foto', ru: 'Фото', he: 'צילום' },
-  tools: { en: 'DIY & Tools', fr: 'Bricolage', es: 'Bricolaje', ru: 'Инструменты', he: 'כלי עבודה' },
-}
-
 const content = {
   en: {
     title: 'Direct sales',

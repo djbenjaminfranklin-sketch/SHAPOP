@@ -2,24 +2,106 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
+import { authErrorMessage } from '../lib/authErrors'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = ReturnType<typeof getLang>
+type EmailText = Record<'pageTitle' | 'invalidEmail' | 'enterPassword' | 'wrongPassword' | 'sent' | 'genericError' | 'title' | 'currentEmail' | 'newEmail' | 'newPlaceholder' | 'passwordLabel' | 'passwordPlaceholder' | 'updating' | 'update' | 'goBack', string>
 
-const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
-  if (lang === 'en') return en
-  if (lang === 'he') return he
-  if (lang === 'es') return es
-  return fr
+const T: Localized<EmailText> = {
+  en: {
+    pageTitle: 'Change email',
+    invalidEmail: 'This email address is not valid.',
+    enterPassword: 'Please enter your password.',
+    wrongPassword: 'Wrong password.',
+    sent: 'We’ve sent a confirmation email. Click the link to confirm the change.',
+    genericError: 'Something went wrong. Please try again.',
+    title: 'Change email address',
+    currentEmail: 'Current email address',
+    newEmail: 'New email address',
+    newPlaceholder: 'Enter your new email',
+    passwordLabel: 'Password (to confirm it’s you)',
+    passwordPlaceholder: 'Enter your password',
+    updating: 'Updating...',
+    update: 'Update',
+    goBack: 'Go back',
+  },
+  fr: {
+    pageTitle: 'Changer d’e-mail',
+    invalidEmail: 'Cette adresse e-mail n’est pas valide.',
+    enterPassword: 'Saisis ton mot de passe.',
+    wrongPassword: 'Mot de passe incorrect.',
+    sent: 'Un e-mail de confirmation t’a été envoyé. Clique sur le lien pour valider le changement.',
+    genericError: 'Une erreur est survenue. Réessaie.',
+    title: 'Modifier l’adresse e-mail',
+    currentEmail: 'Adresse e-mail actuelle',
+    newEmail: 'Nouvelle adresse e-mail',
+    newPlaceholder: 'Saisis ta nouvelle adresse',
+    passwordLabel: 'Mot de passe (vérification)',
+    passwordPlaceholder: 'Saisis ton mot de passe',
+    updating: 'Mise à jour...',
+    update: 'Mettre à jour',
+    goBack: 'Retour',
+  },
+  es: {
+    pageTitle: 'Cambiar correo',
+    invalidEmail: 'Esta dirección de correo no es válida.',
+    enterPassword: 'Introduce tu contraseña.',
+    wrongPassword: 'Contraseña incorrecta.',
+    sent: 'Te hemos enviado un correo de confirmación. Pulsa el enlace para confirmar el cambio.',
+    genericError: 'Algo ha fallado. Vuelve a intentarlo.',
+    title: 'Cambiar dirección de correo',
+    currentEmail: 'Correo actual',
+    newEmail: 'Nuevo correo',
+    newPlaceholder: 'Introduce tu nuevo correo',
+    passwordLabel: 'Contraseña (verificación)',
+    passwordPlaceholder: 'Introduce tu contraseña',
+    updating: 'Actualizando...',
+    update: 'Actualizar',
+    goBack: 'Volver',
+  },
+  ru: {
+    pageTitle: 'Сменить e-mail',
+    invalidEmail: 'Этот адрес e-mail недействителен.',
+    enterPassword: 'Введи пароль.',
+    wrongPassword: 'Неверный пароль.',
+    sent: 'Мы отправили письмо для подтверждения. Перейди по ссылке, чтобы подтвердить смену.',
+    genericError: 'Что-то пошло не так. Попробуй ещё раз.',
+    title: 'Изменить адрес e-mail',
+    currentEmail: 'Текущий e-mail',
+    newEmail: 'Новый e-mail',
+    newPlaceholder: 'Введи новый e-mail',
+    passwordLabel: 'Пароль (для проверки)',
+    passwordPlaceholder: 'Введи пароль',
+    updating: 'Обновляем...',
+    update: 'Обновить',
+    goBack: 'Назад',
+  },
+  he: {
+    pageTitle: 'שינוי אימייל',
+    invalidEmail: 'כתובת האימייל אינה תקינה.',
+    enterPassword: 'הזינו את הסיסמה.',
+    wrongPassword: 'סיסמה שגויה.',
+    sent: 'שלחנו אימייל אישור. לחצו על הקישור כדי לאשר את השינוי.',
+    genericError: 'משהו השתבש. נסו שוב.',
+    title: 'שינוי כתובת האימייל',
+    currentEmail: 'כתובת האימייל הנוכחית',
+    newEmail: 'כתובת אימייל חדשה',
+    newPlaceholder: 'הזינו את הכתובת החדשה',
+    passwordLabel: 'סיסמה (לאימות)',
+    passwordPlaceholder: 'הזינו את הסיסמה',
+    updating: 'מעדכנים...',
+    update: 'עדכון',
+    goBack: 'חזרה',
+  },
 }
 
 export default function ChangeEmailPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const lang = getLang()
-  usePageTitle(tx('Changer l\'email', 'Change Email', 'שינוי אימייל', 'Cambiar email', lang))
+  const c = tr(T)
+  usePageTitle(c.pageTitle)
 
   const [newEmail, setNewEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,11 +120,11 @@ export default function ChangeEmailPage() {
 
   const handleSubmit = async () => {
     if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
-      showToast(tx('Adresse e-mail invalide', 'Invalid email address', 'כתובת אימייל לא תקינה', 'Direccion de correo invalida', lang), 'error')
+      showToast(c.invalidEmail, 'error')
       return
     }
     if (!password) {
-      showToast(tx('Veuillez entrer votre mot de passe', 'Please enter your password', 'נא להזין את הסיסמה', 'Por favor ingrese su contrasena', lang), 'error')
+      showToast(c.enterPassword, 'error')
       return
     }
 
@@ -54,7 +136,7 @@ export default function ChangeEmailPage() {
         password: password,
       })
       if (signInError) {
-        showToast(tx('Mot de passe incorrect', 'Wrong password', 'סיסמה שגויה', 'Contrasena incorrecta', lang), 'error')
+        showToast(c.wrongPassword, 'error')
         setLoading(false)
         return
       }
@@ -62,17 +144,11 @@ export default function ChangeEmailPage() {
       const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
       if (error) throw error
       showToast(
-        tx(
-          'Un email de confirmation a ete envoye',
-          'A confirmation email has been sent',
-          'נשלח אימייל אישור',
-          'Se ha enviado un correo de confirmacion',
-          lang
-        ),
+        c.sent,
         'success'
       )
     } catch (err: unknown) {
-      showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+      showToast(authErrorMessage(err, c.genericError), 'error')
     }
     setLoading(false)
   }
@@ -98,11 +174,11 @@ export default function ChangeEmailPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-          {tx("Modifier l'adresse e-mail", 'Change email address', 'שנה כתובת אימייל', 'Cambiar direccion de correo', lang)}
+          {c.title}
         </h1>
       </div>
 
@@ -110,7 +186,7 @@ export default function ChangeEmailPage() {
       <div style={{ padding: '24px 20px' }}>
         {/* Current email */}
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-          {tx('Adresse e-mail actuelle', 'Current email address', 'כתובת אימייל נוכחית', 'Direccion de correo actual', lang)}
+          {c.currentEmail}
         </label>
         <div style={{
           padding: '14px 16px', backgroundColor: '#111', borderRadius: '12px',
@@ -123,7 +199,7 @@ export default function ChangeEmailPage() {
 
         {/* New email */}
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-          {tx('Nouvelle adresse e-mail', 'New email address', 'כתובת אימייל חדשה', 'Nueva direccion de correo', lang)}
+          {c.newEmail}
         </label>
         <input
           type="email"
@@ -131,7 +207,7 @@ export default function ChangeEmailPage() {
           autoComplete="email"
           value={newEmail}
           onChange={e => setNewEmail(e.target.value)}
-          placeholder={tx('Entrez votre nouvelle adresse', 'Enter your new email', 'הזן כתובת חדשה', 'Ingrese su nuevo correo', lang)}
+          placeholder={c.newPlaceholder}
           style={{ ...inputStyle, marginBottom: '20px' }}
           onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
           onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
@@ -139,14 +215,14 @@ export default function ChangeEmailPage() {
 
         {/* Password for verification */}
         <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-          {tx('Mot de passe (verification)', 'Password (verification)', 'סיסמה (אימות)', 'Contrasena (verificacion)', lang)}
+          {c.passwordLabel}
         </label>
         <input
           type="password"
           autoComplete="current-password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          placeholder={tx('Entrez votre mot de passe', 'Enter your password', 'הזן את סיסמתך', 'Ingrese su contrasena', lang)}
+          placeholder={c.passwordPlaceholder}
           style={{ ...inputStyle, marginBottom: '32px' }}
           onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
           onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
@@ -165,25 +241,25 @@ export default function ChangeEmailPage() {
           }}
         >
           {loading
-            ? tx('Mise a jour...', 'Updating...', 'מעדכן...', 'Actualizando...', lang)
-            : tx('Mettre a jour', 'Update', 'עדכן', 'Actualizar', lang)
+            ? c.updating
+            : c.update
           }
         </button>
       </div>
 
       {/* Toast */}
       {toast && (
+        <div style={{ position: 'fixed', bottom: '100px', insetInline: '16px', zIndex: 100, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
         <div style={{
-          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          padding: '14px 24px', borderRadius: '12px',
+          padding: '14px 24px', borderRadius: '12px', textAlign: 'center',
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : '#3a1a1a',
           border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#E8344E'}`,
           color: toast.type === 'success' ? '#4ADE80' : '#E8344E',
           fontSize: '14px', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          whiteSpace: 'nowrap',
         }}>
           {toast.message}
+        </div>
         </div>
       )}
     </div>

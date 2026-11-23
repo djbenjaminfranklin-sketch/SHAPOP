@@ -1,31 +1,21 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
+import { authErrorMessage } from '../lib/authErrors'
+import LanguageSelector from '../components/LanguageSelector'
 import { track } from '../lib/analytics'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-const content = {
-  fr: {
-    title: 'Connexion',
-    subtitle: 'Connecte-toi à ton compte',
-    continueApple: 'Continuer avec Apple',
-    continueGoogle: 'Continuer avec Google',
-    or: 'ou',
-    email: 'Email',
-    password: 'Mot de passe',
-    emailPlaceholder: 'ton@email.com',
-    passwordPlaceholder: '••••••••',
-    signIn: 'Se connecter',
-    signingIn: 'Connexion...',
-    noAccount: 'Pas de compte ?',
-    createAccount: "S'inscrire",
-    forgotPassword: 'Mot de passe oublié ?',
-    errorDefault: 'Erreur de connexion',
-    errorInvalidCredentials: 'Email ou mot de passe incorrect',
-  },
+const content: Localized<{
+  title: string; subtitle: string; continueApple: string; continueGoogle: string; or: string
+  email: string; password: string; emailPlaceholder: string; passwordPlaceholder: string
+  signIn: string; signingIn: string; noAccount: string; createAccount: string; forgotPassword: string
+  errorDefault: string; errorInvalidEmail: string; showPassword: string; hidePassword: string
+  terms: string; privacy: string; eula: string
+}> = {
   en: {
-    title: 'Sign In',
+    title: 'Sign in',
     subtitle: 'Sign in to your account',
     continueApple: 'Continue with Apple',
     continueGoogle: 'Continue with Google',
@@ -36,29 +26,39 @@ const content = {
     passwordPlaceholder: '••••••••',
     signIn: 'Sign in',
     signingIn: 'Signing in...',
-    noAccount: 'No account?',
+    noAccount: 'No account yet?',
     createAccount: 'Create account',
     forgotPassword: 'Forgot password?',
-    errorDefault: 'Sign in error',
-    errorInvalidCredentials: 'Invalid email or password',
+    errorDefault: 'Couldn’t sign you in. Please try again.',
+    errorInvalidEmail: 'Enter a valid email address.',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    terms: 'Terms of Service',
+    privacy: 'Privacy',
+    eula: 'EULA',
   },
-  he: {
-    title: 'התחברות',
-    subtitle: 'התחבר לחשבונך',
-    continueApple: 'המשך עם Apple',
-    continueGoogle: 'המשך עם Google',
-    or: 'או',
-    email: 'אימייל',
-    password: 'סיסמה',
-    emailPlaceholder: 'you@email.com',
+  fr: {
+    title: 'Connexion',
+    subtitle: 'Connecte-toi à ton compte',
+    continueApple: 'Continuer avec Apple',
+    continueGoogle: 'Continuer avec Google',
+    or: 'ou',
+    email: 'E-mail',
+    password: 'Mot de passe',
+    emailPlaceholder: 'toi@email.com',
     passwordPlaceholder: '••••••••',
-    signIn: 'התחבר',
-    signingIn: '...מתחבר',
-    noAccount: 'אין חשבון?',
-    createAccount: 'צור חשבון',
-    forgotPassword: 'שכחת סיסמה?',
-    errorDefault: 'שגיאת התחברות',
-    errorInvalidCredentials: 'אימייל או סיסמה שגויים',
+    signIn: 'Se connecter',
+    signingIn: 'Connexion...',
+    noAccount: 'Pas encore de compte ?',
+    createAccount: 'Créer un compte',
+    forgotPassword: 'Mot de passe oublié ?',
+    errorDefault: 'Connexion impossible. Réessaie.',
+    errorInvalidEmail: 'Saisis une adresse e-mail valide.',
+    showPassword: 'Afficher le mot de passe',
+    hidePassword: 'Masquer le mot de passe',
+    terms: 'Conditions d’utilisation',
+    privacy: 'Confidentialité',
+    eula: 'CLUF',
   },
   es: {
     title: 'Iniciar sesión',
@@ -72,11 +72,62 @@ const content = {
     passwordPlaceholder: '••••••••',
     signIn: 'Iniciar sesión',
     signingIn: 'Iniciando sesión...',
-    noAccount: '¿Sin cuenta?',
+    noAccount: '¿Aún no tienes cuenta?',
     createAccount: 'Crear cuenta',
     forgotPassword: '¿Olvidaste tu contraseña?',
-    errorDefault: 'Error de inicio de sesión',
-    errorInvalidCredentials: 'Email o contraseña incorrectos',
+    errorDefault: 'No se pudo iniciar sesión. Vuelve a intentarlo.',
+    errorInvalidEmail: 'Introduce un correo electrónico válido.',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
+    terms: 'Términos del servicio',
+    privacy: 'Privacidad',
+    eula: 'CLUF',
+  },
+  ru: {
+    title: 'Вход',
+    subtitle: 'Войди в свой аккаунт',
+    continueApple: 'Продолжить с Apple',
+    continueGoogle: 'Продолжить с Google',
+    or: 'или',
+    email: 'E-mail',
+    password: 'Пароль',
+    emailPlaceholder: 'ty@email.com',
+    passwordPlaceholder: '••••••••',
+    signIn: 'Войти',
+    signingIn: 'Входим...',
+    noAccount: 'Ещё нет аккаунта?',
+    createAccount: 'Создать аккаунт',
+    forgotPassword: 'Не помнишь пароль?',
+    errorDefault: 'Не удалось войти. Попробуй ещё раз.',
+    errorInvalidEmail: 'Введи правильный адрес e-mail.',
+    showPassword: 'Показать пароль',
+    hidePassword: 'Скрыть пароль',
+    terms: 'Условия использования',
+    privacy: 'Конфиденциальность',
+    eula: 'Лицензионное соглашение',
+  },
+  he: {
+    title: 'התחברות',
+    subtitle: 'התחברו לחשבון שלכם',
+    continueApple: 'המשך עם Apple',
+    continueGoogle: 'המשך עם Google',
+    or: 'או',
+    email: 'אימייל',
+    password: 'סיסמה',
+    emailPlaceholder: 'you@email.com',
+    passwordPlaceholder: '••••••••',
+    signIn: 'התחברות',
+    signingIn: 'מתחברים...',
+    noAccount: 'אין לכם עדיין חשבון?',
+    createAccount: 'יצירת חשבון',
+    forgotPassword: 'שכחת סיסמה?',
+    errorDefault: 'לא הצלחנו לחבר אותך. נסו שוב.',
+    errorInvalidEmail: 'הזינו כתובת אימייל תקינה.',
+    showPassword: 'הצגת הסיסמה',
+    hidePassword: 'הסתרת הסיסמה',
+    terms: 'תנאי שימוש',
+    privacy: 'פרטיות',
+    eula: 'הסכם רישיון',
   },
 }
 
@@ -88,9 +139,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { user, loading: authLoading, signIn, signInWithGoogle, signInWithApple } = useAuth()
   const navigate = useNavigate()
-  const lang = getLang()
-  const c = content[lang] || content.fr
-  usePageTitle(c.title || 'Connexion')
+  const c = tr(content)
+  usePageTitle(c.title)
 
   // Redirect when user becomes authenticated (OAuth callback)
   useEffect(() => {
@@ -105,7 +155,7 @@ export default function Login() {
     setError('')
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError(c.errorInvalidCredentials)
+      setError(c.errorInvalidEmail)
       return
     }
 
@@ -116,12 +166,7 @@ export default function Login() {
       sessionStorage.setItem('shapop_fresh_login', '1')
       navigate('/')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : ''
-      if (/invalid login credentials/i.test(msg)) {
-        setError(c.errorInvalidCredentials)
-      } else {
-        setError(msg || c.errorDefault)
-      }
+      setError(authErrorMessage(err, c.errorDefault))
     } finally {
       setLoading(false)
     }
@@ -132,8 +177,12 @@ export default function Login() {
       minHeight: '100vh', backgroundColor: '#000',
       display: 'flex', flexDirection: 'column',
       padding: '0 24px', paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: '120px',
+      paddingBottom: '120px', position: 'relative',
     }}>
+      {/* Choix de la langue */}
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 10px)', insetInlineEnd: '16px', zIndex: 10 }}>
+        <LanguageSelector variant="compact" />
+      </div>
 
       {/* Logo + Title */}
       <div style={{ paddingTop: '48px', marginBottom: '36px' }}>
@@ -238,7 +287,7 @@ export default function Login() {
               required
               onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               style={{
-                width: '100%', padding: '16px 18px', paddingRight: '48px', borderRadius: '14px',
+                width: '100%', padding: '16px 18px', paddingInlineEnd: '48px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
                 fontSize: '17px', color: '#fff', outline: 'none',
                 boxSizing: 'border-box', fontFamily: 'inherit',
@@ -247,9 +296,9 @@ export default function Login() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? c.hidePassword : c.showPassword}
               style={{
-                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
@@ -263,7 +312,7 @@ export default function Login() {
           </div>
         </div>
 
-        <div style={{ textAlign: 'right', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'end', marginBottom: '24px' }}>
           <Link to="/forgot-password" style={{ fontSize: '14px', color: '#F0908A', fontWeight: 500, textDecoration: 'none' }}>
             {c.forgotPassword}
           </Link>
@@ -296,13 +345,13 @@ export default function Login() {
       {/* Legal links */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px', flexWrap: 'wrap' }}>
         <Link to="/terms" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
-          {lang === 'fr' ? "Conditions d'utilisation" : lang === 'es' ? 'Términos de servicio' : lang === 'he' ? '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9' : 'Terms of Service'}
+          {c.terms}
         </Link>
         <Link to="/privacy" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
-          {lang === 'fr' ? 'Confidentialité' : lang === 'es' ? 'Privacidad' : lang === 'he' ? '\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA' : 'Privacy'}
+          {c.privacy}
         </Link>
         <Link to="/eula" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
-          {lang === 'fr' ? 'CLUF' : lang === 'es' ? 'CLUF' : lang === 'he' ? '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF' : 'EULA'}
+          {c.eula}
         </Link>
       </div>
     </div>

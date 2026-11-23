@@ -3,7 +3,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, type Lang, type Localized } from '../lib/i18n'
+import { authErrorKey, authErrorMessage } from '../lib/authErrors'
+import LanguageSelector from '../components/LanguageSelector'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 const COUNTRY_PREFIXES = [
@@ -18,60 +20,19 @@ const COUNTRY_PREFIXES = [
   { code: '+351', label: 'PT +351' },
   { code: '+212', label: 'MA +212' },
   { code: '+44', label: 'GB +44' },
+  { code: '+7', label: 'RU/KZ +7' },
+  { code: '+380', label: 'UA +380' },
 ]
 
-const content = {
-  fr: {
-    errorInvalidEmail: 'Adresse e-mail invalide',
-    title: 'Créer un compte',
-    subtitle: 'Rejoins ShaPop et commence à acheter ou vendre en live',
-    continueApple: 'Continuer avec Apple',
-    continueGoogle: 'Continuer avec Google',
-    or: 'ou',
-    username: "Nom d'utilisateur",
-    displayName: 'Nom affiché',
-    email: 'Email',
-    password: 'Mot de passe',
-    phone: 'Téléphone',
-    usernamePlaceholder: "nom d'utilisateur",
-    displayNamePlaceholder: 'Alex',
-    emailPlaceholder: 'ton@email.com',
-    passwordPlaceholder: '••••••••',
-    phonePlaceholder: '612345678',
-    photoLabel: 'Photo',
-    sendCode: 'Envoyer le code',
-    sendingCode: 'Envoi...',
-    otpCode: 'Code de vérification',
-    verify: 'Vérifier',
-    verifying: 'Vérification...',
-    phoneVerified: 'Numéro vérifié',
-    signUp: "S'inscrire",
-    signingUp: 'Création...',
-    alreadyHaveAccount: 'Deja un compte ?',
-    signIn: 'Se connecter',
-    errorDefault: "Erreur lors de l'inscription",
-    errorFileType: 'Seuls les formats JPEG, PNG et WebP sont acceptés.',
-    errorFileSize: "L'image doit faire moins de 5 Mo.",
-    errorEmailTaken: 'Cet email est déjà utilisé',
-    errorUsernameTaken: "Ce nom d'utilisateur est déjà pris",
-    errorPasswordShort: 'Le mot de passe doit contenir au moins 6 caractères',
-    errorPhoneRequired: 'Le numéro de téléphone est obligatoire',
-    errorBlocked: 'Inscription bloquée',
-    errorAcceptTerms: 'Tu dois accepter les conditions pour continuer',
-    acceptTerms: "J'accepte les",
-    termsLink: "Conditions d'utilisation",
-    privacyLink: 'Politique de confidentialité',
-    eulaLink: 'CLUF',
-    andThe: 'et le',
-    comma: ', la',
-    ageConfirm: "Je confirme avoir 18 ans ou plus",
-    byContinuing: "En continuant, tu confirmes avoir 18 ans ou plus et acceptes nos",
-    checkEmail: 'Vérifie ton email',
-    checkEmailDesc: 'Un lien de confirmation a été envoyé à ton adresse email.',
-  },
+/** Indicatif proposé par défaut selon la langue de l'app (modifiable). */
+const DEFAULT_PREFIX: Record<Lang, string> = { en: '+1', fr: '+33', es: '+34', ru: '+7', he: '+972' }
+
+type RegisterText = Record<'errorInvalidEmail' | 'title' | 'subtitle' | 'continueApple' | 'continueGoogle' | 'or' | 'username' | 'displayName' | 'email' | 'password' | 'phone' | 'usernamePlaceholder' | 'displayNamePlaceholder' | 'emailPlaceholder' | 'passwordPlaceholder' | 'phonePlaceholder' | 'photoLabel' | 'signUp' | 'signingUp' | 'alreadyHaveAccount' | 'signIn' | 'errorDefault' | 'errorFileType' | 'errorFileSize' | 'errorEmailTaken' | 'errorUsernameTaken' | 'errorPasswordShort' | 'errorPhoneRequired' | 'errorBlocked' | 'errorAcceptTerms' | 'acceptTerms' | 'termsLink' | 'privacyLink' | 'eulaLink' | 'andThe' | 'comma' | 'ageConfirm' | 'checkEmail' | 'checkEmailDesc' | 'referralLabel' | 'referralPlaceholder' | 'avatarAlt' | 'showPassword' | 'hidePassword' | 'phonePrefix', string>
+
+const content: Localized<RegisterText> = {
   en: {
-    errorInvalidEmail: 'Invalid email address',
-    title: 'Create Account',
+    errorInvalidEmail: 'Enter a valid email address.',
+    title: 'Create account',
     subtitle: 'Join ShaPop and start buying or selling live',
     continueApple: 'Continue with Apple',
     continueGoogle: 'Continue with Google',
@@ -85,133 +46,224 @@ const content = {
     displayNamePlaceholder: 'Alex',
     emailPlaceholder: 'you@email.com',
     passwordPlaceholder: '••••••••',
-    phonePlaceholder: '612345678',
+    phonePlaceholder: '123456789',
     photoLabel: 'Photo',
-    sendCode: 'Send code',
-    sendingCode: 'Sending...',
-    otpCode: 'Verification code',
-    verify: 'Verify',
-    verifying: 'Verifying...',
-    phoneVerified: 'Number verified',
     signUp: 'Sign up',
-    signingUp: 'Creating...',
+    signingUp: 'Creating your account...',
     alreadyHaveAccount: 'Already have an account?',
     signIn: 'Sign in',
-    errorDefault: 'Registration error',
-    errorFileType: 'Only JPEG, PNG, and WebP images are allowed.',
-    errorFileSize: 'Image must be smaller than 5MB.',
-    errorEmailTaken: 'This email is already registered',
-    errorUsernameTaken: 'This username is already taken',
-    errorPasswordShort: 'Password must be at least 6 characters',
-    errorPhoneRequired: 'Phone number is required',
-    errorBlocked: 'Registration blocked',
-    errorAcceptTerms: 'You must accept the terms to continue',
+    errorDefault: 'Couldn’t create your account. Please try again.',
+    errorFileType: 'Only JPEG, PNG and WebP images are allowed.',
+    errorFileSize: 'The image must be smaller than 5 MB.',
+    errorEmailTaken: 'This email is already registered. Try signing in.',
+    errorUsernameTaken: 'This username is already taken.',
+    errorPasswordShort: 'Your password must be at least 8 characters.',
+    errorPhoneRequired: 'Enter a valid phone number.',
+    errorBlocked: 'Sign-up isn’t possible with these details.',
+    errorAcceptTerms: 'Please accept the terms and confirm your age to continue.',
     acceptTerms: 'I accept the',
     termsLink: 'Terms of Service',
     privacyLink: 'Privacy Policy',
     eulaLink: 'EULA',
     andThe: 'and the',
     comma: ',',
-    ageConfirm: 'I confirm I am 18 years or older',
-    byContinuing: 'By continuing, you confirm you are 18 or older and agree to our',
+    ageConfirm: 'I confirm I am 18 or older',
     checkEmail: 'Check your email',
-    checkEmailDesc: 'A confirmation link has been sent to your email address.',
+    checkEmailDesc: 'We’ve sent a confirmation link to your email address.',
+    referralLabel: 'Referral code (optional)',
+    referralPlaceholder: 'e.g. AB12CD34',
+    avatarAlt: 'Your profile photo',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
+    phonePrefix: 'Country code',
   },
-  he: {
-    errorInvalidEmail: 'כתובת אימייל לא תקינה',
-    title: '\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF',
-    subtitle: '\u05D4\u05E6\u05D8\u05E8\u05E3 \u05DC-ShaPop \u05D5\u05D4\u05EA\u05D7\u05DC \u05DC\u05E7\u05E0\u05D5\u05EA \u05D0\u05D5 \u05DC\u05DE\u05DB\u05D5\u05E8 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9',
-    continueApple: '\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD Apple',
-    continueGoogle: '\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD Google',
-    or: '\u05D0\u05D5',
-    username: '\u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9',
-    displayName: '\u05E9\u05DD \u05EA\u05E6\u05D5\u05D2\u05D4',
-    email: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC',
-    password: '\u05E1\u05D9\u05E1\u05DE\u05D4',
-    phone: '\u05DE\u05E1\u05E4\u05E8 \u05D8\u05DC\u05E4\u05D5\u05DF',
-    usernamePlaceholder: '\u05E9\u05DD \u05DE\u05E9\u05EA\u05DE\u05E9',
+  fr: {
+    errorInvalidEmail: 'Saisis une adresse e-mail valide.',
+    title: 'Créer un compte',
+    subtitle: 'Rejoins ShaPop et commence à acheter ou vendre en live',
+    continueApple: 'Continuer avec Apple',
+    continueGoogle: 'Continuer avec Google',
+    or: 'ou',
+    username: 'Nom d’utilisateur',
+    displayName: 'Nom affiché',
+    email: 'E-mail',
+    password: 'Mot de passe',
+    phone: 'Téléphone',
+    usernamePlaceholder: 'nom d’utilisateur',
     displayNamePlaceholder: 'Alex',
-    emailPlaceholder: 'you@email.com',
-    passwordPlaceholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-    phonePlaceholder: '612345678',
-    photoLabel: '\u05EA\u05DE\u05D5\u05E0\u05D4',
-    sendCode: '\u05E9\u05DC\u05D7 \u05E7\u05D5\u05D3',
-    sendingCode: '...\u05E9\u05D5\u05DC\u05D7',
-    otpCode: '\u05E7\u05D5\u05D3 \u05D0\u05D9\u05DE\u05D5\u05EA',
-    verify: '\u05D0\u05DE\u05EA',
-    verifying: '...\u05DE\u05D0\u05DE\u05EA',
-    phoneVerified: '\u05DE\u05E1\u05E4\u05E8 \u05D0\u05D5\u05DE\u05EA',
-    signUp: '\u05D4\u05E8\u05E9\u05DE\u05D4',
-    signingUp: '...\u05D9\u05D5\u05E6\u05E8',
-    alreadyHaveAccount: '\u05DB\u05D1\u05E8 \u05D9\u05E9 \u05D7\u05E9\u05D1\u05D5\u05DF?',
-    signIn: '\u05D4\u05EA\u05D7\u05D1\u05E8',
-    errorDefault: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05D4\u05E8\u05E9\u05DE\u05D4',
-    errorFileType: '\u05E8\u05E7 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA JPEG, PNG \u05D5-WebP \u05DE\u05D5\u05EA\u05E8\u05D5\u05EA.',
-    errorFileSize: '\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D9\u05D9\u05D1\u05EA \u05DC\u05D4\u05D9\u05D5\u05EA \u05E7\u05D8\u05E0\u05D4 \u05DE-5MB.',
-    errorEmailTaken: '\u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05E8\u05E9\u05D5\u05DD',
-    errorUsernameTaken: '\u05E9\u05DD \u05D4\u05DE\u05E9\u05EA\u05DE\u05E9 \u05D4\u05D6\u05D4 \u05DB\u05D1\u05E8 \u05EA\u05E4\u05D5\u05E1',
-    errorPasswordShort: '\u05D4\u05E1\u05D9\u05E1\u05DE\u05D4 \u05D7\u05D9\u05D9\u05D1\u05EA \u05DC\u05D4\u05DB\u05D9\u05DC \u05DC\u05E4\u05D7\u05D5\u05EA 6 \u05EA\u05D5\u05D5\u05D9\u05DD',
-    errorPhoneRequired: '\u05D0\u05DE\u05EA \u05D0\u05EA \u05DE\u05E1\u05E4\u05E8 \u05D4\u05D8\u05DC\u05E4\u05D5\u05DF \u05DC\u05E4\u05E0\u05D9 \u05D4\u05DE\u05E9\u05DA',
-    errorBlocked: '\u05D4\u05D4\u05E8\u05E9\u05DE\u05D4 \u05E0\u05D7\u05E1\u05DE\u05D4',
-    errorAcceptTerms: '\u05E2\u05DC\u05D9\u05DA \u05DC\u05D0\u05E9\u05E8 \u05D0\u05EA \u05D4\u05EA\u05E0\u05D0\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05D4\u05DE\u05E9\u05D9\u05DA',
-    acceptTerms: '\u05D0\u05E0\u05D9 \u05DE\u05D0\u05E9\u05E8 \u05D0\u05EA',
-    termsLink: '\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9',
-    privacyLink: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA',
-    eulaLink: '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF',
-    andThe: '\u05D5\u05D0\u05EA',
-    comma: ', ',
-    ageConfirm: '\u05D0\u05E0\u05D9 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D0\u05E0\u05D9 \u05D1\u05DF 18 \u05D0\u05D5 \u05D9\u05D5\u05EA\u05E8',
-    byContinuing: '\u05D1\u05D4\u05DE\u05E9\u05DA, \u05D0\u05EA\u05D4 \u05DE\u05D0\u05E9\u05E8 \u05E9\u05D0\u05EA\u05D4 \u05D1\u05DF 18 \u05D0\u05D5 \u05D9\u05D5\u05EA\u05E8 \u05D5\u05DE\u05E1\u05DB\u05D9\u05DD \u05DC',
-    checkEmail: '\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA',
-    checkEmailDesc: '\u05E7\u05D9\u05E9\u05D5\u05E8 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E0\u05E9\u05DC\u05D7 \u05DC\u05DB\u05EA\u05D5\u05D1\u05EA \u05D4\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05E9\u05DC\u05DA.',
+    emailPlaceholder: 'toi@email.com',
+    passwordPlaceholder: '••••••••',
+    phonePlaceholder: '123456789',
+    photoLabel: 'Photo',
+    signUp: 'S’inscrire',
+    signingUp: 'Création du compte...',
+    alreadyHaveAccount: 'Déjà un compte ?',
+    signIn: 'Se connecter',
+    errorDefault: 'Impossible de créer ton compte. Réessaie.',
+    errorFileType: 'Seuls les formats JPEG, PNG et WebP sont acceptés.',
+    errorFileSize: 'L’image doit faire moins de 5 Mo.',
+    errorEmailTaken: 'Cet e-mail est déjà utilisé. Essaie de te connecter.',
+    errorUsernameTaken: 'Ce nom d’utilisateur est déjà pris.',
+    errorPasswordShort: 'Ton mot de passe doit contenir au moins 8 caractères.',
+    errorPhoneRequired: 'Saisis un numéro de téléphone valide.',
+    errorBlocked: 'L’inscription n’est pas possible avec ces informations.',
+    errorAcceptTerms: 'Accepte les conditions et confirme ton âge pour continuer.',
+    acceptTerms: 'J’accepte les',
+    termsLink: 'Conditions d’utilisation',
+    privacyLink: 'la Politique de confidentialité',
+    eulaLink: 'le CLUF',
+    andThe: 'et',
+    comma: ',',
+    ageConfirm: 'Je confirme avoir 18 ans ou plus',
+    checkEmail: 'Vérifie tes e-mails',
+    checkEmailDesc: 'Un lien de confirmation a été envoyé à ton adresse e-mail.',
+    referralLabel: 'Code de parrainage (facultatif)',
+    referralPlaceholder: 'ex. AB12CD34',
+    avatarAlt: 'Ta photo de profil',
+    showPassword: 'Afficher le mot de passe',
+    hidePassword: 'Masquer le mot de passe',
+    phonePrefix: 'Indicatif du pays',
   },
   es: {
-    errorInvalidEmail: 'Correo electrónico no válido',
+    errorInvalidEmail: 'Introduce un correo electrónico válido.',
     title: 'Crear cuenta',
-    subtitle: '\u00DAnete a ShaPop y empieza a comprar o vender en vivo',
+    subtitle: 'Únete a ShaPop y empieza a comprar o vender en directo',
     continueApple: 'Continuar con Apple',
     continueGoogle: 'Continuar con Google',
     or: 'o',
     username: 'Nombre de usuario',
     displayName: 'Nombre visible',
-    email: 'Correo electr\u00F3nico',
-    password: 'Contrase\u00F1a',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
     phone: 'Teléfono',
     usernamePlaceholder: 'nombre de usuario',
     displayNamePlaceholder: 'Alex',
     emailPlaceholder: 'tu@email.com',
-    passwordPlaceholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-    phonePlaceholder: '612345678',
+    passwordPlaceholder: '••••••••',
+    phonePlaceholder: '123456789',
     photoLabel: 'Foto',
-    sendCode: 'Enviar código',
-    sendingCode: 'Enviando...',
-    otpCode: 'Código de verificación',
-    verify: 'Verificar',
-    verifying: 'Verificando...',
-    phoneVerified: 'Número verificado',
-    signUp: 'Registrarse',
-    signingUp: 'Creando...',
-    alreadyHaveAccount: '\u00BFYa tienes cuenta?',
-    signIn: 'Iniciar sesi\u00F3n',
-    errorDefault: 'Error de registro',
+    signUp: 'Registrarme',
+    signingUp: 'Creando tu cuenta...',
+    alreadyHaveAccount: '¿Ya tienes cuenta?',
+    signIn: 'Iniciar sesión',
+    errorDefault: 'No se pudo crear tu cuenta. Vuelve a intentarlo.',
     errorFileType: 'Solo se permiten imágenes JPEG, PNG y WebP.',
-    errorFileSize: 'La imagen debe pesar menos de 5MB.',
-    errorEmailTaken: 'Este correo ya está registrado',
-    errorUsernameTaken: 'Este nombre de usuario ya está en uso',
-    errorPasswordShort: 'La contraseña debe tener al menos 6 caracteres',
-    errorPhoneRequired: 'Verifica tu número de teléfono antes de continuar',
-    errorBlocked: 'Registro bloqueado',
-    errorAcceptTerms: 'Debes aceptar los términos para continuar',
+    errorFileSize: 'La imagen debe pesar menos de 5 MB.',
+    errorEmailTaken: 'Este correo ya está registrado. Prueba a iniciar sesión.',
+    errorUsernameTaken: 'Este nombre de usuario ya está en uso.',
+    errorPasswordShort: 'Tu contraseña debe tener al menos 8 caracteres.',
+    errorPhoneRequired: 'Introduce un número de teléfono válido.',
+    errorBlocked: 'No es posible registrarse con estos datos.',
+    errorAcceptTerms: 'Acepta los términos y confirma tu edad para continuar.',
     acceptTerms: 'Acepto los',
-    termsLink: 'Términos de servicio',
-    privacyLink: 'Política de privacidad',
-    eulaLink: 'CLUF',
-    andThe: 'y el',
-    comma: ', la',
+    termsLink: 'Términos del servicio',
+    privacyLink: 'la Política de privacidad',
+    eulaLink: 'el CLUF',
+    andThe: 'y',
+    comma: ',',
     ageConfirm: 'Confirmo que tengo 18 años o más',
-    byContinuing: 'Al continuar, confirmas que tienes 18 años o más y aceptas nuestros',
     checkEmail: 'Revisa tu correo',
-    checkEmailDesc: 'Se ha enviado un enlace de confirmación a tu correo electrónico.',
+    checkEmailDesc: 'Te hemos enviado un enlace de confirmación a tu correo electrónico.',
+    referralLabel: 'Código de invitación (opcional)',
+    referralPlaceholder: 'p. ej. AB12CD34',
+    avatarAlt: 'Tu foto de perfil',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
+    phonePrefix: 'Prefijo del país',
+  },
+  ru: {
+    errorInvalidEmail: 'Введи правильный адрес e-mail.',
+    title: 'Создать аккаунт',
+    subtitle: 'Присоединяйся к ShaPop — покупай и продавай в прямом эфире',
+    continueApple: 'Продолжить с Apple',
+    continueGoogle: 'Продолжить с Google',
+    or: 'или',
+    username: 'Имя пользователя',
+    displayName: 'Отображаемое имя',
+    email: 'E-mail',
+    password: 'Пароль',
+    phone: 'Телефон',
+    usernamePlaceholder: 'имя пользователя',
+    displayNamePlaceholder: 'Алекс',
+    emailPlaceholder: 'ty@email.com',
+    passwordPlaceholder: '••••••••',
+    phonePlaceholder: '123456789',
+    photoLabel: 'Фото',
+    signUp: 'Зарегистрироваться',
+    signingUp: 'Создаём аккаунт...',
+    alreadyHaveAccount: 'Уже есть аккаунт?',
+    signIn: 'Войти',
+    errorDefault: 'Не удалось создать аккаунт. Попробуй ещё раз.',
+    errorFileType: 'Подходят только изображения JPEG, PNG и WebP.',
+    errorFileSize: 'Изображение должно быть меньше 5 МБ.',
+    errorEmailTaken: 'Этот e-mail уже зарегистрирован. Попробуй войти.',
+    errorUsernameTaken: 'Это имя пользователя уже занято.',
+    errorPasswordShort: 'Пароль должен содержать не менее 8 символов.',
+    errorPhoneRequired: 'Введи правильный номер телефона.',
+    errorBlocked: 'С этими данными зарегистрироваться нельзя.',
+    errorAcceptTerms: 'Чтобы продолжить, прими условия и подтверди свой возраст.',
+    acceptTerms: 'Я принимаю',
+    termsLink: 'Условия использования',
+    privacyLink: 'Политику конфиденциальности',
+    eulaLink: 'Лицензионное соглашение',
+    andThe: 'и',
+    comma: ',',
+    ageConfirm: 'Подтверждаю, что мне 18 лет или больше',
+    checkEmail: 'Проверь почту',
+    checkEmailDesc: 'Мы отправили ссылку для подтверждения на твой e-mail.',
+    referralLabel: 'Код приглашения (необязательно)',
+    referralPlaceholder: 'напр. AB12CD34',
+    avatarAlt: 'Твоё фото профиля',
+    showPassword: 'Показать пароль',
+    hidePassword: 'Скрыть пароль',
+    phonePrefix: 'Код страны',
+  },
+  he: {
+    errorInvalidEmail: 'הזינו כתובת אימייל תקינה.',
+    title: 'יצירת חשבון',
+    subtitle: 'הצטרפו ל-ShaPop ותתחילו לקנות ולמכור בשידור חי',
+    continueApple: 'המשך עם Apple',
+    continueGoogle: 'המשך עם Google',
+    or: 'או',
+    username: 'שם משתמש',
+    displayName: 'שם תצוגה',
+    email: 'אימייל',
+    password: 'סיסמה',
+    phone: 'מספר טלפון',
+    usernamePlaceholder: 'שם משתמש',
+    displayNamePlaceholder: 'Alex',
+    emailPlaceholder: 'you@email.com',
+    passwordPlaceholder: '••••••••',
+    phonePlaceholder: '123456789',
+    photoLabel: 'תמונה',
+    signUp: 'הרשמה',
+    signingUp: 'יוצרים את החשבון...',
+    alreadyHaveAccount: 'כבר יש לכם חשבון?',
+    signIn: 'התחברות',
+    errorDefault: 'לא הצלחנו ליצור את החשבון. נסו שוב.',
+    errorFileType: 'אפשר להעלות רק תמונות JPEG, PNG או WebP.',
+    errorFileSize: 'התמונה חייבת להיות קטנה מ-5MB.',
+    errorEmailTaken: 'האימייל הזה כבר רשום. נסו להתחבר.',
+    errorUsernameTaken: 'שם המשתמש הזה כבר תפוס.',
+    errorPasswordShort: 'הסיסמה חייבת להכיל לפחות 8 תווים.',
+    errorPhoneRequired: 'הזינו מספר טלפון תקין.',
+    errorBlocked: 'לא ניתן להירשם עם הפרטים האלה.',
+    errorAcceptTerms: 'כדי להמשיך יש לאשר את התנאים ואת הגיל.',
+    acceptTerms: 'אני מאשר/ת את',
+    termsLink: 'תנאי השימוש',
+    privacyLink: 'מדיניות הפרטיות',
+    eulaLink: 'הסכם הרישיון',
+    andThe: 'ואת',
+    comma: ',',
+    ageConfirm: 'אני מאשר/ת שאני בן/בת 18 ומעלה',
+    checkEmail: 'בדקו את האימייל',
+    checkEmailDesc: 'שלחנו קישור אישור לכתובת האימייל שלכם.',
+    referralLabel: 'קוד הזמנה (לא חובה)',
+    referralPlaceholder: 'לדוגמה AB12CD34',
+    avatarAlt: 'תמונת הפרופיל שלך',
+    showPassword: 'הצגת הסיסמה',
+    hidePassword: 'הסתרת הסיסמה',
+    phonePrefix: 'קידומת מדינה',
   },
 }
 
@@ -239,8 +291,7 @@ export default function Register() {
   const { user, loading: authLoading, signUp, signInWithGoogle, signInWithApple } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const lang = getLang()
-  const c = content[lang] || content.fr
+  const c = tr(content)
   usePageTitle(c.title)
 
   // Referral code from URL (?ref=CODE) or localStorage
@@ -255,7 +306,7 @@ export default function Register() {
   }, [searchParams])
 
   // Phone state (simple field, no OTP)
-  const [phonePrefix, setPhonePrefix] = useState('+33')
+  const [phonePrefix, setPhonePrefix] = useState(() => DEFAULT_PREFIX[getLang()])
   const [phoneLocal, setPhoneLocal] = useState('')
 
   const fullPhone = `${phonePrefix}${phoneLocal.replace(/^0+/, '')}`
@@ -302,7 +353,7 @@ export default function Register() {
 
     // Email format check
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError(c.errorInvalidEmail || 'Invalid email address')
+      setError(c.errorInvalidEmail)
       return
     }
 
@@ -328,7 +379,7 @@ export default function Register() {
       })
       const banData = await banRes.json()
       if (banData.banned) {
-        setError(banData.reason || c.errorBlocked)
+        setError(c.errorBlocked)
         setLoading(false)
         return
       }
@@ -376,13 +427,13 @@ export default function Register() {
       sessionStorage.setItem('shapop_fresh_login', '1')
       navigate('/')
     } catch (err) {
-      const msg = err instanceof Error ? err.message : c.errorDefault
-      if (/already registered|User already registered/i.test(msg)) {
+      const msg = err instanceof Error ? err.message : ''
+      if (authErrorKey(err) === 'alreadyRegistered') {
         setError(c.errorEmailTaken)
       } else if (/unique|duplicate/i.test(msg)) {
         setError(c.errorUsernameTaken)
       } else {
-        setError(msg)
+        setError(authErrorMessage(err, c.errorDefault))
       }
     } finally {
       setLoading(false)
@@ -420,8 +471,12 @@ export default function Register() {
       minHeight: '100vh', backgroundColor: '#000',
       display: 'flex', flexDirection: 'column',
       padding: '0 24px', paddingTop: 'env(safe-area-inset-top, 0px)',
-      paddingBottom: '120px',
+      paddingBottom: '120px', position: 'relative',
     }}>
+      {/* Choix de la langue */}
+      <div style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 10px)', insetInlineEnd: '16px', zIndex: 10 }}>
+        <LanguageSelector variant="compact" />
+      </div>
 
       {/* Logo + Title */}
       <div style={{ paddingTop: '48px', marginBottom: '32px' }}>
@@ -547,7 +602,7 @@ export default function Register() {
             }}
           >
             {avatarPreview ? (
-              <img src={avatarPreview} alt="Avatar" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <img src={avatarPreview} alt={c.avatarAlt} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1.5">
@@ -559,7 +614,7 @@ export default function Register() {
             )}
             {/* Camera badge */}
             <div style={{
-              position: 'absolute', bottom: '2px', right: '2px',
+              position: 'absolute', bottom: '2px', insetInlineEnd: '2px',
               width: '28px', height: '28px', borderRadius: '50%',
               backgroundColor: '#F0908A', display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid #000',
@@ -641,17 +696,17 @@ export default function Register() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               placeholder={c.passwordPlaceholder}
-              minLength={6}
+              minLength={8}
               required
               onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
-              style={{ ...inputStyle, paddingRight: '48px' }}
+              style={{ ...inputStyle, paddingInlineEnd: '48px' }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? c.hidePassword : c.showPassword}
               style={{
-                position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)',
+                position: 'absolute', insetInlineEnd: '14px', top: '50%', transform: 'translateY(-50%)',
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
@@ -674,6 +729,7 @@ export default function Register() {
             <select
               value={phonePrefix}
               onChange={e => setPhonePrefix(e.target.value)}
+              aria-label={c.phonePrefix}
               style={{
                 padding: '16px 8px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
@@ -702,13 +758,13 @@ export default function Register() {
         {/* Referral code (optional) */}
         <div style={{ marginBottom: '24px' }}>
           <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
-            {lang === 'fr' ? 'Code de parrainage (optionnel)' : lang === 'es' ? 'Código de referido (opcional)' : lang === 'he' ? '(קוד הפניה (אופציונלי' : 'Referral code (optional)'}
+            {c.referralLabel}
           </label>
           <input
             type="text"
             value={referralCode}
             onChange={e => setReferralCode(e.target.value.toUpperCase())}
-            placeholder={lang === 'fr' ? 'Ex: AB12CD34' : 'Ex: AB12CD34'}
+            placeholder={c.referralPlaceholder}
             onFocus={e => { setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             style={inputStyle}
           />

@@ -2,17 +2,128 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = ReturnType<typeof getLang>
+type VerifText = Record<'pageTitle' | 'unverified' | 'pending' | 'verified' | 'rejected' | 'title' | 'confirmed' | 'intro' | 'selfie' | 'selfieHint' | 'change' | 'uploading' | 'takeSelfie' | 'idDoc' | 'idHint' | 'addId' | 'submitting' | 'submit' | 'privacy' | 'goBack' | 'idAlt', string>
 
-const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
-  if (lang === 'en') return en
-  if (lang === 'he') return he
-  if (lang === 'es') return es
-  return fr
+const T: Localized<VerifText> = {
+  en: {
+    pageTitle: 'Verification',
+    unverified: 'Not verified',
+    pending: 'Verification pending',
+    verified: 'Verified',
+    rejected: 'Rejected — please try again',
+    title: 'Identity verification',
+    confirmed: 'Your identity is confirmed. Your verified badge is active.',
+    intro: 'Take a selfie and add an ID to get the verified badge.',
+    selfie: 'Selfie',
+    selfieHint: 'A clear photo of your face',
+    change: 'Change',
+    uploading: 'Uploading...',
+    takeSelfie: 'Take a selfie',
+    idDoc: 'ID document',
+    idHint: 'ID card, passport or driver’s license',
+    addId: 'Add an ID document',
+    submitting: 'Submitting...',
+    submit: 'Submit for verification',
+    privacy: 'Your documents are stored securely and only used to verify your identity. They’re never shared.',
+    goBack: 'Go back',
+    idAlt: 'Your ID document',
+  },
+  fr: {
+    pageTitle: 'Vérification',
+    unverified: 'Non vérifié',
+    pending: 'Vérification en cours',
+    verified: 'Vérifié',
+    rejected: 'Refusé — réessaie',
+    title: 'Vérification d’identité',
+    confirmed: 'Ton identité est confirmée. Ton badge vérifié est actif.',
+    intro: 'Prends un selfie et ajoute une pièce d’identité pour obtenir le badge vérifié.',
+    selfie: 'Selfie',
+    selfieHint: 'Une photo nette de ton visage',
+    change: 'Changer',
+    uploading: 'Envoi...',
+    takeSelfie: 'Prendre un selfie',
+    idDoc: 'Pièce d’identité',
+    idHint: 'Carte d’identité, passeport ou permis de conduire',
+    addId: 'Ajouter une pièce d’identité',
+    submitting: 'Envoi en cours...',
+    submit: 'Envoyer pour vérification',
+    privacy: 'Tes documents sont sécurisés et servent uniquement à vérifier ton identité. Ils ne sont jamais partagés.',
+    goBack: 'Retour',
+    idAlt: 'Ta pièce d’identité',
+  },
+  es: {
+    pageTitle: 'Verificación',
+    unverified: 'Sin verificar',
+    pending: 'Verificación pendiente',
+    verified: 'Verificado',
+    rejected: 'Rechazado — vuelve a intentarlo',
+    title: 'Verificación de identidad',
+    confirmed: 'Tu identidad está confirmada. Tu insignia de verificado está activa.',
+    intro: 'Hazte un selfie y añade un documento de identidad para conseguir la insignia de verificado.',
+    selfie: 'Selfie',
+    selfieHint: 'Una foto nítida de tu cara',
+    change: 'Cambiar',
+    uploading: 'Subiendo...',
+    takeSelfie: 'Hacerme un selfie',
+    idDoc: 'Documento de identidad',
+    idHint: 'DNI, pasaporte o permiso de conducir',
+    addId: 'Añadir documento de identidad',
+    submitting: 'Enviando...',
+    submit: 'Enviar para verificación',
+    privacy: 'Tus documentos se guardan de forma segura y solo se usan para verificar tu identidad. Nunca se comparten.',
+    goBack: 'Volver',
+    idAlt: 'Tu documento de identidad',
+  },
+  ru: {
+    pageTitle: 'Верификация',
+    unverified: 'Не подтверждён',
+    pending: 'Проверка идёт',
+    verified: 'Подтверждён',
+    rejected: 'Отклонено — попробуй ещё раз',
+    title: 'Подтверждение личности',
+    confirmed: 'Твоя личность подтверждена. Значок «Проверено» активен.',
+    intro: 'Сделай селфи и добавь документ, чтобы получить значок «Проверено».',
+    selfie: 'Селфи',
+    selfieHint: 'Чёткое фото твоего лица',
+    change: 'Изменить',
+    uploading: 'Загружаем...',
+    takeSelfie: 'Сделать селфи',
+    idDoc: 'Документ',
+    idHint: 'Удостоверение личности, паспорт или водительские права',
+    addId: 'Добавить документ',
+    submitting: 'Отправляем...',
+    submit: 'Отправить на проверку',
+    privacy: 'Твои документы надёжно защищены и используются только для подтверждения личности. Мы никому их не передаём.',
+    goBack: 'Назад',
+    idAlt: 'Твой документ',
+  },
+  he: {
+    pageTitle: 'אימות',
+    unverified: 'לא מאומת',
+    pending: 'האימות בבדיקה',
+    verified: 'מאומת',
+    rejected: 'נדחה — נסו שוב',
+    title: 'אימות זהות',
+    confirmed: 'הזהות שלך אומתה. תג המאומת פעיל.',
+    intro: 'צלמו סלפי והוסיפו תעודה מזהה כדי לקבל תג מאומת.',
+    selfie: 'סלפי',
+    selfieHint: 'תמונה ברורה של הפנים',
+    change: 'החלפה',
+    uploading: 'מעלים...',
+    takeSelfie: 'צילום סלפי',
+    idDoc: 'תעודה מזהה',
+    idHint: 'תעודת זהות, דרכון או רישיון נהיגה',
+    addId: 'הוספת תעודה מזהה',
+    submitting: 'שולחים...',
+    submit: 'שליחה לאימות',
+    privacy: 'המסמכים שלך מאובטחים ומשמשים רק לאימות הזהות. הם לא מועברים לאף אחד.',
+    goBack: 'חזרה',
+    idAlt: 'התעודה המזהה שלך',
+  },
 }
 
 type VerifStatus = 'unverified' | 'pending' | 'verified' | 'rejected'
@@ -20,8 +131,8 @@ type VerifStatus = 'unverified' | 'pending' | 'verified' | 'rejected'
 export default function VerificationPage() {
   const navigate = useNavigate()
   const { user, session } = useAuth()
-  const lang = getLang()
-  usePageTitle(tx('Verification', 'Verification', 'אימות', 'Verificacion', lang))
+  const c = tr(T)
+  usePageTitle(c.pageTitle)
 
   const selfieInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
@@ -129,22 +240,22 @@ export default function VerificationPage() {
   const statusConfig: Record<VerifStatus, { color: string; bg: string; label: string; icon: string }> = {
     unverified: {
       color: '#888', bg: '#222',
-      label: tx('Non verifie', 'Unverified', 'לא מאומת', 'No verificado', lang),
+      label: c.unverified,
       icon: '?',
     },
     pending: {
       color: '#F59E0B', bg: 'rgba(245,158,11,0.1)',
-      label: tx('En cours de verification', 'Verification pending', 'ממתין לאימות', 'Verificacion pendiente', lang),
+      label: c.pending,
       icon: '...',
     },
     verified: {
       color: '#22C55E', bg: 'rgba(34,197,94,0.1)',
-      label: tx('Verifie', 'Verified', 'מאומת', 'Verificado', lang),
+      label: c.verified,
       icon: '!',
     },
     rejected: {
       color: '#EF4444', bg: 'rgba(239,68,68,0.1)',
-      label: tx('Rejete — veuillez reessayer', 'Rejected — please try again', 'נדחה — נסה שנית', 'Rechazado — intente de nuevo', lang),
+      label: c.rejected,
       icon: 'x',
     },
   }
@@ -160,13 +271,13 @@ export default function VerificationPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
         borderBottom: '1px solid #1A1A1A',
       }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
-          {tx('Verification d\'identite', 'Identity verification', 'אימות זהות', 'Verificacion de identidad', lang)}
+          {c.title}
         </h1>
       </div>
 
@@ -203,8 +314,8 @@ export default function VerificationPage() {
             <p style={{ fontSize: '16px', fontWeight: 700, color: sc.color, margin: 0 }}>{sc.label}</p>
             <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0', lineHeight: 1.4 }}>
               {status === 'verified'
-                ? tx('Votre identite est confirmee. Badge verifie actif.', 'Your identity is confirmed. Verified badge active.', 'הזהות שלך אומתה. תג מאומת פעיל.', 'Tu identidad esta confirmada. Insignia verificada activa.', lang)
-                : tx('Prends un selfie et ajoute une piece d\'identite pour obtenir le badge verifie.', 'Take a selfie and add an ID to get the verified badge.', 'צלם סלפי והוסף תעודה מזהה כדי לקבל תג מאומת.', 'Toma un selfie y agrega una identificacion para obtener la insignia verificada.', lang)}
+                ? c.confirmed
+                : c.intro}
             </p>
           </div>
         </div>
@@ -230,17 +341,17 @@ export default function VerificationPage() {
             </div>
             <div>
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                {tx('Selfie', 'Selfie', 'סלפי', 'Selfie', lang)}
+                {c.selfie}
               </p>
               <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 0' }}>
-                {tx('Photo claire de votre visage', 'Clear photo of your face', 'תמונה ברורה של הפנים שלך', 'Foto clara de tu rostro', lang)}
+                {c.selfieHint}
               </p>
             </div>
           </div>
 
           {selfieUrl ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img src={selfieUrl} alt="Selfie" loading="lazy" style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <img src={selfieUrl} alt={c.selfie} loading="lazy" style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <button
                 onClick={() => selfieInputRef.current?.click()}
                 disabled={status === 'pending' || status === 'verified'}
@@ -251,7 +362,7 @@ export default function VerificationPage() {
                   opacity: status === 'pending' || status === 'verified' ? 0.4 : 1,
                 }}
               >
-                {tx('Changer', 'Change', 'שנה', 'Cambiar', lang)}
+                {c.change}
               </button>
             </div>
           ) : (
@@ -272,8 +383,8 @@ export default function VerificationPage() {
                 <circle cx="12" cy="13" r="4"/>
               </svg>
               {uploadingSelfie
-                ? tx('Envoi...', 'Uploading...', 'מעלה...', 'Subiendo...', lang)
-                : tx('Prendre un selfie', 'Take a selfie', 'צלם סלפי', 'Tomar un selfie', lang)}
+                ? c.uploading
+                : c.takeSelfie}
             </button>
           )}
           <input ref={selfieInputRef} type="file" accept="image/*" capture="user" style={{ display: 'none' }} onChange={handleSelfieUpload} />
@@ -300,17 +411,17 @@ export default function VerificationPage() {
             </div>
             <div>
               <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
-                {tx('Piece d\'identite', 'ID Document', 'תעודה מזהה', 'Documento de identidad', lang)}
+                {c.idDoc}
               </p>
               <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 0' }}>
-                {tx('Carte d\'identite, passeport ou permis', 'ID card, passport or driver\'s license', 'תעודת זהות, דרכון או רישיון', 'DNI, pasaporte o licencia', lang)}
+                {c.idHint}
               </p>
             </div>
           </div>
 
           {idDocUrl ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <img src={idDocUrl} alt="ID" loading="lazy" style={{ width: '80px', height: '52px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <img src={idDocUrl} alt={c.idAlt} loading="lazy" style={{ width: '80px', height: '52px', borderRadius: '8px', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <button
                 onClick={() => idInputRef.current?.click()}
                 disabled={status === 'pending' || status === 'verified'}
@@ -321,7 +432,7 @@ export default function VerificationPage() {
                   opacity: status === 'pending' || status === 'verified' ? 0.4 : 1,
                 }}
               >
-                {tx('Changer', 'Change', 'שנה', 'Cambiar', lang)}
+                {c.change}
               </button>
             </div>
           ) : (
@@ -342,8 +453,8 @@ export default function VerificationPage() {
                 <line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/>
               </svg>
               {uploadingId
-                ? tx('Envoi...', 'Uploading...', 'מעלה...', 'Subiendo...', lang)
-                : tx('Ajouter une piece d\'identite', 'Add ID document', 'הוסף תעודה מזהה', 'Agregar documento', lang)}
+                ? c.uploading
+                : c.addId}
             </button>
           )}
           <input ref={idInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleIdUpload} />
@@ -365,20 +476,14 @@ export default function VerificationPage() {
             }}
           >
             {submitting
-              ? tx('Envoi en cours...', 'Submitting...', 'שולח...', 'Enviando...', lang)
-              : tx('Soumettre la verification', 'Submit verification', 'שלח אימות', 'Enviar verificacion', lang)}
+              ? c.submitting
+              : c.submit}
           </button>
         )}
 
         {/* Info text */}
         <p style={{ fontSize: '12px', color: '#555', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
-          {tx(
-            'Vos documents sont securises et utilises uniquement pour verifier votre identite. Ils ne seront pas partages.',
-            'Your documents are secured and only used for identity verification. They will not be shared.',
-            'המסמכים שלך מאובטחים ומשמשים רק לאימות זהות. הם לא ישותפו.',
-            'Sus documentos estan protegidos y solo se usan para verificar su identidad. No seran compartidos.',
-            lang
-          )}
+          {c.privacy}
         </p>
       </div>
     </div>

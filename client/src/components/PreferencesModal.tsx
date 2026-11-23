@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, I18N_TRANSLATIONS, type Lang, type Localized } from '../lib/i18n'
 import { categories } from './CategoryIcons'
 import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
 import { COUNTRIES, getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
@@ -8,45 +8,61 @@ import type { CountryCode } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
-const modalContent = {
-  fr: {
-    personalizeYourFeed: 'Personnalise ton feed',
-    chooseCategories: 'Choisis les categories qui t\'interessent',
-    selectCities: 'Selectionne tes villes preferees',
-    skip: 'Passer',
-    next: 'Suivant',
-    chosen: 'choisies',
-    letsGo: 'C\'est parti !',
-  },
+const modalContent: Localized<{
+  personalizeYourFeed: string; chooseCategories: string; selectCities: string
+  skip: string; next: string; letsGo: string
+}> = {
   en: {
     personalizeYourFeed: 'Personalize your feed',
-    chooseCategories: 'Choose the categories you\'re interested in',
-    selectCities: 'Select your preferred cities',
+    chooseCategories: 'Pick the categories you’re into',
+    selectCities: 'Pick your favorite cities',
     skip: 'Skip',
     next: 'Next',
-    chosen: 'chosen',
-    letsGo: 'Let\'s go!',
+    letsGo: 'Let’s go!',
   },
-  he: {
-    personalizeYourFeed: '\u05D4\u05EA\u05D0\u05DD \u05D0\u05D9\u05E9\u05D9\u05EA \u05D0\u05EA \u05D4\u05E4\u05D9\u05D3',
-    chooseCategories: '\u05D1\u05D7\u05E8 \u05D0\u05EA \u05D4\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA \u05E9\u05DE\u05E2\u05E0\u05D9\u05D9\u05E0\u05D5\u05EA \u05D0\u05D5\u05EA\u05DA',
-    selectCities: '\u05D1\u05D7\u05E8 \u05D0\u05EA \u05D4\u05E2\u05E8\u05D9\u05DD \u05D4\u05DE\u05D5\u05E2\u05D3\u05E4\u05D5\u05EA \u05E2\u05DC\u05D9\u05DA',
-    skip: '\u05D3\u05DC\u05D2',
-    next: '\u05D4\u05D1\u05D0',
-    chosen: '\u05E0\u05D1\u05D7\u05E8\u05D5',
-    letsGo: '!\u05D9\u05D0\u05DC\u05DC\u05D4',
+  fr: {
+    personalizeYourFeed: 'Personnalise ton fil',
+    chooseCategories: 'Choisis les catégories qui t’intéressent',
+    selectCities: 'Sélectionne tes villes préférées',
+    skip: 'Passer',
+    next: 'Suivant',
+    letsGo: 'C’est parti !',
   },
   es: {
     personalizeYourFeed: 'Personaliza tu feed',
-    chooseCategories: 'Elige las categorias que te interesan',
-    selectCities: 'Selecciona tus ciudades preferidas',
-    skip: 'Saltar',
+    chooseCategories: 'Elige las categorías que te interesan',
+    selectCities: 'Selecciona tus ciudades favoritas',
+    skip: 'Omitir',
     next: 'Siguiente',
-    chosen: 'elegidas',
-    letsGo: 'Vamos!',
+    letsGo: '¡Vamos!',
   },
+  ru: {
+    personalizeYourFeed: 'Настрой свою ленту',
+    chooseCategories: 'Выбери интересные тебе категории',
+    selectCities: 'Выбери любимые города',
+    skip: 'Пропустить',
+    next: 'Далее',
+    letsGo: 'Поехали!',
+  },
+  he: {
+    personalizeYourFeed: 'התאמה אישית של הפיד',
+    chooseCategories: 'בחרו את הקטגוריות שמעניינות אתכם',
+    selectCities: 'בחרו את הערים המועדפות עליכם',
+    skip: 'דילוג',
+    next: 'הבא',
+    letsGo: 'יאללה!',
+  },
+}
+
+/** Nom de catégorie traduit (la valeur enregistrée reste `cat.label`). */
+function categoryName(cat: { id: string; label: string }, lang: Lang): string {
+  const dict = I18N_TRANSLATIONS[lang] as Record<string, string>
+  return dict[cat.id] || cat.label
+}
+
+/** Nom du pays dans la langue de l'app. */
+function countryName(code: string, fallback: string): string {
+  try { return new Intl.DisplayNames([getLocale()], { type: 'region' }).of(code) || fallback } catch { return fallback }
 }
 
 const STORAGE_KEY = 'shapop_preferences'
@@ -81,8 +97,8 @@ const selectableCategories = categories.filter(c => c.id !== 'for_you' && c.id !
 
 export default function PreferencesModal({ visible, onClose }: PreferencesModalProps) {
   const { user } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = modalContent[lang] || modalContent.fr
+  const lang = getLang()
+  const ct = tr(modalContent)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedCities, setSelectedCities] = useState<string[]>([])
   const [step, setStep] = useState<'categories' | 'cities'>('categories')
@@ -268,7 +284,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
-                    {cat.label}
+                    {categoryName(cat, lang)}
                   </button>
                 )
               })}
@@ -305,7 +321,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                       fontSize: '12px', fontWeight: 600,
                       color: userCountry === country.code ? '#F0908A' : '#888',
                     }}>
-                      {country.name[lang] || country.name.en}
+                      {countryName(country.code, country.name[lang] || country.name.en)}
                     </span>
                   </button>
                 ))}
@@ -398,7 +414,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                 touchAction: 'manipulation',
               }}
             >
-              {ct.next} ({selectedCategories.length} {ct.chosen})
+              {ct.next}{selectedCategories.length > 0 ? ` (${selectedCategories.length})` : ''}
             </button>
           ) : (
             <button

@@ -1,26 +1,126 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { getLocale, tr, type Localized } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
+type StatusText = Record<'title' | 'member' | 'email' | 'status' | 'active' | 'verified' | 'seller' | 'yes' | 'no' | 'id' | 'myScore' | 'orders' | 'disputes' | 'excellent' | 'good' | 'warning' | 'blocked' | 'scoreInfo' | 'goBack', string>
 
-const content: Record<Lang, Record<string, string>> = {
-  fr: { title: 'Etat du compte', member: 'Membre depuis', email: 'E-mail', status: 'Statut', active: 'Actif', verified: 'Verifie', seller: 'Vendeur', yes: 'Oui', no: 'Non', id: 'Identifiant du compte', myScore: 'Ma note', orders: 'Commandes', disputes: 'Litiges', excellent: 'Excellent', good: 'Bon', warning: 'Attention', blocked: 'Bloque' },
-  en: { title: 'Account Status', member: 'Member since', email: 'Email', status: 'Status', active: 'Active', verified: 'Verified', seller: 'Seller', yes: 'Yes', no: 'No', id: 'Account ID', myScore: 'My rating', orders: 'Orders', disputes: 'Disputes', excellent: 'Excellent', good: 'Good', warning: 'Warning', blocked: 'Blocked' },
-  he: { title: '\u05DE\u05E6\u05D1 \u05D7\u05E9\u05D1\u05D5\u05DF', member: '\u05D7\u05D1\u05E8 \u05DE\u05D0\u05D6', email: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC', status: '\u05DE\u05E6\u05D1', active: '\u05E4\u05E2\u05D9\u05DC', verified: '\u05DE\u05D0\u05D5\u05DE\u05EA', seller: '\u05DE\u05D5\u05DB\u05E8', yes: '\u05DB\u05DF', no: '\u05DC\u05D0', id: '\u05DE\u05D6\u05D4\u05D4 \u05D7\u05E9\u05D1\u05D5\u05DF', myScore: '\u05D4\u05D3\u05D9\u05E8\u05D5\u05D2 \u05E9\u05DC\u05D9', orders: '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA', disputes: '\u05DE\u05D7\u05DC\u05D5\u05E7\u05D5\u05EA', excellent: '\u05DE\u05E6\u05D5\u05D9\u05DF', good: '\u05D8\u05D5\u05D1', warning: '\u05D0\u05D6\u05D4\u05E8\u05D4', blocked: '\u05D7\u05E1\u05D5\u05DD' },
-  es: { title: 'Estado de Cuenta', member: 'Miembro desde', email: 'Email', status: 'Estado', active: 'Activo', verified: 'Verificado', seller: 'Vendedor', yes: 'Si', no: 'No', id: 'ID de Cuenta', myScore: 'Mi nota', orders: 'Pedidos', disputes: 'Disputas', excellent: 'Excelente', good: 'Bueno', warning: 'Atencion', blocked: 'Bloqueado' },
+const content: Localized<StatusText> = {
+  en: {
+    title: 'Account status',
+    member: 'Member since',
+    email: 'Email',
+    status: 'Status',
+    active: 'Active',
+    verified: 'Email verified',
+    seller: 'Seller',
+    yes: 'Yes',
+    no: 'No',
+    id: 'Account ID',
+    myScore: 'My rating',
+    orders: 'Orders',
+    disputes: 'Disputes',
+    excellent: 'Excellent',
+    good: 'Good',
+    warning: 'Watch out',
+    blocked: 'Blocked',
+    scoreInfo: 'Your score is calculated automatically from how you buy: completed orders, late payments and disputes.',
+    goBack: 'Go back',
+  },
+  fr: {
+    title: 'État du compte',
+    member: 'Membre depuis',
+    email: 'E-mail',
+    status: 'Statut',
+    active: 'Actif',
+    verified: 'E-mail vérifié',
+    seller: 'Vendeur',
+    yes: 'Oui',
+    no: 'Non',
+    id: 'Identifiant du compte',
+    myScore: 'Ma note',
+    orders: 'Commandes',
+    disputes: 'Litiges',
+    excellent: 'Excellent',
+    good: 'Bon',
+    warning: 'Attention',
+    blocked: 'Bloqué',
+    scoreInfo: 'Ta note est calculée automatiquement selon ton comportement d’achat : commandes terminées, retards de paiement et litiges.',
+    goBack: 'Retour',
+  },
+  es: {
+    title: 'Estado de la cuenta',
+    member: 'Miembro desde',
+    email: 'Correo',
+    status: 'Estado',
+    active: 'Activa',
+    verified: 'Correo verificado',
+    seller: 'Vendedor',
+    yes: 'Sí',
+    no: 'No',
+    id: 'ID de la cuenta',
+    myScore: 'Mi puntuación',
+    orders: 'Pedidos',
+    disputes: 'Disputas',
+    excellent: 'Excelente',
+    good: 'Buena',
+    warning: 'Atención',
+    blocked: 'Bloqueada',
+    scoreInfo: 'Tu puntuación se calcula automáticamente según cómo compras: pedidos completados, retrasos en los pagos y disputas.',
+    goBack: 'Volver',
+  },
+  ru: {
+    title: 'Статус аккаунта',
+    member: 'Участник с',
+    email: 'E-mail',
+    status: 'Статус',
+    active: 'Активен',
+    verified: 'E-mail подтверждён',
+    seller: 'Продавец',
+    yes: 'Да',
+    no: 'Нет',
+    id: 'ID аккаунта',
+    myScore: 'Мой рейтинг',
+    orders: 'Заказы',
+    disputes: 'Споры',
+    excellent: 'Отлично',
+    good: 'Хорошо',
+    warning: 'Внимание',
+    blocked: 'Заблокирован',
+    scoreInfo: 'Рейтинг рассчитывается автоматически по твоим покупкам: завершённые заказы, задержки оплаты и споры.',
+    goBack: 'Назад',
+  },
+  he: {
+    title: 'מצב החשבון',
+    member: 'חבר/ה מאז',
+    email: 'אימייל',
+    status: 'סטטוס',
+    active: 'פעיל',
+    verified: 'אימייל מאומת',
+    seller: 'מוכר/ת',
+    yes: 'כן',
+    no: 'לא',
+    id: 'מזהה חשבון',
+    myScore: 'הדירוג שלי',
+    orders: 'הזמנות',
+    disputes: 'מחלוקות',
+    excellent: 'מצוין',
+    good: 'טוב',
+    warning: 'שימו לב',
+    blocked: 'חסום',
+    scoreInfo: 'הציון מחושב אוטומטית לפי הרגלי הקנייה שלך: הזמנות שהושלמו, עיכובים בתשלום ומחלוקות.',
+    goBack: 'חזרה',
+  },
 }
 
 export default function AccountStatusPage() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
-  const lang = getLang() as Lang
-  const c = content[lang] || content.fr
+  const c = tr(content)
   usePageTitle(c.title)
   const [score, setScore] = useState<{ score: number; total_orders: number; total_disputes: number; risk_level: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -49,8 +149,8 @@ export default function AccountStatusPage() {
     { label: c.status, value: c.active, accent: true },
     { label: c.verified, value: user?.email_confirmed_at ? c.yes : c.no },
     { label: c.seller, value: profile?.is_seller ? c.yes : c.no },
-    { label: c.member, value: user?.created_at ? new Date(user.created_at).toLocaleDateString() : '-' },
-    { label: c.id, value: user?.id?.slice(0, 8) + '...' || '-' },
+    { label: c.member, value: user?.created_at ? new Date(user.created_at).toLocaleDateString(getLocale()) : '-' },
+    { label: c.id, value: user?.id ? user.id.slice(0, 8) + '…' : '-' },
   ]
 
   // Score color based on value
@@ -71,7 +171,7 @@ export default function AccountStatusPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button aria-label="Go back" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button aria-label={c.goBack} onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -95,7 +195,7 @@ export default function AccountStatusPage() {
             {/* Big score number */}
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: '42px', fontWeight: 800, color: getScoreColor(score.score), lineHeight: 1 }}>
-                {score.score.toFixed(1)}
+                {score.score.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               </span>
               <span style={{ fontSize: '16px', fontWeight: 600, color: '#555' }}>/10</span>
             </div>
@@ -112,10 +212,7 @@ export default function AccountStatusPage() {
             </div>
           </div>
           <p style={{ fontSize: '11px', color: '#444', marginTop: '12px', lineHeight: 1.5 }}>
-            {lang === 'en' ? 'Your score is calculated automatically based on your buying behavior: completed orders, payment delays, and disputes.' :
-             lang === 'he' ? 'הציון שלך מחושב אוטומטית על סמך התנהגות הקנייה שלך: הזמנות שהושלמו, עיכובי תשלום ומחלוקות.' :
-             lang === 'es' ? 'Tu puntuacion se calcula automaticamente segun tu comportamiento de compra: pedidos completados, retrasos de pago y disputas.' :
-             'Ta note est calculee automatiquement selon ton comportement d\'achat : commandes completees, delais de paiement et litiges.'}
+            {c.scoreInfo}
           </p>
         </div>
       )}

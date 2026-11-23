@@ -1,23 +1,97 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
+import { authErrorMessage } from '../lib/authErrors'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = ReturnType<typeof getLang>
-
-const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
-  if (lang === 'en') return en
-  if (lang === 'he') return he
-  if (lang === 'es') return es
-  return fr
+const content: Localized<{
+  title: string; goBack: string; enterEmail: string; invalidEmail: string; genericError: string
+  sentTitle: string; sentText: string; backToLogin: string; intro: string; emailLabel: string
+  emailPlaceholder: string; sending: string; sendLink: string
+}> = {
+  en: {
+    title: 'Forgot password',
+    goBack: 'Go back',
+    enterEmail: 'Please enter your email address.',
+    invalidEmail: 'This email address is not valid.',
+    genericError: 'Something went wrong. Please try again.',
+    sentTitle: 'Email sent!',
+    sentText: 'Check your inbox and follow the link to reset your password.',
+    backToLogin: 'Back to sign in',
+    intro: 'Enter your email address and we’ll send you a link to reset your password.',
+    emailLabel: 'Email address',
+    emailPlaceholder: 'you@email.com',
+    sending: 'Sending...',
+    sendLink: 'Send reset link',
+  },
+  fr: {
+    title: 'Mot de passe oublié',
+    goBack: 'Retour',
+    enterEmail: 'Saisis ton adresse e-mail.',
+    invalidEmail: 'Cette adresse e-mail n’est pas valide.',
+    genericError: 'Une erreur est survenue. Réessaie.',
+    sentTitle: 'E-mail envoyé !',
+    sentText: 'Regarde dans ta boîte de réception et suis le lien pour réinitialiser ton mot de passe.',
+    backToLogin: 'Retour à la connexion',
+    intro: 'Saisis ton adresse e-mail : on t’envoie un lien pour réinitialiser ton mot de passe.',
+    emailLabel: 'Adresse e-mail',
+    emailPlaceholder: 'toi@email.com',
+    sending: 'Envoi en cours...',
+    sendLink: 'Envoyer le lien',
+  },
+  es: {
+    title: 'Olvidé mi contraseña',
+    goBack: 'Volver',
+    enterEmail: 'Introduce tu correo electrónico.',
+    invalidEmail: 'Esta dirección de correo no es válida.',
+    genericError: 'Algo ha fallado. Vuelve a intentarlo.',
+    sentTitle: '¡Correo enviado!',
+    sentText: 'Revisa tu bandeja de entrada y sigue el enlace para restablecer tu contraseña.',
+    backToLogin: 'Volver a iniciar sesión',
+    intro: 'Introduce tu correo y te enviaremos un enlace para restablecer tu contraseña.',
+    emailLabel: 'Correo electrónico',
+    emailPlaceholder: 'tu@email.com',
+    sending: 'Enviando...',
+    sendLink: 'Enviar enlace',
+  },
+  ru: {
+    title: 'Восстановление пароля',
+    goBack: 'Назад',
+    enterEmail: 'Введи свой адрес e-mail.',
+    invalidEmail: 'Этот адрес e-mail недействителен.',
+    genericError: 'Что-то пошло не так. Попробуй ещё раз.',
+    sentTitle: 'Письмо отправлено!',
+    sentText: 'Проверь входящие и перейди по ссылке, чтобы сбросить пароль.',
+    backToLogin: 'Вернуться ко входу',
+    intro: 'Введи свой e-mail, и мы пришлём ссылку для сброса пароля.',
+    emailLabel: 'Адрес e-mail',
+    emailPlaceholder: 'ty@email.com',
+    sending: 'Отправляем...',
+    sendLink: 'Отправить ссылку',
+  },
+  he: {
+    title: 'שכחתי סיסמה',
+    goBack: 'חזרה',
+    enterEmail: 'הזינו את כתובת האימייל שלכם.',
+    invalidEmail: 'כתובת האימייל אינה תקינה.',
+    genericError: 'משהו השתבש. נסו שוב.',
+    sentTitle: 'האימייל נשלח!',
+    sentText: 'בדקו את תיבת הדואר ולחצו על הקישור כדי לאפס את הסיסמה.',
+    backToLogin: 'חזרה להתחברות',
+    intro: 'הזינו את כתובת האימייל שלכם ונשלח לכם קישור לאיפוס הסיסמה.',
+    emailLabel: 'כתובת אימייל',
+    emailPlaceholder: 'you@email.com',
+    sending: 'שולחים...',
+    sendLink: 'שליחת קישור לאיפוס',
+  },
 }
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate()
-  const lang = getLang()
-  usePageTitle(tx('Mot de passe oublié', 'Forgot Password', 'שכחתי סיסמה', 'Olvidé la contraseña', lang))
+  const c = tr(content)
+  usePageTitle(c.title)
 
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -31,11 +105,11 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async () => {
     if (!email.trim()) {
-      showToast(tx('Veuillez entrer votre adresse e-mail', 'Please enter your email address', 'נא להזין כתובת אימייל', 'Por favor ingrese su correo electrónico', lang), 'error')
+      showToast(c.enterEmail, 'error')
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      showToast(tx('Adresse e-mail invalide', 'Invalid email address', 'כתובת אימייל לא תקינה', 'Dirección de correo inválida', lang), 'error')
+      showToast(c.invalidEmail, 'error')
       return
     }
 
@@ -47,7 +121,7 @@ export default function ForgotPasswordPage() {
       if (error) throw error
       setSent(true)
     } catch (err: unknown) {
-      showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrió un error', lang), 'error')
+      showToast(authErrorMessage(err, c.genericError), 'error')
     }
     setLoading(false)
   }
@@ -73,11 +147,11 @@ export default function ForgotPasswordPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-          {tx('Mot de passe oublié', 'Forgot password', 'שכחתי סיסמה', 'Olvidé mi contraseña', lang)}
+          {c.title}
         </h1>
       </div>
 
@@ -95,16 +169,10 @@ export default function ForgotPasswordPage() {
               </svg>
             </div>
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
-              {tx('E-mail envoyé !', 'Email sent!', '!נשלח אימייל', '¡Correo enviado!', lang)}
+              {c.sentTitle}
             </h2>
             <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, maxWidth: '300px', margin: '0 auto 32px' }}>
-              {tx(
-                'Consultez votre boîte e-mail et suivez le lien pour réinitialiser votre mot de passe.',
-                'Check your inbox and follow the link to reset your password.',
-                'בדוק את תיבת הדואר שלך ולחץ על הקישור לאיפוס הסיסמה.',
-                'Revise su bandeja de entrada y siga el enlace para restablecer su contraseña.',
-                lang
-              )}
+              {c.sentText}
             </p>
             <Link
               to="/login"
@@ -115,23 +183,17 @@ export default function ForgotPasswordPage() {
                 boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
               }}
             >
-              {tx('Retour à la connexion', 'Back to login', 'חזרה להתחברות', 'Volver al inicio de sesión', lang)}
+              {c.backToLogin}
             </Link>
           </div>
         ) : (
           <>
             <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
-              {tx(
-                'Entrez votre adresse e-mail et nous vous enverrons un lien pour réinitialiser votre mot de passe.',
-                'Enter your email address and we will send you a link to reset your password.',
-                'הזן את כתובת האימייל שלך ונשלח לך קישור לאיפוס הסיסמה.',
-                'Ingrese su dirección de correo y le enviaremos un enlace para restablecer su contraseña.',
-                lang
-              )}
+              {c.intro}
             </p>
 
             <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
-              {tx('Adresse e-mail', 'Email address', 'כתובת אימייל', 'Dirección de correo', lang)}
+              {c.emailLabel}
             </label>
             <input
               type="email"
@@ -139,7 +201,7 @@ export default function ForgotPasswordPage() {
               autoComplete="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              placeholder={tx('Entrez votre adresse e-mail', 'Enter your email', 'הזן את האימייל שלך', 'Ingrese su correo', lang)}
+              placeholder={c.emailPlaceholder}
               style={{ ...inputStyle, marginBottom: '24px' }}
               onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
               onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
@@ -157,14 +219,14 @@ export default function ForgotPasswordPage() {
               }}
             >
               {loading
-                ? tx('Envoi en cours...', 'Sending...', '...שולח', 'Enviando...', lang)
-                : tx('Envoyer le lien', 'Send reset link', 'שלח קישור', 'Enviar enlace', lang)
+                ? c.sending
+                : c.sendLink
               }
             </button>
 
             <p style={{ textAlign: 'center', fontSize: '14px', color: '#666', marginTop: '24px' }}>
               <Link to="/login" style={{ color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>
-                {tx('Retour à la connexion', 'Back to login', 'חזרה להתחברות', 'Volver al inicio de sesión', lang)}
+                {c.backToLogin}
               </Link>
             </p>
           </>
@@ -173,17 +235,17 @@ export default function ForgotPasswordPage() {
 
       {/* Toast */}
       {toast && (
+        <div style={{ position: 'fixed', bottom: '100px', insetInline: '16px', zIndex: 100, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
         <div style={{
-          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          padding: '14px 24px', borderRadius: '12px',
+          padding: '14px 24px', borderRadius: '12px', textAlign: 'center',
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : '#3a1a1a',
           border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#E8344E'}`,
           color: toast.type === 'success' ? '#4ADE80' : '#E8344E',
           fontSize: '14px', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          whiteSpace: 'nowrap',
         }}>
           {toast.message}
+        </div>
         </div>
       )}
     </div>

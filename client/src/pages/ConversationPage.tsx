@@ -374,7 +374,7 @@ export default function ConversationPage() {
       })
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
+        await res.json().catch(() => ({}))
         throw new Error(ct.sendError)
       }
 

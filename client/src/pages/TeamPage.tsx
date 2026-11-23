@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 import { apiFetch } from '../lib/api'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
-
-type Lang = 'fr' | 'en' | 'he' | 'es'
 
 interface TeamMember {
   id: string
@@ -23,99 +21,175 @@ interface Invitation {
   seller?: { display_name: string; avatar_url: string | null; store_name: string }
 }
 
-const content = {
-  fr: {
-    title: 'Mon equipe',
-    invite: 'Inviter un membre',
-    email: 'Email du membre',
-    role: 'Role',
-    manager: 'Manager',
-    managerDesc: 'Acces complet : lives, articles, commandes',
-    moderator: 'Moderateur',
-    moderatorDesc: 'Gestion du chat et moderation',
-    shipper: 'Expediteur',
-    shipperDesc: 'Gestion des expeditions uniquement',
-    send: 'Envoyer l\'invitation',
-    sending: 'Envoi...',
-    noMembers: 'Aucun membre dans l\'equipe',
-    pending: 'En attente',
-    active: 'Actif',
-    remove: 'Retirer',
-    invitations: 'Invitations recues',
-    accept: 'Accepter',
-    decline: 'Refuser',
-    noInvitations: 'Aucune invitation',
-    maxMembers: 'Maximum 10 membres',
-  },
+type TeamText = Record<'title' | 'invite' | 'email' | 'role' | 'manager' | 'managerDesc' | 'moderator' | 'moderatorDesc' | 'shipper' | 'shipperDesc' | 'send' | 'sending' | 'noMembers' | 'pending' | 'active' | 'remove' | 'invitations' | 'accept' | 'decline' | 'noInvitations' | 'maxMembers' | 'invalidEmail' | 'userNotFound' | 'inviteSelf' | 'notSeller' | 'genericError' | 'networkError' | 'seller' | 'goBack', string>
+
+const content: Localized<TeamText> = {
   en: {
     title: 'My team',
     invite: 'Invite a member',
-    email: 'Member email',
+    email: 'Member’s email',
     role: 'Role',
     manager: 'Manager',
     managerDesc: 'Full access: lives, items, orders',
     moderator: 'Moderator',
     moderatorDesc: 'Chat management and moderation',
     shipper: 'Shipper',
-    shipperDesc: 'Shipping management only',
+    shipperDesc: 'Shipping only',
     send: 'Send invitation',
     sending: 'Sending...',
-    noMembers: 'No team members',
+    noMembers: 'No team members yet',
     pending: 'Pending',
     active: 'Active',
     remove: 'Remove',
-    invitations: 'Received invitations',
+    invitations: 'Invitations received',
     accept: 'Accept',
     decline: 'Decline',
     noInvitations: 'No invitations',
-    maxMembers: 'Maximum 10 members',
+    maxMembers: 'Up to 10 members',
+    invalidEmail: 'This email address is not valid.',
+    userNotFound: 'No ShaPop account uses this email.',
+    inviteSelf: 'You can’t invite yourself.',
+    notSeller: 'You need a seller account to invite team members.',
+    genericError: 'Something went wrong. Please try again.',
+    networkError: 'No connection. Check your internet and try again.',
+    seller: 'Seller',
+    goBack: 'Go back',
   },
-  he: {
-    title: '\u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05D9',
-    invite: '\u05D4\u05D6\u05DE\u05DF \u05D7\u05D1\u05E8',
-    email: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC \u05D4\u05D7\u05D1\u05E8',
-    role: '\u05EA\u05E4\u05E7\u05D9\u05D3',
-    manager: '\u05DE\u05E0\u05D4\u05DC',
-    managerDesc: '\u05D2\u05D9\u05E9\u05D4 \u05DE\u05DC\u05D0\u05D4: \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD, \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD, \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA',
-    moderator: '\u05DE\u05E0\u05D7\u05D4',
-    moderatorDesc: '\u05E0\u05D9\u05D4\u05D5\u05DC \u05E6\u05F3\u05D0\u05D8 \u05D5\u05DE\u05D5\u05D3\u05E8\u05E6\u05D9\u05D4',
-    shipper: '\u05E9\u05DC\u05D9\u05D7',
-    shipperDesc: '\u05E0\u05D9\u05D4\u05D5\u05DC \u05DE\u05E9\u05DC\u05D5\u05D7\u05D9\u05DD \u05D1\u05DC\u05D1\u05D3',
-    send: '\u05E9\u05DC\u05D7 \u05D4\u05D6\u05DE\u05E0\u05D4',
-    sending: '\u05E9\u05D5\u05DC\u05D7...',
-    noMembers: '\u05D0\u05D9\u05DF \u05D7\u05D1\u05E8\u05D9 \u05E6\u05D5\u05D5\u05EA',
-    pending: '\u05DE\u05DE\u05EA\u05D9\u05DF',
-    active: '\u05E4\u05E2\u05D9\u05DC',
-    remove: '\u05D4\u05E1\u05E8',
-    invitations: '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05E9\u05D4\u05EA\u05E7\u05D1\u05DC\u05D5',
-    accept: '\u05E7\u05D1\u05DC',
-    decline: '\u05D3\u05D7\u05D4',
-    noInvitations: '\u05D0\u05D9\u05DF \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA',
-    maxMembers: '\u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD 10 \u05D7\u05D1\u05E8\u05D9\u05DD',
+  fr: {
+    title: 'Mon équipe',
+    invite: 'Inviter un membre',
+    email: 'E-mail du membre',
+    role: 'Rôle',
+    manager: 'Manager',
+    managerDesc: 'Accès complet : lives, articles, commandes',
+    moderator: 'Modérateur',
+    moderatorDesc: 'Gestion du chat et modération',
+    shipper: 'Expéditeur',
+    shipperDesc: 'Expéditions uniquement',
+    send: 'Envoyer l’invitation',
+    sending: 'Envoi...',
+    noMembers: 'Aucun membre dans l’équipe pour l’instant',
+    pending: 'En attente',
+    active: 'Actif',
+    remove: 'Retirer',
+    invitations: 'Invitations reçues',
+    accept: 'Accepter',
+    decline: 'Refuser',
+    noInvitations: 'Aucune invitation',
+    maxMembers: '10 membres maximum',
+    invalidEmail: 'Cette adresse e-mail n’est pas valide.',
+    userNotFound: 'Aucun compte ShaPop n’utilise cet e-mail.',
+    inviteSelf: 'Tu ne peux pas t’inviter toi-même.',
+    notSeller: 'Il te faut un compte vendeur pour inviter des membres.',
+    genericError: 'Une erreur est survenue. Réessaie.',
+    networkError: 'Pas de connexion. Vérifie ton accès à Internet et réessaie.',
+    seller: 'Vendeur',
+    goBack: 'Retour',
   },
   es: {
     title: 'Mi equipo',
     invite: 'Invitar a un miembro',
-    email: 'Email del miembro',
+    email: 'Correo del miembro',
     role: 'Rol',
-    manager: 'Gerente',
-    managerDesc: 'Acceso completo: directos, articulos, pedidos',
+    manager: 'Gestor',
+    managerDesc: 'Acceso total: directos, artículos, pedidos',
     moderator: 'Moderador',
-    moderatorDesc: 'Gestion del chat y moderacion',
-    shipper: 'Expedidor',
-    shipperDesc: 'Solo gestion de envios',
-    send: 'Enviar invitacion',
+    moderatorDesc: 'Gestión del chat y moderación',
+    shipper: 'Encargado de envíos',
+    shipperDesc: 'Solo envíos',
+    send: 'Enviar invitación',
     sending: 'Enviando...',
-    noMembers: 'No hay miembros en el equipo',
+    noMembers: 'Aún no hay miembros en el equipo',
     pending: 'Pendiente',
     active: 'Activo',
-    remove: 'Eliminar',
+    remove: 'Quitar',
     invitations: 'Invitaciones recibidas',
     accept: 'Aceptar',
     decline: 'Rechazar',
     noInvitations: 'Sin invitaciones',
-    maxMembers: 'Maximo 10 miembros',
+    maxMembers: 'Máximo 10 miembros',
+    invalidEmail: 'Esta dirección de correo no es válida.',
+    userNotFound: 'Ninguna cuenta de ShaPop usa este correo.',
+    inviteSelf: 'No puedes invitarte a ti mismo.',
+    notSeller: 'Necesitas una cuenta de vendedor para invitar a miembros.',
+    genericError: 'Algo ha fallado. Vuelve a intentarlo.',
+    networkError: 'Sin conexión. Revisa tu internet y vuelve a intentarlo.',
+    seller: 'Vendedor',
+    goBack: 'Volver',
   },
+  ru: {
+    title: 'Моя команда',
+    invite: 'Пригласить участника',
+    email: 'E-mail участника',
+    role: 'Роль',
+    manager: 'Менеджер',
+    managerDesc: 'Полный доступ: эфиры, товары, заказы',
+    moderator: 'Модератор',
+    moderatorDesc: 'Управление чатом и модерация',
+    shipper: 'Отправщик',
+    shipperDesc: 'Только отправка заказов',
+    send: 'Отправить приглашение',
+    sending: 'Отправляем...',
+    noMembers: 'В команде пока никого нет',
+    pending: 'Ожидает',
+    active: 'Активен',
+    remove: 'Убрать',
+    invitations: 'Полученные приглашения',
+    accept: 'Принять',
+    decline: 'Отклонить',
+    noInvitations: 'Приглашений нет',
+    maxMembers: 'Не более 10 участников',
+    invalidEmail: 'Этот адрес e-mail недействителен.',
+    userNotFound: 'Нет аккаунта ShaPop с таким e-mail.',
+    inviteSelf: 'Нельзя пригласить самого себя.',
+    notSeller: 'Чтобы приглашать участников, нужен аккаунт продавца.',
+    genericError: 'Что-то пошло не так. Попробуй ещё раз.',
+    networkError: 'Нет соединения. Проверь интернет и попробуй снова.',
+    seller: 'Продавец',
+    goBack: 'Назад',
+  },
+  he: {
+    title: 'הצוות שלי',
+    invite: 'הזמנת חבר/ת צוות',
+    email: 'האימייל של חבר/ת הצוות',
+    role: 'תפקיד',
+    manager: 'מנהל/ת',
+    managerDesc: 'גישה מלאה: שידורים חיים, פריטים, הזמנות',
+    moderator: 'מנחה',
+    moderatorDesc: 'ניהול הצ׳אט ומודרציה',
+    shipper: 'אחראי/ת משלוחים',
+    shipperDesc: 'משלוחים בלבד',
+    send: 'שליחת הזמנה',
+    sending: 'שולחים...',
+    noMembers: 'עדיין אין חברי צוות',
+    pending: 'ממתין',
+    active: 'פעיל',
+    remove: 'הסרה',
+    invitations: 'הזמנות שקיבלת',
+    accept: 'אישור',
+    decline: 'דחייה',
+    noInvitations: 'אין הזמנות',
+    maxMembers: 'עד 10 חברי צוות',
+    invalidEmail: 'כתובת האימייל אינה תקינה.',
+    userNotFound: 'אין חשבון ShaPop עם האימייל הזה.',
+    inviteSelf: 'אי אפשר להזמין את עצמך.',
+    notSeller: 'צריך חשבון מוכר/ת כדי להזמין חברי צוות.',
+    genericError: 'משהו השתבש. נסו שוב.',
+    networkError: 'אין חיבור. בדקו את האינטרנט ונסו שוב.',
+    seller: 'מוכר/ת',
+    goBack: 'חזרה',
+  },
+}
+
+/** Message serveur connu (anglais) → texte traduit. */
+function teamError(raw: unknown, ct: TeamText): string {
+  const m = String(raw || '').toLowerCase()
+  if (m.includes('user not found')) return ct.userNotFound
+  if (m.includes('invite yourself')) return ct.inviteSelf
+  if (m.includes('must be a seller')) return ct.notSeller
+  if (m.includes('maximum 10')) return ct.maxMembers
+  if (m.includes('email is required')) return ct.invalidEmail
+  return ct.genericError
 }
 
 const roleColors: Record<string, string> = {
@@ -127,8 +201,7 @@ const roleColors: Record<string, string> = {
 export default function TeamPage() {
   const navigate = useNavigate()
   const { user, session, profile } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = content[lang] || content.fr
+  const ct = tr(content)
   usePageTitle(ct.title)
 
   const [members, setMembers] = useState<TeamMember[]>([])
@@ -169,7 +242,7 @@ export default function TeamPage() {
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !session?.access_token) return
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())) {
-      setError(lang === 'fr' ? 'Adresse e-mail invalide' : lang === 'es' ? 'Correo invalido' : lang === 'he' ? 'אימייל לא תקין' : 'Invalid email address')
+      setError(ct.invalidEmail)
       return
     }
     setInviting(true)
@@ -186,10 +259,10 @@ export default function TeamPage() {
         setInviteEmail('')
         setShowInvite(false)
       } else {
-        const data = await resp.json()
-        setError(data.error || 'Error')
+        const data = await resp.json().catch(() => ({}))
+        setError(teamError(data.error, ct))
       }
-    } catch { setError('Network error') }
+    } catch { setError(ct.networkError) }
     setInviting(false)
   }
 
@@ -204,9 +277,9 @@ export default function TeamPage() {
       if (resp.ok) {
         setInvitations(prev => prev.filter(i => i.seller_id !== sellerId))
       } else {
-        setError('Error')
+        setError(ct.genericError)
       }
-    } catch { setError('Network error') }
+    } catch { setError(ct.networkError) }
   }
 
   const handleDecline = async (sellerId: string) => {
@@ -220,9 +293,9 @@ export default function TeamPage() {
       if (resp.ok) {
         setInvitations(prev => prev.filter(i => i.seller_id !== sellerId))
       } else {
-        setError('Error')
+        setError(ct.genericError)
       }
-    } catch { setError('Network error') }
+    } catch { setError(ct.networkError) }
   }
 
   const handleRemove = async (userId: string) => {
@@ -235,9 +308,9 @@ export default function TeamPage() {
       if (resp.ok) {
         setMembers(prev => prev.filter(m => m.user_id !== userId))
       } else {
-        setError('Error')
+        setError(ct.genericError)
       }
-    } catch { setError('Network error') }
+    } catch { setError(ct.networkError) }
   }
 
   const roleLabel = (role: string) => {
@@ -257,7 +330,7 @@ export default function TeamPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={ct.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
@@ -301,7 +374,7 @@ export default function TeamPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                    {inv.seller?.store_name || inv.seller?.display_name || 'Seller'}
+                    {inv.seller?.store_name || inv.seller?.display_name || ct.seller}
                   </p>
                   <span style={{
                     fontSize: '10px', fontWeight: 700,

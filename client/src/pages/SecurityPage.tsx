@@ -3,24 +3,101 @@ import ConfirmModal from '../components/ConfirmModal'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
+import { authErrorMessage } from '../lib/authErrors'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = ReturnType<typeof getLang>
+type SecText = Record<'title' | 'signOut' | 'confirmAll' | 'signedOutAll' | 'genericError' | 'activeSessions' | 'currentSession' | 'currentDevice' | 'active' | 'signingOut' | 'signOutAll' | 'confirm' | 'cancel' | 'goBack', string>
 
-const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
-  if (lang === 'en') return en
-  if (lang === 'he') return he
-  if (lang === 'es') return es
-  return fr
+const T: Localized<SecText> = {
+  en: {
+    title: 'Security',
+    signOut: 'Sign out',
+    confirmAll: 'Sign out of all sessions on all your devices?',
+    signedOutAll: 'Signed out of all sessions',
+    genericError: 'Something went wrong. Please try again.',
+    activeSessions: 'Active sessions',
+    currentSession: 'Current session',
+    currentDevice: 'This device',
+    active: 'Active',
+    signingOut: 'Signing out...',
+    signOutAll: 'Sign out of all sessions',
+    confirm: 'Confirm',
+    cancel: 'Cancel',
+    goBack: 'Go back',
+  },
+  fr: {
+    title: 'Sécurité',
+    signOut: 'Déconnexion',
+    confirmAll: 'Te déconnecter de toutes les sessions, sur tous tes appareils ?',
+    signedOutAll: 'Déconnecté de toutes les sessions',
+    genericError: 'Une erreur est survenue. Réessaie.',
+    activeSessions: 'Sessions actives',
+    currentSession: 'Session actuelle',
+    currentDevice: 'Cet appareil',
+    active: 'Active',
+    signingOut: 'Déconnexion...',
+    signOutAll: 'Se déconnecter de toutes les sessions',
+    confirm: 'Confirmer',
+    cancel: 'Annuler',
+    goBack: 'Retour',
+  },
+  es: {
+    title: 'Seguridad',
+    signOut: 'Cerrar sesión',
+    confirmAll: '¿Cerrar sesión en todos tus dispositivos?',
+    signedOutAll: 'Sesión cerrada en todos los dispositivos',
+    genericError: 'Algo ha fallado. Vuelve a intentarlo.',
+    activeSessions: 'Sesiones activas',
+    currentSession: 'Sesión actual',
+    currentDevice: 'Este dispositivo',
+    active: 'Activa',
+    signingOut: 'Cerrando sesión...',
+    signOutAll: 'Cerrar sesión en todos los dispositivos',
+    confirm: 'Confirmar',
+    cancel: 'Cancelar',
+    goBack: 'Volver',
+  },
+  ru: {
+    title: 'Безопасность',
+    signOut: 'Выход',
+    confirmAll: 'Выйти из всех сеансов на всех твоих устройствах?',
+    signedOutAll: 'Выход выполнен на всех устройствах',
+    genericError: 'Что-то пошло не так. Попробуй ещё раз.',
+    activeSessions: 'Активные сеансы',
+    currentSession: 'Текущий сеанс',
+    currentDevice: 'Это устройство',
+    active: 'Активен',
+    signingOut: 'Выходим...',
+    signOutAll: 'Выйти из всех сеансов',
+    confirm: 'Подтвердить',
+    cancel: 'Отмена',
+    goBack: 'Назад',
+  },
+  he: {
+    title: 'אבטחה',
+    signOut: 'התנתקות',
+    confirmAll: 'להתנתק מכל החיבורים בכל המכשירים שלך?',
+    signedOutAll: 'התנתקת מכל החיבורים',
+    genericError: 'משהו השתבש. נסו שוב.',
+    activeSessions: 'חיבורים פעילים',
+    currentSession: 'החיבור הנוכחי',
+    currentDevice: 'המכשיר הזה',
+    active: 'פעיל',
+    signingOut: 'מתנתקים...',
+    signOutAll: 'התנתקות מכל החיבורים',
+    confirm: 'אישור',
+    cancel: 'ביטול',
+    goBack: 'חזרה',
+  },
 }
 
 export default function SecurityPage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const lang = getLang()
-  usePageTitle(tx('Securite', 'Security', 'אבטחה', 'Seguridad', lang))
+  const c = tr(T)
+  usePageTitle(c.title)
 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
   const [signingOut, setSigningOut] = useState(false)
@@ -38,14 +115,8 @@ export default function SecurityPage() {
 
   const handleSignOutAll = () => {
     setConfirmModal({
-      title: tx('Deconnexion', 'Sign out', 'התנתקות', 'Cerrar sesion', lang),
-      message: tx(
-        'Êtes-vous sûr de vouloir vous déconnecter de toutes les sessions ?',
-        'Are you sure you want to sign out of all sessions?',
-        'האם אתה בטוח שברצונך להתנתק מכל ההפעלות?',
-        '¿Está seguro de que desea cerrar sesión en todos los dispositivos?',
-        lang
-      ),
+      title: c.signOut,
+      message: c.confirmAll,
       onConfirm: async () => {
         setConfirmModal(null)
         setSigningOut(true)
@@ -53,7 +124,7 @@ export default function SecurityPage() {
           const { error } = await supabase.auth.signOut({ scope: 'global' })
           if (error) throw error
           showToast(
-            tx('Deconnecte de toutes les sessions', 'Signed out from all sessions', 'התנתקת מכל ההפעלות', 'Sesion cerrada en todos los dispositivos', lang),
+            c.signedOutAll,
             'success'
           )
           setTimeout(() => {
@@ -61,7 +132,7 @@ export default function SecurityPage() {
             navigate('/')
           }, 1500)
         } catch (err: unknown) {
-          showToast((err instanceof Error ? err.message : null) || tx('Une erreur est survenue', 'An error occurred', 'אירעה שגיאה', 'Ocurrio un error', lang), 'error')
+          showToast(authErrorMessage(err, c.genericError), 'error')
         }
         setSigningOut(false)
       },
@@ -83,11 +154,11 @@ export default function SecurityPage() {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
         display: 'flex', alignItems: 'center', gap: '12px',
       }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
-          {tx('Securite', 'Security', 'אבטחה', 'Seguridad', lang)}
+          {c.title}
         </h1>
       </div>
 
@@ -95,7 +166,7 @@ export default function SecurityPage() {
 
         {/* ── Section: Active sessions ── */}
         <p style={sectionTitleStyle}>
-          {tx('Sessions actives', 'Active sessions', 'הפעלות פעילות', 'Sesiones activas', lang)}
+          {c.activeSessions}
         </p>
         <div style={{
           backgroundColor: '#111', borderRadius: '14px',
@@ -117,14 +188,14 @@ export default function SecurityPage() {
             </div>
             <div style={{ flex: 1 }}>
               <p style={{ fontSize: '15px', color: '#E5E5E5', fontWeight: 500, margin: 0 }}>
-                {tx('Session actuelle', 'Current session', 'הפעלה נוכחית', 'Sesion actual', lang)}
+                {c.currentSession}
               </p>
               <p style={{ fontSize: '13px', color: '#666', margin: '4px 0 0' }}>
                 {navigator.userAgent.includes('iPhone') ? 'iPhone'
                   : navigator.userAgent.includes('Android') ? 'Android'
-                  : navigator.userAgent.includes('Mac') ? 'Mac'
-                  : navigator.userAgent.includes('Windows') ? 'Windows'
-                  : tx('Appareil actuel', 'Current device', 'מכשיר נוכחי', 'Dispositivo actual', lang)
+                  : navigator.userAgent.includes('Mac') ? 'Mac' // i18n-ignore (nom de système)
+                  : navigator.userAgent.includes('Windows') ? 'Windows' // i18n-ignore (nom de système)
+                  : c.currentDevice
                 }
               </p>
             </div>
@@ -133,7 +204,7 @@ export default function SecurityPage() {
               backgroundColor: 'rgba(74, 222, 128, 0.1)',
             }}>
               <span style={{ fontSize: '12px', color: '#4ADE80', fontWeight: 600 }}>
-                {tx('Actif', 'Active', 'פעיל', 'Activo', lang)}
+                {c.active}
               </span>
             </div>
           </div>
@@ -162,25 +233,25 @@ export default function SecurityPage() {
           }}
         >
           {signingOut
-            ? tx('Deconnexion...', 'Signing out...', 'מתנתק...', 'Cerrando sesion...', lang)
-            : tx('Se deconnecter de toutes les sessions', 'Sign out of all sessions', 'התנתק מכל ההפעלות', 'Cerrar sesion en todos los dispositivos', lang)
+            ? c.signingOut
+            : c.signOutAll
           }
         </button>
       </div>
 
       {/* Toast */}
       {toast && (
+        <div style={{ position: 'fixed', bottom: '100px', insetInline: '16px', zIndex: 100, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
         <div style={{
-          position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)',
-          padding: '14px 24px', borderRadius: '12px',
+          padding: '14px 24px', borderRadius: '12px', textAlign: 'center',
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : toast.type === 'error' ? '#3a1a1a' : '#1a2a3a',
           border: `1px solid ${toast.type === 'success' ? '#4ADE80' : toast.type === 'error' ? '#E8344E' : '#F0908A'}`,
           color: toast.type === 'success' ? '#4ADE80' : toast.type === 'error' ? '#E8344E' : '#F0908A',
           fontSize: '14px', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-          whiteSpace: 'nowrap',
         }}>
           {toast.message}
+        </div>
         </div>
       )}
 
@@ -188,8 +259,8 @@ export default function SecurityPage() {
         open={!!confirmModal}
         title={confirmModal?.title || ''}
         message={confirmModal?.message || ''}
-        confirmLabel={tx('Confirmer', 'Confirm', 'אישור', 'Confirmar', lang)}
-        cancelLabel={tx('Annuler', 'Cancel', 'ביטול', 'Cancelar', lang)}
+        confirmLabel={c.confirm}
+        cancelLabel={c.cancel}
         onConfirm={() => confirmModal?.onConfirm()}
         onCancel={() => setConfirmModal(null)}
         danger
