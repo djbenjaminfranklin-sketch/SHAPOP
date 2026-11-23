@@ -831,7 +831,7 @@ export default function PaymentsPage() {
       })
       const data = await res.json()
       if (data.url) {
-        await Browser.open({ url: data.url })
+        await Browser.open({ url: data.url, presentationStyle: 'popover' }) // popover : la fenêtre temporaire de Capacitor est invisible avec les scènes iOS
       } else if (data.error) {
         showToast(c.errorConnect, 'error')
       }
@@ -883,7 +883,7 @@ export default function PaymentsPage() {
       })
       const data = await res.json()
       if (data.url) {
-        await Browser.open({ url: data.url })
+        await Browser.open({ url: data.url, presentationStyle: 'popover' }) // popover : la fenêtre temporaire de Capacitor est invisible avec les scènes iOS
       } else if (data.error) {
         showToast(c.errorDashboard, 'error')
       }

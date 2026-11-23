@@ -260,7 +260,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       if (error) throw error
       if (data.url) {
-        await Browser.open({ url: data.url })
+        await Browser.open({ url: data.url, presentationStyle: 'popover' }) // popover : la fenêtre temporaire de Capacitor est invisible avec les scènes iOS
       }
     } else {
       const { error } = await supabase.auth.signInWithOAuth({
