@@ -273,7 +273,7 @@ export default function MapPage() {
               flexShrink: 0,
             }}
           >
-            <span style={{ fontSize: '16px' }}>{country.flag}</span>
+            <span className="no-theme-invert" style={{ fontSize: '16px' }}>{country.flag}</span>
             <span style={{
               fontSize: '13px', fontWeight: 600,
               color: selectedCountry === country.code ? '#F0908A' : '#888',

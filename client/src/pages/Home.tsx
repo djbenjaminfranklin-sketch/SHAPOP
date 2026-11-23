@@ -636,7 +636,7 @@ export default function Home() {
                 cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: 0,
               }}
             >
-              <span aria-hidden="true">{LANG_META[lang].flag}</span>
+              <span aria-hidden="true" className="no-theme-invert">{LANG_META[lang].flag}</span>
             </button>
             {showLangPicker && (
               <div role="menu" style={{
@@ -662,7 +662,7 @@ export default function Home() {
                       fontWeight: lang === code ? 700 : 400, cursor: 'pointer', textAlign: 'start',
                     }}
                   >
-                    <span aria-hidden="true" style={{ fontSize: '18px' }}>{LANG_META[code].flag}</span>
+                    <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '18px' }}>{LANG_META[code].flag}</span>
                     <span style={{ flex: 1 }}>{LANG_META[code].name}</span>
                     {lang === code && <span aria-hidden="true">✓</span>}
                   </button>

@@ -1660,7 +1660,7 @@ export default function PaymentsPage() {
                           outline: selectedCountry === ct.code ? '2px solid #6366F1' : '2px solid transparent',
                         }}
                       >
-                        <span style={{ fontSize: '22px' }}>{ct.flag}</span>
+                        <span className="no-theme-invert" style={{ fontSize: '22px' }}>{ct.flag}</span>
                         <span style={{ fontSize: '15px', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400, flex: 1 }}>
                           {regionName(ct.code)}
                         </span>

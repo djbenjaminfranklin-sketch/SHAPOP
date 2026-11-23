@@ -451,10 +451,10 @@ export default function Profile() {
   }
 
   const langMeta = LANG_META[lang]
-  const languageIcon = <span aria-hidden="true" style={{ fontSize: '20px', lineHeight: 1 }}>{langMeta.flag}</span>
+  const languageIcon = <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '20px', lineHeight: 1 }}>{langMeta.flag}</span>
 
   const accountItems: MenuItem[] = [
-    { icon: languageIcon, label: tr({ en: 'Language', fr: 'Langue', es: 'Idioma', ru: 'Язык', he: 'שפה' }), sub: `${langMeta.flag} ${langMeta.name}`, to: '/preferences' },
+    { icon: languageIcon, label: tr({ en: 'Language', fr: 'Langue', es: 'Idioma', ru: 'Язык', he: 'שפה' }), sub: langMeta.name, to: '/preferences' },
     { icon: ico.shield, label: tr({ en: 'Account status', fr: 'État du compte', es: 'Estado de la cuenta', ru: 'Статус аккаунта', he: 'מצב החשבון' }), to: '/account-status' },
     { icon: ico.verified, label: tr({ en: 'Identity verification', fr: 'Vérification d\'identité', es: 'Verificación de identidad', ru: 'Подтверждение личности', he: 'אימות זהות' }), sub: tr({ en: 'Selfie + ID', fr: 'Selfie + pièce d\'identité', es: 'Selfie + documento de identidad', ru: 'Селфи + документ', he: 'סלפי + תעודה מזהה' }), to: '/verification' },
     { icon: ico.card, label: tr({ en: 'Payments & shipping', fr: 'Paiements et livraison', es: 'Pagos y envíos', ru: 'Оплата и доставка', he: 'תשלומים ומשלוחים' }), to: '/payments' },
@@ -865,7 +865,7 @@ export default function Profile() {
                       </span>
                     </div>
                     <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                      {loyalty.points} {tr({ en: `${loyalty.points} points`, fr: `${loyalty.points} points`, es: `${loyalty.points} puntos`, ru: `Баллы: ${loyalty.points}`, he: `${loyalty.points} נקודות` })}
+                      {tr({ en: `${loyalty.points} points`, fr: `${loyalty.points} points`, es: `${loyalty.points} puntos`, ru: `Баллы: ${loyalty.points}`, he: `${loyalty.points} נקודות` })}
                     </p>
                   </div>
                 </div>

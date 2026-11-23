@@ -1,5 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { getLang, tr, LANGS, type Localized } from '../lib/i18n'
 import { track } from '../lib/analytics'
@@ -177,8 +177,7 @@ export default function Explore() {
   }, [ct.categoryNames])
 
   if (!user) {
-    navigate('/login', { replace: true })
-    return null
+    return <Navigate to="/login" replace />
   }
 
   const suggestions = search.length > 0

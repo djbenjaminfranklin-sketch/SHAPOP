@@ -57,7 +57,7 @@ export default function LanguageSelector({ variant = 'compact', onChange }: Prop
           fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'start',
         }}
       >
-        <span aria-hidden="true" style={{ fontSize: '20px', lineHeight: 1 }}>{LANG_META[code].flag}</span>
+        <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '20px', lineHeight: 1 }}>{LANG_META[code].flag}</span>
         <span style={{ flex: 1 }}>{LANG_META[code].name}</span>
         {active && <span aria-hidden="true">✓</span>}
       </button>
@@ -89,7 +89,7 @@ export default function LanguageSelector({ variant = 'compact', onChange }: Prop
           whiteSpace: 'nowrap',
         }}
       >
-        <span aria-hidden="true" style={{ fontSize: '16px', lineHeight: 1 }}>{LANG_META[lang].flag}</span>
+        <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '16px', lineHeight: 1 }}>{LANG_META[lang].flag}</span>
         <span>{LANG_META[lang].name}</span>
         <span aria-hidden="true" style={{ fontSize: '10px', opacity: 0.7 }}>▾</span>
       </button>

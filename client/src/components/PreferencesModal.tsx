@@ -316,7 +316,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                       touchAction: 'manipulation',
                     }}
                   >
-                    <span style={{ fontSize: '14px' }}>{country.flag}</span>
+                    <span className="no-theme-invert" style={{ fontSize: '14px' }}>{country.flag}</span>
                     <span style={{
                       fontSize: '12px', fontWeight: 600,
                       color: userCountry === country.code ? '#F0908A' : '#888',

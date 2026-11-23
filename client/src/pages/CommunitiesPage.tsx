@@ -323,7 +323,7 @@ export default function CommunitiesPage() {
                 minWidth: '64px',
               }}
             >
-              <span style={{ fontSize: '22px', lineHeight: 1 }}>{country.flag}</span>
+              <span className="no-theme-invert" style={{ fontSize: '22px', lineHeight: 1 }}>{country.flag}</span>
               <span style={{
                 fontSize: '11px', fontWeight: 600,
                 color: selectedCountry === country.code ? '#F0908A' : '#888',

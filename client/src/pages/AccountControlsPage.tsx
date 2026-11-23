@@ -799,7 +799,7 @@ export default function AccountControlsPage() {
                   {tr({ en: 'Language', fr: 'Langue', es: 'Idioma', ru: 'Язык', he: 'שפה' })}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
-                  {LANG_META[lang].flag} {LANG_META[lang].name}
+                  <span className="no-theme-invert">{LANG_META[lang].flag}</span> {LANG_META[lang].name}
                 </p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
