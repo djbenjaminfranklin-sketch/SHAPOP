@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, type Localized } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
 import { rtlPos, rtlFlip } from '../lib/rtl'
 import type { Stream, Item, ChatMessage, Order, Giveaway } from '../types/database'
@@ -19,112 +19,16 @@ import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } fro
 import { hapticTap } from '../lib/haptics'
 import { Share } from '@capacitor/share'
 import DeliveryChoice from '../components/checkout/DeliveryChoice'
-import { formatMoney } from '../lib/fulfillment'
+import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import { ft } from '../lib/fulfillmentText'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
 const streamContent = {
-  fr: {
-    viewers: 'spectateurs',
-    liveStartsSoon: 'Le live commence bientot...',
-    liveEnded: 'Le live est termine',
-    liveChat: 'Chat en direct',
-    anonymous: 'Anonyme',
-    sendMessage: 'Envoyer un message...',
-    send: 'Envoyer',
-    bid: 'Encherir',
-    currentPrice: 'Prix actuel',
-    loginToChat: 'Connectez-vous pour participer au chat',
-    streamNotFound: 'Stream introuvable',
-    endStream: 'Terminer le live',
-    endStreamConfirm: 'Es-tu sur de vouloir terminer le live ?',
-    endStreamYes: 'Oui, terminer',
-    endStreamNo: 'Non, continuer',
-    mute: 'Couper le micro',
-    unmute: 'Activer le micro',
-    flipCamera: 'Retourner la camera',
-    connectedTo: 'Connecte au live de',
-    liveNow: 'EN DIRECT',
-    soldBang: 'VENDU !',
-    unsoldBang: 'INVENDU',
-    toReceiveItem: 'Pour recevoir ton article',
-    fullName: 'Nom complet',
-    cityPlaceholder: 'Ville',
-    zipPlaceholder: 'Code postal',
-    phonePlaceholder: 'Telephone',
-    countryPlaceholder: 'Pays',
-    confirm: 'Confirmer',
-    youWon: 'Tu as gagne !',
-    payToClaim: 'Paye pour recevoir ton article',
-    payNow: 'Payer maintenant',
-    paymentSuccess: 'Paiement confirme !',
-    paymentSuccessDesc: 'Tu recevras ton article bientot',
-    paymentError: 'Erreur de paiement',
-    total: 'Total',
-    close: 'Fermer',
-    unmuteViewer: 'Reactiver le son',
-    messageFlagged: '[Message masque]',
-    bidError: 'Enchere echouee',
-    creatingOrder: 'Creation de ta commande...',
-    orderNotFound: 'Commande introuvable. Veuillez contacter le support.',
-    paymentTimeout: 'Le paiement a expire. Veuillez fermer et reessayer.',
-    paymentFailed: 'Paiement echoue',
-    addCardTitle: 'Ajoute ta carte pour encherir',
-    addCardDesc: 'Une carte est requise pour garantir tes encheres',
-    cardSaved: 'Carte enregistree !',
-    cardSavedDesc: 'Tu peux maintenant encherir',
-    saveCard: 'Enregistrer la carte',
-    cardRequired: 'Ajoute ta carte pour encherir',
-    shipping: 'Livraison',
-    itemPrice: 'Prix article',
-    walletTitle: 'Portefeuille',
-    walletAddress: 'Adresse de livraison',
-    walletPayment: 'Moyen de paiement',
-    walletPromo: 'Code promo',
-    walletPromoPlaceholder: 'Entrer un code promo',
-    walletApply: 'Appliquer',
-    walletNoAddress: 'Aucune adresse',
-    walletAddAddress: 'Ajouter une adresse',
-    walletNoCard: 'Aucune carte',
-    walletAddCard: 'Ajouter',
-    linkCopied: 'Lien copie !',
-    waitingNextItem: 'En attente de l\'article suivant...',
-    moreReport: 'Signaler',
-    moreBlock: 'Bloquer',
-    morePiP: 'Mode mini-lecteur',
-    pipUnavailable: 'PiP non disponible',
-    giftTitle: 'Gagne un cadeau en live !',
-    giftParticipants: 'participants',
-    giftEnter: 'Participer et gagner !',
-    giftEntered: 'Inscrit ✓',
-    giftWinner: 'a gagne le cadeau !',
-    maxBidTitle: 'Enchere max',
-    maxBidPlaceholder: 'Montant maximum',
-    maxBidConfirm: 'Activer l\'enchere max',
-    maxBidActive: 'Auto-enchere active',
-    maxBidCancel: 'Annuler l\'enchere max',
-    preBid: 'Pre-encherir',
-    preBidPlaceholder: 'Montant de la pre-enchere',
-    preBidConfirm: 'Placer la pre-enchere',
-    preBidPlaced: 'Pre-enchere placee',
-    tipTitle: 'Envoyer un pourboire',
-    tipSent: 'Pourboire envoye !',
-    tipMessage: 'a envoye un tip de',
-    modDelete: 'Supprimer',
-    modTimeout: 'Timeout 5 min',
-    modMake: 'Nommer moderateur',
-    modRemove: 'Retirer moderateur',
-    modAdded: 'est maintenant moderateur',
-    msgDeleted: 'Message supprime',
-    userTimedOut: 'est en timeout pour 5 min',
-  },
   en: {
-    viewers: 'viewers',
+    liveTitle: 'Live',
     liveStartsSoon: 'The live starts soon...',
-    liveEnded: 'The live has ended',
+    liveEnded: 'This live has ended',
     liveChat: 'Live chat',
     anonymous: 'Anonymous',
     sendMessage: 'Send a message...',
@@ -132,46 +36,59 @@ const streamContent = {
     bid: 'Bid',
     currentPrice: 'Current price',
     loginToChat: 'Log in to join the chat',
-    streamNotFound: 'Stream not found',
-    endStream: 'End stream',
-    endStreamConfirm: 'Are you sure you want to end the stream?',
+    streamNotFound: 'Live not found',
+    retry: 'Retry',
+    loadingStream: 'Loading live',
+    endStream: 'End live',
+    endStreamConfirm: 'Are you sure you want to end the live?',
     endStreamYes: 'Yes, end it',
-    endStreamNo: 'No, continue',
+    endStreamNo: 'No, keep going',
+    endStreamFailed: 'Couldn\'t end the live',
     mute: 'Mute mic',
     unmute: 'Unmute mic',
     flipCamera: 'Flip camera',
-    connectedTo: 'Connected to live by',
+    connectedTo: 'Connected to',
     liveNow: 'LIVE',
     soldBang: 'SOLD!',
     unsoldBang: 'UNSOLD',
     toReceiveItem: 'To receive your item',
     fullName: 'Full name',
     cityPlaceholder: 'City',
-    zipPlaceholder: 'Zip code',
+    zipPlaceholder: 'Postal code',
     phonePlaceholder: 'Phone',
     countryPlaceholder: 'Country',
     confirm: 'Confirm',
     youWon: 'You won!',
-    payToClaim: 'Pay to claim your item',
+    payToClaim: 'Pay to get your item',
     payNow: 'Pay now',
     paymentSuccess: 'Payment confirmed!',
-    paymentSuccessDesc: 'You will receive your item soon',
+    paymentSuccessDesc: 'Your item will be on its way soon',
     paymentError: 'Payment error',
     total: 'Total',
     close: 'Close',
-    unmuteViewer: 'Unmute',
+    unmuteViewer: 'Turn on sound',
     messageFlagged: '[Hidden message]',
     bidError: 'Bid failed',
+    bidFailedRetry: 'Couldn\'t place your bid. Please try again.',
+    buyNowConfirm: 'Buy now for {price}?',
+    buyNowFailed: 'Purchase failed. Please try again.',
     creatingOrder: 'Creating your order...',
-    orderNotFound: 'Could not find your order. Please contact support.',
-    paymentTimeout: 'Payment setup timed out. Please close and try again.',
+    orderNotFound: 'We couldn\'t find your order. Please contact support.',
+    paymentTimeout: 'Payment setup timed out. Close and try again.',
     paymentFailed: 'Payment failed',
+    paymentInitFailed: 'Couldn\'t start the payment. Please try again.',
+    paymentConfirmFailed: 'Payment confirmation failed. Please contact support.',
+    authError: 'Your session has expired. Please log in again.',
     addCardTitle: 'Add your card to bid',
-    addCardDesc: 'A card is required to guarantee your bids',
+    addCardDesc: 'A card is required to secure your bids',
     cardSaved: 'Card saved!',
-    cardSavedDesc: 'You can now place bids',
+    cardSavedDesc: 'You can now bid',
     saveCard: 'Save card',
+    saveCardFailed: 'Couldn\'t save your card',
+    cardSetupFailed: 'Couldn\'t start adding your card. Please try again.',
     cardRequired: 'Add your card to bid',
+    addCardFirst: 'Add a payment card first',
+    card: 'Card',
     shipping: 'Shipping',
     itemPrice: 'Item price',
     walletTitle: 'Wallet',
@@ -184,59 +101,495 @@ const streamContent = {
     walletAddAddress: 'Add an address',
     walletNoCard: 'No card',
     walletAddCard: 'Add',
+    promoOnPrice: 'off the price',
+    promoOnCommission: 'off the fee',
+    promoOnShipping: 'off shipping',
+    promoInvalid: 'Invalid or already used code',
     linkCopied: 'Link copied!',
+    shareTitle: '{name} is live on ShaPop!',
+    shareText: 'Join {name}\'s live on ShaPop!',
+    clipFailed: 'Couldn\'t capture the clip',
+    clipTitle: 'ShaPop clip',
     waitingNextItem: 'Waiting for the next item...',
     moreReport: 'Report',
+    reportSubject: 'Live report',
     moreBlock: 'Block',
     morePiP: 'Mini player',
-    pipUnavailable: 'PiP unavailable',
+    pipUnavailable: 'Mini player unavailable',
     giftTitle: 'Win a gift live!',
-    giftParticipants: 'participants',
     giftEnter: 'Enter to win!',
     giftEntered: 'Entered ✓',
     giftWinner: 'won the gift!',
     maxBidTitle: 'Max bid',
+    maxShort: 'MAX',
     maxBidPlaceholder: 'Maximum amount',
-    maxBidConfirm: 'Activate max bid',
-    maxBidActive: 'Auto-bid active',
+    maxBidConfirm: 'Turn on max bid',
+    maxBidActive: 'Auto-bid on',
     maxBidCancel: 'Cancel max bid',
     preBid: 'Pre-bid',
     preBidPlaceholder: 'Pre-bid amount',
     preBidConfirm: 'Place pre-bid',
     preBidPlaced: 'Pre-bid placed',
+    preBidFailed: 'Couldn\'t place your pre-bid. Please try again.',
     tipTitle: 'Send a tip',
     tipSent: 'Tip sent!',
+    tipFailed: 'Couldn\'t send your tip',
     tipMessage: 'sent a tip of',
     modDelete: 'Delete',
-    modTimeout: 'Timeout 5 min',
+    modTimeout: 'Mute for 5 min',
     modMake: 'Make moderator',
     modRemove: 'Remove moderator',
     modAdded: 'is now a moderator',
+    modBadge: 'MOD',
     msgDeleted: 'Message deleted',
-    userTimedOut: 'timed out for 5 min',
+    userTimedOut: 'is muted for 5 min',
+    deleteFailed: 'Couldn\'t delete the message',
+    timeoutFailed: 'Couldn\'t mute this user',
+    contactBlocked: 'Sharing personal contact details is not allowed on ShaPop. Repeat violations will get your account suspended.',
+    watchLimit: 'You\'ve reached your watch time limit. Come back later!',
+    joinCohost: 'Join as co-host',
+    back: 'Back',
+    multiView: 'Multi-view',
+    exitMultiView: 'Exit multi-view',
+    livesCount: '{n} lives',
+    engagementDashboard: 'Engagement dashboard',
+    joined: 'joined',
+    timeLeft: 'Time left',
+    addLive: 'Add a live',
+    screensActive: '{n}/4 screens',
+    noOtherLives: 'No other lives right now',
+    added: 'Added',
+  },
+  fr: {
+    liveTitle: 'Live',
+    liveStartsSoon: 'Le live commence bientôt…',
+    liveEnded: 'Le live est terminé',
+    liveChat: 'Chat en direct',
+    anonymous: 'Anonyme',
+    sendMessage: 'Écris un message…',
+    send: 'Envoyer',
+    bid: 'Enchérir',
+    currentPrice: 'Prix actuel',
+    loginToChat: 'Connecte-toi pour participer au chat',
+    streamNotFound: 'Live introuvable',
+    retry: 'Réessayer',
+    loadingStream: 'Chargement du live',
+    endStream: 'Terminer le live',
+    endStreamConfirm: 'Tu es sûr de vouloir terminer le live ?',
+    endStreamYes: 'Oui, terminer',
+    endStreamNo: 'Non, continuer',
+    endStreamFailed: 'Impossible de terminer le live',
+    mute: 'Couper le micro',
+    unmute: 'Activer le micro',
+    flipCamera: 'Retourner la caméra',
+    connectedTo: 'Connecté au live de',
+    liveNow: 'EN DIRECT',
+    soldBang: 'VENDU !',
+    unsoldBang: 'INVENDU',
+    toReceiveItem: 'Pour recevoir ton article',
+    fullName: 'Nom complet',
+    cityPlaceholder: 'Ville',
+    zipPlaceholder: 'Code postal',
+    phonePlaceholder: 'Téléphone',
+    countryPlaceholder: 'Pays',
+    confirm: 'Confirmer',
+    youWon: 'Tu as gagné !',
+    payToClaim: 'Paie pour recevoir ton article',
+    payNow: 'Payer maintenant',
+    paymentSuccess: 'Paiement confirmé !',
+    paymentSuccessDesc: 'Tu recevras ton article bientôt',
+    paymentError: 'Erreur de paiement',
+    total: 'Total',
+    close: 'Fermer',
+    unmuteViewer: 'Activer le son',
+    messageFlagged: '[Message masqué]',
+    bidError: 'Enchère échouée',
+    bidFailedRetry: 'Ton enchère n\'est pas passée. Réessaie.',
+    buyNowConfirm: 'Acheter maintenant pour {price} ?',
+    buyNowFailed: 'L\'achat n\'a pas abouti. Réessaie.',
+    creatingOrder: 'Création de ta commande…',
+    orderNotFound: 'Commande introuvable. Contacte le support.',
+    paymentTimeout: 'Le paiement a expiré. Ferme et réessaie.',
+    paymentFailed: 'Paiement échoué',
+    paymentInitFailed: 'Impossible de lancer le paiement. Réessaie.',
+    paymentConfirmFailed: 'La confirmation du paiement a échoué. Contacte le support.',
+    authError: 'Ta session a expiré. Reconnecte-toi.',
+    addCardTitle: 'Ajoute ta carte pour enchérir',
+    addCardDesc: 'Une carte est requise pour garantir tes enchères',
+    cardSaved: 'Carte enregistrée !',
+    cardSavedDesc: 'Tu peux maintenant enchérir',
+    saveCard: 'Enregistrer la carte',
+    saveCardFailed: 'Impossible d\'enregistrer ta carte',
+    cardSetupFailed: 'Impossible d\'ajouter une carte pour le moment. Réessaie.',
+    cardRequired: 'Ajoute ta carte pour enchérir',
+    addCardFirst: 'Ajoute d\'abord une carte bancaire',
+    card: 'Carte',
+    shipping: 'Livraison',
+    itemPrice: 'Prix de l\'article',
+    walletTitle: 'Portefeuille',
+    walletAddress: 'Adresse de livraison',
+    walletPayment: 'Moyen de paiement',
+    walletPromo: 'Code promo',
+    walletPromoPlaceholder: 'Entre un code promo',
+    walletApply: 'Appliquer',
+    walletNoAddress: 'Aucune adresse',
+    walletAddAddress: 'Ajouter une adresse',
+    walletNoCard: 'Aucune carte',
+    walletAddCard: 'Ajouter',
+    promoOnPrice: 'sur le prix',
+    promoOnCommission: 'sur la commission',
+    promoOnShipping: 'sur la livraison',
+    promoInvalid: 'Code invalide ou déjà utilisé',
+    linkCopied: 'Lien copié !',
+    shareTitle: '{name} est en live sur ShaPop !',
+    shareText: 'Rejoins le live de {name} sur ShaPop !',
+    clipFailed: 'Impossible de capturer le clip',
+    clipTitle: 'Clip ShaPop',
+    waitingNextItem: 'En attente de l\'article suivant…',
+    moreReport: 'Signaler',
+    reportSubject: 'Signalement d\'un live',
+    moreBlock: 'Bloquer',
+    morePiP: 'Mini-lecteur',
+    pipUnavailable: 'Mini-lecteur indisponible',
+    giftTitle: 'Gagne un cadeau en live !',
+    giftEnter: 'Participe et gagne !',
+    giftEntered: 'Tu participes ✓',
+    giftWinner: 'a gagné le cadeau !',
+    maxBidTitle: 'Enchère max',
+    maxShort: 'MAX',
+    maxBidPlaceholder: 'Montant maximum',
+    maxBidConfirm: 'Activer l\'enchère max',
+    maxBidActive: 'Enchère auto activée',
+    maxBidCancel: 'Annuler l\'enchère max',
+    preBid: 'Pré-enchérir',
+    preBidPlaceholder: 'Montant de la pré-enchère',
+    preBidConfirm: 'Placer la pré-enchère',
+    preBidPlaced: 'Pré-enchère placée',
+    preBidFailed: 'Ta pré-enchère n\'est pas passée. Réessaie.',
+    tipTitle: 'Envoyer un pourboire',
+    tipSent: 'Pourboire envoyé !',
+    tipFailed: 'Le pourboire n\'a pas pu être envoyé',
+    tipMessage: 'a envoyé un pourboire de',
+    modDelete: 'Supprimer',
+    modTimeout: 'Exclure 5 min',
+    modMake: 'Nommer modérateur',
+    modRemove: 'Retirer modérateur',
+    modAdded: 'est maintenant modérateur',
+    modBadge: 'MODO',
+    msgDeleted: 'Message supprimé',
+    userTimedOut: 'est exclu pour 5 min',
+    deleteFailed: 'Impossible de supprimer le message',
+    timeoutFailed: 'Impossible d\'exclure cet utilisateur',
+    contactBlocked: 'Partager des coordonnées personnelles est interdit sur ShaPop. En cas de récidive, ton compte sera suspendu.',
+    watchLimit: 'Tu as atteint ta limite de visionnage. Reviens plus tard !',
+    joinCohost: 'Rejoindre en co-animateur',
+    back: 'Retour',
+    multiView: 'Multi-vue',
+    exitMultiView: 'Quitter la multi-vue',
+    livesCount: '{n} lives',
+    engagementDashboard: 'Tableau d\'engagement',
+    joined: 'a rejoint',
+    timeLeft: 'Temps restant',
+    addLive: 'Ajouter un live',
+    screensActive: '{n}/4 écrans',
+    noOtherLives: 'Aucun autre live en cours',
+    added: 'Ajouté',
+  },
+  es: {
+    liveTitle: 'Directo',
+    liveStartsSoon: 'El directo empieza pronto...',
+    liveEnded: 'El directo ha terminado',
+    liveChat: 'Chat en directo',
+    anonymous: 'Anónimo',
+    sendMessage: 'Escribe un mensaje...',
+    send: 'Enviar',
+    bid: 'Pujar',
+    currentPrice: 'Precio actual',
+    loginToChat: 'Inicia sesión para participar en el chat',
+    streamNotFound: 'Directo no encontrado',
+    retry: 'Reintentar',
+    loadingStream: 'Cargando directo',
+    endStream: 'Terminar el directo',
+    endStreamConfirm: '¿Seguro que quieres terminar el directo?',
+    endStreamYes: 'Sí, terminar',
+    endStreamNo: 'No, continuar',
+    endStreamFailed: 'No se pudo terminar el directo',
+    mute: 'Silenciar micro',
+    unmute: 'Activar micro',
+    flipCamera: 'Girar cámara',
+    connectedTo: 'Conectado al directo de',
+    liveNow: 'EN VIVO',
+    soldBang: '¡VENDIDO!',
+    unsoldBang: 'NO VENDIDO',
+    toReceiveItem: 'Para recibir tu artículo',
+    fullName: 'Nombre completo',
+    cityPlaceholder: 'Ciudad',
+    zipPlaceholder: 'Código postal',
+    phonePlaceholder: 'Teléfono',
+    countryPlaceholder: 'País',
+    confirm: 'Confirmar',
+    youWon: '¡Ganaste!',
+    payToClaim: 'Paga para recibir tu artículo',
+    payNow: 'Pagar ahora',
+    paymentSuccess: '¡Pago confirmado!',
+    paymentSuccessDesc: 'Recibirás tu artículo pronto',
+    paymentError: 'Error de pago',
+    total: 'Total',
+    close: 'Cerrar',
+    unmuteViewer: 'Activar sonido',
+    messageFlagged: '[Mensaje oculto]',
+    bidError: 'La puja falló',
+    bidFailedRetry: 'No se pudo hacer tu puja. Inténtalo de nuevo.',
+    buyNowConfirm: '¿Comprar ahora por {price}?',
+    buyNowFailed: 'La compra falló. Inténtalo de nuevo.',
+    creatingOrder: 'Creando tu pedido...',
+    orderNotFound: 'No encontramos tu pedido. Contacta con soporte.',
+    paymentTimeout: 'El pago ha caducado. Cierra e inténtalo de nuevo.',
+    paymentFailed: 'Pago fallido',
+    paymentInitFailed: 'No se pudo iniciar el pago. Inténtalo de nuevo.',
+    paymentConfirmFailed: 'No se pudo confirmar el pago. Contacta con soporte.',
+    authError: 'Tu sesión ha caducado. Vuelve a iniciar sesión.',
+    addCardTitle: 'Añade tu tarjeta para pujar',
+    addCardDesc: 'Se necesita una tarjeta para garantizar tus pujas',
+    cardSaved: '¡Tarjeta guardada!',
+    cardSavedDesc: 'Ya puedes pujar',
+    saveCard: 'Guardar tarjeta',
+    saveCardFailed: 'No se pudo guardar tu tarjeta',
+    cardSetupFailed: 'No se pudo añadir la tarjeta. Inténtalo de nuevo.',
+    cardRequired: 'Añade tu tarjeta para pujar',
+    addCardFirst: 'Primero añade una tarjeta',
+    card: 'Tarjeta',
+    shipping: 'Envío',
+    itemPrice: 'Precio del artículo',
+    walletTitle: 'Cartera',
+    walletAddress: 'Dirección de envío',
+    walletPayment: 'Método de pago',
+    walletPromo: 'Código promocional',
+    walletPromoPlaceholder: 'Introduce un código',
+    walletApply: 'Aplicar',
+    walletNoAddress: 'Sin dirección',
+    walletAddAddress: 'Añadir dirección',
+    walletNoCard: 'Sin tarjeta',
+    walletAddCard: 'Añadir',
+    promoOnPrice: 'en el precio',
+    promoOnCommission: 'en la comisión',
+    promoOnShipping: 'en el envío',
+    promoInvalid: 'Código no válido o ya usado',
+    linkCopied: '¡Enlace copiado!',
+    shareTitle: '¡{name} está en directo en ShaPop!',
+    shareText: '¡Únete al directo de {name} en ShaPop!',
+    clipFailed: 'No se pudo capturar el clip',
+    clipTitle: 'Clip de ShaPop',
+    waitingNextItem: 'Esperando el siguiente artículo...',
+    moreReport: 'Denunciar',
+    reportSubject: 'Denuncia de un directo',
+    moreBlock: 'Bloquear',
+    morePiP: 'Minirreproductor',
+    pipUnavailable: 'Minirreproductor no disponible',
+    giftTitle: '¡Gana un regalo en directo!',
+    giftEnter: '¡Participa y gana!',
+    giftEntered: 'Participando ✓',
+    giftWinner: '¡ganó el regalo!',
+    maxBidTitle: 'Puja máxima',
+    maxShort: 'MÁX',
+    maxBidPlaceholder: 'Importe máximo',
+    maxBidConfirm: 'Activar puja máxima',
+    maxBidActive: 'Puja automática activada',
+    maxBidCancel: 'Cancelar puja máxima',
+    preBid: 'Prepujar',
+    preBidPlaceholder: 'Importe de la prepuja',
+    preBidConfirm: 'Hacer prepuja',
+    preBidPlaced: 'Prepuja hecha',
+    preBidFailed: 'No se pudo hacer tu prepuja. Inténtalo de nuevo.',
+    tipTitle: 'Enviar propina',
+    tipSent: '¡Propina enviada!',
+    tipFailed: 'No se pudo enviar la propina',
+    tipMessage: 'envió una propina de',
+    modDelete: 'Eliminar',
+    modTimeout: 'Silenciar 5 min',
+    modMake: 'Hacer moderador',
+    modRemove: 'Quitar moderador',
+    modAdded: 'ahora es moderador',
+    modBadge: 'MOD',
+    msgDeleted: 'Mensaje eliminado',
+    userTimedOut: 'silenciado durante 5 min',
+    deleteFailed: 'No se pudo eliminar el mensaje',
+    timeoutFailed: 'No se pudo silenciar a este usuario',
+    contactBlocked: 'Compartir datos de contacto personales está prohibido en ShaPop. Si lo repites, tu cuenta será suspendida.',
+    watchLimit: 'Has alcanzado tu límite de visualización. ¡Vuelve más tarde!',
+    joinCohost: 'Unirse como coanfitrión',
+    back: 'Volver',
+    multiView: 'Multivista',
+    exitMultiView: 'Salir de la multivista',
+    livesCount: '{n} directos',
+    engagementDashboard: 'Panel de interacción',
+    joined: 'se unió',
+    timeLeft: 'Tiempo restante',
+    addLive: 'Añadir un directo',
+    screensActive: '{n}/4 pantallas',
+    noOtherLives: 'No hay otros directos ahora',
+    added: 'Añadido',
+  },
+  ru: {
+    liveTitle: 'Эфир',
+    liveStartsSoon: 'Эфир скоро начнётся…',
+    liveEnded: 'Эфир завершён',
+    liveChat: 'Чат эфира',
+    anonymous: 'Аноним',
+    sendMessage: 'Напиши сообщение…',
+    send: 'Отправить',
+    bid: 'Ставка',
+    currentPrice: 'Текущая цена',
+    loginToChat: 'Войди, чтобы писать в чат',
+    streamNotFound: 'Эфир не найден',
+    retry: 'Повторить',
+    loadingStream: 'Загрузка эфира',
+    endStream: 'Завершить эфир',
+    endStreamConfirm: 'Точно завершить эфир?',
+    endStreamYes: 'Да, завершить',
+    endStreamNo: 'Нет, продолжить',
+    endStreamFailed: 'Не удалось завершить эфир',
+    mute: 'Выключить микрофон',
+    unmute: 'Включить микрофон',
+    flipCamera: 'Сменить камеру',
+    connectedTo: 'Сейчас в эфире:',
+    liveNow: 'В ЭФИРЕ',
+    soldBang: 'ПРОДАНО!',
+    unsoldBang: 'НЕ ПРОДАНО',
+    toReceiveItem: 'Чтобы получить товар',
+    fullName: 'Имя и фамилия',
+    cityPlaceholder: 'Город',
+    zipPlaceholder: 'Индекс',
+    phonePlaceholder: 'Телефон',
+    countryPlaceholder: 'Страна',
+    confirm: 'Подтвердить',
+    youWon: 'Победа за тобой!',
+    payToClaim: 'Оплати, чтобы получить товар',
+    payNow: 'Оплатить',
+    paymentSuccess: 'Оплата прошла!',
+    paymentSuccessDesc: 'Скоро ты получишь свой товар',
+    paymentError: 'Ошибка оплаты',
+    total: 'Итого',
+    close: 'Закрыть',
+    unmuteViewer: 'Включить звук',
+    messageFlagged: '[Сообщение скрыто]',
+    bidError: 'Ставка не прошла',
+    bidFailedRetry: 'Не удалось сделать ставку. Попробуй ещё раз.',
+    buyNowConfirm: 'Купить сейчас за {price}?',
+    buyNowFailed: 'Покупка не удалась. Попробуй ещё раз.',
+    creatingOrder: 'Оформляем заказ…',
+    orderNotFound: 'Заказ не найден. Напиши в поддержку.',
+    paymentTimeout: 'Время на оплату истекло. Закрой окно и попробуй снова.',
+    paymentFailed: 'Оплата не прошла',
+    paymentInitFailed: 'Не удалось начать оплату. Попробуй ещё раз.',
+    paymentConfirmFailed: 'Не удалось подтвердить оплату. Напиши в поддержку.',
+    authError: 'Сессия истекла. Войди снова.',
+    addCardTitle: 'Добавь карту, чтобы делать ставки',
+    addCardDesc: 'Карта нужна, чтобы подтвердить твои ставки',
+    cardSaved: 'Карта сохранена!',
+    cardSavedDesc: 'Теперь можно делать ставки',
+    saveCard: 'Сохранить карту',
+    saveCardFailed: 'Не удалось сохранить карту',
+    cardSetupFailed: 'Не удалось добавить карту. Попробуй ещё раз.',
+    cardRequired: 'Добавь карту, чтобы делать ставки',
+    addCardFirst: 'Сначала добавь банковскую карту',
+    card: 'Карта',
+    shipping: 'Доставка',
+    itemPrice: 'Цена товара',
+    walletTitle: 'Кошелёк',
+    walletAddress: 'Адрес доставки',
+    walletPayment: 'Способ оплаты',
+    walletPromo: 'Промокод',
+    walletPromoPlaceholder: 'Введи промокод',
+    walletApply: 'Применить',
+    walletNoAddress: 'Адрес не указан',
+    walletAddAddress: 'Добавить адрес',
+    walletNoCard: 'Карта не добавлена',
+    walletAddCard: 'Добавить',
+    promoOnPrice: 'на цену',
+    promoOnCommission: 'на комиссию',
+    promoOnShipping: 'на доставку',
+    promoInvalid: 'Код недействителен или уже использован',
+    linkCopied: 'Ссылка скопирована!',
+    shareTitle: '{name} в эфире на ShaPop!',
+    shareText: 'Присоединяйся к эфиру на ShaPop: {name}!',
+    clipFailed: 'Не удалось сохранить клип',
+    clipTitle: 'Клип ShaPop',
+    waitingNextItem: 'Ждём следующий товар…',
+    moreReport: 'Пожаловаться',
+    reportSubject: 'Жалоба на эфир',
+    moreBlock: 'Заблокировать',
+    morePiP: 'Мини-плеер',
+    pipUnavailable: 'Мини-плеер недоступен',
+    giftTitle: 'Выиграй подарок в эфире!',
+    giftEnter: 'Участвуй и выигрывай!',
+    giftEntered: 'Ты участвуешь ✓',
+    giftWinner: 'выигрывает подарок!',
+    maxBidTitle: 'Макс. ставка',
+    maxShort: 'МАКС',
+    maxBidPlaceholder: 'Максимальная сумма',
+    maxBidConfirm: 'Включить автоставку',
+    maxBidActive: 'Автоставка включена',
+    maxBidCancel: 'Отменить автоставку',
+    preBid: 'Представка',
+    preBidPlaceholder: 'Сумма представки',
+    preBidConfirm: 'Сделать представку',
+    preBidPlaced: 'Представка сделана',
+    preBidFailed: 'Не удалось сделать представку. Попробуй ещё раз.',
+    tipTitle: 'Отправить чаевые',
+    tipSent: 'Чаевые отправлены!',
+    tipFailed: 'Не удалось отправить чаевые',
+    tipMessage: 'отправляет чаевые:',
+    modDelete: 'Удалить',
+    modTimeout: 'Заглушить на 5 мин',
+    modMake: 'Сделать модератором',
+    modRemove: 'Снять модератора',
+    modAdded: 'теперь модератор',
+    modBadge: 'МОД',
+    msgDeleted: 'Сообщение удалено',
+    userTimedOut: 'не может писать 5 мин',
+    deleteFailed: 'Не удалось удалить сообщение',
+    timeoutFailed: 'Не удалось заглушить пользователя',
+    contactBlocked: 'Делиться личными контактами на ShaPop запрещено. За повторные нарушения аккаунт будет заблокирован.',
+    watchLimit: 'Лимит времени просмотра исчерпан. Возвращайся позже!',
+    joinCohost: 'Присоединиться как соведущий',
+    back: 'Назад',
+    multiView: 'Мультиэкран',
+    exitMultiView: 'Выйти из мультиэкрана',
+    livesCount: 'Эфиров: {n}',
+    engagementDashboard: 'Панель вовлечённости',
+    joined: 'заходит',
+    timeLeft: 'Осталось времени',
+    addLive: 'Добавить эфир',
+    screensActive: 'Экраны: {n}/4',
+    noOtherLives: 'Других эфиров сейчас нет',
+    added: 'Добавлен',
   },
   he: {
-    viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
-    liveStartsSoon: '...\u05D4\u05E9\u05D9\u05D3\u05D5\u05E8 \u05DE\u05EA\u05D7\u05D9\u05DC \u05D1\u05E7\u05E8\u05D5\u05D1',
-    liveEnded: '\u05D4\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D4\u05E1\u05EA\u05D9\u05D9\u05DD',
-    liveChat: '\u05E6\u05F3\u05D0\u05D8 \u05D7\u05D9',
-    anonymous: '\u05D0\u05E0\u05D5\u05E0\u05D9\u05DE\u05D9',
-    sendMessage: '...\u05E9\u05DC\u05D7 \u05D4\u05D5\u05D3\u05E2\u05D4',
-    send: '\u05E9\u05DC\u05D7',
-    bid: '\u05D4\u05E6\u05E2',
-    currentPrice: '\u05DE\u05D7\u05D9\u05E8 \u05E0\u05D5\u05DB\u05D7\u05D9',
-    loginToChat: '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05D4\u05E9\u05EA\u05EA\u05E3 \u05D1\u05E6\u05F3\u05D0\u05D8',
-    streamNotFound: '\u05D4\u05E9\u05D9\u05D3\u05D5\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0',
-    endStream: '\u05E1\u05D9\u05D9\u05DD \u05E9\u05D9\u05D3\u05D5\u05E8',
-    endStreamConfirm: '?\u05D1\u05D8\u05D5\u05D7 \u05E9\u05D0\u05EA\u05D4 \u05E8\u05D5\u05E6\u05D4 \u05DC\u05E1\u05D9\u05D9\u05DD \u05D0\u05EA \u05D4\u05E9\u05D9\u05D3\u05D5\u05E8',
-    endStreamYes: '\u05DB\u05DF, \u05E1\u05D9\u05D9\u05DD',
-    endStreamNo: '\u05DC\u05D0, \u05D4\u05DE\u05E9\u05DA',
-    mute: '\u05D4\u05E9\u05EA\u05E7 \u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF',
-    unmute: '\u05D4\u05E4\u05E2\u05DC \u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF',
-    flipCamera: '\u05D4\u05E4\u05D5\u05DA \u05DE\u05E6\u05DC\u05DE\u05D4',
-    connectedTo: '\u05DE\u05D7\u05D5\u05D1\u05E8 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05E9\u05DC',
-    liveNow: '\u05E9\u05D9\u05D3\u05D5\u05E8',
-    soldBang: '!נמכר',
+    liveTitle: 'שידור חי',
+    liveStartsSoon: 'השידור יתחיל בקרוב...',
+    liveEnded: 'השידור הסתיים',
+    liveChat: 'צ\'אט חי',
+    anonymous: 'אנונימי',
+    sendMessage: 'כתוב הודעה...',
+    send: 'שלח',
+    bid: 'הצע',
+    currentPrice: 'מחיר נוכחי',
+    loginToChat: 'התחבר כדי להשתתף בצ\'אט',
+    streamNotFound: 'השידור לא נמצא',
+    retry: 'נסה שוב',
+    loadingStream: 'טוען שידור',
+    endStream: 'סיים שידור',
+    endStreamConfirm: 'בטוח שאתה רוצה לסיים את השידור?',
+    endStreamYes: 'כן, לסיים',
+    endStreamNo: 'לא, להמשיך',
+    endStreamFailed: 'לא ניתן לסיים את השידור',
+    mute: 'השתק מיקרופון',
+    unmute: 'הפעל מיקרופון',
+    flipCamera: 'החלף מצלמה',
+    connectedTo: 'מחובר לשידור של',
+    liveNow: 'שידור חי',
+    soldBang: 'נמכר!',
     unsoldBang: 'לא נמכר',
     toReceiveItem: 'כדי לקבל את הפריט שלך',
     fullName: 'שם מלא',
@@ -245,31 +598,41 @@ const streamContent = {
     phonePlaceholder: 'טלפון',
     countryPlaceholder: 'מדינה',
     confirm: 'אישור',
-    youWon: '!זכית',
-    payToClaim: 'שלם כדי לקבל את הפריט שלך',
+    youWon: 'זכית!',
+    payToClaim: 'שלם כדי לקבל את הפריט',
     payNow: 'שלם עכשיו',
-    paymentSuccess: '!התשלום אושר',
-    paymentSuccessDesc: 'תקבל את הפריט שלך בקרוב',
+    paymentSuccess: 'התשלום אושר!',
+    paymentSuccessDesc: 'הפריט יגיע אליך בקרוב',
     paymentError: 'שגיאת תשלום',
     total: 'סה"כ',
     close: 'סגור',
-    unmuteViewer: 'בטל השתקה',
+    unmuteViewer: 'הפעל סאונד',
     messageFlagged: '[הודעה מוסתרת]',
     bidError: 'ההצעה נכשלה',
-    creatingOrder: '...יוצר את ההזמנה שלך',
-    orderNotFound: 'לא ניתן למצוא את ההזמנה שלך. אנא צור קשר עם התמיכה.',
-    paymentTimeout: 'זמן התשלום פג. אנא סגור ונסה שוב.',
+    bidFailedRetry: 'לא הצלחנו להגיש את ההצעה. נסה שוב.',
+    buyNowConfirm: 'לקנות עכשיו ב-{price}?',
+    buyNowFailed: 'הרכישה נכשלה. נסה שוב.',
+    creatingOrder: 'יוצרים את ההזמנה שלך...',
+    orderNotFound: 'לא מצאנו את ההזמנה שלך. פנה לתמיכה.',
+    paymentTimeout: 'זמן התשלום פג. סגור ונסה שוב.',
     paymentFailed: 'התשלום נכשל',
+    paymentInitFailed: 'לא ניתן להתחיל את התשלום. נסה שוב.',
+    paymentConfirmFailed: 'אישור התשלום נכשל. פנה לתמיכה.',
+    authError: 'פג תוקף ההתחברות. התחבר מחדש.',
     addCardTitle: 'הוסף כרטיס כדי להציע',
-    addCardDesc: 'כרטיס נדרש כדי להבטיח את ההצעות שלך',
-    cardSaved: '!הכרטיס נשמר',
-    cardSavedDesc: 'אתה יכול עכשיו להציע',
+    addCardDesc: 'נדרש כרטיס כדי להבטיח את ההצעות שלך',
+    cardSaved: 'הכרטיס נשמר!',
+    cardSavedDesc: 'עכשיו אפשר להציע',
     saveCard: 'שמור כרטיס',
+    saveCardFailed: 'לא ניתן לשמור את הכרטיס',
+    cardSetupFailed: 'לא ניתן להוסיף כרטיס כרגע. נסה שוב.',
     cardRequired: 'הוסף כרטיס כדי להציע',
+    addCardFirst: 'קודם הוסף כרטיס אשראי',
+    card: 'כרטיס',
     shipping: 'משלוח',
-    itemPrice: 'מחיר פריט',
+    itemPrice: 'מחיר הפריט',
     walletTitle: 'ארנק',
-    walletAddress: 'כתובת משלוח',
+    walletAddress: 'כתובת למשלוח',
     walletPayment: 'אמצעי תשלום',
     walletPromo: 'קוד קופון',
     walletPromoPlaceholder: 'הזן קוד קופון',
@@ -278,131 +641,99 @@ const streamContent = {
     walletAddAddress: 'הוסף כתובת',
     walletNoCard: 'אין כרטיס',
     walletAddCard: 'הוסף',
-    linkCopied: '!הקישור הועתק',
-    waitingNextItem: '...ממתין לפריט הבא',
+    promoOnPrice: 'על המחיר',
+    promoOnCommission: 'על העמלה',
+    promoOnShipping: 'על המשלוח',
+    promoInvalid: 'הקוד לא תקף או שכבר נוצל',
+    linkCopied: 'הקישור הועתק!',
+    shareTitle: '{name} בשידור חי ב-ShaPop!',
+    shareText: 'הצטרפו לשידור של {name} ב-ShaPop!',
+    clipFailed: 'לא ניתן לשמור את הקליפ',
+    clipTitle: 'קליפ מ-ShaPop',
+    waitingNextItem: 'ממתינים לפריט הבא...',
     moreReport: 'דווח',
+    reportSubject: 'דיווח על שידור',
     moreBlock: 'חסום',
-    morePiP: 'נגן מיני',
-    pipUnavailable: 'PiP לא זמין',
-    giftTitle: '!זכה במתנה בשידור חי',
-    giftParticipants: 'משתתפים',
-    giftEnter: '!להשתתף ולזכות',
-    giftEntered: '✓ רשום',
-    giftWinner: 'זכה במתנה!',
+    morePiP: 'נגן מוקטן',
+    pipUnavailable: 'הנגן המוקטן לא זמין',
+    giftTitle: 'זכה במתנה בשידור חי!',
+    giftEnter: 'השתתף וזכה!',
+    giftEntered: 'נרשמת ✓',
+    giftWinner: 'זכה/תה במתנה!',
     maxBidTitle: 'הצעה מקסימלית',
+    maxShort: 'מקס',
     maxBidPlaceholder: 'סכום מקסימלי',
     maxBidConfirm: 'הפעל הצעה מקסימלית',
     maxBidActive: 'הצעה אוטומטית פעילה',
     maxBidCancel: 'בטל הצעה מקסימלית',
     preBid: 'הצעה מוקדמת',
-    preBidPlaceholder: 'סכום הצעה מוקדמת',
+    preBidPlaceholder: 'סכום ההצעה המוקדמת',
     preBidConfirm: 'הגש הצעה מוקדמת',
-    preBidPlaced: 'הצעה מוקדמת הוגשה',
+    preBidPlaced: 'ההצעה המוקדמת הוגשה',
+    preBidFailed: 'לא הצלחנו להגיש את ההצעה המוקדמת. נסה שוב.',
     tipTitle: 'שלח טיפ',
-    tipSent: '!הטיפ נשלח',
-    tipMessage: 'שלח טיפ של',
+    tipSent: 'הטיפ נשלח!',
+    tipFailed: 'לא ניתן לשלוח את הטיפ',
+    tipMessage: 'שלח/ה טיפ של',
     modDelete: 'מחק',
-    modTimeout: 'השתק 5 דק',
-    modMake: 'הפוך למנהל',
+    modTimeout: 'השתק ל-5 דק\'',
+    modMake: 'מנה למנהל',
     modRemove: 'הסר מנהל',
-    modAdded: 'הפך למנהל',
-    msgDeleted: 'הודעה נמחקה',
-    userTimedOut: 'הושתק ל-5 דק',
+    modAdded: 'מונה/תה למנהל',
+    modBadge: 'מנהל',
+    msgDeleted: 'ההודעה נמחקה',
+    userTimedOut: 'הושתק/ה ל-5 דק\'',
+    deleteFailed: 'לא ניתן למחוק את ההודעה',
+    timeoutFailed: 'לא ניתן להשתיק את המשתמש',
+    contactBlocked: 'אסור לשתף פרטי קשר אישיים ב-ShaPop. הפרות חוזרות יובילו להשעיית החשבון.',
+    watchLimit: 'הגעת למגבלת זמן הצפייה. חזור מאוחר יותר!',
+    joinCohost: 'הצטרף כמגיש שותף',
+    back: 'חזרה',
+    multiView: 'תצוגה מרובה',
+    exitMultiView: 'יציאה מתצוגה מרובה',
+    livesCount: '{n} שידורים',
+    engagementDashboard: 'לוח מעורבות',
+    joined: 'הצטרף/ה',
+    timeLeft: 'זמן שנותר',
+    addLive: 'הוסף שידור',
+    screensActive: '{n}/4 מסכים',
+    noOtherLives: 'אין כרגע שידורים אחרים',
+    added: 'נוסף',
+  },
+} satisfies Localized<Record<string, string>>
+
+// Pluriels (le russe a plusieurs formes) : choisis via Intl.PluralRules
+const pluralForms = {
+  en: {
+    viewers: { one: 'viewer', other: 'viewers' },
+    participants: { one: 'participant', other: 'participants' },
+  },
+  fr: {
+    viewers: { one: 'spectateur', other: 'spectateurs' },
+    participants: { one: 'participant', other: 'participants' },
   },
   es: {
-    viewers: 'espectadores',
-    liveStartsSoon: 'El live empieza pronto...',
-    liveEnded: 'El live ha terminado',
-    liveChat: 'Chat en directo',
-    anonymous: 'Anonimo',
-    sendMessage: 'Enviar un mensaje...',
-    send: 'Enviar',
-    bid: 'Pujar',
-    currentPrice: 'Precio actual',
-    loginToChat: 'Inicia sesion para participar en el chat',
-    streamNotFound: 'Stream no encontrado',
-    endStream: 'Terminar el directo',
-    endStreamConfirm: 'Seguro que quieres terminar el directo?',
-    endStreamYes: 'Si, terminar',
-    endStreamNo: 'No, continuar',
-    mute: 'Silenciar micro',
-    unmute: 'Activar micro',
-    flipCamera: 'Voltear camara',
-    connectedTo: 'Conectado al directo de',
-    liveNow: 'EN VIVO',
-    soldBang: 'VENDIDO!',
-    unsoldBang: 'NO VENDIDO',
-    toReceiveItem: 'Para recibir tu articulo',
-    fullName: 'Nombre completo',
-    cityPlaceholder: 'Ciudad',
-    zipPlaceholder: 'Codigo postal',
-    phonePlaceholder: 'Telefono',
-    countryPlaceholder: 'Pais',
-    confirm: 'Confirmar',
-    youWon: 'Ganaste!',
-    payToClaim: 'Paga para recibir tu articulo',
-    payNow: 'Pagar ahora',
-    paymentSuccess: 'Pago confirmado!',
-    paymentSuccessDesc: 'Recibiras tu articulo pronto',
-    paymentError: 'Error de pago',
-    total: 'Total',
-    close: 'Cerrar',
-    unmuteViewer: 'Activar sonido',
-    messageFlagged: '[Mensaje oculto]',
-    bidError: 'Puja fallida',
-    creatingOrder: 'Creando tu pedido...',
-    orderNotFound: 'No se pudo encontrar tu pedido. Por favor contacta soporte.',
-    paymentTimeout: 'El pago ha expirado. Por favor cierra e intenta de nuevo.',
-    paymentFailed: 'Pago fallido',
-    addCardTitle: 'Agrega tu tarjeta para pujar',
-    addCardDesc: 'Se requiere una tarjeta para garantizar tus pujas',
-    cardSaved: 'Tarjeta guardada!',
-    cardSavedDesc: 'Ya puedes pujar',
-    saveCard: 'Guardar tarjeta',
-    cardRequired: 'Agrega tu tarjeta para pujar',
-    shipping: 'Envio',
-    itemPrice: 'Precio articulo',
-    walletTitle: 'Cartera',
-    walletAddress: 'Direccion de envio',
-    walletPayment: 'Metodo de pago',
-    walletPromo: 'Codigo promo',
-    walletPromoPlaceholder: 'Ingresar codigo promo',
-    walletApply: 'Aplicar',
-    walletNoAddress: 'Sin direccion',
-    walletAddAddress: 'Agregar direccion',
-    walletNoCard: 'Sin tarjeta',
-    walletAddCard: 'Agregar',
-    linkCopied: 'Enlace copiado!',
-    waitingNextItem: 'Esperando el siguiente articulo...',
-    moreReport: 'Reportar',
-    moreBlock: 'Bloquear',
-    morePiP: 'Mini reproductor',
-    pipUnavailable: 'PiP no disponible',
-    giftTitle: 'Gana un regalo en vivo!',
-    giftParticipants: 'participantes',
-    giftEnter: 'Participar y ganar!',
-    giftEntered: 'Inscrito ✓',
-    giftWinner: 'gano el regalo!',
-    maxBidTitle: 'Puja maxima',
-    maxBidPlaceholder: 'Monto maximo',
-    maxBidConfirm: 'Activar puja maxima',
-    maxBidActive: 'Auto-puja activa',
-    maxBidCancel: 'Cancelar puja maxima',
-    preBid: 'Pre-puja',
-    preBidPlaceholder: 'Monto de pre-puja',
-    preBidConfirm: 'Colocar pre-puja',
-    preBidPlaced: 'Pre-puja colocada',
-    tipTitle: 'Enviar propina',
-    tipSent: 'Propina enviada!',
-    tipMessage: 'envio una propina de',
-    modDelete: 'Eliminar',
-    modTimeout: 'Timeout 5 min',
-    modMake: 'Hacer moderador',
-    modRemove: 'Quitar moderador',
-    modAdded: 'ahora es moderador',
-    msgDeleted: 'Mensaje eliminado',
-    userTimedOut: 'en timeout por 5 min',
+    viewers: { one: 'espectador', other: 'espectadores' },
+    participants: { one: 'participante', other: 'participantes' },
   },
+  ru: {
+    viewers: { one: 'зритель', few: 'зрителя', many: 'зрителей', other: 'зрителя' },
+    participants: { one: 'участник', few: 'участника', many: 'участников', other: 'участника' },
+  },
+  he: {
+    viewers: { one: 'צופה', other: 'צופים' },
+    participants: { one: 'משתתף', other: 'משתתפים' },
+  },
+} satisfies Localized<Record<'viewers' | 'participants', Partial<Record<Intl.LDMLPluralRule, string>> & { other: string }>>
+
+function countLabel(n: number, key: 'viewers' | 'participants'): string {
+  const forms: Partial<Record<Intl.LDMLPluralRule, string>> & { other: string } = tr(pluralForms)[key]
+  const rule = new Intl.PluralRules(getLocale()).select(n)
+  return `${n} ${forms[rule] ?? forms.other}`
+}
+
+function fill(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
 }
 
 // Stripe Elements loader — initialized once
@@ -493,7 +824,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
     })
 
     if (error) {
-      onError(error.message || 'Failed to save card')
+      onError(error.message || tr(streamContent).saveCardFailed)
       setLoading(false)
     } else {
       onSuccess()
@@ -539,9 +870,9 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
 export default function StreamView() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = streamContent[lang] || streamContent.fr
-  const { user } = useAuth()
+  const lang = getLang()
+  const ct = tr(streamContent)
+  const { user, profile } = useAuth()
   const { minimizeStream } = useMiniPlayer()
   const userRef = useRef(user)
   useEffect(() => { userRef.current = user }, [user])
@@ -562,7 +893,7 @@ export default function StreamView() {
   }, [])
 
   const [stream, setStream] = useState<Stream | null>(null)
-  usePageTitle(stream?.title ? `${stream.title} — Live` : 'Live')
+  usePageTitle(stream?.title ? `${stream.title} — ${ct.liveTitle}` : ct.liveTitle)
   const [activeAuction, setActiveAuction] = useState<Item | null>(null)
   const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string; avatar_url?: string | null } })[]>([])
   const [newMessage, setNewMessage] = useState('')
@@ -583,6 +914,7 @@ export default function StreamView() {
 
   const [sellerName, setSellerName] = useState('')
   const [sellerAvatar, setSellerAvatar] = useState<string | null>(null)
+  const [sellerCountry, setSellerCountry] = useState<string | null>(null)
   const [sellerScore, setSellerScore] = useState<number | null>(null)
   const [, setItemCount] = useState(0)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
@@ -643,10 +975,10 @@ export default function StreamView() {
   const [showMoreMenu, setShowMoreMenu] = useState(false)
 
   // Multi-view state
-  const [multiViewStreams, setMultiViewStreams] = useState<{ id: string; title: string; sellerName: string; lkUrl: string; lkToken: string }[]>([])
+  const [multiViewStreams, setMultiViewStreams] = useState<{ id: string; title: string; sellerName: string; sellerCountry: string | null; lkUrl: string; lkToken: string }[]>([])
   const [activeMultiIdx, setActiveMultiIdx] = useState(0)
   const [showMultiPicker, setShowMultiPicker] = useState(false)
-  const [availableLives, setAvailableLives] = useState<{ id: string; title: string; seller_name: string; thumbnail_url: string | null }[]>([])
+  const [availableLives, setAvailableLives] = useState<{ id: string; title: string; seller_name: string; seller_country: string | null; thumbnail_url: string | null }[]>([])
   const isMultiView = multiViewStreams.length > 0
   const isMultiViewRef = useRef(false)
   isMultiViewRef.current = isMultiView
@@ -693,6 +1025,9 @@ export default function StreamView() {
   const isSeller = !!(user && stream && stream.seller_id === user.id)
   const isCohost = !!(user && stream && (stream as unknown as { cohost_id?: string }).cohost_id === user.id)
   const isLive = stream?.status === 'live'
+  // Devise des prix affichés : celle du pays du vendeur (repli : pays de l'utilisateur connecté)
+  const priceCurrency = currencyForCountry(isSeller ? profile?.country : (sellerCountry ?? profile?.country))
+  const money = (amount: number | string | null | undefined, currency: string = priceCurrency) => formatMoney(amount, currency)
 
   // Redirect seller to prepare-live page for their own scheduled streams
   useEffect(() => {
@@ -722,14 +1057,7 @@ export default function StreamView() {
   useEffect(() => {
     if (isSeller || !isLive) return
     if (isWatchLimitExceeded()) {
-      const lang = getLang()
-      const msgs = {
-        fr: 'Tu as atteint ta limite de visionnage. Reviens plus tard !',
-        en: 'You\'ve reached your watch time limit. Come back later!',
-        he: '\u05D4\u05D2\u05E2\u05EA \u05DC\u05DE\u05D2\u05D1\u05DC\u05EA \u05D6\u05DE\u05DF \u05D4\u05E6\u05E4\u05D9\u05D9\u05D4. \u05D7\u05D6\u05D5\u05E8 \u05DE\u05D0\u05D5\u05D7\u05E8 \u05D9\u05D5\u05EA\u05E8!',
-        es: 'Has alcanzado tu limite de visualizacion. Vuelve mas tarde!',
-      }
-      alert(msgs[lang])
+      alert(tr(streamContent).watchLimit)
       navigate(-1)
     }
   }, [isSeller, isLive, navigate])
@@ -897,12 +1225,13 @@ export default function StreamView() {
     const fetchSellerProfile = async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('display_name, username, avatar_url')
+        .select('display_name, username, avatar_url, country')
         .eq('id', stream.seller_id)
         .single()
       if (data) {
         setSellerName(data.display_name || data.username || '')
         setSellerAvatar(data.avatar_url || null)
+        setSellerCountry(data.country || null)
       }
     }
     const fetchSellerData = async () => {
@@ -1058,19 +1387,21 @@ export default function StreamView() {
     const sellerIds = [...new Set(data.map(s => s.seller_id))]
     const { data: profiles } = await supabase
       .from('profiles')
-      .select('id, display_name, username')
+      .select('id, display_name, username, country')
       .in('id', sellerIds)
     const nameMap = new Map(profiles?.map(p => [p.id, p.display_name || p.username || '']) || [])
+    const countryMap = new Map(profiles?.map(p => [p.id, (p.country as string | null) || null]) || [])
     setAvailableLives(data.map(s => ({
       id: s.id,
       title: s.title || '',
       seller_name: nameMap.get(s.seller_id) || '',
+      seller_country: countryMap.get(s.seller_id) ?? null,
       thumbnail_url: s.thumbnail_url,
     })))
   }, [id])
 
   // Multi-view: add a stream to the grid
-  const addMultiStream = useCallback(async (streamId: string, title: string, sellerName: string) => {
+  const addMultiStream = useCallback(async (streamId: string, title: string, sellerName: string, sellerCountry: string | null) => {
     // Get LiveKit token for this stream
     const { data: session } = await supabase.auth.getSession()
     const token = session?.session?.access_token
@@ -1085,7 +1416,7 @@ export default function StreamView() {
       setMultiViewStreams(prev => {
         if (prev.length >= 3) return prev // max 4 total (main + 3)
         if (prev.some(s => s.id === streamId)) return prev
-        return [...prev, { id: streamId, title, sellerName, lkUrl: url, lkToken: lkToken }]
+        return [...prev, { id: streamId, title, sellerName, sellerCountry, lkUrl: url, lkToken: lkToken }]
       })
       setShowMultiPicker(false)
     } catch { /* failed */ }
@@ -1475,13 +1806,13 @@ export default function StreamView() {
             const { data: session, error: sessionError } = await supabase.auth.getSession()
             if (sessionError || !session.session) {
               console.error('Failed to get auth session:', sessionError || 'session is null')
-              setPaymentError('Authentication error. Please log in again.')
+              setPaymentError(ct.authError)
               return
             }
             const token = session.session.access_token
             if (!token) {
               console.error('No access token in session')
-              setPaymentError('Authentication error. Please log in again.')
+              setPaymentError(ct.authError)
               return
             }
 
@@ -1757,9 +2088,7 @@ export default function StreamView() {
       const result = await resp.json().catch(() => ({}))
       setNewMessage('')
       if (result.warning === 'contact_blocked') {
-        alert(lang === 'fr'
-          ? 'Partager des coordonnees personnelles est interdit sur Shapop. Les recidives entrainent une suspension de compte.'
-          : 'Sharing personal contact information is forbidden on Shapop. Repeated violations will result in account suspension.')
+        alert(ct.contactBlocked)
       }
     } catch (err) {
       console.error('Failed to send chat message:', err)
@@ -1779,7 +2108,7 @@ export default function StreamView() {
         headers: { 'Authorization': `Bearer ${token}` },
       })
       if (!resp.ok) {
-        showToast(lang === 'fr' ? 'Erreur lors de la suppression' : 'Failed to delete message')
+        showToast(ct.deleteFailed)
         return
       }
       setMessages(prev => prev.filter(m => m.id !== msgId))
@@ -1799,7 +2128,7 @@ export default function StreamView() {
         body: JSON.stringify({ target_user_id: targetUserId, duration_minutes: 5 }),
       })
       if (!resp.ok) {
-        showToast(lang === 'fr' ? 'Erreur lors du timeout' : 'Failed to timeout user')
+        showToast(ct.timeoutFailed)
         return
       }
       setModMenuMsg(null)
@@ -1844,8 +2173,7 @@ export default function StreamView() {
         },
       })
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}))
-        setCardError(err.error || 'Failed to initialize card setup')
+        setCardError(ct.cardSetupFailed)
         return
       }
       const data = await resp.json()
@@ -1854,7 +2182,7 @@ export default function StreamView() {
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error('Setup intent error:', err)
-      setCardError('Failed to initialize card setup')
+      setCardError(ct.cardSetupFailed)
     }
   }
 
@@ -1900,7 +2228,7 @@ export default function StreamView() {
       if (!appS || appS.auctionHaptics !== false) hapticTap()
     } catch (err) {
       console.error('Failed to place bid:', err)
-      alert('Failed to place bid. Please try again.')
+      alert(ct.bidFailedRetry)
     }
   }
 
@@ -1911,7 +2239,7 @@ export default function StreamView() {
 
     if (hasCard !== true) { openCardSetup(); return }
 
-    if (!confirm(`Acheter maintenant pour ${activeAuction.buy_now_price}€ ?`)) return
+    if (!confirm(fill(ct.buyNowConfirm, { price: money(activeAuction.buy_now_price) }))) return
 
     try {
       const { data: session } = await supabase.auth.getSession()
@@ -1928,13 +2256,13 @@ export default function StreamView() {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
         if (err.error === 'card_required') { setHasCard(false); openCardSetup(); return }
-        throw new Error(err.error || 'Buy now failed')
+        throw new Error(err.error || 'buy_now_failed')
       }
       hapticTap()
       if (id) track('buy_now', { stream_id: id, item_id: activeAuction.id, price: activeAuction.buy_now_price })
     } catch (err: unknown) {
       console.error('Buy now failed:', err)
-      alert('Achat immediat echoue: ' + (err instanceof Error ? err.message : 'Veuillez reessayer.'))
+      alert(ct.buyNowFailed)
     }
   }
 
@@ -1961,7 +2289,7 @@ export default function StreamView() {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
         if (err.error === 'card_required') { setHasCard(false); openCardSetup(); setShowTipModal(false); return }
-        throw new Error(err.error || 'Tip failed')
+        throw new Error(err.error || 'tip_failed')
       }
 
       hapticTap()
@@ -1969,7 +2297,7 @@ export default function StreamView() {
       setShowTipModal(false)
     } catch (err: unknown) {
       console.error('Tip failed:', err)
-      alert(err instanceof Error ? err.message : 'Tip echoue')
+      alert(ct.tipFailed)
     }
     setTipSending(false)
   }
@@ -2043,12 +2371,11 @@ export default function StreamView() {
         setPreBidAmount('')
         showToast(ct.preBidPlaced)
       } else {
-        const body = await resp.json().catch(() => ({ error: 'Unknown error' }))
-        const err = body.error || 'Error'
-        if (err === 'card_required') {
-          alert(lang === 'fr' ? 'Ajoutez une carte bancaire d\'abord' : lang === 'he' ? 'הוסף כרטיס תשלום קודם' : lang === 'es' ? 'Agregue una tarjeta primero' : 'Add a payment card first')
+        const body = await resp.json().catch(() => ({}))
+        if (body.error === 'card_required') {
+          alert(ct.addCardFirst)
         } else {
-          alert(err)
+          alert(ct.preBidFailed)
         }
       }
     } catch (e: unknown) {
@@ -2154,7 +2481,7 @@ export default function StreamView() {
         .eq('id', id)
       if (endError) {
         console.error('[StreamView] end stream failed:', endError.message)
-        showToast(lang === 'fr' ? 'Erreur lors de la fin du live' : 'Failed to end stream')
+        showToast(ct.endStreamFailed)
       }
     }
 
@@ -2178,7 +2505,7 @@ export default function StreamView() {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
       if (!token) {
-        setPaymentError('Authentication error. Please log in again.')
+        setPaymentError(ct.authError)
         return
       }
       const resp = await apiFetch('/api/stripe/create-payment-intent', {
@@ -2192,7 +2519,7 @@ export default function StreamView() {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
         if (import.meta.env.DEV) console.error('PaymentIntent error:', err)
-        setPaymentError(err.error || 'Failed to initialize payment. Please try again.')
+        setPaymentError(ct.paymentInitFailed)
         return
       }
       const piData = await resp.json()
@@ -2207,7 +2534,7 @@ export default function StreamView() {
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error('PaymentIntent error:', err)
-      setPaymentError('Failed to initialize payment. Please try again.')
+      setPaymentError(ct.paymentInitFailed)
     }
   }
 
@@ -2229,13 +2556,13 @@ export default function StreamView() {
           }),
         })
         if (!resp.ok) {
-          showToast('Payment confirmation failed. Please contact support.')
+          showToast(ct.paymentConfirmFailed)
           console.error('Server payment confirmation failed with status:', resp.status)
         }
       }
     } catch (err) {
       // Even if server confirm fails, Stripe already processed the payment
-      showToast('Payment confirmation failed. Please contact support.')
+      showToast(ct.paymentConfirmFailed)
       if (import.meta.env.DEV) console.error('Server payment confirmation failed (Stripe already processed):', err)
     }
     setPaymentSuccess(true)
@@ -2259,7 +2586,7 @@ export default function StreamView() {
       <div style={{ position: 'fixed', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
         <div
           role="status"
-          aria-label={lang === 'fr' ? 'Chargement du live' : lang === 'es' ? 'Cargando directo' : lang === 'he' ? 'טוען שידור' : 'Loading stream'}
+          aria-label={ct.loadingStream}
           style={{
             width: '32px', height: '32px',
             border: '3px solid #333', borderTopColor: '#F0908A',
@@ -2272,7 +2599,6 @@ export default function StreamView() {
   }
 
   if (!stream) {
-    const retryLabel: Record<string, string> = { fr: 'Reessayer', en: 'Retry', he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1', es: 'Reintentar' }
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', padding: '20px' }}>
         <p style={{ fontSize: '18px', color: '#666' }}>{ct.streamNotFound}</p>
@@ -2287,7 +2613,7 @@ export default function StreamView() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
           </svg>
-          {retryLabel[lang] || retryLabel.fr}
+          {ct.retry}
         </button>
         <button
           onClick={() => navigate(-1)}
@@ -2342,8 +2668,8 @@ export default function StreamView() {
                     }}>
                       {/* Build all cells: main (index 0) + additional streams */}
                       {[
-                        { cellIdx: 0, lkUrl: viewerLkUrl, lkToken: viewerLkToken, name: sellerName, streamId: id || '', item: activeAuction ? { id: activeAuction.id, title: activeAuction.title, current_price: activeAuction.current_price, starting_price: activeAuction.starting_price, image_url: activeAuction.image_urls?.[0] } : null, isMain: true },
-                        ...multiViewStreams.map((ms, idx) => ({ cellIdx: idx + 1, lkUrl: ms.lkUrl, lkToken: ms.lkToken, name: ms.sellerName, streamId: ms.id, item: multiStreamItems[ms.id] || null, isMain: false })),
+                        { cellIdx: 0, lkUrl: viewerLkUrl, lkToken: viewerLkToken, name: sellerName, streamId: id || '', item: activeAuction ? { id: activeAuction.id, title: activeAuction.title, current_price: activeAuction.current_price, starting_price: activeAuction.starting_price, image_url: activeAuction.image_urls?.[0] } : null, isMain: true, currency: priceCurrency },
+                        ...multiViewStreams.map((ms, idx) => ({ cellIdx: idx + 1, lkUrl: ms.lkUrl, lkToken: ms.lkToken, name: ms.sellerName, streamId: ms.id, item: multiStreamItems[ms.id] || null, isMain: false, currency: currencyForCountry(ms.sellerCountry ?? profile?.country) })),
                       ].map((cell) => (
                         <div
                           key={cell.streamId}
@@ -2372,7 +2698,7 @@ export default function StreamView() {
                               }
                             }}
                             style={{
-                              position: 'absolute', top: '6px', left: '6px',
+                              position: 'absolute', top: '6px', insetInlineStart: '6px',
                               width: '26px', height: '26px', borderRadius: '50%',
                               backgroundColor: 'rgba(0,0,0,0.7)', border: '1px solid rgba(255,255,255,0.3)',
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -2400,7 +2726,7 @@ export default function StreamView() {
                                   }
                                 }}
                                 style={{
-                                  position: 'absolute', top: cell.cellIdx === 0 ? 'calc(env(safe-area-inset-top, 47px) + 44px)' : '36px', left: '6px', right: '42px',
+                                  position: 'absolute', top: cell.cellIdx === 0 ? 'calc(env(safe-area-inset-top, 47px) + 44px)' : '36px', insetInlineStart: '6px', insetInlineEnd: '42px',
                                   zIndex: 12,
                                   display: 'flex', alignItems: 'center', gap: '6px',
                                   padding: '6px 10px',
@@ -2420,7 +2746,7 @@ export default function StreamView() {
                                     {cellEntered ? ct.giftEntered : ct.giftTitle}
                                   </p>
                                   <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
-                                    {cellGw.entry_count} {ct.giftParticipants}
+                                    {countLabel(cellGw.entry_count, 'participants')}
                                   </p>
                                 </div>
                                 {!cellEntered && user && (
@@ -2463,7 +2789,7 @@ export default function StreamView() {
                                   fontSize: '12px', fontWeight: 700, color: '#fff', margin: '4px 0 0',
                                   animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
                                 }}>
-                                  @{(cell.isMain ? soldAnimation?.winner : multiStreamSold[cell.streamId]?.winner)} — {(cell.isMain ? soldAnimation?.price : multiStreamSold[cell.streamId]?.price)} EUR
+                                  @{(cell.isMain ? soldAnimation?.winner : multiStreamSold[cell.streamId]?.winner)} — {money(cell.isMain ? soldAnimation?.price : multiStreamSold[cell.streamId]?.price, cell.currency)}
                                 </p>
                               )}
                             </div>
@@ -2516,7 +2842,7 @@ export default function StreamView() {
                                 setShowPaymentModal(true)
                               }}
                               style={{
-                                position: 'absolute', bottom: '60px', left: '6px', right: '40px',
+                                position: 'absolute', bottom: '60px', insetInlineStart: '6px', insetInlineEnd: '40px',
                                 zIndex: 16,
                                 display: 'flex', alignItems: 'center', gap: '8px',
                                 padding: '8px 12px',
@@ -2533,7 +2859,7 @@ export default function StreamView() {
                                   {ct.youWon}
                                 </p>
                                 <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {pendingWonItem.title} — {pendingWonItem.price} EUR
+                                  {pendingWonItem.title} — {money(pendingWonItem.price)}
                                 </p>
                               </div>
                               <span style={{
@@ -2549,7 +2875,7 @@ export default function StreamView() {
 
                           {/* Sidebar buttons — right side */}
                           <div style={{
-                            position: 'absolute', right: '5px', top: '50%', transform: 'translateY(-50%)',
+                            position: 'absolute', insetInlineEnd: '5px', top: '50%', transform: 'translateY(-50%)',
                             display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10,
                           }}>
                             {/* Like */}
@@ -2569,8 +2895,8 @@ export default function StreamView() {
                               e.stopPropagation()
                               hapticTap()
                               const shareUrl = `https://shapop.com/stream/${cell.streamId}`
-                              const shareTitle = `${cell.name} est en live sur ShaPop !`
-                              const shareText = `Rejoins le live de ${cell.name} sur ShaPop ! 🔴\n${shareUrl}`
+                              const shareTitle = fill(ct.shareTitle, { name: cell.name })
+                              const shareText = `${fill(ct.shareText, { name: cell.name })} 🔴\n${shareUrl}`
                               const doShare = async () => {
                                 try {
                                   await Share.share({ title: shareTitle, text: shareText, url: shareUrl, dialogTitle: shareTitle })
@@ -2660,7 +2986,7 @@ export default function StreamView() {
                                     <img src={cell.item.image_url} alt="" loading="lazy" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                                   )}
                                   <span style={{ fontSize: '10px', fontWeight: 600, color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</span>
-                                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>{cell.item.current_price}€</span>
+                                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>{money(cell.item.current_price, cell.currency)}</span>
                                 </div>
                                 {/* Bid button — full width */}
                                 <button
@@ -2676,7 +3002,7 @@ export default function StreamView() {
                                     color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer',
                                   }}
                                 >
-                                  {(!cell.isMain && multiBidLoading === cell.streamId) ? '...' : `${ct.bid} ${cell.item.current_price + 1}€`}
+                                  {(!cell.isMain && multiBidLoading === cell.streamId) ? '...' : `${ct.bid} ${money(cell.item.current_price + 1, cell.currency)}`}
                                 </button>
                                 {/* Enchère max + MAX — second row, all cells */}
                                 <div style={{ display: 'flex', gap: '4px' }}>
@@ -2748,7 +3074,7 @@ export default function StreamView() {
                                       color: '#FFD700', fontSize: '10px', fontWeight: 800, cursor: 'pointer', flexShrink: 0,
                                     }}
                                   >
-                                    MAX
+                                    {ct.maxShort}
                                   </button>
                                 </div>
                               </div>
@@ -2771,7 +3097,7 @@ export default function StreamView() {
                                   }}
                                 >
                                   <p style={{ fontSize: '10px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {nextItem.title} — {nextItem.starting_price}€
+                                    {nextItem.title} — {money(nextItem.starting_price)}
                                   </p>
                                   <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', padding: '4px 10px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                     {ct.preBid}
@@ -2804,14 +3130,14 @@ export default function StreamView() {
                           onClick={() => navigate(`/live-seller/${id}`)}
                           style={{
                             position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 60px)',
-                            left: '50%', transform: 'translateX(-50%)', zIndex: 30,
+                            left: '50%', transform: 'translateX(-50%)', zIndex: 30, // i18n-ignore (centrage)
                             padding: '10px 20px', borderRadius: '12px', border: 'none',
                             background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
                             color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
                             boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
                           }}
                         >
-                          Rejoindre en co-host
+                          {ct.joinCohost}
                         </button>
                       )}
                       {/* Unmute button */}
@@ -2821,7 +3147,7 @@ export default function StreamView() {
                           aria-label={ct.unmuteViewer}
                           style={{
                             position: 'absolute',
-                            bottom: '16px', left: '16px',
+                            bottom: '16px', insetInlineStart: '16px',
                             padding: '8px 16px',
                             borderRadius: '100px',
                             backgroundColor: 'rgba(0,0,0,0.7)',
@@ -2912,7 +3238,7 @@ export default function StreamView() {
                           {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
                         {sellerScore != null && (
                           <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '3px', marginLeft: '6px',
+                            display: 'inline-flex', alignItems: 'center', gap: '3px', marginInlineStart: '6px',
                             backgroundColor: 'rgba(240,144,138,0.15)', padding: '2px 6px', borderRadius: '6px',
                             fontSize: '12px', fontWeight: 700, color: '#F0908A',
                           }}>
@@ -3000,7 +3326,7 @@ export default function StreamView() {
 
             {/* ═══ LIVE badge + viewer count (always shown when live) ═══ */}
             {stream.status === 'live' && isSeller && (
-              <div className="absolute top-4 left-4 flex items-center gap-2" style={{ zIndex: 20 }}>
+              <div className="absolute flex items-center gap-2" style={{ top: '16px', insetInlineStart: '16px', zIndex: 20 }}>
                 <span style={{
                   background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
                   padding: '5px 14px', borderRadius: '8px',
@@ -3028,7 +3354,7 @@ export default function StreamView() {
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                     <circle cx="12" cy="12" r="3"/>
                   </svg>
-                  {stream.viewer_count} {ct.viewers}
+                  {countLabel(stream.viewer_count || 0, 'viewers')}
                 </span>
               </div>
             )}
@@ -3047,7 +3373,7 @@ export default function StreamView() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <button
                     onClick={() => navigate(-1)}
-                    aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
+                    aria-label={ct.back}
                     style={{
                       width: '32px', height: '32px', borderRadius: '50%',
                       backgroundColor: 'rgba(0,0,0,0.45)',
@@ -3087,7 +3413,7 @@ export default function StreamView() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
                   <span
                     aria-live="polite"
-                    aria-label={`${stream.viewer_count || 0} ${ct.viewers}`}
+                    aria-label={countLabel(stream.viewer_count || 0, 'viewers')}
                     style={{
                       backgroundColor: 'rgba(0,0,0,0.45)',
                       padding: '4px 10px', borderRadius: '100px',
@@ -3106,7 +3432,7 @@ export default function StreamView() {
                   {/* Multi-view grid button */}
                   <button
                     onClick={() => { fetchAvailableLives(); setShowMultiPicker(true) }}
-                    aria-label={lang === 'fr' ? 'Multi-vue' : lang === 'es' ? 'Multi-vista' : lang === 'he' ? 'תצוגה מרובה' : 'Multi-view'}
+                    aria-label={ct.multiView}
                     style={{
                       width: '32px', height: '32px', borderRadius: '8px',
                       backgroundColor: isMultiView ? 'rgba(232,52,78,0.7)' : 'rgba(0,0,0,0.45)',
@@ -3137,7 +3463,7 @@ export default function StreamView() {
               }}>
                 <button
                   onClick={() => { setMultiViewStreams([]); setActiveMultiIdx(0) }}
-                  aria-label={lang === 'fr' ? 'Quitter multi-vue' : lang === 'es' ? 'Salir de multi-vista' : lang === 'he' ? 'יציאה מתצוגה מרובה' : 'Exit multi-view'}
+                  aria-label={ct.exitMultiView}
                   style={{
                     width: '32px', height: '32px', borderRadius: '50%',
                     backgroundColor: 'rgba(0,0,0,0.6)', border: 'none',
@@ -3156,10 +3482,11 @@ export default function StreamView() {
                     display: 'flex', alignItems: 'center', gap: '4px',
                   }}>
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E8344E', animation: 'liveDot 1.5s ease-in-out infinite' }} />
-                    {multiViewStreams.length + 1} lives
+                    {fill(ct.livesCount, { n: multiViewStreams.length + 1 })}
                   </span>
                   <button
                     onClick={() => { fetchAvailableLives(); setShowMultiPicker(true) }}
+                    aria-label={ct.addLive}
                     style={{
                       width: '32px', height: '32px', borderRadius: '8px',
                       backgroundColor: 'rgba(232,52,78,0.7)', border: 'none',
@@ -3339,12 +3666,12 @@ export default function StreamView() {
             {isSeller && isLive && (
               <button
                 onClick={() => setShowEngagement(!showEngagement)}
-                aria-label={lang === 'fr' ? "Tableau d'engagement" : lang === 'es' ? 'Panel de interaccion' : lang === 'he' ? 'לוח מעורבות' : 'Toggle engagement dashboard'}
+                aria-label={ct.engagementDashboard}
                 aria-expanded={showEngagement}
                 style={{
                   position: 'absolute',
                   top: '16px',
-                  right: '16px',
+                  insetInlineEnd: '16px',
                   width: '44px',
                   height: '44px',
                   borderRadius: '14px',
@@ -3386,7 +3713,7 @@ export default function StreamView() {
       {!isSeller && isLive && !isMultiView && (
         <div style={{
           position: 'absolute',
-          right: '8px',
+          insetInlineEnd: '8px',
           top: '18%',
           zIndex: 30,
           pointerEvents: 'auto',
@@ -3397,8 +3724,8 @@ export default function StreamView() {
               hapticTap()
               const shareUrl = `https://shapop.com/stream/${stream.id}`
               const sellerDisplayName = sellerName || 'ShaPop'
-              const shareTitle = `${sellerDisplayName} est en live sur ShaPop !`
-              const shareText = `Rejoins le live de ${sellerDisplayName} sur ShaPop\n${shareUrl}`
+              const shareTitle = fill(ct.shareTitle, { name: sellerDisplayName })
+              const shareText = `${fill(ct.shareText, { name: sellerDisplayName })}\n${shareUrl}`
               try {
                 await Share.share({
                   title: shareTitle,
@@ -3420,7 +3747,7 @@ export default function StreamView() {
               hapticTap()
               try {
                 const videoEl = document.querySelector('video') as HTMLVideoElement | null
-                if (!videoEl || !videoEl.videoWidth) { showToast('Clip failed'); return }
+                if (!videoEl || !videoEl.videoWidth) { showToast(ct.clipFailed); return }
                 const canvas = document.createElement('canvas')
                 canvas.width = videoEl.videoWidth
                 canvas.height = videoEl.videoHeight
@@ -3431,7 +3758,7 @@ export default function StreamView() {
                 if (!blob) return
                 const file = new File([blob], `shapop-clip-${Date.now()}.jpg`, { type: 'image/jpeg' })
                 if (navigator.share && navigator.canShare?.({ files: [file] })) {
-                  await navigator.share({ files: [file], title: stream?.title || 'ShaPop Clip' })
+                  await navigator.share({ files: [file], title: stream?.title || ct.clipTitle })
                 } else {
                   const url = URL.createObjectURL(blob)
                   const a = document.createElement('a')
@@ -3486,7 +3813,6 @@ export default function StreamView() {
             return !blocked.includes(m.user_id)
           }).slice(-5).map((msg, i, arr) => {
             const isJoin = msg.message === '__system:join__'
-            const joinText: Record<string, string> = { fr: 'a rejoint', en: 'joined', he: '\u05D4\u05E6\u05D8\u05E8\u05E3', es: 'se unio' }
             // Older messages fade out
             const opacity = i < arr.length - 3 ? 0.5 : i < arr.length - 1 ? 0.75 : 1
             if (isJoin) {
@@ -3500,7 +3826,7 @@ export default function StreamView() {
                     fontSize: '12px', color: '#fff', fontWeight: 500,
                     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   }}>
-                    {msg.user_profile?.display_name || ct.anonymous} {joinText[lang] || joinText.fr} {'\uD83D\uDC4B'}
+                    {msg.user_profile?.display_name || ct.anonymous} {ct.joined} {'\uD83D\uDC4B'}
                   </span>
                 </div>
               )
@@ -3516,11 +3842,11 @@ export default function StreamView() {
                 onContextMenu={canModerate ? (e) => { e.preventDefault(); setModMenuMsg(msg) } : undefined}
                 onClick={canModerate ? () => setModMenuMsg(msg) : undefined}
               >
-                {isMod && <span style={{ fontSize: '10px', color: '#60a5fa', marginRight: '4px', fontWeight: 700 }}>MOD</span>}
+                {isMod && <span style={{ fontSize: '10px', color: '#60a5fa', marginInlineEnd: '4px', fontWeight: 700 }}>{ct.modBadge}</span>}
                 <span style={{
                   fontSize: '13px', fontWeight: 800, color: '#F0908A',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                  marginRight: '6px',
+                  marginInlineEnd: '6px',
                 }}>
                   {msg.user_profile?.display_name || ct.anonymous}
                 </span>
@@ -3604,7 +3930,7 @@ export default function StreamView() {
               </div>
               <div
                 aria-live="polite"
-                aria-label={`Time left: ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`}
+                aria-label={`${ct.timeLeft}: ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`}
                 style={{
                   fontSize: '20px', fontWeight: 800,
                   color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
@@ -3619,7 +3945,7 @@ export default function StreamView() {
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '11px', color: '#888', margin: '0 0 2px' }}>{ct.currentPrice}</p>
                 <p style={{ fontSize: '24px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                  {activeAuction.current_price.toLocaleString()} EUR
+                  {money(activeAuction.current_price)}
                 </p>
               </div>
             </div>
@@ -3698,7 +4024,7 @@ export default function StreamView() {
             style={{
               position: 'fixed',
               top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-              left: '8px', right: '60px',
+              insetInlineStart: '8px', insetInlineEnd: '60px',
               zIndex: 205,
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '8px 12px',
@@ -3711,7 +4037,7 @@ export default function StreamView() {
             }}
           >
             <p style={{ fontSize: '12px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {nextItem.title} — {nextItem.starting_price}&euro;
+              {nextItem.title} — {money(nextItem.starting_price)}
             </p>
             <span style={{
               fontSize: '11px', fontWeight: 700, color: '#fff',
@@ -3732,7 +4058,7 @@ export default function StreamView() {
           <div style={{
             position: 'fixed',
             top: 'calc(env(safe-area-inset-top, 0px) + 56px)',
-            left: '50%',
+            left: '50%', // i18n-ignore (centrage)
             transform: 'translateX(-50%)',
             zIndex: 210,
           }}>
@@ -3797,7 +4123,7 @@ export default function StreamView() {
                   {activeGiveaway.entry_count}
                 </span>
                 <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
-                  {ct.giftParticipants}
+                  {countLabel(activeGiveaway.entry_count, 'participants').replace(/^\S+\s/, '')}
                 </span>
               </div>
 
@@ -3857,7 +4183,7 @@ export default function StreamView() {
               fontSize: '18px', fontWeight: 700, color: '#fff', margin: '8px 0 0',
               animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
             }}>
-              @{soldAnimation.winner} — {soldAnimation.price} €
+              @{soldAnimation.winner} — {money(soldAnimation.price)}
             </p>
           )}
           {soldAnimation.isUnsold && soldAnimation.price > 0 && (
@@ -3865,7 +4191,7 @@ export default function StreamView() {
               fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: '8px 0 0',
               animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
             }}>
-              {soldAnimation.price} €
+              {money(soldAnimation.price)}
             </p>
           )}
         </div>
@@ -4066,6 +4392,7 @@ export default function StreamView() {
                     stripe={getStripePromise()}
                     options={{
                       clientSecret,
+                      locale: lang,
                       appearance: {
                         theme: 'night',
                         variables: {
@@ -4107,7 +4434,7 @@ export default function StreamView() {
                     cursor: 'pointer',
                   }}
                 >
-                  ← {ft(lang).choose_delivery}
+                  <span style={{ display: 'inline-block', ...rtlFlip() }}>←</span> {ft(lang).choose_delivery}
                 </button>
               </>
             )}
@@ -4206,7 +4533,7 @@ export default function StreamView() {
                 )}
 
                 {setupClientSecret ? (
-                  <Elements stripe={getStripePromise()}>
+                  <Elements stripe={getStripePromise()} options={{ locale: lang }}>
                     <SetupCardFormInner
                       clientSecret={setupClientSecret}
                       onSuccess={() => {
@@ -4300,7 +4627,7 @@ export default function StreamView() {
                   {walletAddress ? `${walletAddress.street}, ${walletAddress.zip} ${walletAddress.city}` : ct.walletNoAddress}
                 </p>
               </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
             </div>
 
             {/* Moyen de paiement */}
@@ -4322,10 +4649,10 @@ export default function StreamView() {
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletPayment}</p>
                 <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-                  {walletCard ? `${(walletCard.brand || 'Card').toUpperCase()} **** ${walletCard.last4}` : ct.walletNoCard}
+                  {walletCard ? `${(walletCard.brand || ct.card).toUpperCase()} **** ${walletCard.last4}` : ct.walletNoCard}
                 </p>
               </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
             </div>
 
             {/* Code promo */}
@@ -4384,12 +4711,12 @@ export default function StreamView() {
               {promoStatus === 'valid' && promoDiscount && (
                 <p style={{ fontSize: '13px', color: '#22C55E', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                  -{promoDiscount.percent}% {promoDiscount.type === 'item' ? (lang === 'fr' ? 'sur le prix' : 'on price') : promoDiscount.type === 'commission' ? (lang === 'fr' ? 'sur la commission' : 'on commission') : (lang === 'fr' ? 'sur la livraison' : 'on shipping')}
+                  -{promoDiscount.percent}% {promoDiscount.type === 'item' ? ct.promoOnPrice : promoDiscount.type === 'commission' ? ct.promoOnCommission : ct.promoOnShipping}
                 </p>
               )}
               {promoStatus === 'invalid' && (
                 <p style={{ fontSize: '13px', color: '#EF4444', margin: '6px 0 0' }}>
-                  {lang === 'fr' ? 'Code invalide ou deja utilise' : lang === 'es' ? 'Codigo invalido o ya usado' : lang === 'he' ? 'קוד לא תקף או כבר בשימוש' : 'Invalid or already used code'}
+                  {ct.promoInvalid}
                 </p>
               )}
             </div>
@@ -4439,7 +4766,7 @@ export default function StreamView() {
                     opacity: tipSending ? 0.5 : 1,
                   }}
                 >
-                  {amount}€
+                  {formatMoney(amount, 'EUR')}{/* i18n-ignore : le serveur débite le pourboire en euros (routes/items.ts) */}
                 </button>
               ))}
             </div>
@@ -4570,7 +4897,7 @@ export default function StreamView() {
               onClick={() => {
                 setShowMoreMenu(false)
                 if (stream) {
-                  const subject = encodeURIComponent(`Signalement live ${stream.id}`)
+                  const subject = encodeURIComponent(`${ct.reportSubject} ${stream.id}`)
                   window.open(`mailto:support@shapop.app?subject=${subject}`, '_blank')
                 }
               }}
@@ -4578,7 +4905,7 @@ export default function StreamView() {
                 width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
                 padding: '14px 0', borderBottom: '1px solid #1A1A1A',
                 background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#1A1A1A',
-                cursor: 'pointer', textAlign: 'left',
+                cursor: 'pointer', textAlign: 'start',
               }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -4616,7 +4943,7 @@ export default function StreamView() {
                 width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
                 padding: '14px 0',
                 background: 'none', border: 'none',
-                cursor: 'pointer', textAlign: 'left',
+                cursor: 'pointer', textAlign: 'start',
               }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -4686,7 +5013,7 @@ export default function StreamView() {
         <div style={{
           position: 'fixed',
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
-          left: '50%', transform: 'translateX(-50%)',
+          left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage, animation toastIn)
           padding: '10px 20px',
           backgroundColor: 'rgba(0,0,0,0.85)',
           backdropFilter: 'blur(12px)',
@@ -4780,7 +5107,7 @@ export default function StreamView() {
               {ct.maxBidTitle}
             </h3>
             <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
-              {activeAuction ? `${ct.currentPrice}: ${activeAuction.current_price}€` : ''}
+              {activeAuction ? `${ct.currentPrice}: ${money(activeAuction.current_price)}` : ''}
             </p>
             <form onSubmit={e => { e.preventDefault(); handleMaxBidSubmit() }}>
               <input
@@ -4866,10 +5193,11 @@ export default function StreamView() {
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>
-                {lang === 'fr' ? 'Ajouter un live' : lang === 'he' ? 'הוסף שידור' : lang === 'es' ? 'Agregar un live' : 'Add a live'}
+                {ct.addLive}
               </h3>
               <button
                 onClick={() => setShowMultiPicker(false)}
+                aria-label={ct.close}
                 style={{ background: 'none', border: 'none', color: '#888', fontSize: '24px', cursor: 'pointer', padding: '4px' }}
               >
                 ×
@@ -4878,13 +5206,13 @@ export default function StreamView() {
             {isMultiView && (
               <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: '10px', backgroundColor: 'rgba(232,52,78,0.1)', border: '1px solid rgba(232,52,78,0.2)' }}>
                 <span style={{ fontSize: '12px', fontWeight: 600, color: '#E8344E' }}>
-                  {multiViewStreams.length + 1}/4 {lang === 'fr' ? 'ecrans actifs' : lang === 'he' ? 'מסכים פעילים' : lang === 'es' ? 'pantallas activas' : 'screens active'}
+                  {fill(ct.screensActive, { n: multiViewStreams.length + 1 })}
                 </span>
               </div>
             )}
             {availableLives.length === 0 ? (
               <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', padding: '20px 0' }}>
-                {lang === 'fr' ? 'Aucun autre live en cours' : lang === 'he' ? 'אין שידורים חיים אחרים' : lang === 'es' ? 'No hay otros lives en curso' : 'No other lives available'}
+                {ct.noOtherLives}
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -4894,7 +5222,7 @@ export default function StreamView() {
                     <button
                       key={live.id}
                       disabled={alreadyAdded || multiViewStreams.length >= 3}
-                      onClick={() => addMultiStream(live.id, live.title, live.seller_name)}
+                      onClick={() => addMultiStream(live.id, live.title, live.seller_name, live.seller_country)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '12px',
                         padding: '12px', borderRadius: '14px',
@@ -4902,7 +5230,7 @@ export default function StreamView() {
                         border: alreadyAdded ? '1px solid rgba(232,52,78,0.3)' : '1px solid rgba(255,255,255,0.1)',
                         cursor: alreadyAdded || multiViewStreams.length >= 3 ? 'default' : 'pointer',
                         opacity: alreadyAdded ? 0.5 : multiViewStreams.length >= 3 ? 0.4 : 1,
-                        textAlign: 'left', width: '100%',
+                        textAlign: 'start', width: '100%',
                       }}
                     >
                       {live.thumbnail_url ? (
@@ -4932,7 +5260,7 @@ export default function StreamView() {
                       </div>
                       {alreadyAdded ? (
                         <span style={{ fontSize: '11px', fontWeight: 600, color: '#E8344E', flexShrink: 0 }}>
-                          {lang === 'fr' ? 'Ajoute' : 'Added'}
+                          {ct.added}
                         </span>
                       ) : (
                         <div style={{
