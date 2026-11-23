@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ItemCard from '../components/ItemCard'
 import { categories, CategoryScroll } from '../components/CategoryIcons'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, type Localized } from '../lib/i18n'
+import { formatItemPrice } from '../lib/fulfillment'
 import type { Item } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -13,94 +14,124 @@ import { usePageTitle } from '../hooks/usePageTitle'
 type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: string | null } }
 
 // Category ID → localized label mapping (matches CategoryIcons)
-const catLabels: Record<string, Record<string, string>> = {
-  fashion_w: { fr: 'Mode femme', en: "Women's fashion", he: 'אופנת נשים', es: 'Moda mujer' },
-  fashion_m: { fr: 'Mode homme', en: "Men's fashion", he: 'אופנת גברים', es: 'Moda hombre' },
-  sneakers: { fr: 'Sneakers', en: 'Sneakers', he: 'סניקרס', es: 'Sneakers' },
-  bags: { fr: 'Sacs', en: 'Bags', he: 'תיקים', es: 'Bolsos' },
-  jewelry: { fr: 'Bijoux', en: 'Jewelry', he: 'תכשיטים', es: 'Joyería' },
-  watches: { fr: 'Montres', en: 'Watches', he: 'שעונים', es: 'Relojes' },
-  beauty: { fr: 'Beaute', en: 'Beauty', he: 'יופי', es: 'Belleza' },
-  electronics: { fr: 'High-tech', en: 'Electronics', he: 'אלקטרוניקה', es: 'Electrónica' },
-  gaming: { fr: 'Gaming', en: 'Gaming', he: 'גיימינג', es: 'Gaming' },
-  cards: { fr: 'Cartes', en: 'Cards', he: 'קלפים', es: 'Cartas' },
-  toys: { fr: 'Jouets', en: 'Toys', he: 'צעצועים', es: 'Juguetes' },
-  vintage: { fr: 'Vintage', en: 'Vintage', he: 'וינטג׳', es: 'Vintage' },
-  art: { fr: 'Art', en: 'Art', he: 'אמנות', es: 'Arte' },
-  furniture: { fr: 'Meubles', en: 'Furniture', he: 'רהיטים', es: 'Muebles' },
-  home: { fr: 'Maison', en: 'Home', he: 'בית', es: 'Hogar' },
-  sports: { fr: 'Sport', en: 'Sports', he: 'ספורט', es: 'Deportes' },
-  fitness: { fr: 'Fitness', en: 'Fitness', he: 'כושר', es: 'Fitness' },
-  music: { fr: 'Musique', en: 'Music', he: 'מוזיקה', es: 'Música' },
-  books: { fr: 'Livres', en: 'Books', he: 'ספרים', es: 'Libros' },
-  kids: { fr: 'Enfants', en: 'Kids', he: 'ילדים', es: 'Niños' },
-  pets: { fr: 'Animaux', en: 'Pets', he: 'חיות מחמד', es: 'Mascotas' },
-  auto: { fr: 'Auto-Moto', en: 'Auto-Moto', he: 'רכב', es: 'Auto-Moto' },
-  garden: { fr: 'Jardin', en: 'Garden', he: 'גינה', es: 'Jardín' },
-  food: { fr: 'Food', en: 'Food', he: 'אוכל', es: 'Comida' },
-  handmade: { fr: 'Fait main', en: 'Handmade', he: 'עבודת יד', es: 'Hecho a mano' },
-  collect: { fr: 'Collection', en: 'Collectibles', he: 'אספנות', es: 'Colección' },
-  photo: { fr: 'Photo', en: 'Photo', he: 'צילום', es: 'Foto' },
-  tools: { fr: 'Bricolage', en: 'DIY & Tools', he: 'כלי עבודה', es: 'Bricolaje' },
+const catLabels: Record<string, Localized<string>> = {
+  fashion_w: { en: "Women's fashion", fr: 'Mode femme', es: 'Moda mujer', ru: 'Женская мода', he: 'אופנת נשים' },
+  fashion_m: { en: "Men's fashion", fr: 'Mode homme', es: 'Moda hombre', ru: 'Мужская мода', he: 'אופנת גברים' },
+  sneakers: { en: 'Sneakers', fr: 'Sneakers', es: 'Sneakers', ru: 'Кроссовки', he: 'סניקרס' },
+  bags: { en: 'Bags', fr: 'Sacs', es: 'Bolsos', ru: 'Сумки', he: 'תיקים' },
+  jewelry: { en: 'Jewelry', fr: 'Bijoux', es: 'Joyería', ru: 'Украшения', he: 'תכשיטים' },
+  watches: { en: 'Watches', fr: 'Montres', es: 'Relojes', ru: 'Часы', he: 'שעונים' },
+  beauty: { en: 'Beauty', fr: 'Beauté', es: 'Belleza', ru: 'Красота', he: 'יופי' },
+  electronics: { en: 'Electronics', fr: 'High-tech', es: 'Electrónica', ru: 'Электроника', he: 'אלקטרוניקה' },
+  gaming: { en: 'Gaming', fr: 'Gaming', es: 'Gaming', ru: 'Игры', he: 'גיימינג' },
+  cards: { en: 'Cards', fr: 'Cartes', es: 'Cartas', ru: 'Карточки', he: 'קלפים' },
+  toys: { en: 'Toys', fr: 'Jouets', es: 'Juguetes', ru: 'Игрушки', he: 'צעצועים' },
+  vintage: { en: 'Vintage', fr: 'Vintage', es: 'Vintage', ru: 'Винтаж', he: 'וינטג׳' },
+  art: { en: 'Art', fr: 'Art', es: 'Arte', ru: 'Искусство', he: 'אמנות' },
+  furniture: { en: 'Furniture', fr: 'Meubles', es: 'Muebles', ru: 'Мебель', he: 'רהיטים' },
+  home: { en: 'Home', fr: 'Maison', es: 'Hogar', ru: 'Дом', he: 'בית' },
+  sports: { en: 'Sports', fr: 'Sport', es: 'Deportes', ru: 'Спорт', he: 'ספורט' },
+  fitness: { en: 'Fitness', fr: 'Fitness', es: 'Fitness', ru: 'Фитнес', he: 'כושר' },
+  music: { en: 'Music', fr: 'Musique', es: 'Música', ru: 'Музыка', he: 'מוזיקה' },
+  books: { en: 'Books', fr: 'Livres', es: 'Libros', ru: 'Книги', he: 'ספרים' },
+  kids: { en: 'Kids', fr: 'Enfants', es: 'Niños', ru: 'Детям', he: 'ילדים' },
+  pets: { en: 'Pets', fr: 'Animaux', es: 'Mascotas', ru: 'Животные', he: 'חיות מחמד' },
+  auto: { en: 'Auto-Moto', fr: 'Auto-Moto', es: 'Auto-Moto', ru: 'Авто и мото', he: 'רכב' },
+  garden: { en: 'Garden', fr: 'Jardin', es: 'Jardín', ru: 'Сад', he: 'גינה' },
+  food: { en: 'Food', fr: 'Food', es: 'Comida', ru: 'Еда', he: 'אוכל' },
+  handmade: { en: 'Handmade', fr: 'Fait main', es: 'Hecho a mano', ru: 'Ручная работа', he: 'עבודת יד' },
+  collect: { en: 'Collectibles', fr: 'Collection', es: 'Colección', ru: 'Коллекционное', he: 'אספנות' },
+  photo: { en: 'Photo', fr: 'Photo', es: 'Foto', ru: 'Фото', he: 'צילום' },
+  tools: { en: 'DIY & Tools', fr: 'Bricolage', es: 'Bricolaje', ru: 'Инструменты', he: 'כלי עבודה' },
 }
 
 const content = {
-  fr: {
-    title: 'Ventes directes',
-    subtitle: 'Articles mis en vente par AI Express',
-    searchPlaceholder: 'Rechercher un article...',
-    emptyTitle: 'Aucun article disponible',
-    emptySubtitle: 'Les articles mis en vente via AI Express apparaitront ici.',
-    noResults: 'Aucun resultat',
-    noResultsSub: 'Essaie une autre categorie ou un autre mot-cle.',
-    buy: 'Acheter',
-    buyConfirm: 'Acheter pour',
-    bought: 'Achete !',
-  },
   en: {
-    title: 'Direct Sales',
-    subtitle: 'Items listed via AI Express',
-    searchPlaceholder: 'Search items...',
+    title: 'Direct sales',
+    subtitle: 'Items listed with AI Express',
+    searchPlaceholder: 'Search items…',
     emptyTitle: 'No items available',
-    emptySubtitle: 'Items listed via AI Express will appear here.',
+    emptySubtitle: 'Items listed with AI Express will show up here.',
     noResults: 'No results',
     noResultsSub: 'Try another category or keyword.',
     buy: 'Buy',
-    buyConfirm: 'Buy for',
+    buyConfirm: 'Buy for {price}?',
     bought: 'Purchased!',
+    back: 'Back',
+    clearSearch: 'Clear search',
+    retry: 'Retry',
+    buyError: 'The purchase didn\'t go through. Please try again.',
+    connectionError: 'Connection error. Check your network and try again.',
   },
-  he: {
-    title: 'מכירות ישירות',
-    subtitle: 'פריטים שהועלו דרך AI Express',
-    searchPlaceholder: '...חיפוש פריטים',
-    emptyTitle: 'אין פריטים זמינים',
-    emptySubtitle: 'פריטים שהועלו דרך AI Express יופיעו כאן.',
-    noResults: 'אין תוצאות',
-    noResultsSub: 'נסה קטגוריה אחרת או מילת מפתח אחרת.',
-    buy: 'קנה',
-    buyConfirm: 'קנה ב',
-    bought: '!נרכש',
+  fr: {
+    title: 'Ventes directes',
+    subtitle: 'Articles mis en vente avec AI Express',
+    searchPlaceholder: 'Rechercher un article…',
+    emptyTitle: 'Aucun article disponible',
+    emptySubtitle: 'Les articles mis en vente avec AI Express apparaîtront ici.',
+    noResults: 'Aucun résultat',
+    noResultsSub: 'Essaie une autre catégorie ou un autre mot-clé.',
+    buy: 'Acheter',
+    buyConfirm: 'Acheter pour {price} ?',
+    bought: 'Acheté !',
+    back: 'Retour',
+    clearSearch: 'Effacer la recherche',
+    retry: 'Réessayer',
+    buyError: 'L\'achat n\'a pas abouti. Réessaie.',
+    connectionError: 'Erreur de connexion. Vérifie ton réseau et réessaie.',
   },
   es: {
     title: 'Ventas directas',
-    subtitle: 'Articulos publicados via AI Express',
-    searchPlaceholder: 'Buscar articulos...',
-    emptyTitle: 'No hay articulos disponibles',
-    emptySubtitle: 'Los articulos publicados via AI Express apareceran aqui.',
+    subtitle: 'Artículos publicados con AI Express',
+    searchPlaceholder: 'Buscar artículos…',
+    emptyTitle: 'No hay artículos disponibles',
+    emptySubtitle: 'Los artículos publicados con AI Express aparecerán aquí.',
     noResults: 'Sin resultados',
-    noResultsSub: 'Prueba otra categoria u otra palabra clave.',
+    noResultsSub: 'Prueba otra categoría u otra palabra clave.',
     buy: 'Comprar',
-    buyConfirm: 'Comprar por',
-    bought: 'Comprado!',
+    buyConfirm: '¿Comprar por {price}?',
+    bought: '¡Comprado!',
+    back: 'Volver',
+    clearSearch: 'Borrar búsqueda',
+    retry: 'Reintentar',
+    buyError: 'No se pudo completar la compra. Inténtalo de nuevo.',
+    connectionError: 'Error de conexión. Revisa tu red e inténtalo de nuevo.',
   },
-} as Record<string, Record<string, string>>
-
-const retryTranslations: Record<string, string> = {
-  fr: 'Reessayer',
-  en: 'Retry',
-  he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
-  es: 'Reintentar',
-}
+  ru: {
+    title: 'Прямые продажи',
+    subtitle: 'Товары, выставленные через AI Express',
+    searchPlaceholder: 'Поиск товаров…',
+    emptyTitle: 'Пока нет товаров',
+    emptySubtitle: 'Здесь появятся товары, выставленные через AI Express.',
+    noResults: 'Ничего не найдено',
+    noResultsSub: 'Попробуй другую категорию или другое слово.',
+    buy: 'Купить',
+    buyConfirm: 'Купить за {price}?',
+    bought: 'Куплено!',
+    back: 'Назад',
+    clearSearch: 'Очистить поиск',
+    retry: 'Повторить',
+    buyError: 'Не удалось оформить покупку. Попробуй ещё раз.',
+    connectionError: 'Ошибка соединения. Проверь сеть и попробуй ещё раз.',
+  },
+  he: {
+    title: 'מכירות ישירות',
+    subtitle: 'פריטים שפורסמו דרך AI Express',
+    searchPlaceholder: 'חיפוש פריטים…',
+    emptyTitle: 'אין פריטים זמינים',
+    emptySubtitle: 'פריטים שפורסמו דרך AI Express יופיעו כאן.',
+    noResults: 'אין תוצאות',
+    noResultsSub: 'אפשר לנסות קטגוריה אחרת או מילת חיפוש אחרת.',
+    buy: 'לקנייה',
+    buyConfirm: 'לקנות ב-{price}?',
+    bought: 'נרכש!',
+    back: 'חזרה',
+    clearSearch: 'ניקוי החיפוש',
+    retry: 'לנסות שוב',
+    buyError: 'הרכישה לא הושלמה. כדאי לנסות שוב.',
+    connectionError: 'שגיאת חיבור. כדאי לבדוק את הרשת ולנסות שוב.',
+  },
+} satisfies Localized<Record<string, string>>
 
 export default function DirectSalesPage() {
   const [items, setItems] = useState<ItemWithSeller[]>([])
@@ -113,9 +144,11 @@ export default function DirectSalesPage() {
   const [, setBuyError] = useState('')
   const [boughtItemId, setBoughtItemId] = useState<string | null>(null)
   const navigate = useNavigate()
-  const { user, session } = useAuth()
+  const { user, session, profile } = useAuth()
   const lang = getLang()
-  const tx = content[lang] || content.fr
+  const tx = tr(content, lang)
+  // Prix : le pays du vendeur n'est pas renvoyé par /api/items/direct-sales → devise du pays de l'utilisateur
+  const price = (n: number | null | undefined) => formatItemPrice(n, profile?.country, lang)
   usePageTitle(tx.title)
 
   // Fetch item favorites
@@ -170,8 +203,9 @@ export default function DirectSalesPage() {
     setFetchError(false)
     try {
       const cat = categories.find(c => c.id === selectedCategory)
-      const categoryLabel = cat && cat.id !== 'for_you' && cat.id !== 'following' ? (catLabels[cat.id]?.[lang] || catLabels[cat.id]?.fr) : null
-      const params = categoryLabel ? `?category=${encodeURIComponent(categoryLabel)}` : ''
+      // Filtre par identifiant de catégorie (valeur enregistrée sur les articles), jamais par un nom traduit
+      const categoryId = cat && cat.id !== 'for_you' && cat.id !== 'following' ? cat.id : null
+      const params = categoryId ? `?category=${encodeURIComponent(categoryId)}` : ''
       const res = await apiFetch(`/api/items/direct-sales${params}`)
       const data = await res.json()
       setItems(data || [])
@@ -205,7 +239,7 @@ export default function DirectSalesPage() {
         display: 'flex', alignItems: 'center', gap: '12px',
         padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
-        <button onClick={() => navigate(-1)} aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+        <button onClick={() => navigate(-1)} aria-label={tx.back} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}>
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
@@ -243,7 +277,7 @@ export default function DirectSalesPage() {
             }}
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery('')} aria-label={lang === 'fr' ? 'Effacer la recherche' : lang === 'es' ? 'Borrar busqueda' : lang === 'he' ? 'נקה חיפוש' : 'Clear search'} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+            <button onClick={() => setSearchQuery('')} aria-label={tx.clearSearch} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
@@ -281,7 +315,7 @@ export default function DirectSalesPage() {
           </div>
           <button
             onClick={() => fetchItems()}
-            aria-label={retryTranslations[lang] || retryTranslations.fr}
+            aria-label={tx.retry}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
               color: '#E8344E', fontSize: '14px', fontWeight: 600,
@@ -291,7 +325,7 @@ export default function DirectSalesPage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
             </svg>
-            {retryTranslations[lang] || retryTranslations.fr}
+            {tx.retry}
           </button>
         </div>
       ) : displayItems.length === 0 && items.length > 0 ? (
@@ -337,8 +371,7 @@ export default function DirectSalesPage() {
                     e.preventDefault()
                     e.stopPropagation()
                     if (!user) { navigate('/login'); return }
-                    const price = item.current_price ?? item.starting_price
-                    if (!confirm(`${tx.buyConfirm} ${price}€ ?`)) return
+                    if (!confirm(tx.buyConfirm.replace('{price}', price(item.current_price ?? item.starting_price)))) return
                     setBuyingItemId(item.id)
                     setBuyError('')
                     try {
@@ -355,11 +388,12 @@ export default function DirectSalesPage() {
                           navigate('/activity')
                         }, 1200)
                       } else {
-                        const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }))
-                        setBuyError(err.error || 'Erreur')
-                        alert(err.error || 'Erreur')
+                        const err = await resp.json().catch(() => ({}))
+                        if (import.meta.env.DEV) console.error(err)
+                        setBuyError(tx.buyError)
+                        alert(tx.buyError)
                       }
-                    } catch { setBuyError('Erreur de connexion'); alert('Erreur de connexion') }
+                    } catch { setBuyError(tx.connectionError); alert(tx.connectionError) }
                     setBuyingItemId(null)
                   }}
                   style={{
@@ -375,7 +409,7 @@ export default function DirectSalesPage() {
                     opacity: buyingItemId === item.id ? 0.7 : 1,
                   }}
                 >
-                  {boughtItemId === item.id ? tx.bought : buyingItemId === item.id ? '...' : `${tx.buy} — ${item.current_price ?? item.starting_price}€`}
+                  {boughtItemId === item.id ? tx.bought : buyingItemId === item.id ? '…' : `${tx.buy} — ${price(item.current_price ?? item.starting_price)}`}
                 </button>
               )}
             </div>

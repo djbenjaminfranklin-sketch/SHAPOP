@@ -102,7 +102,7 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
 
       {options.pickup.allowed && optionCard(
         'pickup', t.method_pickup,
-        options.pickup.area ? `${t.pickup_area} : ${options.pickup.area}` : t.pickup_free,
+        options.pickup.area ? `${t.pickup_area}${t.colon} ${options.pickup.area}` : t.pickup_free,
         formatMoney(0, options.currency, lang),
       )}
       {optionCard('post', t.method_post, '', formatMoney(options.post.price, options.currency, lang))}

@@ -3,41 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, type Localized } from '../lib/i18n'
+import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 import type { Conversation } from '../types/database'
 
 const pageContent = {
-  fr: {
-    title: 'Messages',
-    loginPrompt: 'Connectez-vous pour voir vos messages.',
-    offPlatformWarning: 'Toute communication hors plateforme est interdite',
-    loading: 'Chargement...',
-    retry: 'Réessayer',
-    noConversations: 'Aucune conversation',
-    messagesWillAppear: 'Vos messages apparaîtront ici',
-    noMessage: 'Aucun message',
-    order: 'Commande',
-    dispute: 'Litige',
-    support: 'Support',
-    timeNow: "A l'instant",
-    timeMin: 'min',
-    timeHour: 'h',
-    timeDay: 'j',
-    timeWeek: 'sem',
-    notConnected: 'Non connecté',
-    serverError: 'Erreur serveur',
-    unknownError: 'Erreur inconnue',
-    defaultUser: 'Utilisateur',
-  },
   en: {
     title: 'Messages',
     loginPrompt: 'Log in to see your messages.',
-    offPlatformWarning: 'All off-platform communication is prohibited',
-    loading: 'Loading...',
+    offPlatformWarning: 'Keep all conversations on ShaPop: contact outside the app is not allowed',
+    loading: 'Loading…',
     retry: 'Retry',
-    noConversations: 'No conversations',
-    messagesWillAppear: 'Your messages will appear here',
+    noConversations: 'No conversations yet',
+    messagesWillAppear: 'Your messages will show up here',
     noMessage: 'No messages',
     order: 'Order',
     dispute: 'Dispute',
@@ -47,40 +26,44 @@ const pageContent = {
     timeHour: 'h',
     timeDay: 'd',
     timeWeek: 'w',
-    notConnected: 'Not connected',
+    notConnected: 'Not logged in',
     serverError: 'Server error',
-    unknownError: 'Unknown error',
+    unknownError: 'Something went wrong',
     defaultUser: 'User',
+    back: 'Back',
+    home: 'Home',
   },
-  he: {
-    title: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
-    loginPrompt: '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC\u05DA.',
-    offPlatformWarning: '\u05DB\u05DC \u05EA\u05E7\u05E9\u05D5\u05E8\u05EA \u05DE\u05D7\u05D5\u05E5 \u05DC\u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4 \u05D0\u05E1\u05D5\u05E8\u05D4',
-    loading: '\u05D8\u05D5\u05E2\u05DF...',
-    retry: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
-    noConversations: '\u05D0\u05D9\u05DF \u05E9\u05D9\u05D7\u05D5\u05EA',
-    messagesWillAppear: '\u05D4\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05E9\u05DC\u05DA \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05DB\u05D0\u05DF',
-    noMessage: '\u05D0\u05D9\u05DF \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
-    order: '\u05D4\u05D6\u05DE\u05E0\u05D4',
-    dispute: '\u05DE\u05D7\u05DC\u05D5\u05E7\u05EA',
-    support: '\u05EA\u05DE\u05D9\u05DB\u05D4',
-    timeNow: '\u05E2\u05DB\u05E9\u05D9\u05D5',
-    timeMin: '\u05D3\u05E7\u05F3',
-    timeHour: '\u05E9\u05F3',
-    timeDay: '\u05D9\u05F3',
-    timeWeek: '\u05E9\u05D1\u05F3',
-    notConnected: '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8',
-    serverError: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05E9\u05E8\u05EA',
-    unknownError: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05DC\u05D0 \u05D9\u05D3\u05D5\u05E2\u05D4',
-    defaultUser: '\u05DE\u05E9\u05EA\u05DE\u05E9',
+  fr: {
+    title: 'Messages',
+    loginPrompt: 'Connecte-toi pour voir tes messages.',
+    offPlatformWarning: 'Reste sur ShaPop : tout échange en dehors de l\'appli est interdit',
+    loading: 'Chargement…',
+    retry: 'Réessayer',
+    noConversations: 'Aucune conversation',
+    messagesWillAppear: 'Tes messages apparaîtront ici',
+    noMessage: 'Aucun message',
+    order: 'Commande',
+    dispute: 'Litige',
+    support: 'Assistance',
+    timeNow: 'À l\'instant',
+    timeMin: 'min',
+    timeHour: 'h',
+    timeDay: 'j',
+    timeWeek: 'sem.',
+    notConnected: 'Non connecté',
+    serverError: 'Erreur du serveur',
+    unknownError: 'Une erreur est survenue',
+    defaultUser: 'Utilisateur',
+    back: 'Retour',
+    home: 'Accueil',
   },
   es: {
     title: 'Mensajes',
     loginPrompt: 'Inicia sesión para ver tus mensajes.',
-    offPlatformWarning: 'Toda comunicación fuera de la plataforma está prohibida',
-    loading: 'Cargando...',
+    offPlatformWarning: 'Quédate en ShaPop: está prohibido comunicarse fuera de la app',
+    loading: 'Cargando…',
     retry: 'Reintentar',
-    noConversations: 'Sin conversaciones',
+    noConversations: 'Aún no hay conversaciones',
     messagesWillAppear: 'Tus mensajes aparecerán aquí',
     noMessage: 'Sin mensajes',
     order: 'Pedido',
@@ -90,13 +73,63 @@ const pageContent = {
     timeMin: 'min',
     timeHour: 'h',
     timeDay: 'd',
-    timeWeek: 'sem',
-    notConnected: 'No conectado',
+    timeWeek: 'sem.',
+    notConnected: 'No has iniciado sesión',
     serverError: 'Error del servidor',
-    unknownError: 'Error desconocido',
+    unknownError: 'Ha ocurrido un error',
     defaultUser: 'Usuario',
+    back: 'Volver',
+    home: 'Inicio',
   },
-} as const
+  ru: {
+    title: 'Сообщения',
+    loginPrompt: 'Войди, чтобы увидеть свои сообщения.',
+    offPlatformWarning: 'Общайся только в ShaPop: связь вне приложения запрещена',
+    loading: 'Загрузка…',
+    retry: 'Повторить',
+    noConversations: 'Пока нет диалогов',
+    messagesWillAppear: 'Здесь появятся твои сообщения',
+    noMessage: 'Нет сообщений',
+    order: 'Заказ',
+    dispute: 'Спор',
+    support: 'Поддержка',
+    timeNow: 'Только что',
+    timeMin: 'мин',
+    timeHour: 'ч',
+    timeDay: 'д',
+    timeWeek: 'нед.',
+    notConnected: 'Ты не вошёл в аккаунт',
+    serverError: 'Ошибка сервера',
+    unknownError: 'Что-то пошло не так',
+    defaultUser: 'Пользователь',
+    back: 'Назад',
+    home: 'Главная',
+  },
+  he: {
+    title: 'הודעות',
+    loginPrompt: 'יש להתחבר כדי לראות את ההודעות שלך.',
+    offPlatformWarning: 'נשארים ב-ShaPop: אסור לתקשר מחוץ לאפליקציה',
+    loading: 'טוען…',
+    retry: 'לנסות שוב',
+    noConversations: 'אין עדיין שיחות',
+    messagesWillAppear: 'ההודעות שלך יופיעו כאן',
+    noMessage: 'אין הודעות',
+    order: 'הזמנה',
+    dispute: 'מחלוקת',
+    support: 'תמיכה',
+    timeNow: 'עכשיו',
+    timeMin: 'דק׳',
+    timeHour: 'שע׳',
+    timeDay: 'ימ׳',
+    timeWeek: 'שב׳',
+    notConnected: 'לא מחובר',
+    serverError: 'שגיאת שרת',
+    unknownError: 'משהו השתבש',
+    defaultUser: 'משתמש',
+    back: 'חזרה',
+    home: 'דף הבית',
+  },
+} satisfies Localized<Record<string, string>>
 
 function getInitials(name: string): string {
   return name
@@ -112,20 +145,20 @@ export default function MessagesPage() {
   const navigate = useNavigate()
 
   const lang = getLang()
-  const ct = pageContent[lang] || pageContent.fr
+  const ct = tr(pageContent, lang)
   usePageTitle(ct.title)
 
   function timeAgo(dateStr: string): string {
     const diff = Date.now() - new Date(dateStr).getTime()
     const minutes = Math.floor(diff / 60000)
     if (minutes < 1) return ct.timeNow
-    if (minutes < 60) return `${minutes}${ct.timeMin}`
+    if (minutes < 60) return `${minutes} ${ct.timeMin}`
     const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}${ct.timeHour}`
+    if (hours < 24) return `${hours} ${ct.timeHour}`
     const days = Math.floor(hours / 24)
-    if (days < 7) return `${days}${ct.timeDay}`
+    if (days < 7) return `${days} ${ct.timeDay}`
     const weeks = Math.floor(days / 7)
-    return `${weeks}${ct.timeWeek}`
+    return `${weeks} ${ct.timeWeek}`
   }
 
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -185,13 +218,13 @@ export default function MessagesPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={() => navigate('/')} aria-label={ct.back} className="text-gray-400 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ ...rtlFlip() }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <h1 className="text-lg font-semibold">{ct.title}</h1>
-          <button onClick={() => navigate('/')} className="text-gray-400 hover:text-white">
+          <button onClick={() => navigate('/')} aria-label={ct.home} className="text-gray-400 hover:text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M9 22V12h6v10" strokeLinecap="round" strokeLinejoin="round"/>
@@ -201,7 +234,7 @@ export default function MessagesPage() {
       </div>
 
       {/* Warning banner */}
-      <div className="mx-4 mt-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-start gap-2">
+      <div className="mx-4 mt-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-[0.5rem] flex items-start gap-2">
         <svg className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
@@ -241,7 +274,7 @@ export default function MessagesPage() {
               const lastMsg = conv.last_message
               const preview = lastMsg?.message
                 ? lastMsg.message.length > 50
-                  ? lastMsg.message.slice(0, 50) + '...'
+                  ? lastMsg.message.slice(0, 50) + '…'
                   : lastMsg.message
                 : ct.noMessage
               const lastTime = lastMsg?.created_at || conv.created_at
@@ -253,7 +286,7 @@ export default function MessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => navigate(`/conversation/${conv.id}`)}
-                  className="w-full flex items-center gap-3 py-3 text-left hover:bg-white/5 rounded-lg transition-colors"
+                  className="w-full flex items-center gap-3 py-3 text-start hover:bg-white/5 rounded-[0.5rem] transition-colors"
                 >
                   {/* Avatar with item thumbnail overlay */}
                   <div className="flex-shrink-0 relative">
@@ -274,7 +307,7 @@ export default function MessagesPage() {
                       <img
                         src={itemImage}
                         alt=""
-                        className="absolute -bottom-1 -right-1 w-6 h-6 rounded-md object-cover border-2 border-black"
+                        className="absolute -bottom-1 -end-1 w-6 h-6 rounded-md object-cover border-2 border-black"
                         loading="lazy"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
@@ -294,7 +327,7 @@ export default function MessagesPage() {
                   </div>
 
                   {/* Chevron */}
-                  <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ ...rtlFlip() }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>

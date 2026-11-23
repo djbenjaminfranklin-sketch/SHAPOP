@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, type Localized } from '../lib/i18n'
 import type { Item, Order, Profile } from '../types/database'
 import VodPlayer from '../components/stream/VodPlayer'
 import { rtlFlip } from '../lib/rtl'
@@ -11,49 +11,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { formatMoney } from '../lib/fulfillment'
 import { ft, statusLabel } from '../lib/fulfillmentText'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
 const pageContent = {
-  fr: {
-    viewOrder: 'Voir la commande',
-    title: 'Recapitulatif du live',
-    sales: 'Ventes',
-    totalRevenue: 'Chiffre d\'affaires',
-    soldItems: 'Vendus',
-    unsoldItems: 'Invendus',
-    lot: 'Lot',
-    buyer: 'Acheteur',
-    price: 'Prix',
-    status: 'Statut',
-    paid: 'Paye',
-    pending: 'En attente',
-    shipped: 'Expedie',
-    orderRef: 'N° commande',
-    back: 'Retour',
-    noSales: 'Aucune vente pour ce live',
-    buyerDetails: 'Details acheteur',
-    name: 'Nom',
-    address: 'Adresse',
-    phone: 'Telephone',
-    email: 'Email',
-    close: 'Fermer',
-    articles: 'articles',
-    watchVod: 'Regarder la VOD',
-    peakViewers: 'Pic de spectateurs',
-    duration: 'Duree du live',
-    minutes: 'min',
-    clips: 'Clips',
-    createClip: 'Creer un clip',
-    clipTitle: 'Titre du clip',
-    clipStart: 'Debut (secondes)',
-    clipDuration: 'Duree (secondes)',
-    clipCreated: 'Clip cree !',
-    clipCreating: 'Creation...',
-    noClips: 'Aucun clip pour ce live',
-    playClip: 'Lire',
-    deleteClip: 'Supprimer',
-    last60s: 'Dernieres 60s',
-  },
   en: {
     viewOrder: 'View order',
     title: 'Live recap',
@@ -65,9 +23,7 @@ const pageContent = {
     buyer: 'Buyer',
     price: 'Price',
     status: 'Status',
-    paid: 'Paid',
     pending: 'Pending',
-    shipped: 'Shipped',
     orderRef: 'Order #',
     back: 'Back',
     noSales: 'No sales for this live',
@@ -75,109 +31,168 @@ const pageContent = {
     name: 'Name',
     address: 'Address',
     phone: 'Phone',
-    email: 'Email',
     close: 'Close',
-    articles: 'items',
-    watchVod: 'Watch VOD',
+    watchVod: 'Watch the replay',
     peakViewers: 'Peak viewers',
     duration: 'Live duration',
     minutes: 'min',
+    secondsShort: 's',
     clips: 'Clips',
     createClip: 'Create a clip',
     clipTitle: 'Clip title',
     clipStart: 'Start (seconds)',
     clipDuration: 'Duration (seconds)',
-    clipCreated: 'Clip created!',
-    clipCreating: 'Creating...',
+    clipCreating: 'Creating…',
     noClips: 'No clips for this live',
     playClip: 'Play',
     deleteClip: 'Delete',
-    last60s: 'Last 60s',
+    last60s: 'Last 60 s',
   },
-  he: {
-    viewOrder: 'צפה בהזמנה',
-    title: 'סיכום השידור',
-    sales: 'מכירות',
-    totalRevenue: 'מחזור',
-    soldItems: 'נמכרו',
-    unsoldItems: 'לא נמכרו',
-    lot: 'לוט',
-    buyer: 'קונה',
-    price: 'מחיר',
-    status: 'סטטוס',
-    paid: 'שולם',
-    pending: 'ממתין',
-    shipped: 'נשלח',
-    orderRef: 'מספר הזמנה',
-    back: 'חזור',
-    noSales: 'אין מכירות לשידור זה',
-    buyerDetails: 'פרטי קונה',
-    name: 'שם',
-    address: 'כתובת',
-    phone: 'טלפון',
-    email: 'אימייל',
-    close: 'סגור',
-    articles: 'פריטים',
-    watchVod: 'צפה VOD',
-    peakViewers: 'שיא צופים',
-    duration: 'משך השידור',
-    minutes: 'דק׳',
-    clips: 'קליפים',
-    createClip: 'צור קליפ',
-    clipTitle: 'כותרת הקליפ',
-    clipStart: 'התחלה (שניות)',
-    clipDuration: 'משך (שניות)',
-    clipCreated: 'הקליפ נוצר!',
-    clipCreating: 'יוצר...',
-    noClips: 'אין קליפים לשידור זה',
-    playClip: 'הפעל',
-    deleteClip: 'מחק',
-    last60s: '60 שניות אחרונות',
+  fr: {
+    viewOrder: 'Voir la commande',
+    title: 'Récapitulatif du live',
+    sales: 'Ventes',
+    totalRevenue: 'Chiffre d\'affaires',
+    soldItems: 'Vendus',
+    unsoldItems: 'Invendus',
+    lot: 'Lot',
+    buyer: 'Acheteur',
+    price: 'Prix',
+    status: 'Statut',
+    pending: 'En attente',
+    orderRef: 'N° de commande',
+    back: 'Retour',
+    noSales: 'Aucune vente pendant ce live',
+    buyerDetails: 'Infos de l\'acheteur',
+    name: 'Nom',
+    address: 'Adresse',
+    phone: 'Téléphone',
+    close: 'Fermer',
+    watchVod: 'Revoir le live',
+    peakViewers: 'Pic de spectateurs',
+    duration: 'Durée du live',
+    minutes: 'min',
+    secondsShort: 's',
+    clips: 'Clips',
+    createClip: 'Créer un clip',
+    clipTitle: 'Titre du clip',
+    clipStart: 'Début (secondes)',
+    clipDuration: 'Durée (secondes)',
+    clipCreating: 'Création…',
+    noClips: 'Aucun clip pour ce live',
+    playClip: 'Lire',
+    deleteClip: 'Supprimer',
+    last60s: '60 dernières s',
   },
   es: {
     viewOrder: 'Ver el pedido',
     title: 'Resumen del directo',
     sales: 'Ventas',
-    totalRevenue: 'Ingreso total',
+    totalRevenue: 'Ingresos totales',
     soldItems: 'Vendidos',
     unsoldItems: 'No vendidos',
     lot: 'Lote',
     buyer: 'Comprador',
     price: 'Precio',
     status: 'Estado',
-    paid: 'Pagado',
     pending: 'Pendiente',
-    shipped: 'Enviado',
-    orderRef: 'N° pedido',
+    orderRef: 'N.º de pedido',
     back: 'Volver',
-    noSales: 'Sin ventas para este directo',
-    buyerDetails: 'Detalles del comprador',
+    noSales: 'No hubo ventas en este directo',
+    buyerDetails: 'Datos del comprador',
     name: 'Nombre',
-    address: 'Direccion',
-    phone: 'Telefono',
-    email: 'Email',
+    address: 'Dirección',
+    phone: 'Teléfono',
     close: 'Cerrar',
-    articles: 'articulos',
-    watchVod: 'Ver VOD',
+    watchVod: 'Ver la repetición',
     peakViewers: 'Pico de espectadores',
-    duration: 'Duracion del directo',
+    duration: 'Duración del directo',
     minutes: 'min',
+    secondsShort: 's',
     clips: 'Clips',
     createClip: 'Crear un clip',
-    clipTitle: 'Titulo del clip',
+    clipTitle: 'Título del clip',
     clipStart: 'Inicio (segundos)',
-    clipDuration: 'Duracion (segundos)',
-    clipCreated: 'Clip creado!',
-    clipCreating: 'Creando...',
-    noClips: 'No hay clips para este directo',
+    clipDuration: 'Duración (segundos)',
+    clipCreating: 'Creando…',
+    noClips: 'No hay clips de este directo',
     playClip: 'Reproducir',
     deleteClip: 'Eliminar',
-    last60s: 'Ultimos 60s',
+    last60s: 'Últimos 60 s',
   },
-}
-// Russe : seulement le texte ajouté pour la remise ; le reste retombe sur l'anglais
-// (traduction russe complète faite à part).
-;(pageContent as Record<string, typeof pageContent.en>).ru = { ...pageContent.en, viewOrder: 'Открыть заказ' }
+  ru: {
+    viewOrder: 'Открыть заказ',
+    title: 'Итоги эфира',
+    sales: 'Продажи',
+    totalRevenue: 'Выручка',
+    soldItems: 'Продано',
+    unsoldItems: 'Не продано',
+    lot: 'Лот',
+    buyer: 'Покупатель',
+    price: 'Цена',
+    status: 'Статус',
+    pending: 'Ожидает',
+    orderRef: 'Номер заказа',
+    back: 'Назад',
+    noSales: 'В этом эфире продаж не было',
+    buyerDetails: 'Данные покупателя',
+    name: 'Имя',
+    address: 'Адрес',
+    phone: 'Телефон',
+    close: 'Закрыть',
+    watchVod: 'Смотреть запись',
+    peakViewers: 'Пик зрителей',
+    duration: 'Длительность эфира',
+    minutes: 'мин',
+    secondsShort: 'с',
+    clips: 'Клипы',
+    createClip: 'Создать клип',
+    clipTitle: 'Название клипа',
+    clipStart: 'Начало (секунды)',
+    clipDuration: 'Длительность (секунды)',
+    clipCreating: 'Создание…',
+    noClips: 'У этого эфира пока нет клипов',
+    playClip: 'Смотреть',
+    deleteClip: 'Удалить',
+    last60s: 'Последние 60 с',
+  },
+  he: {
+    viewOrder: 'צפייה בהזמנה',
+    title: 'סיכום השידור החי',
+    sales: 'מכירות',
+    totalRevenue: 'סה"כ הכנסות',
+    soldItems: 'נמכרו',
+    unsoldItems: 'לא נמכרו',
+    lot: 'פריט',
+    buyer: 'קונה',
+    price: 'מחיר',
+    status: 'סטטוס',
+    pending: 'ממתין',
+    orderRef: 'מספר הזמנה',
+    back: 'חזרה',
+    noSales: 'לא היו מכירות בשידור הזה',
+    buyerDetails: 'פרטי הקונה',
+    name: 'שם',
+    address: 'כתובת',
+    phone: 'טלפון',
+    close: 'סגירה',
+    watchVod: 'צפייה בהקלטה',
+    peakViewers: 'שיא צופים',
+    duration: 'משך השידור',
+    minutes: 'דק׳',
+    secondsShort: 'שנ׳',
+    clips: 'קליפים',
+    createClip: 'יצירת קליפ',
+    clipTitle: 'כותרת הקליפ',
+    clipStart: 'התחלה (שניות)',
+    clipDuration: 'משך (שניות)',
+    clipCreating: 'יוצר…',
+    noClips: 'אין קליפים לשידור הזה',
+    playClip: 'הפעלה',
+    deleteClip: 'מחיקה',
+    last60s: '60 השניות האחרונות',
+  },
+} satisfies Localized<Record<string, string>>
 
 interface SaleRow {
   item: Item
@@ -190,8 +205,8 @@ export default function LiveRecapPage() {
   const { streamId } = useParams<{ streamId: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = (pageContent as Record<string, typeof pageContent.en>)[lang] || pageContent.fr
+  const lang = getLang()
+  const ct = tr(pageContent, lang)
   const fx = ft(lang)
   usePageTitle(ct.title)
 
@@ -350,6 +365,7 @@ export default function LiveRecapPage() {
       }}>
         <button
           onClick={() => navigate('/')}
+          aria-label={ct.back}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}>
@@ -444,7 +460,7 @@ export default function LiveRecapPage() {
           }}>
             <p style={{ fontSize: '24px', fontWeight: 800, color: '#3B82F6', margin: 0 }}>
               {streamInfo.started_at && streamInfo.ended_at
-                ? `${Math.round((new Date(streamInfo.ended_at).getTime() - new Date(streamInfo.started_at).getTime()) / 60000)}${ct.minutes}`
+                ? `${Math.round((new Date(streamInfo.ended_at).getTime() - new Date(streamInfo.started_at).getTime()) / 60000)} ${ct.minutes}`
                 : '-'}
             </p>
             <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
@@ -482,7 +498,7 @@ export default function LiveRecapPage() {
                   padding: '14px',
                   display: 'flex', alignItems: 'center', gap: '12px',
                   cursor: 'pointer',
-                  textAlign: 'left',
+                  textAlign: 'start',
                   width: '100%',
                 }}
               >
@@ -529,13 +545,13 @@ export default function LiveRecapPage() {
                 </div>
 
                 {/* Price */}
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ textAlign: 'end', flexShrink: 0 }}>
                   <p style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
                     {money(sale.order?.amount ?? sale.item.current_price, sale.order?.currency)}
                   </p>
                 </div>
 
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" style={{ ...rtlFlip() }}>
                   <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
@@ -570,6 +586,7 @@ export default function LiveRecapPage() {
               </h3>
               <button
                 onClick={() => setSelectedSale(null)}
+                aria-label={ct.close}
                 style={{
                   width: '32px', height: '32px', borderRadius: '50%',
                   backgroundColor: '#222', border: 'none',
@@ -827,7 +844,7 @@ export default function LiveRecapPage() {
                       {clip.title}
                     </p>
                     <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-                      {Math.floor(clip.start_seconds / 60)}:{String(clip.start_seconds % 60).padStart(2, '0')} — {clip.duration_seconds}s
+                      {Math.floor(clip.start_seconds / 60)}:{String(clip.start_seconds % 60).padStart(2, '0')} — {clip.duration_seconds} {ct.secondsShort}
                     </p>
                   </div>
                   <button

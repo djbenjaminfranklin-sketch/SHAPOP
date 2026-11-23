@@ -3,14 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getDir, getLang } from '../lib/i18n'
+import { getDir, getLang, getLocale, tr, type Lang, type Localized } from '../lib/i18n'
 import { usePageTitle } from '../hooks/usePageTitle'
 import VodPlayer from '../components/stream/VodPlayer'
 import FulfillmentPanel from '../components/orders/FulfillmentPanel'
 import { formatMoney, shortOrderRef } from '../lib/fulfillment'
-import { statusLabel } from '../lib/fulfillmentText'
-
-type Lang = 'fr' | 'en' | 'he' | 'es' | 'ru'
+import { errorText, statusLabel } from '../lib/fulfillmentText'
 
 interface OrderDetail {
   id: string
@@ -41,44 +39,6 @@ interface OrderDetail {
 }
 
 const pageContent = {
-  fr: {
-    title: 'Détail de la commande',
-    back: 'Retour',
-    retry: 'Réessayer',
-    buyer: 'Acheteur',
-    seller: 'Vendeur',
-    amount: 'Montant',
-    itemPrice: 'Prix de l\'article',
-    shippingCost: 'Frais de port',
-    totalPaid: 'Total payé',
-    platformFee: 'Frais de la plateforme',
-    sellerPayout: 'Versement vendeur',
-    createdAt: 'Commande passée le',
-    paidAt: 'Payée le',
-    handedOverAt: 'Remise en main propre le',
-    shippedAt: 'Envoyée le',
-    deliveredAt: 'Livrée le',
-    reportProblem: 'Signaler un problème',
-    reportHint: 'Article non reçu, abîmé ou différent',
-    chatInApp: 'Écrire dans la messagerie ShaPop',
-    loading: 'Chargement…',
-    error: 'Erreur',
-    notFound: 'Commande introuvable',
-    timeline: 'Chronologie',
-    requestReturn: 'Demander un retour',
-    returnReason: 'Raison du retour',
-    returnReasonPlaceholder: 'Décris la raison du retour…',
-    submitReturn: 'Envoyer la demande',
-    submitting: 'Envoi…',
-    approveReturn: 'Accepter le retour',
-    rejectReturn: 'Refuser le retour',
-    rejectReason: 'Raison du refus',
-    rejectReasonPlaceholder: 'Explique pourquoi tu refuses…',
-    confirmReject: 'Confirmer le refus',
-    returnPending: 'Retour demandé',
-    cancel: 'Annuler',
-    seeVideoMoment: 'Voir le moment dans la vidéo',
-  },
   en: {
     title: 'Order details',
     back: 'Back',
@@ -116,6 +76,46 @@ const pageContent = {
     returnPending: 'Return requested',
     cancel: 'Cancel',
     seeVideoMoment: 'See the moment in the video',
+    video: 'Video',
+  },
+  fr: {
+    title: 'Détail de la commande',
+    back: 'Retour',
+    retry: 'Réessayer',
+    buyer: 'Acheteur',
+    seller: 'Vendeur',
+    amount: 'Montant',
+    itemPrice: 'Prix de l\'article',
+    shippingCost: 'Frais de port',
+    totalPaid: 'Total payé',
+    platformFee: 'Frais de la plateforme',
+    sellerPayout: 'Versement vendeur',
+    createdAt: 'Commande passée le',
+    paidAt: 'Payée le',
+    handedOverAt: 'Remise en main propre le',
+    shippedAt: 'Envoyée le',
+    deliveredAt: 'Livrée le',
+    reportProblem: 'Signaler un problème',
+    reportHint: 'Article non reçu, abîmé ou différent',
+    chatInApp: 'Écrire dans la messagerie ShaPop',
+    loading: 'Chargement…',
+    error: 'Erreur',
+    notFound: 'Commande introuvable',
+    timeline: 'Chronologie',
+    requestReturn: 'Demander un retour',
+    returnReason: 'Raison du retour',
+    returnReasonPlaceholder: 'Décris la raison du retour…',
+    submitReturn: 'Envoyer la demande',
+    submitting: 'Envoi…',
+    approveReturn: 'Accepter le retour',
+    rejectReturn: 'Refuser le retour',
+    rejectReason: 'Raison du refus',
+    rejectReasonPlaceholder: 'Explique pourquoi tu refuses…',
+    confirmReject: 'Confirmer le refus',
+    returnPending: 'Retour demandé',
+    cancel: 'Annuler',
+    seeVideoMoment: 'Voir le moment dans la vidéo',
+    video: 'Vidéo',
   },
   es: {
     title: 'Detalle del pedido',
@@ -154,6 +154,7 @@ const pageContent = {
     returnPending: 'Devolución solicitada',
     cancel: 'Cancelar',
     seeVideoMoment: 'Ver el momento en el vídeo',
+    video: 'Vídeo',
   },
   ru: {
     title: 'Детали заказа',
@@ -192,6 +193,7 @@ const pageContent = {
     returnPending: 'Запрошен возврат',
     cancel: 'Отмена',
     seeVideoMoment: 'Посмотреть момент в видео',
+    video: 'Видео',
   },
   he: {
     title: 'פרטי הזמנה',
@@ -229,14 +231,13 @@ const pageContent = {
     confirmReject: 'אשר דחייה',
     returnPending: 'התבקשה החזרה',
     cancel: 'ביטול',
-    seeVideoMoment: 'צפה ברגע בווידאו',
+    seeVideoMoment: 'צפייה ברגע בסרטון',
+    video: 'סרטון',
   },
-} as const
-
-const LOCALES: Record<Lang, string> = { fr: 'fr-FR', en: 'en-US', es: 'es-ES', ru: 'ru-RU', he: 'he-IL' }
+} satisfies Localized<Record<string, string>>
 
 function formatDate(dateStr: string, lang: Lang) {
-  return new Date(dateStr).toLocaleDateString(LOCALES[lang] || 'en-US', {
+  return new Date(dateStr).toLocaleDateString(getLocale(lang), {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
   })
 }
@@ -266,8 +267,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, session } = useAuth()
-  const lang = ((getLang() as string) in pageContent ? getLang() : 'en') as Lang
-  const ct = pageContent[lang]
+  const lang = getLang()
+  const ct = tr(pageContent, lang)
   usePageTitle(ct.title)
 
   const [order, setOrder] = useState<OrderDetail | null>(null)
@@ -319,7 +320,7 @@ export default function OrderDetailPage() {
   }, [fetchOrder])
 
   const postOrderAction = async (path: string, body?: unknown) => {
-    if (!order || !session) throw new Error('no session')
+    if (!order || !session) throw new Error(ct.error)
     const res = await apiFetch(`/api/orders/${order.id}/${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -327,7 +328,7 @@ export default function OrderDetailPage() {
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
-      throw new Error(err.error || ct.error)
+      throw new Error(err.error ? errorText(String(err.error), lang) : ct.error)
     }
     return res.json()
   }
@@ -470,7 +471,7 @@ export default function OrderDetailPage() {
         {order.stream_recording_url && order.purchase_stream_offset_seconds != null && (
           <div style={{ padding: '12px 16px', borderBottom: '1px solid #111' }}>
             <button
-              onClick={() => setVodModal({ url: order.stream_recording_url!, title: order.item?.title || 'Video', offset: order.purchase_stream_offset_seconds! })}
+              onClick={() => setVodModal({ url: order.stream_recording_url!, title: order.item?.title || ct.video, offset: order.purchase_stream_offset_seconds! })}
               style={{
                 width: '100%', padding: '12px 16px', borderRadius: '12px', background: 'rgba(139,92,246,0.08)',
                 border: '1px solid rgba(139,92,246,0.25)', color: '#8B5CF6', fontSize: '14px', fontWeight: 700, cursor: 'pointer',

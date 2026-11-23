@@ -304,7 +304,7 @@ export function auditPhysicalDirections(files) {
         }
       }
       if (ts.isJsxAttribute(n) && n.name.getText(sf) === 'className' && n.initializer && ts.isStringLiteral(n.initializer)) {
-        const m = n.initializer.text.match(/(^|\s)(-?(ml|mr|pl|pr|left|right)-\S+|text-left|text-right|rounded-[lr]\S*|border-[lr](-\S+)?)(?=\s|$)/)
+        const m = n.initializer.text.match(/(^|\s)(-?(ml|mr|pl|pr|left|right)-\S+|text-left|text-right|rounded-[lr](-\S+)?|border-[lr](-\S+)?)(?=\s|$)/)
         const line = lineOf(sf, n)
         if (m && !ignored(lines, line)) problems.push({ file, line, message: `classe ${m[2]} : utiliser ms-/me-/ps-/pe-/start-/end-/text-start` })
       }

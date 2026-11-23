@@ -69,7 +69,7 @@ export default function HandoverPage() {
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 16px', gap: '12px' }}>
           <button
             onClick={() => navigate(-1)}
-            aria-label="Back"
+            aria-label={t.back}
             style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1A1A1A', border: '1px solid #333', color: '#fff', cursor: 'pointer', flexShrink: 0, fontSize: '18px' }}
           >
             <span style={{ display: 'inline-block', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>‹</span>

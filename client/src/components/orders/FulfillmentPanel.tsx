@@ -73,7 +73,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
           </p>
         )}
         {data.fulfillment_method === 'pickup' && data.pickup_area && (
-          <p style={hint}>{t.pickup_area} : <strong style={{ color: '#ddd' }}>{data.pickup_area}</strong></p>
+          <p style={hint}>{t.pickup_area}{t.colon} <strong style={{ color: '#ddd' }}>{data.pickup_area}</strong></p>
         )}
         {data.handed_over_at && <p style={hint}>{t.handed_over_on} {formatDateTime(data.handed_over_at, lang)}</p>}
         {data.proof_submitted_at && <p style={hint}>{t.shipped_on} {formatDateTime(data.proof_submitted_at, lang)}</p>}
@@ -123,7 +123,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
               </a>
             ) : null)}
           </div>
-          {data.tracking_number && <p style={hint}>{t.tracking_number} : <span dir="ltr" style={{ color: '#ddd' }}>{data.tracking_number}</span></p>}
+          {data.tracking_number && <p style={hint}>{t.tracking_number}{t.colon} <span dir="ltr" style={{ color: '#ddd' }}>{data.tracking_number}</span></p>}
         </div>
       )}
 

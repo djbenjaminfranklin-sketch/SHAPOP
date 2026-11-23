@@ -3,121 +3,138 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, type Localized } from '../lib/i18n'
+import { formatItemPrice } from '../lib/fulfillment'
 import { usePageTitle } from '../hooks/usePageTitle'
 import type { Conversation, ConversationMessage } from '../types/database'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
 const pageContent = {
-  fr: {
-    placeholder: 'Votre message...',
-    loading: 'Chargement...',
-    loginRequired: 'Connectez-vous pour voir cette conversation.',
-    back: 'Retour',
-    startConversation: 'Commencez la conversation',
-    attachment: 'Pièce jointe',
-    warningBanner: 'Toute communication hors plateforme est interdite',
-    messages: 'Messages',
-    order: 'Commande #',
-    messageFlagged: '[Message masque]',
-    defaultUser: 'Utilisateur',
-    notFound: 'Conversation introuvable',
-    unknownError: 'Erreur inconnue',
-    sendError: 'Erreur lors de l\'envoi',
-    uploadError: 'Erreur lors du chargement',
-    contactWarning: 'Partager des coordonnées personnelles est interdit sur ShaPop. Les récidives entrainent une suspension de compte.',
-    yesterday: 'Hier',
-    noMessages: 'Aucun message pour le moment',
-    justNow: 'A l\'instant',
-    minutesAgo: 'il y a {n}min',
-    hoursAgo: 'il y a {n}h',
-    daysAgo: 'il y a {n}j',
-    send: 'Envoyer',
-  },
   en: {
-    placeholder: 'Your message...',
-    loading: 'Loading...',
-    loginRequired: 'Log in to view this conversation.',
+    placeholder: 'Your message…',
+    loading: 'Loading…',
+    loginRequired: 'Log in to see this conversation.',
     back: 'Back',
     startConversation: 'Start the conversation',
     attachment: 'Attachment',
-    warningBanner: 'All communication outside the platform is prohibited',
+    warningBanner: 'Keep all conversations on ShaPop: contact outside the app is not allowed',
     messages: 'Messages',
     order: 'Order #',
     messageFlagged: '[Hidden message]',
     defaultUser: 'User',
     notFound: 'Conversation not found',
-    unknownError: 'Unknown error',
-    sendError: 'Failed to send',
-    uploadError: 'Upload failed',
-    contactWarning: 'Sharing personal contact information is prohibited on ShaPop. Repeat offenses will result in account suspension.',
+    unknownError: 'Something went wrong',
+    sendError: 'Couldn\'t send the message',
+    uploadError: 'Couldn\'t upload the file',
+    contactWarning: 'Sharing personal contact details is not allowed on ShaPop. Repeat offenses lead to account suspension.',
     yesterday: 'Yesterday',
     noMessages: 'No messages yet',
     justNow: 'Just now',
-    minutesAgo: '{n}min ago',
-    hoursAgo: '{n}h ago',
-    daysAgo: '{n}d ago',
+    minutesAgo: '{n} min ago',
+    hoursAgo: '{n} h ago',
+    daysAgo: '{n} d ago',
     send: 'Send',
   },
+  fr: {
+    placeholder: 'Ton message…',
+    loading: 'Chargement…',
+    loginRequired: 'Connecte-toi pour voir cette conversation.',
+    back: 'Retour',
+    startConversation: 'Lance la conversation',
+    attachment: 'Pièce jointe',
+    warningBanner: 'Reste sur ShaPop : tout échange en dehors de l\'appli est interdit',
+    messages: 'Messages',
+    order: 'Commande n° ',
+    messageFlagged: '[Message masqué]',
+    defaultUser: 'Utilisateur',
+    notFound: 'Conversation introuvable',
+    unknownError: 'Une erreur est survenue',
+    sendError: 'Impossible d\'envoyer le message',
+    uploadError: 'Impossible d\'envoyer le fichier',
+    contactWarning: 'Partager tes coordonnées personnelles est interdit sur ShaPop. En cas de récidive, ton compte sera suspendu.',
+    yesterday: 'Hier',
+    noMessages: 'Aucun message pour l\'instant',
+    justNow: 'À l\'instant',
+    minutesAgo: 'il y a {n} min',
+    hoursAgo: 'il y a {n} h',
+    daysAgo: 'il y a {n} j',
+    send: 'Envoyer',
+  },
+  es: {
+    placeholder: 'Tu mensaje…',
+    loading: 'Cargando…',
+    loginRequired: 'Inicia sesión para ver esta conversación.',
+    back: 'Volver',
+    startConversation: 'Empieza la conversación',
+    attachment: 'Archivo adjunto',
+    warningBanner: 'Quédate en ShaPop: está prohibido comunicarse fuera de la app',
+    messages: 'Mensajes',
+    order: 'Pedido n.º ',
+    messageFlagged: '[Mensaje oculto]',
+    defaultUser: 'Usuario',
+    notFound: 'Conversación no encontrada',
+    unknownError: 'Ha ocurrido un error',
+    sendError: 'No se pudo enviar el mensaje',
+    uploadError: 'No se pudo subir el archivo',
+    contactWarning: 'Está prohibido compartir datos de contacto personales en ShaPop. Si reincides, tu cuenta será suspendida.',
+    yesterday: 'Ayer',
+    noMessages: 'Aún no hay mensajes',
+    justNow: 'Ahora',
+    minutesAgo: 'hace {n} min',
+    hoursAgo: 'hace {n} h',
+    daysAgo: 'hace {n} d',
+    send: 'Enviar',
+  },
+  ru: {
+    placeholder: 'Твоё сообщение…',
+    loading: 'Загрузка…',
+    loginRequired: 'Войди, чтобы открыть этот диалог.',
+    back: 'Назад',
+    startConversation: 'Начни диалог',
+    attachment: 'Вложение',
+    warningBanner: 'Общайся только в ShaPop: связь вне приложения запрещена',
+    messages: 'Сообщения',
+    order: 'Заказ №',
+    messageFlagged: '[Сообщение скрыто]',
+    defaultUser: 'Пользователь',
+    notFound: 'Диалог не найден',
+    unknownError: 'Что-то пошло не так',
+    sendError: 'Не удалось отправить сообщение',
+    uploadError: 'Не удалось загрузить файл',
+    contactWarning: 'В ShaPop запрещено делиться личными контактами. При повторном нарушении аккаунт будет заблокирован.',
+    yesterday: 'Вчера',
+    noMessages: 'Сообщений пока нет',
+    justNow: 'Только что',
+    minutesAgo: '{n} мин назад',
+    hoursAgo: '{n} ч назад',
+    daysAgo: '{n} д назад',
+    send: 'Отправить',
+  },
   he: {
-    placeholder: '...ההודעה שלך',
-    loading: '...טוען',
-    loginRequired: 'התחבר כדי לצפות בשיחה זו.',
-    back: 'חזור',
-    startConversation: 'התחל את השיחה',
+    placeholder: 'ההודעה שלך…',
+    loading: 'טוען…',
+    loginRequired: 'יש להתחבר כדי לראות את השיחה הזו.',
+    back: 'חזרה',
+    startConversation: 'אפשר להתחיל את השיחה',
     attachment: 'קובץ מצורף',
-    warningBanner: 'כל תקשורת מחוץ לפלטפורמה אסורה',
+    warningBanner: 'נשארים ב-ShaPop: אסור לתקשר מחוץ לאפליקציה',
     messages: 'הודעות',
-    order: '# הזמנה',
+    order: 'הזמנה #',
     messageFlagged: '[הודעה מוסתרת]',
     defaultUser: 'משתמש',
     notFound: 'השיחה לא נמצאה',
-    unknownError: 'שגיאה לא ידועה',
-    sendError: 'השליחה נכשלה',
-    uploadError: 'ההעלאה נכשלה',
-    contactWarning: 'שיתוף פרטי קשר אישיים אסור ב-ShaPop. עבירות חוזרות יובילו להשעיית חשבון.',
+    unknownError: 'משהו השתבש',
+    sendError: 'לא הצלחנו לשלוח את ההודעה',
+    uploadError: 'לא הצלחנו להעלות את הקובץ',
+    contactWarning: 'אסור לשתף פרטי קשר אישיים ב-ShaPop. הפרה חוזרת תוביל להשעיית החשבון.',
     yesterday: 'אתמול',
-    noMessages: 'אין הודעות עדיין',
+    noMessages: 'אין עדיין הודעות',
     justNow: 'עכשיו',
     minutesAgo: 'לפני {n} דק׳',
     hoursAgo: 'לפני {n} שע׳',
     daysAgo: 'לפני {n} ימים',
-    send: 'שלח',
+    send: 'שליחה',
   },
-  es: {
-    placeholder: 'Tu mensaje...',
-    loading: 'Cargando...',
-    loginRequired: 'Inicia sesión para ver esta conversación.',
-    back: 'Volver',
-    startConversation: 'Comienza la conversación',
-    attachment: 'Archivo adjunto',
-    warningBanner: 'Toda comunicación fuera de la plataforma está prohibida',
-    messages: 'Mensajes',
-    order: 'Pedido #',
-    messageFlagged: '[Mensaje oculto]',
-    defaultUser: 'Usuario',
-    notFound: 'Conversación no encontrada',
-    unknownError: 'Error desconocido',
-    sendError: 'Error al enviar',
-    uploadError: 'Error al cargar',
-    contactWarning: 'Compartir información de contacto personal está prohibido en ShaPop. Las reincidencias resultarán en la suspensión de la cuenta.',
-    yesterday: 'Ayer',
-    noMessages: 'Sin mensajes aun',
-    justNow: 'Ahora',
-    minutesAgo: 'hace {n}min',
-    hoursAgo: 'hace {n}h',
-    daysAgo: 'hace {n}d',
-    send: 'Enviar',
-  },
-}
-
-const langLocaleMap: Record<Lang, string> = {
-  fr: 'fr-FR',
-  en: 'en-US',
-  he: 'he-IL',
-  es: 'es-ES',
-}
+} satisfies Localized<Record<string, string>>
 
 function getInitials(name: string): string {
   return name
@@ -156,11 +173,11 @@ function formatRelativeTime(
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { user, session } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = pageContent[lang] || pageContent.fr
+  const { user, session, profile } = useAuth()
+  const lang = getLang()
+  const ct = tr(pageContent, lang)
   usePageTitle(ct.messages)
-  const locale = langLocaleMap[lang] || 'fr-FR'
+  const locale = getLocale(lang)
 
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<ConversationMessage[]>([])
@@ -170,6 +187,8 @@ export default function ConversationPage() {
   const [sending, setSending] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
+  // Pays du vendeur de l'article (pour afficher le prix dans sa devise)
+  const [sellerCountry, setSellerCountry] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -184,6 +203,19 @@ export default function ConversationPage() {
       })
     }
   }, [])
+
+  const itemId = conversation?.item?.id
+  useEffect(() => {
+    if (!itemId) return
+    let cancelled = false
+    ;(async () => {
+      const { data: it } = await supabase.from('items').select('seller_id').eq('id', itemId).maybeSingle()
+      if (!it?.seller_id || cancelled) return
+      const { data: sp } = await supabase.from('profiles').select('country').eq('id', it.seller_id).maybeSingle()
+      if (!cancelled && sp?.country) setSellerCountry(sp.country)
+    })()
+    return () => { cancelled = true }
+  }, [itemId])
 
   // Fetch conversation + messages
   const fetchData = useCallback(async () => {
@@ -343,7 +375,7 @@ export default function ConversationPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || ct.sendError)
+        throw new Error(ct.sendError)
       }
 
       const result = await res.json().catch(() => ({}))
@@ -354,8 +386,8 @@ export default function ConversationPage() {
       setNewMessage('')
       inputRef.current?.focus()
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : ct.unknownError
-      setSendError(message)
+      if (import.meta.env.DEV) console.error(err)
+      setSendError(ct.sendError)
     } finally {
       setSending(false)
     }
@@ -383,8 +415,8 @@ export default function ConversationPage() {
 
       await handleSend([urlData.publicUrl])
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : ct.uploadError
-      setSendError(message)
+      if (import.meta.env.DEV) console.error(err)
+      setSendError(ct.uploadError)
     } finally {
       setUploading(false)
       // Reset input
@@ -507,7 +539,7 @@ export default function ConversationPage() {
               </p>
               {conversation?.item?.title && (
                 <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {conversation.item.title}{conversation.item.current_price ? ` — ${conversation.item.current_price}€` : ''}
+                  {conversation.item.title}{conversation.item.current_price ? ` — ${formatItemPrice(conversation.item.current_price, sellerCountry ?? profile?.country, lang)}` : ''}
                 </p>
               )}
               {!conversation?.item?.title && conversation?.order_id && (
