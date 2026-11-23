@@ -1,3 +1,4 @@
+import type React from 'react'
 import { LiveKitRoom, VideoTrack, AudioTrack, useRemoteParticipants, useTracks } from '@livekit/components-react'
 import { Track } from 'livekit-client'
 import type { CSSProperties } from 'react'
@@ -8,6 +9,19 @@ interface LiveKitViewerProps {
   livekitToken: string
   muted?: boolean
   style?: CSSProperties
+}
+
+// Android (WebView) : une vidéo mise en pause par un changement d'écran n'est pas relancée seule
+// et affiche l'icône « lecture » grise par défaut. On masque cette affiche et on relance la lecture.
+const TRANSPARENT_POSTER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+const LIVE_VIDEO_PROPS = {
+  poster: TRANSPARENT_POSTER,
+  playsInline: true,
+  muted: true,
+  onPause: (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget
+    if (!v.ended) setTimeout(() => { v.play().catch(() => { /* relancé au prochain geste */ }) }, 300)
+  },
 }
 
 function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties }) {
@@ -60,6 +74,7 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
         <VideoTrack
           trackRef={videoTracks[0]}
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          {...LIVE_VIDEO_PROPS}
         />
         {!muted && audioTracks.map((at, i) => at.publication?.track && (
           <AudioTrack key={at.publication?.trackSid || `audio-${i}`} trackRef={at} volume={1} />
@@ -83,6 +98,7 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
           <VideoTrack
             trackRef={vt}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            {...LIVE_VIDEO_PROPS}
           />
           {/* Label */}
           <div style={{

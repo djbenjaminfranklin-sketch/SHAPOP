@@ -398,11 +398,11 @@ const pageContent = {
 } satisfies Localized<Record<string, string>>
 
 const cameraModalContent = {
-  en: { title: 'Camera & microphone', desc: 'ShaPop needs your camera and microphone to go live', allow: 'Continue', skip: 'Continue' },
-  fr: { title: 'Caméra et micro', desc: 'ShaPop a besoin de ta caméra et de ton micro pour les lives', allow: 'Continuer', skip: 'Continuer' },
-  es: { title: 'Cámara y micrófono', desc: 'ShaPop necesita tu cámara y tu micrófono para los directos', allow: 'Continuar', skip: 'Continuar' },
-  ru: { title: 'Камера и микрофон', desc: 'ShaPop нужны камера и микрофон для прямых эфиров', allow: 'Продолжить', skip: 'Продолжить' },
-  he: { title: 'מצלמה ומיקרופון', desc: 'ShaPop צריכה גישה למצלמה ולמיקרופון שלך לשידורים חיים', allow: 'המשך', skip: 'המשך' },
+  en: { title: 'Camera & microphone', desc: 'ShaPop needs your camera and microphone to go live', allow: 'Continue', skip: 'Not now' },
+  fr: { title: 'Caméra et micro', desc: 'ShaPop a besoin de ta caméra et de ton micro pour les lives', allow: 'Continuer', skip: 'Plus tard' },
+  es: { title: 'Cámara y micrófono', desc: 'ShaPop necesita tu cámara y tu micrófono para los directos', allow: 'Continuar', skip: 'Ahora no' },
+  ru: { title: 'Камера и микрофон', desc: 'ShaPop нужны камера и микрофон для прямых эфиров', allow: 'Продолжить', skip: 'Не сейчас' },
+  he: { title: 'מצלמה ומיקרופון', desc: 'ShaPop צריכה גישה למצלמה ולמיקרופון שלך לשידורים חיים', allow: 'המשך', skip: 'לא עכשיו' },
 } satisfies Localized<{ title: string; desc: string; allow: string; skip: string }>
 
 /** Forme plurielle selon la langue (le russe a 3 formes : 1 товар, 2 товара, 5 товаров). */
@@ -1094,10 +1094,8 @@ export default function PrepareLivePage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="1" y="3" width="15" height="13" rx="1" />
-                <path d="M16 8h4l3 3v5h-7V8z" />
-                <circle cx="5.5" cy="18.5" r="2.5" />
-                <circle cx="18.5" cy="18.5" r="2.5" />
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
               </svg>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
                 {ct.shippingDelay}

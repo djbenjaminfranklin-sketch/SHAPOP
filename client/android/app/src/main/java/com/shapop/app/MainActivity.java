@@ -13,6 +13,10 @@ public class MainActivity extends BridgeActivity {
         // Plugins maison : à enregistrer AVANT super.onCreate()
         registerPlugin(ShaPopNativePlugin.class);
         super.onCreate(savedInstanceState);
+        // Directs : laisser la vidéo reprendre seule (sinon pause + icône « lecture » après un changement d'écran)
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
+        }
         createDefaultNotificationChannel();
     }
 
