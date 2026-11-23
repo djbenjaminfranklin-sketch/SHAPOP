@@ -26,6 +26,7 @@ import { ft } from '../lib/fulfillmentText'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
+import { useLiveScreen } from '../hooks/useLiveScreen'
 
 const streamContent = {
   en: {
@@ -870,6 +871,7 @@ export default function StreamView() {
   const userRef = useRef(user)
   useEffect(() => { userRef.current = user }, [user])
   const videoRef = useRef<HTMLVideoElement>(null)
+  useLiveScreen()
   const chatEndRef = useRef<HTMLDivElement>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const auctionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)

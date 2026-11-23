@@ -210,22 +210,26 @@ function useAppSettings() {
 
         // Manage the counter-inversion stylesheet for media elements
         let styleEl = document.getElementById('shapop-theme-fix') as HTMLStyleElement | null
+        // Thème clair = inversion des couleurs de toute la page, appliquée par une classe sur <html>.
+        // Les écrans de direct posent la classe « live-screen » : pas de filtre du tout chez eux
+        // (sur iPhone, une vidéo en direct sous un filtre CSS ne remplit plus l'écran).
+        html.style.filter = ''
+        html.classList.toggle('theme-light', isLight)
         if (isLight) {
-          html.style.filter = 'invert(1) hue-rotate(180deg)'
           html.style.backgroundColor = '#fff'
-          // Counter-invert video/img/canvas so they look normal
           if (!styleEl) {
             styleEl = document.createElement('style')
             styleEl.id = 'shapop-theme-fix'
             document.head.appendChild(styleEl)
           }
           styleEl.textContent = `
-            video, img, canvas, svg image { filter: invert(1) hue-rotate(180deg) !important; }
-            .no-theme-invert { filter: invert(1) hue-rotate(180deg) !important; }
-            .no-theme-invert video, .no-theme-invert img, .no-theme-invert canvas, .no-theme-invert svg image { filter: none !important; }
+            html.theme-light:not(.live-screen) { filter: invert(1) hue-rotate(180deg); }
+            html.theme-light.live-screen { background-color: #000 !important; }
+            html.theme-light:not(.live-screen) video, html.theme-light:not(.live-screen) img, html.theme-light:not(.live-screen) canvas, html.theme-light:not(.live-screen) svg image { filter: invert(1) hue-rotate(180deg) !important; }
+            html.theme-light:not(.live-screen) .no-theme-invert { filter: invert(1) hue-rotate(180deg) !important; }
+            html.theme-light:not(.live-screen) .no-theme-invert video, html.theme-light:not(.live-screen) .no-theme-invert img, html.theme-light:not(.live-screen) .no-theme-invert canvas, html.theme-light:not(.live-screen) .no-theme-invert svg image { filter: none !important; }
           `
         } else {
-          html.style.filter = ''
           html.style.backgroundColor = '#0a0a0a'
           if (styleEl) styleEl.textContent = ''
         }

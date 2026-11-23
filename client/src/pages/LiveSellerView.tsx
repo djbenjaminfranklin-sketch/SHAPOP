@@ -1,5 +1,6 @@
 import { formatSystemMessage } from '../lib/chatSystem'
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLiveScreen } from '../hooks/useLiveScreen'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -528,6 +529,8 @@ export default function LiveSellerView() {
   usePageTitle(ct.live)
 
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  useLiveScreen()
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -1654,17 +1657,20 @@ export default function LiveSellerView() {
       )}
 
       {/* Full-screen video */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        style={{
-          position: 'absolute', inset: 0,
-          width: '100%', height: '100%', objectFit: 'cover',
-          transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
-        }}
-      />
+      {/* Miroir appliqué au conteneur, pas à la vidéo : sur iPhone, une vidéo transformée
+          ignore object-fit et reste dans un cadre au milieu de l'écran. */}
+      <div style={{
+        position: 'absolute', inset: 0, overflow: 'hidden',
+        transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
+      }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      </div>
 
       {/* Top gradient */}
       <div style={{
@@ -3067,3 +3073,4 @@ export default function LiveSellerView() {
     </div>
   )
 }
+
