@@ -114,7 +114,7 @@ export function usePushNotifications() {
       } else if (data?.stream_id) {
         deepLink = `/stream/${data.stream_id}`
       } else if (data?.order_id) {
-        deepLink = `/orders`
+        deepLink = `/order/${data.order_id}`
       }
       if (deepLink) {
         // Store for cold start (router may not be mounted yet)
