@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, type Lang, type Localized } from '../lib/i18n'
+import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { showToast } from '../lib/toast'
@@ -14,127 +15,51 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import FulfillmentSettings from '../components/seller/FulfillmentSettings'
 import { ft } from '../lib/fulfillmentText'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
 const content = {
-  fr: {
-    title: 'Paiements et livraison',
-    payTitle: 'Moyens de paiement',
-    securePayments: 'Connectez Stripe pour recevoir vos paiements',
-    secureDesc: 'Stripe gere vos paiements de maniere securisee. Les acheteurs paient, et vous recevez votre argent automatiquement.',
-    setupPayment: 'Connecter avec Stripe',
-    selectCountry: 'Choisissez votre pays',
-    selectCountryDesc: 'Stripe a besoin de connaitre votre pays pour creer votre compte vendeur.',
-    confirm: 'Continuer',
-    cancel: 'Annuler',
-    countryNotSupported: 'Ce pays n\'est pas encore supporte par Stripe.',
-    paymentConfigured: 'Stripe connecte',
-    configuredDesc: 'Votre compte Stripe est actif. Vous pouvez recevoir des paiements et consulter votre tableau de bord.',
-    openDashboard: 'Ouvrir mon dashboard Stripe',
-    pendingDesc: 'Votre compte Stripe est en cours de verification. Completez les informations manquantes.',
-    completSetup: 'Completer la configuration',
-    loading: 'Chargement...',
-    connecting: 'Connexion a Stripe...',
-    shipTitle: 'Preferences de livraison',
-    defaultShip: 'Livraison par defaut',
-    standard: 'Standard (La Poste)',
-    express: 'Express (coursier)',
-    pickup: 'Retrait en main propre',
-    feesTitle: 'Vos frais',
-    feesDesc: 'Commission 8% + Stripe 2,9% + 0,30\u20AC + TVA 20%',
-    feesExample: 'Exemple : vente de 50\u20AC \u2192 vous recevez 43,10\u20AC',
-    close: 'Fermer',
-    pending: 'En attente',
-    notSellerMsg: 'Devenez vendeur pour connecter Stripe et recevoir des paiements.',
-    savedLocally: 'Sauvegarde sur cet appareil',
-    errorConnect: 'Erreur de connexion a Stripe',
-    errorDashboard: 'Impossible d\'ouvrir le dashboard Stripe',
-    errorLoad: 'Erreur de chargement du statut Stripe',
-    buyerCardTitle: 'Carte bancaire',
-    buyerCardDesc: 'Ajoutez une carte pour encherir en live',
-    buyerCardSaved: 'Carte enregistree',
-    buyerCardLast4: 'se terminant par',
-    buyerChangeCard: 'Changer de carte',
-    buyerAddCard: 'Ajouter une carte',
-    buyerSaveCard: 'Enregistrer la carte',
-    buyerCardSuccess: 'Carte enregistree avec succes !',
-    buyerCardError: 'Erreur lors de l\'enregistrement',
-    buyerNoCard: 'Aucune carte enregistree',
-    buyerNoCardDesc: 'Ajoutez une carte bancaire pour pouvoir encherir sur les lives',
-    paypalConnected: 'PayPal connecte',
-    paypalConnectedDesc: 'Vos ventes seront versees sur votre compte PayPal.',
-    paypalEmail: 'Email PayPal',
-    paypalChangeEmail: 'Modifier l\'email',
-    paypalSaveEmail: 'Enregistrer',
-    paypalRecentPayouts: 'Versements recents',
-    paypalNoPayout: 'Aucun versement pour le moment',
-    paypalStatus_pending: 'En attente',
-    paypalStatus_ready: 'Pret',
-    paypalStatus_processing: 'En cours',
-    paypalStatus_completed: 'Complete',
-    paypalStatus_failed: 'Echoue',
-    paypalCountryTitle: 'Paiement via PayPal',
-    paypalCountryDesc: 'Stripe n\'est pas disponible dans votre pays. Entrez votre email PayPal pour recevoir vos paiements.',
-    paypalCountryPlaceholder: 'email@paypal.com',
-    paypalCountrySave: 'Connecter PayPal',
-    pageDesc: 'Ces informations sont necessaires pour placer une enchere, passer une commande ou acheter un produit pendant un live. Nous debiterons ta carte si une enchere ou une offre est acceptee.',
-    paymentMethod: 'Mode de paiement',
-    shippingDetails: 'Details d\'expedition',
-    shippingDelay: 'Delai d\'expedition',
-    shippingDelayHint: 'Nombre de jours max avant expedition',
-    days: 'jours',
-    addPaymentMethod: 'Ajouter un mode de paiement',
-    addPaymentMethodDesc: 'Aucun montant ne sera debite tant que tu n\'auras pas achete un article.',
-    creditCard: 'Carte bancaire',
-    applePay: 'Apple Pay',
-    applePayUnavailable: 'Non disponible sur cet appareil',
-    noPaymentMethod: 'Aucun mode de paiement',
-    noAddress: 'Aucune adresse enregistree',
-  },
   en: {
-    title: 'Payments & Shipping',
-    payTitle: 'Payment Methods',
-    securePayments: 'Connect Stripe to receive payments',
-    secureDesc: 'Stripe securely manages your payments. Buyers pay, and you receive your money automatically.',
+    title: 'Payments & shipping',
+    payTitle: 'Payment methods',
+    securePayments: 'Connect Stripe to get paid',
+    secureDesc: 'Stripe handles your payments securely. Buyers pay, and the money lands in your account automatically.',
     setupPayment: 'Connect with Stripe',
     selectCountry: 'Choose your country',
     selectCountryDesc: 'Stripe needs your country to create your seller account.',
     confirm: 'Continue',
     cancel: 'Cancel',
-    countryNotSupported: 'This country is not yet supported by Stripe.',
+    countryNotSupported: 'This country isn’t supported by Stripe yet.',
     paymentConfigured: 'Stripe connected',
-    configuredDesc: 'Your Stripe account is active. You can receive payments and access your dashboard.',
+    configuredDesc: 'Your Stripe account is active. You can receive payments and open your dashboard.',
     openDashboard: 'Open my Stripe dashboard',
-    pendingDesc: 'Your Stripe account is being verified. Complete missing information.',
-    completSetup: 'Complete setup',
+    pendingDesc: 'Your Stripe account is being verified. Fill in the missing details.',
+    completSetup: 'Finish setup',
     loading: 'Loading...',
     connecting: 'Connecting to Stripe...',
-    shipTitle: 'Shipping Preferences',
+    shipTitle: 'Shipping preferences',
     defaultShip: 'Default shipping',
-    standard: 'Standard (postal)',
+    standard: 'Standard (post)',
     express: 'Express (courier)',
-    pickup: 'Self pickup',
+    pickup: 'In-person pickup',
     feesTitle: 'Your fees',
-    feesDesc: 'Commission 8% + Stripe 2.9% + \u20AC0.30 + VAT 20%',
-    feesExample: 'Example: \u20AC50 sale \u2192 you receive \u20AC43.10',
+    feesDesc: '8% commission + Stripe fees (2.9% + a fixed fee) + VAT where applicable',
+    feesExample: 'Example: a {sale} sale → you get about {net}',
     close: 'Close',
     pending: 'Pending',
-    notSellerMsg: 'Become a seller to connect Stripe and receive payments.',
+    notSellerMsg: 'Become a seller to connect Stripe and get paid.',
     savedLocally: 'Saved on this device',
-    errorConnect: 'Failed to connect to Stripe',
-    errorDashboard: 'Failed to open Stripe dashboard',
-    errorLoad: 'Failed to load Stripe status',
+    errorConnect: 'Couldn’t connect to Stripe',
+    errorDashboard: 'Couldn’t open the Stripe dashboard',
+    errorLoad: 'Couldn’t load your Stripe status',
     buyerCardTitle: 'Payment card',
-    buyerCardDesc: 'Add a card to bid on live streams',
+    buyerCardDesc: 'Add a card to bid in lives',
     buyerCardSaved: 'Card saved',
     buyerCardLast4: 'ending in',
     buyerChangeCard: 'Change card',
     buyerAddCard: 'Add a card',
     buyerSaveCard: 'Save card',
-    buyerCardSuccess: 'Card saved successfully!',
-    buyerCardError: 'Error saving card',
+    buyerCardSuccess: 'Card saved!',
+    buyerCardError: 'Couldn’t save your card',
     buyerNoCard: 'No card saved',
-    buyerNoCardDesc: 'Add a payment card to bid on live streams',
+    buyerNoCardDesc: 'Add a payment card to bid in lives',
     paypalConnected: 'PayPal connected',
     paypalConnectedDesc: 'Your sales will be paid out to your PayPal account.',
     paypalEmail: 'PayPal email',
@@ -147,173 +72,356 @@ const content = {
     paypalStatus_processing: 'Processing',
     paypalStatus_completed: 'Completed',
     paypalStatus_failed: 'Failed',
-    paypalCountryTitle: 'Payment via PayPal',
-    paypalCountryDesc: 'Stripe is not available in your country. Enter your PayPal email to receive payments.',
+    paypalCountryTitle: 'Get paid with PayPal',
+    paypalCountryDesc: 'Stripe isn’t available in your country. Enter your PayPal email to receive your payments.',
     paypalCountryPlaceholder: 'email@paypal.com',
     paypalCountrySave: 'Connect PayPal',
-    pageDesc: 'This information is required to place a bid, make an order or buy a product during a live. Your card will be charged if a bid or offer is accepted.',
+    pageDesc: 'You need this to bid, place an order or buy something during a live. Your card is only charged if a bid or offer is accepted.',
     paymentMethod: 'Payment method',
     shippingDetails: 'Shipping details',
-    shippingDelay: 'Shipping delay',
+    shippingDelay: 'Shipping time',
     shippingDelayHint: 'Max days before shipping',
     days: 'days',
     addPaymentMethod: 'Add a payment method',
-    addPaymentMethodDesc: 'No amount will be charged until you purchase an item.',
+    addPaymentMethodDesc: 'Nothing is charged until you buy an item.',
     creditCard: 'Credit card',
     applePay: 'Apple Pay',
     applePayUnavailable: 'Not available on this device',
     noPaymentMethod: 'No payment method',
     noAddress: 'No address saved',
+    back: 'Back',
+    genericError: 'Something went wrong. Please try again.',
+    paypalEmailSaved: 'PayPal email saved',
+    paypalConnectedToast: 'PayPal connected!',
+    paypalAtCheckout: 'PayPal will be available at checkout.',
+    applePayAtCheckout: 'Apple Pay will be used automatically at checkout.',
+    cardFallback: 'Card',
   },
-  he: {
-    title: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D5\u05DE\u05E9\u05DC\u05D5\u05D7',
-    payTitle: '\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
-    securePayments: '\u05D7\u05D1\u05E8 \u05D0\u05EA Stripe \u05DC\u05E7\u05D1\u05DC\u05EA \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD',
-    secureDesc: 'Stripe \u05DE\u05E0\u05D4\u05DC \u05D0\u05EA \u05D4\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D1\u05D0\u05D5\u05E4\u05DF \u05DE\u05D0\u05D5\u05D1\u05D8\u05D7.',
-    setupPayment: '\u05D4\u05EA\u05D7\u05D1\u05E8 \u05E2\u05DD Stripe',
-    selectCountry: '\u05D1\u05D7\u05E8 \u05DE\u05D3\u05D9\u05E0\u05D4',
-    selectCountryDesc: 'Stripe \u05E6\u05E8\u05D9\u05DA \u05DC\u05D3\u05E2\u05EA \u05D0\u05EA \u05D4\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA \u05DB\u05D3\u05D9 \u05DC\u05D9\u05E6\u05D5\u05E8 \u05D7\u05E9\u05D1\u05D5\u05DF \u05DE\u05D5\u05DB\u05E8.',
-    confirm: '\u05D4\u05DE\u05E9\u05DA',
-    cancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
-    countryNotSupported: '\u05D4\u05DE\u05D3\u05D9\u05E0\u05D4 \u05D4\u05D6\u05D5 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05E0\u05EA\u05DE\u05DB\u05EA \u05E2\u05DC \u05D9\u05D3\u05D9 Stripe.',
-    paymentConfigured: 'Stripe \u05DE\u05D7\u05D5\u05D1\u05E8',
-    configuredDesc: '\u05D7\u05E9\u05D1\u05D5\u05DF Stripe \u05E9\u05DC\u05DA \u05E4\u05E2\u05D9\u05DC. \u05D0\u05EA\u05D4 \u05D9\u05DB\u05D5\u05DC \u05DC\u05E7\u05D1\u05DC \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
-    openDashboard: '\u05E4\u05EA\u05D7 \u05D3\u05E9\u05D1\u05D5\u05E8\u05D3 Stripe',
-    pendingDesc: '\u05D7\u05E9\u05D1\u05D5\u05DF Stripe \u05D1\u05D0\u05D9\u05DE\u05D5\u05EA. \u05D4\u05E9\u05DC\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2 \u05D4\u05D7\u05E1\u05E8.',
-    completSetup: '\u05D4\u05E9\u05DC\u05DD \u05D4\u05D2\u05D3\u05E8\u05D4',
-    loading: '...\u05D8\u05D5\u05E2\u05DF',
-    connecting: '...\u05DE\u05EA\u05D7\u05D1\u05E8 \u05DC-Stripe',
-    shipTitle: '\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7',
-    defaultShip: '\u05DE\u05E9\u05DC\u05D5\u05D7 \u05D1\u05E8\u05D9\u05E8\u05EA \u05DE\u05D7\u05D3\u05DC',
-    standard: '\u05E8\u05D2\u05D9\u05DC (\u05D3\u05D5\u05D0\u05E8)',
-    express: '\u05DE\u05D4\u05D9\u05E8 (\u05E9\u05DC\u05D9\u05D7)',
-    pickup: '\u05D0\u05D9\u05E1\u05D5\u05E3 \u05E2\u05E6\u05DE\u05D9',
-    feesTitle: '\u05D4\u05E2\u05DE\u05DC\u05D5\u05EA \u05E9\u05DC\u05DA',
-    feesDesc: '\u05E2\u05DE\u05DC\u05D4 8% + Stripe 2.9% + 0.30\u20AC + \u05DE\u05E2"\u05DE 20%',
-    feesExample: '\u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DB\u05D9\u05E8\u05D4 50\u20AC \u2192 \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC',
-    close: '\u05E1\u05D2\u05D5\u05E8',
-    pending: '\u05D1\u05D4\u05DE\u05EA\u05E0\u05D4',
-    notSellerMsg: '\u05D4\u05E4\u05D5\u05DA \u05DC\u05DE\u05D5\u05DB\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05D7\u05D1\u05E8 Stripe \u05D5\u05DC\u05E7\u05D1\u05DC \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
-    savedLocally: '\u05E0\u05E9\u05DE\u05E8 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D6\u05D4',
-    errorConnect: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D4\u05EA\u05D7\u05D1\u05E8\u05D5\u05EA \u05DC-Stripe',
-    errorDashboard: '\u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E4\u05EA\u05D5\u05D7 \u05D0\u05EA \u05D3\u05E9\u05D1\u05D5\u05E8\u05D3 Stripe',
-    errorLoad: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D8\u05E2\u05D9\u05E0\u05EA \u05E1\u05D8\u05D8\u05D5\u05E1 Stripe',
-    buyerCardTitle: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05EA\u05E9\u05DC\u05D5\u05DD',
-    buyerCardDesc: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD',
-    buyerCardSaved: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05E0\u05E9\u05DE\u05E8',
-    buyerCardLast4: '\u05DE\u05E1\u05EA\u05D9\u05D9\u05DD \u05D1',
-    buyerChangeCard: '\u05D4\u05D7\u05DC\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1',
-    buyerAddCard: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1',
-    buyerSaveCard: '\u05E9\u05DE\u05D5\u05E8 \u05DB\u05E8\u05D8\u05D9\u05E1',
-    buyerCardSuccess: '!\u05DB\u05E8\u05D8\u05D9\u05E1 \u05E0\u05E9\u05DE\u05E8 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4',
-    buyerCardError: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05DB\u05E8\u05D8\u05D9\u05E1',
-    buyerNoCard: '\u05D0\u05D9\u05DF \u05DB\u05E8\u05D8\u05D9\u05E1 \u05E9\u05DE\u05D5\u05E8',
-    buyerNoCardDesc: '\u05D4\u05D5\u05E1\u05E3 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD',
-    paypalConnected: 'PayPal \u05DE\u05D7\u05D5\u05D1\u05E8',
-    paypalConnectedDesc: '\u05D4\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E9\u05DC\u05DA \u05D9\u05E9\u05D5\u05DC\u05DE\u05D5 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF PayPal \u05E9\u05DC\u05DA.',
-    paypalEmail: '\u05D0\u05D9\u05DE\u05D9\u05D9\u05DC PayPal',
-    paypalChangeEmail: '\u05E9\u05E0\u05D4 \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC',
-    paypalSaveEmail: '\u05E9\u05DE\u05D5\u05E8',
-    paypalRecentPayouts: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05D0\u05D7\u05E8\u05D5\u05E0\u05D9\u05DD',
-    paypalNoPayout: '\u05D0\u05D9\u05DF \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05E2\u05D3\u05D9\u05D9\u05DF',
-    paypalStatus_pending: '\u05DE\u05DE\u05EA\u05D9\u05DF',
-    paypalStatus_ready: '\u05DE\u05D5\u05DB\u05DF',
-    paypalStatus_processing: '\u05D1\u05E2\u05D9\u05D1\u05D5\u05D3',
-    paypalStatus_completed: '\u05D4\u05D5\u05E9\u05DC\u05DD',
-    paypalStatus_failed: '\u05E0\u05DB\u05E9\u05DC',
-    paypalCountryTitle: '\u05EA\u05E9\u05DC\u05D5\u05DD \u05D3\u05E8\u05DA PayPal',
-    paypalCountryDesc: 'Stripe \u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA. \u05D4\u05D6\u05DF \u05D0\u05D9\u05DE\u05D9\u05D9\u05DC PayPal \u05DC\u05E7\u05D1\u05DC\u05EA \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD.',
+  fr: {
+    title: 'Paiements et livraison',
+    payTitle: 'Moyens de paiement',
+    securePayments: 'Connecte Stripe pour être payé',
+    secureDesc: 'Stripe gère tes paiements en toute sécurité. Les acheteurs paient, et tu reçois ton argent automatiquement.',
+    setupPayment: 'Se connecter avec Stripe',
+    selectCountry: 'Choisis ton pays',
+    selectCountryDesc: 'Stripe a besoin de ton pays pour créer ton compte vendeur.',
+    confirm: 'Continuer',
+    cancel: 'Annuler',
+    countryNotSupported: 'Ce pays n’est pas encore pris en charge par Stripe.',
+    paymentConfigured: 'Stripe connecté',
+    configuredDesc: 'Ton compte Stripe est actif. Tu peux recevoir des paiements et consulter ton tableau de bord.',
+    openDashboard: 'Ouvrir mon tableau de bord Stripe',
+    pendingDesc: 'Ton compte Stripe est en cours de vérification. Complète les informations manquantes.',
+    completSetup: 'Terminer la configuration',
+    loading: 'Chargement...',
+    connecting: 'Connexion à Stripe...',
+    shipTitle: 'Préférences de livraison',
+    defaultShip: 'Livraison par défaut',
+    standard: 'Standard (poste)',
+    express: 'Express (coursier)',
+    pickup: 'Remise en main propre',
+    feesTitle: 'Tes frais',
+    feesDesc: 'Commission de 8 % + frais Stripe (2,9 % + frais fixes) + TVA le cas échéant',
+    feesExample: 'Exemple : pour une vente de {sale}, tu reçois environ {net}',
+    close: 'Fermer',
+    pending: 'En attente',
+    notSellerMsg: 'Deviens vendeur pour connecter Stripe et recevoir des paiements.',
+    savedLocally: 'Enregistré sur cet appareil',
+    errorConnect: 'Impossible de se connecter à Stripe',
+    errorDashboard: 'Impossible d’ouvrir le tableau de bord Stripe',
+    errorLoad: 'Impossible de charger ton statut Stripe',
+    buyerCardTitle: 'Carte bancaire',
+    buyerCardDesc: 'Ajoute une carte pour enchérir en live',
+    buyerCardSaved: 'Carte enregistrée',
+    buyerCardLast4: 'se terminant par',
+    buyerChangeCard: 'Changer de carte',
+    buyerAddCard: 'Ajouter une carte',
+    buyerSaveCard: 'Enregistrer la carte',
+    buyerCardSuccess: 'Carte enregistrée !',
+    buyerCardError: 'Impossible d’enregistrer ta carte',
+    buyerNoCard: 'Aucune carte enregistrée',
+    buyerNoCardDesc: 'Ajoute une carte bancaire pour enchérir pendant les lives',
+    paypalConnected: 'PayPal connecté',
+    paypalConnectedDesc: 'Tes ventes seront versées sur ton compte PayPal.',
+    paypalEmail: 'E-mail PayPal',
+    paypalChangeEmail: 'Modifier l’e-mail',
+    paypalSaveEmail: 'Enregistrer',
+    paypalRecentPayouts: 'Versements récents',
+    paypalNoPayout: 'Aucun versement pour l’instant',
+    paypalStatus_pending: 'En attente',
+    paypalStatus_ready: 'Prêt',
+    paypalStatus_processing: 'En cours',
+    paypalStatus_completed: 'Effectué',
+    paypalStatus_failed: 'Échoué',
+    paypalCountryTitle: 'Être payé via PayPal',
+    paypalCountryDesc: 'Stripe n’est pas disponible dans ton pays. Saisis ton e-mail PayPal pour recevoir tes paiements.',
     paypalCountryPlaceholder: 'email@paypal.com',
-    paypalCountrySave: '\u05D7\u05D1\u05E8 PayPal',
-    pageDesc: '\u05DE\u05D9\u05D3\u05E2 \u05D6\u05D4 \u05E0\u05D3\u05E8\u05E9 \u05DC\u05D4\u05E6\u05D9\u05E2 \u05D4\u05E6\u05E2\u05D5\u05EA, \u05DC\u05D1\u05E6\u05E2 \u05D4\u05D6\u05DE\u05E0\u05D4 \u05D0\u05D5 \u05DC\u05E7\u05E0\u05D5\u05EA \u05DE\u05D5\u05E6\u05E8 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8.',
-    paymentMethod: '\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
-    shippingDetails: '\u05E4\u05E8\u05D8\u05D9 \u05DE\u05E9\u05DC\u05D5\u05D7',
-    shippingDelay: '\u05D6\u05DE\u05DF \u05DE\u05E9\u05DC\u05D5\u05D7',
-    shippingDelayHint: '\u05D9\u05DE\u05D9\u05DD \u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD \u05DC\u05E4\u05E0\u05D9 \u05DE\u05E9\u05DC\u05D5\u05D7',
-    days: '\u05D9\u05DE\u05D9\u05DD',
-    addPaymentMethod: '\u05D4\u05D5\u05E1\u05E3 \u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
-    addPaymentMethodDesc: '\u05DC\u05D0 \u05D9\u05D7\u05D5\u05D9\u05D1 \u05E1\u05DB\u05D5\u05DD \u05E2\u05D3 \u05E9\u05EA\u05E8\u05DB\u05D5\u05E9 \u05E4\u05E8\u05D9\u05D8.',
-    creditCard: '\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05E9\u05E8\u05D0\u05D9',
+    paypalCountrySave: 'Connecter PayPal',
+    pageDesc: 'Ces informations sont nécessaires pour enchérir, passer commande ou acheter un article pendant un live. Ta carte n’est débitée que si une enchère ou une offre est acceptée.',
+    paymentMethod: 'Moyen de paiement',
+    shippingDetails: 'Détails d’expédition',
+    shippingDelay: 'Délai d’expédition',
+    shippingDelayHint: 'Nombre de jours max avant l’expédition',
+    days: 'jours',
+    addPaymentMethod: 'Ajouter un moyen de paiement',
+    addPaymentMethodDesc: 'Rien n’est débité tant que tu n’as pas acheté un article.',
+    creditCard: 'Carte bancaire',
     applePay: 'Apple Pay',
-    applePayUnavailable: '\u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D6\u05D4',
-    noPaymentMethod: '\u05D0\u05D9\u05DF \u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD',
-    noAddress: '\u05D0\u05D9\u05DF \u05DB\u05EA\u05D5\u05D1\u05EA \u05E9\u05DE\u05D5\u05E8\u05D4',
+    applePayUnavailable: 'Non disponible sur cet appareil',
+    noPaymentMethod: 'Aucun moyen de paiement',
+    noAddress: 'Aucune adresse enregistrée',
+    back: 'Retour',
+    genericError: 'Une erreur est survenue. Réessaie.',
+    paypalEmailSaved: 'E-mail PayPal enregistré',
+    paypalConnectedToast: 'PayPal connecté !',
+    paypalAtCheckout: 'PayPal sera proposé au moment du paiement.',
+    applePayAtCheckout: 'Apple Pay sera utilisé automatiquement au moment du paiement.',
+    cardFallback: 'Carte',
   },
   es: {
-    title: 'Pagos y Envio',
-    payTitle: 'Metodos de Pago',
-    securePayments: 'Conecta Stripe para recibir pagos',
-    secureDesc: 'Stripe gestiona tus pagos de forma segura. Los compradores pagan y tu recibes tu dinero automaticamente.',
+    title: 'Pagos y envíos',
+    payTitle: 'Métodos de pago',
+    securePayments: 'Conecta Stripe para cobrar',
+    secureDesc: 'Stripe gestiona tus pagos de forma segura. Los compradores pagan y tú recibes el dinero automáticamente.',
     setupPayment: 'Conectar con Stripe',
-    selectCountry: 'Elige tu pais',
-    selectCountryDesc: 'Stripe necesita saber tu pais para crear tu cuenta de vendedor.',
+    selectCountry: 'Elige tu país',
+    selectCountryDesc: 'Stripe necesita saber tu país para crear tu cuenta de vendedor.',
     confirm: 'Continuar',
     cancel: 'Cancelar',
-    countryNotSupported: 'Este pais aun no es compatible con Stripe.',
+    countryNotSupported: 'Stripe todavía no está disponible en este país.',
     paymentConfigured: 'Stripe conectado',
-    configuredDesc: 'Tu cuenta Stripe esta activa. Puedes recibir pagos y acceder a tu panel.',
+    configuredDesc: 'Tu cuenta de Stripe está activa. Puedes recibir pagos y consultar tu panel.',
     openDashboard: 'Abrir mi panel de Stripe',
-    pendingDesc: 'Tu cuenta Stripe esta en verificacion. Completa la informacion faltante.',
-    completSetup: 'Completar configuracion',
+    pendingDesc: 'Tu cuenta de Stripe se está verificando. Completa los datos que faltan.',
+    completSetup: 'Terminar la configuración',
     loading: 'Cargando...',
-    connecting: 'Conectando a Stripe...',
-    shipTitle: 'Preferencias de Envio',
-    defaultShip: 'Envio predeterminado',
-    standard: 'Estandar (Correos)',
-    express: 'Express (mensajero)',
-    pickup: 'Recoger en persona',
+    connecting: 'Conectando con Stripe...',
+    shipTitle: 'Preferencias de envío',
+    defaultShip: 'Envío predeterminado',
+    standard: 'Estándar (correo postal)',
+    express: 'Exprés (mensajero)',
+    pickup: 'Entrega en mano',
     feesTitle: 'Tus comisiones',
-    feesDesc: 'Comision 8% + Stripe 2,9% + 0,30\u20AC + IVA 20%',
-    feesExample: 'Ejemplo: venta de 50\u20AC \u2192 recibes 43,10\u20AC',
+    feesDesc: 'Comisión del 8 % + tarifas de Stripe (2,9 % + tarifa fija) + IVA si corresponde',
+    feesExample: 'Ejemplo: por una venta de {sale}, recibes unos {net}',
     close: 'Cerrar',
     pending: 'Pendiente',
-    notSellerMsg: 'Conviertete en vendedor para conectar Stripe y recibir pagos.',
+    notSellerMsg: 'Hazte vendedor para conectar Stripe y recibir pagos.',
     savedLocally: 'Guardado en este dispositivo',
-    errorConnect: 'Error al conectar con Stripe',
+    errorConnect: 'No se pudo conectar con Stripe',
     errorDashboard: 'No se pudo abrir el panel de Stripe',
-    errorLoad: 'Error al cargar el estado de Stripe',
+    errorLoad: 'No se pudo cargar tu estado de Stripe',
     buyerCardTitle: 'Tarjeta bancaria',
-    buyerCardDesc: 'Agrega una tarjeta para pujar en directo',
+    buyerCardDesc: 'Añade una tarjeta para pujar en directo',
     buyerCardSaved: 'Tarjeta guardada',
     buyerCardLast4: 'terminada en',
     buyerChangeCard: 'Cambiar tarjeta',
-    buyerAddCard: 'Agregar tarjeta',
+    buyerAddCard: 'Añadir tarjeta',
     buyerSaveCard: 'Guardar tarjeta',
-    buyerCardSuccess: 'Tarjeta guardada correctamente!',
-    buyerCardError: 'Error al guardar la tarjeta',
-    buyerNoCard: 'Sin tarjeta guardada',
-    buyerNoCardDesc: 'Agrega una tarjeta bancaria para poder pujar en los directos',
+    buyerCardSuccess: '¡Tarjeta guardada!',
+    buyerCardError: 'No se pudo guardar tu tarjeta',
+    buyerNoCard: 'No hay ninguna tarjeta guardada',
+    buyerNoCardDesc: 'Añade una tarjeta bancaria para pujar en los directos',
     paypalConnected: 'PayPal conectado',
-    paypalConnectedDesc: 'Tus ventas se pagaran a tu cuenta PayPal.',
-    paypalEmail: 'Email de PayPal',
-    paypalChangeEmail: 'Cambiar email',
+    paypalConnectedDesc: 'Tus ventas se abonarán en tu cuenta de PayPal.',
+    paypalEmail: 'Correo de PayPal',
+    paypalChangeEmail: 'Cambiar correo',
     paypalSaveEmail: 'Guardar',
     paypalRecentPayouts: 'Pagos recientes',
-    paypalNoPayout: 'Sin pagos por ahora',
+    paypalNoPayout: 'Todavía no hay pagos',
     paypalStatus_pending: 'Pendiente',
     paypalStatus_ready: 'Listo',
-    paypalStatus_processing: 'Procesando',
+    paypalStatus_processing: 'En proceso',
     paypalStatus_completed: 'Completado',
     paypalStatus_failed: 'Fallido',
-    paypalCountryTitle: 'Pago via PayPal',
-    paypalCountryDesc: 'Stripe no esta disponible en tu pais. Ingresa tu email de PayPal para recibir pagos.',
+    paypalCountryTitle: 'Cobrar con PayPal',
+    paypalCountryDesc: 'Stripe no está disponible en tu país. Introduce tu correo de PayPal para recibir tus pagos.',
     paypalCountryPlaceholder: 'email@paypal.com',
     paypalCountrySave: 'Conectar PayPal',
-    pageDesc: 'Esta informacion es necesaria para pujar, hacer un pedido o comprar un producto durante un directo. Se cargara tu tarjeta si una puja u oferta es aceptada.',
-    paymentMethod: 'Metodo de pago',
-    shippingDetails: 'Detalles de envio',
-    shippingDelay: 'Plazo de envio',
-    shippingDelayHint: 'Dias maximos antes del envio',
-    days: 'dias',
-    addPaymentMethod: 'Agregar metodo de pago',
-    addPaymentMethodDesc: 'No se cobrara ningun monto hasta que compres un articulo.',
-    creditCard: 'Tarjeta bancaria',
+    pageDesc: 'Necesitas estos datos para pujar, hacer un pedido o comprar algo durante un directo. Solo se cobrará en tu tarjeta si se acepta una puja o una oferta.',
+    paymentMethod: 'Método de pago',
+    shippingDetails: 'Datos de envío',
+    shippingDelay: 'Plazo de envío',
+    shippingDelayHint: 'Días máximos antes del envío',
+    days: 'días',
+    addPaymentMethod: 'Añadir un método de pago',
+    addPaymentMethodDesc: 'No se te cobrará nada hasta que compres un artículo.',
+    creditCard: 'Tarjeta de crédito',
     applePay: 'Apple Pay',
     applePayUnavailable: 'No disponible en este dispositivo',
-    noPaymentMethod: 'Sin metodo de pago',
-    noAddress: 'Sin direccion guardada',
+    noPaymentMethod: 'Sin método de pago',
+    noAddress: 'No hay ninguna dirección guardada',
+    back: 'Volver',
+    genericError: 'Algo salió mal. Inténtalo de nuevo.',
+    paypalEmailSaved: 'Correo de PayPal guardado',
+    paypalConnectedToast: '¡PayPal conectado!',
+    paypalAtCheckout: 'PayPal estará disponible al pagar.',
+    applePayAtCheckout: 'Apple Pay se usará automáticamente al pagar.',
+    cardFallback: 'Tarjeta',
   },
-}
+  ru: {
+    title: 'Оплата и доставка',
+    payTitle: 'Способы оплаты',
+    securePayments: 'Подключи Stripe, чтобы получать оплату',
+    secureDesc: 'Stripe надёжно обрабатывает твои платежи. Покупатели платят, а деньги поступают тебе автоматически.',
+    setupPayment: 'Подключить Stripe',
+    selectCountry: 'Выбери страну',
+    selectCountryDesc: 'Stripe нужна твоя страна, чтобы создать аккаунт продавца.',
+    confirm: 'Продолжить',
+    cancel: 'Отмена',
+    countryNotSupported: 'Stripe пока не работает в этой стране.',
+    paymentConfigured: 'Stripe подключён',
+    configuredDesc: 'Твой аккаунт Stripe активен. Ты можешь получать платежи и открывать панель управления.',
+    openDashboard: 'Открыть панель Stripe',
+    pendingDesc: 'Твой аккаунт Stripe проходит проверку. Заполни недостающие данные.',
+    completSetup: 'Завершить настройку',
+    loading: 'Загрузка...',
+    connecting: 'Подключение к Stripe...',
+    shipTitle: 'Настройки доставки',
+    defaultShip: 'Доставка по умолчанию',
+    standard: 'Стандартная (почта)',
+    express: 'Экспресс (курьер)',
+    pickup: 'Передача лично',
+    feesTitle: 'Твои комиссии',
+    feesDesc: 'Комиссия 8 % + комиссия Stripe (2,9 % + фиксированная плата) + НДС, если применимо',
+    feesExample: 'Пример: при продаже на {sale} ты получишь около {net}',
+    close: 'Закрыть',
+    pending: 'В ожидании',
+    notSellerMsg: 'Стань продавцом, чтобы подключить Stripe и получать оплату.',
+    savedLocally: 'Сохранено на этом устройстве',
+    errorConnect: 'Не удалось подключиться к Stripe',
+    errorDashboard: 'Не удалось открыть панель Stripe',
+    errorLoad: 'Не удалось загрузить статус Stripe',
+    buyerCardTitle: 'Банковская карта',
+    buyerCardDesc: 'Добавь карту, чтобы делать ставки в эфирах',
+    buyerCardSaved: 'Карта сохранена',
+    buyerCardLast4: 'заканчивается на',
+    buyerChangeCard: 'Сменить карту',
+    buyerAddCard: 'Добавить карту',
+    buyerSaveCard: 'Сохранить карту',
+    buyerCardSuccess: 'Карта сохранена!',
+    buyerCardError: 'Не удалось сохранить карту',
+    buyerNoCard: 'Нет сохранённой карты',
+    buyerNoCardDesc: 'Добавь банковскую карту, чтобы делать ставки в эфирах',
+    paypalConnected: 'PayPal подключён',
+    paypalConnectedDesc: 'Деньги за продажи будут приходить на твой аккаунт PayPal.',
+    paypalEmail: 'Email PayPal',
+    paypalChangeEmail: 'Изменить email',
+    paypalSaveEmail: 'Сохранить',
+    paypalRecentPayouts: 'Последние выплаты',
+    paypalNoPayout: 'Выплат пока нет',
+    paypalStatus_pending: 'В ожидании',
+    paypalStatus_ready: 'Готово',
+    paypalStatus_processing: 'Обрабатывается',
+    paypalStatus_completed: 'Выполнено',
+    paypalStatus_failed: 'Ошибка',
+    paypalCountryTitle: 'Получать оплату через PayPal',
+    paypalCountryDesc: 'Stripe недоступен в твоей стране. Введи email PayPal, чтобы получать платежи.',
+    paypalCountryPlaceholder: 'email@paypal.com',
+    paypalCountrySave: 'Подключить PayPal',
+    pageDesc: 'Эти данные нужны, чтобы делать ставки, оформлять заказы и покупать товары во время эфира. Деньги спишутся с карты, только если ставку или предложение примут.',
+    paymentMethod: 'Способ оплаты',
+    shippingDetails: 'Данные для доставки',
+    shippingDelay: 'Срок отправки',
+    shippingDelayHint: 'Максимум дней до отправки',
+    days: 'дн.',
+    addPaymentMethod: 'Добавить способ оплаты',
+    addPaymentMethodDesc: 'Ничего не спишется, пока ты не купишь товар.',
+    creditCard: 'Банковская карта',
+    applePay: 'Apple Pay',
+    applePayUnavailable: 'Недоступно на этом устройстве',
+    noPaymentMethod: 'Способ оплаты не выбран',
+    noAddress: 'Нет сохранённого адреса',
+    back: 'Назад',
+    genericError: 'Что-то пошло не так. Попробуй ещё раз.',
+    paypalEmailSaved: 'Email PayPal сохранён',
+    paypalConnectedToast: 'PayPal подключён!',
+    paypalAtCheckout: 'PayPal будет доступен при оплате.',
+    applePayAtCheckout: 'Apple Pay будет использоваться автоматически при оплате.',
+    cardFallback: 'Карта',
+  },
+  he: {
+    title: 'תשלומים ומשלוחים',
+    payTitle: 'אמצעי תשלום',
+    securePayments: 'חבר/י את Stripe כדי לקבל תשלומים',
+    secureDesc: 'Stripe מנהל את התשלומים שלך בצורה מאובטחת. הקונים משלמים, והכסף מגיע אליך אוטומטית.',
+    setupPayment: 'התחברות עם Stripe',
+    selectCountry: 'בחירת מדינה',
+    selectCountryDesc: 'Stripe צריך לדעת באיזו מדינה את/ה כדי ליצור חשבון מוכר.',
+    confirm: 'המשך',
+    cancel: 'ביטול',
+    countryNotSupported: 'Stripe עדיין לא תומך במדינה הזו.',
+    paymentConfigured: 'Stripe מחובר',
+    configuredDesc: 'חשבון ה-Stripe שלך פעיל. אפשר לקבל תשלומים ולפתוח את לוח הבקרה.',
+    openDashboard: 'פתיחת לוח הבקרה של Stripe',
+    pendingDesc: 'חשבון ה-Stripe שלך בבדיקה. יש להשלים את הפרטים החסרים.',
+    completSetup: 'השלמת ההגדרה',
+    loading: 'טוען...',
+    connecting: 'מתחבר ל-Stripe...',
+    shipTitle: 'העדפות משלוח',
+    defaultShip: 'משלוח ברירת מחדל',
+    standard: 'רגיל (דואר)',
+    express: 'אקספרס (שליח)',
+    pickup: 'מסירה ידנית',
+    feesTitle: 'העמלות שלך',
+    feesDesc: 'עמלה של 8% + עמלות Stripe ‏(2.9% + עמלה קבועה) + מע״מ לפי העניין',
+    feesExample: 'לדוגמה: במכירה של {sale} תקבל/י בערך {net}',
+    close: 'סגירה',
+    pending: 'בהמתנה',
+    notSellerMsg: 'כדאי להפוך למוכר/ת כדי לחבר את Stripe ולקבל תשלומים.',
+    savedLocally: 'נשמר במכשיר הזה',
+    errorConnect: 'לא הצלחנו להתחבר ל-Stripe',
+    errorDashboard: 'לא הצלחנו לפתוח את לוח הבקרה של Stripe',
+    errorLoad: 'לא הצלחנו לטעון את סטטוס ה-Stripe',
+    buyerCardTitle: 'כרטיס אשראי',
+    buyerCardDesc: 'הוספת כרטיס כדי להציע הצעות בשידורים חיים',
+    buyerCardSaved: 'הכרטיס נשמר',
+    buyerCardLast4: 'שמסתיים ב-',
+    buyerChangeCard: 'החלפת כרטיס',
+    buyerAddCard: 'הוספת כרטיס',
+    buyerSaveCard: 'שמירת הכרטיס',
+    buyerCardSuccess: 'הכרטיס נשמר!',
+    buyerCardError: 'לא הצלחנו לשמור את הכרטיס',
+    buyerNoCard: 'אין כרטיס שמור',
+    buyerNoCardDesc: 'הוספת כרטיס אשראי כדי להציע הצעות בשידורים חיים',
+    paypalConnected: 'PayPal מחובר',
+    paypalConnectedDesc: 'הכסף מהמכירות שלך יועבר לחשבון ה-PayPal שלך.',
+    paypalEmail: 'אימייל PayPal',
+    paypalChangeEmail: 'שינוי אימייל',
+    paypalSaveEmail: 'שמירה',
+    paypalRecentPayouts: 'העברות אחרונות',
+    paypalNoPayout: 'עדיין אין העברות',
+    paypalStatus_pending: 'ממתין',
+    paypalStatus_ready: 'מוכן',
+    paypalStatus_processing: 'בעיבוד',
+    paypalStatus_completed: 'הושלם',
+    paypalStatus_failed: 'נכשל',
+    paypalCountryTitle: 'קבלת תשלומים דרך PayPal',
+    paypalCountryDesc: 'Stripe לא זמין במדינה שלך. יש להזין את כתובת ה-PayPal שלך כדי לקבל תשלומים.',
+    paypalCountryPlaceholder: 'email@paypal.com',
+    paypalCountrySave: 'חיבור PayPal',
+    pageDesc: 'הפרטים האלה נדרשים כדי להציע הצעות, לבצע הזמנה או לקנות מוצר במהלך שידור חי. הכרטיס יחויב רק אם הצעה שלך מתקבלת.',
+    paymentMethod: 'אמצעי תשלום',
+    shippingDetails: 'פרטי משלוח',
+    shippingDelay: 'זמן משלוח',
+    shippingDelayHint: 'מספר ימים מקסימלי עד המשלוח',
+    days: 'ימים',
+    addPaymentMethod: 'הוספת אמצעי תשלום',
+    addPaymentMethodDesc: 'שום סכום לא יחויב עד שתקנה/י פריט.',
+    creditCard: 'כרטיס אשראי',
+    applePay: 'Apple Pay',
+    applePayUnavailable: 'לא זמין במכשיר הזה',
+    noPaymentMethod: 'אין אמצעי תשלום',
+    noAddress: 'אין כתובת שמורה',
+    back: 'חזרה',
+    genericError: 'משהו השתבש. כדאי לנסות שוב.',
+    paypalEmailSaved: 'אימייל ה-PayPal נשמר',
+    paypalConnectedToast: 'PayPal מחובר!',
+    paypalAtCheckout: 'PayPal יהיה זמין בשלב התשלום.',
+    applePayAtCheckout: 'Apple Pay ישמש אוטומטית בשלב התשלום.',
+    cardFallback: 'כרטיס',
+  },
+} satisfies Localized<Record<string, string>>
 
 interface StripeStatus {
   connected: boolean
@@ -342,13 +450,14 @@ function getStripePromise() {
   return stripePromise
 }
 
-function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoading, saveLabel }: {
+function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoading, saveLabel, errorLabel }: {
   clientSecret: string
   onSuccess: () => void
   onError: (msg: string) => void
   loading: boolean
   setLoading: (v: boolean) => void
   saveLabel: string
+  errorLabel: string
 }) {
   const stripe = useStripe()
   const elements = useElements()
@@ -365,7 +474,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
     })
 
     if (error) {
-      onError(error.message || 'Failed to save card')
+      onError(error.message || errorLabel)
       setLoading(false)
     } else {
       onSuccess()
@@ -415,8 +524,12 @@ export default function PaymentsPage() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
   const [searchParams] = useSearchParams()
-  const lang = (getLang() || 'fr') as Lang
-  const c = content[lang] || content.fr
+  const lang: Lang = getLang()
+  const c = content[lang] ?? content.en
+  const userCurrency = currencyForCountry(profile?.country)
+  const regionName = (code: string) => {
+    try { return new Intl.DisplayNames([getLocale(lang)], { type: 'region' }).of(code) || code } catch { return code }
+  }
   usePageTitle(c.title)
 
   const [status, setStatus] = useState<StripeStatus | null>(null)
@@ -531,10 +644,10 @@ export default function PaymentsPage() {
       if (res.ok) {
         setPaypalEmail(paypalEditEmail)
         setPaypalEditing(false)
-        showToast(lang === 'fr' ? 'Email PayPal sauvegarde' : 'PayPal email saved', 'success')
+        showToast(c.paypalEmailSaved, 'success')
       }
     } catch {
-      showToast(lang === 'fr' ? 'Erreur' : 'Error', 'error')
+      showToast(c.genericError, 'error')
     }
     setPaypalSaving(false)
   }
@@ -576,7 +689,8 @@ export default function PaymentsPage() {
       })
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
-        setSetupError(err.error || c.buyerCardError)
+        if (import.meta.env.DEV && err.error) console.warn('setup-intent:', err.error)
+        setSetupError(c.buyerCardError)
         return
       }
       const data = await resp.json()
@@ -660,18 +774,18 @@ export default function PaymentsPage() {
   // Countries list (Stripe + PayPal-only)
   const PAYPAL_ONLY_COUNTRIES = ['IL']
   const allCountries = [
-    { code: 'FR', flag: '\uD83C\uDDEB\uD83C\uDDF7', name: { fr: 'France', en: 'France', he: '\u05E6\u05E8\u05E4\u05EA', es: 'Francia' } },
-    { code: 'IL', flag: '\uD83C\uDDEE\uD83C\uDDF1', name: { fr: 'Israel', en: 'Israel', he: '\u05D9\u05E9\u05E8\u05D0\u05DC', es: 'Israel' } },
-    { code: 'ES', flag: '\uD83C\uDDEA\uD83C\uDDF8', name: { fr: 'Espagne', en: 'Spain', he: '\u05E1\u05E4\u05E8\u05D3', es: 'Espana' } },
-    { code: 'US', flag: '\uD83C\uDDFA\uD83C\uDDF8', name: { fr: 'Etats-Unis', en: 'United States', he: '\u05D0\u05E8\u05D4"\u05D1', es: 'Estados Unidos' } },
-    { code: 'GB', flag: '\uD83C\uDDEC\uD83C\uDDE7', name: { fr: 'Royaume-Uni', en: 'United Kingdom', he: '\u05D1\u05E8\u05D9\u05D8\u05E0\u05D9\u05D4', es: 'Reino Unido' } },
-    { code: 'DE', flag: '\uD83C\uDDE9\uD83C\uDDEA', name: { fr: 'Allemagne', en: 'Germany', he: '\u05D2\u05E8\u05DE\u05E0\u05D9\u05D4', es: 'Alemania' } },
-    { code: 'IT', flag: '\uD83C\uDDEE\uD83C\uDDF9', name: { fr: 'Italie', en: 'Italy', he: '\u05D0\u05D9\u05D8\u05DC\u05D9\u05D4', es: 'Italia' } },
-    { code: 'PT', flag: '\uD83C\uDDF5\uD83C\uDDF9', name: { fr: 'Portugal', en: 'Portugal', he: '\u05E4\u05D5\u05E8\u05D8\u05D5\u05D2\u05DC', es: 'Portugal' } },
-    { code: 'BR', flag: '\uD83C\uDDE7\uD83C\uDDF7', name: { fr: 'Bresil', en: 'Brazil', he: '\u05D1\u05E8\u05D6\u05D9\u05DC', es: 'Brasil' } },
-    { code: 'JP', flag: '\uD83C\uDDEF\uD83C\uDDF5', name: { fr: 'Japon', en: 'Japan', he: '\u05D9\u05E4\u05DF', es: 'Japon' } },
-    { code: 'CA', flag: '\uD83C\uDDE8\uD83C\uDDE6', name: { fr: 'Canada', en: 'Canada', he: '\u05E7\u05E0\u05D3\u05D4', es: 'Canada' } },
-    { code: 'MA', flag: '\uD83C\uDDF2\uD83C\uDDE6', name: { fr: 'Maroc', en: 'Morocco', he: '\u05DE\u05E8\u05D5\u05E7\u05D5', es: 'Marruecos' } },
+    { code: 'FR', flag: '\uD83C\uDDEB\uD83C\uDDF7' },
+    { code: 'IL', flag: '\uD83C\uDDEE\uD83C\uDDF1' },
+    { code: 'ES', flag: '\uD83C\uDDEA\uD83C\uDDF8' },
+    { code: 'US', flag: '\uD83C\uDDFA\uD83C\uDDF8' },
+    { code: 'GB', flag: '\uD83C\uDDEC\uD83C\uDDE7' },
+    { code: 'DE', flag: '\uD83C\uDDE9\uD83C\uDDEA' },
+    { code: 'IT', flag: '\uD83C\uDDEE\uD83C\uDDF9' },
+    { code: 'PT', flag: '\uD83C\uDDF5\uD83C\uDDF9' },
+    { code: 'BR', flag: '\uD83C\uDDE7\uD83C\uDDF7' },
+    { code: 'JP', flag: '\uD83C\uDDEF\uD83C\uDDF5' },
+    { code: 'CA', flag: '\uD83C\uDDE8\uD83C\uDDE6' },
+    { code: 'MA', flag: '\uD83C\uDDF2\uD83C\uDDE6' },
   ]
   // Payment method picker modal
   const [showMethodPicker, setShowMethodPicker] = useState(false)
@@ -716,7 +830,7 @@ export default function PaymentsPage() {
       if (data.url) {
         await Browser.open({ url: data.url })
       } else if (data.error) {
-        showToast(data.error, 'error')
+        showToast(c.errorConnect, 'error')
       }
     } catch (err) {
       if (import.meta.env.DEV) console.error('Stripe connect error:', err)
@@ -745,10 +859,10 @@ export default function PaymentsPage() {
         setSellerBankChoice('paypal')
         setShowCountryPicker(false)
         setShowPaypalForm(false)
-        showToast(lang === 'fr' ? 'PayPal connecte !' : 'PayPal connected!', 'success')
+        showToast(c.paypalConnectedToast, 'success')
       }
     } catch {
-      showToast(lang === 'fr' ? 'Erreur' : 'Error', 'error')
+      showToast(c.genericError, 'error')
     }
     setCountryPaypalSaving(false)
   }
@@ -768,7 +882,7 @@ export default function PaymentsPage() {
       if (data.url) {
         await Browser.open({ url: data.url })
       } else if (data.error) {
-        showToast(data.error, 'error')
+        showToast(c.errorDashboard, 'error')
       }
     } catch {
       showToast(c.errorDashboard, 'error')
@@ -788,7 +902,7 @@ export default function PaymentsPage() {
       <style>{`@keyframes slideUp { from { transform: translateY(100%) } to { transform: translateY(0) } }`}</style>
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.back} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -825,7 +939,7 @@ export default function PaymentsPage() {
                 : c.noPaymentMethod}
             </p>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
         </div>
 
         {/* Détails d'expédition row */}
@@ -856,7 +970,7 @@ export default function PaymentsPage() {
                 : c.noAddress}
             </p>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
         </div>
 
         {/* Remise des commandes (vendeur) : WhatsApp, retrait, prix d'envoi, délai de remise */}
@@ -978,10 +1092,10 @@ export default function PaymentsPage() {
                     }}>
                       <div>
                         <p style={{ fontSize: '14px', color: '#fff', margin: '0 0 2px', fontWeight: 600 }}>
-                          {p.amount.toFixed(2)} {p.currency}
+                          {formatMoney(p.amount, p.currency)}
                         </p>
                         <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>
-                          {new Date(p.created_at).toLocaleDateString()}
+                          {new Date(p.created_at).toLocaleDateString(getLocale(lang))}
                         </p>
                       </div>
                       <span style={{
@@ -1056,7 +1170,7 @@ export default function PaymentsPage() {
                 </svg>
               </div>
               <p style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B', marginBottom: '8px' }}>
-                Stripe - {c.pending}
+                {['Stripe', c.pending].join(' – ')}
               </p>
               <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px' }}>
                 {c.pendingDesc}
@@ -1177,7 +1291,7 @@ export default function PaymentsPage() {
                   )}
 
                   {setupClientSecret ? (
-                    <Elements stripe={getStripePromise()}>
+                    <Elements stripe={getStripePromise()} options={{ locale: lang }}>
                       <SetupCardFormInner
                         clientSecret={setupClientSecret}
                         onSuccess={() => { setSetupSuccess(true); setSetupLoading(false) }}
@@ -1185,6 +1299,7 @@ export default function PaymentsPage() {
                         loading={setupLoading}
                         setLoading={setSetupLoading}
                         saveLabel={c.buyerSaveCard}
+                        errorLabel={c.buyerCardError}
                       />
                     </Elements>
                   ) : (
@@ -1231,7 +1346,7 @@ export default function PaymentsPage() {
                   {c.buyerCardSaved}
                 </p>
                 <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
-                  {(cardInfo.brand || 'Card').toUpperCase()} {c.buyerCardLast4} {cardInfo.last4}
+                  {(cardInfo.brand || c.cardFallback).toUpperCase()} {c.buyerCardLast4} {cardInfo.last4}
                 </p>
               </div>
               <button
@@ -1299,7 +1414,7 @@ export default function PaymentsPage() {
             <div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{c.feesTitle}</p>
               <p style={{ fontSize: '12px', color: '#888' }}>{c.feesDesc}</p>
-              <p style={{ fontSize: '12px', color: '#F59E0B', marginTop: '2px' }}>{c.feesExample}</p>
+              <p style={{ fontSize: '12px', color: '#F59E0B', marginTop: '2px' }}>{c.feesExample.replace('{sale}', formatMoney(50, userCurrency)).replace('{net}', formatMoney(43.1, userCurrency))}</p>
             </div>
           </div>
         )}
@@ -1314,7 +1429,7 @@ export default function PaymentsPage() {
               <span style={{ fontSize: '15px', color: '#fff' }}>{opt}</span>
             </label>
           ))}
-          <p style={{ fontSize: '11px', color: '#555', padding: '8px 16px 12px', textAlign: 'right' }}>{c.savedLocally}</p>
+          <p style={{ fontSize: '11px', color: '#555', padding: '8px 16px 12px', textAlign: 'end' }}>{c.savedLocally}</p>
         </div>
       </div>
 
@@ -1361,7 +1476,7 @@ export default function PaymentsPage() {
                   width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
                   padding: '18px 0', borderBottom: '1px solid #eee',
                   background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#eee',
-                  cursor: 'pointer', textAlign: 'left',
+                  cursor: 'pointer', textAlign: 'start',
                 }}
               >
                 <div style={{
@@ -1375,7 +1490,7 @@ export default function PaymentsPage() {
                 <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
                   {c.creditCard}
                 </span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
               </button>
 
               {/* PayPal */}
@@ -1383,13 +1498,13 @@ export default function PaymentsPage() {
                 onClick={() => {
                   setShowMethodPicker(false)
                   // For buyer PayPal: navigate to a PayPal setup or show info
-                  showToast(lang === 'fr' ? 'PayPal sera disponible lors du paiement.' : 'PayPal will be available at checkout.')
+                  showToast(c.paypalAtCheckout)
                 }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
                   padding: '18px 0', borderBottom: '1px solid #eee',
                   background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#eee',
-                  cursor: 'pointer', textAlign: 'left',
+                  cursor: 'pointer', textAlign: 'start',
                 }}
               >
                 <div style={{
@@ -1397,12 +1512,12 @@ export default function PaymentsPage() {
                   background: 'linear-gradient(135deg, #003087, #009CDE)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
-                  <span style={{ color: '#fff', fontWeight: 800, fontSize: '12px', letterSpacing: '-0.5px' }}>Pay</span>
+                  <span style={{ color: '#fff', fontWeight: 800, fontSize: '12px', letterSpacing: '-0.5px' }}>Pay</span>{/* i18n-ignore (logo PayPal) */}
                 </div>
                 <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
                   PayPal
                 </span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
               </button>
 
               {/* Apple Pay */}
@@ -1410,13 +1525,13 @@ export default function PaymentsPage() {
                 onClick={() => {
                   if (!applePayAvailable) return
                   setShowMethodPicker(false)
-                  showToast(lang === 'fr' ? 'Apple Pay sera utilise automatiquement lors du paiement.' : 'Apple Pay will be used automatically at checkout.', 'success')
+                  showToast(c.applePayAtCheckout, 'success')
                 }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
                   padding: '18px 0',
                   background: 'none', border: 'none',
-                  cursor: applePayAvailable ? 'pointer' : 'default', textAlign: 'left',
+                  cursor: applePayAvailable ? 'pointer' : 'default', textAlign: 'start',
                   opacity: applePayAvailable ? 1 : 0.4,
                 }}
               >
@@ -1440,7 +1555,7 @@ export default function PaymentsPage() {
                   )}
                 </div>
                 {applePayAvailable && (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
                 )}
               </button>
             </div>
@@ -1547,7 +1662,7 @@ export default function PaymentsPage() {
                       >
                         <span style={{ fontSize: '22px' }}>{ct.flag}</span>
                         <span style={{ fontSize: '15px', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400, flex: 1 }}>
-                          {ct.name[lang] || ct.name.en}
+                          {regionName(ct.code)}
                         </span>
                         {isPaypalOnly && (
                           <span style={{ fontSize: '11px', color: '#009CDE', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(0,156,222,0.1)' }}>

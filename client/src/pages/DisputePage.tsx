@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, type Lang, type Localized } from '../lib/i18n'
+import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import type { Order, Dispute } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -13,75 +14,6 @@ interface OrderWithItem extends Order {
 }
 
 const pageContent = {
-  fr: {
-    // Header
-    dispute: 'Litige',
-    open_dispute: 'Ouvrir un litige',
-    // Reason options
-    reason_not_received: 'Non reçu',
-    reason_wrong_item: 'Mauvais article',
-    reason_damaged: 'Endommagé',
-    reason_not_as_described: 'Non conforme à la description',
-    reason_counterfeit: 'Contrefaçon',
-    // Status labels
-    status_open: 'Ouvert',
-    status_under_review: 'En cours d\'examen',
-    status_resolved_buyer: 'Résolu (remboursé)',
-    status_resolved_seller: 'Résolu (rejeté)',
-    status_escalated: 'Escaladé',
-    // Loading / errors
-    loading: 'Chargement...',
-    back: 'Retour',
-    error_order_not_found: 'Commande introuvable',
-    error_unknown: 'Erreur inconnue',
-    error_not_authenticated: 'Non authentifié',
-    error_upload: 'Erreur d\'upload',
-    error_submit_failed: 'Échec de la soumission du litige',
-    // Success
-    dispute_submitted_success: 'Litige soumis avec succès',
-    dispute_submitted_desc: 'Nous examinerons votre demande dans les plus brefs délais.',
-    // Order context
-    related_order: 'Commande concernée',
-    article: 'Article',
-    // Seller return policy
-    seller_return_policy: 'Politique de retour du vendeur',
-    policy_no_return: 'Aucun retour',
-    policy_exchange_only: 'Échanges uniquement',
-    policy_return_7: 'Retours sous 7 jours',
-    policy_return_14: 'Retours sous 14 jours',
-    policy_return_30: 'Retours sous 30 jours',
-    policy_no_return_notice: 'Ce vendeur n\'accepte pas les retours. Vous pouvez tout de même contester si l\'article est non conforme ou contrefait.',
-    // Dispute status card
-    dispute_status: 'Statut du litige',
-    reason_label: 'Motif',
-    description_label: 'Description',
-    amount_label: 'Montant',
-    opened_at: 'Ouvert le',
-    resolved_at: 'Résolu le',
-    resolution_note: 'Note de résolution',
-    auto_refund_approved: 'Remboursement automatique approuvé',
-    evidence_provided: 'Preuves fournies',
-    evidence_alt: 'Preuve',
-    // Form
-    dispute_reason: 'Motif du litige',
-    description_form_label: 'Description',
-    description_placeholder: 'Décrivez le problème en détail (minimum 20 caractères)',
-    chars_minimum: 'caractères minimum',
-    evidence_label: 'Preuves (photos/vidéos, max 5)',
-    add_file: 'Ajouter un fichier',
-    submitting: 'Envoi en cours...',
-    submit_dispute: 'Soumettre le litige',
-    photo_proof_title: 'Ajoute des photos comme preuve',
-    photo_required: 'Photo obligatoire',
-    submit_btn: 'Envoyer',
-    seller_photos: 'Photos du vendeur',
-    buyer_photos: 'Photos de l\'acheteur',
-    upload_seller_photos: 'Ajouter vos photos de preuve',
-    seller_photos_submitted: 'Photos envoy\u00e9es',
-    view_fullscreen: 'Voir en plein \u00e9cran',
-    close: 'Fermer',
-    date_locale: 'fr-FR',
-  },
   en: {
     dispute: 'Dispute',
     open_dispute: 'Open a dispute',
@@ -98,21 +30,21 @@ const pageContent = {
     loading: 'Loading...',
     back: 'Back',
     error_order_not_found: 'Order not found',
-    error_unknown: 'Unknown error',
-    error_not_authenticated: 'Not authenticated',
-    error_upload: 'Upload error',
-    error_submit_failed: 'Failed to submit dispute',
-    dispute_submitted_success: 'Dispute submitted successfully',
-    dispute_submitted_desc: 'We will review your request as soon as possible.',
+    error_unknown: 'Something went wrong. Please try again.',
+    error_not_authenticated: 'Please log in again.',
+    error_upload: 'Couldn’t upload your photo',
+    error_submit_failed: 'Couldn’t submit the dispute',
+    dispute_submitted_success: 'Dispute submitted',
+    dispute_submitted_desc: 'We’ll review your request as soon as possible.',
     related_order: 'Related order',
     article: 'Item',
-    seller_return_policy: 'Seller return policy',
+    seller_return_policy: 'Seller’s return policy',
     policy_no_return: 'No returns',
     policy_exchange_only: 'Exchanges only',
     policy_return_7: 'Returns within 7 days',
     policy_return_14: 'Returns within 14 days',
     policy_return_30: 'Returns within 30 days',
-    policy_no_return_notice: 'This seller does not accept returns. You can still dispute if the item is not as described or counterfeit.',
+    policy_no_return_notice: 'This seller doesn’t accept returns. You can still open a dispute if the item isn’t as described or is counterfeit.',
     dispute_status: 'Dispute status',
     reason_label: 'Reason',
     description_label: 'Description',
@@ -123,148 +55,306 @@ const pageContent = {
     auto_refund_approved: 'Automatic refund approved',
     evidence_provided: 'Evidence provided',
     evidence_alt: 'Evidence',
-    dispute_reason: 'Dispute reason',
+    dispute_reason: 'Reason for the dispute',
     description_form_label: 'Description',
-    description_placeholder: 'Describe the issue in detail (minimum 20 characters)',
+    description_placeholder: 'Describe the problem in detail (at least 20 characters)',
     chars_minimum: 'characters minimum',
     evidence_label: 'Evidence (photos/videos, max 5)',
     add_file: 'Add a file',
-    submitting: 'Submitting...',
+    submitting: 'Sending...',
     submit_dispute: 'Submit dispute',
     photo_proof_title: 'Add photos as proof',
     photo_required: 'Photo required',
-    submit_btn: 'Submit',
-    seller_photos: 'Seller photos',
-    buyer_photos: 'Buyer photos',
+    submit_btn: 'Send',
+    seller_photos: 'Seller’s photos',
+    buyer_photos: 'Buyer’s photos',
     upload_seller_photos: 'Add your proof photos',
-    seller_photos_submitted: 'Photos submitted',
-    view_fullscreen: 'View fullscreen',
+    seller_photos_submitted: 'Photos sent',
+    view_fullscreen: 'View full screen',
     close: 'Close',
-    date_locale: 'en-US',
+    file_too_large: 'This file is larger than 5 MB, the maximum size',
+    error_invalid_data: 'Some information is invalid. Check the form.',
+    error_photo_required: 'Add at least one photo to open a dispute.',
+    error_only_buyer: 'Only the buyer can open a dispute.',
+    error_deadline_passed: 'The deadline to open a dispute has passed.',
+    error_already_exists: 'A dispute already exists for this order.',
+    error_dispute_not_found: 'Dispute not found',
+    error_access_denied: 'You don’t have access to this dispute.',
+    error_only_seller: 'Only the seller can add proof photos to this dispute.',
   },
-  he: {
-    dispute: '\u05E1\u05DB\u05E1\u05D5\u05DA',
-    open_dispute: '\u05E4\u05EA\u05D9\u05D7\u05EA \u05E1\u05DB\u05E1\u05D5\u05DA',
-    reason_not_received: '\u05DC\u05D0 \u05D4\u05EA\u05E7\u05D1\u05DC',
-    reason_wrong_item: '\u05E4\u05E8\u05D9\u05D8 \u05E9\u05D2\u05D5\u05D9',
-    reason_damaged: '\u05E4\u05D2\u05D5\u05DD',
-    reason_not_as_described: '\u05DC\u05D0 \u05EA\u05D5\u05D0\u05DD \u05DC\u05EA\u05D9\u05D0\u05D5\u05E8',
-    reason_counterfeit: '\u05DE\u05D6\u05D5\u05D9\u05E3',
-    status_open: '\u05E4\u05EA\u05D5\u05D7',
-    status_under_review: '\u05D1\u05D1\u05D3\u05D9\u05E7\u05D4',
-    status_resolved_buyer: '\u05E0\u05E4\u05EA\u05E8 (\u05D4\u05D5\u05D7\u05D6\u05E8)',
-    status_resolved_seller: '\u05E0\u05E4\u05EA\u05E8 (\u05E0\u05D3\u05D7\u05D4)',
-    status_escalated: '\u05D4\u05D5\u05E2\u05DC\u05D4',
-    loading: '\u05D8\u05D5\u05E2\u05DF...',
-    back: '\u05D7\u05D6\u05E8\u05D4',
-    error_order_not_found: '\u05D4\u05D6\u05DE\u05E0\u05D4 \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4',
-    error_unknown: '\u05E9\u05D2\u05D9\u05D0\u05D4 \u05DC\u05D0 \u05D9\u05D3\u05D5\u05E2\u05D4',
-    error_not_authenticated: '\u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8',
-    error_upload: '\u05E9\u05D2\u05D9\u05D0\u05EA \u05D4\u05E2\u05DC\u05D0\u05D4',
-    error_submit_failed: '\u05E9\u05DC\u05D9\u05D7\u05EA \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA \u05E0\u05DB\u05E9\u05DC\u05D4',
-    dispute_submitted_success: '\u05D4\u05E1\u05DB\u05E1\u05D5\u05DA \u05E0\u05E9\u05DC\u05D7 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4',
-    dispute_submitted_desc: '\u05E0\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D1\u05E7\u05E9\u05EA\u05DA \u05D1\u05D4\u05E7\u05D3\u05DD \u05D4\u05D0\u05E4\u05E9\u05E8\u05D9.',
-    related_order: '\u05D4\u05D6\u05DE\u05E0\u05D4 \u05E7\u05E9\u05D5\u05E8\u05D4',
-    article: '\u05E4\u05E8\u05D9\u05D8',
-    seller_return_policy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05D7\u05D6\u05E8\u05D4 \u05E9\u05DC \u05D4\u05DE\u05D5\u05DB\u05E8',
-    policy_no_return: '\u05DC\u05DC\u05D0 \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA',
-    policy_exchange_only: '\u05D4\u05D7\u05DC\u05E4\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3',
-    policy_return_7: '\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA \u05EA\u05D5\u05DA 7 \u05D9\u05DE\u05D9\u05DD',
-    policy_return_14: '\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA \u05EA\u05D5\u05DA 14 \u05D9\u05DE\u05D9\u05DD',
-    policy_return_30: '\u05D4\u05D7\u05D6\u05E8\u05D5\u05EA \u05EA\u05D5\u05DA 30 \u05D9\u05DE\u05D9\u05DD',
-    policy_no_return_notice: '\u05DE\u05D5\u05DB\u05E8 \u05D6\u05D4 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05E7\u05D1\u05DC \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA. \u05E2\u05D3\u05D9\u05D9\u05DF \u05E0\u05D9\u05EA\u05DF \u05DC\u05E2\u05E8\u05E2\u05E8 \u05D0\u05DD \u05D4\u05E4\u05E8\u05D9\u05D8 \u05DC\u05D0 \u05EA\u05D5\u05D0\u05DD \u05DC\u05EA\u05D9\u05D0\u05D5\u05E8 \u05D0\u05D5 \u05DE\u05D6\u05D5\u05D9\u05E3.',
-    dispute_status: '\u05E1\u05D8\u05D8\u05D5\u05E1 \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA',
-    reason_label: '\u05E1\u05D9\u05D1\u05D4',
-    description_label: '\u05EA\u05D9\u05D0\u05D5\u05E8',
-    amount_label: '\u05E1\u05DB\u05D5\u05DD',
-    opened_at: '\u05E0\u05E4\u05EA\u05D7 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA',
-    resolved_at: '\u05E0\u05E4\u05EA\u05E8 \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA',
-    resolution_note: '\u05D4\u05E2\u05E8\u05EA \u05E4\u05EA\u05E8\u05D5\u05DF',
-    auto_refund_approved: '\u05D4\u05D7\u05D6\u05E8 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05D0\u05D5\u05E9\u05E8',
-    evidence_provided: '\u05E8\u05D0\u05D9\u05D5\u05EA \u05E9\u05E1\u05D5\u05E4\u05E7\u05D5',
-    evidence_alt: '\u05E8\u05D0\u05D9\u05D4',
-    dispute_reason: '\u05E1\u05D9\u05D1\u05EA \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA',
-    description_form_label: '\u05EA\u05D9\u05D0\u05D5\u05E8',
-    description_placeholder: '\u05EA\u05D0\u05E8 \u05D0\u05EA \u05D4\u05D1\u05E2\u05D9\u05D4 \u05D1\u05E4\u05D9\u05E8\u05D5\u05D8 (\u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD 20 \u05EA\u05D5\u05D5\u05D9\u05DD)',
-    chars_minimum: '\u05EA\u05D5\u05D5\u05D9\u05DD \u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD',
-    evidence_label: '\u05E8\u05D0\u05D9\u05D5\u05EA (\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA/\u05E1\u05E8\u05D8\u05D5\u05E0\u05D9\u05DD, \u05DE\u05E7\u05E1\u05D9\u05DE\u05D5\u05DD 5)',
-    add_file: '\u05D4\u05D5\u05E1\u05E3 \u05E7\u05D5\u05D1\u05E5',
-    submitting: '\u05E9\u05D5\u05DC\u05D7...',
-    submit_dispute: '\u05E9\u05DC\u05D7 \u05E1\u05DB\u05E1\u05D5\u05DA',
-    photo_proof_title: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05DB\u05D4\u05D5\u05DB\u05D7\u05D4',
-    photo_required: '\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D5\u05D1\u05D4',
-    submit_btn: '\u05E9\u05DC\u05D7',
-    seller_photos: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05DE\u05D5\u05DB\u05E8',
-    buyer_photos: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05E7\u05D5\u05E0\u05D4',
-    upload_seller_photos: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D4\u05D5\u05DB\u05D7\u05D4 \u05E9\u05DC\u05DA',
-    seller_photos_submitted: '\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E0\u05E9\u05DC\u05D7\u05D5',
-    view_fullscreen: '\u05E6\u05E4\u05D4 \u05D1\u05DE\u05E1\u05DA \u05DE\u05DC\u05D0',
-    close: '\u05E1\u05D2\u05D5\u05E8',
-    date_locale: 'he-IL',
+  fr: {
+    dispute: 'Litige',
+    open_dispute: 'Ouvrir un litige',
+    reason_not_received: 'Non reçu',
+    reason_wrong_item: 'Mauvais article',
+    reason_damaged: 'Endommagé',
+    reason_not_as_described: 'Non conforme à la description',
+    reason_counterfeit: 'Contrefaçon',
+    status_open: 'Ouvert',
+    status_under_review: 'En cours d’examen',
+    status_resolved_buyer: 'Résolu (remboursé)',
+    status_resolved_seller: 'Résolu (rejeté)',
+    status_escalated: 'Transmis au support',
+    loading: 'Chargement...',
+    back: 'Retour',
+    error_order_not_found: 'Commande introuvable',
+    error_unknown: 'Une erreur est survenue. Réessaie.',
+    error_not_authenticated: 'Reconnecte-toi pour continuer.',
+    error_upload: 'Impossible d’envoyer ta photo',
+    error_submit_failed: 'Impossible d’envoyer le litige',
+    dispute_submitted_success: 'Litige envoyé',
+    dispute_submitted_desc: 'On examine ta demande au plus vite.',
+    related_order: 'Commande concernée',
+    article: 'Article',
+    seller_return_policy: 'Politique de retour du vendeur',
+    policy_no_return: 'Aucun retour',
+    policy_exchange_only: 'Échanges uniquement',
+    policy_return_7: 'Retours sous 7 jours',
+    policy_return_14: 'Retours sous 14 jours',
+    policy_return_30: 'Retours sous 30 jours',
+    policy_no_return_notice: 'Ce vendeur n’accepte pas les retours. Tu peux quand même ouvrir un litige si l’article n’est pas conforme ou s’il s’agit d’une contrefaçon.',
+    dispute_status: 'Statut du litige',
+    reason_label: 'Motif',
+    description_label: 'Description',
+    amount_label: 'Montant',
+    opened_at: 'Ouvert le',
+    resolved_at: 'Résolu le',
+    resolution_note: 'Note de résolution',
+    auto_refund_approved: 'Remboursement automatique accepté',
+    evidence_provided: 'Preuves fournies',
+    evidence_alt: 'Preuve',
+    dispute_reason: 'Motif du litige',
+    description_form_label: 'Description',
+    description_placeholder: 'Décris le problème en détail (20 caractères minimum)',
+    chars_minimum: 'caractères minimum',
+    evidence_label: 'Preuves (photos/vidéos, 5 max)',
+    add_file: 'Ajouter un fichier',
+    submitting: 'Envoi en cours...',
+    submit_dispute: 'Envoyer le litige',
+    photo_proof_title: 'Ajoute des photos comme preuve',
+    photo_required: 'Photo obligatoire',
+    submit_btn: 'Envoyer',
+    seller_photos: 'Photos du vendeur',
+    buyer_photos: 'Photos de l’acheteur',
+    upload_seller_photos: 'Ajoute tes photos de preuve',
+    seller_photos_submitted: 'Photos envoyées',
+    view_fullscreen: 'Voir en plein écran',
+    close: 'Fermer',
+    file_too_large: 'Le fichier dépasse la taille maximale de 5 Mo',
+    error_invalid_data: 'Certaines informations ne sont pas valides. Vérifie le formulaire.',
+    error_photo_required: 'Ajoute au moins une photo pour ouvrir un litige.',
+    error_only_buyer: 'Seul l’acheteur peut ouvrir un litige.',
+    error_deadline_passed: 'Le délai pour ouvrir un litige est dépassé.',
+    error_already_exists: 'Un litige existe déjà pour cette commande.',
+    error_dispute_not_found: 'Litige introuvable',
+    error_access_denied: 'Tu n’as pas accès à ce litige.',
+    error_only_seller: 'Seul le vendeur peut ajouter des photos de preuve à ce litige.',
   },
   es: {
     dispute: 'Disputa',
     open_dispute: 'Abrir una disputa',
     reason_not_received: 'No recibido',
-    reason_wrong_item: 'Art\u00edculo incorrecto',
-    reason_damaged: 'Da\u00f1ado',
-    reason_not_as_described: 'No conforme a la descripci\u00f3n',
-    reason_counterfeit: 'Falsificaci\u00f3n',
-    status_open: 'Abierto',
-    status_under_review: 'En revisi\u00f3n',
-    status_resolved_buyer: 'Resuelto (reembolsado)',
-    status_resolved_seller: 'Resuelto (rechazado)',
-    status_escalated: 'Escalado',
+    reason_wrong_item: 'Artículo equivocado',
+    reason_damaged: 'Dañado',
+    reason_not_as_described: 'No coincide con la descripción',
+    reason_counterfeit: 'Falsificación',
+    status_open: 'Abierta',
+    status_under_review: 'En revisión',
+    status_resolved_buyer: 'Resuelta (reembolsada)',
+    status_resolved_seller: 'Resuelta (rechazada)',
+    status_escalated: 'Escalada a soporte',
     loading: 'Cargando...',
     back: 'Volver',
     error_order_not_found: 'Pedido no encontrado',
-    error_unknown: 'Error desconocido',
-    error_not_authenticated: 'No autenticado',
-    error_upload: 'Error de carga',
-    error_submit_failed: 'Error al enviar la disputa',
-    dispute_submitted_success: 'Disputa enviada con \u00e9xito',
-    dispute_submitted_desc: 'Revisaremos su solicitud lo antes posible.',
+    error_unknown: 'Algo salió mal. Inténtalo de nuevo.',
+    error_not_authenticated: 'Vuelve a iniciar sesión para continuar.',
+    error_upload: 'No se pudo subir tu foto',
+    error_submit_failed: 'No se pudo enviar la disputa',
+    dispute_submitted_success: 'Disputa enviada',
+    dispute_submitted_desc: 'Revisaremos tu solicitud lo antes posible.',
     related_order: 'Pedido relacionado',
-    article: 'Art\u00edculo',
-    seller_return_policy: 'Pol\u00edtica de devoluci\u00f3n del vendedor',
+    article: 'Artículo',
+    seller_return_policy: 'Política de devoluciones del vendedor',
     policy_no_return: 'Sin devoluciones',
     policy_exchange_only: 'Solo cambios',
-    policy_return_7: 'Devoluciones en 7 d\u00edas',
-    policy_return_14: 'Devoluciones en 14 d\u00edas',
-    policy_return_30: 'Devoluciones en 30 d\u00edas',
-    policy_no_return_notice: 'Este vendedor no acepta devoluciones. A\u00fan puede disputar si el art\u00edculo no es conforme o es falsificado.',
+    policy_return_7: 'Devoluciones en 7 días',
+    policy_return_14: 'Devoluciones en 14 días',
+    policy_return_30: 'Devoluciones en 30 días',
+    policy_no_return_notice: 'Este vendedor no acepta devoluciones. Aun así, puedes abrir una disputa si el artículo no coincide con la descripción o es una falsificación.',
     dispute_status: 'Estado de la disputa',
     reason_label: 'Motivo',
-    description_label: 'Descripci\u00f3n',
-    amount_label: 'Monto',
-    opened_at: 'Abierto el',
-    resolved_at: 'Resuelto el',
-    resolution_note: 'Nota de resoluci\u00f3n',
-    auto_refund_approved: 'Reembolso autom\u00e1tico aprobado',
-    evidence_provided: 'Pruebas proporcionadas',
+    description_label: 'Descripción',
+    amount_label: 'Importe',
+    opened_at: 'Abierta el',
+    resolved_at: 'Resuelta el',
+    resolution_note: 'Nota de resolución',
+    auto_refund_approved: 'Reembolso automático aprobado',
+    evidence_provided: 'Pruebas aportadas',
     evidence_alt: 'Prueba',
     dispute_reason: 'Motivo de la disputa',
-    description_form_label: 'Descripci\u00f3n',
-    description_placeholder: 'Describa el problema en detalle (m\u00ednimo 20 caracteres)',
-    chars_minimum: 'caracteres m\u00ednimo',
-    evidence_label: 'Pruebas (fotos/v\u00eddeos, m\u00e1x. 5)',
-    add_file: 'A\u00f1adir un archivo',
+    description_form_label: 'Descripción',
+    description_placeholder: 'Describe el problema con detalle (mínimo 20 caracteres)',
+    chars_minimum: 'caracteres como mínimo',
+    evidence_label: 'Pruebas (fotos/vídeos, máx. 5)',
+    add_file: 'Añadir un archivo',
     submitting: 'Enviando...',
     submit_dispute: 'Enviar disputa',
-    photo_proof_title: 'A\u00f1ade fotos como prueba',
+    photo_proof_title: 'Añade fotos como prueba',
     photo_required: 'Foto obligatoria',
     submit_btn: 'Enviar',
     seller_photos: 'Fotos del vendedor',
     buyer_photos: 'Fotos del comprador',
-    upload_seller_photos: 'A\u00f1ade tus fotos de prueba',
+    upload_seller_photos: 'Añade tus fotos de prueba',
     seller_photos_submitted: 'Fotos enviadas',
     view_fullscreen: 'Ver en pantalla completa',
     close: 'Cerrar',
-    date_locale: 'es-ES',
+    file_too_large: 'El archivo supera el tamaño máximo de 5 MB',
+    error_invalid_data: 'Hay datos no válidos. Revisa el formulario.',
+    error_photo_required: 'Añade al menos una foto para abrir una disputa.',
+    error_only_buyer: 'Solo el comprador puede abrir una disputa.',
+    error_deadline_passed: 'Ya pasó el plazo para abrir una disputa.',
+    error_already_exists: 'Ya existe una disputa para este pedido.',
+    error_dispute_not_found: 'Disputa no encontrada',
+    error_access_denied: 'No tienes acceso a esta disputa.',
+    error_only_seller: 'Solo el vendedor puede añadir fotos de prueba a esta disputa.',
   },
-}
-
-type Lang = keyof typeof pageContent
+  ru: {
+    dispute: 'Спор',
+    open_dispute: 'Открыть спор',
+    reason_not_received: 'Не получен',
+    reason_wrong_item: 'Не тот товар',
+    reason_damaged: 'Повреждён',
+    reason_not_as_described: 'Не соответствует описанию',
+    reason_counterfeit: 'Подделка',
+    status_open: 'Открыт',
+    status_under_review: 'На рассмотрении',
+    status_resolved_buyer: 'Решён (деньги возвращены)',
+    status_resolved_seller: 'Решён (отклонён)',
+    status_escalated: 'Передан в поддержку',
+    loading: 'Загрузка...',
+    back: 'Назад',
+    error_order_not_found: 'Заказ не найден',
+    error_unknown: 'Что-то пошло не так. Попробуй ещё раз.',
+    error_not_authenticated: 'Войди в аккаунт ещё раз.',
+    error_upload: 'Не удалось загрузить фото',
+    error_submit_failed: 'Не удалось отправить спор',
+    dispute_submitted_success: 'Спор отправлен',
+    dispute_submitted_desc: 'Мы рассмотрим твой запрос как можно скорее.',
+    related_order: 'Связанный заказ',
+    article: 'Товар',
+    seller_return_policy: 'Условия возврата продавца',
+    policy_no_return: 'Без возврата',
+    policy_exchange_only: 'Только обмен',
+    policy_return_7: 'Возврат в течение 7 дней',
+    policy_return_14: 'Возврат в течение 14 дней',
+    policy_return_30: 'Возврат в течение 30 дней',
+    policy_no_return_notice: 'Этот продавец не принимает возвраты. Но ты всё равно можешь открыть спор, если товар не соответствует описанию или оказался подделкой.',
+    dispute_status: 'Статус спора',
+    reason_label: 'Причина',
+    description_label: 'Описание',
+    amount_label: 'Сумма',
+    opened_at: 'Открыт',
+    resolved_at: 'Решён',
+    resolution_note: 'Комментарий к решению',
+    auto_refund_approved: 'Автоматический возврат одобрен',
+    evidence_provided: 'Доказательства',
+    evidence_alt: 'Доказательство',
+    dispute_reason: 'Причина спора',
+    description_form_label: 'Описание',
+    description_placeholder: 'Подробно опиши проблему (минимум 20 символов)',
+    chars_minimum: 'символов минимум',
+    evidence_label: 'Доказательства (фото/видео, до 5)',
+    add_file: 'Добавить файл',
+    submitting: 'Отправка...',
+    submit_dispute: 'Отправить спор',
+    photo_proof_title: 'Добавь фото в качестве доказательства',
+    photo_required: 'Фото обязательно',
+    submit_btn: 'Отправить',
+    seller_photos: 'Фото продавца',
+    buyer_photos: 'Фото покупателя',
+    upload_seller_photos: 'Добавь фото-доказательства',
+    seller_photos_submitted: 'Фото отправлены',
+    view_fullscreen: 'Открыть на весь экран',
+    close: 'Закрыть',
+    file_too_large: 'Файл больше 5 МБ — это максимальный размер',
+    error_invalid_data: 'Некоторые данные указаны неверно. Проверь форму.',
+    error_photo_required: 'Добавь хотя бы одно фото, чтобы открыть спор.',
+    error_only_buyer: 'Открыть спор может только покупатель.',
+    error_deadline_passed: 'Срок для открытия спора истёк.',
+    error_already_exists: 'По этому заказу уже открыт спор.',
+    error_dispute_not_found: 'Спор не найден',
+    error_access_denied: 'У тебя нет доступа к этому спору.',
+    error_only_seller: 'Добавлять фото-доказательства к этому спору может только продавец.',
+  },
+  he: {
+    dispute: 'מחלוקת',
+    open_dispute: 'פתיחת מחלוקת',
+    reason_not_received: 'לא התקבל',
+    reason_wrong_item: 'פריט שגוי',
+    reason_damaged: 'פגום',
+    reason_not_as_described: 'לא תואם לתיאור',
+    reason_counterfeit: 'זיוף',
+    status_open: 'פתוחה',
+    status_under_review: 'בבדיקה',
+    status_resolved_buyer: 'נסגרה (הוחזר כסף)',
+    status_resolved_seller: 'נסגרה (נדחתה)',
+    status_escalated: 'הועברה לתמיכה',
+    loading: 'טוען...',
+    back: 'חזרה',
+    error_order_not_found: 'ההזמנה לא נמצאה',
+    error_unknown: 'משהו השתבש. כדאי לנסות שוב.',
+    error_not_authenticated: 'יש להתחבר שוב כדי להמשיך.',
+    error_upload: 'לא הצלחנו להעלות את התמונה',
+    error_submit_failed: 'לא הצלחנו לשלוח את המחלוקת',
+    dispute_submitted_success: 'המחלוקת נשלחה',
+    dispute_submitted_desc: 'נבדוק את הפנייה שלך בהקדם האפשרי.',
+    related_order: 'ההזמנה הרלוונטית',
+    article: 'פריט',
+    seller_return_policy: 'מדיניות ההחזרות של המוכר/ת',
+    policy_no_return: 'ללא החזרות',
+    policy_exchange_only: 'החלפות בלבד',
+    policy_return_7: 'החזרה תוך 7 ימים',
+    policy_return_14: 'החזרה תוך 14 ימים',
+    policy_return_30: 'החזרה תוך 30 ימים',
+    policy_no_return_notice: 'המוכר/ת לא מקבל/ת החזרות. עדיין אפשר לפתוח מחלוקת אם הפריט לא תואם לתיאור או מזויף.',
+    dispute_status: 'סטטוס המחלוקת',
+    reason_label: 'סיבה',
+    description_label: 'תיאור',
+    amount_label: 'סכום',
+    opened_at: 'נפתחה ב-',
+    resolved_at: 'נסגרה ב-',
+    resolution_note: 'הערת החלטה',
+    auto_refund_approved: 'החזר כספי אוטומטי אושר',
+    evidence_provided: 'הוכחות שצורפו',
+    evidence_alt: 'הוכחה',
+    dispute_reason: 'סיבת המחלוקת',
+    description_form_label: 'תיאור',
+    description_placeholder: 'יש לתאר את הבעיה בפירוט (לפחות 20 תווים)',
+    chars_minimum: 'תווים לפחות',
+    evidence_label: 'הוכחות (תמונות/סרטונים, עד 5)',
+    add_file: 'הוספת קובץ',
+    submitting: 'שולח...',
+    submit_dispute: 'שליחת המחלוקת',
+    photo_proof_title: 'הוספת תמונות כהוכחה',
+    photo_required: 'חובה לצרף תמונה',
+    submit_btn: 'שליחה',
+    seller_photos: 'תמונות המוכר/ת',
+    buyer_photos: 'תמונות הקונה',
+    upload_seller_photos: 'הוספת תמונות ההוכחה שלך',
+    seller_photos_submitted: 'התמונות נשלחו',
+    view_fullscreen: 'צפייה במסך מלא',
+    close: 'סגירה',
+    file_too_large: 'הקובץ גדול מ-5MB, הגודל המרבי',
+    error_invalid_data: 'חלק מהפרטים לא תקינים. כדאי לבדוק את הטופס.',
+    error_photo_required: 'יש לצרף לפחות תמונה אחת כדי לפתוח מחלוקת.',
+    error_only_buyer: 'רק הקונה יכול/ה לפתוח מחלוקת.',
+    error_deadline_passed: 'המועד לפתיחת מחלוקת עבר.',
+    error_already_exists: 'כבר קיימת מחלוקת על ההזמנה הזו.',
+    error_dispute_not_found: 'המחלוקת לא נמצאה',
+    error_access_denied: 'אין לך גישה למחלוקת הזו.',
+    error_only_seller: 'רק המוכר/ת יכול/ה להוסיף תמונות הוכחה למחלוקת הזו.',
+  },
+} satisfies Localized<Record<string, string>>
 
 const REASON_KEYS = [
   { value: 'not_received', key: 'reason_not_received' },
@@ -301,11 +391,30 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 export default function DisputePage() {
   const { orderId } = useParams<{ orderId: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const lang = (getLang() || 'fr') as Lang
-  const ct = pageContent[lang] || pageContent.fr
+  const lang: Lang = getLang()
+  const ct = pageContent[lang] ?? pageContent.en
+  // Messages connus renvoyés par le serveur → clés traduites ; sinon message générique
+  const SERVER_ERRORS: Record<string, keyof typeof ct> = {
+    'Données invalides': 'error_invalid_data', // i18n-ignore
+    'Invalid data': 'error_invalid_data', // i18n-ignore
+    'At least one photo is required to open a dispute': 'error_photo_required', // i18n-ignore
+    'Commande introuvable': 'error_order_not_found', // i18n-ignore
+    "Seul l'acheteur peut ouvrir un litige": 'error_only_buyer', // i18n-ignore
+    'Le délai de réclamation est dépassé': 'error_deadline_passed', // i18n-ignore
+    'Un litige existe déjà pour cette commande': 'error_already_exists', // i18n-ignore
+    'Dispute not found': 'error_dispute_not_found', // i18n-ignore
+    'Access denied': 'error_access_denied', // i18n-ignore
+    'Only the seller can upload proof photos for this dispute': 'error_only_seller', // i18n-ignore
+  }
+  const serverError = (msg: unknown) => {
+    const key = typeof msg === 'string' ? SERVER_ERRORS[msg] : undefined
+    return key ? ct[key] : ct.error_submit_failed
+  }
+  const fmtAmount = (n: number) => formatMoney(n, order?.currency || currencyForCountry(profile?.country))
+  const fmtDateTime = (d: string) => new Date(d).toLocaleDateString(getLocale(lang), { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
   usePageTitle(ct.dispute)
 
   // Order data
@@ -368,8 +477,8 @@ export default function DisputePage() {
         if (!data) throw new Error(ct.error_order_not_found)
         setOrder(data as OrderWithItem)
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : ct.error_unknown
-        setOrderError(message)
+        if (import.meta.env.DEV) console.warn('order load:', err)
+        setOrderError(ct.error_order_not_found)
       } finally {
         setLoadingOrder(false)
       }
@@ -424,14 +533,6 @@ export default function DisputePage() {
     checkDispute()
   }, [user, orderId])
 
-  // File size error translations
-  const fileSizeErrorMessages: Record<Lang, string> = {
-    fr: 'Le fichier dépasse la taille maximale de 5 Mo',
-    en: 'File exceeds the maximum size of 5 MB',
-    he: 'הקובץ חורג מהגודל המרבי של 5 מ"ב',
-    es: 'El archivo supera el tamaño máximo de 5 MB',
-  }
-
   // Handle file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files
@@ -444,7 +545,7 @@ export default function DisputePage() {
     // Validate file sizes before proceeding
     for (const file of candidates) {
       if (file.size > MAX_FILE_SIZE) {
-        setSubmitError(fileSizeErrorMessages[lang] || fileSizeErrorMessages.fr)
+        setSubmitError(ct.file_too_large)
         // Reset input
         if (fileInputRef.current) {
           fileInputRef.current.value = ''
@@ -502,7 +603,7 @@ export default function DisputePage() {
           .from('dispute-photos')
           .upload(filePath, file)
 
-        if (uploadError) throw new Error(`${ct.error_upload}: ${uploadError.message}`)
+        if (uploadError) throw new Error(ct.error_upload)
 
         const { data: urlData } = supabase.storage
           .from('dispute-photos')
@@ -530,8 +631,8 @@ export default function DisputePage() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || ct.error_submit_failed)
+        const err = await res.json().catch(() => ({}))
+        throw new Error(serverError(err.error))
       }
 
       const disputeData = await res.json()
@@ -555,7 +656,7 @@ export default function DisputePage() {
 
     for (const file of candidates) {
       if (file.size > MAX_FILE_SIZE) {
-        setSellerUploadError(fileSizeErrorMessages[lang] || fileSizeErrorMessages.fr)
+        setSellerUploadError(ct.file_too_large)
         if (sellerFileInputRef.current) sellerFileInputRef.current.value = ''
         return
       }
@@ -603,7 +704,7 @@ export default function DisputePage() {
           .from('dispute-photos')
           .upload(filePath, file)
 
-        if (uploadError) throw new Error(`${ct.error_upload}: ${uploadError.message}`)
+        if (uploadError) throw new Error(ct.error_upload)
 
         const { data: urlData } = supabase.storage
           .from('dispute-photos')
@@ -622,8 +723,8 @@ export default function DisputePage() {
       })
 
       if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || ct.error_submit_failed)
+        const err = await res.json().catch(() => ({}))
+        throw new Error(serverError(err.error))
       }
 
       const updated = await res.json()
@@ -691,7 +792,7 @@ export default function DisputePage() {
       <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
         {/* Header */}
         <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} aria-label={ct.back} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
           <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.dispute}</h1>
@@ -727,7 +828,7 @@ export default function DisputePage() {
                 )}
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
-                  <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{order.amount.toFixed(2)} EUR</p>
+                  <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{fmtAmount(order.amount)}</p>
                 </div>
               </div>
             </div>
@@ -784,16 +885,16 @@ export default function DisputePage() {
               </div>
               <div>
                 <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.amount_label}</p>
-                <p style={{ fontSize: '14px', color: '#ccc' }}>{dispute.amount.toFixed(2)} EUR</p>
+                <p style={{ fontSize: '14px', color: '#ccc' }}>{fmtAmount(dispute.amount)}</p>
               </div>
               <div>
                 <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.opened_at}</p>
-                <p style={{ fontSize: '14px', color: '#ccc' }}>{new Date(dispute.opened_at).toLocaleDateString(ct.date_locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                <p style={{ fontSize: '14px', color: '#ccc' }}>{fmtDateTime(dispute.opened_at)}</p>
               </div>
               {dispute.resolved_at && (
                 <div>
                   <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.resolved_at}</p>
-                  <p style={{ fontSize: '14px', color: '#ccc' }}>{new Date(dispute.resolved_at).toLocaleDateString(ct.date_locale, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p style={{ fontSize: '14px', color: '#ccc' }}>{fmtDateTime(dispute.resolved_at)}</p>
                 </div>
               )}
               {dispute.resolution_note && (
@@ -897,7 +998,7 @@ export default function DisputePage() {
                       <button
                         onClick={() => removeSellerFile(i)}
                         style={{
-                          position: 'absolute', top: '-6px', right: '-6px',
+                          position: 'absolute', top: '-6px', insetInlineEnd: '-6px',
                           width: '22px', height: '22px', borderRadius: '50%',
                           backgroundColor: '#E8344E', color: '#fff', border: 'none',
                           cursor: 'pointer', display: 'flex', alignItems: 'center',
@@ -989,8 +1090,9 @@ export default function DisputePage() {
           >
             <button
               onClick={() => setFullscreenPhoto(null)}
+              aria-label={ct.close}
               style={{
-                position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: '16px',
+                position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', insetInlineEnd: '16px',
                 width: '36px', height: '36px', borderRadius: '50%',
                 backgroundColor: 'rgba(255,255,255,0.15)', border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1030,7 +1132,7 @@ export default function DisputePage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       {/* Header */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} aria-label={ct.back} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.open_dispute}</h1>
@@ -1053,7 +1155,7 @@ export default function DisputePage() {
               )}
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
-                <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{order.amount.toFixed(2)} EUR</p>
+                <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{fmtAmount(order.amount)}</p>
               </div>
             </div>
           </div>
@@ -1180,7 +1282,7 @@ export default function DisputePage() {
                     style={{
                       position: 'absolute',
                       top: '-6px',
-                      right: '-6px',
+                      insetInlineEnd: '-6px',
                       width: '22px',
                       height: '22px',
                       borderRadius: '50%',
@@ -1275,7 +1377,7 @@ export default function DisputePage() {
           <button
             onClick={() => setFullscreenPhoto(null)}
             style={{
-              position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: '16px',
+              position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', insetInlineEnd: '16px',
               width: '36px', height: '36px', borderRadius: '50%',
               backgroundColor: 'rgba(255,255,255,0.15)', border: 'none',
               cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
