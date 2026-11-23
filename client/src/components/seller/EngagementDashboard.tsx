@@ -1,49 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getLang } from '../../lib/i18n'
+import { tr, type Localized } from '../../lib/i18n'
 import { isRTL } from '../../lib/rtl'
 import { supabase } from '../../lib/supabase'
 import type { EngagementMetrics } from '../../types/database'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
+type Level = 'low' | 'medium' | 'high' | 'peak'
+type DashTexts = {
+  liveEngagement: string
+  energyLevel: string
+  viewers: string
+  activeChatters: string
+  bids: string
+  reactions: string
+  newFollowers: string
+  engagementRate: string
+  aiRecommendation: string
+  chatMood: string
+  tip: string
+  energyLabels: Record<Level, string>
+  sentimentLabels: { positive: string; neutral: string; negative: string }
+  aiTips: Record<Level, string[]>
+}
 
-const dashContent = {
-  fr: {
-    liveEngagement: 'Engagement en direct',
-    energyLevel: 'Niveau d\'\u00E9nergie',
-    viewers: 'Spectateurs',
-    activeChatters: 'Chatteurs actifs',
-    bids: 'Ench\u00E8res',
-    reactions: 'R\u00E9actions',
-    newFollowers: 'Nouveaux followers',
-    engagementRate: 'Taux d\'engagement',
-    aiRecommendation: 'Recommandation IA',
-    chatMood: 'Ambiance du chat',
-    tip: 'Astuce',
-    energyLabels: { low: 'Bas', medium: 'Moyen', high: '\u00C9lev\u00E9', peak: 'Au max!' },
-    sentimentLabels: { positive: 'Positif', neutral: 'Neutre', negative: 'N\u00E9gatif' },
-    aiTips: {
-      low: [
-        'Pr\u00E9sente un nouvel article pour relancer l\'int\u00E9r\u00EAt !',
-        'Pose une question au chat pour engager les spectateurs',
-        'Propose un petit jeu ou quiz pour dynamiser le live',
-      ],
-      medium: [
-        'Bon moment pour lancer une ench\u00E8re surprise',
-        'Montre les d\u00E9tails de ton prochain article',
-        'Partage une anecdote sur un produit pour captiver',
-      ],
-      high: [
-        'L\'audience est captiv\u00E9e ! Lance ton article phare maintenant',
-        'Profite de l\'\u00E9lan pour encha\u00EEner les ench\u00E8res',
-        'C\'est le moment de montrer tes pi\u00E8ces rares !',
-      ],
-      peak: [
-        'Moment parfait ! Propose une offre exclusive',
-        'L\'\u00E9nergie est au maximum ! Lance ton drop le plus attendu',
-        'Offre un code promo flash pour maximiser les ventes !',
-      ],
-    },
-  },
+const dashContent: Localized<DashTexts> = {
   en: {
     liveEngagement: 'Live engagement',
     energyLevel: 'Energy level',
@@ -53,7 +32,7 @@ const dashContent = {
     reactions: 'Reactions',
     newFollowers: 'New followers',
     engagementRate: 'Engagement rate',
-    aiRecommendation: 'AI Recommendation',
+    aiRecommendation: 'AI tip',
     chatMood: 'Chat mood',
     tip: 'Tip',
     energyLabels: { low: 'Low', medium: 'Medium', high: 'High', peak: 'Peak!' },
@@ -61,97 +40,171 @@ const dashContent = {
     aiTips: {
       low: [
         'Show a new item to spark interest!',
-        'Ask the chat a question to engage viewers',
-        'Suggest a mini game or quiz to liven things up',
+        'Ask the chat a question to get viewers involved',
+        'Run a mini game or quiz to liven things up',
       ],
       medium: [
         'Great time to launch a surprise auction',
-        'Show details of your next item',
-        'Share a story about a product to captivate',
+        'Show the details of your next item',
+        'Tell a story about a product to hook viewers',
       ],
       high: [
         'The audience is hooked! Show your best item now',
-        'Ride the momentum and chain auctions',
+        'Ride the momentum and keep the auctions coming',
         'Time to show your rare pieces!',
       ],
       peak: [
         'Perfect moment! Offer an exclusive deal',
-        'Energy is at max! Launch your most awaited drop',
-        'Offer a flash promo code to maximize sales!',
+        'Energy is at its peak! Launch your most awaited drop',
+        'Offer a flash promo code to boost sales!',
       ],
     },
   },
-  he: {
-    liveEngagement: '\u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8',
-    energyLevel: '\u05E8\u05DE\u05EA \u05D0\u05E0\u05E8\u05D2\u05D9\u05D4',
-    viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
-    activeChatters: '\u05E6\u05F3\u05D0\u05D8 \u05E4\u05E2\u05D9\u05DC',
-    bids: '\u05D4\u05E6\u05E2\u05D5\u05EA',
-    reactions: '\u05EA\u05D2\u05D5\u05D1\u05D5\u05EA',
-    newFollowers: '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD',
-    engagementRate: '\u05E9\u05D9\u05E2\u05D5\u05E8 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA',
-    aiRecommendation: '\u05D4\u05DE\u05DC\u05E6\u05EA AI',
-    chatMood: '\u05D0\u05D5\u05D5\u05D9\u05E8\u05EA \u05D4\u05E6\u05F3\u05D0\u05D8',
-    tip: '\u05D8\u05D9\u05E4',
-    energyLabels: { low: '\u05E0\u05DE\u05D5\u05DA', medium: '\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9', high: '\u05D2\u05D1\u05D5\u05D4', peak: '!\u05E9\u05D9\u05D0' },
-    sentimentLabels: { positive: '\u05D7\u05D9\u05D5\u05D1\u05D9', neutral: '\u05E0\u05D9\u05D8\u05E8\u05DC\u05D9', negative: '\u05E9\u05DC\u05D9\u05DC\u05D9' },
+  fr: {
+    liveEngagement: 'Engagement en direct',
+    energyLevel: 'Niveau d\'énergie',
+    viewers: 'Spectateurs',
+    activeChatters: 'Participants actifs au chat',
+    bids: 'Enchères',
+    reactions: 'Réactions',
+    newFollowers: 'Nouveaux abonnés',
+    engagementRate: 'Taux d\'engagement',
+    aiRecommendation: 'Conseil de l\'IA',
+    chatMood: 'Ambiance du chat',
+    tip: 'Astuce',
+    energyLabels: { low: 'Basse', medium: 'Moyenne', high: 'Élevée', peak: 'Au max !' },
+    sentimentLabels: { positive: 'Positive', neutral: 'Neutre', negative: 'Négative' },
     aiTips: {
       low: [
-        '!\u05D4\u05E6\u05D2 \u05E4\u05E8\u05D9\u05D8 \u05D7\u05D3\u05E9 \u05DC\u05E2\u05D5\u05E8\u05E8 \u05E2\u05E0\u05D9\u05D9\u05DF',
-        '\u05E9\u05D0\u05DC \u05E9\u05D0\u05DC\u05D4 \u05D1\u05E6\u05F3\u05D0\u05D8 \u05DB\u05D3\u05D9 \u05DC\u05E2\u05D5\u05E8\u05E8 \u05D0\u05EA \u05D4\u05E6\u05D5\u05E4\u05D9\u05DD',
-        '\u05D4\u05E6\u05E2 \u05DE\u05E9\u05D7\u05E7 \u05D0\u05D5 \u05D7\u05D9\u05D3\u05D5\u05DF \u05DC\u05D4\u05D7\u05D9\u05D5\u05EA \u05D0\u05EA \u05D4\u05E9\u05D9\u05D3\u05D5\u05E8',
+        'Présente un nouvel article pour relancer l\'intérêt !',
+        'Pose une question au chat pour faire réagir les spectateurs',
+        'Propose un petit jeu ou un quiz pour dynamiser le live',
       ],
       medium: [
-        '\u05D6\u05DE\u05DF \u05DE\u05E6\u05D5\u05D9\u05DF \u05DC\u05D4\u05E9\u05D9\u05E7 \u05DE\u05DB\u05D9\u05E8\u05D4 \u05DE\u05E4\u05EA\u05D9\u05E2\u05D4',
-        '\u05D4\u05E8\u05D0\u05D4 \u05E4\u05E8\u05D8\u05D9\u05DD \u05E9\u05DC \u05D4\u05E4\u05E8\u05D9\u05D8 \u05D4\u05D1\u05D0',
-        '\u05E9\u05EA\u05E3 \u05E1\u05D9\u05E4\u05D5\u05E8 \u05E2\u05DC \u05DE\u05D5\u05E6\u05E8 \u05DB\u05D3\u05D9 \u05DC\u05E8\u05EA\u05E7',
+        'Bon moment pour lancer une enchère surprise',
+        'Montre les détails de ton prochain article',
+        'Raconte une anecdote sur un produit pour captiver',
       ],
       high: [
-        '!\u05D4\u05E7\u05D4\u05DC \u05DE\u05E8\u05D5\u05EA\u05E7 - \u05D4\u05E6\u05D2 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D9\u05D8 \u05D4\u05DE\u05D5\u05D1\u05D9\u05DC \u05E2\u05DB\u05E9\u05D9\u05D5',
-        '\u05E0\u05E6\u05DC \u05D0\u05EA \u05D4\u05EA\u05E0\u05D5\u05E4\u05D4 \u05D5\u05E9\u05E8\u05E9\u05E8 \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA',
-        '!\u05D6\u05D4 \u05D4\u05D6\u05DE\u05DF \u05DC\u05D4\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05D4\u05E0\u05D3\u05D9\u05E8\u05D9\u05DD',
+        'L\'audience est captivée ! Lance ton article phare maintenant',
+        'Profite de l\'élan pour enchaîner les enchères',
+        'C\'est le moment de montrer tes pièces rares !',
       ],
       peak: [
-        '!\u05E8\u05D2\u05E2 \u05DE\u05D5\u05E9\u05DC\u05DD - \u05D4\u05E6\u05E2 \u05DE\u05D1\u05E6\u05E2 \u05D1\u05DC\u05E2\u05D3\u05D9',
-        '!\u05D4\u05D0\u05E0\u05E8\u05D2\u05D9\u05D4 \u05D1\u05E9\u05D9\u05D0 - \u05D4\u05E9\u05E7 \u05D0\u05EA \u05D4\u05D3\u05E8\u05D5\u05E4 \u05D4\u05DB\u05D9 \u05DE\u05D1\u05D5\u05E7\u05E9',
-        '!\u05D4\u05E6\u05E2 \u05E7\u05D5\u05D3 \u05E4\u05E8\u05D5\u05DE\u05D5 \u05DE\u05D4\u05D9\u05E8 \u05DC\u05DE\u05E7\u05E1\u05DD \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA',
+        'Moment parfait ! Propose une offre exclusive',
+        'L\'énergie est au maximum ! Lance ton drop le plus attendu',
+        'Offre un code promo flash pour maximiser les ventes !',
       ],
     },
   },
   es: {
-    liveEngagement: 'Engagement en directo',
-    energyLevel: 'Nivel de energia',
+    liveEngagement: 'Interacción en directo',
+    energyLevel: 'Nivel de energía',
     viewers: 'Espectadores',
-    activeChatters: 'Chatters activos',
+    activeChatters: 'Participantes en el chat',
     bids: 'Pujas',
     reactions: 'Reacciones',
     newFollowers: 'Nuevos seguidores',
-    engagementRate: 'Tasa de engagement',
-    aiRecommendation: 'Recomendacion IA',
+    engagementRate: 'Tasa de interacción',
+    aiRecommendation: 'Consejo de la IA',
     chatMood: 'Ambiente del chat',
     tip: 'Consejo',
-    energyLabels: { low: 'Bajo', medium: 'Medio', high: 'Alto', peak: 'Al maximo!' },
+    energyLabels: { low: 'Baja', medium: 'Media', high: 'Alta', peak: '¡Al máximo!' },
     sentimentLabels: { positive: 'Positivo', neutral: 'Neutral', negative: 'Negativo' },
     aiTips: {
       low: [
-        'Muestra un nuevo articulo para despertar interes!',
-        'Haz una pregunta en el chat para enganchar a los espectadores',
-        'Propone un mini juego o quiz para animar el live',
+        '¡Muestra un artículo nuevo para despertar el interés!',
+        'Haz una pregunta en el chat para que participen',
+        'Propón un minijuego o un quiz para animar el directo',
       ],
       medium: [
         'Buen momento para lanzar una subasta sorpresa',
-        'Muestra los detalles de tu proximo articulo',
-        'Comparte una anecdota sobre un producto para cautivar',
+        'Enseña los detalles de tu próximo artículo',
+        'Cuenta una anécdota sobre un producto para enganchar',
       ],
       high: [
-        'La audiencia esta enganchada! Muestra tu mejor articulo ahora',
+        '¡La audiencia está enganchada! Enseña tu mejor artículo ahora',
         'Aprovecha el impulso y encadena subastas',
-        'Es el momento de mostrar tus piezas raras!',
+        '¡Es el momento de enseñar tus piezas más raras!',
       ],
       peak: [
-        'Momento perfecto! Ofrece un trato exclusivo',
-        'La energia esta al maximo! Lanza tu drop mas esperado',
-        'Ofrece un codigo promo flash para maximizar ventas!',
+        '¡Momento perfecto! Ofrece un trato exclusivo',
+        '¡La energía está al máximo! Lanza tu drop más esperado',
+        '¡Ofrece un código promocional relámpago para vender más!',
+      ],
+    },
+  },
+  ru: {
+    liveEngagement: 'Вовлечённость в эфире',
+    energyLevel: 'Уровень энергии',
+    viewers: 'Зрители',
+    activeChatters: 'Активные в чате',
+    bids: 'Ставки',
+    reactions: 'Реакции',
+    newFollowers: 'Новые подписчики',
+    engagementRate: 'Вовлечённость',
+    aiRecommendation: 'Совет ИИ',
+    chatMood: 'Настроение чата',
+    tip: 'Совет',
+    energyLabels: { low: 'Низкий', medium: 'Средний', high: 'Высокий', peak: 'На максимуме!' },
+    sentimentLabels: { positive: 'Позитивное', neutral: 'Нейтральное', negative: 'Негативное' },
+    aiTips: {
+      low: [
+        'Покажи новый товар, чтобы подогреть интерес!',
+        'Задай вопрос в чате, чтобы расшевелить зрителей',
+        'Предложи мини-игру или викторину, чтобы оживить эфир',
+      ],
+      medium: [
+        'Отличный момент для аукциона-сюрприза',
+        'Покажи детали следующего товара',
+        'Расскажи историю о товаре, чтобы увлечь зрителей',
+      ],
+      high: [
+        'Зрители в восторге! Покажи свой лучший товар прямо сейчас',
+        'Лови момент и запускай аукционы один за другим',
+        'Самое время показать редкие вещи!',
+      ],
+      peak: [
+        'Идеальный момент! Предложи эксклюзивную сделку',
+        'Энергия на максимуме! Запускай самый ожидаемый дроп',
+        'Дай флеш-промокод, чтобы поднять продажи!',
+      ],
+    },
+  },
+  he: {
+    liveEngagement: 'מעורבות בשידור',
+    energyLevel: 'רמת אנרגיה',
+    viewers: 'צופים',
+    activeChatters: 'פעילים בצ׳אט',
+    bids: 'הצעות',
+    reactions: 'תגובות',
+    newFollowers: 'עוקבים חדשים',
+    engagementRate: 'שיעור מעורבות',
+    aiRecommendation: 'המלצת AI',
+    chatMood: 'אווירת הצ׳אט',
+    tip: 'טיפ',
+    energyLabels: { low: 'נמוכה', medium: 'בינונית', high: 'גבוהה', peak: 'בשיא!' },
+    sentimentLabels: { positive: 'חיובית', neutral: 'ניטרלית', negative: 'שלילית' },
+    aiTips: {
+      low: [
+        'הציגו פריט חדש כדי לעורר עניין!',
+        'שאלו שאלה בצ׳אט כדי לשתף את הצופים',
+        'הציעו משחקון או חידון כדי להחיות את השידור',
+      ],
+      medium: [
+        'זמן מצוין להשיק מכירה פומבית בהפתעה',
+        'הראו את הפרטים של הפריט הבא',
+        'ספרו סיפור על מוצר כדי לרתק את הקהל',
+      ],
+      high: [
+        'הקהל מרותק! הציגו עכשיו את הפריט הכי חזק',
+        'נצלו את התנופה והמשיכו במכירות ברצף',
+        'זה הזמן להראות את הפריטים הנדירים!',
+      ],
+      peak: [
+        'רגע מושלם! הציעו מבצע בלעדי',
+        'האנרגיה בשיא! השיקו את הדרופ הכי מבוקש',
+        'הציעו קוד הנחה בזק כדי למקסם מכירות!',
       ],
     },
   },
@@ -212,8 +265,7 @@ function getSentiment(score: number, labels: { positive: string; neutral: string
 }
 
 export default function EngagementDashboard({ streamId, isVisible, onClose }: EngagementDashboardProps) {
-  const lang = (getLang() || 'fr') as Lang
-  const ct = dashContent[lang] || dashContent.fr
+  const ct = tr(dashContent)
   const [metrics, setMetrics] = useState<EngagementMetrics>(() => createEmptyMetrics())
   const [prevViewerCount, setPrevViewerCount] = useState(metrics.viewer_count)
   const [aiRecommendation, setAiRecommendation] = useState('')
@@ -302,14 +354,14 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
     <div style={{
       position: 'absolute',
       top: 0,
-      ...(isRTL() ? { left: 0 } : { right: 0 }),
+      insetInlineEnd: 0,
       bottom: 0,
       width: '100%',
       maxWidth: '360px',
       backgroundColor: '#000000DD',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      ...(isRTL() ? { borderRight: '1px solid rgba(255,255,255,0.08)' } : { borderLeft: '1px solid rgba(255,255,255,0.08)' }),
+      borderInlineStart: '1px solid rgba(255,255,255,0.08)',
       zIndex: 50,
       display: 'flex',
       flexDirection: 'column',

@@ -2,12 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { apiFetch } from '../../lib/api'
-import { getLang, t as i18nT } from '../../lib/i18n'
+import { getLang, tr, t as i18nT, type Localized } from '../../lib/i18n'
+import { formatItemPrice } from '../../lib/fulfillment'
 import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
 import { rtlFlip, rtlTextAlign } from '../../lib/rtl'
 import {
   subCategories,
+  subCategoryLabel,
+  optionLabel,
   sellingLocations,
   platforms,
   revenueRanges,
@@ -81,117 +84,57 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   }, [step])
 
   const txt = {
-    fr: {
-      rules: 'Regles de la communaute',
-      rule1: 'Sois honnete sur l\'etat du produit',
-      rule2: 'Expedie sous 3 jours ouvrables',
-      rule3: 'Pas d\'articles contrefaits ou interdits',
-      rule4: 'Reponds aux acheteurs sous 24h',
-      rule5: 'Respecte tous les acheteurs et vendeurs',
-      understood: 'J\'ai compris !',
-      accept: 'J\'accepte les regles',
-      feesTitle: 'Grille tarifaire',
-      fee1: 'Commission plateforme : 8% HT + TVA (9,60% TTC)',
-      fee2: 'Frais Stripe : 2,9% + 0,30\u20AC HT + TVA (3,48% + 0,36\u20AC TTC)',
-      fee3: 'Exemple : sur 50\u20AC, frais totaux 6,90\u20AC, vous recevez 43,10\u20AC',
-      fee4: 'Versements hebdomadaires, seuil minimum 50\u20AC',
-      acceptFees: 'J\'accepte la grille tarifaire',
-      category: 'Que vends-tu ?',
-      categoryDesc: 'Choisis ta categorie principale',
-      subCategory: 'Plus precisement...',
-      subCategoryDesc: 'Selectionne tout ce qui correspond',
-      type: 'Tu es...',
-      individual: 'Particulier',
-      individualDesc: 'Vente d\'objets personnels ou petit hobby',
-      business: 'Entreprise',
-      businessDesc: 'Commerce enregistre ou vendeur professionnel',
-      whereSell: 'Ou vends-tu actuellement ?',
-      whereSellDesc: 'Selectionne tout ce qui correspond',
-      platformsTitle: 'Quelles plateformes ?',
-      platformsDesc: 'Selectionne celles que tu utilises',
-      etsyUrl: 'URL de ta boutique Etsy',
-      revenueTitle: 'Chiffre d\'affaires mensuel ?',
-      revenueDesc: 'De tous tes canaux de vente',
-      teamTitle: 'Taille de l\'equipe ?',
-      teamDesc: 'Combien de personnes travaillent avec toi',
-      hoursTitle: 'Heures de live par semaine ?',
-      hoursDesc: 'Ou combien tu prevois d\'en faire',
-      addressTitle: 'Adresse de retour',
-      addressDesc: 'Ou les acheteurs peuvent retourner les articles',
-      useExisting: 'Utiliser mon adresse de profil',
-      newAddress: 'Saisir une nouvelle adresse',
-      street: 'Adresse',
-      city: 'Ville',
-      zip: 'Code postal',
-      country: 'Pays',
-      returnPolicyTitle: 'Politique de retour',
-      returnPolicyDesc: 'Quelle est ta politique pour les retours ?',
-      noReturn: 'Aucun retour',
-      exchangeOnly: 'Echanges uniquement',
-      return7: 'Retours sous 7 jours',
-      return14: 'Retours sous 14 jours',
-      return30: 'Retours sous 30 jours',
-      bankTitle: 'Configuration du paiement',
-      bankDesc: 'Comment tu veux etre paye',
-      paypalEmailLabel: 'Ton email PayPal',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'L\'email associe a ton compte PayPal Business',
-      next: 'Suivant',
-      finish: 'Terminer',
-      saving: 'Enregistrement...',
-      back: 'Retour',
-    },
     en: {
-      rules: 'Community Rules',
-      rule1: 'Be honest about product condition',
+      rules: 'Community rules',
+      rule1: 'Be honest about the item\'s condition',
       rule2: 'Ship within 3 business days',
       rule3: 'No counterfeit or prohibited items',
-      rule4: 'Respond to buyers within 24 hours',
+      rule4: 'Reply to buyers within 24 hours',
       rule5: 'Respect all buyers and sellers',
-      understood: 'I understand!',
+      understood: 'Got it!',
       accept: 'I accept the rules',
-      feesTitle: 'Fee Schedule',
-      fee1: 'Platform commission: 8% + VAT (9.60% incl. VAT)',
-      fee2: 'Stripe processing: 2.9% + \u20AC0.30 + VAT (3.48% + \u20AC0.36 incl. VAT)',
-      fee3: 'Example: on \u20AC50 sale, total fees \u20AC6.90, you receive \u20AC43.10',
-      fee4: 'Weekly payouts, minimum threshold \u20AC50',
-      acceptFees: 'I accept the fee schedule',
+      feesTitle: 'Fees',
+      fee1: 'Platform commission: 8% + VAT where applicable (9.60% incl. VAT)',
+      fee2: 'Stripe processing: 2.9% + {fixed} + VAT (3.48% + {fixedVat} incl. VAT)',
+      fee3: 'Example: on a {sale} sale, total fees are {fees} and you receive {net}',
+      fee4: 'Weekly payouts, minimum {min}',
+      acceptFees: 'I accept the fees',
       category: 'What do you sell?',
       categoryDesc: 'Pick your main category',
       subCategory: 'More specifically...',
       subCategoryDesc: 'Select all that apply',
-      type: 'Are you a...',
+      type: 'Are you...',
       individual: 'Individual',
-      individualDesc: 'Selling personal items or small hobby',
+      individualDesc: 'Selling personal items or a small hobby',
       business: 'Business',
       businessDesc: 'Registered business or professional seller',
-      whereSell: 'Where do you currently sell?',
+      whereSell: 'Where do you sell today?',
       whereSellDesc: 'Select all that apply',
       platformsTitle: 'Which platforms?',
       platformsDesc: 'Select the ones you use',
       etsyUrl: 'Your Etsy shop URL',
       revenueTitle: 'Monthly revenue?',
-      revenueDesc: 'From all your selling channels',
+      revenueDesc: 'Across all your sales channels',
       teamTitle: 'Team size?',
       teamDesc: 'How many people work with you',
-      hoursTitle: 'Hours of live per week?',
+      hoursTitle: 'Live hours per week?',
       hoursDesc: 'Or how many you plan to do',
       addressTitle: 'Return address',
-      addressDesc: 'Where buyers can return items',
+      addressDesc: 'Where buyers can send items back',
       useExisting: 'Use my profile address',
       newAddress: 'Enter a new address',
       street: 'Street address',
       city: 'City',
-      zip: 'ZIP code',
+      zip: 'Postal code',
       country: 'Country',
       returnPolicyTitle: 'Return policy',
-      returnPolicyDesc: 'What is your return policy?',
+      returnPolicyDesc: 'What\'s your return policy?',
       noReturn: 'No returns',
       exchangeOnly: 'Exchanges only',
       return7: 'Returns within 7 days',
       return14: 'Returns within 14 days',
       return30: 'Returns within 30 days',
-      bankTitle: 'Payment setup',
+      bankTitle: 'Payout setup',
       bankDesc: 'How you want to get paid',
       paypalEmailLabel: 'Your PayPal email',
       paypalEmailPlaceholder: 'email@paypal.com',
@@ -200,130 +143,272 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       finish: 'Finish',
       saving: 'Saving...',
       back: 'Back',
+      saveError: 'Couldn\'t save. Please try again.',
+      readRules: 'Please read and accept our rules',
+      chooseAccountType: 'Choose your account type',
+    },
+    fr: {
+      rules: 'Règles de la communauté',
+      rule1: 'Sois honnête sur l\'état du produit',
+      rule2: 'Expédie sous 3 jours ouvrés',
+      rule3: 'Pas d\'articles contrefaits ou interdits',
+      rule4: 'Réponds aux acheteurs sous 24 h',
+      rule5: 'Respecte tous les acheteurs et vendeurs',
+      understood: 'J\'ai compris !',
+      accept: 'J\'accepte les règles',
+      feesTitle: 'Grille tarifaire',
+      fee1: 'Commission plateforme : 8 % HT + TVA le cas échéant (9,60 % TTC)',
+      fee2: 'Frais Stripe : 2,9 % + {fixed} HT + TVA (3,48 % + {fixedVat} TTC)',
+      fee3: 'Exemple : pour une vente de {sale}, frais totaux de {fees}, tu reçois {net}',
+      fee4: 'Versements hebdomadaires, à partir de {min}',
+      acceptFees: 'J\'accepte la grille tarifaire',
+      category: 'Que vends-tu ?',
+      categoryDesc: 'Choisis ta catégorie principale',
+      subCategory: 'Plus précisément...',
+      subCategoryDesc: 'Sélectionne tout ce qui correspond',
+      type: 'Tu es...',
+      individual: 'Particulier',
+      individualDesc: 'Vente d\'objets personnels ou petit hobby',
+      business: 'Entreprise',
+      businessDesc: 'Commerce enregistré ou vendeur professionnel',
+      whereSell: 'Où vends-tu actuellement ?',
+      whereSellDesc: 'Sélectionne tout ce qui correspond',
+      platformsTitle: 'Quelles plateformes ?',
+      platformsDesc: 'Sélectionne celles que tu utilises',
+      etsyUrl: 'URL de ta boutique Etsy',
+      revenueTitle: 'Chiffre d\'affaires mensuel ?',
+      revenueDesc: 'Tous canaux de vente confondus',
+      teamTitle: 'Taille de l\'équipe ?',
+      teamDesc: 'Combien de personnes travaillent avec toi',
+      hoursTitle: 'Heures de live par semaine ?',
+      hoursDesc: 'Ou combien tu prévois d\'en faire',
+      addressTitle: 'Adresse de retour',
+      addressDesc: 'Où les acheteurs peuvent renvoyer les articles',
+      useExisting: 'Utiliser l\'adresse de mon profil',
+      newAddress: 'Saisir une nouvelle adresse',
+      street: 'Adresse',
+      city: 'Ville',
+      zip: 'Code postal',
+      country: 'Pays',
+      returnPolicyTitle: 'Politique de retour',
+      returnPolicyDesc: 'Quelle est ta politique de retour ?',
+      noReturn: 'Aucun retour',
+      exchangeOnly: 'Échanges uniquement',
+      return7: 'Retours sous 7 jours',
+      return14: 'Retours sous 14 jours',
+      return30: 'Retours sous 30 jours',
+      bankTitle: 'Configuration des paiements',
+      bankDesc: 'Comment tu veux être payé',
+      paypalEmailLabel: 'Ton e-mail PayPal',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'L\'e-mail associé à ton compte PayPal Business',
+      next: 'Suivant',
+      finish: 'Terminer',
+      saving: 'Enregistrement...',
+      back: 'Retour',
+      saveError: 'Erreur lors de l\'enregistrement. Réessaie.',
+      readRules: 'Lis et accepte nos règles',
+      chooseAccountType: 'Choisis ton type de compte',
+    },
+    es: {
+      rules: 'Normas de la comunidad',
+      rule1: 'Sé honesto sobre el estado del producto',
+      rule2: 'Envía en un plazo de 3 días hábiles',
+      rule3: 'Nada de artículos falsificados o prohibidos',
+      rule4: 'Responde a los compradores en menos de 24 h',
+      rule5: 'Respeta a todos los compradores y vendedores',
+      understood: '¡Entendido!',
+      accept: 'Acepto las normas',
+      feesTitle: 'Tarifas',
+      fee1: 'Comisión de la plataforma: 8 % + IVA si aplica (9,60 % con IVA)',
+      fee2: 'Gastos de Stripe: 2,9 % + {fixed} + IVA (3,48 % + {fixedVat} con IVA)',
+      fee3: 'Ejemplo: en una venta de {sale}, las comisiones son {fees} y recibes {net}',
+      fee4: 'Pagos semanales, a partir de {min}',
+      acceptFees: 'Acepto las tarifas',
+      category: '¿Qué vendes?',
+      categoryDesc: 'Elige tu categoría principal',
+      subCategory: 'Más concretamente...',
+      subCategoryDesc: 'Selecciona todo lo que corresponda',
+      type: '¿Eres...?',
+      individual: 'Particular',
+      individualDesc: 'Vendes cosas personales o es un pequeño hobby',
+      business: 'Empresa',
+      businessDesc: 'Negocio registrado o vendedor profesional',
+      whereSell: '¿Dónde vendes ahora?',
+      whereSellDesc: 'Selecciona todo lo que corresponda',
+      platformsTitle: '¿Qué plataformas?',
+      platformsDesc: 'Selecciona las que usas',
+      etsyUrl: 'URL de tu tienda Etsy',
+      revenueTitle: '¿Facturación mensual?',
+      revenueDesc: 'De todos tus canales de venta',
+      teamTitle: '¿Tamaño del equipo?',
+      teamDesc: 'Cuántas personas trabajan contigo',
+      hoursTitle: '¿Horas de directo por semana?',
+      hoursDesc: 'O cuántas tienes previsto hacer',
+      addressTitle: 'Dirección de devolución',
+      addressDesc: 'Adonde los compradores pueden devolver los artículos',
+      useExisting: 'Usar la dirección de mi perfil',
+      newAddress: 'Introducir una nueva dirección',
+      street: 'Dirección',
+      city: 'Ciudad',
+      zip: 'Código postal',
+      country: 'País',
+      returnPolicyTitle: 'Política de devoluciones',
+      returnPolicyDesc: '¿Cuál es tu política de devoluciones?',
+      noReturn: 'Sin devoluciones',
+      exchangeOnly: 'Solo cambios',
+      return7: 'Devoluciones en 7 días',
+      return14: 'Devoluciones en 14 días',
+      return30: 'Devoluciones en 30 días',
+      bankTitle: 'Configuración de cobros',
+      bankDesc: 'Cómo quieres cobrar',
+      paypalEmailLabel: 'Tu email de PayPal',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'El email vinculado a tu cuenta PayPal Business',
+      next: 'Siguiente',
+      finish: 'Terminar',
+      saving: 'Guardando...',
+      back: 'Atrás',
+      saveError: 'Error al guardar. Inténtalo de nuevo.',
+      readRules: 'Lee y acepta nuestras normas',
+      chooseAccountType: 'Elige tu tipo de cuenta',
+    },
+    ru: {
+      rules: 'Правила сообщества',
+      rule1: 'Честно описывай состояние товара',
+      rule2: 'Отправляй заказ в течение 3 рабочих дней',
+      rule3: 'Никаких подделок и запрещённых товаров',
+      rule4: 'Отвечай покупателям в течение 24 часов',
+      rule5: 'Уважай всех покупателей и продавцов',
+      understood: 'Понятно!',
+      accept: 'Принимаю правила',
+      feesTitle: 'Тарифы',
+      fee1: 'Комиссия платформы: 8 % + НДС, если применимо (9,60 % с НДС)',
+      fee2: 'Комиссия Stripe: 2,9 % + {fixed} + НДС (3,48 % + {fixedVat} с НДС)',
+      fee3: 'Пример: при продаже на {sale} комиссии составят {fees}, ты получишь {net}',
+      fee4: 'Выплаты раз в неделю, от {min}',
+      acceptFees: 'Принимаю тарифы',
+      category: 'Что ты продаёшь?',
+      categoryDesc: 'Выбери основную категорию',
+      subCategory: 'А точнее...',
+      subCategoryDesc: 'Отметь всё подходящее',
+      type: 'Ты...',
+      individual: 'Частное лицо',
+      individualDesc: 'Продаёшь личные вещи или занимаешься хобби',
+      business: 'Компания',
+      businessDesc: 'Зарегистрированный бизнес или профессиональный продавец',
+      whereSell: 'Где ты продаёшь сейчас?',
+      whereSellDesc: 'Отметь всё подходящее',
+      platformsTitle: 'На каких площадках?',
+      platformsDesc: 'Отметь те, которыми пользуешься',
+      etsyUrl: 'Ссылка на твой магазин Etsy',
+      revenueTitle: 'Выручка в месяц?',
+      revenueDesc: 'По всем каналам продаж',
+      teamTitle: 'Размер команды?',
+      teamDesc: 'Сколько человек работает с тобой',
+      hoursTitle: 'Часов эфира в неделю?',
+      hoursDesc: 'Или сколько планируешь',
+      addressTitle: 'Адрес для возвратов',
+      addressDesc: 'Куда покупатели смогут вернуть товары',
+      useExisting: 'Использовать адрес из профиля',
+      newAddress: 'Ввести новый адрес',
+      street: 'Адрес',
+      city: 'Город',
+      zip: 'Почтовый индекс',
+      country: 'Страна',
+      returnPolicyTitle: 'Условия возврата',
+      returnPolicyDesc: 'Какие у тебя условия возврата?',
+      noReturn: 'Без возврата',
+      exchangeOnly: 'Только обмен',
+      return7: 'Возврат в течение 7 дней',
+      return14: 'Возврат в течение 14 дней',
+      return30: 'Возврат в течение 30 дней',
+      bankTitle: 'Настройка выплат',
+      bankDesc: 'Как ты хочешь получать деньги',
+      paypalEmailLabel: 'Твой e-mail в PayPal',
+      paypalEmailPlaceholder: 'email@paypal.com',
+      paypalEmailHint: 'E-mail, привязанный к твоему аккаунту PayPal Business',
+      next: 'Далее',
+      finish: 'Готово',
+      saving: 'Сохраняем...',
+      back: 'Назад',
+      saveError: 'Не удалось сохранить. Попробуй ещё раз.',
+      readRules: 'Прочитай и прими наши правила',
+      chooseAccountType: 'Выбери тип аккаунта',
     },
     he: {
       rules: 'כללי הקהילה',
-      rule1: 'היה כנה לגבי מצב המוצר',
-      rule2: 'שלח תוך 3 ימי עסקים',
-      rule3: 'ללא פריטים מזויפים או אסורים',
-      rule4: 'ענה לקונים תוך 24 שעות',
-      rule5: 'כבד את כל הקונים והמוכרים',
-      understood: '!הבנתי',
-      accept: '\u05D0\u05E0\u05D9 \u05DE\u05E7\u05D1\u05DC \u05D0\u05EA \u05D4\u05DB\u05DC\u05DC\u05D9\u05DD',
-      feesTitle: '\u05DC\u05D5\u05D7 \u05E2\u05DE\u05DC\u05D5\u05EA',
-      fee1: '\u05E2\u05DE\u05DC\u05EA \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05D4: 8% + \u05DE\u05E2"\u05DE (9.60% \u05DB\u05D5\u05DC\u05DC \u05DE\u05E2"\u05DE)',
-      fee2: '\u05E2\u05D9\u05D1\u05D5\u05D3 Stripe: 2.9% + 0.30\u20AC + \u05DE\u05E2"\u05DE (3.48% + 0.36\u20AC)',
-      fee3: '\u05D3\u05D5\u05D2\u05DE\u05D4: \u05DE\u05DE\u05DB\u05D9\u05E8\u05D4 \u05E9\u05DC 50\u20AC, \u05E2\u05DE\u05DC\u05D5\u05EA 6.90\u20AC, \u05DE\u05E7\u05D1\u05DC\u05D9\u05DD 43.10\u20AC',
-      fee4: '\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05E9\u05D1\u05D5\u05E2\u05D9\u05D9\u05DD, \u05E1\u05E3 \u05DE\u05D9\u05E0\u05D9\u05DE\u05D5\u05DD 50\u20AC',
-      acceptFees: '\u05D0\u05E0\u05D9 \u05DE\u05E7\u05D1\u05DC \u05D0\u05EA \u05DC\u05D5\u05D7 \u05D4\u05E2\u05DE\u05DC\u05D5\u05EA',
-      category: '?מה אתה מוכר',
-      categoryDesc: 'בחר את הקטגוריה הראשית',
-      subCategory: '...ליתר דיוק',
-      subCategoryDesc: 'בחר את כל המתאימים',
-      type: '?אתה',
-      individual: 'פרטי',
-      individualDesc: 'מכירת פריטים אישיים או תחביב',
+      rule1: 'היו כנים לגבי מצב המוצר',
+      rule2: 'שלחו תוך 3 ימי עסקים',
+      rule3: 'בלי מוצרים מזויפים או אסורים',
+      rule4: 'ענו לקונים תוך 24 שעות',
+      rule5: 'כבדו את כל הקונים והמוכרים',
+      understood: 'הבנתי!',
+      accept: 'אני מסכים/ה לכללים',
+      feesTitle: 'עמלות',
+      fee1: 'עמלת פלטפורמה: 8% + מע״מ אם חל (9.60% כולל מע״מ)',
+      fee2: 'עמלת Stripe: ‏2.9% + {fixed} + מע״מ (3.48% + {fixedVat} כולל מע״מ)',
+      fee3: 'דוגמה: במכירה של {sale}, סך העמלות {fees} ואת/ה מקבל/ת {net}',
+      fee4: 'תשלומים שבועיים, החל מ-{min}',
+      acceptFees: 'אני מסכים/ה לעמלות',
+      category: 'מה את/ה מוכר/ת?',
+      categoryDesc: 'בחרו קטגוריה ראשית',
+      subCategory: 'ובאופן יותר מדויק...',
+      subCategoryDesc: 'סמנו את כל מה שמתאים',
+      type: 'את/ה...',
+      individual: 'אדם פרטי',
+      individualDesc: 'מכירת חפצים אישיים או תחביב קטן',
       business: 'עסק',
-      businessDesc: 'עסק רשום או מוכר מקצועי',
-      whereSell: '?איפה אתה מוכר כרגע',
-      whereSellDesc: 'בחר את כל המתאימים',
-      platformsTitle: '?באילו פלטפורמות',
-      platformsDesc: 'בחר את אלו שאתה משתמש',
-      etsyUrl: 'כתובת חנות Etsy שלך',
-      revenueTitle: '?הכנסה חודשית',
+      businessDesc: 'עסק רשום או מוכר/ת מקצועי/ת',
+      whereSell: 'איפה את/ה מוכר/ת היום?',
+      whereSellDesc: 'סמנו את כל מה שמתאים',
+      platformsTitle: 'באילו פלטפורמות?',
+      platformsDesc: 'סמנו את אלה שאת/ה משתמש/ת בהן',
+      etsyUrl: 'כתובת החנות שלך ב-Etsy',
+      revenueTitle: 'הכנסה חודשית?',
       revenueDesc: 'מכל ערוצי המכירה שלך',
-      teamTitle: '?גודל הצוות',
+      teamTitle: 'גודל הצוות?',
       teamDesc: 'כמה אנשים עובדים איתך',
-      hoursTitle: '?שעות שידור חי בשבוע',
-      hoursDesc: 'או כמה אתה מתכנן לעשות',
-      addressTitle: 'כתובת החזרה',
-      addressDesc: 'לאן קונים יכולים להחזיר פריטים',
-      useExisting: 'השתמש בכתובת הפרופיל שלי',
-      newAddress: 'הכנס כתובת חדשה',
-      street: 'כתובת רחוב',
+      hoursTitle: 'שעות שידור בשבוע?',
+      hoursDesc: 'או כמה את/ה מתכנן/ת',
+      addressTitle: 'כתובת להחזרות',
+      addressDesc: 'לאן הקונים יכולים להחזיר פריטים',
+      useExisting: 'שימוש בכתובת מהפרופיל',
+      newAddress: 'הזנת כתובת חדשה',
+      street: 'כתובת',
       city: 'עיר',
       zip: 'מיקוד',
       country: 'מדינה',
       returnPolicyTitle: 'מדיניות החזרות',
       returnPolicyDesc: 'מה מדיניות ההחזרות שלך?',
-      noReturn: 'ללא החזרות',
+      noReturn: 'אין החזרות',
       exchangeOnly: 'החלפות בלבד',
-      return7: 'החזרות תוך 7 ימים',
-      return14: 'החזרות תוך 14 ימים',
-      return30: 'החזרות תוך 30 ימים',
-      bankTitle: 'הגדרת תשלום',
-      bankDesc: 'איך תרצה לקבל תשלום',
-      paypalEmailLabel: 'אימייל PayPal שלך',
+      return7: 'החזרה תוך 7 ימים',
+      return14: 'החזרה תוך 14 ימים',
+      return30: 'החזרה תוך 30 ימים',
+      bankTitle: 'הגדרת תשלומים',
+      bankDesc: 'איך את/ה רוצה לקבל תשלום',
+      paypalEmailLabel: 'האימייל שלך ב-PayPal',
       paypalEmailPlaceholder: 'email@paypal.com',
       paypalEmailHint: 'האימייל המקושר לחשבון PayPal Business שלך',
       next: 'הבא',
       finish: 'סיום',
-      saving: '...שומר',
+      saving: 'שומרים...',
       back: 'חזרה',
+      saveError: 'השמירה נכשלה. נסו שוב.',
+      readRules: 'קראו ואשרו את הכללים שלנו',
+      chooseAccountType: 'בחרו את סוג החשבון',
     },
-    es: {
-      rules: 'Reglas de la comunidad',
-      rule1: 'S\u00E9 honesto sobre el estado del producto',
-      rule2: 'Env\u00EDa en 3 d\u00EDas h\u00E1biles',
-      rule3: 'Sin art\u00EDculos falsificados o prohibidos',
-      rule4: 'Responde a los compradores en 24 horas',
-      rule5: 'Respeta a todos los compradores y vendedores',
-      understood: '\u00A1Entendido!',
-      accept: 'Acepto las reglas',
-      feesTitle: 'Tabla de comisiones',
-      fee1: 'Comisi\u00F3n plataforma: 8% + IVA (9,60% IVA incl.)',
-      fee2: 'Procesamiento Stripe: 2,9% + 0,30\u20AC + IVA (3,48% + 0,36\u20AC)',
-      fee3: 'Ejemplo: venta de 50\u20AC, comisiones 6,90\u20AC, recibes 43,10\u20AC',
-      fee4: 'Pagos semanales, umbral m\u00EDnimo 50\u20AC',
-      acceptFees: 'Acepto la tabla de comisiones',
-      category: '\u00BFQu\u00E9 vendes?',
-      categoryDesc: 'Elige tu categor\u00EDa principal',
-      subCategory: 'M\u00E1s espec\u00EDficamente...',
-      subCategoryDesc: 'Selecciona todo lo que aplique',
-      type: '\u00BFEres un...?',
-      individual: 'Particular',
-      individualDesc: 'Venta de art\u00EDculos personales o peque\u00F1o hobby',
-      business: 'Empresa',
-      businessDesc: 'Negocio registrado o vendedor profesional',
-      whereSell: '\u00BFD\u00F3nde vendes actualmente?',
-      whereSellDesc: 'Selecciona todo lo que aplique',
-      platformsTitle: '\u00BFEn qu\u00E9 plataformas?',
-      platformsDesc: 'Selecciona las que utilices',
-      etsyUrl: 'URL de tu tienda Etsy',
-      revenueTitle: '\u00BFIngresos mensuales?',
-      revenueDesc: 'De todos tus canales de venta',
-      teamTitle: '\u00BFTama\u00F1o del equipo?',
-      teamDesc: '\u00BFCu\u00E1ntas personas trabajan contigo?',
-      hoursTitle: '\u00BFHoras de directo por semana?',
-      hoursDesc: 'O cu\u00E1ntas planeas hacer',
-      addressTitle: 'Direcci\u00F3n de devoluci\u00F3n',
-      addressDesc: 'Donde los compradores pueden devolver art\u00EDculos',
-      useExisting: 'Usar mi direcci\u00F3n de perfil',
-      newAddress: 'Introducir nueva direcci\u00F3n',
-      street: 'Direcci\u00F3n',
-      city: 'Ciudad',
-      zip: 'C\u00F3digo postal',
-      country: 'Pa\u00EDs',
-      returnPolicyTitle: 'Pol\u00EDtica de devoluci\u00F3n',
-      returnPolicyDesc: '\u00BFCu\u00E1l es tu pol\u00EDtica de devoluci\u00F3n?',
-      noReturn: 'Sin devoluciones',
-      exchangeOnly: 'Solo cambios',
-      return7: 'Devoluciones en 7 d\u00EDas',
-      return14: 'Devoluciones en 14 d\u00EDas',
-      return30: 'Devoluciones en 30 d\u00EDas',
-      bankTitle: 'Configuraci\u00F3n de pago',
-      bankDesc: '\u00BFC\u00F3mo quieres recibir los pagos?',
-      paypalEmailLabel: 'Tu email de PayPal',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'El email vinculado a tu cuenta PayPal Business',
-      next: 'Siguiente',
-      finish: 'Finalizar',
-      saving: 'Guardando...',
-      back: 'Atr\u00E1s',
-    },
-  }
+  } satisfies Localized<Record<string, string>>
 
-  const t = txt[lang as keyof typeof txt] || txt.fr
+  const t = tr(txt)
+  const money = (n: number) => formatItemPrice(n, profile?.country)
+  const feeLines = [
+    t.fee1,
+    t.fee2.replace('{fixed}', money(0.30)).replace('{fixedVat}', money(0.36)),
+    t.fee3.replace('{sale}', money(50)).replace('{fees}', money(6.90)).replace('{net}', money(43.10)),
+    t.fee4.replace('{min}', money(50)),
+  ]
 
   // Filter categories: remove 'for_you' and 'following' (not real selling categories)
   const sellingCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
@@ -419,7 +504,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       onComplete()
     } catch (err) {
       console.error('[OnboardingWizard] Save failed:', err)
-      setError(lang === 'fr' ? 'Erreur lors de l\'enregistrement. Réessaye.' : lang === 'he' ? 'שגיאה בשמירה. נסה שוב.' : lang === 'es' ? 'Error al guardar. Inténtalo de nuevo.' : 'Save failed. Please try again.')
+      setError(t.saveError)
     } finally {
       setSaving(false)
     }
@@ -539,7 +624,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <div style={heroCircle(0)}>{stepHeroes[0].emoji}</div>
             <h2 style={sectionTitle}>{t.rules}</h2>
             <p style={{ ...sectionDesc, marginBottom: '20px' }}>
-              {lang === 'fr' ? 'Lis et accepte nos regles' : lang === 'he' ? 'אנא קרא והסכם לכללים שלנו' : lang === 'es' ? 'Lee y acepta nuestras reglas' : 'Please read and agree to our rules'}
+              {t.readRules}
             </p>
 
             {/* Rules card with gradient border */}
@@ -611,7 +696,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 </div>
                 <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#fff' }}>{t.feesTitle}</h3>
               </div>
-              {[t.fee1, t.fee2, t.fee3, t.fee4].map((fee, i) => (
+              {feeLines.map((fee, i) => (
                 <div key={fee} style={{
                   display: 'flex', gap: '10px', alignItems: 'flex-start',
                   padding: '10px 0',
@@ -762,7 +847,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                         : '0 1px 4px rgba(0,0,0,0.3)',
                     }}
                   >
-                    {selected && '\u2713 '}{sub}
+                    {selected && '\u2713 '}{subCategoryLabel(sub)}
                   </button>
                 )
               })}
@@ -778,7 +863,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <div style={heroCircle(3)}>{stepHeroes[3].emoji}</div>
             <h2 style={sectionTitle}>{t.type}</h2>
             <p style={{ ...sectionDesc, marginBottom: '32px' }}>
-              {lang === 'fr' ? 'Choisis ton type de compte' : lang === 'he' ? 'בחר את סוג החשבון שלך' : lang === 'es' ? 'Elige tu tipo de cuenta' : 'Choose your account type'}
+              {t.chooseAccountType}
             </p>
             {[
               { id: 'individual', title: t.individual, desc: t.individualDesc, emoji: '\u{1F9D1}\u{200D}\u{1F4BB}', gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' },
@@ -826,7 +911,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <h2 style={sectionTitle}>{t.whereSell}</h2>
             <p style={sectionDesc}>{t.whereSellDesc}</p>
             {sellingLocations.map(loc => {
-              const label = lang === 'fr' ? loc.fr : lang === 'he' ? loc.he : lang === 'es' ? loc.es : loc.en
+              const label = optionLabel(loc)
               const selected = selectedLocations.includes(loc.id)
               return (
                 <button
@@ -874,7 +959,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     </div>
                     <span style={{
                       fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
-                    }}>{plat.label}</span>
+                    }}>{plat.localized ? tr(plat.localized) : plat.label}</span>
                   </button>
                   {plat.hasUrl && selected && (
                     <input
@@ -907,7 +992,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <h2 style={sectionTitle}>{t.revenueTitle}</h2>
             <p style={sectionDesc}>{t.revenueDesc}</p>
             {revenueRanges.map(range => {
-              const label = lang === 'fr' ? range.fr : lang === 'he' ? range.he : lang === 'es' ? range.es : range.en
+              const label = optionLabel(range)
               const selected = revenue === range.id
               return (
                 <button
@@ -939,7 +1024,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <h2 style={sectionTitle}>{t.teamTitle}</h2>
             <p style={sectionDesc}>{t.teamDesc}</p>
             {teamSizes.map(size => {
-              const label = lang === 'fr' ? size.fr : lang === 'he' ? size.he : lang === 'es' ? size.es : size.en
+              const label = optionLabel(size)
               const selected = teamSize === size.id
               return (
                 <button
@@ -971,7 +1056,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <h2 style={sectionTitle}>{t.hoursTitle}</h2>
             <p style={sectionDesc}>{t.hoursDesc}</p>
             {weeklyHours.map(hours => {
-              const label = lang === 'fr' ? hours.fr : lang === 'he' ? hours.he : lang === 'es' ? hours.es : hours.en
+              const label = optionLabel(hours)
               const selected = liveHours === hours.id
               return (
                 <button
@@ -1118,7 +1203,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             <h2 style={sectionTitle}>{t.bankTitle}</h2>
             <p style={sectionDesc}>{t.bankDesc}</p>
             {bankOptions.map(opt => {
-              const label = lang === 'fr' ? opt.fr : lang === 'he' ? opt.he : lang === 'es' ? opt.es : opt.en
+              const label = optionLabel(opt)
               const selected = bankChoice === opt.id
               const iconColors: Record<string, string> = {
                 stripe: '#6772E5',

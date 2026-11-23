@@ -1,23 +1,22 @@
 import { useState, useEffect } from 'react'
-import { getLang } from '../../lib/i18n'
+import { tr, type Localized } from '../../lib/i18n'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
+type SummaryTexts = {
+  livePerformance: string
+  engagementRate7: string
+  peakViewers: string
+  avgEngagement: string
+  totalReactions: string
+  bidsPlaced: string
+  newFollowers: string
+  lastLive: string
+  lastLiveDesc: string
+  dayLabels: string[]
+}
 
-const summaryContent = {
-  fr: {
-    livePerformance: 'Performance en direct',
-    engagementRate7: 'Taux d\'engagement (7 derniers lives)',
-    peakViewers: 'Pic de spectateurs',
-    avgEngagement: 'Engagement moyen',
-    totalReactions: 'Total r\u00E9actions',
-    bidsPlaced: 'Ench\u00E8res plac\u00E9es',
-    newFollowers: 'Nouveaux followers',
-    lastLive: 'Dernier live : \u00E9nergie \u00E9lev\u00E9e !',
-    lastLiveDesc: 'Ton audience \u00E9tait 23% plus engag\u00E9e que la moyenne',
-    dayLabels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-  },
+const summaryContent: Localized<SummaryTexts> = {
   en: {
     livePerformance: 'Live performance',
     engagementRate7: 'Engagement rate (last 7 lives)',
@@ -30,29 +29,53 @@ const summaryContent = {
     lastLiveDesc: 'Your audience was 23% more engaged than average',
     dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
   },
-  he: {
-    livePerformance: '\u05D1\u05D9\u05E6\u05D5\u05E2\u05D9 \u05E9\u05D9\u05D3\u05D5\u05E8',
-    engagementRate7: '\u05E9\u05D9\u05E2\u05D5\u05E8 \u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA (7 \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D0\u05D7\u05E8\u05D5\u05E0\u05D9\u05DD)',
-    peakViewers: '\u05E9\u05D9\u05D0 \u05E6\u05D5\u05E4\u05D9\u05DD',
-    avgEngagement: '\u05DE\u05E2\u05D5\u05E8\u05D1\u05D5\u05EA \u05DE\u05DE\u05D5\u05E6\u05E2\u05EA',
-    totalReactions: '\u05E1\u05D4\"\u05DB \u05EA\u05D2\u05D5\u05D1\u05D5\u05EA',
-    bidsPlaced: '\u05D4\u05E6\u05E2\u05D5\u05EA \u05E9\u05D4\u05D5\u05D2\u05E9\u05D5',
-    newFollowers: '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD \u05D7\u05D3\u05E9\u05D9\u05DD',
-    lastLive: '!\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D0\u05D7\u05E8\u05D5\u05DF: \u05D0\u05E0\u05E8\u05D2\u05D9\u05D4 \u05D2\u05D1\u05D5\u05D4\u05D4',
-    lastLiveDesc: '\u05D4\u05E7\u05D4\u05DC \u05E9\u05DC\u05DA \u05D4\u05D9\u05D4 \u05DE\u05E2\u05D5\u05E8\u05D1 23% \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05DE\u05DE\u05D5\u05E6\u05E2',
-    dayLabels: ['\u05D0\u05F3', '\u05D1\u05F3', '\u05D2\u05F3', '\u05D3\u05F3', '\u05D4\u05F3', '\u05D5\u05F3', '\u05E9\u05F3'],
+  fr: {
+    livePerformance: 'Performance en direct',
+    engagementRate7: 'Taux d\'engagement (7 derniers lives)',
+    peakViewers: 'Pic de spectateurs',
+    avgEngagement: 'Engagement moyen',
+    totalReactions: 'Total des réactions',
+    bidsPlaced: 'Enchères placées',
+    newFollowers: 'Nouveaux abonnés',
+    lastLive: 'Dernier live : énergie au top !',
+    lastLiveDesc: 'Ton audience était 23 % plus engagée que la moyenne',
+    dayLabels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
   },
   es: {
     livePerformance: 'Rendimiento en directo',
-    engagementRate7: 'Tasa de engagement (ultimos 7 lives)',
+    engagementRate7: 'Tasa de interacción (últimos 7 directos)',
     peakViewers: 'Pico de espectadores',
-    avgEngagement: 'Engagement promedio',
-    totalReactions: 'Total reacciones',
+    avgEngagement: 'Interacción media',
+    totalReactions: 'Reacciones totales',
     bidsPlaced: 'Pujas realizadas',
     newFollowers: 'Nuevos seguidores',
-    lastLive: 'Ultimo live: energia alta!',
-    lastLiveDesc: 'Tu audiencia estuvo 23% mas comprometida que el promedio',
-    dayLabels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'],
+    lastLive: '¡Último directo: mucha energía!',
+    lastLiveDesc: 'Tu audiencia participó un 23 % más que la media',
+    dayLabels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
+  },
+  ru: {
+    livePerformance: 'Эффективность эфиров',
+    engagementRate7: 'Вовлечённость (последние 7 эфиров)',
+    peakViewers: 'Пик зрителей',
+    avgEngagement: 'Средняя вовлечённость',
+    totalReactions: 'Всего реакций',
+    bidsPlaced: 'Ставок сделано',
+    newFollowers: 'Новые подписчики',
+    lastLive: 'Последний эфир: море энергии!',
+    lastLiveDesc: 'Твоя аудитория была на 23 % активнее обычного',
+    dayLabels: ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'],
+  },
+  he: {
+    livePerformance: 'ביצועי שידור',
+    engagementRate7: 'שיעור מעורבות (7 שידורים אחרונים)',
+    peakViewers: 'שיא צופים',
+    avgEngagement: 'מעורבות ממוצעת',
+    totalReactions: 'סה״כ תגובות',
+    bidsPlaced: 'הצעות שהוגשו',
+    newFollowers: 'עוקבים חדשים',
+    lastLive: 'שידור אחרון: אנרגיה גבוהה!',
+    lastLiveDesc: 'הקהל שלך היה מעורב ב-23% יותר מהממוצע',
+    dayLabels: ['ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳', 'א׳'],
   },
 }
 
@@ -77,8 +100,7 @@ function createEmptySummary(): EngagementSummaryData {
 }
 
 export default function EngagementSummary() {
-  const lang = (getLang() || 'fr') as Lang
-  const ct = summaryContent[lang] || summaryContent.fr
+  const ct = tr(summaryContent)
   const { user } = useAuth()
   const [data, setData] = useState<EngagementSummaryData>(() => createEmptySummary())
   const [mounted, setMounted] = useState(false)

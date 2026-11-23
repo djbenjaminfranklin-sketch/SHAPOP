@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { apiFetch } from '../../lib/api'
-import { getLang, t as i18nT } from '../../lib/i18n'
+import { getLang, getLocale, tr, t as i18nT, type Localized } from '../../lib/i18n'
 import { ft } from '../../lib/fulfillmentText'
 import type { TranslationKey } from '../../lib/i18n'
 import { categories } from '../CategoryIcons'
-import { liveFormats } from './SubCategoryData'
+import { liveFormats, optionLabel } from './SubCategoryData'
 import CartoonAvatar from '../CartoonAvatar'
 import { rtlFlip, rtlTextAlign, rtlPos } from '../../lib/rtl'
 
@@ -75,54 +75,14 @@ export default function CreateLiveWizard() {
   const touchMoved = useRef(false)
 
   const txt = {
-    fr: {
-      tipsTitle: 'Conseils pour un super live',
-      tip1Title: 'Lumiere & son',
-      tip1Desc: 'Utilise un bon eclairage et reduis le bruit de fond. Un anneau lumineux fait toute la difference !',
-      tip2Title: 'Engage ton audience',
-      tip2Desc: 'Salue les spectateurs par leur nom, reponds aux questions en direct et cree de l\'urgence avec des offres limitees.',
-      tip3Title: 'Prepare tes produits',
-      tip3Desc: 'Aie tes articles organises et prets a montrer. Connais tes prix et descriptions par coeur.',
-      titleLabel: 'Donne un titre a ton live',
-      titlePlaceholder: 'ex: Drops sneakers du dimanche !',
-      charCount: '/150',
-      dateLabel: 'Quand ?',
-      dateInput: 'Date',
-      timeInput: 'Heure',
-      repeatLabel: 'Repetition',
-      repeatNone: 'Pas de repetition',
-      repeatWeekly: 'Hebdomadaire',
-      repeatBiweekly: 'Toutes les 2 semaines',
-      categoryLabel: 'Categorie & Format',
-      categorySelect: 'Selectionne une categorie',
-      formatSelect: 'Selectionne un format',
-      thumbnailLabel: 'Miniature',
-      thumbnailDesc: 'Telecharge une image ou une courte video (10s max)',
-      uploadBtn: 'Telecharger un fichier',
-      changeBtn: 'Changer le media',
-      videoTooLong: 'La video ne doit pas depasser 10 secondes',
-      trimTitle: 'Decoupe ta video',
-      trimDesc: 'Choisis les 10 secondes a garder',
-      trimBtn: 'Decouper',
-      trimming: 'Decoupe en cours...',
-      livePreview: 'Apercu',
-      next: 'Suivant',
-      goLive: 'Valider le live',
-      creating: 'Validation...',
-      stepOf: 'sur',
-      skip: 'Passer',
-      successTitle: 'Live programme !',
-      successMsg: 'Ton live est prevu pour le',
-      successBtn: 'Parfait',
-    },
     en: {
       tipsTitle: 'Tips for a great live',
       tip1Title: 'Light & sound',
-      tip1Desc: 'Use good lighting and minimize background noise. A ring light makes a huge difference!',
+      tip1Desc: 'Use good lighting and cut background noise. A ring light makes a huge difference!',
       tip2Title: 'Engage your audience',
-      tip2Desc: 'Greet viewers by name, answer questions live, and create urgency with limited-time deals.',
+      tip2Desc: 'Greet viewers by name, answer questions live and create urgency with limited-time deals.',
       tip3Title: 'Prepare your products',
-      tip3Desc: 'Have items organized and ready to show. Know your prices and descriptions by heart.',
+      tip3Desc: 'Keep your items organized and ready to show. Know your prices and descriptions by heart.',
       titleLabel: 'Give your live a title',
       titlePlaceholder: 'e.g. Sunday sneaker drops!',
       charCount: '/150',
@@ -130,17 +90,17 @@ export default function CreateLiveWizard() {
       dateInput: 'Date',
       timeInput: 'Time',
       repeatLabel: 'Repeat',
-      repeatNone: 'No repeat',
+      repeatNone: 'Doesn\'t repeat',
       repeatWeekly: 'Weekly',
       repeatBiweekly: 'Every 2 weeks',
-      categoryLabel: 'Category & Format',
+      categoryLabel: 'Category & format',
       categorySelect: 'Select a category',
       formatSelect: 'Select a format',
       thumbnailLabel: 'Thumbnail',
-      thumbnailDesc: 'Upload an image or short video (10s max)',
+      thumbnailDesc: 'Upload an image or a short video (10 s max)',
       uploadBtn: 'Upload a file',
       changeBtn: 'Change media',
-      videoTooLong: 'Video must be 10 seconds or less',
+      videoTooLong: 'The video must be 10 seconds or less',
       trimTitle: 'Trim your video',
       trimDesc: 'Choose which 10 seconds to keep',
       trimBtn: 'Trim',
@@ -154,74 +114,92 @@ export default function CreateLiveWizard() {
       successTitle: 'Live scheduled!',
       successMsg: 'Your live is set for',
       successBtn: 'Great',
+      learnFromPros: 'Learn from the pros',
+      today: 'Today',
+      more: 'More',
+      dragDrop: 'or drag & drop here',
+      titlePreview: 'Your live title',
+      you: 'You',
+      createError: 'Couldn\'t create the live. Please try again.',
+      seconds: '{n}s',
+      totalDuration: '{n}s total',
     },
-    he: {
-      tipsTitle: 'טיפים לשידור מעולה',
-      tip1Title: 'תאורה וצליל',
-      tip1Desc: 'השתמש בתאורה טובה ומזער רעשי רקע. טבעת אור עושה הבדל עצום!',
-      tip2Title: 'שתף את הקהל',
-      tip2Desc: 'ברך צופים בשם, ענה על שאלות בזמן אמת, וצור דחיפות עם מבצעים מוגבלים.',
-      tip3Title: 'הכן את המוצרים',
-      tip3Desc: 'סדר את הפריטים מוכנים להצגה. דע את המחירים והתיאורים בעל פה.',
-      titleLabel: 'תן לשידור שלך כותרת',
-      titlePlaceholder: '...למשל: סניקרס יום ראשון',
+    fr: {
+      tipsTitle: 'Conseils pour un super live',
+      tip1Title: 'Lumière & son',
+      tip1Desc: 'Utilise un bon éclairage et réduis le bruit de fond. Une ring light fait toute la différence !',
+      tip2Title: 'Engage ton audience',
+      tip2Desc: 'Salue les spectateurs par leur nom, réponds aux questions en direct et crée de l\'urgence avec des offres limitées.',
+      tip3Title: 'Prépare tes produits',
+      tip3Desc: 'Garde tes articles bien rangés et prêts à montrer. Connais tes prix et descriptions par cœur.',
+      titleLabel: 'Donne un titre à ton live',
+      titlePlaceholder: 'ex. : Drops sneakers du dimanche !',
       charCount: '/150',
-      dateLabel: '?מתי',
-      dateInput: 'תאריך',
-      timeInput: 'שעה',
-      repeatLabel: 'חזרה',
-      repeatNone: 'ללא',
-      repeatWeekly: 'שבועי',
-      repeatBiweekly: 'כל שבועיים',
-      categoryLabel: 'קטגוריה ופורמט',
-      categorySelect: 'בחר קטגוריה',
-      formatSelect: 'בחר פורמט',
-      thumbnailLabel: 'תמונה ממוזערת',
-      thumbnailDesc: 'העלה תמונה או סרטון קצר (10 שניות מקסימום)',
-      uploadBtn: 'העלה קובץ',
-      changeBtn: 'שנה מדיה',
-      videoTooLong: 'הסרטון חייב להיות 10 שניות או פחות',
-      trimTitle: 'חתוך את הסרטון',
-      trimDesc: 'בחר 10 שניות לשמור',
-      trimBtn: 'חתוך',
-      trimming: '...חותך',
-      livePreview: 'תצוגה מקדימה',
-      next: 'הבא',
-      goLive: 'אשר שידור',
-      creating: '...מאשר',
-      stepOf: 'מתוך',
-      skip: 'דלג',
-      successTitle: '!השידור תוזמן',
-      successMsg: 'השידור שלך מתוכנן ל',
-      successBtn: 'מצוין',
+      dateLabel: 'Quand ?',
+      dateInput: 'Date',
+      timeInput: 'Heure',
+      repeatLabel: 'Répétition',
+      repeatNone: 'Pas de répétition',
+      repeatWeekly: 'Chaque semaine',
+      repeatBiweekly: 'Toutes les 2 semaines',
+      categoryLabel: 'Catégorie & format',
+      categorySelect: 'Sélectionne une catégorie',
+      formatSelect: 'Sélectionne un format',
+      thumbnailLabel: 'Miniature',
+      thumbnailDesc: 'Ajoute une image ou une courte vidéo (10 s max)',
+      uploadBtn: 'Ajouter un fichier',
+      changeBtn: 'Changer le média',
+      videoTooLong: 'La vidéo ne doit pas dépasser 10 secondes',
+      trimTitle: 'Découpe ta vidéo',
+      trimDesc: 'Choisis les 10 secondes à garder',
+      trimBtn: 'Découper',
+      trimming: 'Découpe en cours...',
+      livePreview: 'Aperçu',
+      next: 'Suivant',
+      goLive: 'Valider le live',
+      creating: 'Validation...',
+      stepOf: 'sur',
+      skip: 'Passer',
+      successTitle: 'Live programmé !',
+      successMsg: 'Ton live est prévu le',
+      successBtn: 'Parfait',
+      learnFromPros: 'Apprends des pros',
+      today: 'Auj.',
+      more: 'Plus',
+      dragDrop: 'ou glisse-dépose ici',
+      titlePreview: 'Le titre de ton live',
+      you: 'Toi',
+      createError: 'Impossible de créer le live. Réessaie.',
+      seconds: '{n} s',
+      totalDuration: '{n} s au total',
     },
     es: {
       tipsTitle: 'Consejos para un gran directo',
       tip1Title: 'Luz y sonido',
-      tip1Desc: '\u00A1Usa buena iluminaci\u00F3n y reduce el ruido de fondo. Un aro de luz marca toda la diferencia!',
-      tip2Title: 'Involucra a tu audiencia',
-      tip2Desc: 'Saluda a los espectadores por su nombre, responde preguntas en directo y crea urgencia con ofertas limitadas.',
+      tip1Desc: 'Usa buena iluminación y reduce el ruido de fondo. ¡Un aro de luz marca la diferencia!',
+      tip2Title: 'Conecta con tu audiencia',
+      tip2Desc: 'Saluda a los espectadores por su nombre, responde preguntas en directo y crea urgencia con ofertas por tiempo limitado.',
       tip3Title: 'Prepara tus productos',
-      tip3Desc: 'Ten tus art\u00EDculos organizados y listos para mostrar. Conoce tus precios y descripciones de memoria.',
-      titleLabel: 'Dale un t\u00EDtulo a tu directo',
-      titlePlaceholder: 'ej: \u00A1Ofertas de sneakers del domingo!',
+      tip3Desc: 'Ten tus artículos ordenados y listos para enseñar. Sabe tus precios y descripciones de memoria.',
+      titleLabel: 'Ponle un título a tu directo',
+      titlePlaceholder: 'p. ej.: ¡Drops de zapatillas del domingo!',
       charCount: '/150',
-      dateLabel: '\u00BFCu\u00E1ndo?',
+      dateLabel: '¿Cuándo?',
       dateInput: 'Fecha',
       timeInput: 'Hora',
-      repeatLabel: 'Repetici\u00F3n',
-      repeatNone: 'Sin repetici\u00F3n',
-      repeatWeekly: 'Semanal',
+      repeatLabel: 'Repetir',
+      repeatNone: 'No se repite',
+      repeatWeekly: 'Cada semana',
       repeatBiweekly: 'Cada 2 semanas',
-      categoryLabel: 'Categor\u00EDa y formato',
-      categorySelect: 'Selecciona una categor\u00EDa',
+      categoryLabel: 'Categoría y formato',
+      categorySelect: 'Selecciona una categoría',
       formatSelect: 'Selecciona un formato',
       thumbnailLabel: 'Miniatura',
-      thumbnailDesc: 'Sube una imagen o un video corto (10s max)',
-      uploadBtn: 'Subir archivo',
-      changeBtn: 'Cambiar medio',
-      videoTooLong: 'El video no debe superar los 10 segundos',
-      trimTitle: 'Recorta tu video',
+      thumbnailDesc: 'Sube una imagen o un vídeo corto (máx. 10 s)',
+      uploadBtn: 'Subir un archivo',
+      changeBtn: 'Cambiar archivo',
+      videoTooLong: 'El vídeo no puede durar más de 10 segundos',
+      trimTitle: 'Recorta tu vídeo',
       trimDesc: 'Elige los 10 segundos que quieres conservar',
       trimBtn: 'Recortar',
       trimming: 'Recortando...',
@@ -230,14 +208,122 @@ export default function CreateLiveWizard() {
       goLive: 'Confirmar directo',
       creating: 'Confirmando...',
       stepOf: 'de',
-      skip: 'Omitir',
-      successTitle: '\u00A1Directo programado!',
-      successMsg: 'Tu directo est\u00E1 previsto para el',
+      skip: 'Saltar',
+      successTitle: '¡Directo programado!',
+      successMsg: 'Tu directo está previsto para el',
       successBtn: 'Perfecto',
+      learnFromPros: 'Aprende de los profesionales',
+      today: 'Hoy',
+      more: 'Más',
+      dragDrop: 'o arrastra y suelta aquí',
+      titlePreview: 'El título de tu directo',
+      you: 'Tú',
+      createError: 'No se pudo crear el directo. Inténtalo de nuevo.',
+      seconds: '{n} s',
+      totalDuration: '{n} s en total',
     },
-  }
+    ru: {
+      tipsTitle: 'Советы для классного эфира',
+      tip1Title: 'Свет и звук',
+      tip1Desc: 'Используй хороший свет и убери фоновый шум. Кольцевая лампа творит чудеса!',
+      tip2Title: 'Вовлекай зрителей',
+      tip2Desc: 'Приветствуй зрителей по имени, отвечай на вопросы в эфире и создавай ажиотаж ограниченными предложениями.',
+      tip3Title: 'Подготовь товары',
+      tip3Desc: 'Разложи товары так, чтобы их было удобно показывать. Знай цены и описания наизусть.',
+      titleLabel: 'Придумай название эфира',
+      titlePlaceholder: 'напр.: Воскресный дроп кроссовок!',
+      charCount: '/150',
+      dateLabel: 'Когда?',
+      dateInput: 'Дата',
+      timeInput: 'Время',
+      repeatLabel: 'Повтор',
+      repeatNone: 'Без повтора',
+      repeatWeekly: 'Каждую неделю',
+      repeatBiweekly: 'Раз в 2 недели',
+      categoryLabel: 'Категория и формат',
+      categorySelect: 'Выбери категорию',
+      formatSelect: 'Выбери формат',
+      thumbnailLabel: 'Обложка',
+      thumbnailDesc: 'Загрузи картинку или короткое видео (до 10 с)',
+      uploadBtn: 'Загрузить файл',
+      changeBtn: 'Заменить файл',
+      videoTooLong: 'Видео должно быть не длиннее 10 секунд',
+      trimTitle: 'Обрежь видео',
+      trimDesc: 'Выбери 10 секунд, которые оставить',
+      trimBtn: 'Обрезать',
+      trimming: 'Обрезаем...',
+      livePreview: 'Предпросмотр',
+      next: 'Далее',
+      goLive: 'Подтвердить эфир',
+      creating: 'Подтверждаем...',
+      stepOf: 'из',
+      skip: 'Пропустить',
+      successTitle: 'Эфир запланирован!',
+      successMsg: 'Твой эфир назначен на',
+      successBtn: 'Отлично',
+      learnFromPros: 'Учись у профи',
+      today: 'Сегодня',
+      more: 'Ещё',
+      dragDrop: 'или перетащи файл сюда',
+      titlePreview: 'Название твоего эфира',
+      you: 'Ты',
+      createError: 'Не удалось создать эфир. Попробуй ещё раз.',
+      seconds: '{n} с',
+      totalDuration: 'Всего {n} с',
+    },
+    he: {
+      tipsTitle: 'טיפים לשידור מעולה',
+      tip1Title: 'תאורה וסאונד',
+      tip1Desc: 'השתמשו בתאורה טובה והפחיתו רעשי רקע. תאורת טבעת עושה את כל ההבדל!',
+      tip2Title: 'שתפו את הקהל',
+      tip2Desc: 'ברכו צופים בשמם, ענו על שאלות בשידור וצרו תחושת דחיפות עם מבצעים לזמן מוגבל.',
+      tip3Title: 'הכינו את המוצרים',
+      tip3Desc: 'סדרו את הפריטים כך שיהיו מוכנים להצגה. הכירו את המחירים והתיאורים בעל פה.',
+      titleLabel: 'תנו כותרת לשידור',
+      titlePlaceholder: 'לדוגמה: דרופ סניקרס של יום ראשון!',
+      charCount: '/150',
+      dateLabel: 'מתי?',
+      dateInput: 'תאריך',
+      timeInput: 'שעה',
+      repeatLabel: 'חזרה',
+      repeatNone: 'ללא חזרה',
+      repeatWeekly: 'כל שבוע',
+      repeatBiweekly: 'כל שבועיים',
+      categoryLabel: 'קטגוריה ופורמט',
+      categorySelect: 'בחרו קטגוריה',
+      formatSelect: 'בחרו פורמט',
+      thumbnailLabel: 'תמונה ממוזערת',
+      thumbnailDesc: 'העלו תמונה או סרטון קצר (עד 10 שניות)',
+      uploadBtn: 'העלאת קובץ',
+      changeBtn: 'החלפת מדיה',
+      videoTooLong: 'הסרטון צריך להיות עד 10 שניות',
+      trimTitle: 'חיתוך הסרטון',
+      trimDesc: 'בחרו אילו 10 שניות לשמור',
+      trimBtn: 'חיתוך',
+      trimming: 'חותכים...',
+      livePreview: 'תצוגה מקדימה',
+      next: 'הבא',
+      goLive: 'אישור השידור',
+      creating: 'מאשרים...',
+      stepOf: 'מתוך',
+      skip: 'דילוג',
+      successTitle: 'השידור תוזמן!',
+      successMsg: 'מועד השידור שלך:',
+      successBtn: 'מעולה',
+      learnFromPros: 'ללמוד מהמקצוענים',
+      today: 'היום',
+      more: 'עוד',
+      dragDrop: 'או גררו לכאן',
+      titlePreview: 'כותרת השידור שלך',
+      you: 'את/ה',
+      createError: 'לא הצלחנו ליצור את השידור. נסו שוב.',
+      seconds: '{n} שנ׳',
+      totalDuration: 'סה״כ {n} שנ׳',
+    },
+  } satisfies Localized<Record<string, string>>
 
-  const t = txt[lang as keyof typeof txt] || txt.fr
+  const t = tr(txt)
+  const secs = (n: number) => t.seconds.replace('{n}', String(Math.floor(n)))
 
   const sellingCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
 
@@ -479,7 +565,7 @@ export default function CreateLiveWizard() {
           navigate('/payments')
           return
         }
-        throw new Error(err.error || 'Erreur creation')
+        throw new Error(err.error || 'create failed') // i18n-ignore (message interne, l'écran affiche t.createError)
       }
 
       const stream = await resp.json()
@@ -499,14 +585,15 @@ export default function CreateLiveWizard() {
       // Format the date for the success popup
       if (scheduledAt) {
         const d = new Date(scheduledAt)
-        const dateStr = d.toLocaleDateString(lang === 'fr' ? 'fr-FR' : lang === 'es' ? 'es-ES' : lang === 'he' ? 'he-IL' : 'en-US', {
+        const dateStr = d.toLocaleDateString(getLocale(), {
           weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
         })
         setSuccessDate(dateStr)
       }
       setShowSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur')
+      console.error('Create live failed:', err) // i18n-ignore
+      setError(t.createError)
       setLoading(false)
     }
   }
@@ -589,29 +676,16 @@ export default function CreateLiveWizard() {
   const getNextDays = () => {
     const days = []
     const today = new Date()
-    const dayNames = lang === 'fr'
-      ? ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-      : lang === 'he'
-        ? ['\u05D0', '\u05D1', '\u05D2', '\u05D3', '\u05D4', '\u05D5', '\u05E9']
-        : lang === 'es'
-          ? ['Dom', 'Lun', 'Mar', 'Mi\u00E9', 'Jue', 'Vie', 'S\u00E1b']
-          : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    const monthNames = lang === 'fr'
-      ? ['Jan', 'Fev', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aou', 'Sep', 'Oct', 'Nov', 'Dec']
-      : lang === 'he'
-        ? ['\u05D9\u05E0\u05D5', '\u05E4\u05D1\u05E8', '\u05DE\u05E8\u05E5', '\u05D0\u05E4\u05E8', '\u05DE\u05D0\u05D9', '\u05D9\u05D5\u05E0\u05D9', '\u05D9\u05D5\u05DC\u05D9', '\u05D0\u05D5\u05D2', '\u05E1\u05E4\u05D8', '\u05D0\u05D5\u05E7\u05D8', '\u05E0\u05D5\u05D1', '\u05D3\u05E6\u05DE']
-        : lang === 'es'
-          ? ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
-          : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const locale = getLocale()
     for (let i = 0; i < 7; i++) {
       const d = new Date(today)
       d.setDate(today.getDate() + i)
       const dateStr = d.toISOString().split('T')[0]
       days.push({
         date: dateStr,
-        dayName: dayNames[d.getDay()],
+        dayName: d.toLocaleDateString(locale, { weekday: 'short' }),
         dayNum: d.getDate(),
-        month: monthNames[d.getMonth()],
+        month: d.toLocaleDateString(locale, { month: 'short' }),
         isToday: i === 0,
       })
     }
@@ -669,7 +743,7 @@ export default function CreateLiveWizard() {
               {t.tipsTitle}
             </h2>
             <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', marginBottom: '28px' }}>
-              {lang === 'fr' ? 'Apprends des pros' : lang === 'he' ? '\u05DC\u05DE\u05D3 \u05DE\u05D4\u05DE\u05E7\u05E6\u05D5\u05E2\u05E0\u05D9\u05DD' : lang === 'es' ? 'Aprende de los profesionales' : 'Learn from the pros'}
+              {t.learnFromPros}
             </p>
 
             <div
@@ -700,7 +774,7 @@ export default function CreateLiveWizard() {
                 >
                   {/* Decorative glow */}
                   <div style={{
-                    position: 'absolute', top: '-30px', right: '-30px',
+                    position: 'absolute', top: '-30px', insetInlineEnd: '-30px',
                     width: '120px', height: '120px', borderRadius: '50%',
                     background: `radial-gradient(circle, ${tip.color}12 0%, transparent 70%)`,
                     pointerEvents: 'none',
@@ -730,7 +804,7 @@ export default function CreateLiveWizard() {
 
                   {/* Step number */}
                   <div style={{
-                    position: 'absolute', top: '20px', right: '20px',
+                    position: 'absolute', top: '20px', insetInlineEnd: '20px',
                     width: '28px', height: '28px', borderRadius: '50%',
                     background: `${tip.color}15`,
                     border: `1px solid ${tip.color}30`,
@@ -818,7 +892,7 @@ export default function CreateLiveWizard() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', padding: '0 4px' }}>
               <div style={{
-                height: '3px', flex: 1, borderRadius: '2px', marginRight: '12px',
+                height: '3px', flex: 1, borderRadius: '2px', marginInlineEnd: '12px',
                 background: '#111',
                 overflow: 'hidden',
               }}>
@@ -924,7 +998,7 @@ export default function CreateLiveWizard() {
                     {title.trim() || t.titlePlaceholder}
                   </p>
                   <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                    {profile?.display_name || profile?.username || 'You'}
+                    {profile?.display_name || profile?.username || t.you}
                   </p>
                 </div>
               </div>
@@ -992,7 +1066,7 @@ export default function CreateLiveWizard() {
                       color: isSelected ? '#60A5FA' : '#555',
                       letterSpacing: '0.5px',
                     }}>
-                      {d.isToday ? (lang === 'fr' ? 'Auj.' : lang === 'he' ? '\u05D4\u05D9\u05D5\u05DD' : lang === 'es' ? 'Hoy' : 'Today') : d.dayName}
+                      {d.isToday ? t.today : d.dayName}
                     </span>
                     <span style={{
                       fontSize: '24px', fontWeight: 800,
@@ -1048,7 +1122,7 @@ export default function CreateLiveWizard() {
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
                 <span style={{ fontSize: '10px', color: '#555', fontWeight: 600 }}>
-                  {lang === 'fr' ? 'Plus' : lang === 'he' ? '\u05E2\u05D5\u05D3' : lang === 'es' ? 'M\u00E1s' : 'More'}
+                  {t.more}
                 </span>
               </button>
             </div>
@@ -1215,7 +1289,7 @@ export default function CreateLiveWizard() {
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               {liveFormats.map(fmt => {
-                const label = lang === 'fr' ? fmt.fr : lang === 'he' ? fmt.he : lang === 'es' ? fmt.es : fmt.en
+                const label = optionLabel(fmt)
                 const selected = selectedFormat === fmt.id
                 return (
                   <button
@@ -1314,7 +1388,7 @@ export default function CreateLiveWizard() {
                     {t.uploadBtn}
                   </p>
                   <p style={{ fontSize: '13px', color: '#444' }}>
-                    {lang === 'fr' ? 'ou glisse-depose ici' : lang === 'he' ? '\u05D0\u05D5 \u05D2\u05E8\u05D5\u05E8 \u05DC\u05DB\u05D0\u05DF' : lang === 'es' ? 'o arrastra aqu\u00ED' : 'or drag & drop here'}
+                    {t.dragDrop}
                   </p>
                 </div>
                 {/* Supported formats note */}
@@ -1406,12 +1480,12 @@ export default function CreateLiveWizard() {
                         fontSize: '15px', fontWeight: 700, color: '#fff',
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
-                        {title || 'Your live title'}
+                        {title || t.titlePreview}
                       </p>
                       <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
-                        {profile?.display_name || profile?.username || 'You'}
+                        {profile?.display_name || profile?.username || t.you}
                         {selectedCatObj && (
-                          <span style={{ color: '#444' }}> &middot; {i18nT(lang, selectedCatObj.id as TranslationKey)}</span>
+                          <span style={{ color: '#444' }}>{' \u00B7 '}{i18nT(lang, selectedCatObj.id as TranslationKey)}</span>
                         )}
                       </p>
                     </div>
@@ -1515,13 +1589,13 @@ export default function CreateLiveWizard() {
                 background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
                 fontSize: '12px', fontWeight: 700, color: '#fff',
               }}>
-                {Math.floor(trimStart)}s - {Math.floor(endTime)}s
+                {secs(trimStart)} - {secs(endTime)}
               </span>
               <span style={{
                 background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
                 fontSize: '12px', fontWeight: 600, color: '#888',
               }}>
-                {Math.floor(trimDuration)}s total
+                {t.totalDuration.replace('{n}', String(Math.floor(trimDuration)))}
               </span>
             </div>
           </div>
@@ -1537,7 +1611,7 @@ export default function CreateLiveWizard() {
             {/* Selected portion highlight */}
             <div style={{
               position: 'absolute', top: 0, bottom: 0,
-              left: `${(trimStart / trimDuration) * 100}%`,
+              insetInlineStart: `${(trimStart / trimDuration) * 100}%`,
               width: `${(10 / trimDuration) * 100}%`,
               background: 'linear-gradient(135deg, rgba(240,144,138,0.3), rgba(232,52,78,0.2))',
               border: '2px solid #F0908A',
@@ -1586,7 +1660,7 @@ export default function CreateLiveWizard() {
                 display: 'inline-block', animation: 'spin 0.8s linear infinite',
               }} />
             )}
-            {trimming ? t.trimming : `${t.trimBtn} (${Math.floor(trimStart)}s → ${Math.floor(endTime)}s)`}
+            {trimming ? t.trimming : `${t.trimBtn} (${secs(trimStart)} → ${secs(endTime)})`}
           </button>
         </div>
 

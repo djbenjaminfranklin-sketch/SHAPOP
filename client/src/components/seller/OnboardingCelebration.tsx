@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
-import { getLang } from '../../lib/i18n'
+import { tr, type Localized } from '../../lib/i18n'
 import CartoonAvatar from '../CartoonAvatar'
 
 interface Props {
@@ -9,27 +9,11 @@ interface Props {
 
 export default function OnboardingCelebration({ onDone }: Props) {
   const { profile } = useAuth()
-  const lang = getLang()
   const [show, setShow] = useState(false)
 
   useEffect(() => { setTimeout(() => setShow(true), 100) }, [])
 
-  const txt = {
-    fr: {
-      title: 'Tu es dedans !',
-      subtitle: 'Prepare-toi a passer en live sur ShaPop',
-      step1: 'Cree ton premier live',
-      step1d: 'Programme un show et previens les acheteurs',
-      step2: 'Ajoute des produits',
-      step2d: 'Mets en ligne des articles avec photos et prix',
-      step3: 'Attire des acheteurs',
-      step3d: 'Partage ton stream sur les reseaux sociaux',
-      step4: 'Passe en live et gagne !',
-      step4d: 'Commence a vendre a un public en direct',
-      bonus: '7 jours gratuits',
-      bonusDesc: 'Zero commission pendant ta premiere semaine !',
-      cta: 'C\'est parti !',
-    },
+  const txt: Localized<Record<'title' | 'subtitle' | 'step1' | 'step1d' | 'step2' | 'step2d' | 'step3' | 'step3d' | 'step4' | 'step4d' | 'bonus' | 'bonusDesc' | 'cta', string>> = {
     en: {
       title: 'You\'re in!',
       subtitle: 'Get ready to go live on ShaPop',
@@ -45,39 +29,69 @@ export default function OnboardingCelebration({ onDone }: Props) {
       bonusDesc: 'Zero commission on your first week of sales!',
       cta: 'Let\'s go!',
     },
-    he: {
-      title: '!אתה בפנים',
-      subtitle: 'התכונן לצאת לשידור חי ב-ShaPop',
-      step1: 'צור את השידור הראשון',
-      step1d: 'תזמן שידור ותן לקונים לדעת',
-      step2: 'הוסף מוצרים למכירה',
-      step2d: 'רשום פריטים עם תמונות ומחירים',
-      step3: 'משוך קונים',
-      step3d: 'שתף את השידור ברשתות חברתיות',
-      step4: '!צא לשידור והרוויח',
-      step4d: 'התחל למכור לקהל חי',
-      bonus: '7 ימים חינם',
-      bonusDesc: '!אפס עמלה בשבוע הראשון שלך',
-      cta: '!יאללה',
+    fr: {
+      title: 'Tu es dedans !',
+      subtitle: 'Prépare-toi à passer en live sur ShaPop',
+      step1: 'Crée ton premier live',
+      step1d: 'Programme un show et préviens les acheteurs',
+      step2: 'Ajoute des produits',
+      step2d: 'Mets en ligne des articles avec photos et prix',
+      step3: 'Attire des acheteurs',
+      step3d: 'Partage ton live sur les réseaux sociaux',
+      step4: 'Passe en live et gagne !',
+      step4d: 'Commence à vendre à un public en direct',
+      bonus: '7 jours gratuits',
+      bonusDesc: 'Zéro commission pendant ta première semaine !',
+      cta: 'C\'est parti !',
     },
     es: {
-      title: 'Estas dentro!',
-      subtitle: 'Preparate para transmitir en ShaPop',
+      title: '¡Ya estás dentro!',
+      subtitle: 'Prepárate para hacer directos en ShaPop',
       step1: 'Crea tu primer directo',
       step1d: 'Programa un show y avisa a los compradores',
-      step2: 'Anade productos',
-      step2d: 'Lista articulos con fotos y precios',
+      step2: 'Añade productos',
+      step2d: 'Publica artículos con fotos y precios',
       step3: 'Atrae compradores',
-      step3d: 'Comparte tu stream en redes sociales',
-      step4: 'Transmite y gana!',
+      step3d: 'Comparte tu directo en redes sociales',
+      step4: '¡Emite y gana!',
       step4d: 'Empieza a vender en directo',
-      bonus: '7 dias gratis',
-      bonusDesc: 'Cero comision en tu primera semana!',
-      cta: 'Vamos!',
+      bonus: '7 días gratis',
+      bonusDesc: '¡Cero comisión durante tu primera semana!',
+      cta: '¡Vamos!',
+    },
+    ru: {
+      title: 'Ты в деле!',
+      subtitle: 'Готовься выйти в эфир на ShaPop',
+      step1: 'Создай первый эфир',
+      step1d: 'Запланируй шоу и предупреди покупателей',
+      step2: 'Добавь товары',
+      step2d: 'Выложи товары с фото и ценами',
+      step3: 'Привлеки покупателей',
+      step3d: 'Поделись эфиром в соцсетях',
+      step4: 'Выходи в эфир и зарабатывай!',
+      step4d: 'Начни продавать зрителям в прямом эфире',
+      bonus: '7 дней бесплатно',
+      bonusDesc: 'Без комиссии в первую неделю!',
+      cta: 'Поехали!',
+    },
+    he: {
+      title: 'נכנסת!',
+      subtitle: 'תתכונן/י לעלות לשידור חי ב-ShaPop',
+      step1: 'צור/י את השידור הראשון',
+      step1d: 'תזמן/י שידור ותעדכן/י את הקונים',
+      step2: 'הוסף/י מוצרים למכירה',
+      step2d: 'העלה/י פריטים עם תמונות ומחירים',
+      step3: 'משוך/י קונים',
+      step3d: 'שתף/י את השידור ברשתות החברתיות',
+      step4: 'עלה/י לשידור והרוויח/י!',
+      step4d: 'התחל/י למכור לקהל בשידור חי',
+      bonus: '7 ימים חינם',
+      bonusDesc: 'אפס עמלה בשבוע הראשון שלך!',
+      cta: 'יאללה!',
     },
   }
 
-  const t = txt[lang as keyof typeof txt] || txt.en
+  const t = tr(txt)
 
   const steps = [
     { num: '1', title: t.step1, desc: t.step1d, icon: '📺' },
@@ -108,7 +122,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
               key={`confetti-${i}`}
               style={{
                 position: 'absolute',
-                left: `${left}%`,
+                left: `${left}%`, // i18n-ignore
                 top: '-20px',
                 width: `${size}px`,
                 height: isCircle ? `${size}px` : `${size * 0.5}px`,
@@ -125,7 +139,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
 
       {/* Glow effect behind avatar */}
       <div style={{
-        position: 'absolute', top: '12%', left: '50%', transform: 'translateX(-50%)',
+        position: 'absolute', top: '12%', left: '50%', transform: 'translateX(-50%)', // i18n-ignore
         width: '200px', height: '200px', borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(240,144,138,0.3) 0%, transparent 70%)',
         filter: 'blur(30px)',

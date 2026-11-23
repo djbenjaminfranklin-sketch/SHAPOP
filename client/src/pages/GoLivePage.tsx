@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, t as i18nT, type Localized, type TranslationKey } from '../lib/i18n'
 import { ft } from '../lib/fulfillmentText'
 import { categories } from '../components/CategoryIcons'
 import { rtlFlip } from '../lib/rtl'
@@ -43,159 +43,57 @@ function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> 
   })
 }
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
+type Tip = { icon: string; title: string; desc: string }
 
-const tips = {
-  fr: [
-    {
-      icon: '🎯',
-      title: 'Choisis un bon créneau',
-      desc: 'Les lives en soirée (19h-22h) et le week-end attirent plus de monde. Teste différents horaires pour trouver ton audience.',
-    },
-    {
-      icon: '💡',
-      title: 'Soigne ton éclairage',
-      desc: 'Un bon éclairage fait toute la différence ! Place-toi face à une fenêtre ou utilise une ring light pour bien montrer tes articles.',
-    },
-    {
-      icon: '🏷️',
-      title: 'Prépare tes prix à l\'avance',
-      desc: 'Définis tes prix de départ avant le live. Des prix attractifs déclenchent plus d\'enchères et font monter les offres.',
-    },
-    {
-      icon: '🗣️',
-      title: 'Interagis avec ton audience',
-      desc: 'Réponds aux commentaires, appelle les gens par leur prénom. Plus tu échanges, plus les gens restent et achètent.',
-    },
-    {
-      icon: '📦',
-      title: 'Montre les details',
-      desc: 'Retourne les articles, montre les étiquettes, les défauts s\'il y en a. La transparence crée la confiance et évite les retours.',
-    },
-  ],
+const tips: Localized<Tip[]> = {
   en: [
-    {
-      icon: '🎯',
-      title: 'Pick the right time',
-      desc: 'Evening lives (7-10 PM) and weekends attract more viewers. Test different times to find your audience.',
-    },
-    {
-      icon: '💡',
-      title: 'Get your lighting right',
-      desc: 'Good lighting makes all the difference! Face a window or use a ring light to showcase your items properly.',
-    },
-    {
-      icon: '🏷️',
-      title: 'Set your prices in advance',
-      desc: 'Define starting prices before going live. Attractive prices trigger more bids and drive offers up.',
-    },
-    {
-      icon: '🗣️',
-      title: 'Engage with your audience',
-      desc: 'Reply to comments, call people by name. The more you interact, the longer people stay and buy.',
-    },
-    {
-      icon: '📦',
-      title: 'Show the details',
-      desc: 'Turn items around, show labels and flaws if any. Transparency builds trust and prevents returns.',
-    },
+    { icon: '🎯', title: 'Pick the right time', desc: 'Evening lives (7-10 PM) and weekends draw more viewers. Try different times to find your audience.' },
+    { icon: '💡', title: 'Get your lighting right', desc: 'Good lighting makes all the difference! Face a window or use a ring light to show your items properly.' },
+    { icon: '🏷️', title: 'Set your prices in advance', desc: 'Decide your starting prices before going live. Attractive prices trigger more bids and push offers up.' },
+    { icon: '🗣️', title: 'Engage with your audience', desc: 'Reply to comments and call people by name. The more you interact, the longer people stay and buy.' },
+    { icon: '📦', title: 'Show the details', desc: 'Turn items around, show labels and any flaws. Transparency builds trust and prevents returns.' },
   ],
-  he: [
-    {
-      icon: '🎯',
-      title: 'בחר זמן טוב',
-      desc: 'שידורים בערב (19-22) ובסופי שבוע מושכים יותר צופים. נסה זמנים שונים כדי למצוא את הקהל שלך.',
-    },
-    {
-      icon: '💡',
-      title: 'דאג לתאורה טובה',
-      desc: 'תאורה טובה עושה את כל ההבדל! עמוד מול חלון או השתמש בתאורת טבעת.',
-    },
-    {
-      icon: '🏷️',
-      title: 'הכן מחירים מראש',
-      desc: 'הגדר מחירי פתיחה לפני השידור. מחירים אטרקטיביים מעודדים הצעות.',
-    },
-    {
-      icon: '🗣️',
-      title: 'תקשר עם הקהל',
-      desc: 'ענה לתגובות, קרא לאנשים בשמם. ככל שתתקשר יותר, אנשים נשארים וקונים.',
-    },
-    {
-      icon: '📦',
-      title: 'הראה את הפרטים',
-      desc: 'הפוך פריטים, הראה תוויות ופגמים. שקיפות בונה אמון ומונעת החזרות.',
-    },
+  fr: [
+    { icon: '🎯', title: 'Choisis un bon créneau', desc: 'Les lives en soirée (19 h - 22 h) et le week-end attirent plus de monde. Teste différents horaires pour trouver ton audience.' },
+    { icon: '💡', title: 'Soigne ton éclairage', desc: 'Un bon éclairage fait toute la différence ! Place-toi face à une fenêtre ou utilise une ring light pour bien montrer tes articles.' },
+    { icon: '🏷️', title: 'Prépare tes prix à l\'avance', desc: 'Définis tes prix de départ avant le live. Des prix attractifs déclenchent plus d\'enchères et font monter les offres.' },
+    { icon: '🗣️', title: 'Interagis avec ton audience', desc: 'Réponds aux commentaires, appelle les gens par leur prénom. Plus tu échanges, plus les gens restent et achètent.' },
+    { icon: '📦', title: 'Montre les détails', desc: 'Retourne les articles, montre les étiquettes et les défauts s\'il y en a. La transparence crée la confiance et évite les retours.' },
   ],
   es: [
-    {
-      icon: '\uD83C\uDFAF',
-      title: 'Elige el momento adecuado',
-      desc: 'Los directos por la noche (19-22h) y los fines de semana atraen m\u00E1s p\u00FAblico. Prueba diferentes horarios para encontrar tu audiencia.',
-    },
-    {
-      icon: '\uD83D\uDCA1',
-      title: 'Cuida la iluminaci\u00F3n',
-      desc: '\u00A1Una buena iluminaci\u00F3n lo cambia todo! Col\u00F3cate frente a una ventana o usa un aro de luz para mostrar bien tus art\u00EDculos.',
-    },
-    {
-      icon: '\uD83C\uDFF7\uFE0F',
-      title: 'Prepara tus precios con antelaci\u00F3n',
-      desc: 'Define los precios de salida antes del directo. Los precios atractivos generan m\u00E1s pujas y hacen subir las ofertas.',
-    },
-    {
-      icon: '\uD83D\uDDE3\uFE0F',
-      title: 'Interact\u00FAa con tu audiencia',
-      desc: 'Responde a los comentarios, llama a la gente por su nombre. Cuanto m\u00E1s interact\u00FAes, m\u00E1s tiempo se quedan y m\u00E1s compran.',
-    },
-    {
-      icon: '\uD83D\uDCE6',
-      title: 'Muestra los detalles',
-      desc: 'Gira los art\u00EDculos, muestra las etiquetas y los defectos si los hay. La transparencia genera confianza y evita devoluciones.',
-    },
+    { icon: '🎯', title: 'Elige el momento adecuado', desc: 'Los directos por la noche (19-22 h) y los fines de semana atraen más público. Prueba distintos horarios para encontrar a tu audiencia.' },
+    { icon: '💡', title: 'Cuida la iluminación', desc: '¡Una buena iluminación lo cambia todo! Ponte frente a una ventana o usa un aro de luz para mostrar bien tus artículos.' },
+    { icon: '🏷️', title: 'Prepara tus precios con antelación', desc: 'Define los precios de salida antes del directo. Los precios atractivos generan más pujas y hacen subir las ofertas.' },
+    { icon: '🗣️', title: 'Interactúa con tu audiencia', desc: 'Responde a los comentarios y llama a la gente por su nombre. Cuanto más interactúes, más tiempo se quedan y más compran.' },
+    { icon: '📦', title: 'Muestra los detalles', desc: 'Gira los artículos, enseña las etiquetas y los defectos si los hay. La transparencia genera confianza y evita devoluciones.' },
+  ],
+  ru: [
+    { icon: '🎯', title: 'Выбери удачное время', desc: 'Вечерние эфиры (19–22 ч) и выходные собирают больше зрителей. Пробуй разное время, чтобы найти свою аудиторию.' },
+    { icon: '💡', title: 'Позаботься о свете', desc: 'Хороший свет решает всё! Встань лицом к окну или используй кольцевую лампу, чтобы товары было хорошо видно.' },
+    { icon: '🏷️', title: 'Продумай цены заранее', desc: 'Определи стартовые цены до эфира. Привлекательные цены вызывают больше ставок и поднимают предложения.' },
+    { icon: '🗣️', title: 'Общайся со зрителями', desc: 'Отвечай на комментарии, обращайся к людям по имени. Чем больше общения, тем дольше зрители остаются и покупают.' },
+    { icon: '📦', title: 'Показывай детали', desc: 'Поворачивай товары, показывай бирки и дефекты, если они есть. Честность вызывает доверие и спасает от возвратов.' },
+  ],
+  he: [
+    { icon: '🎯', title: 'בחרו שעה טובה', desc: 'שידורים בערב (19:00-22:00) ובסופי שבוע מושכים יותר צופים. נסו שעות שונות כדי למצוא את הקהל שלכם.' },
+    { icon: '💡', title: 'דאגו לתאורה טובה', desc: 'תאורה טובה עושה את כל ההבדל! עמדו מול חלון או השתמשו בתאורת טבעת כדי להציג את הפריטים כמו שצריך.' },
+    { icon: '🏷️', title: 'הכינו מחירים מראש', desc: 'קבעו מחירי פתיחה לפני השידור. מחירים אטרקטיביים מביאים יותר הצעות ומקפיצים את המחיר.' },
+    { icon: '🗣️', title: 'דברו עם הקהל', desc: 'ענו לתגובות ופנו לאנשים בשמם. ככל שתתקשרו יותר, אנשים נשארים יותר זמן וקונים.' },
+    { icon: '📦', title: 'הראו את הפרטים', desc: 'סובבו את הפריטים, הראו תוויות ופגמים אם יש. שקיפות בונה אמון ומונעת החזרות.' },
   ],
 }
 
 const tipsHeader = {
-  fr: { title: 'Conseils pour réussir ton live', next: 'Suivant', start: 'C\'est parti !', skip: 'Passer', page: 'sur' },
   en: { title: 'Tips for a great live', next: 'Next', start: 'Let\'s go!', skip: 'Skip', page: 'of' },
-  he: { title: 'טיפים לשידור מוצלח', next: 'הבא', start: '!בואו נתחיל', skip: 'דלג', page: 'מתוך' },
-  es: { title: 'Consejos para tu directo', next: 'Siguiente', start: '\u00A1Vamos!', skip: 'Saltar', page: 'de' },
-}
+  fr: { title: 'Conseils pour réussir ton live', next: 'Suivant', start: 'C\'est parti !', skip: 'Passer', page: 'sur' },
+  es: { title: 'Consejos para tu directo', next: 'Siguiente', start: '¡Vamos!', skip: 'Saltar', page: 'de' },
+  ru: { title: 'Советы для удачного эфира', next: 'Далее', start: 'Поехали!', skip: 'Пропустить', page: 'из' },
+  he: { title: 'טיפים לשידור מוצלח', next: 'הבא', start: 'יאללה!', skip: 'דילוג', page: 'מתוך' },
+} satisfies Localized<Record<string, string>>
+
+type PluralForms = { one: string; few: string; many: string; other: string }
 
 const goLiveContent = {
-  fr: {
-    title: 'Nouveau live',
-    titlePlaceholder: 'Donne un titre à ton live...',
-    category: 'Catégorie',
-    next: 'Préparer mes articles',
-    cancel: 'Annuler',
-    creating: 'Création...',
-    subtitle: 'Choisis un titre et une catégorie, puis prépare tes articles avant de passer en direct.',
-    createError: 'Erreur lors de la création',
-    sellerError: 'Impossible de vérifier votre compte vendeur',
-    myLives: 'Mes lives',
-    noLives: 'Aucun live pour le moment',
-    deleteConfirm: 'Supprimer ce live et ses articles ?',
-    liveNow: 'En direct',
-    scheduled: 'Programmé',
-    ended: 'Terminé',
-    items: 'articles',
-    edit: 'Modifier',
-    delete: 'Supprimer',
-    thumbnail: 'Miniature (optionnel)',
-    thumbnailBtn: 'Ajouter une photo',
-    thumbnailChange: 'Changer',
-    select: 'Sélectionner',
-    selectAll: 'Tout sélectionner',
-    deleteSelected: 'Supprimer',
-    bulkCancel: 'Annuler',
-    bulkDeleteConfirm: 'Supprimer ces lives et leurs articles ?',
-    confirmDelete: 'Supprimer',
-    confirmCancel: 'Annuler',
-    deleteStreamTitle: 'Supprimer le live',
-    bulkDeleteTitle: 'Suppression multiple',
-  },
   en: {
     title: 'New live',
     titlePlaceholder: 'Give your live a title...',
@@ -203,16 +101,15 @@ const goLiveContent = {
     next: 'Prepare my items',
     cancel: 'Cancel',
     creating: 'Creating...',
-    subtitle: 'Choose a title and category, then prepare your items before going live.',
-    createError: 'Error creating the live',
-    sellerError: 'Unable to verify your seller account',
+    subtitle: 'Choose a title and a category, then prepare your items before going live.',
+    createError: 'Couldn\'t create the live',
+    sellerError: 'Couldn\'t verify your seller account',
     myLives: 'My lives',
     noLives: 'No lives yet',
     deleteConfirm: 'Delete this live and its items?',
     liveNow: 'Live now',
     scheduled: 'Scheduled',
     ended: 'Ended',
-    items: 'items',
     edit: 'Edit',
     delete: 'Delete',
     thumbnail: 'Thumbnail (optional)',
@@ -226,72 +123,167 @@ const goLiveContent = {
     confirmDelete: 'Delete',
     confirmCancel: 'Cancel',
     deleteStreamTitle: 'Delete live',
-    bulkDeleteTitle: 'Bulk delete',
+    bulkDeleteTitle: 'Delete several lives',
+    back: 'Back',
+    deleteFailed: 'Couldn\'t delete the live. Please try again.',
+    bulkPartial: '{ok} deleted, {fail} failed',
+    bulkFailed: 'Deletion failed ({fail})',
   },
-  he: {
-    title: 'שידור חדש',
-    titlePlaceholder: '...תן לשידור שלך כותרת',
-    category: 'קטגוריה',
-    next: 'הכן את הפריטים שלי',
-    cancel: 'ביטול',
-    creating: '...יוצר',
-    subtitle: 'בחר כותרת וקטגוריה, ואז הכן את הפריטים שלך לפני שתצא לשידור.',
-    createError: 'שגיאה ביצירת השידור',
-    sellerError: 'לא ניתן לאמת את חשבון המוכר שלך',
-    myLives: 'השידורים שלי',
-    noLives: 'אין שידורים עדיין',
-    deleteConfirm: 'למחוק את השידור והפריטים שלו?',
-    liveNow: 'בשידור חי',
-    scheduled: 'מתוזמן',
-    ended: 'הסתיים',
-    items: 'פריטים',
-    edit: 'עריכה',
-    delete: 'מחק',
-    thumbnail: 'תמונה ממוזערת (אופציונלי)',
-    thumbnailBtn: '\u05D4\u05D5\u05E1\u05E3 \u05EA\u05DE\u05D5\u05E0\u05D4',
-    thumbnailChange: '\u05E9\u05E0\u05D4',
-    select: '\u05D1\u05D7\u05E8',
-    selectAll: '\u05D1\u05D7\u05E8 \u05D4\u05DB\u05DC',
-    deleteSelected: '\u05DE\u05D7\u05E7',
-    bulkCancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
-    bulkDeleteConfirm: '\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D5\u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05E9\u05DC\u05D4\u05DD?',
-    confirmDelete: '\u05DE\u05D7\u05E7',
-    confirmCancel: '\u05D1\u05D9\u05D8\u05D5\u05DC',
-    deleteStreamTitle: '\u05DE\u05D7\u05E7 \u05E9\u05D9\u05D3\u05D5\u05E8',
-    bulkDeleteTitle: '\u05DE\u05D7\u05D9\u05E7\u05D4 \u05DE\u05E8\u05D5\u05D1\u05D4',
+  fr: {
+    title: 'Nouveau live',
+    titlePlaceholder: 'Donne un titre à ton live...',
+    category: 'Catégorie',
+    next: 'Préparer mes articles',
+    cancel: 'Annuler',
+    creating: 'Création...',
+    subtitle: 'Choisis un titre et une catégorie, puis prépare tes articles avant de passer en direct.',
+    createError: 'Impossible de créer le live',
+    sellerError: 'Impossible de vérifier ton compte vendeur',
+    myLives: 'Mes lives',
+    noLives: 'Aucun live pour le moment',
+    deleteConfirm: 'Supprimer ce live et ses articles ?',
+    liveNow: 'En direct',
+    scheduled: 'Programmé',
+    ended: 'Terminé',
+    edit: 'Modifier',
+    delete: 'Supprimer',
+    thumbnail: 'Miniature (facultatif)',
+    thumbnailBtn: 'Ajouter une photo',
+    thumbnailChange: 'Changer',
+    select: 'Sélectionner',
+    selectAll: 'Tout sélectionner',
+    deleteSelected: 'Supprimer',
+    bulkCancel: 'Annuler',
+    bulkDeleteConfirm: 'Supprimer ces lives et leurs articles ?',
+    confirmDelete: 'Supprimer',
+    confirmCancel: 'Annuler',
+    deleteStreamTitle: 'Supprimer le live',
+    bulkDeleteTitle: 'Supprimer plusieurs lives',
+    back: 'Retour',
+    deleteFailed: 'Impossible de supprimer le live. Réessaie.',
+    bulkPartial: '{ok} supprimé(s), {fail} en échec',
+    bulkFailed: 'Échec de la suppression ({fail})',
   },
   es: {
     title: 'Nuevo directo',
-    titlePlaceholder: 'Dale un t\u00EDtulo a tu directo...',
-    category: 'Categor\u00EDa',
-    next: 'Preparar mis art\u00EDculos',
+    titlePlaceholder: 'Ponle un título a tu directo...',
+    category: 'Categoría',
+    next: 'Preparar mis artículos',
     cancel: 'Cancelar',
     creating: 'Creando...',
-    subtitle: 'Elige un t\u00EDtulo y una categor\u00EDa, luego prepara tus art\u00EDculos antes de salir en directo.',
-    createError: 'Error al crear el directo',
+    subtitle: 'Elige un título y una categoría, y prepara tus artículos antes de salir en directo.',
+    createError: 'No se pudo crear el directo',
     sellerError: 'No se pudo verificar tu cuenta de vendedor',
     myLives: 'Mis directos',
-    noLives: 'Ningún directo todavía',
+    noLives: 'Aún no tienes directos',
     deleteConfirm: '¿Eliminar este directo y sus artículos?',
     liveNow: 'En directo',
     scheduled: 'Programado',
     ended: 'Terminado',
-    items: 'artículos',
     edit: 'Editar',
     delete: 'Eliminar',
     thumbnail: 'Miniatura (opcional)',
-    thumbnailBtn: 'Agregar una foto',
+    thumbnailBtn: 'Añadir una foto',
     thumbnailChange: 'Cambiar',
     select: 'Seleccionar',
     selectAll: 'Seleccionar todo',
     deleteSelected: 'Eliminar',
     bulkCancel: 'Cancelar',
-    bulkDeleteConfirm: '\u00BFEliminar estos directos y sus art\u00EDculos?',
+    bulkDeleteConfirm: '¿Eliminar estos directos y sus artículos?',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
     deleteStreamTitle: 'Eliminar directo',
-    bulkDeleteTitle: 'Eliminaci\u00F3n m\u00FAltiple',
+    bulkDeleteTitle: 'Eliminar varios directos',
+    back: 'Volver',
+    deleteFailed: 'No se pudo eliminar el directo. Inténtalo de nuevo.',
+    bulkPartial: '{ok} eliminado(s), {fail} con error',
+    bulkFailed: 'Error al eliminar ({fail})',
   },
+  ru: {
+    title: 'Новый эфир',
+    titlePlaceholder: 'Придумай название эфира...',
+    category: 'Категория',
+    next: 'Подготовить товары',
+    cancel: 'Отмена',
+    creating: 'Создаём...',
+    subtitle: 'Выбери название и категорию, затем подготовь товары перед выходом в эфир.',
+    createError: 'Не удалось создать эфир',
+    sellerError: 'Не удалось проверить твой аккаунт продавца',
+    myLives: 'Мои эфиры',
+    noLives: 'Эфиров пока нет',
+    deleteConfirm: 'Удалить этот эфир и его товары?',
+    liveNow: 'В эфире',
+    scheduled: 'Запланирован',
+    ended: 'Завершён',
+    edit: 'Изменить',
+    delete: 'Удалить',
+    thumbnail: 'Обложка (необязательно)',
+    thumbnailBtn: 'Добавить фото',
+    thumbnailChange: 'Изменить',
+    select: 'Выбрать',
+    selectAll: 'Выбрать все',
+    deleteSelected: 'Удалить',
+    bulkCancel: 'Отмена',
+    bulkDeleteConfirm: 'Удалить эти эфиры и их товары?',
+    confirmDelete: 'Удалить',
+    confirmCancel: 'Отмена',
+    deleteStreamTitle: 'Удалить эфир',
+    bulkDeleteTitle: 'Удалить несколько эфиров',
+    back: 'Назад',
+    deleteFailed: 'Не удалось удалить эфир. Попробуй ещё раз.',
+    bulkPartial: 'Удалено: {ok}, с ошибкой: {fail}',
+    bulkFailed: 'Не удалось удалить ({fail})',
+  },
+  he: {
+    title: 'שידור חדש',
+    titlePlaceholder: 'תנו כותרת לשידור...',
+    category: 'קטגוריה',
+    next: 'הכנת הפריטים שלי',
+    cancel: 'ביטול',
+    creating: 'יוצרים...',
+    subtitle: 'בחרו כותרת וקטגוריה, ואז הכינו את הפריטים לפני שעולים לשידור.',
+    createError: 'לא הצלחנו ליצור את השידור',
+    sellerError: 'לא הצלחנו לאמת את חשבון המוכר/ת שלך',
+    myLives: 'השידורים שלי',
+    noLives: 'עדיין אין שידורים',
+    deleteConfirm: 'למחוק את השידור ואת הפריטים שלו?',
+    liveNow: 'בשידור חי',
+    scheduled: 'מתוזמן',
+    ended: 'הסתיים',
+    edit: 'עריכה',
+    delete: 'מחיקה',
+    thumbnail: 'תמונה ממוזערת (לא חובה)',
+    thumbnailBtn: 'הוספת תמונה',
+    thumbnailChange: 'החלפה',
+    select: 'בחירה',
+    selectAll: 'בחירת הכל',
+    deleteSelected: 'מחיקה',
+    bulkCancel: 'ביטול',
+    bulkDeleteConfirm: 'למחוק את השידורים האלה ואת הפריטים שלהם?',
+    confirmDelete: 'מחיקה',
+    confirmCancel: 'ביטול',
+    deleteStreamTitle: 'מחיקת שידור',
+    bulkDeleteTitle: 'מחיקת כמה שידורים',
+    back: 'חזרה',
+    deleteFailed: 'לא הצלחנו למחוק את השידור. נסו שוב.',
+    bulkPartial: '{ok} נמחקו, {fail} נכשלו',
+    bulkFailed: 'המחיקה נכשלה ({fail})',
+  },
+} satisfies Localized<Record<string, string>>
+
+const itemsForms: Localized<PluralForms> = {
+  en: { one: '{n} item', few: '{n} items', many: '{n} items', other: '{n} items' },
+  fr: { one: '{n} article', few: '{n} articles', many: '{n} articles', other: '{n} articles' },
+  es: { one: '{n} artículo', few: '{n} artículos', many: '{n} artículos', other: '{n} artículos' },
+  ru: { one: '{n} товар', few: '{n} товара', many: '{n} товаров', other: '{n} товара' },
+  he: { one: 'פריט אחד', few: '{n} פריטים', many: '{n} פריטים', other: '{n} פריטים' },
+}
+
+function itemsLabel(n: number): string {
+  const forms = tr(itemsForms)
+  const rule = new Intl.PluralRules(getLocale()).select(n)
+  const form = rule === 'one' || rule === 'few' || rule === 'many' ? forms[rule] : forms.other
+  return form.replace('{n}', String(n))
 }
 
 export default function GoLivePage() {
@@ -299,8 +291,8 @@ export default function GoLivePage() {
   const [searchParams] = useSearchParams()
   const manageMode = searchParams.get('manage') === 'true'
   const { user, profile } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = goLiveContent[lang] || goLiveContent.fr
+  const lang = getLang()
+  const ct = tr(goLiveContent)
   usePageTitle(ct.title)
 
   // Block non-sellers
@@ -400,8 +392,7 @@ export default function GoLivePage() {
         if (res.ok) {
           setMyStreams(prev => prev.filter(s => s.id !== streamId))
         } else {
-          const body = await res.json().catch(() => ({ error: 'Delete failed' }))
-          alert(body.error || 'Delete failed')
+          alert(ct.deleteFailed)
         }
       },
     })
@@ -430,9 +421,9 @@ export default function GoLivePage() {
         setSelectedIds(new Set())
         setSelectionMode(false)
         if (failCount > 0 && deletedIds.size > 0) {
-          alert(`${deletedIds.size} supprimé(s), ${failCount} échoué(s)`)
+          alert(ct.bulkPartial.replace('{ok}', String(deletedIds.size)).replace('{fail}', String(failCount)))
         } else if (failCount > 0) {
-          alert(`Échec de la suppression (${failCount})`)
+          alert(ct.bulkFailed.replace('{fail}', String(failCount)))
         }
       },
     })
@@ -455,8 +446,8 @@ export default function GoLivePage() {
     }
   }
 
-  const langTips = tips[lang] || tips.fr
-  const th = tipsHeader[lang] || tipsHeader.fr
+  const langTips = tr(tips)
+  const th = tr(tipsHeader)
 
   // Swipe gesture state for tips carousel
   const touchStartX = useRef<number | null>(null)
@@ -630,7 +621,7 @@ export default function GoLivePage() {
         }}>
           <button
             onClick={() => navigate(-1)}
-            aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
+            aria-label={ct.back}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}>
@@ -764,10 +755,10 @@ export default function GoLivePage() {
       }}>
         <button
           onClick={() => navigate(-1)}
-          aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
+          aria-label={ct.back}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
         >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={rtlFlip()}>
             <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
@@ -803,7 +794,7 @@ export default function GoLivePage() {
             placeholder={ct.titlePlaceholder}
             style={inputStyle}
           />
-          <p style={{ fontSize: '12px', color: '#555', textAlign: 'right', marginTop: '6px' }}>
+          <p style={{ fontSize: '12px', color: '#555', textAlign: 'end', marginTop: '6px' }}>
             {liveTitle.length}/100
           </p>
         </div>
@@ -838,7 +829,7 @@ export default function GoLivePage() {
                     boxShadow: isSelected ? '0 4px 16px rgba(240,144,138,0.3)' : 'none',
                   }}
                 >
-                  {cat.label}
+                  {i18nT(lang, cat.id as TranslationKey)}
                 </button>
               )
             })}
@@ -1083,14 +1074,14 @@ export default function GoLivePage() {
                                 width: '6px', height: '6px',
                                 borderRadius: '50%',
                                 backgroundColor: '#E8344E',
-                                marginRight: '4px',
+                                marginInlineEnd: '4px',
                                 animation: 'liveDot 1.5s ease infinite',
                               }} />
                             )}
                             {statusLabel}
                           </span>
                           <span style={{ fontSize: '11px', color: '#555' }}>
-                            {stream.item_count || 0} {ct.items}
+                            {itemsLabel(stream.item_count || 0)}
                           </span>
                         </div>
                         <p style={{
@@ -1100,7 +1091,7 @@ export default function GoLivePage() {
                           {stream.title}
                         </p>
                         <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>
-                          {stream.category} — {new Date(stream.created_at).toLocaleDateString()}
+                          {stream.category ? i18nT(lang, stream.category as TranslationKey) || stream.category : ''} — {new Date(stream.created_at).toLocaleDateString(getLocale())}
                         </p>
                       </div>
 
