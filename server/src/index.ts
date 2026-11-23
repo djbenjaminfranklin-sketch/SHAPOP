@@ -66,6 +66,8 @@ app.use(cors({
     if (!origin) return callback(null, true)
     // Allow Capacitor origins
     if (origin.startsWith('capacitor://') || origin.startsWith('ionic://')) return callback(null, true)
+    // App Android (Capacitor) : la WebView sert l'app depuis https://localhost
+    if (origin === 'https://localhost') return callback(null, true)
     // Allow configured origins
     if (allowed.includes(origin)) return callback(null, true)
     callback(null, false)
