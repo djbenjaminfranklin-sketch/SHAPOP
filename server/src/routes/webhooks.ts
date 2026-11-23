@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { supabase, stripe, livekitWebhookReceiver, livekitEgressClient, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
+import { recordingUrlFromEgress } from '../recording'
 import { calculateFees, notifyFollowersSellerLive, notifyUserT, getPaypalAccessToken } from '../utils'
 import { localized, money, getUserCurrency } from '../i18n'
 import { markOrderPaid } from '../services/orderLifecycle'
@@ -355,7 +356,7 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
       }
     }
 
-    // Handle egress_ended — recording file is ready on S3 (backup for polling)
+    // Handle egress_ended — recording file is ready in the bucket (backup for polling)
     if (event.event === 'egress_ended' && event.egressInfo) {
       const egress = event.egressInfo
       const { data: stream } = await supabase
@@ -365,11 +366,8 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
         .maybeSingle()
 
       if (stream && !stream.recording_url) {
-        const fileInfo = egress.fileResults?.[0] || (egress as any).result?.value || (egress as any).file
-        const fileLocation = fileInfo?.location || fileInfo?.filename
-        if (fileLocation) {
-          const recordingUrl = fileLocation.startsWith('http') ? fileLocation
-            : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
+        const recordingUrl = recordingUrlFromEgress(egress)
+        if (recordingUrl) {
           await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', stream.id)
         }
       }

@@ -2,8 +2,9 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { AccessToken } from 'livekit-server-sdk'
-import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient, LIVEKIT_RECORDING_BUCKET } from '../config'
-import { EncodedFileOutput, S3Upload, StreamOutput, StreamProtocol } from 'livekit-server-sdk'
+import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient } from '../config'
+import { StreamOutput, StreamProtocol } from 'livekit-server-sdk'
+import { startSellerRecording, recordingUrlFromEgress, getLivekitMaxParticipants } from '../recording'
 import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore } from '../utils'
 import { sellerHasWhatsapp } from './fulfillment'
@@ -571,31 +572,20 @@ router.post('/api/streams/:id/create-livekit-room', requireAuth, async (req: Aut
     }
 
     const roomName = `stream-${streamId}`
-    await livekitRoomService.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: 500 })
+    await livekitRoomService.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: getLivekitMaxParticipants() })
 
     await supabase
       .from('streams')
       .update({ livekit_room_name: roomName })
       .eq('id', streamId)
 
-    // Start recording egress if bucket is configured
-    if (livekitEgressClient && LIVEKIT_RECORDING_BUCKET) {
-      try {
-        const s3Output = new S3Upload({
-          bucket: LIVEKIT_RECORDING_BUCKET,
-          region: process.env.AWS_REGION || 'eu-west-3',
-          accessKey: process.env.AWS_ACCESS_KEY_ID || '',
-          secret: process.env.AWS_SECRET_ACCESS_KEY || '',
-        })
-        const fileOutput = new EncodedFileOutput({
-          filepath: `recordings/${streamId}/{time}`,
-          output: { case: 's3', value: s3Output },
-        })
-        const egress = await livekitEgressClient.startRoomCompositeEgress(roomName, fileOutput)
-        await supabase.from('streams').update({ egress_id: egress.egressId }).eq('id', streamId)
-      } catch (egressErr) {
-        console.error('[egress] Failed to start recording:', egressErr)
-      }
+    // Record the seller only (participant egress: one MP4, camera + mic).
+    // Skipped (no LiveKit cost) when RECORDING_S3_* / RECORDING_PUBLIC_BASE_URL are not set.
+    try {
+      const egressId = await startSellerRecording(livekitEgressClient, roomName, `seller-${stream.seller_id}`, String(streamId))
+      if (egressId) await supabase.from('streams').update({ egress_id: egressId }).eq('id', streamId)
+    } catch (egressErr) {
+      console.error('[egress] Failed to start recording:', egressErr)
     }
 
     res.json({ livekit_room_name: roomName })
@@ -630,7 +620,7 @@ router.post('/api/streams/:id/rtmp-url', requireAuth, async (req: AuthenticatedR
     let roomName = stream.livekit_room_name
     if (!roomName) {
       roomName = `stream-${streamId}`
-      await livekitRoomService.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: 500 })
+      await livekitRoomService.createRoom({ name: roomName, emptyTimeout: 300, maxParticipants: getLivekitMaxParticipants() })
       await supabase.from('streams').update({ livekit_room_name: roomName }).eq('id', streamId)
     }
 
@@ -790,11 +780,8 @@ router.post('/api/streams/:id/end-livekit-stream', requireAuth, async (req: Auth
             if (!egress) return
             if (egress.status === 4) { console.error(`[egress] FAILED for ${sid}: ${egress.error}`); return }
             if (egress.status === 3) {
-              const fileInfo = egress.fileResults?.[0] || (egress as any).result?.value || (egress as any).file
-              const fileLocation = fileInfo?.location || fileInfo?.filename
-              if (fileLocation) {
-                const recordingUrl = fileLocation.startsWith('http') ? fileLocation
-                  : `https://shapop-recordings.s3.eu-west-3.amazonaws.com/${fileLocation}`
+              const recordingUrl = recordingUrlFromEgress(egress)
+              if (recordingUrl) {
                 await supabase.from('streams').update({ recording_url: recordingUrl }).eq('id', sid)
               }
               return

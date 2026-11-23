@@ -71,8 +71,6 @@ export const livekitIngressClient = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LI
   ? new IngressClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
   : null
 
-export const LIVEKIT_RECORDING_BUCKET = process.env.LIVEKIT_RECORDING_BUCKET || ''
-
 export const livekitWebhookReceiver = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET)
   ? new WebhookReceiver(LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
   : null
