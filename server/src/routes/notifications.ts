@@ -160,32 +160,17 @@ router.post('/api/device-token', requireAuth, async (req: AuthenticatedRequest, 
     }
     const plat = platform === 'android' ? 'android' : 'ios'
 
-    // Check if already exists
-    const { data: existing } = await supabase
-      .from('device_tokens')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('token', token)
-      .maybeSingle()
-
-    if (existing) {
-      const { error: updErr } = await supabase.from('device_tokens').update({ updated_at: new Date().toISOString() }).eq('id', existing.id)
-      if (updErr) console.error('[device-token] Update error:', updErr.message)
-    } else {
-      const { error: insErr } = await supabase.from('device_tokens').insert({
-        user_id: userId,
-        token,
-        platform: plat,
-        notify_live: true,
-        notify_orders: true,
-        notify_messages: true,
-        notify_reminders: true,
-      })
-      if (insErr) {
-        console.error('[device-token] Insert error:', insErr.message)
-        res.status(500).json({ error: insErr.message })
-        return
-      }
+    // Upsert : l'app peut envoyer le même jeton deux fois en même temps au démarrage
+    const { error: upErr } = await supabase.from('device_tokens').upsert({
+      user_id: userId,
+      token,
+      platform: plat,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,token' })
+    if (upErr) {
+      console.error('[device-token] Upsert error:', upErr.message)
+      res.status(500).json({ error: upErr.message })
+      return
     }
 
     if (process.env.NODE_ENV !== 'production') console.log(`[device-token] Registered ${plat} token for user ${userId}: ${token.slice(0, 12)}...`)

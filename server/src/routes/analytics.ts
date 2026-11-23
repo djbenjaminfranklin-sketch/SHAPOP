@@ -29,7 +29,7 @@ router.post('/api/analytics', requireAuth, async (req: AuthenticatedRequest, res
       user_id: req.user!.id,
       event_name: event.name,
       properties: event.properties || {},
-      client_timestamp: new Date(event.timestamp).toISOString(),
+      client_timestamp: Number.isFinite(Number(event.timestamp)) ? Math.round(Number(event.timestamp)) : Date.now(), // colonne bigint (millisecondes)
     }))
 
     const { error } = await supabase
