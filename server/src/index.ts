@@ -190,15 +190,8 @@ server.listen(PORT, () => {
         .gte('scheduled_at', now.toISOString())
       if (upcomingStreams && upcomingStreams.length > 0) {
         for (const stream of upcomingStreams) {
-          // Get seller name for the notification
-          const { data: seller } = await supabase
-            .from('profiles')
-            .select('display_name')
-            .eq('id', stream.seller_id)
-            .single()
-          const sellerName = seller?.display_name || 'Un vendeur'
-          // Notify all followers of the seller
-          await notifyFollowersSellerLive(stream.seller_id, `${sellerName} est bientôt en direct — "${stream.title}" commence dans 15 minutes`, stream.id)
+          // Notify all followers of the seller (chacun dans sa langue)
+          await notifyFollowersSellerLive(stream.seller_id, stream.title, stream.id, 'soon')
           // Mark as reminded to avoid duplicate notifications
           await supabase.from('streams').update({ reminder_sent: true }).eq('id', stream.id)
         }

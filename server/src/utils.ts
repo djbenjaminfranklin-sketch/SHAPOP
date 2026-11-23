@@ -2,6 +2,8 @@ import http2 from 'http2'
 import crypto from 'crypto'
 import fs from 'fs'
 import { supabase, resend, PLATFORM_COMMISSION, PROCESSING_FEE_RATE, PROCESSING_FEE_FIXED, VAT_RATE, PAYPAL_BASE_URL } from './config'
+import { LOCALES, getUserLang, getUsersLangs, isRtl, localized, msg, type Lang, type MsgKey, type NotifKey, type Params } from './i18n'
+import { formatMoney, shortOrderRef } from './fulfillment'
 
 // =============================================
 // Pure helper functions
@@ -230,8 +232,30 @@ export async function notifyUser(userId: string, type: string, title: string, bo
   }
 }
 
-/** Send push notification to all followers of a seller who have notify_live enabled */
-export async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, streamId: string) {
+/**
+ * Comme notifyUser, mais le titre et le corps sont produits dans la langue du DESTINATAIRE.
+ * `keys` : un préfixe du dictionnaire ('welcome' → 'welcome.title' + 'welcome.body')
+ * ou deux clés explicites ({ title, body }).
+ */
+export async function notifyUserT(
+  userId: string,
+  type: string,
+  keys: NotifKey | { title: MsgKey; body: MsgKey },
+  params: Params = {},
+  data?: Record<string, string>,
+) {
+  const lang = await getUserLang(userId)
+  const k = typeof keys === 'string'
+    ? { title: `${keys}.title` as MsgKey, body: `${keys}.body` as MsgKey }
+    : keys
+  return notifyUser(userId, type, msg(lang, k.title, params), msg(lang, k.body, params), data)
+}
+
+/**
+ * Prévient les abonnés d'un vendeur (push + notification in-app), chacun dans sa langue.
+ * kind 'live' : le live commence ; 'soon' : il commence dans 15 minutes.
+ */
+export async function notifyFollowersSellerLive(sellerId: string, streamTitle: string, streamId: string, kind: 'live' | 'soon' = 'live') {
   // Step 1: Get follower user IDs
   const { data: followers } = await supabase
     .from('followers')
@@ -244,7 +268,7 @@ export async function notifyFollowersSellerLive(sellerId: string, streamTitle: s
   // Step 2: Get device tokens for these followers who have live notifications enabled
   const { data: tokens } = await supabase
     .from('device_tokens')
-    .select('token')
+    .select('token, user_id')
     .eq('notify_live', true)
     .in('user_id', followerIds)
 
@@ -263,29 +287,44 @@ export async function notifyFollowersSellerLive(sellerId: string, streamTitle: s
     .eq('id', streamId)
     .single()
 
-  const sellerName = seller?.display_name || 'Un vendeur'
   const category = streamData?.category || ''
+  const params: Params = {
+    name: seller?.display_name || localized('fallback.seller'),
+    title: streamTitle,
+    category,
+  }
 
-  // Engaging notification messages
-  const title = `${sellerName} est en live !`
-  const body = category
-    ? `${streamTitle} — ${category}. Rejoins maintenant !`
-    : `${streamTitle}. Rejoins maintenant !`
+  // Texte construit une fois par langue, puis choisi selon la langue de chaque abonné
+  const textFor = (lang: Lang) => kind === 'soon'
+    ? { title: msg(lang, 'liveSoon.title', params), body: msg(lang, 'liveSoon.body', params) }
+    : {
+        title: msg(lang, 'sellerLive.title', params),
+        body: msg(lang, category ? 'sellerLive.body' : 'sellerLive.bodyNoCategory', params),
+      }
+  const langs = await getUsersLangs(followerIds)
+  const texts = new Map<Lang, { title: string; body: string }>()
+  const textOf = (uid: string) => {
+    const lang = langs.get(uid) || 'en'
+    if (!texts.has(lang)) texts.set(lang, textFor(lang))
+    return texts.get(lang)!
+  }
 
-  if (process.env.NODE_ENV !== 'production') console.log(`[push] Sending live notification to ${tokens.length} followers of ${sellerName}`)
+  if (process.env.NODE_ENV !== 'production') console.log(`[push] Sending live notification to ${tokens.length} followers of ${sellerId}`)
 
   // Send in parallel (safety cap at 200)
   const batch = tokens.slice(0, 200)
   await Promise.allSettled(
-    batch.map(t => sendApnsPush(t.token, title, body, { stream_id: streamId }))
+    batch.map(t => {
+      const { title, body } = textOf(t.user_id)
+      return sendApnsPush(t.token, title, body, { stream_id: streamId })
+    })
   )
 
   // Insert in-app notifications for all followers
   const notifRows = followerIds.map(uid => ({
     user_id: uid,
     type: 'live',
-    title,
-    body,
+    ...textOf(uid),
     data: { stream_id: streamId },
   }))
   const { error: insertErr } = await supabase.from('notifications').insert(notifRows)
@@ -447,60 +486,96 @@ async function getUserEmail(userId: string): Promise<string | null> {
   return data?.user?.email || null
 }
 
-/** Send order confirmation email to buyer */
-export async function sendOrderConfirmationEmail(buyerId: string, orderData: { id: string; itemTitle: string; amount: number; sellerName: string }) {
+type EmailRow = { label: string; value: string; style?: string }
+
+/**
+ * Gabarit HTML commun des e-mails transactionnels, dans la langue du destinataire
+ * (dir="rtl" pour l'hébreu). Tous les textes passés ici sont déjà échappés par l'appelant
+ * via escapeHtml ; `rows[].value` est échappé ici.
+ */
+export function renderEmailHtml(lang: Lang, opts: { color: string; heading: string; intro: string; rows: EmailRow[]; footnote: string }): string {
+  const rtl = isRtl(lang)
+  const dirAttr = rtl ? ' dir="rtl"' : ''
+  const align = rtl ? 'right' : 'left'
+  const rows = opts.rows.map(r =>
+    `<tr><td style="padding:8px 0;color:#666">${escapeHtml(r.label)}</td><td style="padding:8px 0;${r.style || ''}">${escapeHtml(r.value)}</td></tr>`,
+  ).join('\n            ')
+  return `
+        <div lang="${lang}"${dirAttr} style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px;text-align:${align}">
+          <h2 style="color:${opts.color}">${escapeHtml(opts.heading)}</h2>
+          <p>${escapeHtml(opts.intro)}</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            ${rows}
+          </table>
+          <p style="color:#888;font-size:13px">${escapeHtml(opts.footnote)}</p>
+          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
+          <p style="color:#aaa;font-size:11px">${escapeHtml(msg(lang, 'email.tagline'))}</p>
+        </div>
+      `
+}
+
+/** Contenu de l'e-mail de confirmation de commande (exporté pour les tests). */
+export function buildOrderConfirmationEmail(lang: Lang, d: { id: string; itemTitle?: string | null; amount: number; currency?: string | null; sellerName?: string | null }) {
+  const item = d.itemTitle || msg(lang, 'fallback.item')
+  const ref = shortOrderRef(d.id)
+  return {
+    subject: msg(lang, 'orderEmail.subject', { item }),
+    html: renderEmailHtml(lang, {
+      color: '#E8344E',
+      heading: msg(lang, 'orderEmail.heading'),
+      intro: msg(lang, 'orderEmail.intro', { ref }),
+      rows: [
+        { label: msg(lang, 'email.item'), value: item, style: 'font-weight:600' },
+        { label: msg(lang, 'email.seller'), value: d.sellerName || msg(lang, 'fallback.seller') },
+        { label: msg(lang, 'email.amount'), value: formatMoney(d.amount, d.currency, LOCALES[lang]), style: 'font-weight:700;color:#E8344E' },
+      ],
+      footnote: msg(lang, 'orderEmail.footnote'),
+    }),
+  }
+}
+
+/** Contenu de l'e-mail de rappel de paiement (exporté pour les tests). */
+export function buildPaymentReminderEmail(lang: Lang, d: { orderId: string; itemTitle?: string | null; amount: number; currency?: string | null }) {
+  const item = d.itemTitle || msg(lang, 'fallback.item')
+  const ref = shortOrderRef(d.orderId)
+  return {
+    subject: msg(lang, 'paymentEmail.subject', { item }),
+    html: renderEmailHtml(lang, {
+      color: '#F59E0B',
+      heading: msg(lang, 'paymentEmail.heading'),
+      intro: msg(lang, 'paymentEmail.intro', { ref }),
+      rows: [
+        { label: msg(lang, 'email.item'), value: item, style: 'font-weight:600' },
+        { label: msg(lang, 'email.amount'), value: formatMoney(d.amount, d.currency, LOCALES[lang]), style: 'font-weight:700;color:#E8344E' },
+      ],
+      footnote: msg(lang, 'paymentEmail.footnote'),
+    }),
+  }
+}
+
+/** Send order confirmation email to buyer (dans la langue de l'acheteur) */
+export async function sendOrderConfirmationEmail(buyerId: string, orderData: { id: string; itemTitle?: string | null; amount: number; currency?: string | null; sellerName?: string | null }) {
   if (!resend) return
   const email = await getUserEmail(buyerId)
   if (!email) return
   try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      subject: `Commande confirmee - ${orderData.itemTitle}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px">
-          <h2 style="color:#E8344E">Commande confirmee !</h2>
-          <p>Votre commande <strong>#${orderData.id.slice(0, 8)}</strong> a bien ete enregistree.</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0">
-            <tr><td style="padding:8px 0;color:#666">Article</td><td style="padding:8px 0;font-weight:600">${escapeHtml(orderData.itemTitle)}</td></tr>
-            <tr><td style="padding:8px 0;color:#666">Vendeur</td><td style="padding:8px 0">${escapeHtml(orderData.sellerName)}</td></tr>
-            <tr><td style="padding:8px 0;color:#666">Montant</td><td style="padding:8px 0;font-weight:700;color:#E8344E">${orderData.amount.toFixed(2)} EUR</td></tr>
-          </table>
-          <p style="color:#888;font-size:13px">Vous recevrez un email quand le vendeur expediera votre colis.</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
-          <p style="color:#aaa;font-size:11px">ShaPop — Shopping en live, reinvente.</p>
-        </div>
-      `,
-    })
+    const lang = await getUserLang(buyerId)
+    const { subject, html } = buildOrderConfirmationEmail(lang, orderData)
+    await resend.emails.send({ from: FROM_EMAIL, to: email, subject, html })
   } catch (err) {
     console.error('[Email] Order confirmation error:', err)
   }
 }
 
-/** Send payment reminder email to buyer */
-export async function sendPaymentReminderEmail(buyerId: string, data: { orderId: string; itemTitle: string; amount: number }) {
+/** Send payment reminder email to buyer (dans la langue de l'acheteur) */
+export async function sendPaymentReminderEmail(buyerId: string, data: { orderId: string; itemTitle?: string | null; amount: number; currency?: string | null }) {
   if (!resend) return
   const email = await getUserEmail(buyerId)
   if (!email) return
   try {
-    await resend.emails.send({
-      from: FROM_EMAIL,
-      to: email,
-      subject: `Rappel de paiement - ${data.itemTitle}`,
-      html: `
-        <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:20px">
-          <h2 style="color:#F59E0B">Rappel de paiement</h2>
-          <p>Votre commande <strong>#${data.orderId.slice(0, 8)}</strong> est en attente de paiement.</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0">
-            <tr><td style="padding:8px 0;color:#666">Article</td><td style="padding:8px 0;font-weight:600">${escapeHtml(data.itemTitle)}</td></tr>
-            <tr><td style="padding:8px 0;color:#666">Montant</td><td style="padding:8px 0;font-weight:700;color:#E8344E">${data.amount.toFixed(2)} EUR</td></tr>
-          </table>
-          <p style="color:#888;font-size:13px">Ouvrez l'application pour finaliser votre paiement. Sans paiement, la commande sera automatiquement annulee.</p>
-          <hr style="border:none;border-top:1px solid #eee;margin:20px 0"/>
-          <p style="color:#aaa;font-size:11px">ShaPop — Shopping en live, reinvente.</p>
-        </div>
-      `,
-    })
+    const lang = await getUserLang(buyerId)
+    const { subject, html } = buildPaymentReminderEmail(lang, data)
+    await resend.emails.send({ from: FROM_EMAIL, to: email, subject, html })
   } catch (err) {
     console.error('[Email] Payment reminder error:', err)
   }

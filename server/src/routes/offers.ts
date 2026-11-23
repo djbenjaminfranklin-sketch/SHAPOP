@@ -2,7 +2,8 @@ import { Router } from 'express'
 import type { Response } from 'express'
 import { supabase } from '../config'
 import { requireAuth, createLimiter } from '../middleware'
-import { notifyUser, paramStr } from '../utils'
+import { notifyUserT, paramStr } from '../utils'
+import { localized, money, getUserCurrency, type NotifKey } from '../i18n'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -71,13 +72,13 @@ router.post('/api/items/:id/offer', createLimiter, requireAuth, async (req: Auth
     }
 
     // Notify seller (fire-and-forget, errors logged)
-    notifyUser(
+    getUserCurrency(item.seller_id).then(currency => notifyUserT(
       item.seller_id,
       'offer_received',
-      'Nouvelle offre',
-      `Vous avez recu une offre de ${amount}EUR pour "${item.title}"`,
+      'offerReceived',
+      { item: item.title || localized('fallback.item'), amount: money(amount, currency) },
       { item_id: itemId, offer_id: offer.id },
-    ).catch(err => console.error('[offers] notifyUser failed:', err))
+    )).catch(err => console.error('[offers] notifyUser failed:', err))
 
     res.json(offer)
   } catch (err) {
@@ -131,23 +132,21 @@ router.post('/api/offers/:id/respond', requireAuth, async (req: AuthenticatedReq
       responded_at: new Date().toISOString(),
     }
 
-    let notifTitle = ''
-    let notifBody = ''
-    const itemTitle = (offer.item as Record<string, unknown>)?.title || 'un article'
+    let notifKey: NotifKey = 'offerAccepted'
+    let notifAmount: number = offer.amount
+    const itemTitle = (offer.item as Record<string, unknown>)?.title as string | undefined
 
     if (action === 'accept') {
       updateData.status = 'accepted'
-      notifTitle = 'Offre acceptee'
-      notifBody = `Votre offre de ${offer.amount}EUR pour "${itemTitle}" a ete acceptee !`
+      notifKey = 'offerAccepted'
     } else if (action === 'decline') {
       updateData.status = 'declined'
-      notifTitle = 'Offre refusee'
-      notifBody = `Votre offre de ${offer.amount}EUR pour "${itemTitle}" a ete refusee.`
+      notifKey = 'offerDeclined'
     } else if (action === 'counter') {
       updateData.status = 'countered'
       updateData.counter_amount = Math.round(counter_amount * 100) / 100
-      notifTitle = 'Contre-offre'
-      notifBody = `Le vendeur a fait une contre-offre de ${counter_amount}EUR pour "${itemTitle}".`
+      notifKey = 'offerCountered'
+      notifAmount = counter_amount
     }
 
     const { data: updated, error: updateErr } = await supabase
@@ -163,13 +162,13 @@ router.post('/api/offers/:id/respond', requireAuth, async (req: AuthenticatedReq
     }
 
     // Notify buyer (fire-and-forget, errors logged)
-    notifyUser(
+    getUserCurrency(offer.seller_id).then(currency => notifyUserT(
       offer.buyer_id,
       'offer_response',
-      notifTitle,
-      notifBody,
+      notifKey,
+      { item: itemTitle || localized('fallback.item'), amount: money(notifAmount, currency) },
       { item_id: offer.item_id, offer_id: offerId },
-    ).catch(err => console.error('[offers] notifyUser respond failed:', err))
+    )).catch(err => console.error('[offers] notifyUser respond failed:', err))
 
     res.json(updated)
   } catch (err) {

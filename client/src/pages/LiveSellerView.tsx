@@ -1,3 +1,4 @@
+import { formatSystemMessage } from '../lib/chatSystem'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -1925,6 +1926,7 @@ export default function LiveSellerView() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '70%' }}>
           {messages.filter(m => visibleMsgIds.has(m.id)).slice(-4).map((msg, i, arr) => {
             const opacity = i < arr.length - 2 ? 0.5 : i < arr.length - 1 ? 0.75 : 1
+            const sys = formatSystemMessage(msg.message)
             return (
               <div key={msg.id} style={{
                 padding: '2px 0',
@@ -1936,7 +1938,7 @@ export default function LiveSellerView() {
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   marginInlineEnd: '5px',
                 }}>
-                  {msg.user_profile?.display_name || ct.anonymous || '?'}
+                  {sys && !sys.withAuthor ? '' : (msg.user_profile?.display_name || ct.anonymous || '?')}
                 </span>
                 <span style={{
                   fontSize: '12px', fontWeight: 500,
@@ -1945,7 +1947,7 @@ export default function LiveSellerView() {
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   wordBreak: 'break-word',
                 }}>
-                  {msg.is_flagged ? ct.messageFlagged : msg.message}
+                  {msg.is_flagged ? ct.messageFlagged : sys ? sys.text : msg.message}
                 </span>
               </div>
             )

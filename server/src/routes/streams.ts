@@ -1140,7 +1140,8 @@ router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedReq
     await supabase.from('chat_messages').insert({
       stream_id: giveaway.stream_id,
       user_id: userId,
-      message: `🎁 ${winnerName} a gagné le cadeau "${giveaway.title}" !`,
+      // Code traduit par l'app dans la langue de chaque spectateur (client/src/lib/chatSystem.ts)
+      message: `__system:gift_won:${encodeURIComponent(winnerName)}:${encodeURIComponent(giveaway.title || '')}__`,
       type: 'system',
     })
 

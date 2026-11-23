@@ -2,8 +2,9 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateFees, notifyUser, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
-import { formatMoney, shortOrderRef } from '../fulfillment'
+import { calculateFees, notifyUserT, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
+import { localized, money } from '../i18n'
+import { shortOrderRef } from '../fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -165,9 +166,10 @@ router.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: R
 
     sendOrderConfirmationEmail(item.winner_id, {
       id: order.id,
-      itemTitle: item.title || 'Article',
+      itemTitle: item.title,
       amount: item.current_price,
-      sellerName: sellerProfile?.display_name || 'Vendeur',
+      currency: order.currency,
+      sellerName: sellerProfile?.display_name,
     }).catch(err => console.error('[email] Order confirmation failed:', err))
   } catch (err) {
     console.error('POST /api/orders error:', err)
@@ -297,7 +299,7 @@ router.post('/api/orders/:id/request-return', requireAuth, async (req: Authentic
     }
 
     // Notify seller
-    notifyUser(order.seller_id, 'return_requested', 'Return requested', `A buyer has requested a return: ${reason.trim().slice(0, 100)}`, { order_id: String(orderId) })
+    notifyUserT(order.seller_id, 'return_requested', 'returnRequested', { reason: reason.trim().slice(0, 100) }, { order_id: String(orderId) })
 
     res.json(updated)
   } catch (err) {
@@ -361,7 +363,7 @@ router.post('/api/orders/:id/approve-return', requireAuth, async (req: Authentic
     await supabase.from('return_requests').update({ status: 'approved' }).eq('order_id', orderId).eq('status', 'pending')
 
     // Notify buyer
-    notifyUser(order.buyer_id, 'return_approved', 'Return approved', 'Your return has been approved and a refund is being processed.', { order_id: String(orderId) })
+    notifyUserT(order.buyer_id, 'return_approved', 'returnApproved', {}, { order_id: String(orderId) })
 
     res.json(updated)
   } catch (err) {
@@ -414,7 +416,7 @@ router.post('/api/orders/:id/reject-return', requireAuth, async (req: Authentica
     await supabase.from('return_requests').update({ status: 'rejected', reject_reason: reason.trim() || null }).eq('order_id', orderId).eq('status', 'pending')
 
     // Notify buyer
-    notifyUser(order.buyer_id, 'return_rejected', 'Return rejected', reason.trim() ? `Your return was rejected: ${reason.trim().slice(0, 100)}` : 'Your return request was rejected by the seller.', { order_id: String(orderId) })
+    notifyUserT(order.buyer_id, 'return_rejected', { title: 'returnRejected.title', body: reason.trim() ? 'returnRejected.body' : 'returnRejected.bodyNoReason' }, { reason: reason.trim().slice(0, 100) }, { order_id: String(orderId) })
 
     res.json(updated)
   } catch (err) {
@@ -524,12 +526,9 @@ export async function cancelOverdueOrders(): Promise<number> {
         .eq('status', 'pending')
 
       const ref = shortOrderRef(order.id)
-      notifyUser(order.buyer_id, 'order_cancelled', `Commande ${ref} annulée — remboursée`,
-        `Le vendeur n'a pas remis la commande à temps. Tu as été remboursé (${formatMoney(order.total_amount ?? order.amount, order.currency)}).`,
-        { order_id: order.id })
-      notifyUser(order.seller_id, 'order_cancelled', `Vente ${ref} annulée — délai dépassé`,
-        'La commande n\'a pas été remise dans le délai (code de retrait ou photos d\'envoi). La vente est annulée et l\'acheteur remboursé.',
-        { order_id: order.id })
+      notifyUserT(order.buyer_id, 'order_cancelled', 'orderCancelledBuyer',
+        { ref, amount: money(order.total_amount ?? order.amount, order.currency) }, { order_id: order.id })
+      notifyUserT(order.seller_id, 'order_cancelled', 'orderCancelledSeller', { ref }, { order_id: order.id })
 
       cancelled++
       console.log(`[Handover-Deadline] Order ${order.id} auto-cancelled + refunded (deadline was ${order.handover_deadline})`)
@@ -565,13 +564,11 @@ export async function remindHandoverDeadline(): Promise<number> {
     try {
       await supabase.from('orders').update({ handover_reminder_sent_at: now.toISOString() }).eq('id', order.id)
       const ref = shortOrderRef(order.id)
-      notifyUser(
+      notifyUserT(
         order.seller_id,
         'handover_reminder',
-        `Rappel : commande ${ref} à remettre avant demain`,
-        order.fulfillment_method === 'pickup'
-          ? 'Saisis le code de l\'acheteur au moment de la remise, sinon la commande sera annulée et remboursée.'
-          : 'Envoie les 2 photos (colis ouvert + bordereau tamponné), sinon la commande sera annulée et remboursée.',
+        { title: 'handoverReminder.title', body: order.fulfillment_method === 'pickup' ? 'handoverReminder.bodyPickup' : 'handoverReminder.bodyPost' },
+        { ref },
         { order_id: order.id },
       )
       reminded++
@@ -613,15 +610,16 @@ export async function remindPendingPayments(): Promise<number> {
 
       sendPaymentReminderEmail(order.buyer_id, {
         orderId: order.id,
-        itemTitle: item?.title || 'Article',
+        itemTitle: item?.title,
         amount: order.amount,
+        currency: order.currency,
       }).catch(() => {})
 
-      notifyUser(
+      notifyUserT(
         order.buyer_id,
         'payment_reminder',
-        'Paiement en attente',
-        `N'oublie pas de payer ton article "${item?.title || 'Article'}" (${formatMoney(order.amount, order.currency)})`,
+        'paymentReminder',
+        { item: item?.title || localized('fallback.item'), amount: money(order.amount, order.currency) },
         { order_id: order.id },
       )
       reminded++

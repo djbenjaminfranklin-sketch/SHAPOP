@@ -3,7 +3,7 @@ import type { Response } from 'express'
 import { z } from 'zod'
 import { supabase, stripe, ADMIN_EMAILS } from '../config'
 import { requireAuth } from '../middleware'
-import { notifyUser, paramStr } from '../utils'
+import { notifyUserT, paramStr } from '../utils'
 import {
   HANDOVER_DELAY_ALLOWED_DAYS,
   HANDOVER_DELAY_DEFAULT_DAYS,
@@ -420,8 +420,7 @@ router.post('/api/orders/:id/handover', requireAuth, async (req: AuthenticatedRe
           `Code de remise bloqué — commande ${shortOrderRef(orderId)}`,
           `${HANDOVER_MAX_ATTEMPTS} codes faux saisis par le vendeur ${order.seller_id} pour la commande ${orderId} (acheteur ${order.buyer_id}). À vérifier.`,
         ).catch(() => {})
-        notifyUser(order.buyer_id, 'handover_locked', 'Remise bloquée',
-          'Trop de codes faux ont été saisis pour ta commande. Notre équipe va vérifier.', { order_id: orderId }).catch(() => {})
+        notifyUserT(order.buyer_id, 'handover_locked', 'handoverLocked', {}, { order_id: orderId }).catch(() => {})
         res.status(423).json({ error: 'locked', attempts_left: 0 })
         return
       }
@@ -440,8 +439,7 @@ router.post('/api/orders/:id/handover', requireAuth, async (req: AuthenticatedRe
       res.status(409).json({ error: 'not_paid' })
       return
     }
-    notifyUser(order.buyer_id, 'order_handed_over', 'Article remis',
-      `Ta commande #${shortOrderRef(orderId)} est marquée comme remise. Bonne utilisation !`, { order_id: orderId }).catch(() => {})
+    notifyUserT(order.buyer_id, 'order_handed_over', 'orderHandedOver', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
     res.json({ success: true, status: 'handed_over', payout_status: 'released', amount: formatMoney(order.amount, order.currency) })
   } catch (err) {
     console.error('[fulfillment] handover', err)
@@ -537,9 +535,7 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
       res.status(409).json({ error: 'not_paid' })
       return
     }
-    notifyUser(order.buyer_id, 'order_shipped', 'Colis envoyé',
-      `Ta commande #${shortOrderRef(orderId)} a été envoyée par la poste. Les photos du colis et du bordereau sont dans le détail de la commande.`,
-      { order_id: orderId }).catch(() => {})
+    notifyUserT(order.buyer_id, 'order_shipped', 'orderShipped', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
     res.json({ success: true, status: 'shipped', complete: true, payout_status: 'released' })
   } catch (err) {
     console.error('[fulfillment] proof', err)

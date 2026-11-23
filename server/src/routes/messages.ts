@@ -2,7 +2,8 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, supabaseUrl } from '../config'
 import { requireAuth, messageLimiter } from '../middleware'
-import { escapeHtml, detectContactInfo, handleAutoSanction, notifyUser } from '../utils'
+import { escapeHtml, detectContactInfo, handleAutoSanction, notifyUserT } from '../utils'
+import { localized } from '../i18n'
 import { isPaidStatus } from '../fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
@@ -172,7 +173,7 @@ router.post('/api/streams/:streamId/moderators', requireAuth, async (req: Authen
     await supabase.from('chat_messages').insert({
       stream_id: streamId,
       user_id: userId,
-      message: `__system:mod_added:${modProfile?.display_name || 'User'}__`,
+      message: `__system:mod_added:${encodeURIComponent(modProfile?.display_name || 'User')}__`,
       type: 'system',
     })
 
@@ -486,8 +487,8 @@ router.post('/api/conversations/:id/messages', messageLimiter, requireAuth, asyn
 
     // Push notification to the other participant
     const recipientId = conv.participant_1 === userId ? conv.participant_2 : conv.participant_1
-    const senderName = data.sender?.display_name || 'Quelqu\'un'
-    notifyUser(recipientId, 'message', 'Nouveau message', `${senderName} t'a envoyé un message`, { conversation_id: String(convId) }).catch(() => {})
+    const senderName = data.sender?.display_name || localized('fallback.someone')
+    notifyUserT(recipientId, 'message', 'message', { name: senderName }, { conversation_id: String(convId) }).catch(() => {})
 
     res.json({ ...data, warning: isFlagged ? 'contact_blocked' : undefined })
   } catch (err) {

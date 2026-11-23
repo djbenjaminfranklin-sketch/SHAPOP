@@ -2,7 +2,8 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, STREAMS_SAFE_COLUMNS, ADMIN_EMAILS } from '../config'
 import { requireAuth, reportLimiter, createLimiter } from '../middleware'
-import { notifyUser } from '../utils'
+import { notifyUserT } from '../utils'
+import { localized, money, getUserCurrency } from '../i18n'
 import { HANDOVER_DELAY_ALLOWED_DAYS, HANDOVER_DELAY_DEFAULT_DAYS } from '../fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
@@ -282,8 +283,8 @@ router.post('/api/follow/:sellerId', createLimiter, requireAuth, async (req: Aut
 
     // Notify the seller about their new follower
     const { data: followerProfile } = await supabase.from('profiles').select('display_name').eq('id', userId).single()
-    const followerName = followerProfile?.display_name || 'Quelqu\'un'
-    notifyUser(String(sellerId), 'new_follower', 'Nouveau follower !', `${followerName} te suit maintenant`, { follower_id: userId }).catch(() => {})
+    const followerName = followerProfile?.display_name || localized('fallback.someone')
+    notifyUserT(String(sellerId), 'new_follower', 'newFollower', { name: followerName }, { follower_id: userId }).catch(() => {})
 
     res.json({ status: 'followed' })
   } catch (err) {
@@ -1050,7 +1051,7 @@ router.post('/api/referrals/record', requireAuth, async (req: AuthenticatedReque
     ])
 
     // Notify referrer
-    notifyUser(referrer.id, 'referral', 'Nouveau filleul !', 'Un ami a rejoint ShaPop grace a toi ! Tu as recu un code promo de 5%.', { promo_code: referrerCode })
+    notifyUserT(referrer.id, 'referral', 'referral', {}, { promo_code: referrerCode })
 
     // Update referral with promo codes
     await supabase
@@ -1226,16 +1227,15 @@ export async function notifyPriceDropSubscribers(itemId: string, oldPrice: numbe
 
   if (!subscribers || subscribers.length === 0) return 0
 
+  // Devise du vendeur de l'article (pays du vendeur)
+  const { data: priceItem } = await supabase.from('items').select('seller_id').eq('id', itemId).maybeSingle()
+  const currency = await getUserCurrency(priceItem?.seller_id || '')
+  const params = { item: itemTitle || localized('fallback.item'), oldPrice: money(oldPrice, currency), newPrice: money(newPrice, currency) }
+
   let notified = 0
   for (const sub of subscribers) {
     try {
-      notifyUser(
-        sub.user_id,
-        'price_drop',
-        'Baisse de prix !',
-        `"${itemTitle}" est passe de ${oldPrice}€ a ${newPrice}€`,
-        { item_id: itemId },
-      )
+      notifyUserT(sub.user_id, 'price_drop', 'priceDrop', params, { item_id: itemId })
       notified++
     } catch {
       // ignore
@@ -1326,13 +1326,7 @@ router.post('/api/team/invite', requireAuth, async (req: AuthenticatedRequest, r
     }
 
     // Notify the invited user
-    notifyUser(
-      targetProfile.id,
-      'team_invite',
-      'Invitation equipe',
-      `Vous avez ete invite a rejoindre une equipe vendeur.`,
-      { seller_id: sellerId },
-    )
+    notifyUserT(targetProfile.id, 'team_invite', 'teamInvite', {}, { seller_id: sellerId })
 
     res.json({ ...member, user: { display_name: targetProfile.display_name, avatar_url: targetProfile.avatar_url } })
   } catch (err) {

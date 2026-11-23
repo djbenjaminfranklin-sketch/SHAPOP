@@ -3,7 +3,8 @@ import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, AI_MODEL } from '../config'
 import { requireAuth, createLimiter, aiLimiter, bidLimiter } from '../middleware'
-import { calculateFees, notifyUser, paramStr } from '../utils'
+import { calculateFees, notifyUserT, paramStr } from '../utils'
+import { localized, money, getUserCurrency } from '../i18n'
 import { notifyPriceDropSubscribers } from './users'
 import { stripe } from '../config'
 import type { AuthenticatedRequest } from '../types'
@@ -340,7 +341,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
           purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
         })
         // Notify winner
-        await notifyUser(winnerId, 'auction_won', 'Tu as gagne !', `${item.title} — ${topBid.amount}\u20ac. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
+        await notifyUserT(winnerId, 'auction_won', 'auctionWon', { item: item.title || localized('fallback.item'), amount: money(topBid.amount, await getUserCurrency(item.seller_id)) }, { item_id: item.id, stream_id: item.stream_id || '' })
       }
     }
 
@@ -415,10 +416,11 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
       purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
     })
 
-    await notifyUser(buyerId, 'auction_won', 'Achat confirme !', `${item.title} — ${price}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
+    const saleParams = { item: item.title || localized('fallback.item'), amount: money(price, await getUserCurrency(item.seller_id)) }
+    await notifyUserT(buyerId, 'auction_won', 'purchaseConfirmed', saleParams, { item_id: item.id, stream_id: item.stream_id || '' })
 
     // Notify seller about the sale
-    notifyUser(item.seller_id, 'item_sold', 'Article vendu !', `"${item.title}" a ete achete pour ${price}€.`, { item_id: item.id }).catch(err => console.error('[items] notifyUser seller failed:', err))
+    notifyUserT(item.seller_id, 'item_sold', 'itemSold', saleParams, { item_id: item.id }).catch(err => console.error('[items] notifyUser seller failed:', err))
 
     res.json({ success: true, price })
   } catch (err) {
@@ -470,11 +472,11 @@ router.post('/api/streams/:streamId/tip', requireAuth, async (req: Authenticated
     }
 
     // Send chat message
-    const displayName = profile.display_name || 'Anonyme'
     await supabase.from('chat_messages').insert({
       stream_id: streamId,
       user_id: userId,
-      message: `💰 ${displayName} a envoye un tip de ${tipAmount}€`,
+      // Code traduit par l'app dans la langue de chaque spectateur (client/src/lib/chatSystem.ts)
+      message: `__system:tip:${encodeURIComponent(String(tipAmount))}:EUR__`,
       type: 'system',
     })
 
@@ -866,7 +868,9 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
 
     // Notify previous top bidder that they've been outbid
     if (previousBidderId && previousBidderId !== userId) {
-      notifyUser(previousBidderId, 'outbid', 'Tu as été surenchéri !', `Quelqu'un a enchéri ${amount}€ sur "${item.title}"`, { item_id: item.id, stream_id: item.stream_id || '' }).catch(() => {})
+      getUserCurrency(item.seller_id)
+        .then(currency => notifyUserT(previousBidderId, 'outbid', 'outbid', { item: item.title || localized('fallback.item'), amount: money(amount, currency) }, { item_id: item.id, stream_id: item.stream_id || '' }))
+        .catch(() => {})
     }
 
     // Run proxy bidding: check if any OTHER user has an active max_bid that can outbid
@@ -1035,7 +1039,7 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
     // Pre-bid must be at least the starting price
     const startPrice = parseFloat(String(item.starting_price || 0))
     if (amount < startPrice) {
-      res.status(400).json({ error: `Le montant doit être au moins ${startPrice}€` })
+      res.status(400).json({ error: 'amount_below_starting_price', min: startPrice })
       return
     }
 

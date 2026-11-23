@@ -1,5 +1,5 @@
 import { supabase, resend, ADMIN_EMAILS } from '../config'
-import { notifyUser, calculateFees, escapeHtml } from '../utils'
+import { notifyUserT, calculateFees, escapeHtml } from '../utils'
 import { HANDOVER_DELAY_DEFAULT_DAYS, generateHandoverCode, shortOrderRef } from '../fulfillment'
 
 // =====================================================================
@@ -98,16 +98,13 @@ export async function markOrderPaid(orderId: string): Promise<{ updated: boolean
 
   const ref = shortOrderRef(orderId)
   if (order.fulfillment_method === 'pickup') {
-    notifyUser(order.seller_id, 'order_to_hand_over', `Commande ${ref} payée`,
-      `Retrait en main propre : contacte l'acheteur et demande-lui son code à 4 chiffres au rendez-vous (avant ${delayDays} jours).`,
-      { order_id: orderId }).catch(() => {})
-    notifyUser(order.buyer_id, 'order_paid', `Commande ${ref} payée`,
-      'Ton code de retrait est dans le détail de la commande. Ne le donne au vendeur qu\'au moment où tu reçois l\'article.',
-      { order_id: orderId }).catch(() => {})
+    notifyUserT(order.seller_id, 'order_to_hand_over', { title: 'orderPaid.title', body: 'orderPaid.bodySellerPickup' },
+      { ref, days: delayDays }, { order_id: orderId }).catch(() => {})
+    notifyUserT(order.buyer_id, 'order_paid', { title: 'orderPaid.title', body: 'orderPaid.bodyBuyerPickup' },
+      { ref }, { order_id: orderId }).catch(() => {})
   } else {
-    notifyUser(order.seller_id, 'order_to_ship', `Commande ${ref} payée`,
-      `Envoi par la poste : envoie le colis et les 2 photos (colis ouvert + bordereau tamponné) dans l'app avant ${delayDays} jours.`,
-      { order_id: orderId }).catch(() => {})
+    notifyUserT(order.seller_id, 'order_to_ship', { title: 'orderPaid.title', body: 'orderPaid.bodySellerPost' },
+      { ref, days: delayDays }, { order_id: orderId }).catch(() => {})
   }
 
   return { updated: true }

@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { supabase, stripe, livekitWebhookReceiver, livekitEgressClient, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
-import { calculateFees, notifyFollowersSellerLive, notifyUser, getPaypalAccessToken } from '../utils'
+import { calculateFees, notifyFollowersSellerLive, notifyUserT, getPaypalAccessToken } from '../utils'
+import { localized, money, getUserCurrency } from '../i18n'
 import { markOrderPaid } from '../services/orderLifecycle'
 
 // Idempotency: in-memory cache + database persistence
@@ -343,7 +344,7 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
                   // Notify winner
                   const { data: wonItem, error: wonItemError } = await supabase.from('items').select('title').eq('id', item.id).maybeSingle()
                   if (wonItemError) console.error(`[room_finished] Failed to fetch item title for ${item.id}:`, wonItemError)
-                  await notifyUser(winnerId, 'auction_won', 'Tu as gagné !', `${wonItem?.title || 'Article'} — ${topBid.amount}€. Paye pour recevoir ton article.`, { item_id: item.id, stream_id: item.stream_id || '' })
+                  await notifyUserT(winnerId, 'auction_won', 'auctionWon', { item: wonItem?.title || localized('fallback.item'), amount: money(topBid.amount, await getUserCurrency(item.seller_id)) }, { item_id: item.id, stream_id: item.stream_id || '' })
                 }
               } else {
                 if (process.env.NODE_ENV !== 'production') console.log(`[room_finished] Item ${item.id} ended as ${status} (no qualifying bid)`)

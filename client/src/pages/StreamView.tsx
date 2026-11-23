@@ -19,6 +19,7 @@ import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } fro
 import { hapticTap } from '../lib/haptics'
 import { Share } from '@capacitor/share'
 import DeliveryChoice from '../components/checkout/DeliveryChoice'
+import { formatSystemMessage } from '../lib/chatSystem'
 import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import { ft } from '../lib/fulfillmentText'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
@@ -2374,6 +2375,15 @@ export default function StreamView() {
         const body = await resp.json().catch(() => ({}))
         if (body.error === 'card_required') {
           alert(ct.addCardFirst)
+        } else if (body.error === 'amount_below_starting_price') {
+          const min = money(body.min)
+          alert(tr({
+            en: `Your pre-bid must be at least ${min}`,
+            fr: `Ta pré-enchère doit être d'au moins ${min}`,
+            es: `Tu puja previa debe ser de al menos ${min}`,
+            ru: `Предварительная ставка должна быть не меньше ${min}`,
+            he: `הצעת המחיר המוקדמת חייבת להיות לפחות ${min}`,
+          }))
         } else {
           alert(ct.preBidFailed)
         }
@@ -3812,10 +3822,10 @@ export default function StreamView() {
             const blocked = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
             return !blocked.includes(m.user_id)
           }).slice(-5).map((msg, i, arr) => {
-            const isJoin = msg.message === '__system:join__'
+            const sys = formatSystemMessage(msg.message)
             // Older messages fade out
             const opacity = i < arr.length - 3 ? 0.5 : i < arr.length - 1 ? 0.75 : 1
-            if (isJoin) {
+            if (sys) {
               return (
                 <div key={msg.id} style={{
                   padding: '2px 0',
@@ -3826,7 +3836,7 @@ export default function StreamView() {
                     fontSize: '12px', color: '#fff', fontWeight: 500,
                     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   }}>
-                    {msg.user_profile?.display_name || ct.anonymous} {ct.joined} {'\uD83D\uDC4B'}
+                    {sys.withAuthor ? `${msg.user_profile?.display_name || ct.anonymous} ` : ''}{sys.text}
                   </span>
                 </div>
               )
