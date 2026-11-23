@@ -1115,7 +1115,23 @@ router.delete('/api/account', requireAuth, async (req: AuthenticatedRequest, res
   try {
     const userId = req.user!.id
 
-    // Delete user data from related tables
+    // 1. Refuser tant qu'une commande est en cours (argent bloqué, envoi ou litige en cours)
+    const { count: openCount, error: openErr } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact', head: true })
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .or('status.in.(paid,shipped,disputed),payout_status.eq.held')
+    if (openErr) {
+      console.error('[delete-account] open orders check:', openErr.message)
+      res.status(500).json({ error: 'Internal server error' })
+      return
+    }
+    if ((openCount ?? 0) > 0) {
+      res.status(409).json({ error: 'open_orders', message: 'Complete or refund your ongoing orders before deleting your account.' })
+      return
+    }
+
+    // 2. Effacer les données personnelles qui ne servent qu'à ce compte
     await Promise.allSettled([
       supabase.from('push_subscriptions').delete().eq('user_id', userId),
       supabase.from('followers').delete().eq('user_id', userId),
@@ -1130,9 +1146,39 @@ router.delete('/api/account', requireAuth, async (req: AuthenticatedRequest, res
       supabase.from('seller_team_members').delete().eq('user_id', userId),
       supabase.from('seller_team_members').delete().eq('seller_id', userId),
       supabase.from('buyer_scores').delete().eq('user_id', userId),
-      supabase.from('sellers').delete().eq('id', userId),
-      supabase.from('profiles').delete().eq('id', userId),
+      supabase.from('user_contacts').delete().eq('user_id', userId),
     ])
+
+    // 3. Suppression complète si rien d'autre ne dépend du compte
+    await supabase.from('sellers').delete().eq('id', userId)
+    const { error: profileErr } = await supabase.from('profiles').delete().eq('id', userId)
+
+    if (profileErr) {
+      // Des commandes, paiements ou messages passés doivent être conservés (obligations légales) :
+      // on anonymise le profil et le compte de connexion au lieu de les supprimer.
+      const anon = `deleted_${userId.replace(/-/g, '').slice(0, 10)}`
+      await supabase.from('sellers').update({
+        store_name: 'Deleted account', store_description: null, store_banner_url: null, store_tagline: null,
+        store_intro_video_url: null, paypal_email: null, return_address: null, pickup_area: null, bank_choice: null,
+      }).eq('id', userId)
+      const { error: anonErr } = await supabase.from('profiles').update({
+        username: anon, display_name: 'Deleted account', avatar_url: null, bio: null, city: null, is_seller: false,
+      }).eq('id', userId)
+      if (anonErr) {
+        console.error('[delete-account] anonymize error:', anonErr.message)
+        res.status(500).json({ error: 'Failed to delete account' })
+        return
+      }
+      // Suppression « douce » : l'e-mail et les identifiants de connexion sont effacés, la ligne reste
+      const { error: softErr } = await supabase.auth.admin.deleteUser(userId, true)
+      if (softErr) {
+        console.error('[delete-account] Auth soft delete error:', softErr.message)
+        res.status(500).json({ error: 'Failed to delete account' })
+        return
+      }
+      res.json({ success: true, anonymized: true })
+      return
+    }
 
     // Delete the auth user (this is the critical step)
     const { error: authError } = await supabase.auth.admin.deleteUser(userId)

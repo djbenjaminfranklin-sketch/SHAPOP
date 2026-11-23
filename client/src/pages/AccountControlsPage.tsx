@@ -255,6 +255,11 @@ export default function AccountControlsPage() {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
+      if (res.status === 409) {
+        setDeleting(false)
+        alert(tr({ en: 'You still have orders in progress. Complete or refund them before deleting your account.', fr: 'Tu as encore des commandes en cours. Termine-les ou fais-les rembourser avant de supprimer ton compte.', es: 'Todavía tienes pedidos en curso. Complétalos o reembólsalos antes de eliminar tu cuenta.', ru: 'У тебя ещё есть текущие заказы. Заверши их или верни деньги, прежде чем удалять аккаунт.', he: 'יש לך עדיין הזמנות פתוחות. יש להשלים אותן או להחזיר כסף לפני מחיקת החשבון.' }))
+        return
+      }
       if (!res.ok) throw new Error('Delete failed')
       await signOut()
       navigate('/login', { replace: true })

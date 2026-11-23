@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ctx = { window: { SP_T: {} } };
-for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'legal-en-fr.js', 'legal-es-ru-he.js']) {
+for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'i18n-delete.js', 'legal-en-fr.js', 'legal-es-ru-he.js']) {
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'assets', f), 'utf8'), ctx);
 }
 const EN = ctx.window.SP_T.en;
@@ -108,6 +108,7 @@ function footer(legal = false) {
           <li><a href="/support" data-i18n="foot.support">${get('foot.support')}</a></li>
           <li><a href="/privacy" data-i18n="foot.privacy">${get('foot.privacy')}</a></li>
           <li><a href="/terms" data-i18n="foot.terms">${get('foot.terms')}</a></li>
+          <li><a href="/delete-account" data-i18n="foot.del">${get('foot.del')}</a></li>
           <li><a class="email" href="mailto:support@shapop.app">support@shapop.app</a></li>
         </ul>
       </div>
@@ -117,6 +118,7 @@ function footer(legal = false) {
 </footer>
 <script src="/assets/i18n-en-fr.js?v=7"></script>
 <script src="/assets/i18n-es-ru-he.js?v=7"></script>
+<script src="/assets/i18n-delete.js?v=7"></script>
 ${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=7"></script>
 </body>
 </html>
@@ -380,6 +382,35 @@ function legal(kind) {
 </main>` + footer(true);
 }
 
+/* ------------------------- SUPPRESSION DE COMPTE ------------------------- */
+function deleteAccount() {
+  return head('delete', { title: get('del.metaTitle'), desc: get('del.metaDesc'), pathName: '/delete-account' }) + header('delete') + `
+<main id="main">
+  <section class="page-hero">
+    <div class="wrap">
+      ${t('span', 'del.kicker', 'class="kicker"')}
+      ${t('h1', 'del.title')}
+      ${t('p', 'del.p')}
+    </div>
+  </section>
+  <section class="legal">
+    <div class="wrap">
+      <article class="legal-box">
+        ${t('h2', 'del.appH')}
+        <ol>${t('li', 'del.s1')}${t('li', 'del.s2')}${t('li', 'del.s3')}</ol>
+        ${t('h2', 'del.mailH')}
+        ${t('p', 'del.mailP')}
+        ${t('h2', 'del.goneH')}
+        ${t('div', 'del.gone')}
+        ${t('h2', 'del.keptH')}
+        ${t('div', 'del.kept')}
+        ${t('p', 'del.note', 'class="lede"')}
+      </article>
+    </div>
+  </section>
+</main>` + footer();
+}
+
 const write = (rel, html) => {
   const p = path.join(ROOT, rel);
   fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -390,3 +421,4 @@ write('index.html', home());
 write('support/index.html', support());
 write('privacy/index.html', legal('privacy'));
 write('terms/index.html', legal('terms'));
+write('delete-account/index.html', deleteAccount());
