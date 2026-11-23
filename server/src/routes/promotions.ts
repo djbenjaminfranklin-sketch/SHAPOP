@@ -2,7 +2,7 @@ import { Router } from 'express'
 import type { Response } from 'express'
 import { supabase } from '../config'
 import { requireAdmin, adminLimiter, requireAuth } from '../middleware'
-import { sendApnsPush, logAdminAction } from '../utils'
+import { sendPushToDevice, logAdminAction } from '../utils'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -199,7 +199,7 @@ router.post('/api/admin/promotions/:id/notify', adminLimiter, requireAdmin, asyn
     // Get all device tokens
     const { data: tokens } = await supabase
       .from('device_tokens')
-      .select('token, user_id')
+      .select('token, platform, user_id')
       .eq('notify_deals', true)
 
     if (!tokens || tokens.length === 0) {
@@ -220,7 +220,7 @@ router.post('/api/admin/promotions/:id/notify', adminLimiter, requireAdmin, asyn
     // Send push notifications in parallel (cap at 500)
     const batch = realTokens.slice(0, 500)
     const results = await Promise.allSettled(
-      batch.map(t => sendApnsPush(t.token, title, body, { promotion_id: promoId }))
+      batch.map(t => sendPushToDevice(t, title, body, { promotion_id: promoId }))
     )
 
     const sent = results.filter(r => r.status === 'fulfilled' && r.value === true).length

@@ -4,6 +4,7 @@ import fs from 'fs'
 import { supabase, resend, PLATFORM_COMMISSION, PROCESSING_FEE_RATE, PROCESSING_FEE_FIXED, VAT_RATE, PAYPAL_BASE_URL } from './config'
 import { LOCALES, getUserLang, getUsersLangs, isRtl, localized, msg, type Lang, type MsgKey, type NotifKey, type Params } from './i18n'
 import { formatMoney, shortOrderRef } from './fulfillment'
+import { dispatchPush, readFcmConfig, sendFcmPush, type PushDevice } from './services/push'
 
 // =============================================
 // Pure helper functions
@@ -173,6 +174,25 @@ export async function sendApnsPush(deviceToken: string, title: string, body: str
   })
 }
 
+// FCM (Android) : actif seulement si FCM_PROJECT_ID et FCM_SERVICE_ACCOUNT_JSON sont définis
+const fcmConfig = readFcmConfig()
+if (fcmConfig) console.log('FCM (Android) enabled for project', fcmConfig.projectId)
+
+/** Envoie une notification push à un appareil : APNs pour iOS, FCM pour Android. */
+export async function sendPushToDevice(device: PushDevice, title: string, body: string, data?: Record<string, string>): Promise<boolean> {
+  return dispatchPush(device, { title, body, data }, {
+    apnsEnabled: Boolean(apnsPrivateKey && APNS_KEY_ID && APNS_TEAM_ID),
+    sendApns: (token, m) => sendApnsPush(token, m.title, m.body, m.data),
+    fcm: fcmConfig,
+    sendFcm: sendFcmPush,
+    // Jeton Android périmé (app désinstallée…) : on le retire
+    onUnregistered: async (token) => {
+      const { error } = await supabase.from('device_tokens').delete().eq('token', token).eq('platform', 'android')
+      if (error) console.warn('[fcm] Suppression du jeton périmé impossible :', error.message)
+    },
+  })
+}
+
 /** Send push + in-app notification to a specific user */
 export async function notifyUser(userId: string, type: string, title: string, body: string, data?: Record<string, string>) {
   // Determine which preference column to check based on notification type
@@ -202,12 +222,12 @@ export async function notifyUser(userId: string, type: string, title: string, bo
     if (type === 'welcome') {
       const { data: tokens } = await supabase
         .from('device_tokens')
-        .select('token')
+        .select('token, platform')
         .eq('user_id', userId)
         .neq('token', `prefs-${userId}`)
       if (tokens) {
         for (const t of tokens) {
-          await sendApnsPush(t.token, title, body, data).catch(() => {})
+          await sendPushToDevice(t, title, body, data).catch(() => {})
         }
       }
       return
@@ -216,14 +236,14 @@ export async function notifyUser(userId: string, type: string, title: string, bo
     const prefColumn = prefColumnMap[type] || 'notify_orders'
     const { data: tokens } = await supabase
       .from('device_tokens')
-      .select('token, notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
+      .select('token, platform, notify_live, notify_orders, notify_deals, notify_messages, notify_reminders, notify_community')
       .eq('user_id', userId)
       .neq('token', `prefs-${userId}`)
     if (tokens) {
       for (const t of tokens) {
         const prefs = t as Record<string, unknown>
         if (prefs[prefColumn] !== false) {
-          await sendApnsPush(t.token, title, body, data).catch(() => {})
+          await sendPushToDevice(t, title, body, data).catch(() => {})
         }
       }
     }
@@ -268,7 +288,7 @@ export async function notifyFollowersSellerLive(sellerId: string, streamTitle: s
   // Step 2: Get device tokens for these followers who have live notifications enabled
   const { data: tokens } = await supabase
     .from('device_tokens')
-    .select('token, user_id')
+    .select('token, platform, user_id')
     .eq('notify_live', true)
     .in('user_id', followerIds)
 
@@ -316,7 +336,7 @@ export async function notifyFollowersSellerLive(sellerId: string, streamTitle: s
   await Promise.allSettled(
     batch.map(t => {
       const { title, body } = textOf(t.user_id)
-      return sendApnsPush(t.token, title, body, { stream_id: streamId })
+      return sendPushToDevice(t, title, body, { stream_id: streamId })
     })
   )
 
