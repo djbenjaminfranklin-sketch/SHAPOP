@@ -431,6 +431,8 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
 
 // Tips — charge buyer's saved card and send chat message
 router.post('/api/streams/:streamId/tip', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  // Coupé pour le lancement : reviendra en achat intégré Apple / Google
+  if (process.env.PAID_EXTRAS_ENABLED !== 'true') { res.status(403).json({ error: 'disabled' }); return }
   try {
     const userId = req.user!.id
     const { streamId } = req.params

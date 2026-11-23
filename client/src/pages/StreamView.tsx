@@ -24,6 +24,7 @@ import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import { ft } from '../lib/fulfillmentText'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 
 const streamContent = {
   en: {
@@ -3788,7 +3789,7 @@ export default function StreamView() {
               hapticTap()
             }}
             onWalletClick={() => setShowWallet(true)}
-            onTipClick={() => { hapticTap(); setShowTipModal(true) }}
+            onTipClick={PAID_EXTRAS_ENABLED ? () => { hapticTap(); setShowTipModal(true) } : undefined}
             onMoreClick={() => setShowMoreMenu(true)}
             lang={lang}
           />

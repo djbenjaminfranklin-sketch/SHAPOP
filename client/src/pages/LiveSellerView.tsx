@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage, Giveaway } from '../types/database'
 import { getStreamQualityConstraints } from '../lib/settings'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 
 const pageContent = {
   en: {
@@ -1816,7 +1817,7 @@ export default function LiveSellerView() {
                 minWidth: '160px',
                 zIndex: 50,
               }}>
-                <button
+                {PAID_EXTRAS_ENABLED && <button
                   onClick={() => { setShowToolsMenu(false); !isBoosted && !boostLoading && setShowBoostConfirm(true) }}
                   style={{
                     padding: '10px 14px', borderRadius: '10px',
@@ -1829,7 +1830,7 @@ export default function LiveSellerView() {
                   <span style={{ fontSize: '13px', fontWeight: 600, color: isBoosted ? '#10B981' : '#fff' }}>
                     {isBoosted ? ct.boostActive : ct.boostLive}
                   </span>
-                </button>
+                </button>}
                 <button
                   onClick={() => { setShowToolsMenu(false); cohost ? handleRemoveCohost() : setShowCohostModal(true) }}
                   style={{

@@ -1143,6 +1143,8 @@ router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedReq
 // SHOW BOOST / PROMOTE
 // =============================================
 router.post('/api/streams/:id/boost', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  // Coupé pour le lancement : reviendra en achat intégré Apple / Google
+  if (process.env.PAID_EXTRAS_ENABLED !== 'true') { res.status(403).json({ error: 'disabled' }); return }
   try {
     const streamId = req.params.id
     const userId = req.user!.id
