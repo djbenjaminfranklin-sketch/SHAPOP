@@ -39,7 +39,7 @@ export function formatSystemMessage(raw: string | null | undefined): SystemMessa
     case 'join': return { withAuthor: true, text: t.join }
     case 'timeout': return { withAuthor: false, text: fill(t.timeout, { min: dec(args[1]) || '5' }) }
     case 'mod_added': return { withAuthor: false, text: fill(t.mod_added, { name: dec(args[0]) }) }
-    case 'tip': return { withAuthor: true, text: fill(t.tip, { amount: formatMoney(Number(dec(args[0])), dec(args[1]) || 'EUR') }) }
+    case 'tip': return { withAuthor: true, text: fill(t.tip, { amount: formatMoney(Number(dec(args[0])), dec(args[1]) || 'EUR') }) } // i18n-ignore (devise réellement débitée par le serveur)
     case 'gift_won': return { withAuthor: false, text: fill(t.gift_won, { name: dec(args[0]), title: dec(args[1]) }) }
     default: return null
   }

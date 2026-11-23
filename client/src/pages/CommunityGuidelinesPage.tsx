@@ -1,77 +1,98 @@
 import { useNavigate } from 'react-router-dom'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-const content = {
-  fr: {
-    title: 'Regles de la communaute',
-    updated: 'Derniere mise a jour : 24 fevrier 2026',
-    sections: [
-      { h: '1. Bienvenue', p: 'ShaPop est une communaute de shopping en direct fondee sur le respect mutuel. En utilisant ShaPop, vous acceptez de respecter ces regles qui visent a garantir une experience sure et agreable pour tous les utilisateurs.' },
-      { h: '2. Conduite', p: 'Le harcelement, les discours haineux, la discrimination, l\'usurpation d\'identite et le spam sont strictement interdits. Traitez les autres utilisateurs avec respect et courtoisie. Toute forme d\'intimidation, de menaces ou de comportement abusif entrainera des sanctions.' },
-      { h: '3. Contenu interdit', p: 'Il est interdit de vendre ou de promouvoir : des articles contrefaits, des produits illegaux, du contenu explicite ou a caractere sexuel, du contenu violent ou incitant a la violence. Tout contenu enfreignant les droits de propriete intellectuelle d\'un tiers est egalement interdit.' },
-      { h: '4. Regles des lives', p: 'Les pratiques trompeuses lors des lives sont interdites (fausses encheres, manipulation des prix). Le presentateur doit etre habille de maniere appropriee. Les mineurs ne peuvent apparaitre en live qu\'avec le consentement parental explicite. Les activites dangereuses sont interdites pendant les diffusions.' },
-      { h: '5. Regles des annonces', p: 'Les descriptions doivent etre exactes et completes. Utilisez de vraies photos de l\'article. Indiquez honnetement l\'etat de l\'article (neuf, comme neuf, bon etat, etc.). Les prix doivent etre justes et ne pas induire en erreur.' },
-      { h: '6. Signalement', p: 'Si vous constatez un contenu ou un comportement enfreignant ces regles, signalez-le directement dans l\'application via le bouton de signalement, ou par email a support@shapop.app. Tous les signalements sont examines par notre equipe.' },
-      { h: '7. Consequences', p: 'En cas de violation de ces regles, les consequences peuvent inclure : un avertissement, la suspension temporaire du compte, le bannissement permanent, ou la suppression du contenu. La severite des sanctions depend de la gravite et de la frequence des infractions.' },
-      { h: '8. Appels', p: 'Si vous estimez qu\'une sanction a ete appliquee par erreur, vous pouvez faire appel en envoyant un email a support@shapop.app en expliquant votre situation. Notre equipe examinera votre demande dans un delai raisonnable.' },
-    ],
-  },
+interface LegalSection { h: string; p: string }
+interface LegalText { goBack: string; title: string; updated: string; sections: LegalSection[] }
+
+const content: Localized<LegalText> = {
   en: {
+    goBack: 'Go back',
     title: 'Community Guidelines',
     updated: 'Last updated: February 24, 2026',
     sections: [
-      { h: '1. Welcome', p: 'ShaPop is a live shopping community built on mutual respect. By using ShaPop, you agree to follow these guidelines that ensure a safe and enjoyable experience for all users.' },
-      { h: '2. Conduct', p: 'Harassment, hate speech, discrimination, impersonation, and spam are strictly prohibited. Treat other users with respect and courtesy. Any form of intimidation, threats, or abusive behavior will result in sanctions.' },
+      { h: '1. Welcome', p: 'ShaPop is a live shopping community built on mutual respect. By using ShaPop, you agree to follow these guidelines, which ensure a safe and enjoyable experience for all users.' },
+      { h: '2. Conduct', p: 'Harassment, hate speech, discrimination, impersonation and spam are strictly prohibited. Treat other users with respect and courtesy. Any form of intimidation, threats or abusive behavior will result in sanctions.' },
       { h: '3. Prohibited Content', p: 'It is forbidden to sell or promote: counterfeit items, illegal products, explicit or sexual content, violent content or content inciting violence. Any content that infringes third-party intellectual property rights is also prohibited.' },
       { h: '4. Live Stream Rules', p: 'Deceptive practices during live streams are prohibited (fake bids, price manipulation). Presenters must be appropriately dressed. Minors may only appear on live streams with explicit parental consent. Dangerous activities are prohibited during broadcasts.' },
       { h: '5. Listing Rules', p: 'Descriptions must be accurate and complete. Use real photos of the item. Honestly indicate the item\'s condition (new, like new, good condition, etc.). Prices must be fair and not misleading.' },
       { h: '6. Reporting', p: 'If you see content or behavior that violates these guidelines, report it directly in the app using the report button, or by email at support@shapop.app. All reports are reviewed by our team.' },
-      { h: '7. Consequences', p: 'Violations of these guidelines may result in: a warning, temporary account suspension, permanent ban, or content removal. The severity of sanctions depends on the gravity and frequency of violations.' },
+      { h: '7. Consequences', p: 'Violations of these guidelines may result in: a warning, temporary account suspension, a permanent ban or content removal. The severity of sanctions depends on the gravity and frequency of the violations.' },
       { h: '8. Appeals', p: 'If you believe a sanction was applied in error, you can appeal by sending an email to support@shapop.app explaining your situation. Our team will review your request within a reasonable timeframe.' },
     ],
   },
-  he: {
-    title: '\u05DB\u05DC\u05DC\u05D9 \u05D4\u05E7\u05D4\u05D9\u05DC\u05D4',
-    updated: '\u05E2\u05D3\u05DB\u05D5\u05DF \u05D0\u05D7\u05E8\u05D5\u05DF: 24 \u05D1\u05E4\u05D1\u05E8\u05D5\u05D0\u05E8 2026',
+  fr: {
+    goBack: 'Retour',
+    title: 'Règles de la communauté',
+    updated: 'Dernière mise à jour : 24 février 2026',
     sections: [
-      { h: '1. \u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD', p: 'ShaPop \u05D4\u05D9\u05D0 \u05E7\u05D4\u05D9\u05DC\u05EA \u05E7\u05E0\u05D9\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9 \u05D4\u05DE\u05D1\u05D5\u05E1\u05E1\u05EA \u05E2\u05DC \u05DB\u05D1\u05D5\u05D3 \u05D4\u05D3\u05D3\u05D9. \u05D1\u05E9\u05D9\u05DE\u05D5\u05E9 \u05D1-ShaPop, \u05D0\u05EA\u05D4 \u05DE\u05E1\u05DB\u05D9\u05DD \u05DC\u05E6\u05D9\u05D9\u05EA \u05DB\u05DC\u05DC\u05D9\u05DD \u05D0\u05DC\u05D4.' },
-      { h: '2. \u05D4\u05EA\u05E0\u05D4\u05D2\u05D5\u05EA', p: '\u05D4\u05D8\u05E8\u05D3\u05D4, \u05D3\u05D1\u05E8\u05D9 \u05E9\u05E0\u05D0\u05D4, \u05D0\u05E4\u05DC\u05D9\u05D4, \u05D4\u05EA\u05D7\u05D6\u05D5\u05EA \u05D5\u05E1\u05E4\u05D0\u05DD \u05D0\u05E1\u05D5\u05E8\u05D9\u05DD \u05D1\u05D4\u05D7\u05DC\u05D8. \u05D4\u05EA\u05D9\u05D9\u05D7\u05E1\u05D5 \u05DC\u05DE\u05E9\u05EA\u05DE\u05E9\u05D9\u05DD \u05D0\u05D7\u05E8\u05D9\u05DD \u05D1\u05DB\u05D1\u05D5\u05D3.' },
-      { h: '3. \u05EA\u05D5\u05DB\u05DF \u05D0\u05E1\u05D5\u05E8', p: '\u05D0\u05E1\u05D5\u05E8 \u05DC\u05DE\u05DB\u05D5\u05E8 \u05D0\u05D5 \u05DC\u05E7\u05D3\u05DD: \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05DE\u05D6\u05D5\u05D9\u05E4\u05D9\u05DD, \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05DC\u05EA\u05D9 \u05D7\u05D5\u05E7\u05D9\u05D9\u05DD, \u05EA\u05D5\u05DB\u05DF \u05DE\u05D9\u05E0\u05D9 \u05D0\u05D5 \u05D0\u05DC\u05D9\u05DD, \u05EA\u05D5\u05DB\u05DF \u05D4\u05DE\u05E1\u05D9\u05EA \u05DC\u05D0\u05DC\u05D9\u05DE\u05D5\u05EA.' },
-      { h: '4. \u05DB\u05DC\u05DC\u05D9 \u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9', p: '\u05E4\u05E8\u05E7\u05D8\u05D9\u05E7\u05D5\u05EA \u05DE\u05D8\u05E2\u05D5\u05EA \u05D0\u05E1\u05D5\u05E8\u05D5\u05EA. \u05D4\u05DE\u05E9\u05D3\u05E8 \u05D7\u05D9\u05D9\u05D1 \u05DC\u05D4\u05D9\u05D5\u05EA \u05DC\u05D1\u05D5\u05E9 \u05D1\u05D0\u05D5\u05E4\u05DF \u05D4\u05D5\u05DC\u05DD. \u05E7\u05D8\u05D9\u05E0\u05D9\u05DD \u05E8\u05E7 \u05E2\u05DD \u05D4\u05E1\u05DB\u05DE\u05EA \u05D4\u05D5\u05E8\u05D9\u05DD. \u05E4\u05E2\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05DE\u05E1\u05D5\u05DB\u05E0\u05D5\u05EA \u05D0\u05E1\u05D5\u05E8\u05D5\u05EA.' },
-      { h: '5. \u05DB\u05DC\u05DC\u05D9 \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA', p: '\u05D4\u05EA\u05D9\u05D0\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05D1\u05D9\u05DD \u05DC\u05D4\u05D9\u05D5\u05EA \u05DE\u05D3\u05D5\u05D9\u05E7\u05D9\u05DD. \u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05D0\u05DE\u05D9\u05EA\u05D9\u05D5\u05EA. \u05E6\u05D9\u05D9\u05E0\u05D5 \u05D1\u05DB\u05E0\u05D5\u05EA \u05D0\u05EA \u05DE\u05E6\u05D1 \u05D4\u05E4\u05E8\u05D9\u05D8. \u05D4\u05DE\u05D7\u05D9\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05D1\u05D9\u05DD \u05DC\u05D4\u05D9\u05D5\u05EA \u05D4\u05D5\u05D2\u05E0\u05D9\u05DD.' },
-      { h: '6. \u05D3\u05D9\u05D5\u05D5\u05D7', p: '\u05D0\u05DD \u05E0\u05EA\u05E7\u05DC\u05EA\u05DD \u05D1\u05EA\u05D5\u05DB\u05DF \u05D0\u05D5 \u05D4\u05EA\u05E0\u05D4\u05D2\u05D5\u05EA \u05D4\u05DE\u05E4\u05E8\u05D9\u05DD \u05DB\u05DC\u05DC\u05D9\u05DD \u05D0\u05DC\u05D4, \u05D3\u05D5\u05D5\u05D7\u05D5 \u05D1\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D0\u05D5 \u05E9\u05DC\u05D7\u05D5 \u05DE\u05D9\u05D9\u05DC \u05DC-support@shapop.app.' },
-      { h: '7. \u05D4\u05E9\u05DC\u05DB\u05D5\u05EA', p: '\u05D4\u05E4\u05E8\u05D5\u05EA \u05E2\u05DC\u05D5\u05DC\u05D5\u05EA \u05DC\u05D4\u05D5\u05D1\u05D9\u05DC \u05DC: \u05D0\u05D6\u05D4\u05E8\u05D4, \u05D4\u05E9\u05E2\u05D9\u05D9\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF, \u05D7\u05E1\u05D9\u05DE\u05D4 \u05DC\u05E6\u05DE\u05D9\u05EA\u05D5\u05EA, \u05D0\u05D5 \u05D4\u05E1\u05E8\u05EA \u05EA\u05D5\u05DB\u05DF.' },
-      { h: '8. \u05E2\u05E8\u05E2\u05D5\u05E8\u05D9\u05DD', p: '\u05D0\u05DD \u05D0\u05EA\u05DD \u05DE\u05D0\u05DE\u05D9\u05E0\u05D9\u05DD \u05E9\u05E1\u05E0\u05E7\u05E6\u05D9\u05D4 \u05D4\u05D5\u05D7\u05DC\u05D4 \u05D1\u05D8\u05E2\u05D5\u05EA, \u05E9\u05DC\u05D7\u05D5 \u05DE\u05D9\u05D9\u05DC \u05DC-support@shapop.app \u05E2\u05DD \u05D4\u05E1\u05D1\u05E8. \u05D4\u05E6\u05D5\u05D5\u05EA \u05E9\u05DC\u05E0\u05D5 \u05EA\u05D1\u05D3\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D1\u05E7\u05E9\u05D4 \u05D1\u05D6\u05DE\u05DF \u05E1\u05D1\u05D9\u05E8.' },
+      { h: '1. Bienvenue', p: 'ShaPop est une communauté de shopping en direct fondée sur le respect mutuel. En utilisant ShaPop, tu acceptes de respecter ces règles, qui garantissent une expérience sûre et agréable pour tous les utilisateurs.' },
+      { h: '2. Comportement', p: 'Le harcèlement, les discours haineux, la discrimination, l\'usurpation d\'identité et le spam sont strictement interdits. Traite les autres utilisateurs avec respect et courtoisie. Toute forme d\'intimidation, de menace ou de comportement abusif entraînera des sanctions.' },
+      { h: '3. Contenus interdits', p: 'Il est interdit de vendre ou de promouvoir : des articles contrefaits, des produits illégaux, du contenu explicite ou à caractère sexuel, du contenu violent ou incitant à la violence. Tout contenu portant atteinte aux droits de propriété intellectuelle d\'un tiers est également interdit.' },
+      { h: '4. Règles des lives', p: 'Les pratiques trompeuses pendant les lives sont interdites (fausses enchères, manipulation des prix). La personne qui présente doit être habillée de manière appropriée. Les mineurs ne peuvent apparaître en live qu\'avec le consentement explicite de leurs parents. Les activités dangereuses sont interdites pendant les diffusions.' },
+      { h: '5. Règles des annonces', p: 'Les descriptions doivent être exactes et complètes. Utilise de vraies photos de l\'article. Indique honnêtement son état (neuf, comme neuf, bon état, etc.). Les prix doivent être justes et ne pas induire en erreur.' },
+      { h: '6. Signalement', p: 'Si tu vois un contenu ou un comportement contraire à ces règles, signale-le directement dans l\'application avec le bouton de signalement, ou par e-mail à support@shapop.app. Tous les signalements sont examinés par notre équipe.' },
+      { h: '7. Sanctions', p: 'Le non-respect de ces règles peut entraîner : un avertissement, la suspension temporaire du compte, un bannissement définitif ou la suppression du contenu. La sévérité des sanctions dépend de la gravité et de la fréquence des infractions.' },
+      { h: '8. Contestation', p: 'Si tu penses qu\'une sanction a été appliquée par erreur, tu peux la contester en écrivant à support@shapop.app pour expliquer ta situation. Notre équipe examinera ta demande dans un délai raisonnable.' },
     ],
   },
   es: {
-    title: 'Reglas de la Comunidad',
-    updated: 'Ultima actualizacion: 24 de febrero de 2026',
+    goBack: 'Volver',
+    title: 'Normas de la comunidad',
+    updated: 'Última actualización: 24 de febrero de 2026',
     sections: [
-      { h: '1. Bienvenida', p: 'ShaPop es una comunidad de compras en vivo basada en el respeto mutuo. Al usar ShaPop, aceptas seguir estas reglas que garantizan una experiencia segura y agradable para todos.' },
-      { h: '2. Conducta', p: 'El acoso, el discurso de odio, la discriminacion, la suplantacion de identidad y el spam estan estrictamente prohibidos. Trata a los demas usuarios con respeto y cortesia.' },
-      { h: '3. Contenido Prohibido', p: 'Esta prohibido vender o promover: articulos falsificados, productos ilegales, contenido explicito o sexual, contenido violento o que incite a la violencia. Cualquier contenido que infrinja derechos de propiedad intelectual tambien esta prohibido.' },
-      { h: '4. Reglas de Transmisiones', p: 'Las practicas enganosas durante las transmisiones estan prohibidas (pujas falsas, manipulacion de precios). Los presentadores deben vestir apropiadamente. Los menores solo pueden aparecer con consentimiento parental explicito. Las actividades peligrosas estan prohibidas.' },
-      { h: '5. Reglas de Anuncios', p: 'Las descripciones deben ser precisas y completas. Usa fotos reales del articulo. Indica honestamente el estado del articulo (nuevo, como nuevo, buen estado, etc.). Los precios deben ser justos y no enganosos.' },
-      { h: '6. Denuncias', p: 'Si encuentras contenido o comportamiento que viole estas reglas, reportalo en la app usando el boton de denuncia, o por email a support@shapop.app. Todas las denuncias son revisadas por nuestro equipo.' },
-      { h: '7. Consecuencias', p: 'Las violaciones pueden resultar en: advertencia, suspension temporal de la cuenta, prohibicion permanente o eliminacion de contenido. La severidad depende de la gravedad y frecuencia de las infracciones.' },
-      { h: '8. Apelaciones', p: 'Si crees que una sancion fue aplicada por error, puedes apelar enviando un email a support@shapop.app explicando tu situacion. Nuestro equipo revisara tu solicitud en un plazo razonable.' },
+      { h: '1. Bienvenida', p: 'ShaPop es una comunidad de compras en directo basada en el respeto mutuo. Al usar ShaPop, aceptas seguir estas normas, que garantizan una experiencia segura y agradable para todos los usuarios.' },
+      { h: '2. Conducta', p: 'El acoso, el discurso de odio, la discriminación, la suplantación de identidad y el spam están estrictamente prohibidos. Trata a los demás usuarios con respeto y cortesía. Cualquier forma de intimidación, amenaza o comportamiento abusivo dará lugar a sanciones.' },
+      { h: '3. Contenido prohibido', p: 'Está prohibido vender o promocionar: artículos falsificados, productos ilegales, contenido explícito o sexual, contenido violento o que incite a la violencia. También está prohibido cualquier contenido que infrinja derechos de propiedad intelectual de terceros.' },
+      { h: '4. Normas de los directos', p: 'Las prácticas engañosas durante los directos están prohibidas (pujas falsas, manipulación de precios). Quien presenta debe ir vestido de forma adecuada. Los menores solo pueden aparecer en un directo con el consentimiento explícito de sus padres. Las actividades peligrosas están prohibidas durante las transmisiones.' },
+      { h: '5. Normas de los anuncios', p: 'Las descripciones deben ser precisas y completas. Usa fotos reales del artículo. Indica con honestidad su estado (nuevo, como nuevo, buen estado, etc.). Los precios deben ser justos y no engañosos.' },
+      { h: '6. Denuncias', p: 'Si ves contenido o comportamientos que incumplan estas normas, denúncialos directamente en la app con el botón de denuncia o por correo a support@shapop.app. Nuestro equipo revisa todas las denuncias.' },
+      { h: '7. Consecuencias', p: 'El incumplimiento de estas normas puede conllevar: una advertencia, la suspensión temporal de la cuenta, la expulsión permanente o la eliminación del contenido. La severidad de las sanciones depende de la gravedad y la frecuencia de las infracciones.' },
+      { h: '8. Apelaciones', p: 'Si crees que se te ha aplicado una sanción por error, puedes apelar escribiendo a support@shapop.app y explicando tu situación. Nuestro equipo revisará tu solicitud en un plazo razonable.' },
+    ],
+  },
+  ru: {
+    goBack: 'Назад',
+    title: 'Правила сообщества',
+    updated: 'Последнее обновление: 24 февраля 2026 г.',
+    sections: [
+      { h: '1. Добро пожаловать', p: 'ShaPop — сообщество live-шопинга, основанное на взаимном уважении. Пользуясь ShaPop, ты соглашаешься соблюдать эти правила, которые делают сервис безопасным и приятным для всех.' },
+      { h: '2. Поведение', p: 'Травля, язык вражды, дискриминация, выдача себя за другого человека и спам строго запрещены. Относись к другим пользователям с уважением и вежливостью. Любые запугивания, угрозы или оскорбительное поведение повлекут за собой санкции.' },
+      { h: '3. Запрещённый контент', p: 'Запрещено продавать или продвигать: контрафактные товары, незаконную продукцию, откровенный или сексуальный контент, сцены насилия или призывы к нему. Также запрещён любой контент, нарушающий права третьих лиц на интеллектуальную собственность.' },
+      { h: '4. Правила прямых эфиров', p: 'В эфирах запрещены обманные приёмы (фиктивные ставки, манипуляции с ценами). Ведущий должен быть одет подобающим образом. Несовершеннолетние могут появляться в эфире только с явного согласия родителей. Опасные действия во время трансляций запрещены.' },
+      { h: '5. Правила объявлений', p: 'Описания должны быть точными и полными. Используй настоящие фотографии товара. Честно указывай его состояние (новое, как новое, хорошее и т. д.). Цены должны быть честными и не вводить в заблуждение.' },
+      { h: '6. Жалобы', p: 'Если ты видишь контент или поведение, нарушающие эти правила, пожалуйся прямо в приложении с помощью кнопки «Пожаловаться» или напиши на support@shapop.app. Наша команда рассматривает каждую жалобу.' },
+      { h: '7. Последствия', p: 'За нарушение правил возможны: предупреждение, временная блокировка аккаунта, бессрочная блокировка или удаление контента. Строгость санкций зависит от тяжести и частоты нарушений.' },
+      { h: '8. Обжалование', p: 'Если ты считаешь, что санкция применена по ошибке, ты можешь её обжаловать, написав на support@shapop.app и описав ситуацию. Наша команда рассмотрит запрос в разумный срок.' },
+    ],
+  },
+  he: {
+    goBack: 'חזרה',
+    title: 'כללי הקהילה',
+    updated: 'עדכון אחרון: 24 בפברואר 2026',
+    sections: [
+      { h: '1. ברוכים הבאים', p: 'ShaPop היא קהילת קניות בשידור חי שמבוססת על כבוד הדדי. השימוש ב-ShaPop מהווה הסכמה לפעול לפי הכללים האלה, שנועדו להבטיח חוויה בטוחה ונעימה לכל המשתמשים.' },
+      { h: '2. התנהגות', p: 'הטרדה, דברי שנאה, אפליה, התחזות וספאם אסורים בהחלט. התייחסו למשתמשים אחרים בכבוד ובנימוס. כל צורה של הפחדה, איומים או התנהגות פוגענית תוביל לסנקציות.' },
+      { h: '3. תוכן אסור', p: 'אסור למכור או לקדם: מוצרים מזויפים, מוצרים בלתי חוקיים, תוכן בוטה או מיני, תוכן אלים או תוכן שמסית לאלימות. גם כל תוכן שמפר זכויות קניין רוחני של צד שלישי אסור.' },
+      { h: '4. כללי שידור חי', p: 'אסור להשתמש בשיטות מטעות בשידורים חיים (הצעות פיקטיביות, מניפולציה של מחירים). המגישים חייבים להיות לבושים באופן הולם. קטינים יכולים להופיע בשידור חי רק בהסכמה מפורשת של ההורים. פעילויות מסוכנות אסורות במהלך השידורים.' },
+      { h: '5. כללי מודעות', p: 'התיאורים חייבים להיות מדויקים ומלאים. השתמשו בתמונות אמיתיות של הפריט. ציינו בכנות את מצב הפריט (חדש, כמו חדש, במצב טוב וכו\'). המחירים חייבים להיות הוגנים ולא מטעים.' },
+      { h: '6. דיווח', p: 'נתקלתם בתוכן או בהתנהגות שמפרים את הכללים? דווחו ישירות באפליקציה בעזרת כפתור הדיווח, או באימייל ל-support@shapop.app. הצוות שלנו בודק כל דיווח.' },
+      { h: '7. השלכות', p: 'הפרת הכללים עלולה להוביל ל: אזהרה, השעיה זמנית של החשבון, חסימה לצמיתות או הסרת תוכן. חומרת הסנקציה תלויה בחומרת ההפרות ובתדירותן.' },
+      { h: '8. ערעורים', p: 'אם אתם חושבים שסנקציה הוטלה בטעות, אפשר לערער באימייל ל-support@shapop.app עם הסבר על המקרה. הצוות שלנו יבדוק את הבקשה בתוך זמן סביר.' },
     ],
   },
 }
 
 export default function CommunityGuidelinesPage() {
   const navigate = useNavigate()
-  const lang = getLang()
-  const c = content[lang] || content.fr
+  const c = tr(content)
   usePageTitle(c.title)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>

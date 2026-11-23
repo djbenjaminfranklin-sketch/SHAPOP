@@ -1,18 +1,18 @@
 import { useNavigate } from 'react-router-dom'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-const texts = {
-  fr: { title: 'Page introuvable', desc: 'La page que vous cherchez n\'existe pas.', btn: 'Retour a l\'accueil' },
-  en: { title: 'Page not found', desc: 'The page you\'re looking for doesn\'t exist.', btn: 'Go Home' },
-  he: { title: 'הדף לא נמצא', desc: 'הדף שאתה מחפש לא קיים.', btn: 'חזרה לדף הבית' },
-  es: { title: 'Pagina no encontrada', desc: 'La pagina que buscas no existe.', btn: 'Volver al inicio' },
+const texts: Localized<{ title: string; desc: string; btn: string }> = {
+  en: { title: 'Page not found', desc: 'The page you\'re looking for doesn\'t exist.', btn: 'Back to home' },
+  fr: { title: 'Page introuvable', desc: 'La page que tu cherches n\'existe pas.', btn: 'Retour à l\'accueil' },
+  es: { title: 'Página no encontrada', desc: 'La página que buscas no existe.', btn: 'Volver al inicio' },
+  ru: { title: 'Страница не найдена', desc: 'Страницы, которую ты ищешь, не существует.', btn: 'На главную' },
+  he: { title: 'הדף לא נמצא', desc: 'הדף שחיפשת לא קיים.', btn: 'חזרה לדף הבית' },
 }
 
 export default function NotFoundPage() {
   const navigate = useNavigate()
-  const lang = getLang() as keyof typeof texts
-  const t = texts[lang] || texts.fr
+  const t = tr(texts)
   usePageTitle(t.title)
 
   return (

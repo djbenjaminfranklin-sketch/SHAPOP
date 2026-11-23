@@ -1,24 +1,43 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-const content = {
+interface AboutText {
+  goBack: string
+  title: string
+  tagline: string
+  desc: string
+  missionTitle: string
+  mission: string
+  features: { icon: string; title: string; desc: string }[]
+  version: string
+  made: string
+  legal: string
+  terms: string
+  privacy: string
+  eula: string
+  communityGuidelines: string
+  returnPolicy: string
+}
+
+const content: Localized<AboutText> = {
   en: {
+    goBack: 'Go back',
     title: 'About ShaPop',
     tagline: 'Live shopping, reimagined.',
-    desc: 'ShaPop is Europe\'s live shopping marketplace where sellers broadcast live, showcase their products in real-time, and connect directly with buyers. No middlemen, no algorithms hiding your content \u2014 just real people, real products, real deals.',
-    missionTitle: 'Our Mission',
-    mission: 'To make selling and buying accessible to everyone through the power of live video. We believe the future of e-commerce is human, interactive, and fun.',
+    desc: 'ShaPop is the live shopping marketplace open to the whole world: sellers go live, show their products in real time and connect directly with buyers. No middlemen, no algorithms hiding your content — just real people, real products, real deals.',
+    missionTitle: 'Our mission',
+    mission: 'To make buying and selling accessible to everyone through the power of live video. We believe the future of e-commerce is human, interactive and fun.',
     features: [
-      { icon: 'video', title: 'Live Streams', desc: 'Watch sellers present their products in real-time. Ask questions, negotiate, and buy instantly.' },
-      { icon: 'map', title: 'Local First', desc: 'Discover sellers near you with our interactive map. Support local businesses and save on shipping.' },
-      { icon: 'shield', title: 'Buyer Protection', desc: '14-day return policy on all purchases. Secure payments with bank-level encryption.' },
-      { icon: 'zap', title: 'Instant Selling', desc: 'Go live in seconds. No listing fees, no waiting. Start selling today.' },
+      { icon: 'video', title: 'Live streams', desc: 'Watch sellers show their products in real time. Ask questions, negotiate and buy instantly.' },
+      { icon: 'map', title: 'Local first', desc: 'Discover sellers near you on our interactive map. Support local businesses and save on shipping.' },
+      { icon: 'shield', title: 'Buyer protection', desc: '14-day return policy on all purchases. Secure payments with bank-level encryption.' },
+      { icon: 'zap', title: 'Instant selling', desc: 'Go live in seconds. No listing fees, no waiting. Start selling today.' },
     ],
     version: 'Version',
-    made: 'Made with love in Paris',
+    made: 'Made with love, for the whole world',
     legal: 'Legal',
     terms: 'Terms of Service',
     privacy: 'Privacy Policy',
@@ -26,41 +45,21 @@ const content = {
     communityGuidelines: 'Community Guidelines',
     returnPolicy: 'Return Policy',
   },
-  he: {
-    title: '\u05D0\u05D5\u05D3\u05D5\u05EA ShaPop',
-    tagline: '\u05E7\u05E0\u05D9\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9, \u05D1\u05D2\u05D3\u05D5\u05DC.',
-    desc: 'ShaPop \u05D4\u05D9\u05D0 \u05E4\u05DC\u05D8\u05E4\u05D5\u05E8\u05DE\u05EA \u05D4\u05E7\u05E0\u05D9\u05D5\u05EA \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9 \u05E9\u05DC \u05D0\u05D9\u05E8\u05D5\u05E4\u05D4. \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05E9\u05D3\u05E8\u05D9\u05DD \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9, \u05DE\u05E6\u05D9\u05D2\u05D9\u05DD \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA, \u05D5\u05DE\u05EA\u05D7\u05D1\u05E8\u05D9\u05DD \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05E2\u05DD \u05E7\u05D5\u05E0\u05D9\u05DD. \u05D1\u05DC\u05D9 \u05DE\u05EA\u05D5\u05D5\u05DB\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05D0\u05DC\u05D2\u05D5\u05E8\u05D9\u05EA\u05DE\u05D9\u05DD \u2014 \u05E8\u05E7 \u05D0\u05E0\u05E9\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD, \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D0\u05DE\u05D9\u05EA\u05D9\u05D9\u05DD, \u05E2\u05E1\u05E7\u05D0\u05D5\u05EA \u05D0\u05DE\u05D9\u05EA\u05D9\u05D5\u05EA.',
-    missionTitle: '\u05D4\u05DE\u05E9\u05D9\u05DE\u05D4 \u05E9\u05DC\u05E0\u05D5',
-    mission: '\u05DC\u05D4\u05E4\u05D5\u05DA \u05DE\u05DB\u05D9\u05E8\u05D4 \u05D5\u05E7\u05E0\u05D9\u05D9\u05D4 \u05DC\u05E0\u05D2\u05D9\u05E9\u05D9\u05DD \u05DC\u05DB\u05D5\u05DC\u05DD \u05D3\u05E8\u05DA \u05D4\u05DB\u05D5\u05D7 \u05E9\u05DC \u05D5\u05D9\u05D3\u05D0\u05D5 \u05D7\u05D9. \u05D0\u05E0\u05D7\u05E0\u05D5 \u05DE\u05D0\u05DE\u05D9\u05E0\u05D9\u05DD \u05E9\u05D4\u05E2\u05EA\u05D9\u05D3 \u05E9\u05DC \u05D4\u05DE\u05E1\u05D7\u05E8 \u05D4\u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9 \u05D4\u05D5\u05D0 \u05D0\u05E0\u05D5\u05E9\u05D9, \u05D0\u05D9\u05E0\u05D8\u05E8\u05D0\u05E7\u05D8\u05D9\u05D1\u05D9 \u05D5\u05DE\u05D4\u05E0\u05D4.',
-    features: [
-      { icon: 'video', title: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD', desc: '\u05E6\u05E4\u05D5 \u05D1\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05E6\u05D9\u05D2\u05D9\u05DD \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05D1\u05D6\u05DE\u05DF \u05D0\u05DE\u05EA. \u05E9\u05D0\u05DC\u05D5, \u05D4\u05EA\u05DE\u05E7\u05D7\u05D5 \u05D5\u05E7\u05E0\u05D5 \u05D1\u05DE\u05E7\u05D5\u05DD.' },
-      { icon: 'map', title: '\u05DE\u05E7\u05D5\u05DE\u05D9 \u05E7\u05D5\u05D3\u05DD', desc: '\u05D2\u05DC\u05D5 \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E7\u05E8\u05D5\u05D1\u05D9\u05DD \u05E2\u05DD \u05D4\u05DE\u05E4\u05D4 \u05D4\u05D0\u05D9\u05E0\u05D8\u05E8\u05D0\u05E7\u05D8\u05D9\u05D1\u05D9\u05EA. \u05EA\u05DE\u05DB\u05D5 \u05D1\u05E2\u05E1\u05E7\u05D9\u05DD \u05DE\u05E7\u05D5\u05DE\u05D9\u05D9\u05DD.' },
-      { icon: 'shield', title: '\u05D4\u05D2\u05E0\u05EA \u05E7\u05D5\u05E0\u05D4', desc: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05D7\u05D6\u05E8\u05D4 \u05E9\u05DC 14 \u05D9\u05D5\u05DD. \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05DE\u05D0\u05D5\u05D1\u05D8\u05D7\u05D9\u05DD \u05D1\u05E8\u05DE\u05EA \u05D1\u05E0\u05E7.' },
-      { icon: 'zap', title: '\u05DE\u05DB\u05D9\u05E8\u05D4 \u05DE\u05D9\u05D9\u05D3\u05D9\u05EA', desc: '\u05E2\u05DC\u05D5 \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D1\u05E9\u05E0\u05D9\u05D5\u05EA. \u05D1\u05DC\u05D9 \u05E2\u05DE\u05DC\u05D5\u05EA \u05E4\u05E8\u05E1\u05D5\u05DD, \u05D1\u05DC\u05D9 \u05D4\u05DE\u05EA\u05E0\u05D4. \u05D4\u05EA\u05D7\u05D9\u05DC\u05D5 \u05DC\u05DE\u05DB\u05D5\u05E8 \u05D4\u05D9\u05D5\u05DD.' },
-    ],
-    version: '\u05D2\u05E8\u05E1\u05D4',
-    made: '\u05E0\u05D5\u05E6\u05E8 \u05D1\u05D0\u05D4\u05D1\u05D4 \u05D1\u05E4\u05E8\u05D9\u05D6',
-    legal: '\u05DE\u05E9\u05E4\u05D8\u05D9',
-    terms: '\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9',
-    privacy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA',
-    eula: '\u05D4\u05E1\u05DB\u05DD \u05E8\u05D9\u05E9\u05D9\u05D5\u05DF',
-    communityGuidelines: '\u05DB\u05DC\u05DC\u05D9 \u05D4\u05E7\u05D4\u05D9\u05DC\u05D4',
-    returnPolicy: '\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA',
-  },
   fr: {
+    goBack: 'Retour',
     title: 'À propos de ShaPop',
     tagline: 'Le shopping en direct, réinventé.',
-    desc: 'ShaPop est la marketplace de shopping en direct d\'Europe où les vendeurs diffusent en live, présentent leurs produits en temps réel et se connectent directement avec les acheteurs. Pas d\'intermédiaires, pas d\'algorithmes masquant votre contenu — juste de vraies personnes, de vrais produits, de vraies affaires.',
+    desc: 'ShaPop est la marketplace de shopping en direct ouverte au monde entier : les vendeurs passent en live, présentent leurs produits en temps réel et échangent directement avec les acheteurs. Pas d\'intermédiaires, pas d\'algorithmes qui cachent ton contenu — juste de vraies personnes, de vrais produits, de vraies affaires.',
     missionTitle: 'Notre mission',
-    mission: 'Rendre la vente et l\'achat accessibles à tous grâce à la puissance de la vidéo en direct. Nous croyons que l\'avenir du e-commerce est humain, interactif et amusant.',
+    mission: 'Rendre l\'achat et la vente accessibles à tous grâce à la puissance de la vidéo en direct. Nous croyons que l\'avenir du e-commerce est humain, interactif et fun.',
     features: [
-      { icon: 'video', title: 'Lives en direct', desc: 'Regardez les vendeurs présenter leurs produits en temps réel. Posez des questions, négociez et achetez instantanément.' },
-      { icon: 'map', title: 'Local d\'abord', desc: 'Découvrez les vendeurs près de chez vous avec notre carte interactive. Soutenez les commerces locaux et économisez sur la livraison.' },
-      { icon: 'shield', title: 'Protection acheteur', desc: 'Politique de retour de 14 jours sur tous les achats. Paiements sécurisés avec chiffrement de niveau bancaire.' },
-      { icon: 'zap', title: 'Vente instantanée', desc: 'Passez en live en quelques secondes. Pas de frais de mise en ligne, pas d\'attente. Commencez à vendre dès aujourd\'hui.' },
+      { icon: 'video', title: 'Lives', desc: 'Regarde les vendeurs présenter leurs produits en temps réel. Pose tes questions, négocie et achète en un instant.' },
+      { icon: 'map', title: 'Le local d\'abord', desc: 'Découvre les vendeurs près de chez toi sur notre carte interactive. Soutiens les commerces locaux et économise sur la livraison.' },
+      { icon: 'shield', title: 'Protection acheteur', desc: 'Retours possibles pendant 14 jours sur tous les achats. Paiements sécurisés avec un chiffrement de niveau bancaire.' },
+      { icon: 'zap', title: 'Vente instantanée', desc: 'Passe en live en quelques secondes. Pas de frais de mise en ligne, pas d\'attente. Commence à vendre dès aujourd\'hui.' },
     ],
     version: 'Version',
-    made: 'Fait avec amour à Paris',
+    made: 'Fait avec amour, pour le monde entier',
     legal: 'Mentions légales',
     terms: 'Conditions d\'utilisation',
     privacy: 'Politique de confidentialité',
@@ -69,25 +68,70 @@ const content = {
     returnPolicy: 'Politique de retours',
   },
   es: {
+    goBack: 'Volver',
     title: 'Sobre ShaPop',
-    tagline: 'Compras en vivo, reinventadas.',
-    desc: 'ShaPop es el marketplace de compras en vivo de Europa donde los vendedores transmiten en vivo, muestran sus productos en tiempo real y se conectan directamente con compradores. Sin intermediarios, sin algoritmos \u2014 solo personas reales, productos reales, ofertas reales.',
-    missionTitle: 'Nuestra Misión',
-    mission: 'Hacer que vender y comprar sea accesible para todos a través del poder del video en vivo. Creemos que el futuro del comercio electrónico es humano, interactivo y divertido.',
+    tagline: 'Las compras en directo, reinventadas.',
+    desc: 'ShaPop es el marketplace de compras en directo abierto a todo el mundo: los vendedores transmiten en vivo, muestran sus productos en tiempo real y conectan directamente con los compradores. Sin intermediarios, sin algoritmos que oculten tu contenido: solo personas reales, productos reales y ofertas reales.',
+    missionTitle: 'Nuestra misión',
+    mission: 'Hacer que comprar y vender sea accesible para todos gracias al poder del vídeo en directo. Creemos que el futuro del comercio electrónico es humano, interactivo y divertido.',
     features: [
-      { icon: 'video', title: 'Transmisiones en Vivo', desc: 'Mira a vendedores presentar sus productos en tiempo real. Pregunta, negocia y compra al instante.' },
-      { icon: 'map', title: 'Primero Local', desc: 'Descubre vendedores cerca de ti con nuestro mapa interactivo. Apoya negocios locales.' },
-      { icon: 'shield', title: 'Protección al Comprador', desc: 'Política de devolución de 14 días. Pagos seguros con encriptación bancaria.' },
-      { icon: 'zap', title: 'Venta Instantánea', desc: 'Transmite en segundos. Sin comisiones de listado. Empieza a vender hoy.' },
+      { icon: 'video', title: 'Directos', desc: 'Mira cómo los vendedores presentan sus productos en tiempo real. Pregunta, negocia y compra al instante.' },
+      { icon: 'map', title: 'Primero lo local', desc: 'Descubre vendedores cerca de ti con nuestro mapa interactivo. Apoya a los negocios locales y ahorra en envíos.' },
+      { icon: 'shield', title: 'Protección al comprador', desc: 'Devoluciones durante 14 días en todas las compras. Pagos seguros con cifrado de nivel bancario.' },
+      { icon: 'zap', title: 'Venta instantánea', desc: 'Sal en directo en segundos. Sin comisiones por publicar, sin esperas. Empieza a vender hoy.' },
     ],
-    version: 'Version',
-    made: 'Hecho con amor en París',
+    version: 'Versión',
+    made: 'Hecho con amor, para todo el mundo',
     legal: 'Legal',
-    terms: 'Términos de Servicio',
-    privacy: 'Política de Privacidad',
-    eula: 'Acuerdo de Licencia',
-    communityGuidelines: 'Reglas de la Comunidad',
-    returnPolicy: 'Política de Devoluciones',
+    terms: 'Términos del servicio',
+    privacy: 'Política de privacidad',
+    eula: 'Acuerdo de licencia',
+    communityGuidelines: 'Normas de la comunidad',
+    returnPolicy: 'Política de devoluciones',
+  },
+  ru: {
+    goBack: 'Назад',
+    title: 'О ShaPop',
+    tagline: 'Шопинг в прямом эфире — по-новому.',
+    desc: 'ShaPop — маркетплейс live-шопинга, открытый для всего мира: продавцы выходят в эфир, показывают товары в реальном времени и общаются с покупателями напрямую. Никаких посредников и алгоритмов, которые прячут твой контент, — только настоящие люди, настоящие товары и настоящие сделки.',
+    missionTitle: 'Наша миссия',
+    mission: 'Сделать покупки и продажи доступными для всех благодаря силе видео в прямом эфире. Мы верим, что будущее электронной коммерции — живое, интерактивное и весёлое.',
+    features: [
+      { icon: 'video', title: 'Прямые эфиры', desc: 'Смотри, как продавцы показывают товары в реальном времени. Задавай вопросы, торгуйся и покупай мгновенно.' },
+      { icon: 'map', title: 'Сначала — рядом', desc: 'Находи продавцов поблизости на интерактивной карте. Поддерживай местный бизнес и экономь на доставке.' },
+      { icon: 'shield', title: 'Защита покупателя', desc: 'Возврат в течение 14 дней для всех покупок. Безопасные платежи с шифрованием банковского уровня.' },
+      { icon: 'zap', title: 'Мгновенные продажи', desc: 'Выходи в эфир за секунды. Без платы за размещение и без ожидания. Начни продавать уже сегодня.' },
+    ],
+    version: 'Версия',
+    made: 'Сделано с любовью для всего мира',
+    legal: 'Правовая информация',
+    terms: 'Условия использования',
+    privacy: 'Политика конфиденциальности',
+    eula: 'Лицензионное соглашение',
+    communityGuidelines: 'Правила сообщества',
+    returnPolicy: 'Политика возврата',
+  },
+  he: {
+    goBack: 'חזרה',
+    title: 'אודות ShaPop',
+    tagline: 'קניות בשידור חי, בגרסה חדשה.',
+    desc: 'ShaPop היא זירת הקניות בשידור חי הפתוחה לכל העולם: מוכרים עולים לשידור חי, מציגים את המוצרים שלהם בזמן אמת ומתחברים ישירות לקונים. בלי מתווכים, בלי אלגוריתמים שמסתירים את התוכן שלכם — רק אנשים אמיתיים, מוצרים אמיתיים ועסקאות אמיתיות.',
+    missionTitle: 'המשימה שלנו',
+    mission: 'להנגיש קנייה ומכירה לכולם בעזרת הכוח של וידאו חי. אנחנו מאמינים שהעתיד של המסחר המקוון הוא אנושי, אינטראקטיבי וכיפי.',
+    features: [
+      { icon: 'video', title: 'שידורים חיים', desc: 'צפו במוכרים מציגים את המוצרים שלהם בזמן אמת. שאלו, התמקחו וקנו ברגע.' },
+      { icon: 'map', title: 'קודם כל מקומי', desc: 'גלו מוכרים בסביבה במפה האינטראקטיבית. תמכו בעסקים מקומיים וחסכו במשלוח.' },
+      { icon: 'shield', title: 'הגנת קונים', desc: 'אפשרות החזרה תוך 14 יום על כל רכישה. תשלומים מאובטחים בהצפנה ברמה בנקאית.' },
+      { icon: 'zap', title: 'מכירה מיידית', desc: 'עולים לשידור תוך שניות. בלי דמי פרסום, בלי המתנה. מתחילים למכור כבר היום.' },
+    ],
+    version: 'גרסה',
+    made: 'נוצר באהבה, לכל העולם',
+    legal: 'מידע משפטי',
+    terms: 'תנאי שימוש',
+    privacy: 'מדיניות פרטיות',
+    eula: 'הסכם רישיון',
+    communityGuidelines: 'כללי הקהילה',
+    returnPolicy: 'מדיניות החזרות',
   },
 }
 
@@ -100,14 +144,13 @@ const iconMap: Record<string, React.JSX.Element> = {
 
 export default function AboutPage() {
   const navigate = useNavigate()
-  const lang = getLang()
-  const c = content[lang] || content.fr
+  const c = tr(content)
   usePageTitle(c.title)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
       <div style={{ position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000', borderBottom: '1px solid #1A1A1A', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <button onClick={() => navigate(-1)} aria-label="Go back" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+        <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
         <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
@@ -116,13 +159,13 @@ export default function AboutPage() {
       <div style={{ padding: '32px 20px', textAlign: 'center' }}>
         {/* Logo */}
         <div style={{ fontSize: '42px', fontWeight: 800, color: '#fff', letterSpacing: '-1px', fontStyle: 'italic', marginBottom: '4px' }}>
-          Sha<span style={{ color: '#F0908A' }}>Pop</span>
+          Sha<span style={{ color: '#F0908A' }}>Pop</span>{/* i18n-ignore */}
         </div>
         <p style={{ fontSize: '16px', color: '#aaa', fontStyle: 'italic', marginBottom: '24px' }}>{c.tagline}</p>
-        <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.7, textAlign: 'left', marginBottom: '32px' }}>{c.desc}</p>
+        <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.7, textAlign: 'start', marginBottom: '32px' }}>{c.desc}</p>
 
         {/* Mission */}
-        <div style={{ backgroundColor: '#111', borderRadius: '16px', padding: '20px', marginBottom: '24px', textAlign: 'left' }}>
+        <div style={{ backgroundColor: '#111', borderRadius: '16px', padding: '20px', marginBottom: '24px', textAlign: 'start' }}>
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.missionTitle}</h2>
           <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.6 }}>{c.mission}</p>
         </div>
@@ -130,7 +173,7 @@ export default function AboutPage() {
         {/* Features grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '32px' }}>
           {c.features.map((f) => (
-            <div key={f.icon} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'left' }}>
+            <div key={f.icon} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'start' }}>
               {iconMap[f.icon]}
               <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '10px', marginBottom: '4px' }}>{f.title}</h3>
               <p style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>{f.desc}</p>
@@ -139,7 +182,7 @@ export default function AboutPage() {
         </div>
 
         {/* Legal links */}
-        <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'left', marginBottom: '24px' }}>
+        <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'start', marginBottom: '24px' }}>
           <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.legal}</p>
           {[
             { label: c.terms, to: '/terms' },
@@ -154,11 +197,11 @@ export default function AboutPage() {
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
                 padding: '12px 0', background: 'none', border: 'none', borderBottom: '1px solid #1A1A1A',
-                cursor: 'pointer', textAlign: 'left',
+                cursor: 'pointer', textAlign: 'start',
               }}
             >
               <span style={{ fontSize: '14px', color: '#aaa' }}>{link.label}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2"><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2" style={{ ...rtlFlip() }}><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           ))}
         </div>
