@@ -2,7 +2,8 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { AccessToken } from 'livekit-server-sdk'
-import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient } from '../config'
+import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_URL, livekitRoomService, livekitEgressClient, livekitIngressClient, ADMIN_EMAILS, FREE_PREVIEW_SECONDS } from '../config'
+import { userHasSavedCard, getOrStartPreview, schedulePreviewKick, cancelPreviewKick } from '../viewerPreview'
 import { StreamOutput, StreamProtocol } from 'livekit-server-sdk'
 import { startSellerRecording, recordingUrlFromEgress, getLivekitMaxParticipants } from '../recording'
 import { requireAuth, createLimiter } from '../middleware'
@@ -690,9 +691,33 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
     const isPip = req.query.pip === 'true' && !isSeller && !isCohost
     const identity = isSeller ? `seller-${userId}` : isCohost ? `cohost-${userId}` : isPip ? `viewer-pip-${userId}` : `viewer-${userId}`
 
+    // Aperçu gratuit : un spectateur sans carte enregistrée regarde FREE_PREVIEW_SECONDS par direct.
+    // Exemptés : vendeur, co-hôte, administrateurs.
+    const isAdmin = !!req.user!.email && ADMIN_EMAILS.includes(req.user!.email)
+    let previewRemaining: number | null = null
+    if (!isSeller && !isCohost && !isAdmin) {
+      let hasCard = true
+      try {
+        hasCard = await userHasSavedCard(userId)
+      } catch (err: any) {
+        // Stripe injoignable : on ne coupe pas les clients qui ont peut-être une carte.
+        console.error('[preview] vérification de carte impossible:', err?.message || err)
+      }
+      if (hasCard) {
+        cancelPreviewKick(stream.livekit_room_name, userId)
+      } else {
+        previewRemaining = await getOrStartPreview(userId, String(streamId))
+        if (previewRemaining === 0) {
+          res.status(402).json({ error: 'card_required', remaining_seconds: 0, total_seconds: FREE_PREVIEW_SECONDS })
+          return
+        }
+      }
+    }
+
     const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
       identity,
-      ttl: '6h',
+      // Jeton d'aperçu : durée de vie courte (temps restant + marge de connexion)
+      ttl: previewRemaining != null ? previewRemaining + 30 : '6h',
     })
 
     token.addGrant({
@@ -704,6 +729,11 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
 
     const jwt = await token.toJwt()
 
+    if (previewRemaining != null) {
+      schedulePreviewKick(stream.livekit_room_name, userId, previewRemaining * 1000)
+      res.json({ token: jwt, url: LIVEKIT_URL, preview: { remaining_seconds: previewRemaining, total_seconds: FREE_PREVIEW_SECONDS } })
+      return
+    }
     res.json({ token: jwt, url: LIVEKIT_URL })
   } catch (err: any) {
     console.error('LiveKit token error:', err?.message || err)

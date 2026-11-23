@@ -59,6 +59,9 @@ export const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY || ''
 export const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET || ''
 export const LIVEKIT_URL = process.env.LIVEKIT_URL || '' // e.g. wss://xxx.livekit.cloud
 
+// Aperçu gratuit d'un direct pour un spectateur sans carte enregistrée (secondes, par direct).
+export const FREE_PREVIEW_SECONDS = Math.max(1, Number(process.env.FREE_PREVIEW_SECONDS) || 180)
+
 export const livekitRoomService = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET && LIVEKIT_URL)
   ? new RoomServiceClient(LIVEKIT_URL.replace('wss://', 'https://'), LIVEKIT_API_KEY, LIVEKIT_API_SECRET)
   : null

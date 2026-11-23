@@ -9,6 +9,8 @@ interface LiveKitViewerProps {
   livekitToken: string
   muted?: boolean
   style?: CSSProperties
+  /** Appelé quand la salle se déconnecte (ex. : spectateur retiré par le serveur à la fin de l'aperçu gratuit). */
+  onDisconnected?: () => void
 }
 
 // Android (WebView) : une vidéo mise en pause par un changement d'écran n'est pas relancée seule
@@ -120,12 +122,13 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
   )
 }
 
-export default function LiveKitViewer({ livekitUrl, livekitToken, muted, style }: LiveKitViewerProps) {
+export default function LiveKitViewer({ livekitUrl, livekitToken, muted, style, onDisconnected }: LiveKitViewerProps) {
   return (
     <LiveKitRoom
       serverUrl={livekitUrl}
       token={livekitToken}
       connect={true}
+      onDisconnected={onDisconnected}
       audio={false}
       video={false}
       style={{ width: '100%', height: '100%' }}

@@ -11,6 +11,7 @@ import LiveKitViewer from '../components/stream/LiveKitViewer'
 import SellerProfileHeader from '../components/stream/SellerProfileHeader'
 import StreamSidebar from '../components/stream/StreamSidebar'
 import ActiveItemBar from '../components/stream/ActiveItemBar'
+import { PreviewCountdown, PreviewCardWall } from '../components/stream/PreviewGate'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { apiFetch } from '../lib/api'
@@ -916,6 +917,12 @@ export default function StreamView() {
   // LiveKit viewer state
   const [viewerLkUrl, setViewerLkUrl] = useState<string | null>(null)
   const [viewerLkToken, setViewerLkToken] = useState<string | null>(null)
+  // Aperçu gratuit (spectateur sans carte) : fin prévue, aperçu terminé, relance du jeton après ajout de carte
+  const [previewEndsAt, setPreviewEndsAt] = useState<number | null>(null)
+  const [previewExpired, setPreviewExpired] = useState(false)
+  const [lkTokenNonce, setLkTokenNonce] = useState(0)
+  const previewEndsAtRef = useRef<number | null>(null)
+  useEffect(() => { previewEndsAtRef.current = previewEndsAt }, [previewEndsAt])
 
   // Sold animation & payment modal
   const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number; isUnsold?: boolean } | null>(null)
@@ -1122,7 +1129,17 @@ export default function StreamView() {
         })
         const data = await resp.json()
         if (cancelled) return
+        // Aperçu gratuit déjà consommé sur ce direct : écran « Ajoute ta carte » directement
+        if (resp.status === 402 && data.error === 'card_required') {
+          setViewerLkToken(null)
+          setPreviewEndsAt(null)
+          setPreviewExpired(true)
+          return
+        }
         if (data.token && data.url) {
+          const remaining = data.preview?.remaining_seconds
+          setPreviewEndsAt(typeof remaining === 'number' ? Date.now() + remaining * 1000 : null)
+          setPreviewExpired(false)
           setViewerLkToken(data.token)
           setViewerLkUrl(data.url)
         }
@@ -1132,7 +1149,25 @@ export default function StreamView() {
     }
     fetchLkToken()
     return () => { cancelled = true }
-  }, [stream?.id, stream?.livekit_room_name, stream?.status, isSeller])
+  }, [stream?.id, stream?.livekit_room_name, stream?.status, isSeller, lkTokenNonce])
+
+  // Fin de l'aperçu gratuit : on coupe la vidéo et le son (le serveur retire aussi le spectateur de la salle)
+  const endPreview = useCallback(() => {
+    setViewerLkToken(null)
+    setMultiViewStreams([])
+    setPreviewEndsAt(null)
+    setPreviewExpired(true)
+  }, [])
+  useEffect(() => {
+    if (previewEndsAt == null) return
+    const timer = setTimeout(endPreview, Math.max(0, previewEndsAt - Date.now()))
+    return () => clearTimeout(timer)
+  }, [previewEndsAt, endPreview])
+  // Retiré de la salle par le serveur juste avant la fin de notre minuterie (léger décalage d'horloge)
+  const handleViewerDisconnected = useCallback(() => {
+    const endsAt = previewEndsAtRef.current
+    if (endsAt != null && Date.now() >= endsAt - 5000) endPreview()
+  }, [endPreview])
 
   // Track viewer count
   useEffect(() => {
@@ -1319,6 +1354,7 @@ export default function StreamView() {
   // PiP handler — minimize to in-app mini player
   const handlePiP = useCallback(() => {
     if (!viewerLkUrl || !viewerLkToken || !id || !stream) return
+    if (previewEndsAtRef.current != null) return // pas de mini-lecteur pendant l'aperçu gratuit
     minimizeStream({
       streamId: id,
       streamTitle: stream.title,
@@ -2683,6 +2719,7 @@ export default function StreamView() {
                             livekitToken={cell.lkToken}
                             muted={activeMultiIdx !== cell.cellIdx || viewerMuted}
                             style={{ width: '100%', height: '100%' }}
+                            onDisconnected={cell.isMain ? handleViewerDisconnected : undefined}
                           />
 
                           {/* X button — close this cell */}
@@ -3121,6 +3158,7 @@ export default function StreamView() {
                         livekitToken={viewerLkToken}
                         muted={viewerMuted}
                         style={{ width: '100%', height: '100%' }}
+                        onDisconnected={handleViewerDisconnected}
                       />
                       {/* Co-host join button */}
                       {isCohost && isLive && (
@@ -4444,6 +4482,13 @@ export default function StreamView() {
       )}
 
       {/* Card setup modal */}
+      {!isSeller && previewEndsAt != null && !previewExpired && (
+        <PreviewCountdown endsAt={previewEndsAt} />
+      )}
+      {!isSeller && previewExpired && (
+        <PreviewCardWall onAddCard={openCardSetup} onLeave={() => navigate(-1)} />
+      )}
+
       {showCardModal && (
         <div
           onClick={e => e.stopPropagation()}
@@ -4541,6 +4586,12 @@ export default function StreamView() {
                         setCardSuccess(true)
                         setHasCard(true)
                         setCardLoading(false)
+                        // Spectateur en aperçu gratuit : nouveau jeton sans limite, le direct reprend
+                        if (previewExpired || previewEndsAtRef.current != null) {
+                          setPreviewEndsAt(null)
+                          setPreviewExpired(false)
+                          setLkTokenNonce(n => n + 1)
+                        }
                       }}
                       onError={(msg) => { setCardError(msg); setCardLoading(false) }}
                       loading={cardLoading}
