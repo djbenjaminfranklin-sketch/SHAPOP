@@ -2674,6 +2674,7 @@ export default function StreamView() {
             {isSeller && isLive && (
               <video
                 ref={videoRef}
+                poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                 className="w-full h-full object-cover"
                 autoPlay
                 playsInline

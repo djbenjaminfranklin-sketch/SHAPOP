@@ -8,12 +8,14 @@ export function getAppSettings() {
   } catch { return null }
 }
 
-/** Qualité demandée à la caméra, orientée comme l'écran (portrait sur téléphone : sinon l'iPhone
+/** Qualité demandée à la caméra (portrait sur iPhone : sinon l'iPhone
  *  fait pivoter l'image et la vidéo ne remplit plus l'écran du vendeur). */
 export function getStreamQualityConstraints(): { width: number; height: number } {
   const q = getLandscapeQuality()
+  // Uniquement sur iPhone/iPad : Android découpe le centre du capteur quand on demande du portrait (image zoomée)
+  const isIOS = typeof navigator !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent)
   const portrait = typeof window !== 'undefined' && window.innerHeight > window.innerWidth
-  return portrait ? { width: q.height, height: q.width } : q
+  return isIOS && portrait ? { width: q.height, height: q.width } : q
 }
 
 function getLandscapeQuality(): { width: number; height: number } {
