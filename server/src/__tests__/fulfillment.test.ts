@@ -26,6 +26,7 @@ vi.mock('../config', async (importOriginal) => {
 import express from 'express'
 import { fakeDb } from './helpers/fakeSupabase'
 import fulfillmentRoutes from '../routes/fulfillment'
+import { releaseDuePostPayouts } from '../services/orderLifecycle'
 import itemRoutes from '../routes/items'
 import messageRoutes from '../routes/messages'
 import {
@@ -217,13 +218,17 @@ describe('Preuve d\'envoi postal', () => {
     expect(order().proof_parcel_path).toBeTruthy()
   })
 
-  it('les deux photos : commande expédiée et argent libéré', async () => {
+  it('les deux photos : commande expédiée, argent bloqué 3 jours (délai de sécurité)', async () => {
     await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
+    const before = Date.now()
     const r = await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'slip', image: PNG, tracking_number: 'RR123456789IL' })
     expect(r.status).toBe(200)
     expect(r.body.complete).toBe(true)
     expect(order().status).toBe('shipped')
-    expect(order().payout_status).toBe('released')
+    expect(order().payout_status).toBe('held')
+    const delayMs = new Date(order().payout_scheduled_at as string).getTime() - before
+    expect(delayMs).toBeGreaterThan(3 * 86400000 - 60000)
+    expect(delayMs).toBeLessThan(3 * 86400000 + 60000)
     expect(order().tracking_number).toBe('RR123456789IL')
     // Photos rangées dans l'espace privé
     expect(Object.keys(fakeDb.storageObjects).every(k => k.startsWith('order-proofs/'))).toBe(true)
@@ -231,6 +236,45 @@ describe('Preuve d\'envoi postal', () => {
     const buyer = await call('GET', `/api/orders/${ORDER}/fulfillment`, BUYER)
     expect(buyer.body.proofs.parcel_url).toContain('https://signed.test/order-proofs/')
     expect(buyer.body.proofs.slip_url).toContain('https://signed.test/order-proofs/')
+  })
+
+  it('l\'acheteur confirme la réception : vendeur payé tout de suite', async () => {
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'slip', image: PNG })
+    const notBuyer = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, SELLER)
+    expect(notBuyer.status).toBe(404)
+    expect(order().payout_status).toBe('held')
+    const r = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER)
+    expect(r.status).toBe(200)
+    expect(order().status).toBe('delivered')
+    expect(order().payout_status).toBe('released')
+    expect(order().buyer_confirmed_at).toBeTruthy()
+  })
+
+  it('confirmer la réception est impossible avant les 2 photos', async () => {
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
+    const r = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER)
+    expect(r.status).toBe(409)
+    expect(order().payout_status).toBe('held')
+  })
+
+  it('après 3 jours sans litige, l\'argent est libéré automatiquement ; pas avant', async () => {
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'slip', image: PNG })
+    expect(await releaseDuePostPayouts()).toBe(0)
+    expect(order().payout_status).toBe('held')
+    order().payout_scheduled_at = new Date(Date.now() - 1000).toISOString()
+    expect(await releaseDuePostPayouts()).toBe(1)
+    expect(order().payout_status).toBe('released')
+  })
+
+  it('une commande en litige n\'est pas libérée automatiquement', async () => {
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
+    await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'slip', image: PNG })
+    order().status = 'disputed'
+    order().payout_scheduled_at = new Date(Date.now() - 1000).toISOString()
+    expect(await releaseDuePostPayouts()).toBe(0)
+    expect(order().payout_status).toBe('held')
   })
 
   it('refuse les photos envoyées par quelqu\'un d\'autre que le vendeur', async () => {

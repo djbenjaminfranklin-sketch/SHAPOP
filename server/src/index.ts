@@ -16,6 +16,7 @@ import streamRoutes from './routes/streams'
 import itemRoutes from './routes/items'
 import orderRoutes from './routes/orders'
 import { cancelOverdueOrders, remindHandoverDeadline, remindPendingPayments } from './routes/orders'
+import { releaseDuePostPayouts } from './services/orderLifecycle'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
 import messageRoutes from './routes/messages'
@@ -158,6 +159,8 @@ server.listen(PORT, () => {
       if (cancelled > 0) console.log(`[Handover-Deadline] Auto-cancelled ${cancelled} overdue order(s)`)
       const reminded = await remindHandoverDeadline()
       if (reminded > 0) console.log(`[Handover-Deadline] Reminded ${reminded} seller(s)`)
+      const released = await releaseDuePostPayouts()
+      if (released > 0) console.log(`[Payout] Released ${released} post order payout(s) after the safety delay`)
     } catch (err) {
       console.error('[Handover-Deadline] Error:', err)
     }

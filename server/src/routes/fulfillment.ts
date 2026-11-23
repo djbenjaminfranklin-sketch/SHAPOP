@@ -8,6 +8,7 @@ import {
   HANDOVER_DELAY_ALLOWED_DAYS,
   HANDOVER_DELAY_DEFAULT_DAYS,
   HANDOVER_MAX_ATTEMPTS,
+  POST_PAYOUT_DELAY_DAYS,
   codesMatch,
   computePostPrice,
   currencyForCountry,
@@ -299,6 +300,7 @@ router.get('/api/orders/:id/fulfillment', requireAuth, async (req: Authenticated
       tracking_number: order.tracking_number,
       payout_status: order.payout_status,
       payout_released_at: order.payout_released_at,
+      payout_scheduled_at: order.payout_scheduled_at,
       shipping_address: order.fulfillment_method === 'post' ? order.shipping_address : null,
       pickup_area: null,
       handover: null,
@@ -523,22 +525,70 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
       return
     }
 
-    const nowIso = new Date().toISOString()
-    const updated = await releaseOrderPayout(orderId, {
-      ...patch,
-      status: 'shipped',
-      shipped_at: nowIso,
-      proof_submitted_at: nowIso,
-      claim_deadline: new Date(Date.now() + 14 * 86400000).toISOString(),
-    })
-    if (!updated) {
+    // Les 2 photos sont là : commande « expédiée ». L'argent reste bloqué POST_PAYOUT_DELAY_DAYS jours
+    // (le temps pour l'acheteur de signaler un problème), ou jusqu'à ce qu'il confirme la réception.
+    const now = Date.now()
+    const nowIso = new Date(now).toISOString()
+    const payoutAt = new Date(now + POST_PAYOUT_DELAY_DAYS * 86400000).toISOString()
+    const { data: shippedRows } = await supabase
+      .from('orders')
+      .update({
+        ...patch,
+        status: 'shipped',
+        shipped_at: nowIso,
+        proof_submitted_at: nowIso,
+        payout_scheduled_at: payoutAt,
+        claim_deadline: new Date(now + 14 * 86400000).toISOString(),
+      })
+      .eq('id', orderId)
+      .eq('status', 'paid')
+      .select('id')
+    if (!shippedRows || shippedRows.length === 0) {
       res.status(409).json({ error: 'not_paid' })
       return
     }
     notifyUserT(order.buyer_id, 'order_shipped', 'orderShipped', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
-    res.json({ success: true, status: 'shipped', complete: true, payout_status: 'released' })
+    res.json({ success: true, status: 'shipped', complete: true, payout_status: 'held', payout_scheduled_at: payoutAt })
   } catch (err) {
     console.error('[fulfillment] proof', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
+// POST /api/orders/:id/confirm-receipt — l'acheteur confirme avoir reçu son colis :
+// le vendeur est payé tout de suite (sans attendre le délai de sécurité).
+// =============================================
+router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = paramStr(req.params.id)
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, buyer_id, seller_id, status, fulfillment_method, payout_status')
+      .eq('id', orderId)
+      .single()
+    if (!order || order.buyer_id !== req.user!.id) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+    if (order.fulfillment_method !== 'post' || order.status !== 'shipped' || order.payout_status !== 'held') {
+      res.status(409).json({ error: 'not_confirmable' })
+      return
+    }
+    const nowIso = new Date().toISOString()
+    const updated = await releaseOrderPayout(orderId, {
+      status: 'delivered',
+      delivered_at: nowIso,
+      buyer_confirmed_at: nowIso,
+    }, 'shipped')
+    if (!updated) {
+      res.status(409).json({ error: 'not_confirmable' })
+      return
+    }
+    notifyUserT(order.seller_id, 'payout_released', 'payoutReleased', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
+    res.json({ success: true, status: 'delivered', payout_status: 'released' })
+  } catch (err) {
+    console.error('[fulfillment] confirm-receipt', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

@@ -49,6 +49,7 @@ export interface OrderFulfillment {
   tracking_number: string | null
   payout_status: string | null
   payout_released_at: string | null
+  payout_scheduled_at?: string | null
   shipping_address: { name?: string; street?: string; city?: string; zip?: string; phone?: string; country?: string } | null
   pickup_area: string | null
   handover: { code?: string; attempts_left?: number; locked: boolean } | null
@@ -177,6 +178,8 @@ export const fulfillmentApi = {
     api<{ success: boolean; complete: boolean; missing?: 'parcel' | 'slip' }>(`/api/orders/${orderId}/proof`, {
       method: 'POST', body: { kind, image, tracking_number: trackingNumber || undefined },
     }),
+  confirmReceipt: (orderId: string) =>
+    api<{ success: boolean }>(`/api/orders/${orderId}/confirm-receipt`, { method: 'POST' }),
   sellerSettings: () => api<SellerFulfillmentSettings>('/api/seller/fulfillment-settings'),
   saveSellerSettings: (body: { allow_pickup: boolean; pickup_area: string | null; post_price: number | null; handover_delay_days: number; whatsapp: string }) =>
     api<Record<string, unknown>>('/api/seller/fulfillment-settings', { method: 'PUT', body }),

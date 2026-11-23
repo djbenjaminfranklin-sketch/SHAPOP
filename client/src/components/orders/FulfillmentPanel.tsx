@@ -79,10 +79,19 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
         {data.proof_submitted_at && <p style={hint}>{t.shipped_on} {formatDateTime(data.proof_submitted_at, lang)}</p>}
         {isSeller && data.payout_status && (
           <p style={{ ...hint, color: data.payout_status === 'released' ? '#22C55E' : '#aaa' }}>
-            {data.payout_status === 'released' ? t.payout_released : awaiting ? t.payout_held : ''}
+            {data.payout_status === 'released'
+              ? t.payout_released
+              : data.payout_status === 'held' && data.payout_scheduled_at && data.status === 'shipped'
+                ? <>{t.payout_scheduled} <strong style={{ color: '#ddd' }}>{formatDateTime(data.payout_scheduled_at, lang)}</strong></>
+                : awaiting ? t.payout_held : ''}
           </p>
         )}
       </div>
+
+      {/* Envoi postal : l'acheteur peut confirmer la réception pour payer le vendeur tout de suite */}
+      {isBuyer && data.fulfillment_method === 'post' && data.status === 'shipped' && data.payout_status === 'held' && (
+        <ConfirmReceipt orderId={orderId} onDone={refresh} />
+      )}
 
       {/* Code de retrait : visible par l'acheteur seulement (le serveur ne l'envoie qu'à lui) */}
       {isBuyer && data.fulfillment_method === 'pickup' && data.handover?.code && awaiting && (
@@ -274,6 +283,38 @@ function ProofForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; h
       />
       {step('slip', 2, t.proof_slip)}
       {error && <div role="alert" style={{ color: '#F87171', fontSize: '13px' }}>{error}</div>}
+    </div>
+  )
+}
+
+function ConfirmReceipt({ orderId, onDone }: { orderId: string; onDone: () => void }) {
+  const lang = getLang()
+  const t = ft(lang)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+  const submit = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await fulfillmentApi.confirmReceipt(orderId)
+      setDone(true)
+      onDone()
+    } catch (err) {
+      setError(errorText(err instanceof ApiError ? err.code : 'error', lang))
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div style={card}>
+      <p style={hint}>{done ? t.receipt_confirmed : t.confirm_receipt_hint}</p>
+      {!done && (
+        <button type="button" onClick={submit} disabled={busy} style={primaryBtn(!busy)}>
+          {t.confirm_receipt}
+        </button>
+      )}
+      {error && <p style={{ ...hint, color: '#F87171' }}>{error}</p>}
     </div>
   )
 }

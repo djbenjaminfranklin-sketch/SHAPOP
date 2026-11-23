@@ -117,13 +117,15 @@ export async function markOrderPaid(orderId: string): Promise<{ updated: boolean
 export async function releaseOrderPayout(
   orderId: string,
   patch: Record<string, unknown>,
+  fromStatus: string = 'paid',
 ): Promise<Record<string, unknown> | null> {
   const nowIso = new Date().toISOString()
   const { data: updated } = await supabase
     .from('orders')
     .update({ ...patch, payout_status: 'released', payout_released_at: nowIso })
     .eq('id', orderId)
-    .eq('status', 'paid')
+    .eq('status', fromStatus)
+    .eq('payout_status', 'held')
     .select('*')
   const row = updated && updated[0]
   if (!row) return null
@@ -144,6 +146,30 @@ export async function releaseOrderPayout(
     }).eq('seller_id', row.seller_id)
   }
   return row
+}
+
+/**
+ * Envoi postal : libère l'argent des commandes expédiées (2 photos envoyées) dont le délai
+ * de sécurité est passé. Une commande en litige n'est plus « shipped » : elle est ignorée.
+ */
+export async function releaseDuePostPayouts(): Promise<number> {
+  const { data: due } = await supabase
+    .from('orders')
+    .select('id, seller_id')
+    .eq('status', 'shipped')
+    .eq('fulfillment_method', 'post')
+    .eq('payout_status', 'held')
+    .not('proof_submitted_at', 'is', null)
+    .lte('payout_scheduled_at', new Date().toISOString())
+  let count = 0
+  for (const o of due || []) {
+    const row = await releaseOrderPayout(o.id, {}, 'shipped')
+    if (row) {
+      count++
+      notifyUserT(o.seller_id, 'payout_released', 'payoutReleased', { ref: shortOrderRef(o.id) }, { order_id: o.id }).catch(() => {})
+    }
+  }
+  return count
 }
 
 /** Alerte les administrateurs par e-mail (et dans les journaux du serveur). */
