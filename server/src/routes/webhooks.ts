@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import Stripe from 'stripe'
 import { supabase, stripe, livekitWebhookReceiver, livekitEgressClient, PAYPAL_BASE_URL, PAYPAL_MODE } from '../config'
 import { calculateFees, notifyFollowersSellerLive, notifyUser, getPaypalAccessToken } from '../utils'
+import { markOrderPaid } from '../services/orderLifecycle'
 
 // Idempotency: in-memory cache + database persistence
 // The in-memory Set acts as a fast-path to avoid DB lookups on every webhook.
@@ -80,116 +81,10 @@ export async function stripeWebhookHandler(req: Request, res: Response) {
       case 'payment_intent.succeeded': {
         const pi = event.data.object as Stripe.PaymentIntent
         const orderId = pi.metadata.order_id
-        if (orderId) {
-          // Look up seller trust for holdback
-          const { data: orderData } = await supabase
-            .from('orders')
-            .select('seller_id, buyer_id, amount, seller_payout')
-            .eq('id', orderId)
-            .single()
-
-          let holdbackPercent = 0
-          let payoutScheduledAt: string | null = null
-          let payoutMethod = 'stripe'
-
-          if (orderData) {
-            const { data: trust } = await supabase
-              .from('seller_trust')
-              .select('holdback_percent, payout_delay_days')
-              .eq('seller_id', orderData.seller_id)
-              .single()
-
-            if (trust) {
-              holdbackPercent = trust.holdback_percent
-              const payoutDate = new Date()
-              payoutDate.setDate(payoutDate.getDate() + trust.payout_delay_days)
-              payoutScheduledAt = payoutDate.toISOString()
-            }
-
-            // Check if seller uses PayPal
-            const { data: sellerInfo } = await supabase
-              .from('sellers')
-              .select('bank_choice, paypal_email')
-              .eq('id', orderData.seller_id)
-              .single()
-
-            if (sellerInfo?.bank_choice === 'paypal' && sellerInfo?.paypal_email) {
-              payoutMethod = 'paypal'
-            }
-          }
-
-          // Calculate ship deadline based on seller's shipping_delay_days
-          let shipDeadline: string | null = null
-          if (orderData) {
-            const { data: sellerDelay } = await supabase
-              .from('sellers')
-              .select('shipping_delay_days')
-              .eq('id', orderData.seller_id)
-              .single()
-            const delayDays = sellerDelay?.shipping_delay_days ?? 2
-            const deadline = new Date()
-            deadline.setDate(deadline.getDate() + delayDays)
-            shipDeadline = deadline.toISOString()
-          }
-
-          // Escrow: payment is held until delivery is confirmed
-          await supabase
-            .from('orders')
-            .update({
-              status: 'paid',
-              paid_at: new Date().toISOString(),
-              holdback_percent: holdbackPercent,
-              payout_scheduled_at: payoutScheduledAt,
-              payout_method: payoutMethod,
-              payout_status: 'held',
-              tracking_status: 'pending',
-              ship_deadline: shipDeadline,
-            })
-            .eq('id', orderId)
-
-          // If PayPal seller, create a paypal_payouts record (held until delivery)
-          if (payoutMethod === 'paypal' && orderData) {
-            const { data: sellerInfo } = await supabase
-              .from('sellers')
-              .select('paypal_email')
-              .eq('id', orderData.seller_id)
-              .single()
-
-            if (sellerInfo?.paypal_email) {
-              // Use stored seller_payout from order (accounts for promo code discounts)
-              const paypalPayoutAmount = orderData.seller_payout ?? calculateFees(orderData.amount).sellerPayout
-              await supabase.from('paypal_payouts').insert({
-                order_id: orderId,
-                seller_id: orderData.seller_id,
-                paypal_email: sellerInfo.paypal_email,
-                amount: paypalPayoutAmount,
-                currency: 'EUR',
-                status: 'pending',
-              })
-              if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${orderId} (${paypalPayoutAmount} EUR)`)
-            }
-          }
-
-          // Auto-create conversation between buyer and seller
-          if (orderData) {
-            const { data: existingConv } = await supabase
-              .from('conversations')
-              .select('id')
-              .eq('order_id', orderId)
-              .limit(1)
-              .single()
-
-            if (!existingConv) {
-              await supabase.from('conversations').insert({
-                type: 'order',
-                order_id: orderId,
-                participant_1: orderData.buyer_id,
-                participant_2: orderData.seller_id,
-              })
-            }
-          }
-
-          if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${orderId} marked as paid (holdback: ${holdbackPercent}%, payout: ${payoutMethod})`)
+        // Passage « payée » commun (idempotent) : délai de remise, code de retrait, conversation
+        if (orderId && pi.metadata.type !== 'shipping') {
+          const { updated } = await markOrderPaid(orderId)
+          if (updated && process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${orderId} marked as paid`)
         }
         break
       }

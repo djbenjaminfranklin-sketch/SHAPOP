@@ -5,6 +5,7 @@ import { supabase, stripe, APP_BASE_URL, PAYPAL_BASE_URL, PAYPAL_MODE, ADMIN_EMA
 import { requireAuth, paymentLimiter } from '../middleware'
 import { calculateFees, getPaypalAccessToken } from '../utils'
 import { getActivePromotion, getValidPromoCode } from './promotions'
+import { markOrderPaid } from '../services/orderLifecycle'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -351,8 +352,15 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       }
     }
 
-    // Shipping is now charged off-session when the seller generates the MR label (see shipping.ts)
-    const shippingCost = 0
+    // L'acheteur doit d'abord choisir retrait en main propre ou envoi par la poste
+    // (POST /api/orders/:id/fulfillment). Les frais de port sont payés MAINTENANT,
+    // avec l'article (plus de prélèvement après coup).
+    if (order.fulfillment_method !== 'pickup' && order.fulfillment_method !== 'post') {
+      res.status(400).json({ error: 'fulfillment_required' })
+      return
+    }
+    const shippingCost = order.fulfillment_method === 'post' ? Number(order.shipping_cost || 0) : 0
+    const currency = String(order.currency || 'ILS').toLowerCase()
 
     // Check for active promotions and apply discounts
     const activePromo = await getActivePromotion()
@@ -406,6 +414,12 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       }
     }
 
+    // Le vendeur paie la poste : les frais de port lui reviennent (hors commission)
+    if (shippingCost > 0) {
+      fees = { ...fees, sellerPayout: Math.round((fees.sellerPayout + shippingCost) * 100) / 100 }
+    }
+    totalAmount = Math.round((totalAmount + shippingCost) * 100) / 100
+
     const amountCents = Math.round(totalAmount * 100)
     const feeCents = Math.round(fees.totalFees * 100)
 
@@ -430,7 +444,7 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
 
     const piParams: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
-      currency: 'eur',
+      currency,
       metadata: {
         order_id: order.id,
         buyer_id: buyerId,
@@ -488,7 +502,6 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     // Update order with PaymentIntent ID, shipping cost, and total amount (+ mark paid if auto-charged)
     const updateData: Record<string, unknown> = {
       stripe_payment_intent_id: paymentIntent.id,
-      status: autoCharged ? 'paid' : 'pending_payment',
       payout_method: isPaypalSeller ? 'paypal' : 'stripe',
       shipping_cost: shippingCost,
       total_amount: totalAmount,
@@ -503,30 +516,14 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
       updateData.promo_code_id = promoCodeId
       updateData.promo_discount = promoDiscount
     }
-    if (autoCharged) {
-      updateData.paid_at = new Date().toISOString()
-      updateData.payout_status = 'held'
-      updateData.tracking_status = 'pending'
-    }
-
     const { error: dbUpdateError } = await supabase
       .from('orders')
       .update(updateData)
       .eq('id', order_id)
 
-    // If auto-charged + PayPal seller, create payout record immediately
-    if (autoCharged && isPaypalSeller && seller?.paypal_email) {
-      // Use already-calculated fees (accounts for promo code discounts)
-      const paypalPayoutAmount = fees.sellerPayout
-      await supabase.from('paypal_payouts').insert({
-        order_id: order_id,
-        seller_id: order.seller_id,
-        paypal_email: seller.paypal_email,
-        amount: paypalPayoutAmount,
-        currency: 'EUR',
-        status: 'pending',
-      })
-      if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Auto-charged: created payout record for order ${order_id}`)
+    // Débit automatique réussi : passage « payée » commun (code de retrait, délai de remise…)
+    if (autoCharged && !dbUpdateError) {
+      await markOrderPaid(order_id)
     }
 
     if (dbUpdateError) {
@@ -613,123 +610,8 @@ router.post('/api/stripe/confirm-payment', paymentLimiter, requireAuth, async (r
     const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id)
 
     if (paymentIntent.status === 'succeeded') {
-      // Look up seller trust for holdback
-      let holdbackPercent = 0
-      let payoutScheduledAt: string | null = null
-      let payoutMethod = 'stripe'
-
-      const { data: trust } = await supabase
-        .from('seller_trust')
-        .select('holdback_percent, payout_delay_days')
-        .eq('seller_id', order.seller_id)
-        .single()
-      if (trust) {
-        holdbackPercent = trust.holdback_percent
-        const payoutDate = new Date()
-        payoutDate.setDate(payoutDate.getDate() + trust.payout_delay_days)
-        payoutScheduledAt = payoutDate.toISOString()
-      }
-
-      // Check if seller uses PayPal
-      const { data: sellerInfo } = await supabase
-        .from('sellers')
-        .select('bank_choice, paypal_email')
-        .eq('id', order.seller_id)
-        .single()
-
-      if (sellerInfo?.bank_choice === 'paypal' && sellerInfo?.paypal_email) {
-        payoutMethod = 'paypal'
-      }
-
-      // Calculate ship deadline based on seller's shipping_delay_days
-      let shipDeadline: string | null = null
-      const { data: sellerDelay } = await supabase
-        .from('sellers')
-        .select('shipping_delay_days')
-        .eq('id', order.seller_id)
-        .single()
-      const delayDays = sellerDelay?.shipping_delay_days ?? 2
-      const deadline = new Date()
-      deadline.setDate(deadline.getDate() + delayDays)
-      shipDeadline = deadline.toISOString()
-
-      // Escrow: payment is held until delivery is confirmed (buyer confirms, tracking shows delivered, or 14-day auto-release)
-      await supabase
-        .from('orders')
-        .update({
-          status: 'paid',
-          paid_at: new Date().toISOString(),
-          holdback_percent: holdbackPercent,
-          payout_scheduled_at: payoutScheduledAt,
-          payout_method: payoutMethod,
-          payout_status: 'held',
-          tracking_status: 'pending',
-          ship_deadline: shipDeadline,
-        })
-        .eq('id', order_id)
-
-      // If PayPal seller, create a paypal_payouts record (status 'pending' — will become 'ready' when delivery confirmed)
-      if (payoutMethod === 'paypal' && sellerInfo?.paypal_email) {
-        // Use stored fees from order (accounts for promo code discounts), fallback to recalculation
-        const paypalPayoutAmount = order.seller_payout ?? calculateFees(order.amount).sellerPayout
-
-        // Check if payout record already exists (webhook may have created it)
-        const { data: existingPayout } = await supabase
-          .from('paypal_payouts')
-          .select('id')
-          .eq('order_id', order_id)
-          .maybeSingle()
-
-        if (!existingPayout) {
-          await supabase.from('paypal_payouts').insert({
-            order_id: order_id,
-            seller_id: order.seller_id,
-            paypal_email: sellerInfo.paypal_email,
-            amount: paypalPayoutAmount,
-            currency: 'EUR',
-            status: 'pending',
-          })
-          if (process.env.NODE_ENV !== 'production') console.log(`[PayPal] Created payout record for order ${order_id} (${paypalPayoutAmount} EUR, held until delivery)`)
-        }
-      }
-
-      // Auto-create conversation
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('id')
-        .eq('order_id', order_id)
-        .maybeSingle()
-
-      if (!existingConv) {
-        await supabase.from('conversations').insert({
-          type: 'order',
-          order_id: order_id,
-          participant_1: order.buyer_id,
-          participant_2: order.seller_id,
-        })
-      }
-
-      // Ensure seller has a trust record
-      const { data: existingTrust } = await supabase
-        .from('seller_trust')
-        .select('seller_id')
-        .eq('seller_id', order.seller_id)
-        .maybeSingle()
-      if (!existingTrust) {
-        await supabase.from('seller_trust').insert({ seller_id: order.seller_id })
-      }
-
-      // Ensure buyer has a score record
-      const { data: existingScore } = await supabase
-        .from('buyer_scores')
-        .select('user_id')
-        .eq('user_id', order.buyer_id)
-        .maybeSingle()
-      if (!existingScore) {
-        await supabase.from('buyer_scores').insert({ user_id: order.buyer_id })
-      }
-
-      if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${order_id} confirmed paid via direct check (payout: ${payoutMethod})`)
+      await markOrderPaid(order_id)
+      if (process.env.NODE_ENV !== 'production') console.log(`[Stripe] Order ${order_id} confirmed paid via direct check`)
       res.json({ success: true, status: 'paid' })
     } else if (paymentIntent.status === 'requires_action' || paymentIntent.status === 'requires_confirmation') {
       res.json({ success: false, status: paymentIntent.status, message: '3D Secure or additional action required' })

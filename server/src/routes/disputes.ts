@@ -13,7 +13,8 @@ const DisputeBody = z.object({
   reason: z.enum(['not_received', 'wrong_item', 'damaged', 'not_as_described', 'counterfeit']),
   description: z.string().min(20).max(2000),
   evidence_urls: z.array(z.string().url()).max(5).optional(),
-  photo_urls: z.array(z.string().url()).min(1, 'At least one photo is required').max(5),
+  // Photo obligatoire sauf pour « non reçu » (rien à photographier)
+  photo_urls: z.array(z.string().url()).max(5).optional(),
 })
 
 const SellerPhotosBody = z.object({
@@ -32,7 +33,7 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
     const { order_id, reason, description, evidence_urls, photo_urls } = parsed.data
     const buyerId = req.user!.id
 
-    if (!photo_urls || photo_urls.length === 0) {
+    if (reason !== 'not_received' && (!photo_urls || photo_urls.length === 0)) {
       res.status(400).json({ error: 'At least one photo is required to open a dispute' })
       return
     }
@@ -54,14 +55,20 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       return
     }
 
-    if (order.status !== 'delivered') {
-      res.status(400).json({ error: 'Un litige ne peut être ouvert que sur une commande livrée' })
+    // « Non reçu » : possible dès que la commande est payée (même si rien n'a été remis).
+    // Autres motifs : seulement une fois l'article remis / envoyé / livré.
+    const receivedStatuses = ['shipped', 'handed_over', 'delivered']
+    const allowed = reason === 'not_received'
+      ? ['paid', ...receivedStatuses].includes(order.status)
+      : receivedStatuses.includes(order.status)
+    if (!allowed) {
+      res.status(400).json({ error: reason === 'not_received' ? 'Un litige « non reçu » demande une commande payée' : 'Ce motif demande une commande remise ou envoyée' })
       return
     }
 
     // Check claim deadline (48h window)
     if (order.claim_deadline && new Date(order.claim_deadline) < new Date()) {
-      res.status(400).json({ error: 'Le délai de réclamation de 48h est dépassé' })
+      res.status(400).json({ error: 'Le délai de réclamation est dépassé' })
       return
     }
 
@@ -94,7 +101,7 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       reason,
       description,
       evidence_urls: evidence_urls || [],
-      photo_urls: photo_urls,
+      photo_urls: photo_urls || [],
       seller_photo_urls: [],
       status: autoRefund ? 'resolved_buyer' : 'under_review',
       auto_refund: autoRefund,

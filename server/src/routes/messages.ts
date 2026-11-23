@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { supabase, supabaseUrl } from '../config'
 import { requireAuth, messageLimiter } from '../middleware'
 import { escapeHtml, detectContactInfo, handleAutoSanction, notifyUser } from '../utils'
+import { isPaidStatus } from '../fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -458,7 +459,10 @@ router.post('/api/conversations/:id/messages', messageLimiter, requireAuth, asyn
     }
 
     const trimmed = message.trim().slice(0, 2000)
-    const flagReason = detectContactInfo(trimmed)
+    // Conversation liée à une commande PAYÉE : l'échange de coordonnées est permis
+    // (ni blocage ni sanction). Avant paiement, le blocage reste.
+    const paidOrderConversation = await isPaidOrderConversation(conv)
+    const flagReason = paidOrderConversation ? null : detectContactInfo(trimmed)
     const isFlagged = flagReason !== null
 
     const { data, error } = await supabase.from('conversation_messages').insert({
@@ -491,5 +495,12 @@ router.post('/api/conversations/:id/messages', messageLimiter, requireAuth, asyn
     res.status(500).json({ error: 'Internal server error' })
   }
 })
+
+/** La conversation est-elle rattachée à une commande payée ? */
+export async function isPaidOrderConversation(conv: { order_id?: string | null }): Promise<boolean> {
+  if (!conv?.order_id) return false
+  const { data: order } = await supabase.from('orders').select('status').eq('id', conv.order_id).maybeSingle()
+  return isPaidStatus(order?.status)
+}
 
 export default router

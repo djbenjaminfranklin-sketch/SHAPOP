@@ -1,23 +1,12 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { z } from 'zod'
 import { supabase, stripe } from '../config'
 import { requireAuth } from '../middleware'
-import { calculateFees, calculateShippingCost, getCarrierForZone, getZoneFromCountry, notifyUser, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
+import { calculateFees, notifyUser, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
+import { formatMoney, shortOrderRef } from '../fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
-
-const ShipOrderProof = z.object({
-  type: z.enum(['photo_package', 'photo_content', 'video_packing']),
-  url: z.string().url(),
-})
-
-const ShipOrderBody = z.object({
-  shipping_proof_url: z.string().url().optional(),
-  proofs: z.array(ShipOrderProof).max(10).optional(),
-  tracking_number: z.string().max(100).optional(),
-})
 
 // =============================================
 // POST /api/orders — create an order for a won auction item (auth required)
@@ -233,411 +222,9 @@ router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequ
   }
 })
 
-// Save shipping address + update order (bypasses RLS)
-router.post('/api/orders/:id/address', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orderId = req.params.id
-    const userId = req.user!.id
-    const { name, street, city, zip, phone, country } = req.body
-
-    if (!name || !street || !city || !zip) {
-      res.status(400).json({ error: 'Missing required address fields' })
-      return
-    }
-
-    // Verify order belongs to buyer
-    const { data: order } = await supabase
-      .from('orders')
-      .select('id, buyer_id')
-      .eq('id', orderId)
-      .eq('buyer_id', userId)
-      .single()
-
-    if (!order) {
-      res.status(404).json({ error: 'Order not found' })
-      return
-    }
-
-    const addr = { name, street, city, zip, phone: phone || '', country: country || 'FR' }
-
-    // Save/update default address
-    const { data: existing } = await supabase
-      .from('addresses')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('is_default', true)
-      .single()
-
-    if (existing) {
-      await supabase.from('addresses').update({ name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone }).eq('id', existing.id)
-    } else {
-      await supabase.from('addresses').insert({ name: addr.name, street: addr.street, city: addr.city, zip: addr.zip, phone: addr.phone, user_id: userId, is_default: true })
-    }
-
-    // Save shipping address on order (includes country)
-    await supabase
-      .from('orders')
-      .update({ shipping_address: addr })
-      .eq('id', orderId)
-
-    // Update carrier based on the address country
-    const zone = getZoneFromCountry(addr.country, addr.zip)
-    const carrier = getCarrierForZone(zone)
-    await supabase
-      .from('orders')
-      .update({ carrier })
-      .eq('id', orderId)
-
-    res.json({ success: true, carrier, zone })
-  } catch (err: any) {
-    console.error('Save address error:', err?.message || err)
-    res.status(500).json({ error: 'Failed to save address' })
-  }
-})
-
-// Auto-assign carrier based on buyer's shipping zone
-router.post('/api/orders/:id/carrier', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orderId = req.params.id
-    const userId = req.user!.id
-
-    // Verify order belongs to buyer
-    const { data: order } = await supabase
-      .from('orders')
-      .select('id, buyer_id, item_id, status, shipping_address')
-      .eq('id', orderId)
-      .eq('buyer_id', userId)
-      .single()
-
-    if (!order) {
-      res.status(404).json({ error: 'Order not found' })
-      return
-    }
-
-    if (order.status !== 'pending_payment') {
-      res.status(400).json({ error: 'Carrier can only be set before payment' })
-      return
-    }
-
-    // Determine shipping zone from buyer's address
-    let buyerCountry: string | undefined
-    let buyerZip: string | undefined
-
-    if (order.shipping_address) {
-      const addr = order.shipping_address as Record<string, string>
-      buyerCountry = addr.country
-      buyerZip = addr.zip
-    }
-
-    if (!buyerCountry) {
-      const { data: buyerProfile } = await supabase
-        .from('profiles')
-        .select('country')
-        .eq('id', userId)
-        .single()
-      buyerCountry = buyerProfile?.country || undefined
-    }
-
-    const zone = getZoneFromCountry(buyerCountry, buyerZip)
-    const carrier = getCarrierForZone(zone)
-
-    // Get item weight to calculate shipping cost
-    let shippingCost = 0
-    if (order.item_id) {
-      const { data: item } = await supabase
-        .from('items')
-        .select('weight_grams')
-        .eq('id', order.item_id)
-        .single()
-
-      if (item?.weight_grams) {
-        shippingCost = calculateShippingCost(item.weight_grams, carrier, zone)
-      }
-    }
-
-    await supabase
-      .from('orders')
-      .update({
-        carrier,
-        shipping_cost: shippingCost,
-        total_amount: Math.round(((order as Record<string, unknown>).amount as number + shippingCost) * 100) / 100,
-      })
-      .eq('id', orderId)
-
-    res.json({ success: true, carrier, shipping_cost: shippingCost, zone })
-  } catch (err: any) {
-    console.error('Set carrier error:', err?.message || err)
-    res.status(500).json({ error: 'Failed to set carrier' })
-  }
-})
-
-// Seller marks order as shipped with proof photo(s)
-router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const parsed = ShipOrderBody.safeParse(req.body)
-    if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors })
-      return
-    }
-
-    const { shipping_proof_url, proofs, tracking_number } = parsed.data
-    const orderId = req.params.id
-
-    if (!shipping_proof_url && (!proofs || proofs.length === 0)) {
-      res.status(400).json({ error: 'At least one shipping proof is required' })
-      return
-    }
-
-    // Fetch the order
-    const { data: order, error: fetchErr } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .single()
-
-    if (fetchErr || !order) {
-      res.status(404).json({ error: 'Order not found' })
-      return
-    }
-
-    if (order.seller_id !== req.user!.id) {
-      res.status(403).json({ error: 'Only the seller can mark this order as shipped' })
-      return
-    }
-
-    if (!order.shipping_address) {
-      res.status(400).json({ error: 'Shipping address required before shipping' })
-      return
-    }
-
-    if (order.status !== 'paid') {
-      res.status(400).json({ error: 'Only paid orders can be shipped' })
-      return
-    }
-
-    // Validate proofs against seller trust proof_level
-    if (proofs && proofs.length > 0) {
-      const { data: trust } = await supabase
-        .from('seller_trust')
-        .select('proof_level, trust_level')
-        .eq('seller_id', req.user!.id)
-        .single()
-
-      const proofLevel = trust?.proof_level || 'enhanced'
-      const trustLevel = trust?.trust_level || 'new'
-      const amount = order.amount
-
-      // Determine required proofs
-      let requiredTypes: string[] = []
-      if (proofLevel === 'basic' && amount < 20 && ['trusted', 'premium'].includes(trustLevel)) {
-        requiredTypes = ['photo_package']
-      } else if (proofLevel === 'standard' || (amount >= 20 && amount <= 100)) {
-        requiredTypes = ['photo_package', 'photo_content']
-      } else {
-        // enhanced: > 100EUR or trust new
-        requiredTypes = ['photo_package', 'photo_content', 'video_packing']
-      }
-
-      const proofTypes = proofs.map(p => p.type) as string[]
-      const missingTypes = requiredTypes.filter(t => !proofTypes.includes(t))
-      if (missingTypes.length > 0) {
-        res.status(400).json({
-          error: `Preuves manquantes: ${missingTypes.join(', ')}`,
-          required: requiredTypes,
-          provided: proofTypes,
-        })
-        return
-      }
-
-      // Insert shipping proofs
-      const proofInserts = proofs.map(p => ({
-        order_id: orderId,
-        seller_id: req.user!.id,
-        type: p.type,
-        url: p.url,
-      }))
-      await supabase.from('shipping_proofs').insert(proofInserts)
-    }
-
-    const updateData: Record<string, unknown> = {
-      status: 'shipped',
-      shipped_at: new Date().toISOString(),
-      shipping_proof_url: shipping_proof_url || (proofs && proofs.length > 0 ? proofs[0].url : null),
-    }
-    if (tracking_number) {
-      updateData.tracking_number = tracking_number
-    }
-
-    const { data: updated, error: updateErr } = await supabase
-      .from('orders')
-      .update(updateData)
-      .eq('id', orderId)
-      .select('*')
-      .single()
-
-    if (updateErr) {
-      res.status(500).json({ error: 'Failed to update order' })
-      return
-    }
-
-    res.json(updated)
-  } catch (err) {
-    console.error('[orders]', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-})
-
-// Buyer confirms delivery
-router.post('/api/orders/:id/confirm-delivery', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const orderId = req.params.id
-
-    const { data: order, error: fetchErr } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', orderId)
-      .single()
-
-    if (fetchErr || !order) {
-      res.status(404).json({ error: 'Order not found' })
-      return
-    }
-
-    if (order.buyer_id !== req.user!.id) {
-      res.status(403).json({ error: 'Only the buyer can confirm delivery' })
-      return
-    }
-
-    if (order.status !== 'shipped') {
-      res.status(400).json({ error: 'Only shipped orders can be confirmed as delivered' })
-      return
-    }
-
-    const now = new Date()
-    const claimDeadline = new Date(now.getTime() + 48 * 60 * 60 * 1000) // 48h from now
-
-    // Get seller trust for payout delay
-    let payoutScheduledAt: string | null = order.payout_scheduled_at || null
-    if (!payoutScheduledAt) {
-      const { data: trust } = await supabase
-        .from('seller_trust')
-        .select('payout_delay_days')
-        .eq('seller_id', order.seller_id)
-        .single()
-      const delayDays = trust?.payout_delay_days || 7
-      const payoutDate = new Date(now.getTime() + delayDays * 24 * 60 * 60 * 1000)
-      payoutScheduledAt = payoutDate.toISOString()
-    }
-
-    const { data: updated, error: updateErr } = await supabase
-      .from('orders')
-      .update({
-        status: 'delivered',
-        delivered_at: now.toISOString(),
-        claim_deadline: claimDeadline.toISOString(),
-        payout_scheduled_at: payoutScheduledAt,
-      })
-      .eq('id', orderId)
-      .select('*')
-      .single()
-
-    if (updateErr) {
-      res.status(500).json({ error: 'Failed to update order' })
-      return
-    }
-
-    // Update seller trust stats
-    const { data: trust } = await supabase
-      .from('seller_trust')
-      .select('*')
-      .eq('seller_id', order.seller_id)
-      .single()
-    if (trust) {
-      const shipTime = order.shipped_at && order.paid_at
-        ? (new Date(order.shipped_at).getTime() - new Date(order.paid_at).getTime()) / (1000 * 60 * 60)
-        : 0
-      const newTotal = trust.total_completed_orders + 1
-      const newAvgShip = ((trust.avg_ship_time_hours * trust.total_completed_orders) + shipTime) / newTotal
-      await supabase
-        .from('seller_trust')
-        .update({
-          total_completed_orders: newTotal,
-          avg_ship_time_hours: Math.round(newAvgShip * 10) / 10,
-          updated_at: now.toISOString(),
-        })
-        .eq('seller_id', order.seller_id)
-    }
-
-    // Update buyer score total_orders
-    const { data: buyerScore } = await supabase
-      .from('buyer_scores')
-      .select('*')
-      .eq('user_id', order.buyer_id)
-      .single()
-    if (buyerScore) {
-      await supabase
-        .from('buyer_scores')
-        .update({ total_orders: buyerScore.total_orders + 1, updated_at: now.toISOString() })
-        .eq('user_id', order.buyer_id)
-    } else {
-      await supabase.from('buyer_scores').insert({
-        user_id: order.buyer_id,
-        total_orders: 1,
-      })
-    }
-
-    // Award loyalty points (1 point per EUR)
-    const loyaltyPoints = Math.floor(order.amount)
-    if (loyaltyPoints > 0) {
-      const { data: loyalty } = await supabase
-        .from('loyalty_points')
-        .select('*')
-        .eq('user_id', order.buyer_id)
-        .single()
-
-      if (loyalty) {
-        const newPoints = (loyalty.points || 0) + loyaltyPoints
-        const newEarned = (loyalty.total_earned || 0) + loyaltyPoints
-        // Determine tier based on total_earned
-        let tier = 'bronze'
-        if (newEarned >= 1000) tier = 'platinum'
-        else if (newEarned >= 500) tier = 'gold'
-        else if (newEarned >= 100) tier = 'silver'
-
-        await supabase.from('loyalty_points').update({
-          points: newPoints,
-          total_earned: newEarned,
-          tier,
-          updated_at: now.toISOString(),
-        }).eq('user_id', order.buyer_id)
-      } else {
-        let tier = 'bronze'
-        if (loyaltyPoints >= 1000) tier = 'platinum'
-        else if (loyaltyPoints >= 500) tier = 'gold'
-        else if (loyaltyPoints >= 100) tier = 'silver'
-
-        await supabase.from('loyalty_points').insert({
-          user_id: order.buyer_id,
-          points: loyaltyPoints,
-          total_earned: loyaltyPoints,
-          tier,
-        })
-      }
-
-      // Insert loyalty transaction record
-      await supabase.from('loyalty_transactions').insert({
-        user_id: order.buyer_id,
-        points: loyaltyPoints,
-        reason: `Earned ${loyaltyPoints} points from order delivery`,
-      })
-    }
-
-    res.json(updated)
-  } catch (err) {
-    console.error('[orders]', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
-})
+// Choix retrait / poste, adresse, code de remise et photos d'envoi : voir routes/fulfillment.ts.
+// (Les anciennes routes /address, /carrier, /ship et /confirm-delivery sont supprimées :
+//  confirm-delivery était un doublon qui ne libérait pas le paiement.)
 
 // =============================================
 // RETURN / REFUND REQUESTS
@@ -670,8 +257,8 @@ router.post('/api/orders/:id/request-return', requireAuth, async (req: Authentic
       return
     }
 
-    if (order.status !== 'delivered') {
-      res.status(400).json({ error: 'Returns can only be requested for delivered orders' })
+    if (!['delivered', 'handed_over', 'shipped'].includes(order.status)) {
+      res.status(400).json({ error: 'Returns can only be requested for received orders' })
       return
     }
 
@@ -893,19 +480,19 @@ router.post('/api/orders/:id/conversation', requireAuth, async (req: Authenticat
 })
 
 // =============================================
-// CRON: Auto-cancel overdue orders (seller didn't ship before ship_deadline)
-// Called from index.ts every hour
+// CRON « délai de remise » : sans preuve (code saisi ou 2 photos) avant
+// handover_deadline (par défaut 4 jours après paiement) → annulation + remboursement.
+// Appelé toutes les heures depuis index.ts.
 // =============================================
 export async function cancelOverdueOrders(): Promise<number> {
   const now = new Date().toISOString()
 
-  // Find paid orders where ship_deadline has passed and seller hasn't shipped
   const { data: overdueOrders, error } = await supabase
     .from('orders')
-    .select('id, buyer_id, seller_id, amount, total_amount, stripe_payment_intent_id, ship_deadline')
+    .select('id, buyer_id, seller_id, amount, total_amount, currency, stripe_payment_intent_id, handover_deadline')
     .eq('status', 'paid')
-    .not('ship_deadline', 'is', null)
-    .lt('ship_deadline', now)
+    .not('handover_deadline', 'is', null)
+    .lt('handover_deadline', now)
     .limit(50)
 
   if (error || !overdueOrders || overdueOrders.length === 0) return 0
@@ -914,7 +501,15 @@ export async function cancelOverdueOrders(): Promise<number> {
 
   for (const order of overdueOrders) {
     try {
-      // Refund the buyer via Stripe
+      // Statut d'abord (garde : seulement si toujours « payée »), puis remboursement
+      const { data: rows } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled', payout_status: 'cancelled' })
+        .eq('id', order.id)
+        .eq('status', 'paid')
+        .select('id')
+      if (!rows || rows.length === 0) continue
+
       if (order.stripe_payment_intent_id) {
         await stripe.refunds.create({
           payment_intent: order.stripe_payment_intent_id,
@@ -922,44 +517,24 @@ export async function cancelOverdueOrders(): Promise<number> {
         })
       }
 
-      // Update order status to cancelled
-      await supabase
-        .from('orders')
-        .update({
-          status: 'cancelled',
-          payout_status: 'cancelled',
-        })
-        .eq('id', order.id)
-
-      // Cancel any pending PayPal payout
       await supabase
         .from('paypal_payouts')
         .update({ status: 'cancelled' })
         .eq('order_id', order.id)
         .eq('status', 'pending')
 
-      // Notify buyer — refund
-      notifyUser(
-        order.buyer_id,
-        'order_cancelled',
-        'Commande annulee — remboursement',
-        'Le vendeur n\'a pas expedie a temps. Vous avez ete rembourse.',
-        { order_id: order.id },
-      )
-
-      // Notify seller — lost sale
-      notifyUser(
-        order.seller_id,
-        'order_cancelled',
-        'Vente annulee — delai depasse',
-        'Vous n\'avez pas expedie la commande dans le delai. La vente est annulee et l\'acheteur a ete rembourse.',
-        { order_id: order.id },
-      )
+      const ref = shortOrderRef(order.id)
+      notifyUser(order.buyer_id, 'order_cancelled', `Commande ${ref} annulée — remboursée`,
+        `Le vendeur n'a pas remis la commande à temps. Tu as été remboursé (${formatMoney(order.total_amount ?? order.amount, order.currency)}).`,
+        { order_id: order.id })
+      notifyUser(order.seller_id, 'order_cancelled', `Vente ${ref} annulée — délai dépassé`,
+        'La commande n\'a pas été remise dans le délai (code de retrait ou photos d\'envoi). La vente est annulée et l\'acheteur remboursé.',
+        { order_id: order.id })
 
       cancelled++
-      console.log(`[Ship-Deadline] Order ${order.id} auto-cancelled + refunded (deadline was ${order.ship_deadline})`)
+      console.log(`[Handover-Deadline] Order ${order.id} auto-cancelled + refunded (deadline was ${order.handover_deadline})`)
     } catch (err) {
-      console.error(`[Ship-Deadline] Failed to cancel order ${order.id}:`, err)
+      console.error(`[Handover-Deadline] Failed to cancel order ${order.id}:`, err)
     }
   }
 
@@ -967,34 +542,36 @@ export async function cancelOverdueOrders(): Promise<number> {
 }
 
 // =============================================
-// CRON: Remind sellers 24h before ship deadline
+// CRON : rappel au vendeur 24 h avant la fin du délai de remise (une seule fois)
 // =============================================
-export async function remindShipDeadline(): Promise<number> {
+export async function remindHandoverDeadline(): Promise<number> {
   const now = new Date()
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000)
 
-  // Find paid orders where deadline is within the next 24h and seller hasn't shipped
-  // Exclude orders already reminded (we use a simple check: deadline between now and now+24h)
   const { data: urgentOrders, error } = await supabase
     .from('orders')
-    .select('id, seller_id, ship_deadline')
+    .select('id, seller_id, fulfillment_method, handover_deadline')
     .eq('status', 'paid')
-    .not('ship_deadline', 'is', null)
-    .gt('ship_deadline', now.toISOString())
-    .lt('ship_deadline', in24h.toISOString())
+    .is('handover_reminder_sent_at', null)
+    .not('handover_deadline', 'is', null)
+    .gt('handover_deadline', now.toISOString())
+    .lt('handover_deadline', in24h.toISOString())
     .limit(50)
 
   if (error || !urgentOrders || urgentOrders.length === 0) return 0
 
   let reminded = 0
-
   for (const order of urgentOrders) {
     try {
+      await supabase.from('orders').update({ handover_reminder_sent_at: now.toISOString() }).eq('id', order.id)
+      const ref = shortOrderRef(order.id)
       notifyUser(
         order.seller_id,
-        'ship_reminder',
-        'Rappel : expedier avant demain',
-        'Votre commande doit etre expediee dans les 24 prochaines heures, sinon elle sera annulee automatiquement.',
+        'handover_reminder',
+        `Rappel : commande ${ref} à remettre avant demain`,
+        order.fulfillment_method === 'pickup'
+          ? 'Saisis le code de l\'acheteur au moment de la remise, sinon la commande sera annulée et remboursée.'
+          : 'Envoie les 2 photos (colis ouvert + bordereau tamponné), sinon la commande sera annulée et remboursée.',
         { order_id: order.id },
       )
       reminded++
@@ -1002,7 +579,6 @@ export async function remindShipDeadline(): Promise<number> {
       // ignore notification errors
     }
   }
-
   return reminded
 }
 
@@ -1017,7 +593,7 @@ export async function remindPendingPayments(): Promise<number> {
   // Find pending_payment orders created between 24h and 48h ago (remind once)
   const { data: pendingOrders, error } = await supabase
     .from('orders')
-    .select('id, buyer_id, amount, item_id')
+    .select('id, buyer_id, amount, currency, item_id')
     .eq('status', 'pending_payment')
     .lt('created_at', oneDayAgo)
     .gt('created_at', twoDaysAgo)
@@ -1045,7 +621,7 @@ export async function remindPendingPayments(): Promise<number> {
         order.buyer_id,
         'payment_reminder',
         'Paiement en attente',
-        `N'oubliez pas de payer votre article "${item?.title || 'Article'}" (${order.amount}€)`,
+        `N'oublie pas de payer ton article "${item?.title || 'Article'}" (${formatMoney(order.amount, order.currency)})`,
         { order_id: order.id },
       )
       reminded++

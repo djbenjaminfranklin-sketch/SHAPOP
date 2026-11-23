@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { supabase, STREAMS_SAFE_COLUMNS, ADMIN_EMAILS } from '../config'
 import { requireAuth, reportLimiter, createLimiter } from '../middleware'
 import { notifyUser } from '../utils'
+import { HANDOVER_DELAY_ALLOWED_DAYS, HANDOVER_DELAY_DEFAULT_DAYS } from '../fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -693,7 +694,7 @@ router.get('/api/seller/dashboard', requireAuth, async (req: AuthenticatedReques
 })
 
 // =============================================
-// SELLER SHIPPING DELAY
+// DÉLAI DE REMISE DU VENDEUR (colonne historique sellers.shipping_delay_days)
 // =============================================
 
 // GET /api/seller/shipping-delay — get the seller's shipping delay
@@ -708,7 +709,7 @@ router.get('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedR
 
     if (error && error.code === 'PGRST116') {
       // Seller record not found — return default
-      res.json({ shipping_delay_days: 2 })
+      res.json({ shipping_delay_days: HANDOVER_DELAY_DEFAULT_DAYS })
       return
     }
     if (error) {
@@ -716,7 +717,7 @@ router.get('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedR
       return
     }
 
-    res.json({ shipping_delay_days: data.shipping_delay_days ?? 2 })
+    res.json({ shipping_delay_days: data.shipping_delay_days ?? HANDOVER_DELAY_DEFAULT_DAYS })
   } catch (err) {
     console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -734,7 +735,7 @@ router.put('/api/seller/shipping-delay', requireAuth, async (req: AuthenticatedR
       return
     }
 
-    const allowed = [1, 2, 3, 4]
+    const allowed = HANDOVER_DELAY_ALLOWED_DAYS
     if (!allowed.includes(shipping_delay_days)) {
       res.status(400).json({ error: `shipping_delay_days must be one of: ${allowed.join(', ')}` })
       return
@@ -786,11 +787,11 @@ router.get('/api/seller/:id/shipping-delay', async (req: Request, res: Response)
       .single()
 
     if (error || !data) {
-      res.json({ shipping_delay_days: 2 })
+      res.json({ shipping_delay_days: HANDOVER_DELAY_DEFAULT_DAYS })
       return
     }
 
-    res.json({ shipping_delay_days: data.shipping_delay_days ?? 2 })
+    res.json({ shipping_delay_days: data.shipping_delay_days ?? HANDOVER_DELAY_DEFAULT_DAYS })
   } catch (err) {
     console.error('[users]', err)
     res.status(500).json({ error: 'Internal server error' })

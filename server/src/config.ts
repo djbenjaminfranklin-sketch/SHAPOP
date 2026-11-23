@@ -23,9 +23,6 @@ export const VAT_RATE = 0.20               // 20% TVA (France)
 export const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
 export const APP_BASE_URL = process.env.APP_BASE_URL || 'https://shapop.app'
 
-// Shipping delay: default 2 days, max 4 days — auto-cancel + refund if seller doesn't ship
-export const SHIPPING_DELAY_DEFAULT = 2
-export const SHIPPING_DELAY_MAX = 4
 
 // Safe column list for streams table (mux_stream_id/playback_id/asset_id kept for historical data).
 export const STREAMS_SAFE_COLUMNS = 'id, seller_id, cohost_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_stream_id, mux_playback_id, mux_asset_id, created_at, livekit_room_name, recording_url'
@@ -83,26 +80,6 @@ export const livekitWebhookReceiver = (LIVEKIT_API_KEY && LIVEKIT_API_SECRET)
 if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
   console.warn('WARNING: LIVEKIT_API_KEY, LIVEKIT_API_SECRET, or LIVEKIT_URL not set — LiveKit features will fail')
 }
-
-// =============================================
-// La Poste Tracking API (optional)
-// =============================================
-export const LAPOSTE_API_KEY = process.env.LAPOSTE_API_KEY || ''
-
-// =============================================
-// Mondial Relay API
-// SOAP v1 (relay point search + tracking): ENSEIGNE + PRIVATE_KEY
-// REST v2 (shipment creation + labels): API2_LOGIN + API2_PASSWORD + CUSTOMER_ID
-// =============================================
-export const MONDIAL_RELAY_ENSEIGNE = process.env.MONDIAL_RELAY_ENSEIGNE || ''
-export const MONDIAL_RELAY_PRIVATE_KEY = process.env.MONDIAL_RELAY_PRIVATE_KEY || ''
-
-// =============================================
-// Sendcloud API (multi-carrier shipping)
-// =============================================
-export const SENDCLOUD_PUBLIC_KEY = process.env.SENDCLOUD_PUBLIC_KEY || ''
-export const SENDCLOUD_SECRET_KEY = process.env.SENDCLOUD_SECRET_KEY || ''
-export const SENDCLOUD_ENABLED = !!(SENDCLOUD_PUBLIC_KEY && SENDCLOUD_SECRET_KEY)
 
 // =============================================
 // Admin config

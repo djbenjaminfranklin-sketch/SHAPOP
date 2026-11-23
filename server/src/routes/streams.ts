@@ -6,6 +6,7 @@ import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SE
 import { EncodedFileOutput, S3Upload, StreamOutput, StreamProtocol } from 'livekit-server-sdk'
 import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore } from '../utils'
+import { sellerHasWhatsapp } from './fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -168,6 +169,12 @@ router.post('/api/streams', createLimiter, requireAuth, async (req: Authenticate
     } else if (sellerError) {
       console.error('Seller check error:', sellerError)
       res.status(500).json({ error: 'Failed to verify seller record' })
+      return
+    }
+
+    // Numéro WhatsApp obligatoire pour vendre (mise en relation après paiement)
+    if (!(await sellerHasWhatsapp(userId))) {
+      res.status(400).json({ error: 'whatsapp_required' })
       return
     }
 

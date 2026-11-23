@@ -15,16 +15,14 @@ import authRoutes from './routes/auth'
 import streamRoutes from './routes/streams'
 import itemRoutes from './routes/items'
 import orderRoutes from './routes/orders'
-import { cancelOverdueOrders, remindShipDeadline, remindPendingPayments } from './routes/orders'
+import { cancelOverdueOrders, remindHandoverDeadline, remindPendingPayments } from './routes/orders'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
 import messageRoutes from './routes/messages'
 import notificationRoutes from './routes/notifications'
 import userRoutes from './routes/users'
 import disputeRoutes from './routes/disputes'
-import trackingRoutes from './routes/tracking'
-import { checkTrackingStatuses } from './routes/tracking'
-import shippingRoutes, { sendcloudWebhookHandler } from './routes/shipping'
+import fulfillmentRoutes from './routes/fulfillment'
 import adminRoutes from './routes/admin'
 import analyticsRoutes from './routes/analytics'
 import promotionRoutes from './routes/promotions'
@@ -83,9 +81,6 @@ app.post('/api/webhooks/livekit', webhookLimiter, express.raw({ type: 'applicati
 // PayPal webhook uses express.json() (registered inline with its own parser)
 app.post('/api/paypal/webhook', express.json(), paypalWebhookHandler as express.RequestHandler)
 
-// Sendcloud webhook needs raw body for HMAC-SHA256 signature verification
-app.post('/api/webhooks/sendcloud', webhookLimiter, express.raw({ type: 'application/json' }), sendcloudWebhookHandler as express.RequestHandler)
-
 // Body parsing + compression (AFTER webhook raw body routes)
 app.use(express.json({ limit: '10mb' }))
 app.use(compression())
@@ -112,8 +107,7 @@ app.use(messageRoutes)
 app.use(notificationRoutes)
 app.use(userRoutes)
 app.use(disputeRoutes)
-app.use(trackingRoutes)
-app.use(shippingRoutes)
+app.use(fulfillmentRoutes)
 app.use(adminRoutes)
 app.use(analyticsRoutes)
 app.use(promotionRoutes)
@@ -155,29 +149,17 @@ server.listen(PORT, () => {
     }, 4 * 60 * 60 * 1000) // 4 hours
   }
 
-  // Check tracking statuses every 2 hours (La Poste API + auto-release fallback)
-  console.log('[Tracking] Periodic tracking check enabled (every 2h)')
-  setInterval(async () => {
-    try {
-      const count = await checkTrackingStatuses()
-      if (count > 0) {
-        if (process.env.NODE_ENV !== 'production') console.log(`[Tracking] Auto-updated ${count} order(s)`)
-      }
-    } catch (err) {
-      console.error('[Tracking] Auto-check error:', err)
-    }
-  }, 2 * 60 * 60 * 1000) // 2 hours
-
-  // Auto-cancel overdue orders every hour (seller didn't ship before deadline)
-  console.log('[Ship-Deadline] Overdue order check enabled (every 1h)')
+  // Délai de remise : rappel au vendeur puis annulation + remboursement si aucune preuve
+  // (code de retrait saisi ou 2 photos d'envoi) n'est fournie à temps. Toutes les heures.
+  console.log('[Handover-Deadline] Overdue handover check enabled (every 1h)')
   setInterval(async () => {
     try {
       const cancelled = await cancelOverdueOrders()
-      if (cancelled > 0) console.log(`[Ship-Deadline] Auto-cancelled ${cancelled} overdue order(s)`)
-      const reminded = await remindShipDeadline()
-      if (reminded > 0) console.log(`[Ship-Deadline] Reminded ${reminded} seller(s) about upcoming deadline`)
+      if (cancelled > 0) console.log(`[Handover-Deadline] Auto-cancelled ${cancelled} overdue order(s)`)
+      const reminded = await remindHandoverDeadline()
+      if (reminded > 0) console.log(`[Handover-Deadline] Reminded ${reminded} seller(s)`)
     } catch (err) {
-      console.error('[Ship-Deadline] Error:', err)
+      console.error('[Handover-Deadline] Error:', err)
     }
   }, 60 * 60 * 1000) // 1 hour
 

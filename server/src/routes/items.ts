@@ -830,17 +830,8 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
       return
     }
 
-    // Check buyer has at least one shipping address
-    const { data: addresses } = await supabase
-      .from('addresses')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1)
-
-    if (!addresses || addresses.length === 0) {
-      res.status(403).json({ error: 'address_required' })
-      return
-    }
+    // Plus d'adresse exigée pour enchérir : elle n'est demandée qu'au paiement,
+    // et seulement pour un envoi par la poste.
 
     // Find previous top bidder before inserting the new bid (for outbid notification)
     const { data: previousTopBid } = await supabase
@@ -1071,17 +1062,8 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
       return
     }
 
-    // Check buyer has at least one shipping address
-    const { data: addresses } = await supabase
-      .from('addresses')
-      .select('id')
-      .eq('user_id', userId)
-      .limit(1)
-
-    if (!addresses || addresses.length === 0) {
-      res.status(403).json({ error: 'address_required' })
-      return
-    }
+    // Plus d'adresse exigée pour enchérir : elle n'est demandée qu'au paiement,
+    // et seulement pour un envoi par la poste.
 
     // Upsert pre_bid
     const { data: upsertData, error: upsertError } = await supabase.from('pre_bids').upsert({

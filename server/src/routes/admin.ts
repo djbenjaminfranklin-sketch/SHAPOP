@@ -879,17 +879,19 @@ router.post('/api/admin/run-automations', requireAdmin, async (req: Authenticate
       results.stale_orders_cancelled++
     }
 
-    // 0b. Auto-cancel paid orders without shipping address after 3 days (-15 buyer score + refund)
+    // 0b. Envoi par la poste payé sans adresse (ne devrait plus arriver : l'adresse est
+    // exigée au paiement) → remboursement après 3 jours. Le retrait en main propre n'a
+    // jamais d'adresse : il n'est PAS concerné.
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
     const { data: noAddressOrders } = await supabase
       .from('orders')
       .select('id, buyer_id, stripe_payment_intent_id, status')
       .eq('status', 'paid')
+      .eq('fulfillment_method', 'post')
       .is('shipping_address', null)
       .lt('paid_at', threeDaysAgo)
 
     for (const order of (noAddressOrders || [])) {
-      // Refund the buyer since they paid but never provided address (skip if already refunded)
       if (order.stripe_payment_intent_id && order.status !== 'refunded') {
         try { await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id }) } catch { /* ignore */ }
       }
@@ -901,36 +903,40 @@ router.post('/api/admin/run-automations', requireAdmin, async (req: Authenticate
     if (results.stale_orders_cancelled > 0 && process.env.NODE_ENV !== 'production') console.log(`[automations] Cancelled ${results.stale_orders_cancelled} stale pending_payment orders`)
     if (results.no_address_cancelled > 0 && process.env.NODE_ENV !== 'production') console.log(`[automations] Refunded ${results.no_address_cancelled} paid orders without address`)
 
-    // 1. Auto-confirm delivery if shipped > 14 days without dispute
+    // 1. Envoi par la poste : 14 jours après l'envoi PROUVÉ (2 photos), la commande est
+    // close comme « livrée ». Jamais sans preuve (les anciennes commandes transporteur
+    // sans photos restent telles quelles). L'argent a déjà été libéré à la preuve.
     const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const { data: autoConfirmOrders } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, shipped_at')
+      .select('id')
       .eq('status', 'shipped')
-      .neq('status', 'disputed')
-      .lt('shipped_at', fourteenDaysAgo)
+      .eq('fulfillment_method', 'post')
+      .not('proof_submitted_at', 'is', null)
+      .lt('proof_submitted_at', fourteenDaysAgo)
 
     for (const order of (autoConfirmOrders || [])) {
-      const claimDeadline = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
       await supabase.from('orders').update({
         status: 'delivered',
         delivered_at: new Date().toISOString(),
-        claim_deadline: claimDeadline,
-      }).eq('id', order.id)
+      }).eq('id', order.id).eq('status', 'shipped')
       results.auto_confirmed++
     }
 
-    // 2. Close claim windows + release payouts
+    // 2. Anciennes commandes « livrées » restées en attente : libération seulement si une
+    // preuve existe (code saisi ou photos d'envoi).
     const { data: expiredClaims } = await supabase
       .from('orders')
-      .select('id, seller_id')
+      .select('id, handed_over_at, proof_submitted_at')
       .eq('status', 'delivered')
       .eq('payout_status', 'pending')
       .lt('claim_deadline', new Date().toISOString())
 
     for (const order of (expiredClaims || [])) {
+      if (!order.handed_over_at && !order.proof_submitted_at) continue
       await supabase.from('orders').update({
         payout_status: 'released',
+        payout_released_at: new Date().toISOString(),
       }).eq('id', order.id)
       results.claim_windows_closed++
     }
