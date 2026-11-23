@@ -33,7 +33,7 @@ const content: Localized<AboutText> = {
     features: [
       { icon: 'video', title: 'Live streams', desc: 'Watch sellers show their products in real time. Ask questions, negotiate and buy instantly.' },
       { icon: 'map', title: 'Local first', desc: 'Discover sellers near you on our interactive map. Support local businesses and save on shipping.' },
-      { icon: 'shield', title: 'Buyer protection', desc: '14-day return policy on all purchases. Secure payments with bank-level encryption.' },
+      { icon: 'shield', title: 'Buyer protection', desc: 'ShaPop holds your payment until the handover is proven: 4-digit code in person, or two photos for a shipment by post.' },
       { icon: 'zap', title: 'Instant selling', desc: 'Go live in seconds. No listing fees, no waiting. Start selling today.' },
     ],
     version: 'Version',
@@ -55,7 +55,7 @@ const content: Localized<AboutText> = {
     features: [
       { icon: 'video', title: 'Lives', desc: 'Regarde les vendeurs présenter leurs produits en temps réel. Pose tes questions, négocie et achète en un instant.' },
       { icon: 'map', title: 'Le local d\'abord', desc: 'Découvre les vendeurs près de chez toi sur notre carte interactive. Soutiens les commerces locaux et économise sur la livraison.' },
-      { icon: 'shield', title: 'Protection acheteur', desc: 'Retours possibles pendant 14 jours sur tous les achats. Paiements sécurisés avec un chiffrement de niveau bancaire.' },
+      { icon: 'shield', title: 'Protection acheteur', desc: 'ShaPop garde ton paiement de côté jusqu’à la preuve de la remise : code à 4 chiffres en main propre, ou deux photos pour un envoi postal.' },
       { icon: 'zap', title: 'Vente instantanée', desc: 'Passe en live en quelques secondes. Pas de frais de mise en ligne, pas d\'attente. Commence à vendre dès aujourd\'hui.' },
     ],
     version: 'Version',
@@ -77,7 +77,7 @@ const content: Localized<AboutText> = {
     features: [
       { icon: 'video', title: 'Directos', desc: 'Mira cómo los vendedores presentan sus productos en tiempo real. Pregunta, negocia y compra al instante.' },
       { icon: 'map', title: 'Primero lo local', desc: 'Descubre vendedores cerca de ti con nuestro mapa interactivo. Apoya a los negocios locales y ahorra en envíos.' },
-      { icon: 'shield', title: 'Protección al comprador', desc: 'Devoluciones durante 14 días en todas las compras. Pagos seguros con cifrado de nivel bancario.' },
+      { icon: 'shield', title: 'Protección al comprador', desc: 'ShaPop retiene tu pago hasta que se demuestra la entrega: código de 4 cifras en mano, o dos fotos en un envío por correo.' },
       { icon: 'zap', title: 'Venta instantánea', desc: 'Sal en directo en segundos. Sin comisiones por publicar, sin esperas. Empieza a vender hoy.' },
     ],
     version: 'Versión',
@@ -99,7 +99,7 @@ const content: Localized<AboutText> = {
     features: [
       { icon: 'video', title: 'Прямые эфиры', desc: 'Смотри, как продавцы показывают товары в реальном времени. Задавай вопросы, торгуйся и покупай мгновенно.' },
       { icon: 'map', title: 'Сначала — рядом', desc: 'Находи продавцов поблизости на интерактивной карте. Поддерживай местный бизнес и экономь на доставке.' },
-      { icon: 'shield', title: 'Защита покупателя', desc: 'Возврат в течение 14 дней для всех покупок. Безопасные платежи с шифрованием банковского уровня.' },
+      { icon: 'shield', title: 'Защита покупателя', desc: 'ShaPop удерживает твою оплату, пока передача не подтверждена: 4-значный код при личной встрече или два фото при отправке почтой.' },
       { icon: 'zap', title: 'Мгновенные продажи', desc: 'Выходи в эфир за секунды. Без платы за размещение и без ожидания. Начни продавать уже сегодня.' },
     ],
     version: 'Версия',
@@ -121,7 +121,7 @@ const content: Localized<AboutText> = {
     features: [
       { icon: 'video', title: 'שידורים חיים', desc: 'צפו במוכרים מציגים את המוצרים שלהם בזמן אמת. שאלו, התמקחו וקנו ברגע.' },
       { icon: 'map', title: 'קודם כל מקומי', desc: 'גלו מוכרים בסביבה במפה האינטראקטיבית. תמכו בעסקים מקומיים וחסכו במשלוח.' },
-      { icon: 'shield', title: 'הגנת קונים', desc: 'אפשרות החזרה תוך 14 יום על כל רכישה. תשלומים מאובטחים בהצפנה ברמה בנקאית.' },
+      { icon: 'shield', title: 'הגנת קונים', desc: 'ShaPop מחזיקה את התשלום שלכם עד שהמסירה מוכחת: קוד בן 4 ספרות באיסוף עצמי, או שתי תמונות במשלוח בדואר.' },
       { icon: 'zap', title: 'מכירה מיידית', desc: 'עולים לשידור תוך שניות. בלי דמי פרסום, בלי המתנה. מתחילים למכור כבר היום.' },
     ],
     version: 'גרסה',
