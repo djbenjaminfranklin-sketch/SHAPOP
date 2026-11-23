@@ -20,6 +20,7 @@ interface ActiveItemBarProps {
   currency?: string | null
   onMaxBid?: () => void
   hasActiveMaxBid?: boolean
+  /** Ancien bandeau « livraison groupée » retiré ; prop gardée pour compatibilité. */
   bundleCount?: number
   onBuyNow?: () => void
 }
@@ -30,10 +31,8 @@ type Labels = {
   unavailable: string
   addCard: string
   max: string
-  shippingGrouped: string
   maxBid: string
   maxBidActive: string
-  bundleDiscount: string
   buyNow: string
 }
 
@@ -44,10 +43,8 @@ const LABELS: Localized<Labels> = {
     unavailable: 'Item unavailable',
     addCard: 'Add your card',
     max: 'MAX',
-    shippingGrouped: 'Shipping grouped at the end of the live',
     maxBid: 'Max bid',
     maxBidActive: 'Auto-bid on',
-    bundleDiscount: 'Grouped shipping: -15%',
     buyNow: 'Buy now',
   },
   fr: {
@@ -56,10 +53,8 @@ const LABELS: Localized<Labels> = {
     unavailable: 'Article indisponible',
     addCard: 'Ajoute ta carte',
     max: 'MAX',
-    shippingGrouped: 'Livraison groupée en fin de live',
     maxBid: 'Enchère max',
     maxBidActive: 'Enchère auto activée',
-    bundleDiscount: 'Livraison groupée : -15 %',
     buyNow: 'Acheter',
   },
   es: {
@@ -68,10 +63,8 @@ const LABELS: Localized<Labels> = {
     unavailable: 'Artículo no disponible',
     addCard: 'Añade tu tarjeta',
     max: 'MÁX',
-    shippingGrouped: 'Envío agrupado al final del directo',
     maxBid: 'Puja máx.',
     maxBidActive: 'Puja automática activa',
-    bundleDiscount: 'Envío agrupado: -15 %',
     buyNow: 'Comprar',
   },
   ru: {
@@ -80,10 +73,8 @@ const LABELS: Localized<Labels> = {
     unavailable: 'Товар недоступен',
     addCard: 'Добавь карту',
     max: 'MAX',
-    shippingGrouped: 'Общая доставка после эфира',
     maxBid: 'Макс. ставка',
     maxBidActive: 'Автоставка включена',
-    bundleDiscount: 'Общая доставка: −15 %',
     buyNow: 'Купить',
   },
   he: {
@@ -92,10 +83,8 @@ const LABELS: Localized<Labels> = {
     unavailable: 'הפריט לא זמין',
     addCard: 'הוסף כרטיס',
     max: 'MAX',
-    shippingGrouped: 'משלוח מרוכז בסוף השידור',
     maxBid: 'הצעה מקסימלית',
     maxBidActive: 'הצעה אוטומטית פעילה',
-    bundleDiscount: 'משלוח מרוכז: ‎-15%',
     buyNow: 'קנה עכשיו',
   },
 }
@@ -114,7 +103,6 @@ export default function ActiveItemBar({
   currency,
   onMaxBid,
   hasActiveMaxBid,
-  bundleCount,
   onBuyNow,
 }: ActiveItemBarProps) {
   const [bidFlash, setBidFlash] = useState(false)
@@ -216,38 +204,6 @@ export default function ActiveItemBar({
           </div>
         </div>
       </div>
-
-      {/* Bundle discount banner */}
-      {bundleCount != null && bundleCount >= 2 ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '4px',
-          marginBottom: '5px', padding: '4px 8px',
-          backgroundColor: 'rgba(139,92,246,0.1)', borderRadius: '6px',
-          border: '1px solid rgba(139,92,246,0.25)',
-        }}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
-            <line x1="7" y1="7" x2="7.01" y2="7" />
-          </svg>
-          <span style={{ fontSize: '10px', fontWeight: 700, color: '#8B5CF6' }}>
-            {labels.bundleDiscount}
-          </span>
-        </div>
-      ) : (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '4px',
-          marginBottom: '5px', padding: '3px 8px',
-          backgroundColor: 'rgba(240,144,138,0.06)', borderRadius: '6px',
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="1" y="3" width="15" height="13" rx="1" /><path d="M16 8h4l3 3v5h-7V8z" />
-            <circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
-          </svg>
-          <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>
-            {labels.shippingGrouped}
-          </span>
-        </div>
-      )}
 
       {/* Bid action */}
       {!isActive ? (

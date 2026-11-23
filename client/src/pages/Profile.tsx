@@ -457,7 +457,7 @@ export default function Profile() {
     { icon: languageIcon, label: tr({ en: 'Language', fr: 'Langue', es: 'Idioma', ru: 'Язык', he: 'שפה' }), sub: langMeta.name, to: '/preferences' },
     { icon: ico.shield, label: tr({ en: 'Account status', fr: 'État du compte', es: 'Estado de la cuenta', ru: 'Статус аккаунта', he: 'מצב החשבון' }), to: '/account-status' },
     { icon: ico.verified, label: tr({ en: 'Identity verification', fr: 'Vérification d\'identité', es: 'Verificación de identidad', ru: 'Подтверждение личности', he: 'אימות זהות' }), sub: tr({ en: 'Selfie + ID', fr: 'Selfie + pièce d\'identité', es: 'Selfie + documento de identidad', ru: 'Селфи + документ', he: 'סלפי + תעודה מזהה' }), to: '/verification' },
-    { icon: ico.card, label: tr({ en: 'Payments & shipping', fr: 'Paiements et livraison', es: 'Pagos y envíos', ru: 'Оплата и доставка', he: 'תשלומים ומשלוחים' }), to: '/payments' },
+    { icon: ico.card, label: tr({ en: 'Payments & handover', fr: 'Paiements et remise', es: 'Pagos y entrega', ru: 'Оплата и передача', he: 'תשלומים ומסירה' }), to: '/payments' },
     { icon: ico.pin, label: tr({ en: 'Addresses', fr: 'Adresses', es: 'Direcciones', ru: 'Адреса', he: 'כתובות' }), to: '/addresses' },
     { icon: ico.bell, label: tr({ en: 'Notifications', fr: 'Notifications', es: 'Notificaciones', ru: 'Уведомления', he: 'התראות' }), to: '/notifications' },
     { icon: ico.controls, label: tr({ en: 'Account controls', fr: 'Contrôles du compte', es: 'Controles de la cuenta', ru: 'Настройки аккаунта', he: 'הגדרות חשבון' }), to: '/account-controls' },
@@ -480,6 +480,7 @@ export default function Profile() {
     { icon: ico.doc, label: tr({ en: 'Terms of service', fr: 'Conditions d\'utilisation', es: 'Términos del servicio', ru: 'Условия использования', he: 'תנאי שימוש' }), external: true, to: '/terms' },
     { icon: ico.doc, label: tr({ en: 'EULA', fr: 'CLUF', es: 'CLUF', ru: 'Лицензионное соглашение', he: 'הסכם רישיון למשתמש' }), external: true, to: '/eula' },
     { icon: ico.help, label: tr({ en: 'FAQ', fr: 'FAQ', es: 'Preguntas frecuentes', ru: 'Вопросы и ответы', he: 'שאלות נפוצות' }), external: true, to: '/faq' },
+    { icon: ico.help, label: tr({ en: 'About', fr: 'À propos', es: 'Acerca de', ru: 'О приложении', he: 'אודות' }), external: true, to: '/about' },
   ]
 
   // ── Render a single menu row ──

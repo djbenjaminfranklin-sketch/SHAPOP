@@ -4,6 +4,7 @@ import { t, getLang, getLocale, tr, type Localized } from '../../lib/i18n'
 import { findCommunityById } from '../../lib/data/communitiesData'
 import { rtlPos, rtlPadding } from '../../lib/rtl'
 import { trackStreamView } from '../../lib/behaviorTracker'
+import { PAID_EXTRAS_ENABLED } from '../../lib/paidExtras'
 
 // Anciens identifiants de communautés (avant les identifiants par pays) → nom affiché
 const LEGACY_COMMUNITY_IDS: Record<string, string> = {
@@ -134,8 +135,8 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           </div>
         )}
 
-        {/* Boost badge */}
-        {stream.is_boosted && (
+        {/* Boost badge (seulement si les extras payants sont actifs) */}
+        {PAID_EXTRAS_ENABLED && stream.is_boosted && (
           <div style={{ position: 'absolute', bottom: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',

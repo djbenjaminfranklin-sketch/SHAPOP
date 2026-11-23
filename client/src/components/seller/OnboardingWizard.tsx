@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
-import { apiFetch } from '../../lib/api'
 import { getLang, tr, t as i18nT, type Localized } from '../../lib/i18n'
 import { formatItemPrice } from '../../lib/fulfillment'
 import type { TranslationKey } from '../../lib/i18n'
@@ -24,7 +23,7 @@ interface Props {
   onClose: () => void
 }
 
-const TOTAL_STEPS = 12
+const TOTAL_STEPS = 11
 
 /* ─── Step hero illustrations (emoji in gradient circles) ─── */
 const stepHeroes: { emoji: string; gradient: string }[] = [
@@ -37,9 +36,8 @@ const stepHeroes: { emoji: string; gradient: string }[] = [
   { emoji: '\u{1F4B0}', gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 60%, #B45309 100%)' },  // 6 revenue
   { emoji: '\u{1F465}', gradient: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 60%, #4338CA 100%)' },  // 7 team
   { emoji: '\u{1F3A5}', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 60%, #B91C1C 100%)' },  // 8 hours
-  { emoji: '\u{1F4E6}', gradient: 'linear-gradient(135deg, #14B8A6 0%, #0D9488 60%, #0F766E 100%)' },  // 9 address
-  { emoji: '\u{1F504}', gradient: 'linear-gradient(135deg, #10B981 0%, #0D9488 60%, #0F766E 100%)' },  // 10 return policy
-  { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #9F1239 100%)' },  // 11 bank
+  { emoji: '\u{1F504}', gradient: 'linear-gradient(135deg, #10B981 0%, #0D9488 60%, #0F766E 100%)' },  // 9 return policy
+  { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #9F1239 100%)' },  // 10 bank
 ]
 
 export default function OnboardingWizard({ onComplete, onClose }: Props) {
@@ -58,11 +56,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const [revenue, setRevenue] = useState('')
   const [teamSize, setTeamSize] = useState('')
   const [liveHours, setLiveHours] = useState('')
-  const [useExistingAddress, setUseExistingAddress] = useState(true)
-  const [address, setAddress] = useState({ street: '', city: '', zip: '', country: '' })
   const [returnPolicy, setReturnPolicy] = useState('no_return')
   const [bankChoice, setBankChoice] = useState('')
-  const [paypalEmail, setPaypalEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -87,7 +82,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     en: {
       rules: 'Community rules',
       rule1: 'Be honest about the item\'s condition',
-      rule2: 'Ship within 3 business days',
+      rule2: 'Hand over or send the item within your handover time',
       rule3: 'No counterfeit or prohibited items',
       rule4: 'Reply to buyers within 24 hours',
       rule5: 'Respect all buyers and sellers',
@@ -97,7 +92,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       fee1: 'Platform commission: 8% + VAT where applicable (9.60% incl. VAT)',
       fee2: 'Stripe processing: 2.9% + {fixed} + VAT (3.48% + {fixedVat} incl. VAT)',
       fee3: 'Example: on a {sale} sale, total fees are {fees} and you receive {net}',
-      fee4: 'Weekly payouts, minimum {min}',
+      fee4: 'Payment: in person, as soon as you enter the buyer\'s code; by post, 3 days after your 2 photos or as soon as the buyer confirms receipt',
       acceptFees: 'I accept the fees',
       category: 'What do you sell?',
       categoryDesc: 'Pick your main category',
@@ -119,14 +114,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       teamDesc: 'How many people work with you',
       hoursTitle: 'Live hours per week?',
       hoursDesc: 'Or how many you plan to do',
-      addressTitle: 'Return address',
-      addressDesc: 'Where buyers can send items back',
-      useExisting: 'Use my profile address',
-      newAddress: 'Enter a new address',
-      street: 'Street address',
-      city: 'City',
-      zip: 'Postal code',
-      country: 'Country',
       returnPolicyTitle: 'Return policy',
       returnPolicyDesc: 'Items not received or not as described are always covered by ShaPop protection. On top of that, do you accept returns when a buyer changes their mind?',
       noReturn: 'No change-of-mind returns',
@@ -136,9 +123,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Returns within 30 days',
       bankTitle: 'Payout setup',
       bankDesc: 'How you want to get paid',
-      paypalEmailLabel: 'Your PayPal email',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'The email linked to your PayPal Business account',
       next: 'Next',
       finish: 'Finish',
       saving: 'Saving...',
@@ -150,7 +134,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     fr: {
       rules: 'Règles de la communauté',
       rule1: 'Sois honnête sur l\'état du produit',
-      rule2: 'Expédie sous 3 jours ouvrés',
+      rule2: 'Remets ou envoie l\'article dans ton délai de remise',
       rule3: 'Pas d\'articles contrefaits ou interdits',
       rule4: 'Réponds aux acheteurs sous 24 h',
       rule5: 'Respecte tous les acheteurs et vendeurs',
@@ -160,7 +144,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       fee1: 'Commission plateforme : 8 % HT + TVA le cas échéant (9,60 % TTC)',
       fee2: 'Frais Stripe : 2,9 % + {fixed} HT + TVA (3,48 % + {fixedVat} TTC)',
       fee3: 'Exemple : pour une vente de {sale}, frais totaux de {fees}, tu reçois {net}',
-      fee4: 'Versements hebdomadaires, à partir de {min}',
+      fee4: 'Paiement : en main propre, dès que tu saisis le code de l\'acheteur ; par la poste, 3 jours après tes 2 photos ou dès que l\'acheteur confirme la réception',
       acceptFees: 'J\'accepte la grille tarifaire',
       category: 'Que vends-tu ?',
       categoryDesc: 'Choisis ta catégorie principale',
@@ -182,14 +166,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       teamDesc: 'Combien de personnes travaillent avec toi',
       hoursTitle: 'Heures de live par semaine ?',
       hoursDesc: 'Ou combien tu prévois d\'en faire',
-      addressTitle: 'Adresse de retour',
-      addressDesc: 'Où les acheteurs peuvent renvoyer les articles',
-      useExisting: 'Utiliser l\'adresse de mon profil',
-      newAddress: 'Saisir une nouvelle adresse',
-      street: 'Adresse',
-      city: 'Ville',
-      zip: 'Code postal',
-      country: 'Pays',
       returnPolicyTitle: 'Politique de retour',
       returnPolicyDesc: 'Les articles non reçus ou non conformes sont toujours couverts par la protection ShaPop. En plus, acceptes-tu les retours quand un acheteur change d\'avis ?',
       noReturn: 'Pas de retour pour changement d\'avis',
@@ -199,9 +175,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Retours sous 30 jours',
       bankTitle: 'Configuration des paiements',
       bankDesc: 'Comment tu veux être payé',
-      paypalEmailLabel: 'Ton e-mail PayPal',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'L\'e-mail associé à ton compte PayPal Business',
       next: 'Suivant',
       finish: 'Terminer',
       saving: 'Enregistrement...',
@@ -213,7 +186,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     es: {
       rules: 'Normas de la comunidad',
       rule1: 'Sé honesto sobre el estado del producto',
-      rule2: 'Envía en un plazo de 3 días hábiles',
+      rule2: 'Entrega o envía el artículo dentro de tu plazo de entrega',
       rule3: 'Nada de artículos falsificados o prohibidos',
       rule4: 'Responde a los compradores en menos de 24 h',
       rule5: 'Respeta a todos los compradores y vendedores',
@@ -223,7 +196,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       fee1: 'Comisión de la plataforma: 8 % + IVA si aplica (9,60 % con IVA)',
       fee2: 'Gastos de Stripe: 2,9 % + {fixed} + IVA (3,48 % + {fixedVat} con IVA)',
       fee3: 'Ejemplo: en una venta de {sale}, las comisiones son {fees} y recibes {net}',
-      fee4: 'Pagos semanales, a partir de {min}',
+      fee4: 'Cobro: en mano, en cuanto introduces el código del comprador; por correo, 3 días después de tus 2 fotos o en cuanto el comprador confirma la recepción',
       acceptFees: 'Acepto las tarifas',
       category: '¿Qué vendes?',
       categoryDesc: 'Elige tu categoría principal',
@@ -245,14 +218,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       teamDesc: 'Cuántas personas trabajan contigo',
       hoursTitle: '¿Horas de directo por semana?',
       hoursDesc: 'O cuántas tienes previsto hacer',
-      addressTitle: 'Dirección de devolución',
-      addressDesc: 'Adonde los compradores pueden devolver los artículos',
-      useExisting: 'Usar la dirección de mi perfil',
-      newAddress: 'Introducir una nueva dirección',
-      street: 'Dirección',
-      city: 'Ciudad',
-      zip: 'Código postal',
-      country: 'País',
       returnPolicyTitle: 'Política de devoluciones',
       returnPolicyDesc: 'Los artículos no recibidos o que no coinciden con el anuncio siempre están cubiertos por la protección de ShaPop. Además, ¿aceptas devoluciones cuando un comprador cambia de opinión?',
       noReturn: 'Sin devoluciones por cambio de opinión',
@@ -262,9 +227,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Devoluciones en 30 días',
       bankTitle: 'Configuración de cobros',
       bankDesc: 'Cómo quieres cobrar',
-      paypalEmailLabel: 'Tu email de PayPal',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'El email vinculado a tu cuenta PayPal Business',
       next: 'Siguiente',
       finish: 'Terminar',
       saving: 'Guardando...',
@@ -276,7 +238,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     ru: {
       rules: 'Правила сообщества',
       rule1: 'Честно описывай состояние товара',
-      rule2: 'Отправляй заказ в течение 3 рабочих дней',
+      rule2: 'Передай или отправь товар в пределах своего срока передачи',
       rule3: 'Никаких подделок и запрещённых товаров',
       rule4: 'Отвечай покупателям в течение 24 часов',
       rule5: 'Уважай всех покупателей и продавцов',
@@ -286,7 +248,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       fee1: 'Комиссия платформы: 8 % + НДС, если применимо (9,60 % с НДС)',
       fee2: 'Комиссия Stripe: 2,9 % + {fixed} + НДС (3,48 % + {fixedVat} с НДС)',
       fee3: 'Пример: при продаже на {sale} комиссии составят {fees}, ты получишь {net}',
-      fee4: 'Выплаты раз в неделю, от {min}',
+      fee4: 'Оплата: лично — как только ты вводишь код покупателя; почтой — через 3 дня после твоих 2 фото или сразу, как покупатель подтвердит получение',
       acceptFees: 'Принимаю тарифы',
       category: 'Что ты продаёшь?',
       categoryDesc: 'Выбери основную категорию',
@@ -308,14 +270,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       teamDesc: 'Сколько человек работает с тобой',
       hoursTitle: 'Часов эфира в неделю?',
       hoursDesc: 'Или сколько планируешь',
-      addressTitle: 'Адрес для возвратов',
-      addressDesc: 'Куда покупатели смогут вернуть товары',
-      useExisting: 'Использовать адрес из профиля',
-      newAddress: 'Ввести новый адрес',
-      street: 'Адрес',
-      city: 'Город',
-      zip: 'Почтовый индекс',
-      country: 'Страна',
       returnPolicyTitle: 'Условия возврата',
       returnPolicyDesc: 'Неполученные товары и товары, не соответствующие описанию, всегда защищены ShaPop. А принимаешь ли ты возврат, если покупатель просто передумал?',
       noReturn: 'Без возврата, если покупатель передумал',
@@ -325,9 +279,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'Возврат в течение 30 дней',
       bankTitle: 'Настройка выплат',
       bankDesc: 'Как ты хочешь получать деньги',
-      paypalEmailLabel: 'Твой e-mail в PayPal',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'E-mail, привязанный к твоему аккаунту PayPal Business',
       next: 'Далее',
       finish: 'Готово',
       saving: 'Сохраняем...',
@@ -339,7 +290,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     he: {
       rules: 'כללי הקהילה',
       rule1: 'היו כנים לגבי מצב המוצר',
-      rule2: 'שלחו תוך 3 ימי עסקים',
+      rule2: 'מסרו או שלחו את הפריט בתוך זמן המסירה שלכם',
       rule3: 'בלי מוצרים מזויפים או אסורים',
       rule4: 'ענו לקונים תוך 24 שעות',
       rule5: 'כבדו את כל הקונים והמוכרים',
@@ -349,7 +300,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       fee1: 'עמלת פלטפורמה: 8% + מע״מ אם חל (9.60% כולל מע״מ)',
       fee2: 'עמלת Stripe: ‏2.9% + {fixed} + מע״מ (3.48% + {fixedVat} כולל מע״מ)',
       fee3: 'דוגמה: במכירה של {sale}, סך העמלות {fees} ואת/ה מקבל/ת {net}',
-      fee4: 'תשלומים שבועיים, החל מ-{min}',
+      fee4: 'תשלום: במסירה ביד, ברגע שמזינים את הקוד של הקונה; בדואר, 3 ימים אחרי 2 התמונות או ברגע שהקונה מאשר/ת קבלה',
       acceptFees: 'אני מסכים/ה לעמלות',
       category: 'מה את/ה מוכר/ת?',
       categoryDesc: 'בחרו קטגוריה ראשית',
@@ -371,14 +322,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       teamDesc: 'כמה אנשים עובדים איתך',
       hoursTitle: 'שעות שידור בשבוע?',
       hoursDesc: 'או כמה את/ה מתכנן/ת',
-      addressTitle: 'כתובת להחזרות',
-      addressDesc: 'לאן הקונים יכולים להחזיר פריטים',
-      useExisting: 'שימוש בכתובת מהפרופיל',
-      newAddress: 'הזנת כתובת חדשה',
-      street: 'כתובת',
-      city: 'עיר',
-      zip: 'מיקוד',
-      country: 'מדינה',
       returnPolicyTitle: 'מדיניות החזרות',
       returnPolicyDesc: 'פריטים שלא התקבלו או שלא תואמים לתיאור תמיד מוגנים על ידי ShaPop. בנוסף, האם את/ה מקבל/ת החזרות כשקונה מתחרט/ת?',
       noReturn: 'אין החזרות במקרה של חרטה',
@@ -388,9 +331,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       return30: 'החזרה תוך 30 ימים',
       bankTitle: 'הגדרת תשלומים',
       bankDesc: 'איך את/ה רוצה לקבל תשלום',
-      paypalEmailLabel: 'האימייל שלך ב-PayPal',
-      paypalEmailPlaceholder: 'email@paypal.com',
-      paypalEmailHint: 'האימייל המקושר לחשבון PayPal Business שלך',
       next: 'הבא',
       finish: 'סיום',
       saving: 'שומרים...',
@@ -407,7 +347,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     t.fee1,
     t.fee2.replace('{fixed}', money(0.30)).replace('{fixedVat}', money(0.36)),
     t.fee3.replace('{sale}', money(50)).replace('{fees}', money(6.90)).replace('{net}', money(43.10)),
-    t.fee4.replace('{min}', money(50)),
+    t.fee4,
   ]
 
   // Filter categories: remove 'for_you' and 'following' (not real selling categories)
@@ -424,9 +364,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       case 6: return revenue !== ''
       case 7: return teamSize !== ''
       case 8: return liveHours !== ''
-      case 9: return useExistingAddress || (address.street !== '' && address.city !== '' && address.zip !== '' && address.country !== '')
-      case 10: return returnPolicy !== ''
-      case 11: return bankChoice !== '' && (bankChoice !== 'paypal' || (paypalEmail.includes('@') && paypalEmail.includes('.')))
+      case 9: return returnPolicy !== ''
+      case 10: return bankChoice !== ''
       default: return false
     }
   }
@@ -451,7 +390,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         .maybeSingle()
 
       const sellerData = {
-        store_name: profile?.display_name || profile?.username || 'My Store',
+        // Nom de boutique par défaut : le nom d'affichage de l'utilisateur
+        store_name: profile?.display_name || profile?.username || (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || '',
         categories: [selectedCategory],
         sub_categories: selectedSubCategories,
         seller_type: sellerType,
@@ -461,7 +401,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         revenue_range: revenue,
         team_size: teamSize,
         live_hours: liveHours,
-        return_address: useExistingAddress ? null : address,
         return_policy: returnPolicy,
         bank_choice: bankChoice,
         fees_accepted_at: new Date().toISOString(),
@@ -479,25 +418,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         if (insertError) {
           console.error('Failed to create seller record:', insertError)
           throw insertError
-        }
-      }
-
-      // If PayPal selected, save email via API
-      if (bankChoice === 'paypal' && paypalEmail) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session) {
-            await apiFetch('/api/paypal/save-email', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({ email: paypalEmail }),
-            })
-          }
-        } catch {
-          // PayPal email save failed — seller can retry from PaymentsPage
         }
       }
 
@@ -522,7 +442,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
   const rules = [
     { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="10"/></svg>, text: t.rule1 },
-    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h2a2 2 0 012 2v6a2 2 0 01-2 2H6" strokeLinecap="round" strokeLinejoin="round"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>, text: t.rule2 },
+    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>, text: t.rule2 },
     { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M18.36 6.64A9 9 0 015.64 18.36M5.64 5.64A9 9 0 0118.36 18.36" strokeLinecap="round"/><line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round"/></svg>, text: t.rule3 },
     { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: t.rule4 },
     { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: t.rule5 },
@@ -1080,89 +1000,11 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
           </div>
         )
 
-      // Step 9 - Return address
+      // Step 9 - Return policy
       case 9:
         return (
           <div style={{ padding: '0 24px' }}>
             <div style={heroCircle(9)}>{stepHeroes[9].emoji}</div>
-            <h2 style={sectionTitle}>{t.addressTitle}</h2>
-            <p style={sectionDesc}>{t.addressDesc}</p>
-
-            {/* Toggle existing / new */}
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '24px' }}>
-              {[
-                { val: true, label: t.useExisting },
-                { val: false, label: t.newAddress },
-              ].map(opt => {
-                const selected = useExistingAddress === opt.val
-                return (
-                  <button
-                    key={String(opt.val)}
-                    onClick={() => setUseExistingAddress(opt.val)}
-                    style={{
-                      flex: 1, padding: '14px 12px', borderRadius: '14px',
-                      background: selected
-                        ? 'linear-gradient(135deg, rgba(240,144,138,0.15) 0%, rgba(232,52,78,0.08) 100%)'
-                        : 'linear-gradient(135deg, #141414 0%, #0C0C0C 100%)',
-                      border: selected ? '1.5px solid rgba(240,144,138,0.5)' : '1px solid #1E1E1E',
-                      color: selected ? '#F0908A' : '#777',
-                      fontSize: '13px', fontWeight: 700, cursor: 'pointer',
-                      boxShadow: selected ? '0 4px 16px rgba(240,144,138,0.12)' : '0 2px 6px rgba(0,0,0,0.3)',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            {!useExistingAddress && (
-              <div style={{
-                display: 'flex', flexDirection: 'column', gap: '14px',
-                background: 'linear-gradient(135deg, #0F0F0F 0%, #141418 100%)',
-                borderRadius: '20px', padding: '20px',
-                border: '1px solid #1A1A1A',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
-              }}>
-                {[
-                  { key: 'street' as const, label: t.street },
-                  { key: 'city' as const, label: t.city },
-                  { key: 'zip' as const, label: t.zip },
-                  { key: 'country' as const, label: t.country },
-                ].map(field => (
-                  <div key={field.key}>
-                    <label style={{
-                      display: 'block', fontSize: '12px', color: '#777', marginBottom: '8px',
-                      fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px',
-                    }}>
-                      {field.label}
-                    </label>
-                    <input
-                      type="text"
-                      value={address[field.key]}
-                      onChange={e => setAddress({ ...address, [field.key]: e.target.value })}
-                      style={{
-                        width: '100%', padding: '14px 16px',
-                        background: 'linear-gradient(135deg, #0A0A0A, #111)',
-                        border: '1px solid #2A2A2A', borderRadius: '12px', color: '#fff',
-                        fontSize: '15px', outline: 'none', boxSizing: 'border-box',
-                        transition: 'border-color 0.2s ease',
-                      }}
-                      onFocus={e => { e.target.style.borderColor = 'rgba(240,144,138,0.5)' }}
-                      onBlur={e => { e.target.style.borderColor = '#2A2A2A' }}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-
-      // Step 10 - Return policy
-      case 10:
-        return (
-          <div style={{ padding: '0 24px' }}>
-            <div style={heroCircle(10)}>{stepHeroes[10].emoji}</div>
             <h2 style={sectionTitle}>{t.returnPolicyTitle}</h2>
             <p style={sectionDesc}>{t.returnPolicyDesc}</p>
             {[
@@ -1195,11 +1037,11 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
           </div>
         )
 
-      // Step 11 - Bank
-      case 11:
+      // Step 10 - Bank
+      case 10:
         return (
           <div style={{ padding: '0 24px' }}>
-            <div style={heroCircle(11)}>{stepHeroes[11].emoji}</div>
+            <div style={heroCircle(10)}>{stepHeroes[10].emoji}</div>
             <h2 style={sectionTitle}>{t.bankTitle}</h2>
             <p style={sectionDesc}>{t.bankDesc}</p>
             {bankOptions.map(opt => {
@@ -1207,12 +1049,10 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               const selected = bankChoice === opt.id
               const iconColors: Record<string, string> = {
                 stripe: '#6772E5',
-                paypal: '#00457C',
                 later: '#888',
               }
               const iconGradients: Record<string, string> = {
                 stripe: 'linear-gradient(135deg, #6772E5, #4F46E5)',
-                paypal: 'linear-gradient(135deg, #003087, #009CDE)',
                 later: 'linear-gradient(135deg, #555, #333)',
               }
               return (
@@ -1236,8 +1076,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   }}>
                     {opt.id === 'stripe' ? (
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selected ? '#fff' : iconColors.stripe} strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-                    ) : opt.id === 'paypal' ? (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selected ? '#fff' : iconColors.paypal} strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                     ) : (
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={selected ? '#fff' : '#888'} strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     )}
@@ -1253,29 +1091,6 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               )
             })}
 
-            {/* PayPal email field */}
-            {bankChoice === 'paypal' && (
-              <div style={{ marginTop: '16px' }}>
-                <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
-                  {t.paypalEmailLabel}
-                </label>
-                <input
-                  type="email"
-                  value={paypalEmail}
-                  onChange={e => setPaypalEmail(e.target.value)}
-                  placeholder={t.paypalEmailPlaceholder}
-                  style={{
-                    width: '100%', padding: '14px 16px', borderRadius: '12px',
-                    backgroundColor: '#111', border: '1px solid #333',
-                    color: '#fff', fontSize: '15px', outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-                <p style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
-                  {t.paypalEmailHint}
-                </p>
-              </div>
-            )}
           </div>
         )
 

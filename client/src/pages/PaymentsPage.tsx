@@ -18,7 +18,7 @@ import { ft } from '../lib/fulfillmentText'
 
 const content = {
   en: {
-    title: 'Payments & shipping',
+    title: 'Payments & handover',
     payTitle: 'Payment methods',
     securePayments: 'Connect Stripe to get paid',
     secureDesc: 'Stripe handles your payments securely. Buyers pay, and the money lands in your account automatically.',
@@ -35,18 +35,12 @@ const content = {
     completSetup: 'Finish setup',
     loading: 'Loading...',
     connecting: 'Connecting to Stripe...',
-    shipTitle: 'Shipping preferences',
-    defaultShip: 'Default shipping',
-    standard: 'Standard (post)',
-    express: 'Express (courier)',
-    pickup: 'In-person pickup',
     feesTitle: 'Your fees',
     feesDesc: '8% commission + Stripe fees (2.9% + a fixed fee) + VAT where applicable',
     feesExample: 'Example: a {sale} sale → you get about {net}',
     close: 'Close',
     pending: 'Pending',
     notSellerMsg: 'Become a seller to connect Stripe and get paid.',
-    savedLocally: 'Saved on this device',
     errorConnect: 'Couldn’t connect to Stripe',
     errorDashboard: 'Couldn’t open the Stripe dashboard',
     errorLoad: 'Couldn’t load your Stripe status',
@@ -79,10 +73,7 @@ const content = {
     paypalCountrySave: 'Connect PayPal',
     pageDesc: 'You need this to bid, place an order or buy something during a live. Your card is only charged if a bid or offer is accepted.',
     paymentMethod: 'Payment method',
-    shippingDetails: 'Shipping details',
-    shippingDelay: 'Shipping time',
-    shippingDelayHint: 'Max days before shipping',
-    days: 'days',
+    shippingDetails: 'Address (parcels sent by post)',
     addPaymentMethod: 'Add a payment method',
     addPaymentMethodDesc: 'Nothing is charged until you buy an item.',
     creditCard: 'Credit card',
@@ -94,12 +85,11 @@ const content = {
     genericError: 'Something went wrong. Please try again.',
     paypalEmailSaved: 'PayPal email saved',
     paypalConnectedToast: 'PayPal connected!',
-    paypalAtCheckout: 'PayPal will be available at checkout.',
     applePayAtCheckout: 'Apple Pay will be used automatically at checkout.',
     cardFallback: 'Card',
   },
   fr: {
-    title: 'Paiements et livraison',
+    title: 'Paiements et remise',
     payTitle: 'Moyens de paiement',
     securePayments: 'Connecte Stripe pour être payé',
     secureDesc: 'Stripe gère tes paiements en toute sécurité. Les acheteurs paient, et tu reçois ton argent automatiquement.',
@@ -116,18 +106,12 @@ const content = {
     completSetup: 'Terminer la configuration',
     loading: 'Chargement...',
     connecting: 'Connexion à Stripe...',
-    shipTitle: 'Préférences de livraison',
-    defaultShip: 'Livraison par défaut',
-    standard: 'Standard (poste)',
-    express: 'Express (coursier)',
-    pickup: 'Remise en main propre',
     feesTitle: 'Tes frais',
     feesDesc: 'Commission de 8 % + frais Stripe (2,9 % + frais fixes) + TVA le cas échéant',
     feesExample: 'Exemple : pour une vente de {sale}, tu reçois environ {net}',
     close: 'Fermer',
     pending: 'En attente',
     notSellerMsg: 'Deviens vendeur pour connecter Stripe et recevoir des paiements.',
-    savedLocally: 'Enregistré sur cet appareil',
     errorConnect: 'Impossible de se connecter à Stripe',
     errorDashboard: 'Impossible d’ouvrir le tableau de bord Stripe',
     errorLoad: 'Impossible de charger ton statut Stripe',
@@ -160,10 +144,7 @@ const content = {
     paypalCountrySave: 'Connecter PayPal',
     pageDesc: 'Ces informations sont nécessaires pour enchérir, passer commande ou acheter un article pendant un live. Ta carte n’est débitée que si une enchère ou une offre est acceptée.',
     paymentMethod: 'Moyen de paiement',
-    shippingDetails: 'Détails d’expédition',
-    shippingDelay: 'Délai d’expédition',
-    shippingDelayHint: 'Nombre de jours max avant l’expédition',
-    days: 'jours',
+    shippingDetails: 'Adresse (envois par la poste)',
     addPaymentMethod: 'Ajouter un moyen de paiement',
     addPaymentMethodDesc: 'Rien n’est débité tant que tu n’as pas acheté un article.',
     creditCard: 'Carte bancaire',
@@ -175,12 +156,11 @@ const content = {
     genericError: 'Une erreur est survenue. Réessaie.',
     paypalEmailSaved: 'E-mail PayPal enregistré',
     paypalConnectedToast: 'PayPal connecté !',
-    paypalAtCheckout: 'PayPal sera proposé au moment du paiement.',
     applePayAtCheckout: 'Apple Pay sera utilisé automatiquement au moment du paiement.',
     cardFallback: 'Carte',
   },
   es: {
-    title: 'Pagos y envíos',
+    title: 'Pagos y entrega',
     payTitle: 'Métodos de pago',
     securePayments: 'Conecta Stripe para cobrar',
     secureDesc: 'Stripe gestiona tus pagos de forma segura. Los compradores pagan y tú recibes el dinero automáticamente.',
@@ -197,18 +177,12 @@ const content = {
     completSetup: 'Terminar la configuración',
     loading: 'Cargando...',
     connecting: 'Conectando con Stripe...',
-    shipTitle: 'Preferencias de envío',
-    defaultShip: 'Envío predeterminado',
-    standard: 'Estándar (correo postal)',
-    express: 'Exprés (mensajero)',
-    pickup: 'Entrega en mano',
     feesTitle: 'Tus comisiones',
     feesDesc: 'Comisión del 8 % + tarifas de Stripe (2,9 % + tarifa fija) + IVA si corresponde',
     feesExample: 'Ejemplo: por una venta de {sale}, recibes unos {net}',
     close: 'Cerrar',
     pending: 'Pendiente',
     notSellerMsg: 'Hazte vendedor para conectar Stripe y recibir pagos.',
-    savedLocally: 'Guardado en este dispositivo',
     errorConnect: 'No se pudo conectar con Stripe',
     errorDashboard: 'No se pudo abrir el panel de Stripe',
     errorLoad: 'No se pudo cargar tu estado de Stripe',
@@ -241,10 +215,7 @@ const content = {
     paypalCountrySave: 'Conectar PayPal',
     pageDesc: 'Necesitas estos datos para pujar, hacer un pedido o comprar algo durante un directo. Solo se cobrará en tu tarjeta si se acepta una puja o una oferta.',
     paymentMethod: 'Método de pago',
-    shippingDetails: 'Datos de envío',
-    shippingDelay: 'Plazo de envío',
-    shippingDelayHint: 'Días máximos antes del envío',
-    days: 'días',
+    shippingDetails: 'Dirección (envíos por correo)',
     addPaymentMethod: 'Añadir un método de pago',
     addPaymentMethodDesc: 'No se te cobrará nada hasta que compres un artículo.',
     creditCard: 'Tarjeta de crédito',
@@ -256,12 +227,11 @@ const content = {
     genericError: 'Algo salió mal. Inténtalo de nuevo.',
     paypalEmailSaved: 'Correo de PayPal guardado',
     paypalConnectedToast: '¡PayPal conectado!',
-    paypalAtCheckout: 'PayPal estará disponible al pagar.',
     applePayAtCheckout: 'Apple Pay se usará automáticamente al pagar.',
     cardFallback: 'Tarjeta',
   },
   ru: {
-    title: 'Оплата и доставка',
+    title: 'Оплата и передача',
     payTitle: 'Способы оплаты',
     securePayments: 'Подключи Stripe, чтобы получать оплату',
     secureDesc: 'Stripe надёжно обрабатывает твои платежи. Покупатели платят, а деньги поступают тебе автоматически.',
@@ -278,18 +248,12 @@ const content = {
     completSetup: 'Завершить настройку',
     loading: 'Загрузка...',
     connecting: 'Подключение к Stripe...',
-    shipTitle: 'Настройки доставки',
-    defaultShip: 'Доставка по умолчанию',
-    standard: 'Стандартная (почта)',
-    express: 'Экспресс (курьер)',
-    pickup: 'Передача лично',
     feesTitle: 'Твои комиссии',
     feesDesc: 'Комиссия 8 % + комиссия Stripe (2,9 % + фиксированная плата) + НДС, если применимо',
     feesExample: 'Пример: при продаже на {sale} ты получишь около {net}',
     close: 'Закрыть',
     pending: 'В ожидании',
     notSellerMsg: 'Стань продавцом, чтобы подключить Stripe и получать оплату.',
-    savedLocally: 'Сохранено на этом устройстве',
     errorConnect: 'Не удалось подключиться к Stripe',
     errorDashboard: 'Не удалось открыть панель Stripe',
     errorLoad: 'Не удалось загрузить статус Stripe',
@@ -322,10 +286,7 @@ const content = {
     paypalCountrySave: 'Подключить PayPal',
     pageDesc: 'Эти данные нужны, чтобы делать ставки, оформлять заказы и покупать товары во время эфира. Деньги спишутся с карты, только если ставку или предложение примут.',
     paymentMethod: 'Способ оплаты',
-    shippingDetails: 'Данные для доставки',
-    shippingDelay: 'Срок отправки',
-    shippingDelayHint: 'Максимум дней до отправки',
-    days: 'дн.',
+    shippingDetails: 'Адрес (отправки почтой)',
     addPaymentMethod: 'Добавить способ оплаты',
     addPaymentMethodDesc: 'Ничего не спишется, пока ты не купишь товар.',
     creditCard: 'Банковская карта',
@@ -337,12 +298,11 @@ const content = {
     genericError: 'Что-то пошло не так. Попробуй ещё раз.',
     paypalEmailSaved: 'Email PayPal сохранён',
     paypalConnectedToast: 'PayPal подключён!',
-    paypalAtCheckout: 'PayPal будет доступен при оплате.',
     applePayAtCheckout: 'Apple Pay будет использоваться автоматически при оплате.',
     cardFallback: 'Карта',
   },
   he: {
-    title: 'תשלומים ומשלוחים',
+    title: 'תשלומים ומסירה',
     payTitle: 'אמצעי תשלום',
     securePayments: 'חבר/י את Stripe כדי לקבל תשלומים',
     secureDesc: 'Stripe מנהל את התשלומים שלך בצורה מאובטחת. הקונים משלמים, והכסף מגיע אליך אוטומטית.',
@@ -359,18 +319,12 @@ const content = {
     completSetup: 'השלמת ההגדרה',
     loading: 'טוען...',
     connecting: 'מתחבר ל-Stripe...',
-    shipTitle: 'העדפות משלוח',
-    defaultShip: 'משלוח ברירת מחדל',
-    standard: 'רגיל (דואר)',
-    express: 'אקספרס (שליח)',
-    pickup: 'מסירה ידנית',
     feesTitle: 'העמלות שלך',
     feesDesc: 'עמלה של 8% + עמלות Stripe ‏(2.9% + עמלה קבועה) + מע״מ לפי העניין',
     feesExample: 'לדוגמה: במכירה של {sale} תקבל/י בערך {net}',
     close: 'סגירה',
     pending: 'בהמתנה',
     notSellerMsg: 'כדאי להפוך למוכר/ת כדי לחבר את Stripe ולקבל תשלומים.',
-    savedLocally: 'נשמר במכשיר הזה',
     errorConnect: 'לא הצלחנו להתחבר ל-Stripe',
     errorDashboard: 'לא הצלחנו לפתוח את לוח הבקרה של Stripe',
     errorLoad: 'לא הצלחנו לטעון את סטטוס ה-Stripe',
@@ -403,10 +357,7 @@ const content = {
     paypalCountrySave: 'חיבור PayPal',
     pageDesc: 'הפרטים האלה נדרשים כדי להציע הצעות, לבצע הזמנה או לקנות מוצר במהלך שידור חי. הכרטיס יחויב רק אם הצעה שלך מתקבלת.',
     paymentMethod: 'אמצעי תשלום',
-    shippingDetails: 'פרטי משלוח',
-    shippingDelay: 'זמן משלוח',
-    shippingDelayHint: 'מספר ימים מקסימלי עד המשלוח',
-    days: 'ימים',
+    shippingDetails: 'כתובת (משלוחים בדואר)',
     addPaymentMethod: 'הוספת אמצעי תשלום',
     addPaymentMethodDesc: 'שום סכום לא יחויב עד שתקנה/י פריט.',
     creditCard: 'כרטיס אשראי',
@@ -418,7 +369,6 @@ const content = {
     genericError: 'משהו השתבש. כדאי לנסות שוב.',
     paypalEmailSaved: 'אימייל ה-PayPal נשמר',
     paypalConnectedToast: 'PayPal מחובר!',
-    paypalAtCheckout: 'PayPal יהיה זמין בשלב התשלום.',
     applePayAtCheckout: 'Apple Pay ישמש אוטומטית בשלב התשלום.',
     cardFallback: 'כרטיס',
   },
@@ -556,11 +506,6 @@ export default function PaymentsPage() {
   const [paypalEditing, setPaypalEditing] = useState(false)
   const [paypalSaving, setPaypalSaving] = useState(false)
   const [paypalPayouts, setPaypalPayouts] = useState<Array<{ id: string; order_id: string; amount: number; currency: string; status: string; error_message: string | null; completed_at: string | null; created_at: string }>>([])
-
-  const [shippingPref, setShippingPref] = useState<number>(() => {
-    const saved = localStorage.getItem('shippingPref')
-    return saved !== null ? Number(saved) : 0
-  })
 
   const fetchStatus = useCallback(async () => {
     // Only fetch Stripe status if user is a seller
@@ -938,14 +883,14 @@ export default function PaymentsPage() {
             </p>
             <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
               {cardInfo?.has_card
-                ? `${(cardInfo.brand || 'visa').toLowerCase()} - ${cardInfo.last4} - ${cardInfo.exp_month}/${cardInfo.exp_year}`
+                ? `${cardInfo.brand ? cardInfo.brand.toLowerCase() : c.cardFallback} - ${cardInfo.last4} - ${cardInfo.exp_month}/${cardInfo.exp_year}`
                 : c.noPaymentMethod}
             </p>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
         </div>
 
-        {/* Détails d'expédition row */}
+        {/* Adresse pour les envois par la poste */}
         <div
           onClick={() => navigate('/addresses')}
           style={{
@@ -959,8 +904,7 @@ export default function PaymentsPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a1 1 0 01-1 1h-1"/>
-              <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+              <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
             </svg>
           </div>
           <div style={{ flex: 1 }}>
@@ -1421,19 +1365,6 @@ export default function PaymentsPage() {
             </div>
           </div>
         )}
-
-        {/* Shipping Preferences */}
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{c.shipTitle}</h2>
-        <div style={{ backgroundColor: '#111', borderRadius: '14px', overflow: 'hidden' }}>
-          <p style={{ fontSize: '12px', color: '#888', padding: '16px 16px 8px' }}>{c.defaultShip}</p>
-          {[c.standard, c.express, c.pickup].map((opt, i) => (
-            <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < 2 ? '1px solid #1A1A1A' : 'none', cursor: 'pointer' }}>
-              <input type="radio" name="shipping" checked={shippingPref === i} onChange={() => { setShippingPref(i); localStorage.setItem('shippingPref', String(i)) }} style={{ accentColor: '#F0908A' }} />
-              <span style={{ fontSize: '15px', color: '#fff' }}>{opt}</span>
-            </label>
-          ))}
-          <p style={{ fontSize: '11px', color: '#555', padding: '8px 16px 12px', textAlign: 'end' }}>{c.savedLocally}</p>
-        </div>
       </div>
 
       {/* ═══════ PAYMENT METHOD PICKER MODAL ═══════ */}
@@ -1492,33 +1423,6 @@ export default function PaymentsPage() {
                 </div>
                 <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
                   {c.creditCard}
-                </span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
-              </button>
-
-              {/* PayPal */}
-              <button
-                onClick={() => {
-                  setShowMethodPicker(false)
-                  // For buyer PayPal: navigate to a PayPal setup or show info
-                  showToast(c.paypalAtCheckout)
-                }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
-                  padding: '18px 0', borderBottom: '1px solid #eee',
-                  background: 'none', border: 'none', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderBottomColor: '#eee',
-                  cursor: 'pointer', textAlign: 'start',
-                }}
-              >
-                <div style={{
-                  width: '44px', height: '30px', borderRadius: '6px',
-                  background: 'linear-gradient(135deg, #003087, #009CDE)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <span style={{ color: '#fff', fontWeight: 800, fontSize: '12px', letterSpacing: '-0.5px' }}>Pay</span>{/* i18n-ignore (logo PayPal) */}
-                </div>
-                <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
-                  PayPal
                 </span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
               </button>

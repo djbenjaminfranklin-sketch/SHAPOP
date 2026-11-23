@@ -91,10 +91,9 @@ const streamContent = {
     cardRequired: 'Add your card to bid',
     addCardFirst: 'Add a payment card first',
     card: 'Card',
-    shipping: 'Shipping',
     itemPrice: 'Item price',
     walletTitle: 'Wallet',
-    walletAddress: 'Delivery address',
+    walletAddress: 'Address for parcels sent by post',
     walletPayment: 'Payment method',
     walletPromo: 'Promo code',
     walletPromoPlaceholder: 'Enter a promo code',
@@ -105,7 +104,6 @@ const streamContent = {
     walletAddCard: 'Add',
     promoOnPrice: 'off the price',
     promoOnCommission: 'off the fee',
-    promoOnShipping: 'off shipping',
     promoInvalid: 'Invalid or already used code',
     linkCopied: 'Link copied!',
     shareTitle: '{name} is live on ShaPop!',
@@ -226,10 +224,9 @@ const streamContent = {
     cardRequired: 'Ajoute ta carte pour enchérir',
     addCardFirst: 'Ajoute d\'abord une carte bancaire',
     card: 'Carte',
-    shipping: 'Livraison',
     itemPrice: 'Prix de l\'article',
     walletTitle: 'Portefeuille',
-    walletAddress: 'Adresse de livraison',
+    walletAddress: 'Adresse pour les envois par la poste',
     walletPayment: 'Moyen de paiement',
     walletPromo: 'Code promo',
     walletPromoPlaceholder: 'Entre un code promo',
@@ -240,7 +237,6 @@ const streamContent = {
     walletAddCard: 'Ajouter',
     promoOnPrice: 'sur le prix',
     promoOnCommission: 'sur la commission',
-    promoOnShipping: 'sur la livraison',
     promoInvalid: 'Code invalide ou déjà utilisé',
     linkCopied: 'Lien copié !',
     shareTitle: '{name} est en live sur ShaPop !',
@@ -361,10 +357,9 @@ const streamContent = {
     cardRequired: 'Añade tu tarjeta para pujar',
     addCardFirst: 'Primero añade una tarjeta',
     card: 'Tarjeta',
-    shipping: 'Envío',
     itemPrice: 'Precio del artículo',
     walletTitle: 'Cartera',
-    walletAddress: 'Dirección de envío',
+    walletAddress: 'Dirección para envíos por correo',
     walletPayment: 'Método de pago',
     walletPromo: 'Código promocional',
     walletPromoPlaceholder: 'Introduce un código',
@@ -375,7 +370,6 @@ const streamContent = {
     walletAddCard: 'Añadir',
     promoOnPrice: 'en el precio',
     promoOnCommission: 'en la comisión',
-    promoOnShipping: 'en el envío',
     promoInvalid: 'Código no válido o ya usado',
     linkCopied: '¡Enlace copiado!',
     shareTitle: '¡{name} está en directo en ShaPop!',
@@ -496,10 +490,9 @@ const streamContent = {
     cardRequired: 'Добавь карту, чтобы делать ставки',
     addCardFirst: 'Сначала добавь банковскую карту',
     card: 'Карта',
-    shipping: 'Доставка',
     itemPrice: 'Цена товара',
     walletTitle: 'Кошелёк',
-    walletAddress: 'Адрес доставки',
+    walletAddress: 'Адрес для отправок почтой',
     walletPayment: 'Способ оплаты',
     walletPromo: 'Промокод',
     walletPromoPlaceholder: 'Введи промокод',
@@ -510,7 +503,6 @@ const streamContent = {
     walletAddCard: 'Добавить',
     promoOnPrice: 'на цену',
     promoOnCommission: 'на комиссию',
-    promoOnShipping: 'на доставку',
     promoInvalid: 'Код недействителен или уже использован',
     linkCopied: 'Ссылка скопирована!',
     shareTitle: '{name} в эфире на ShaPop!',
@@ -631,10 +623,9 @@ const streamContent = {
     cardRequired: 'הוסף כרטיס כדי להציע',
     addCardFirst: 'קודם הוסף כרטיס אשראי',
     card: 'כרטיס',
-    shipping: 'משלוח',
     itemPrice: 'מחיר הפריט',
     walletTitle: 'ארנק',
-    walletAddress: 'כתובת למשלוח',
+    walletAddress: 'כתובת למשלוחים בדואר',
     walletPayment: 'אמצעי תשלום',
     walletPromo: 'קוד קופון',
     walletPromoPlaceholder: 'הזן קוד קופון',
@@ -645,7 +636,6 @@ const streamContent = {
     walletAddCard: 'הוסף',
     promoOnPrice: 'על המחיר',
     promoOnCommission: 'על העמלה',
-    promoOnShipping: 'על המשלוח',
     promoInvalid: 'הקוד לא תקף או שכבר נוצל',
     linkCopied: 'הקישור הועתק!',
     shareTitle: '{name} בשידור חי ב-ShaPop!',
@@ -920,7 +910,6 @@ export default function StreamView() {
   const [sellerScore, setSellerScore] = useState<number | null>(null)
   const [, setItemCount] = useState(0)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
-  const [sellerShippingDelay, setSellerShippingDelay] = useState<number>(2)
   const [viewerMuted, setViewerMuted] = useState(true)
   const [isFollowing, setIsFollowing] = useState(false)
 
@@ -939,7 +928,7 @@ export default function StreamView() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   // Étape 1 : retrait en main propre ou envoi par la poste (DeliveryChoice), étape 2 : paiement
   const [deliveryStep, setDeliveryStep] = useState(true)
-  const [paymentTotals, setPaymentTotals] = useState<{ amount: number; shipping: number; total: number; currency: string } | null>(null)
+  const [paymentTotals, setPaymentTotals] = useState<{ amount: number; shipping: number; total: number; currency: string; method?: string } | null>(null)
 
   // Card setup modal (required before bidding)
   const [hasCard, setHasCard] = useState<boolean | null>(null) // null = not checked yet
@@ -1239,14 +1228,11 @@ export default function StreamView() {
     const fetchSellerData = async () => {
       const { data } = await supabase
         .from('sellers')
-        .select('return_policy, shipping_delay_days')
+        .select('return_policy')
         .eq('id', stream.seller_id)
         .single()
       if (data?.return_policy) {
         setSellerReturnPolicy(data.return_policy)
-      }
-      if (data?.shipping_delay_days != null) {
-        setSellerShippingDelay(data.shipping_delay_days)
       }
     }
     fetchSellerProfile()
@@ -2501,13 +2487,14 @@ export default function StreamView() {
   }
 
   // Choix retrait / poste enregistré par le serveur → on prépare le paiement du total (port inclus)
-  const handleDeliveryConfirmed = async (result: { shippingCost: number; totalAmount: number; currency: string }) => {
+  const handleDeliveryConfirmed = async (result: { method?: string; shippingCost: number; totalAmount: number; currency: string }) => {
     if (!paymentOrder) return
     setPaymentTotals({
       amount: Number(paymentOrder.amount),
       shipping: result.shippingCost,
       total: result.totalAmount,
       currency: result.currency,
+      method: result.method,
     })
     setClientSecret(null)
     setPaymentError(null)
@@ -3402,7 +3389,6 @@ export default function StreamView() {
                     sellerName={sellerName}
                     sellerAvatar={sellerAvatar}
                     sellerScore={sellerScore}
-                    shippingDelay={sellerShippingDelay}
                     isFollowing={isFollowing}
                     onFollowToggle={async () => {
                       const { data: { session: s } } = await supabase.auth.getSession()
@@ -4364,7 +4350,7 @@ export default function StreamView() {
                       </p>
                     </div>
                   </div>
-                  {/* Détail : article + frais de port (payés maintenant) */}
+                  {/* Détail : article + frais de port si envoi par la poste (payés maintenant) */}
                   {paymentTotals && (
                     <div style={{
                       padding: '8px 12px',
@@ -4376,10 +4362,13 @@ export default function StreamView() {
                         <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).item_price}</span>
                         <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{formatMoney(paymentTotals.amount, paymentTotals.currency)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).shipping_fee}</span>
-                        <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>{formatMoney(paymentTotals.shipping, paymentTotals.currency)}</span>
-                      </div>
+                      {/* Frais de port : masqués en main propre */}
+                      {paymentTotals.method !== 'pickup' && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).shipping_fee}</span>
+                          <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>{formatMoney(paymentTotals.shipping, paymentTotals.currency)}</span>
+                        </div>
+                      )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '4px' }}>
                         <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>{ft(lang).total}</span>
                         <span style={{ fontSize: '13px', color: '#22C55E', fontWeight: 700 }}>{formatMoney(paymentTotals.total, paymentTotals.currency)}</span>
@@ -4616,7 +4605,7 @@ export default function StreamView() {
               {ct.walletTitle}
             </h3>
 
-            {/* Adresse de livraison */}
+            {/* Adresse pour les envois par la poste */}
             <div
               onClick={() => navigate('/addresses')}
               style={{
@@ -4629,8 +4618,7 @@ export default function StreamView() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5a1 1 0 01-1 1h-1"/>
-                  <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                  <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
@@ -4723,7 +4711,7 @@ export default function StreamView() {
               {promoStatus === 'valid' && promoDiscount && (
                 <p style={{ fontSize: '13px', color: '#22C55E', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
-                  -{promoDiscount.percent}% {promoDiscount.type === 'item' ? ct.promoOnPrice : promoDiscount.type === 'commission' ? ct.promoOnCommission : ct.promoOnShipping}
+                  -{promoDiscount.percent}% {promoDiscount.type === 'item' ? ct.promoOnPrice : promoDiscount.type === 'commission' ? ct.promoOnCommission : ''}
                 </p>
               )}
               {promoStatus === 'invalid' && (

@@ -20,6 +20,7 @@ type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: 
 import { t, tr, useLang, setLang, LANGS, LANG_META, type Localized } from '../lib/i18n'
 import { getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
 import { getStoredGPSCountry } from '../lib/geolocation'
+import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 
 type HomeText = {
   sortedByRelevance: string
@@ -27,8 +28,6 @@ type HomeText = {
   modify: string
   promoCta: string
   promoCommission: string
-  promoShipping: string
-  promoBoth: string
   directSales: string
   emptyTitle: string
   emptySubtitle: string
@@ -62,8 +61,6 @@ const homeContent: Localized<HomeText> = {
     modify: 'Edit',
     promoCta: 'Grab it now!',
     promoCommission: 'Reduced commission',
-    promoShipping: 'Reduced shipping',
-    promoBoth: 'Reduced commission + shipping',
     directSales: 'Browse direct sales',
     emptyTitle: 'No live streams right now',
     emptySubtitle: 'Come back soon or start your own live!',
@@ -95,8 +92,6 @@ const homeContent: Localized<HomeText> = {
     modify: 'Modifier',
     promoCta: 'Profites-en !',
     promoCommission: 'Commission réduite',
-    promoShipping: 'Livraison réduite',
-    promoBoth: 'Commission + livraison réduites',
     directSales: 'Voir les ventes directes',
     emptyTitle: 'Aucun live en ce moment',
     emptySubtitle: 'Reviens bientôt ou lance ton propre live !',
@@ -128,8 +123,6 @@ const homeContent: Localized<HomeText> = {
     modify: 'Editar',
     promoCta: '¡Aprovéchalo!',
     promoCommission: 'Comisión reducida',
-    promoShipping: 'Envío reducido',
-    promoBoth: 'Comisión + envío reducidos',
     directSales: 'Ver ventas directas',
     emptyTitle: 'No hay directos ahora mismo',
     emptySubtitle: '¡Vuelve pronto o empieza tu propio directo!',
@@ -161,8 +154,6 @@ const homeContent: Localized<HomeText> = {
     modify: 'Изменить',
     promoCta: 'Успей воспользоваться!',
     promoCommission: 'Сниженная комиссия',
-    promoShipping: 'Сниженная доставка',
-    promoBoth: 'Сниженные комиссия и доставка',
     directSales: 'Смотреть прямые продажи',
     emptyTitle: 'Сейчас нет эфиров',
     emptySubtitle: 'Загляни позже или запусти свой эфир!',
@@ -194,8 +185,6 @@ const homeContent: Localized<HomeText> = {
     modify: 'עריכה',
     promoCta: 'נצלו את ההזדמנות!',
     promoCommission: 'עמלה מופחתת',
-    promoShipping: 'משלוח מוזל',
-    promoBoth: 'עמלה ומשלוח מוזלים',
     directSales: 'למכירות הישירות',
     emptyTitle: 'אין שידורים חיים כרגע',
     emptySubtitle: 'חזרו בקרוב או פתחו שידור חי משלכם!',
@@ -314,8 +303,10 @@ export default function Home() {
         const res = await apiFetch('/api/promotions/active', { signal: controller.signal })
         if (!controller.signal.aborted && res.ok) {
           const data = await res.json()
-          if (!controller.signal.aborted && Array.isArray(data) && data.length > 0) {
-            setActivePromotion(data[0])
+          // Plus de transporteur : seules les promos sur la commission s'affichent
+          const promo = Array.isArray(data) ? data.find((p: { type?: string }) => p.type === 'commission') : null
+          if (!controller.signal.aborted && promo) {
+            setActivePromotion(promo)
           }
         }
       } catch { /* ignore */ }
@@ -338,7 +329,9 @@ export default function Home() {
         .from('streams')
         .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, is_boosted, seller:profiles!seller_id(display_name, avatar_url)')
         .in('status', ['live', 'scheduled'])
-        .order('is_boosted', { ascending: false, nullsFirst: false })
+      // Directs boostés en tête seulement si les extras payants sont actifs
+      if (PAID_EXTRAS_ENABLED) query = query.order('is_boosted', { ascending: false, nullsFirst: false })
+      query = query
         .order('status', { ascending: true })
         .order('viewer_count', { ascending: false })
 
@@ -879,9 +872,7 @@ export default function Home() {
 
       {/* Promotion banner */}
       {activePromotion && !promoBannerDismissed && (() => {
-        const promoLabel = activePromotion.type === 'commission' ? ht.promoCommission
-          : activePromotion.type === 'shipping' ? ht.promoShipping
-          : ht.promoBoth
+        const promoLabel = ht.promoCommission
         return (
           <div style={{
             margin: '0 16px 12px 16px',

@@ -79,6 +79,7 @@ const adminContent = {
     trustPremium: 'Premium',
     retentionLabel: 'Retention: ',
     payoutDelayLabel: 'Payout delay: ',
+    daysSuffix: 'd',
     changeTrustLevel: 'Change level',
     metricRevenue: 'Rev',
     metricOrders: 'Ord',
@@ -103,7 +104,7 @@ const adminContent = {
     openedAt: 'Opened: ',
     createdAt: 'Created: ',
     paidAt: 'Paid: ',
-    shippedAt: 'Shipped: ',
+    shippedAt: 'Sent: ',
     resolvedAt: 'Resolved: ',
     reasonPrefix: 'Reason: ',
     resolutionNotePrefix: 'Resolution note: ',
@@ -112,7 +113,7 @@ const adminContent = {
     resolveForSeller: 'Resolve for seller',
     buyer: 'Buyer',
     seller: 'Seller',
-    shippingProofAlt: 'Shipping proof',
+    shippingProofAlt: 'Proof of sending',
     statusOpen: 'Open',
     statusUnderReview: 'Under review',
     statusResolvedBuyer: 'Resolved (buyer)',
@@ -179,8 +180,6 @@ const adminContent = {
     promoDescription: 'Description',
     promoType: 'Type',
     promoTypeCommission: 'Commission',
-    promoTypeShipping: 'Shipping',
-    promoTypeBoth: 'Both',
     promoDiscount: 'Discount (%)',
     promoStartDate: 'Start date',
     promoEndDate: 'End date',
@@ -282,6 +281,7 @@ const adminContent = {
     trustPremium: 'Premium',
     retentionLabel: 'Rétention: ',
     payoutDelayLabel: 'Délai paiement: ',
+    daysSuffix: 'j',
     changeTrustLevel: 'Changer le niveau',
     // Seller metrics
     metricRevenue: 'CA',
@@ -310,7 +310,7 @@ const adminContent = {
     openedAt: 'Ouvert : ',
     createdAt: 'Créé : ',
     paidAt: 'Payé : ',
-    shippedAt: 'Expédié : ',
+    shippedAt: 'Envoyé : ',
     resolvedAt: 'Résolu : ',
     reasonPrefix: 'Motif : ',
     resolutionNotePrefix: 'Note de résolution : ',
@@ -319,7 +319,7 @@ const adminContent = {
     resolveForSeller: 'Résoudre en faveur du vendeur',
     buyer: 'Acheteur',
     seller: 'Vendeur',
-    shippingProofAlt: 'Preuve expédition',
+    shippingProofAlt: 'Preuve d\'envoi',
     // Dispute statuses
     statusOpen: 'Ouvert',
     statusUnderReview: 'En examen',
@@ -395,8 +395,6 @@ const adminContent = {
     promoDescription: 'Description',
     promoType: 'Type',
     promoTypeCommission: 'Commission',
-    promoTypeShipping: 'Livraison',
-    promoTypeBoth: 'Les deux',
     promoDiscount: 'Reduction (%)',
     promoStartDate: 'Date de debut',
     promoEndDate: 'Date de fin',
@@ -491,6 +489,7 @@ const adminContent = {
     trustPremium: 'Premium',
     retentionLabel: 'Retención: ',
     payoutDelayLabel: 'Retraso pago: ',
+    daysSuffix: 'd',
     changeTrustLevel: 'Cambiar nivel',
     metricRevenue: 'Ingr.',
     metricOrders: 'Ped.',
@@ -591,8 +590,6 @@ const adminContent = {
     promoDescription: 'Descripcion',
     promoType: 'Tipo',
     promoTypeCommission: 'Comision',
-    promoTypeShipping: 'Envio',
-    promoTypeBoth: 'Ambos',
     promoDiscount: 'Descuento (%)',
     promoStartDate: 'Fecha de inicio',
     promoEndDate: 'Fecha de fin',
@@ -687,6 +684,7 @@ const adminContent = {
     trustPremium: 'Премиум',
     retentionLabel: 'Удержание: ',
     payoutDelayLabel: 'Задержка выплат: ',
+    daysSuffix: ' дн.',
     changeTrustLevel: 'Изменить уровень',
     metricRevenue: 'Выр.',
     metricOrders: 'Зак.',
@@ -787,8 +785,6 @@ const adminContent = {
     promoDescription: 'Описание',
     promoType: 'Тип',
     promoTypeCommission: 'Комиссия',
-    promoTypeShipping: 'Доставка',
-    promoTypeBoth: 'Оба',
     promoDiscount: 'Скидка (%)',
     promoStartDate: 'Дата начала',
     promoEndDate: 'Дата окончания',
@@ -883,6 +879,7 @@ const adminContent = {
     trustPremium: 'פרימיום',
     retentionLabel: 'עיכוב: ',
     payoutDelayLabel: 'עיכוב תשלום: ',
+    daysSuffix: ' ימים',
     changeTrustLevel: 'שנה רמה',
     metricRevenue: 'הכנסה',
     metricOrders: 'הזמנות',
@@ -983,8 +980,6 @@ const adminContent = {
     promoDescription: 'תיאור',
     promoType: 'סוג',
     promoTypeCommission: 'עמלה',
-    promoTypeShipping: 'משלוח',
-    promoTypeBoth: 'שניהם',
     promoDiscount: 'הנחה (%)',
     promoStartDate: 'תאריך התחלה',
     promoEndDate: 'תאריך סיום',
@@ -1646,7 +1641,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={badge(trustColors[trustLevel] || '#666')}>{trustLabels[trustLevel] || trustLevel}</span>
                     {Number(trust.holdback_percent) > 0 ? <span style={{ color: '#F59E0B', fontSize: '11px', fontWeight: 600 }}>{ct.retentionLabel + sv(trust.holdback_percent) + '%'}</span> : null}
-                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#8B5CF6', fontSize: '11px', fontWeight: 600 }}>{ct.payoutDelayLabel + sv(trust.payout_delay_days) + 'j'}</span> : null}
+                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#8B5CF6', fontSize: '11px', fontWeight: 600 }}>{ct.payoutDelayLabel + sv(trust.payout_delay_days) + ct.daysSuffix}</span> : null}
                     <button onClick={() => setTrustModal({
                       sellerId: id,
                       trust_level: trustLevel || 'new',
@@ -2038,7 +2033,7 @@ export default function AdminPage() {
     }
     const statusColor: Record<string, string> = { active: '#10B981', expired: '#666', inactive: '#EF4444' }
     const statusLabel: Record<string, string> = { active: ct.promoActive, expired: ct.promoExpired, inactive: ct.promoInactive }
-    const typeLabel: Record<string, string> = { commission: ct.promoTypeCommission, shipping: ct.promoTypeShipping, both: ct.promoTypeBoth }
+    const typeLabel: Record<string, string> = { commission: ct.promoTypeCommission }
 
     return (
       <div style={{ padding: '0 16px' }}>
@@ -2065,8 +2060,6 @@ export default function AdminPage() {
                 style={{ ...inputStyle, flex: 1 }}
               >
                 <option value="commission">{ct.promoTypeCommission}</option>
-                <option value="shipping">{ct.promoTypeShipping}</option>
-                <option value="both">{ct.promoTypeBoth}</option>
               </select>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ color: '#888', fontSize: '13px', flexShrink: 0 }}>{ct.promoDiscount}</span>

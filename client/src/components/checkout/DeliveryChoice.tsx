@@ -143,9 +143,12 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
           <span>{t.item_price}</span><span>{formatMoney(options.amount, options.currency, lang)}</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
-          <span>{t.shipping_fee}</span><span>{formatMoney(shipping, options.currency, lang)}</span>
-        </div>
+        {/* Frais de port : seulement pour l'envoi par la poste */}
+        {method === 'post' && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
+            <span>{t.shipping_fee}</span><span>{formatMoney(shipping, options.currency, lang)}</span>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 800, fontSize: '16px' }}>
           <span>{t.total}</span><span>{formatMoney(total, options.currency, lang)}</span>
         </div>

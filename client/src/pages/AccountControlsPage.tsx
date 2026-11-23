@@ -43,8 +43,7 @@ interface ControlSettings {
   // Content
   liveClips: boolean
   pastLivesVisible: boolean
-  // Rewards
-  communityBoosts: boolean
+  // Promotions
   realtimePromoFeedback: boolean
 }
 
@@ -75,7 +74,6 @@ const defaultSettings: ControlSettings = {
   textSize: 'normal',
   liveClips: true,
   pastLivesVisible: true,
-  communityBoosts: true,
   realtimePromoFeedback: true,
 }
 
@@ -1065,56 +1063,15 @@ export default function AccountControlsPage() {
               <div style={toggleStyle(settings.pastLivesVisible)}><div style={toggleDot(settings.pastLivesVisible)} /></div>
             </div>
 
-            {/* ─── SECTION: RÉCOMPENSES ─── */}
+            {/* ─── SECTION: PROMOTIONS ─── */}
             <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
-              {tr({ en: 'Rewards', fr: 'Récompenses', es: 'Recompensas', ru: 'Награды', he: 'תגמולים' })}
+              {tr({ en: 'Promotions', fr: 'Promotions', es: 'Promociones', ru: 'Акции', he: 'מבצעים' })}
             </p>
-
-            {/* Rewards club — display */}
-            <div style={{
-              backgroundColor: '#1A1A1A', borderRadius: '14px 14px 0 0', padding: '16px',
-              display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid #222',
-            }}>
-              <div style={{
-                width: '40px', height: '40px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 20h20M4 20l2-14 4 6 2-8 2 8 4-6 2 14"/>
-                </svg>
-              </div>
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tr({ en: 'Rewards club', fr: 'Club de récompenses', es: 'Club de recompensas', ru: 'Клуб наград', he: 'מועדון תגמולים' })}
-                </p>
-                <p style={{ fontSize: '12px', color: '#F0908A', margin: '3px 0 0', fontWeight: 600 }}>
-                  {tr({ en: 'Active member', fr: 'Membre actif', es: 'Miembro activo', ru: 'Активный участник', he: 'חבר/ה פעיל/ה' })} ⭐
-                </p>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
-            </div>
-
-            {/* Community boosts */}
-            <div
-              onClick={() => update({ communityBoosts: !settings.communityBoosts })}
-              style={{ backgroundColor: '#1A1A1A', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
-            >
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
-                  {tr({ en: 'Community boosts', fr: 'Boosts communautaires', es: 'Impulsos de la comunidad', ru: 'Бусты сообщества', he: 'בוסטים קהילתיים' })}
-                </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
-                  {tr({ en: 'Use your points to boost sellers.', fr: 'Utilise tes points pour booster des vendeurs.', es: 'Usa tus puntos para impulsar a vendedores.', ru: 'Трать баллы на продвижение продавцов.', he: 'השתמשו בנקודות כדי לקדם מוכרים.' })}
-                </p>
-              </div>
-              <div style={toggleStyle(settings.communityBoosts)}><div style={toggleDot(settings.communityBoosts)} /></div>
-            </div>
 
             {/* Real-time promo feedback */}
             <div
               onClick={() => update({ realtimePromoFeedback: !settings.realtimePromoFeedback })}
-              style={{ backgroundColor: '#1A1A1A', borderRadius: '0 0 14px 14px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', marginBottom: '10px' }}
+              style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', marginBottom: '10px' }}
             >
               <div style={{ flex: 1 }}>
                 <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>

@@ -84,11 +84,11 @@ const faqItems: { id: string; q: Localized<string>; a: Localized<string> }[] = [
       he: 'איך ומתי מקבלים את הכסף?',
     },
     a: {
-      en: 'Payouts are processed through Stripe within 3–5 business days.',
-      fr: 'Les virements passent par Stripe, sous 3 à 5 jours ouvrés.',
-      es: 'Los pagos se procesan con Stripe en 3–5 días hábiles.',
-      ru: 'Выплаты проходят через Stripe в течение 3–5 рабочих дней.',
-      he: 'התשלומים מועברים דרך Stripe תוך 3–5 ימי עסקים.',
+      en: 'In person: you get paid as soon as you enter the buyer\'s 4-digit code. By post: 3 days after you add your 2 photos (inside of the parcel + stamped postage receipt), or as soon as the buyer confirms receipt. The money is sent to your account through Stripe.',
+      fr: 'En main propre : tu es payé dès que tu saisis le code à 4 chiffres de l\'acheteur. Par la poste : 3 jours après tes 2 photos (intérieur du colis + bordereau tamponné), ou dès que l\'acheteur confirme la réception. Le virement passe par Stripe.',
+      es: 'En mano: cobras en cuanto introduces el código de 4 cifras del comprador. Por correo: 3 días después de subir tus 2 fotos (interior del paquete + resguardo sellado), o en cuanto el comprador confirma la recepción. El pago se hace a través de Stripe.',
+      ru: 'Лично: деньги приходят, как только ты вводишь 4-значный код покупателя. По почте: через 3 дня после твоих 2 фото (содержимое посылки + квитанция со штампом) или сразу, как покупатель подтвердит получение. Выплата идёт через Stripe.',
+      he: 'מסירה ידנית: מקבלים את הכסף ברגע שמזינים את הקוד בן 4 הספרות של הקונה. בדואר: 3 ימים אחרי ששולחים 2 תמונות (תוכן החבילה + קבלת משלוח חתומה), או ברגע שהקונה מאשר/ת קבלה. התשלום מועבר דרך Stripe.',
     },
   },
   {
@@ -128,18 +128,18 @@ const faqItems: { id: string; q: Localized<string>; a: Localized<string> }[] = [
   {
     id: 'shipping',
     q: {
-      en: 'How does shipping work?',
-      fr: 'Comment fonctionne la livraison ?',
-      es: '¿Cómo funciona el envío?',
-      ru: 'Как работает доставка?',
-      he: 'איך עובד המשלוח?',
+      en: 'How does handover work?',
+      fr: 'Comment se passe la remise ?',
+      es: '¿Cómo funciona la entrega?',
+      ru: 'Как передать товар?',
+      he: 'איך עובדת המסירה?',
     },
     a: {
-      en: 'The seller ships within 3 days, and the buyer gets the tracking number automatically.',
-      fr: 'Le vendeur expédie sous 3 jours, et l\'acheteur reçoit automatiquement le numéro de suivi.',
-      es: 'El vendedor envía en 3 días y el comprador recibe el número de seguimiento automáticamente.',
-      ru: 'Продавец отправляет заказ в течение 3 дней, а покупатель автоматически получает трек-номер.',
-      he: 'המוכר/ת שולח/ת תוך 3 ימים, והקונה מקבל/ת מספר מעקב אוטומטית.',
+      en: 'After payment, the buyer and the seller are put in touch on WhatsApp or by email. Within your handover time, either hand the item over in person (the buyer gives you a 4-digit code), or send it by post yourself and add 2 photos: the inside of the parcel and the stamped postage receipt.',
+      fr: 'Après le paiement, l\'acheteur et le vendeur sont mis en relation sur WhatsApp ou par e-mail. Dans ton délai de remise, tu remets l\'article en main propre (l\'acheteur te donne un code à 4 chiffres), ou tu l\'envoies toi-même par la poste et tu ajoutes 2 photos : l\'intérieur du colis et le bordereau tamponné.',
+      es: 'Tras el pago, el comprador y el vendedor se ponen en contacto por WhatsApp o por correo electrónico. Dentro de tu plazo de entrega, entregas el artículo en mano (el comprador te da un código de 4 cifras) o lo envías tú por correo y añades 2 fotos: el interior del paquete y el resguardo sellado.',
+      ru: 'После оплаты покупатель и продавец связываются в WhatsApp или по e-mail. В пределах твоего срока передачи ты либо передаёшь товар лично (покупатель называет 4-значный код), либо сам отправляешь его почтой и добавляешь 2 фото: содержимое посылки и квитанцию со штампом.',
+      he: 'אחרי התשלום, הקונה והמוכר/ת מקבלים פרטי קשר ב-WhatsApp או במייל. בתוך זמן המסירה שלך, מוסרים את הפריט ביד (הקונה נותן/ת קוד בן 4 ספרות), או שולחים אותו בעצמך בדואר ומוסיפים 2 תמונות: תוכן החבילה וקבלת המשלוח החתומה.',
     },
   },
 ]
@@ -187,6 +187,18 @@ export default function Dashboard() {
     return () => controller.abort()
   }, [fetchDashboard])
 
+  // Délai de remise choisi par le vendeur (jours, 4 par défaut) : sert de repère pour la santé du compte
+  const [handoverDelay, setHandoverDelay] = useState(4)
+  useEffect(() => {
+    if (!session?.access_token || !profile?.is_seller) return
+    let cancelled = false
+    apiFetch('/api/seller/shipping-delay', { headers: { Authorization: `Bearer ${session.access_token}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (!cancelled && typeof d?.shipping_delay_days === 'number') setHandoverDelay(d.shipping_delay_days) })
+      .catch(() => { /* garde 4 jours */ })
+    return () => { cancelled = true }
+  }, [session?.access_token, profile?.is_seller])
+
   if (!user) {
     navigate('/login', { replace: true })
     return null
@@ -216,8 +228,8 @@ export default function Dashboard() {
       fmtBuyNowDesc: 'Sell at a fixed price, no bidding. Buyers tap and buy instantly.',
       fmtMystery: 'Mystery box',
       fmtMysteryDesc: 'Surprise your buyers with a mystery lot at a set price.',
-      fmtRipShip: 'Rip & ship',
-      fmtRipShipDesc: 'Open packs live in front of buyers and ship right away.',
+      fmtRipShip: 'Rip & hand over',
+      fmtRipShipDesc: 'Open packs live in front of buyers, then hand them over or send them by post.',
       stats1: '~13%',
       stats1Label: 'Total fees',
       stats2Label: 'Startup fees',
@@ -250,8 +262,8 @@ export default function Dashboard() {
       fmtBuyNowDesc: 'Vends à prix fixe, sans enchères. L\'acheteur appuie et achète aussitôt.',
       fmtMystery: 'Boîte mystère',
       fmtMysteryDesc: 'Surprends tes acheteurs avec un lot mystère à prix fixe.',
-      fmtRipShip: 'Ouverture & envoi',
-      fmtRipShipDesc: 'Ouvre les packs en direct devant les acheteurs et expédie dans la foulée.',
+      fmtRipShip: 'Ouverture & remise',
+      fmtRipShipDesc: 'Ouvre les packs en direct devant les acheteurs, puis remets-les en main propre ou envoie-les par la poste.',
       stats1: '~13 %',
       stats1Label: 'Frais au total',
       stats2Label: 'Frais de démarrage',
@@ -284,8 +296,8 @@ export default function Dashboard() {
       fmtBuyNowDesc: 'Vende a precio fijo, sin pujas. El comprador toca y compra al instante.',
       fmtMystery: 'Caja misteriosa',
       fmtMysteryDesc: 'Sorprende a tus compradores con un lote misterioso a precio fijo.',
-      fmtRipShip: 'Abrir y enviar',
-      fmtRipShipDesc: 'Abre los sobres en directo delante de los compradores y envía al momento.',
+      fmtRipShip: 'Abrir y entregar',
+      fmtRipShipDesc: 'Abre los sobres en directo delante de los compradores y luego entrégalos en mano o envíalos por correo.',
       stats1: '~13 %',
       stats1Label: 'Comisiones totales',
       stats2Label: 'Coste inicial',
@@ -318,8 +330,8 @@ export default function Dashboard() {
       fmtBuyNowDesc: 'Продавай по фиксированной цене, без торгов. Покупатель нажимает — и товар его.',
       fmtMystery: 'Коробка-сюрприз',
       fmtMysteryDesc: 'Удиви покупателей лотом-сюрпризом по фиксированной цене.',
-      fmtRipShip: 'Вскрытие и отправка',
-      fmtRipShipDesc: 'Вскрывай бустеры в эфире на глазах у покупателей и сразу отправляй.',
+      fmtRipShip: 'Вскрытие и передача',
+      fmtRipShipDesc: 'Вскрывай бустеры в эфире на глазах у покупателей, а потом передавай лично или отправляй почтой.',
       stats1: '~13 %',
       stats1Label: 'Комиссии всего',
       stats2Label: 'За старт',
@@ -352,8 +364,8 @@ export default function Dashboard() {
       fmtBuyNowDesc: 'מוכרים במחיר קבוע, בלי הצעות. הקונה לוחץ וקונה מיד.',
       fmtMystery: 'קופסת הפתעה',
       fmtMysteryDesc: 'הפתיעו את הקונים עם חבילת הפתעה במחיר קבוע.',
-      fmtRipShip: 'פתיחה ומשלוח',
-      fmtRipShipDesc: 'פותחים חבילות בשידור חי מול הקונים ושולחים מיד.',
+      fmtRipShip: 'פתיחה ומסירה',
+      fmtRipShipDesc: 'פותחים חבילות בשידור חי מול הקונים, ואז מוסרים ביד או שולחים בדואר.',
       stats1: '~13%',
       stats1Label: 'סך העמלות',
       stats2Label: 'עלות פתיחה',
@@ -787,8 +799,8 @@ export default function Dashboard() {
   const STATUS_LABELS: Record<string, Localized<string>> = {
     pending_payment: { en: 'Pending', fr: 'En attente', es: 'Pendiente', ru: 'Ожидает оплаты', he: 'ממתין לתשלום' },
     paid: { en: 'Paid', fr: 'Payée', es: 'Pagado', ru: 'Оплачен', he: 'שולם' },
-    shipped: { en: 'Shipped', fr: 'Expédiée', es: 'Enviado', ru: 'Отправлен', he: 'נשלח' },
-    delivered: { en: 'Delivered', fr: 'Livrée', es: 'Entregado', ru: 'Доставлен', he: 'נמסר' },
+    shipped: { en: 'Sent by post', fr: 'Envoyée par la poste', es: 'Enviado por correo', ru: 'Отправлен почтой', he: 'נשלח בדואר' },
+    delivered: { en: 'Received', fr: 'Reçue', es: 'Recibido', ru: 'Получен', he: 'התקבל' },
     completed: { en: 'Completed', fr: 'Terminée', es: 'Completado', ru: 'Завершён', he: 'הושלם' },
     refunded: { en: 'Refunded', fr: 'Remboursée', es: 'Reembolsado', ru: 'Возвращён', he: 'הוחזר' },
     disputed: { en: 'Disputed', fr: 'En litige', es: 'En disputa', ru: 'Спор', he: 'במחלוקת' },
@@ -965,7 +977,7 @@ export default function Dashboard() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
                 </svg>
               </div>
               <div style={{ flex: 1, textAlign: 'start' }}>
@@ -973,7 +985,7 @@ export default function Dashboard() {
                   {ft().to_hand_over}
                 </p>
                 <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
-                  {tr({ en: 'Track your packages', fr: 'Suis tes colis', es: 'Sigue tus paquetes', ru: 'Отслеживай посылки', he: 'מעקב אחרי החבילות' })}
+                  {tr({ en: 'In person · By post', fr: 'Main propre · Poste', es: 'En mano · Correo', ru: 'Лично · Почтой', he: 'מסירה ביד · דואר' })}
                 </p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" style={rtlFlip()}>
@@ -1004,9 +1016,10 @@ export default function Dashboard() {
                   icon: '✅',
                 },
                 {
-                  label: tr({ en: 'Ship time', fr: 'Délai d\'envoi', es: 'Plazo de envío', ru: 'Срок отправки', he: 'זמן משלוח' }),
+                  label: tr({ en: 'Average handover time', fr: 'Délai de remise moyen', es: 'Plazo de entrega medio', ru: 'Средний срок передачи', he: 'זמן מסירה ממוצע' }),
                   value: (() => { try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'day', unitDisplay: 'narrow' }).format(h.avg_shipping_days) } catch { return String(h.avg_shipping_days) } })(),
-                  color: h.avg_shipping_days <= 2 ? '#4ade80' : h.avg_shipping_days <= 4 ? '#facc15' : '#f87171',
+                  // Comparé au délai de remise choisi par le vendeur (et non plus à 2 jours fixes)
+                  color: h.avg_shipping_days <= handoverDelay ? '#4ade80' : h.avg_shipping_days <= handoverDelay + 2 ? '#facc15' : '#f87171',
                   icon: '📦',
                 },
               ]

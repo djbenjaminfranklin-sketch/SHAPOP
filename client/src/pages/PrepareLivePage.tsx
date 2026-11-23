@@ -114,8 +114,6 @@ const pageContent = {
     suggestedShipping: 'Suggested price',
     shippingOverride: 'Your shipping price for this item',
     shippingOverrideHint: 'Leave empty to use the price from your settings (or the suggested one)',
-    shippingWarning: 'Heads up: if the actual cost is higher, the difference will be deducted from your earnings',
-    perCarrier: 'depending on the carrier',
   },
   fr: {
     title: 'Préparer le live',
@@ -186,8 +184,6 @@ const pageContent = {
     suggestedShipping: 'Prix suggéré',
     shippingOverride: 'Ton prix d’envoi pour cet article',
     shippingOverrideHint: 'Laisse vide pour utiliser le prix de tes réglages (ou le prix suggéré)',
-    shippingWarning: 'Attention : si le coût réel est plus élevé, la différence sera déduite de tes gains',
-    perCarrier: 'selon le transporteur',
   },
   es: {
     title: 'Preparar el directo',
@@ -258,8 +254,6 @@ const pageContent = {
     suggestedShipping: 'Precio sugerido',
     shippingOverride: 'Tu precio de envío para este artículo',
     shippingOverrideHint: 'Déjalo vacío para usar el precio de tus ajustes (o el sugerido)',
-    shippingWarning: 'Atención: si el coste real es mayor, la diferencia se descontará de tus ganancias',
-    perCarrier: 'según el transportista',
   },
   ru: {
     title: 'Подготовка эфира',
@@ -330,8 +324,6 @@ const pageContent = {
     suggestedShipping: 'Рекомендуемая цена',
     shippingOverride: 'Твоя цена отправки для этого товара',
     shippingOverrideHint: 'Оставь пустым, чтобы взять цену из настроек (или рекомендуемую)',
-    shippingWarning: 'Внимание: если реальная стоимость окажется выше, разница будет вычтена из твоего заработка',
-    perCarrier: 'в зависимости от перевозчика',
   },
   he: {
     title: 'הכנת השידור',
@@ -402,8 +394,6 @@ const pageContent = {
     suggestedShipping: 'מחיר מומלץ',
     shippingOverride: 'מחיר המשלוח שלך לפריט הזה',
     shippingOverrideHint: 'אפשר להשאיר ריק כדי להשתמש במחיר מההגדרות (או במחיר המומלץ)',
-    shippingWarning: 'שימו לב: אם העלות בפועל גבוהה יותר, ההפרש ינוכה מההכנסות שלך',
-    perCarrier: 'בהתאם לחברת המשלוחים',
   },
 } satisfies Localized<Record<string, string>>
 

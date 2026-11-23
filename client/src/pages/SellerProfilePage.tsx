@@ -13,7 +13,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 // =============================================
 // Traductions (en, fr, es, ru, he)
 // =============================================
-type SellerText = Record<'back' | 'followers' | 'followingLabel' | 'follow' | 'unfollow' | 'messages' | 'editProfile' | 'shopTab' | 'livesTab' | 'reviewsTab' | 'reviews' | 'avgDelivery' | 'sold' | 'days' | 'noItems' | 'noLives' | 'noReviews' | 'loading' | 'notFound' | 'live' | 'scheduled' | 'ended' | 'retry' | 'reply' | 'sellerReply' | 'send' | 'seePurchase' | 'ordersTab' | 'financesTab' | 'totalRevenue' | 'monthlyRevenue' | 'totalSales' | 'avgViewers' | 'stripeConnected' | 'stripePending' | 'stripeNotConnected' | 'openPayments' | 'viewAll' | 'noOrders' | 'watchVod' | 'recap' | 'peakViewers' | 'minutes' | 'seeMoment' | 'buyer' | 'user' | 'video' | 'total' | 'stPaid' | 'stPreparing' | 'stShipped' | 'stDelivered' | 'stPending' | 'stRefunded', string>
+type SellerText = Record<'back' | 'followers' | 'followingLabel' | 'follow' | 'unfollow' | 'messages' | 'editProfile' | 'shopTab' | 'livesTab' | 'reviewsTab' | 'reviews' | 'handoverWithin' | 'messageError' | 'sold' | 'noItems' | 'noLives' | 'noReviews' | 'loading' | 'notFound' | 'live' | 'scheduled' | 'ended' | 'retry' | 'reply' | 'sellerReply' | 'send' | 'seePurchase' | 'ordersTab' | 'financesTab' | 'totalRevenue' | 'monthlyRevenue' | 'totalSales' | 'avgViewers' | 'stripeConnected' | 'stripePending' | 'stripeNotConnected' | 'openPayments' | 'viewAll' | 'noOrders' | 'watchVod' | 'recap' | 'peakViewers' | 'minutes' | 'seeMoment' | 'buyer' | 'user' | 'video' | 'total' | 'stPaid' | 'stPreparing' | 'stShipped' | 'stDelivered' | 'stPending' | 'stRefunded', string>
 
 const content: Localized<SellerText> = {
   en: {
@@ -28,9 +28,9 @@ const content: Localized<SellerText> = {
     livesTab: 'Lives',
     reviewsTab: 'Reviews',
     reviews: 'reviews',
-    avgDelivery: 'Avg. delivery time',
+    handoverWithin: 'Handover within {n} d',
+    messageError: 'Couldn\'t open the conversation. Check your connection and try again.',
     sold: 'Sold',
-    days: 'd',
     noItems: 'No items for sale',
     noLives: 'No lives yet',
     noReviews: 'No reviews yet',
@@ -67,8 +67,8 @@ const content: Localized<SellerText> = {
     total: 'Total',
     stPaid: 'Paid',
     stPreparing: 'Preparing',
-    stShipped: 'Shipped',
-    stDelivered: 'Delivered',
+    stShipped: 'Sent by post',
+    stDelivered: 'Received',
     stPending: 'Pending',
     stRefunded: 'Refunded',
   },
@@ -84,9 +84,9 @@ const content: Localized<SellerText> = {
     livesTab: 'Lives',
     reviewsTab: 'Avis',
     reviews: 'avis',
-    avgDelivery: 'Délai de livraison moyen',
+    handoverWithin: 'Remise sous {n} j',
+    messageError: 'Impossible d\'ouvrir la conversation. Vérifie ta connexion et réessaie.',
     sold: 'Vendu',
-    days: 'j',
     noItems: 'Aucun article en vente',
     noLives: 'Aucun live',
     noReviews: 'Aucun avis pour le moment',
@@ -123,8 +123,8 @@ const content: Localized<SellerText> = {
     total: 'Total',
     stPaid: 'Payée',
     stPreparing: 'En préparation',
-    stShipped: 'Expédiée',
-    stDelivered: 'Livrée',
+    stShipped: 'Envoyée par la poste',
+    stDelivered: 'Reçue',
     stPending: 'En attente',
     stRefunded: 'Remboursée',
   },
@@ -140,9 +140,9 @@ const content: Localized<SellerText> = {
     livesTab: 'Directos',
     reviewsTab: 'Opiniones',
     reviews: 'opiniones',
-    avgDelivery: 'Tiempo medio de envío',
+    handoverWithin: 'Entrega en {n} d',
+    messageError: 'No se pudo abrir la conversación. Revisa tu conexión e inténtalo de nuevo.',
     sold: 'Vendido',
-    days: 'd',
     noItems: 'No hay artículos en venta',
     noLives: 'Aún no hay directos',
     noReviews: 'Aún no hay opiniones',
@@ -179,8 +179,8 @@ const content: Localized<SellerText> = {
     total: 'Total',
     stPaid: 'Pagado',
     stPreparing: 'En preparación',
-    stShipped: 'Enviado',
-    stDelivered: 'Entregado',
+    stShipped: 'Enviado por correo',
+    stDelivered: 'Recibido',
     stPending: 'Pendiente',
     stRefunded: 'Reembolsado',
   },
@@ -196,9 +196,9 @@ const content: Localized<SellerText> = {
     livesTab: 'Эфиры',
     reviewsTab: 'Отзывы',
     reviews: 'отзывов',
-    avgDelivery: 'Средний срок доставки',
+    handoverWithin: 'Передача за {n} дн.',
+    messageError: 'Не удалось открыть переписку. Проверь соединение и попробуй снова.',
     sold: 'Продано',
-    days: 'дн.',
     noItems: 'Нет товаров в продаже',
     noLives: 'Эфиров пока нет',
     noReviews: 'Отзывов пока нет',
@@ -235,8 +235,8 @@ const content: Localized<SellerText> = {
     total: 'Итого',
     stPaid: 'Оплачен',
     stPreparing: 'Готовится',
-    stShipped: 'Отправлен',
-    stDelivered: 'Доставлен',
+    stShipped: 'Отправлен почтой',
+    stDelivered: 'Получен',
     stPending: 'Ожидает оплаты',
     stRefunded: 'Возвращены деньги',
   },
@@ -252,9 +252,9 @@ const content: Localized<SellerText> = {
     livesTab: 'שידורים',
     reviewsTab: 'ביקורות',
     reviews: 'ביקורות',
-    avgDelivery: 'זמן משלוח ממוצע',
+    handoverWithin: 'מסירה תוך {n} ימ׳',
+    messageError: 'לא הצלחנו לפתוח את השיחה. בדקו את החיבור ונסו שוב.',
     sold: 'נמכר',
-    days: 'ימ׳',
     noItems: 'אין פריטים למכירה',
     noLives: 'עדיין אין שידורים',
     noReviews: 'עדיין אין ביקורות',
@@ -291,8 +291,8 @@ const content: Localized<SellerText> = {
     total: 'סה״כ',
     stPaid: 'שולם',
     stPreparing: 'בהכנה',
-    stShipped: 'נשלח',
-    stDelivered: 'נמסר',
+    stShipped: 'נשלח בדואר',
+    stDelivered: 'התקבל',
     stPending: 'ממתין',
     stRefunded: 'הוחזר',
   },
@@ -545,7 +545,7 @@ export default function SellerProfilePage() {
   const [avgRating, setAvgRating] = useState(0)
   const [reviewCount, setReviewCount] = useState(0)
   const [totalSold, setTotalSold] = useState(0)
-  const [shippingDelay, setShippingDelay] = useState(2)
+  const [shippingDelay, setShippingDelay] = useState(4)
 
   // Seller reply state
   const [replyingToReviewId, setReplyingToReviewId] = useState<string | null>(null)
@@ -646,12 +646,12 @@ export default function SellerProfilePage() {
         setReviewCount(reviewData.total_count || 0)
       }
 
-      // Fetch shipping delay
+      // Délai de remise du vendeur (4 jours par défaut)
       const delayRes = await apiFetch(`/api/seller/${sellerId}/shipping-delay`)
       if (cancelledRef?.current) return
       if (delayRes.ok) {
         const delayData = await delayRes.json()
-        setShippingDelay(delayData.shipping_delay_days ?? 2)
+        setShippingDelay(delayData.shipping_delay_days ?? 4)
       }
 
       // Fetch items (active + sold)
@@ -939,19 +939,16 @@ export default function SellerProfilePage() {
             </span>
           </div>
 
-          {/* Delivery delay card */}
+          {/* Délai de remise du vendeur */}
           <div style={{
             flex: 1, backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '14px 8px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px',
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#fff' }}>
-              {shippingDelay}{t.days}
-            </span>
-            <span style={{ fontSize: '11px', color: '#888', textAlign: 'center', lineHeight: 1.3 }}>
-              {t.avgDelivery}
+            <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>
+              {t.handoverWithin.replace('{n}', String(shippingDelay))}
             </span>
           </div>
 
@@ -1056,7 +1053,8 @@ export default function SellerProfilePage() {
                     if (error) throw error
                     navigate(`/conversation/${conv.id}`)
                   } catch (err) {
-                    alert('Erreur: ' + (err instanceof Error ? err.message : 'connexion'))
+                    console.error('[SellerProfile] conversation', err)
+                    alert(t.messageError)
                   }
                 }}
                 style={{

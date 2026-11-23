@@ -1,11 +1,10 @@
-import { getLang, getLocale, type Lang, type Localized } from '../../lib/i18n'
+import { getLang, type Lang, type Localized } from '../../lib/i18n'
 
 interface SellerProfileHeaderProps {
   sellerId: string
   sellerName: string
   sellerAvatar?: string | null
   sellerScore: number | null
-  shippingDelay?: number
   isFollowing: boolean
   onFollowToggle: () => void
   lang?: Lang
@@ -24,18 +23,6 @@ function StarIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="#F0908A" stroke="none" style={{ flexShrink: 0 }}>
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  )
-}
-
-// Truck SVG icon for shipping speed
-function TruckIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <rect x="1" y="3" width="15" height="13" rx="1" />
-      <path d="M16 8h4l3 3v5h-7V8z" />
-      <circle cx="5.5" cy="18.5" r="2.5" />
-      <circle cx="18.5" cy="18.5" r="2.5" />
     </svg>
   )
 }
@@ -63,20 +50,12 @@ export default function SellerProfileHeader({
   sellerName,
   sellerAvatar,
   sellerScore,
-  shippingDelay,
   isFollowing,
   onFollowToggle,
   lang,
 }: SellerProfileHeaderProps) {
   const l = lang ?? getLang()
   const labels = FOLLOW_LABELS[l] ?? FOLLOW_LABELS.en
-  const days = shippingDelay ?? 2
-  // « 2 j », « 2d », « 2 дн. »… selon la langue
-  let shippingLabel = `${days}`
-  try {
-    shippingLabel = new Intl.NumberFormat(getLocale(l), { style: 'unit', unit: 'day', unitDisplay: 'narrow' }).format(days)
-  } catch { /* navigateur ancien : chiffre seul */ }
-
   return (
     <div style={{
       display: 'flex',
@@ -151,18 +130,6 @@ export default function SellerProfileHeader({
               {sellerScore.toFixed(1)}
             </span>
           )}
-          <span style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '2px',
-            fontSize: '9px',
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.6)',
-            lineHeight: 1,
-          }}>
-            <TruckIcon />
-            {shippingLabel}
-          </span>
         </div>
       </div>
 
