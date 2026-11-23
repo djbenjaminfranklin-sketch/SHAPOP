@@ -1,0 +1,58 @@
+# ShaPop — LiveKit auto-hébergé (Hetzner, Ubuntu LTS)
+# Basé sur la sortie du générateur officiel (docker run livekit/generate) :
+# Caddy (TLS Let's Encrypt automatique + TURN/TLS sur 443) + LiveKit + Redis,
+# auquel on ajoute Egress (enregistrements -> Cloudflare R2) et Ingress (RTMP/OBS).
+# Tous les services sont en réseau "host" (recommandé par LiveKit pour WebRTC).
+# Versions épinglées (relevées sur Docker Hub le 23/11/2026) : ne jamais utiliser "latest" en production.
+
+services:
+  caddy:
+    image: livekit/caddyl4:v2.11.3
+    command: run --config /etc/caddy.yaml --adapter yaml
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./caddy.yaml:/etc/caddy.yaml:ro
+      - ./caddy_data:/data
+
+  livekit:
+    image: livekit/livekit-server:v1.13.11
+    command: --config /etc/livekit.yaml
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - redis
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+
+  redis:
+    image: redis:7.4-alpine
+    command: redis-server /etc/redis.conf
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./redis.conf:/etc/redis.conf:ro
+
+  egress:
+    image: livekit/egress:v1.15.0
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - livekit
+    environment:
+      - EGRESS_CONFIG_FILE=/etc/egress.yaml
+    cap_add:
+      - SYS_ADMIN
+    volumes:
+      - ./egress.yaml:/etc/egress.yaml:ro
+
+  ingress:
+    image: livekit/ingress:v1.6.0
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - livekit
+    environment:
+      - INGRESS_CONFIG_FILE=/etc/ingress.yaml
+    volumes:
+      - ./ingress.yaml:/etc/ingress.yaml:ro

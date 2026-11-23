@@ -1,0 +1,10 @@
+# LiveKit Ingress — diffusion depuis OBS (RTMP)
+api_key: <A_REMPLIR_CLE_API>
+api_secret: <A_REMPLIR_SECRET_API>
+ws_url: ws://localhost:7880
+redis:
+  address: localhost:6379
+rtmp_port: 1935
+whip_port: 8080          # WHIP non utilisé par ShaPop : port NON ouvert dans le pare-feu
+http_relay_port: 9090    # local uniquement
+health_port: 9092

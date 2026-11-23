@@ -1,0 +1,42 @@
+# LiveKit server — ShaPop (live.shapop.app)
+# Remplacer chaque <A_REMPLIR>. Ne JAMAIS commiter ce fichier une fois rempli
+# (install.sh le copie dans /opt/livekit, c'est là qu'il faut le remplir).
+port: 7880
+bind_addresses:
+  - ""
+log_level: info
+
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+  enable_loopback_candidate: false
+
+redis:
+  address: localhost:6379
+
+turn:
+  enabled: true
+  domain: turn.shapop.app
+  tls_port: 5349        # derrière Caddy (443 public)
+  udp_port: 3478
+  external_tls: true
+
+# Clé/secret API : les mêmes que LIVEKIT_API_KEY / LIVEKIT_API_SECRET sur Render.
+# Générer : openssl rand -hex 8 (clé, préfixer "API") et openssl rand -base64 32 (secret).
+keys:
+  <A_REMPLIR_CLE_API>: <A_REMPLIR_SECRET_API>
+
+room:
+  empty_timeout: 300
+  max_participants: 0   # 0 = illimité (le serveur ShaPop peut fixer LIVEKIT_MAX_PARTICIPANTS)
+
+# Événements vers le serveur ShaPop (passage en direct, fin du direct, fin d'enregistrement)
+webhook:
+  api_key: <A_REMPLIR_CLE_API>
+  urls:
+    - <A_REMPLIR_URL_API_RENDER>/api/webhooks/livekit
+
+ingress:
+  rtmp_base_url: rtmp://live.shapop.app:1935/x

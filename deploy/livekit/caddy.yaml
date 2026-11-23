@@ -1,0 +1,41 @@
+# Caddy (image livekit/caddyl4) : certificats Let's Encrypt automatiques et aiguillage du port 443
+#  - live.shapop.app -> LiveKit (signalisation WebSocket + API, port local 7880)
+#  - turn.shapop.app -> TURN/TLS de LiveKit (port local 5349), pour les réseaux qui bloquent l'UDP
+logging:
+  logs:
+    default:
+      level: INFO
+storage:
+  module: file_system
+  root: /data
+apps:
+  tls:
+    certificates:
+      automate:
+        - live.shapop.app
+        - turn.shapop.app
+  layer4:
+    servers:
+      main:
+        listen: [":443"]
+        routes:
+          - match:
+              - tls:
+                  sni:
+                    - turn.shapop.app
+            handle:
+              - handler: tls
+              - handler: proxy
+                upstreams:
+                  - dial: ["localhost:5349"]
+          - match:
+              - tls:
+                  sni:
+                    - live.shapop.app
+            handle:
+              - handler: tls
+                connection_policies:
+                  - alpn: ["http/1.1"]
+              - handler: proxy
+                upstreams:
+                  - dial: ["localhost:7880"]

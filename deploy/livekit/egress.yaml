@@ -1,0 +1,13 @@
+# LiveKit Egress — enregistrements des directs
+# Le serveur ShaPop envoie à chaque enregistrement la destination Cloudflare R2
+# (variables RECORDING_S3_* sur Render) : aucun secret de stockage n'est nécessaire ici.
+api_key: <A_REMPLIR_CLE_API>
+api_secret: <A_REMPLIR_SECRET_API>
+ws_url: ws://localhost:7880
+redis:
+  address: localhost:6379
+health_port: 9091
+# Limite de charge : refuse un nouvel enregistrement si le processeur est trop occupé,
+# pour ne jamais dégrader les directs en cours.
+cpu_cost:
+  max_cpu_utilization: 0.8
