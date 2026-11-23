@@ -1,13 +1,11 @@
-import { getLang } from './i18n'
+import { isRTL, getDir } from './i18n'
 import type { CSSProperties } from 'react'
 
-export function isRTL(): boolean {
-  return getLang() === 'he'
-}
-
-export function getDir(): 'rtl' | 'ltr' {
-  return isRTL() ? 'rtl' : 'ltr'
-}
+// Conseil : pour les nouveaux styles, préférer les propriétés logiques CSS
+// (marginInlineStart, paddingInlineEnd, insetInlineStart, textAlign: 'start'…),
+// qui suivent automatiquement le sens de lecture. Ces outils restent pour
+// les cas où une propriété logique ne suffit pas (transform, flèches…).
+export { isRTL, getDir }
 
 /**
  * Returns a style object that flips left/right based on direction.
@@ -62,11 +60,4 @@ export function rtlTextAlign(align: 'left' | 'right'): CSSProperties {
 export function rtlBorderRadius(tl: string, tr: string, br: string, bl: string): CSSProperties {
   if (isRTL()) return { borderRadius: `${tr} ${tl} ${bl} ${br}` }
   return { borderRadius: `${tl} ${tr} ${br} ${bl}` }
-}
-
-/**
- * Returns flexDirection that flips row for RTL
- */
-export function rtlRow(): CSSProperties {
-  return isRTL() ? { flexDirection: 'row-reverse' as const } : { flexDirection: 'row' as const }
 }

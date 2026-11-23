@@ -72,7 +72,7 @@ export interface SellerFulfillmentSettings {
 // ---------------------------------------------------------------------
 // Montants : UNE seule fonction de formatage, avec la devise de la commande
 // ---------------------------------------------------------------------
-const LOCALES: Record<string, string> = { he: 'he-IL', fr: 'fr-FR', en: 'en-US', es: 'es-ES', ru: 'ru-RU' }
+const LOCALES: Record<string, string> = { en: 'en-US', fr: 'fr-FR', es: 'es-ES', ru: 'ru-RU', he: 'he-IL' }
 
 export function formatMoney(amount: number | string | null | undefined, currency?: string | null, lang: string = getLang()): string {
   const n = Number(amount || 0)
@@ -81,6 +81,37 @@ export function formatMoney(amount: number | string | null | undefined, currency
     return new Intl.NumberFormat(LOCALES[lang] || 'en-US', { style: 'currency', currency: cur }).format(n)
   } catch {
     return `${n.toFixed(2)} ${cur}`
+  }
+}
+
+// Devise d'un prix d'article : celle du pays du vendeur (même règle que le serveur,
+// server/src/fulfillment.ts → currencyForCountry).
+const EURO_COUNTRIES = new Set(['AT', 'BE', 'CY', 'DE', 'EE', 'ES', 'FI', 'FR', 'GR', 'HR', 'IE', 'IT', 'LT', 'LU', 'LV', 'MT', 'NL', 'PT', 'SI', 'SK', 'MC', 'AD', 'SM', 'VA', 'ME', 'XK'])
+const COUNTRY_CURRENCY: Record<string, string> = {
+  IL: 'ILS', US: 'USD', GB: 'GBP', CH: 'CHF', CA: 'CAD', AU: 'AUD', RU: 'RUB', UA: 'UAH',
+  JP: 'JPY', CN: 'CNY', IN: 'INR', BR: 'BRL', MX: 'MXN', AE: 'AED', MA: 'MAD', TR: 'TRY',
+  PL: 'PLN', SE: 'SEK', NO: 'NOK', DK: 'DKK', CZ: 'CZK', HU: 'HUF', RO: 'RON', ZA: 'ZAR',
+}
+
+export function currencyForCountry(country?: string | null): string {
+  const c = (country || '').toUpperCase()
+  if (EURO_COUNTRIES.has(c)) return 'EUR' // i18n-ignore (table des devises)
+  return COUNTRY_CURRENCY[c] || 'USD'
+}
+
+/** Prix d'un article affiché hors commande : devise du pays du vendeur (ou, à défaut, du pays donné). */
+export function formatItemPrice(amount: number | string | null | undefined, sellerCountry?: string | null, lang: string = getLang()): string {
+  return formatMoney(amount, currencyForCountry(sellerCountry), lang)
+}
+
+/** Symbole seul d'une devise (ex. champ de saisie d'un prix). */
+export function currencySymbol(currency?: string | null, lang: string = getLang()): string {
+  try {
+    const part = new Intl.NumberFormat(LOCALES[lang] || 'en-US', { style: 'currency', currency: (currency || 'USD').toUpperCase() })
+      .formatToParts(0).find(p => p.type === 'currency')
+    return part?.value || (currency || '').toUpperCase()
+  } catch {
+    return (currency || '').toUpperCase()
   }
 }
 

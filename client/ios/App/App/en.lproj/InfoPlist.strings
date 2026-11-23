@@ -1,0 +1,8 @@
+/* Textes système iOS (en) — ShaPop */
+"CFBundleDisplayName" = "ShaPop";
+"CFBundleName" = "ShaPop";
+"NSLocationWhenInUseUsageDescription" = "ShaPop uses your location to show you live streams happening near you.";
+"NSCameraUsageDescription" = "ShaPop uses your camera to go live and to take photos of the items you sell.";
+"NSMicrophoneUsageDescription" = "ShaPop uses your microphone so viewers can hear you during your live streams.";
+"NSPhotoLibraryUsageDescription" = "ShaPop needs access to your photos to add pictures to your listings.";
+"NSPhotoLibraryAddUsageDescription" = "ShaPop needs permission to save photos to your library.";

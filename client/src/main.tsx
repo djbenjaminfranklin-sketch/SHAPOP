@@ -17,6 +17,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { applyDocumentLang } from './lib/i18n'
+
+// Langue + sens de lecture posés sur <html> avant le premier affichage
+applyDocumentLang()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

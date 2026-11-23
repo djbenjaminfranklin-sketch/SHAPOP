@@ -6,7 +6,7 @@ import { Browser } from '@capacitor/browser'
 import { App as CapApp } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { cacheSet, cacheGet, cacheClearAll } from '../lib/cache'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, setLangChangeHook } from '../lib/i18n'
 
 interface AuthContextType {
   user: User | null
@@ -49,12 +49,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         setSession(null)
         setProfile(null)
-        const bannedMsgs = { fr: 'Votre compte a ete banni.', en: 'Your account has been banned.', he: 'החשבון שלך נחסם.', es: 'Tu cuenta ha sido suspendida.' }
-        alert(bannedMsgs[getLang()] || bannedMsgs.fr)
+        alert(tr({
+          en: 'Your account has been banned.',
+          fr: 'Ton compte a été banni.',
+          es: 'Tu cuenta ha sido suspendida.',
+          ru: 'Твой аккаунт заблокирован.',
+          he: 'החשבון שלך נחסם.',
+        }))
         return
       }
       setProfile(data)
       cacheSet('profile_' + u.id, data)
+      // Le serveur écrit e-mails et notifications dans profiles.language :
+      // on l'aligne sur la langue réellement affichée dans l'app.
+      const appLang = getLang()
+      if ((data as { language?: string }).language !== appLang) {
+        supabase.from('profiles').update({ language: appLang }).eq('id', u.id).then(() => {}, () => {})
+      }
     } else {
       // Auto-create profile (OAuth users or email signUp after confirmation)
       const meta = u.user_metadata || {}
@@ -65,11 +76,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         username,
         display_name: name,
         avatar_url: meta.avatar_url || meta.picture || null,
+        language: getLang(),
       }).select().single()
       if (insertError) console.error('Failed to create profile:', insertError)
       setProfile(newProfile)
     }
   }
+
+  // Langue choisie dans l'app → enregistrée dans le profil (e-mails, notifications).
+  useEffect(() => {
+    if (!user) { setLangChangeHook(null); return }
+    const uid = user.id
+    setLangChangeHook((lang) => {
+      supabase.from('profiles').update({ language: lang }).eq('id', uid).then(() => {}, () => {})
+    })
+    return () => setLangChangeHook(null)
+  }, [user])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -89,7 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null)
         // Clear app data on logout
-        const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_'))
+        // (la langue choisie est gardée : elle appartient au téléphone)
+        const keysToRemove = Object.keys(localStorage).filter(k => k.startsWith('shapop_') && k !== 'shapop_lang')
         keysToRemove.forEach(k => localStorage.removeItem(k))
       }
       // When user confirms email change, refresh user data from server

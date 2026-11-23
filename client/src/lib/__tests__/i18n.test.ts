@@ -1,221 +1,114 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { t, getLang, setLang, isRTL, getDir } from '../i18n'
+import { t, tr, getLang, setLang, isRTL, getDir, detectDeviceLang, LANGS, LANG_META, I18N_TRANSLATIONS, subscribeLang, setLangChangeHook } from '../i18n'
+
+function setDeviceLang(...langs: string[]) {
+  Object.defineProperty(navigator, 'language', { value: langs[0] ?? '', configurable: true })
+  Object.defineProperty(navigator, 'languages', { value: langs, configurable: true })
+}
 
 describe('i18n', () => {
   beforeEach(() => {
     localStorage.clear()
+    setDeviceLang('en-US')
   })
 
-  describe('getLang()', () => {
-    it('returns "fr" as default when no language is stored and browser language is not supported', () => {
-      // jsdom defaults navigator.language to empty/en-US, but 'en' IS supported
-      // so we test the fallback by setting a stored unsupported lang, then clearing
-      Object.defineProperty(navigator, 'language', {
-        value: 'xx-XX',
-        configurable: true,
-      })
-      const lang = getLang()
-      expect(lang).toBe('fr')
+  it('les 5 langues dans l\'ordre : en, fr, es, ru, he', () => {
+    expect(LANGS).toEqual(['en', 'fr', 'es', 'ru', 'he'])
+    expect(Object.keys(I18N_TRANSLATIONS)).toEqual(['en', 'fr', 'es', 'ru', 'he'])
+    expect(LANG_META.ru.name).toBe('Русский')
+    expect(LANG_META.he.name).toBe('עברית')
+  })
+
+  describe('langue automatique du téléphone', () => {
+    it.each([
+      ['fr-FR', 'fr'], ['es-MX', 'es'], ['ru-RU', 'ru'], ['he-IL', 'he'], ['iw-IL', 'he'], ['en-GB', 'en'],
+    ])('%s → %s', (device, expected) => {
+      setDeviceLang(device)
+      expect(getLang()).toBe(expected)
     })
 
-    it('returns stored language when one is set', () => {
-      setLang('en')
+    it('langue non couverte → anglais', () => {
+      setDeviceLang('de-DE')
       expect(getLang()).toBe('en')
+      setDeviceLang('xx-XX')
+      expect(detectDeviceLang()).toBe('en')
     })
 
-    it('returns stored language for Hebrew', () => {
-      setLang('he')
-      expect(getLang()).toBe('he')
+    it('prend la première langue couverte de la liste du téléphone', () => {
+      setDeviceLang('de-DE', 'ru-RU', 'fr-FR')
+      expect(getLang()).toBe('ru')
     })
 
-    it('returns stored language for Spanish', () => {
-      setLang('es')
-      expect(getLang()).toBe('es')
-    })
-
-    it('auto-detects from browser language when no stored language', () => {
-      Object.defineProperty(navigator, 'language', {
-        value: 'es-MX',
-        configurable: true,
-      })
-      expect(getLang()).toBe('es')
-    })
-
-    it('falls back to "fr" when stored language is invalid', () => {
+    it('valeur enregistrée invalide → langue du téléphone', () => {
       localStorage.setItem('shapop_lang', 'zz')
-      Object.defineProperty(navigator, 'language', {
-        value: 'zz-ZZ',
-        configurable: true,
-      })
-      expect(getLang()).toBe('fr')
+      setDeviceLang('es-ES')
+      expect(getLang()).toBe('es')
     })
   })
 
-  describe('t()', () => {
-    it('returns French translation for a known key with lang "fr"', () => {
-      expect(t('fr', 'home_tab')).toBe('Accueil')
+  describe('choix manuel', () => {
+    it('un téléphone israélien peut choisir le russe', () => {
+      setDeviceLang('he-IL')
+      expect(getLang()).toBe('he')
+      setLang('ru')
+      expect(getLang()).toBe('ru')
+      expect(localStorage.getItem('shapop_lang')).toBe('ru')
+      expect(isRTL()).toBe(false)
     })
 
-    it('returns English translation for a known key with lang "en"', () => {
+    it('met à jour <html lang> et dir tout de suite', () => {
+      setLang('he')
+      expect(document.documentElement.lang).toBe('he')
+      expect(document.documentElement.dir).toBe('rtl')
+      setLang('fr')
+      expect(document.documentElement.lang).toBe('fr')
+      expect(document.documentElement.dir).toBe('ltr')
+    })
+
+    it('prévient les abonnés et le profil', () => {
+      let calls = 0
+      let saved: string | null = null
+      const off = subscribeLang(() => { calls++ })
+      setLangChangeHook(l => { saved = l })
+      setLang('es')
+      off()
+      setLangChangeHook(null)
+      expect(calls).toBe(1)
+      expect(saved).toBe('es')
+    })
+  })
+
+  it('hébreu seulement en droite à gauche', () => {
+    for (const l of LANGS) {
+      setLang(l)
+      expect(getDir()).toBe(l === 'he' ? 'rtl' : 'ltr')
+      expect(isRTL()).toBe(l === 'he')
+    }
+  })
+
+  describe('t() et tr()', () => {
+    it('traduit dans chaque langue', () => {
       expect(t('en', 'home_tab')).toBe('Home')
-    })
-
-    it('returns Spanish translation for a known key with lang "es"', () => {
+      expect(t('fr', 'home_tab')).toBe('Accueil')
       expect(t('es', 'home_tab')).toBe('Inicio')
+      expect(t('ru', 'home_tab')).toBe('Главная')
+      expect(t('he', 'home_tab')).toBe('בית')
     })
 
-    it('returns Hebrew translation for a known key with lang "he"', () => {
-      expect(t('he', 'home_tab')).toBe('\u05D1\u05D9\u05EA')
+    it('langue inconnue → anglais', () => {
+      expect(t('zz', 'home_tab')).toBe('Home')
     })
 
-    it('falls back to French when an unknown language is provided', () => {
-      expect(t('zz', 'home_tab')).toBe('Accueil')
+    it('tr() choisit la langue courante', () => {
+      setLang('ru')
+      expect(tr({ en: 'a', fr: 'b', es: 'c', ru: 'd', he: 'e' })).toBe('d')
     })
 
-    it('returns correct translations for category keys', () => {
-      expect(t('fr', 'sneakers')).toBe('Sneakers')
-      expect(t('en', 'jewelry')).toBe('Jewelry')
-      expect(t('es', 'bags')).toBe('Bolsos')
-    })
-
-    it('returns correct translations for navigation keys', () => {
-      expect(t('en', 'sell_tab')).toBe('Sell')
-      expect(t('fr', 'sell_tab')).toBe('Vendre')
-      expect(t('es', 'sell_tab')).toBe('Vender')
-    })
-
-    it('returns correct translations for filter keys', () => {
-      expect(t('en', 'filter_all')).toBe('All')
-      expect(t('fr', 'filter_active')).toBe('En cours')
-      expect(t('es', 'filter_completed')).toBe('Finalizadas')
-    })
-  })
-
-  describe('setLang()', () => {
-    it('persists language to localStorage', () => {
-      setLang('en')
-      expect(localStorage.getItem('shapop_lang')).toBe('en')
-    })
-
-    it('overwrites previously stored language', () => {
-      setLang('en')
-      setLang('es')
-      expect(localStorage.getItem('shapop_lang')).toBe('es')
-    })
-  })
-
-  describe('isRTL()', () => {
-    it('returns true when language is Hebrew', () => {
-      setLang('he')
-      expect(isRTL()).toBe(true)
-    })
-
-    it('returns false when language is French', () => {
-      setLang('fr')
-      expect(isRTL()).toBe(false)
-    })
-
-    it('returns false when language is English', () => {
-      setLang('en')
-      expect(isRTL()).toBe(false)
-    })
-
-    it('returns false when language is Spanish', () => {
-      setLang('es')
-      expect(isRTL()).toBe(false)
-    })
-
-    it('returns false when no language is set and browser is not Hebrew', () => {
-      Object.defineProperty(navigator, 'language', {
-        value: 'fr-FR',
-        configurable: true,
-      })
-      expect(isRTL()).toBe(false)
-    })
-  })
-
-  describe('getDir()', () => {
-    it('returns "rtl" when language is Hebrew', () => {
-      setLang('he')
-      expect(getDir()).toBe('rtl')
-    })
-
-    it('returns "ltr" when language is French', () => {
-      setLang('fr')
-      expect(getDir()).toBe('ltr')
-    })
-
-    it('returns "ltr" when language is English', () => {
-      setLang('en')
-      expect(getDir()).toBe('ltr')
-    })
-
-    it('returns "ltr" when language is Spanish', () => {
-      setLang('es')
-      expect(getDir()).toBe('ltr')
-    })
-  })
-
-  describe('t() - giveaway translations', () => {
-    it('returns correct giveaway translations in French', () => {
-      expect(t('fr', 'giftTitle')).toBe('Cadeau Surprise')
-      expect(t('fr', 'giftEnter')).toBe('Participer')
-      expect(t('fr', 'giftDraw')).toBe('Tirer au sort')
-    })
-
-    it('returns correct giveaway translations in English', () => {
-      expect(t('en', 'giftTitle')).toBe('Surprise Gift')
-      expect(t('en', 'giftEnter')).toBe('Enter')
-      expect(t('en', 'giftDraw')).toBe('Draw winner')
-    })
-
-    it('returns correct giveaway translations in Spanish', () => {
-      expect(t('es', 'giftTitle')).toBe('Regalo Sorpresa')
-      expect(t('es', 'giftEnter')).toBe('Participar')
-      expect(t('es', 'giftDraw')).toBe('Sortear')
-    })
-
-    it('returns correct giveaway translations in Hebrew', () => {
-      expect(t('he', 'giftTitle')).toBe('\u05DE\u05EA\u05E0\u05D4 \u05D4\u05E4\u05EA\u05E2\u05D4')
-      expect(t('he', 'giftEnter')).toBe('\u05DC\u05D4\u05E9\u05EA\u05EA\u05E3')
-    })
-  })
-
-  describe('t() - all supported languages have consistent keys', () => {
-    const commonKeys = [
-      'search_placeholder', 'home_tab', 'sell_tab', 'live',
-      'filter_all', 'giftTitle', 'giftCancel',
-    ] as const
-
-    it('all keys return non-empty strings for French', () => {
-      for (const key of commonKeys) {
-        const value = t('fr', key)
-        expect(value).toBeTruthy()
-        expect(typeof value).toBe('string')
-      }
-    })
-
-    it('all keys return non-empty strings for English', () => {
-      for (const key of commonKeys) {
-        const value = t('en', key)
-        expect(value).toBeTruthy()
-        expect(typeof value).toBe('string')
-      }
-    })
-
-    it('all keys return non-empty strings for Spanish', () => {
-      for (const key of commonKeys) {
-        const value = t('es', key)
-        expect(value).toBeTruthy()
-        expect(typeof value).toBe('string')
-      }
-    })
-
-    it('all keys return non-empty strings for Hebrew', () => {
-      for (const key of commonKeys) {
-        const value = t('he', key)
-        expect(value).toBeTruthy()
-        expect(typeof value).toBe('string')
+    it('aucune valeur vide', () => {
+      for (const l of LANGS) {
+        for (const [k, v] of Object.entries(I18N_TRANSLATIONS[l])) {
+          expect(v, `${l}.${k}`).toBeTruthy()
+        }
       }
     })
   })

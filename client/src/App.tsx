@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense, useMemo } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { MiniPlayerProvider } from './contexts/MiniPlayerContext'
@@ -13,8 +13,7 @@ import BottomNav from './components/BottomNav'
 import HomeButton from './components/HomeButton'
 import SplashScreen from './components/SplashScreen'
 import ErrorBoundary from './components/ErrorBoundary'
-import { getLang } from './lib/i18n'
-import { getDir } from './lib/rtl'
+import { getLang, getDir, t, tr, useLang, applyDocumentLang, type Localized } from './lib/i18n'
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'))
@@ -74,7 +73,7 @@ function PageLoader() {
     }}>
       <div
         role="status"
-        aria-label={(() => { const l = getLang(); return l === 'fr' ? 'Chargement' : l === 'es' ? 'Cargando' : l === 'he' ? 'טוען' : 'Loading page' })()}
+        aria-label={t(getLang(), 'loading')}
         style={{
           width: '32px', height: '32px', border: '3px solid #333',
           borderTopColor: '#E8344E', borderRadius: '50%',
@@ -101,11 +100,12 @@ function RefRedirect() {
   return <Navigate to={`/register?ref=${code}`} replace />
 }
 
-const pushModalContent = {
-  fr: { title: 'Reste informé', desc: 'Reçois des notifications pour les messages, commandes, et lives', allow: 'Activer', skip: 'Plus tard' },
-  en: { title: 'Stay in the loop', desc: 'Get notified about messages, orders, and lives', allow: 'Enable', skip: 'Later' },
-  he: { title: '\u05D4\u05D9\u05E9\u05D0\u05E8 \u05DE\u05E2\u05D5\u05D3\u05DB\u05DF', desc: '\u05E7\u05D1\u05DC \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E2\u05DC \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA, \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D5\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD', allow: '\u05D4\u05E4\u05E2\u05DC', skip: '\u05DE\u05D0\u05D5\u05D7\u05E8 \u05D9\u05D5\u05EA\u05E8' },
-  es: { title: 'Mantente al día', desc: 'Recibe notificaciones de mensajes, pedidos y directos', allow: 'Activar', skip: 'Más tarde' },
+const pushModalContent: Localized<{ title: string; desc: string; allow: string; skip: string }> = {
+  en: { title: 'Stay in the loop', desc: 'Get notified about messages, orders and lives', allow: 'Turn on', skip: 'Later' },
+  fr: { title: 'Reste informé', desc: 'Reçois une notification pour tes messages, tes commandes et les lives', allow: 'Activer', skip: 'Plus tard' },
+  es: { title: 'Mantente al día', desc: 'Recibe avisos de mensajes, pedidos y directos', allow: 'Activar', skip: 'Más tarde' },
+  ru: { title: 'Будь в курсе', desc: 'Получай уведомления о сообщениях, заказах и эфирах', allow: 'Включить', skip: 'Позже' },
+  he: { title: 'הישאר/י מעודכן/ת', desc: 'קבל/י התראות על הודעות, הזמנות ושידורים חיים', allow: 'הפעלה', skip: 'אחר כך' },
 }
 
 /** Auto-register push token if user is logged in, with pre-permission modal */
@@ -113,8 +113,7 @@ function PushAutoRegister() {
   const { user } = useAuth()
   const { requestPermission } = usePushNotifications()
   const [showModal, setShowModal] = useState(false)
-  const lang = getLang()
-  const c = pushModalContent[lang as keyof typeof pushModalContent] || pushModalContent.fr
+  const c = tr(pushModalContent)
 
   const doRequest = useCallback(() => {
     requestPermission()
@@ -177,13 +176,6 @@ function PushAutoRegister() {
 function OfflineBanner() {
   const isOnline = useOnlineStatus()
   if (isOnline) return null
-  const lang = getLang()
-  const msg: Record<string, string> = {
-    fr: 'Pas de connexion internet',
-    en: 'No internet connection',
-    he: '\u05D0\u05D9\u05DF \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05D9\u05E0\u05D8\u05E8\u05E0\u05D8',
-    es: 'Sin conexion a internet',
-  }
   return (
     <div
       role="alert"
@@ -194,7 +186,7 @@ function OfflineBanner() {
         fontSize: '14px', fontWeight: 600,
       }}
     >
-      {msg[lang] || msg.fr}
+      {t(getLang(), 'offline')}
     </div>
   )
 }
@@ -267,7 +259,10 @@ export default function App() {
     if (window.location.pathname === '/change-password') return false
     return !localStorage.getItem('shapop_splash_seen')
   })
-  const dir = useMemo(() => getDir(), [])
+  // Langue réactive : un changement redessine toute l'app (textes + sens de lecture)
+  const lang = useLang()
+  const dir = getDir(lang)
+  useEffect(() => { applyDocumentLang(lang) }, [lang])
 
   useAppSettings()
 
@@ -324,17 +319,17 @@ export default function App() {
         <AuthProvider>
           <MiniPlayerProvider>
           <PushAutoRegister />
-          <div dir={dir} className="min-h-screen" style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0a0a0a', minHeight: '100dvh' }}>
+          <div key={lang} dir={dir} lang={lang} className="min-h-screen" style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0a0a0a', minHeight: '100dvh' }}>
             <a
               href="#main-content"
               style={{
-                position: 'absolute', left: '-9999px', top: 'auto',
+                position: 'absolute', insetInlineStart: '-9999px', top: 'auto',
                 width: '1px', height: '1px', overflow: 'hidden',
               }}
               onFocus={(e) => { e.currentTarget.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px;background:#F0908A;color:#000;text-align:center;font-weight:700;' }}
               onBlur={(e) => { e.currentTarget.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;' }}
             >
-              Skip to content
+              {t(lang, 'skip_to_content')}
             </a>
             <OfflineBanner />
             <HomeButton />

@@ -10,7 +10,10 @@ const CATEGORIES = [
 
 const CONDITIONS = ['Neuf', 'Comme neuf', 'Bon etat', 'Correct']
 
-const SYSTEM_PROMPT = `Tu es un expert en estimation d'objets pour une plateforme de live shopping (type Whatnot/Vinted).
+// Langue de la description et devise des prix : envoyées par l'app (5 langues ; anglais/USD par défaut).
+const LANGUAGE_NAMES: Record<string, string> = { en: 'English', fr: 'French (informal "tu")', es: 'Spanish', ru: 'Russian', he: 'Hebrew' }
+
+const buildSystemPrompt = (lang: string, currency: string) => `Tu es un expert en estimation d'objets pour une plateforme de live shopping (type Whatnot/Vinted).
 
 Analyse l'image fournie et retourne un JSON avec ces champs :
 - "title": titre court et precis de l'article (ex: "Nike Air Max 90 Infrared")
@@ -18,12 +21,13 @@ Analyse l'image fournie et retourne un JSON avec ces champs :
 - "condition": une des conditions suivantes EXACTEMENT: ${CONDITIONS.join(', ')}
 - "confidence": un score de confiance entre 70 et 98 (entier)
 - "tags": un tableau de 4-6 tags pertinents en minuscule (ex: ["nike", "sneakers", "vintage"])
-- "priceLow": prix bas estime en euros (entier) - prix minimum raisonnable sur le marche de l'occasion
-- "priceHigh": prix haut estime en euros (entier) - prix maximum raisonnable sur le marche de l'occasion
-- "description": description de 2-3 phrases en francais decrivant l'article, sa marque, ses caracteristiques et son etat apparent
+- "priceLow": prix bas estime en ${currency} (entier) - prix minimum raisonnable sur le marche de l'occasion
+- "priceHigh": prix haut estime en ${currency} (entier) - prix maximum raisonnable sur le marche de l'occasion
+- "title" et "description" sont rediges en ${LANGUAGE_NAMES[lang] || LANGUAGE_NAMES.en} (les noms de marque et de modele restent tels quels)
+- "description": description de 2-3 phrases decrivant l'article, sa marque, ses caracteristiques et son etat apparent
 
 IMPORTANT pour les prix :
-- Base-toi sur les prix reels du marche de l'occasion (Vinted, Leboncoin, eBay)
+- Base-toi sur les prix reels du marche de l'occasion dans le pays de cette devise (eBay, Vinted, marketplaces locales)
 - Tiens compte de la marque, du modele, de l'etat apparent sur la photo
 - Pour les articles de luxe, verifie si c'est un modele connu et ajuste le prix en consequence
 - Pour l'electronique, tiens compte de la generation/anciennete
@@ -51,7 +55,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    const { image } = await req.json()
+    const body = await req.json()
+    const image = body?.image
+    const lang = typeof body?.lang === 'string' && LANGUAGE_NAMES[body.lang] ? body.lang : 'en'
+    const currency = typeof body?.currency === 'string' && /^[A-Za-z]{3}$/.test(body.currency) ? body.currency.toUpperCase() : 'USD'
 
     if (!image) {
       return new Response(
@@ -102,7 +109,7 @@ Deno.serve(async (req) => {
             ],
           },
         ],
-        system: SYSTEM_PROMPT,
+        system: buildSystemPrompt(lang, currency),
       }),
     })
 
