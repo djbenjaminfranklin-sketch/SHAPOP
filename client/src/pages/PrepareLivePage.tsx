@@ -5,11 +5,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { getLang } from '../lib/i18n'
+import { tr, getLocale, type Localized } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { formatMoney } from '../lib/fulfillment'
+import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
 
 // Compress image to max 800px and JPEG quality 0.7
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
@@ -44,16 +44,86 @@ function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> 
   })
 }
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
 const pageContent = {
+  en: {
+    title: 'Prepare your live',
+    addItem: 'Add an item',
+    photo: 'Photo',
+    itemTitle: 'Item title',
+    startingPrice: 'Starting price ({cur})',
+    category: 'Category (optional)',
+    add: 'Add',
+    cancel: 'Cancel',
+    goLive: 'Go live',
+    noItems: 'Add at least one item to get started',
+    lot: 'Lot',
+    deleteConfirm: 'Delete this item?',
+    delete: 'Delete',
+    takePhoto: 'Take a photo',
+    choosePhoto: 'Choose from gallery',
+    saving: 'Saving...',
+    itemOne: 'item',
+    itemFew: 'items',
+    items: 'items',
+    duration: 'Time per item',
+    seconds: 'sec',
+    secShort: 's',
+    sdShort: 'SD',
+    sdTitle: 'Sudden death',
+    durationHint: 'Bidding time for each item',
+    quantity: 'Quantity',
+    quantityHint: 'Each item gets its own unique code',
+    generating: 'Creating items ({n})...',
+    muxError: 'Video streaming setup failed. Viewers may not see your video.',
+    minPrice: 'Minimum price (optional)',
+    minShort: 'min',
+    minPriceHint: 'If no bid reaches this price, the item stays unsold',
+    buyNowPrice: 'Buy now price (optional)',
+    buyNowHint: 'Lets buyers purchase instantly without bidding',
+    csvUpload: 'Import CSV',
+    csvImporting: 'Importing...',
+    csvImported: 'Items imported: {n}',
+    csvError: 'CSV error',
+    csvEmpty: 'the file is empty',
+    csvColumns: 'the "title" and "price" columns are required',
+    csvNoValid: 'no valid items found',
+    uploadFailed: 'Couldn’t upload the photo. Please try again.',
+    createFailed: 'Couldn’t create the item. Please try again.',
+    deleteStream: 'Delete this live',
+    deleteStreamConfirm: 'Delete this live and all its items? This can’t be undone.',
+    scheduledDate: 'Scheduled for',
+    changeDate: 'Change date',
+    saveDate: 'Save',
+    deleteError: 'Couldn’t delete the live',
+    confirmDelete: 'Delete',
+    confirmCancel: 'Cancel',
+    back: 'Back',
+    cancelEdit: 'Cancel',
+    moveUp: 'Move up',
+    moveDown: 'Move down',
+    deleteItem: 'Delete item',
+    decreaseQty: 'Decrease quantity',
+    increaseQty: 'Increase quantity',
+    shippingDelay: 'Handover deadline',
+    shippingDelayHint: 'With no code or photos in time, the order is cancelled and refunded',
+    day: 'day',
+    dayFew: 'days',
+    days: 'days',
+    weight: 'Weight (grams)',
+    weightHint: 'Item weight (used for the suggested shipping price)',
+    suggestedShipping: 'Suggested price',
+    shippingOverride: 'Your shipping price for this item',
+    shippingOverrideHint: 'Leave empty to use the price from your settings (or the suggested one)',
+    shippingWarning: 'Heads up: if the actual cost is higher, the difference will be deducted from your earnings',
+    perCarrier: 'depending on the carrier',
+  },
   fr: {
     title: 'Préparer le live',
     addItem: 'Ajouter un article',
     photo: 'Photo',
-    itemTitle: 'Titre de l\'article',
-    startingPrice: 'Prix de départ (EUR)',
-    category: 'Catégorie (optionnel)',
+    itemTitle: 'Titre de l’article',
+    startingPrice: 'Prix de départ ({cur})',
+    category: 'Catégorie (facultatif)',
     add: 'Ajouter',
     cancel: 'Annuler',
     goLive: 'Passer en direct',
@@ -64,219 +134,303 @@ const pageContent = {
     takePhoto: 'Prendre une photo',
     choosePhoto: 'Choisir dans la galerie',
     saving: 'Enregistrement...',
+    itemOne: 'article',
+    itemFew: 'articles',
     items: 'articles',
     duration: 'Durée par article',
     seconds: 'sec',
-    durationHint: 'Temps d\'enchère pour chaque article',
+    secShort: 's',
+    sdShort: 'MS',
+    sdTitle: 'Mort subite',
+    durationHint: 'Temps d’enchère pour chaque article',
     quantity: 'Quantité',
-    quantityHint: 'Chaque article aura un code unique',
-    generating: 'Génération de {n} articles...',
-    muxError: 'La configuration du streaming video a échoué. Les spectateurs pourraient ne pas voir votre video.',
-    minPrice: 'Prix minimum (optionnel)',
-    minPriceHint: 'Si aucune enchère n\'atteint ce prix, l\'article sera invendu',
-    buyNowPrice: 'Prix achat immediat (optionnel)',
-    buyNowHint: 'Permet d\'acheter l\'article sans enchérir',
-    csvUpload: 'Importer CSV',
+    quantityHint: 'Chaque article aura son propre code',
+    generating: 'Création des articles ({n})...',
+    muxError: 'La configuration du streaming vidéo a échoué. Les spectateurs risquent de ne pas voir ta vidéo.',
+    minPrice: 'Prix minimum (facultatif)',
+    minShort: 'min',
+    minPriceHint: 'Si aucune enchère n’atteint ce prix, l’article reste invendu',
+    buyNowPrice: 'Prix d’achat immédiat (facultatif)',
+    buyNowHint: 'Permet d’acheter l’article sans enchérir',
+    csvUpload: 'Importer un CSV',
     csvImporting: 'Import en cours...',
-    csvImported: '{n} articles importes',
+    csvImported: 'Articles importés : {n}',
     csvError: 'Erreur CSV',
+    csvEmpty: 'le fichier est vide',
+    csvColumns: 'les colonnes "title" et "price" sont obligatoires',
+    csvNoValid: 'aucun article valide',
+    uploadFailed: 'Impossible d’envoyer la photo. Réessaie.',
+    createFailed: 'Impossible de créer l’article. Réessaie.',
     deleteStream: 'Supprimer ce live',
     deleteStreamConfirm: 'Supprimer ce live et tous ses articles ? Cette action est irréversible.',
-    scheduledDate: 'Date programmée',
+    scheduledDate: 'Date prévue',
     changeDate: 'Modifier la date',
     saveDate: 'Enregistrer',
-    deleteError: 'Echec de la suppression',
+    deleteError: 'Échec de la suppression',
     confirmDelete: 'Supprimer',
     confirmCancel: 'Annuler',
+    back: 'Retour',
+    cancelEdit: 'Annuler',
+    moveUp: 'Monter',
+    moveDown: 'Descendre',
+    deleteItem: 'Supprimer l’article',
+    decreaseQty: 'Diminuer la quantité',
+    increaseQty: 'Augmenter la quantité',
     shippingDelay: 'Délai de remise',
     shippingDelayHint: 'Sans code ni photos dans ce délai, la commande est annulée et remboursée',
     day: 'jour',
+    dayFew: 'jours',
     days: 'jours',
     weight: 'Poids (grammes)',
-    weightHint: 'Poids de l\'article (sert au prix d\'envoi suggéré)',
+    weightHint: 'Poids de l’article (sert au prix d’envoi suggéré)',
     suggestedShipping: 'Prix suggéré',
-    shippingOverride: 'Ton prix d\'envoi par la poste pour cet article',
+    shippingOverride: 'Ton prix d’envoi pour cet article',
     shippingOverrideHint: 'Laisse vide pour utiliser le prix de tes réglages (ou le prix suggéré)',
-    shippingWarning: 'Attention: si le coût réel est supérieur, la différence sera déduite de vos gains',
+    shippingWarning: 'Attention : si le coût réel est plus élevé, la différence sera déduite de tes gains',
     perCarrier: 'selon le transporteur',
-  },
-  en: {
-    title: 'Prepare your live',
-    addItem: 'Add an item',
-    photo: 'Photo',
-    itemTitle: 'Item title',
-    startingPrice: 'Starting price (EUR)',
-    category: 'Category (optional)',
-    add: 'Add',
-    cancel: 'Cancel',
-    goLive: 'Go live',
-    noItems: 'Add at least one item to start',
-    lot: 'Lot',
-    deleteConfirm: 'Delete this item?',
-    delete: 'Delete',
-    takePhoto: 'Take a photo',
-    choosePhoto: 'Choose from gallery',
-    saving: 'Saving...',
-    items: 'items',
-    duration: 'Duration per item',
-    seconds: 'sec',
-    durationHint: 'Bidding time for each item',
-    quantity: 'Quantity',
-    quantityHint: 'Each item will have a unique code',
-    generating: 'Generating {n} items...',
-    muxError: 'Video streaming setup failed. Viewers may not see your video.',
-    minPrice: 'Minimum price (optional)',
-    minPriceHint: 'If no bid reaches this price, the item will be unsold',
-    buyNowPrice: 'Buy now price (optional)',
-    buyNowHint: 'Allows instant purchase without bidding',
-    csvUpload: 'Import CSV',
-    csvImporting: 'Importing...',
-    csvImported: '{n} items imported',
-    csvError: 'CSV error',
-    deleteStream: 'Delete this live',
-    deleteStreamConfirm: 'Delete this live and all its items? This action cannot be undone.',
-    scheduledDate: 'Scheduled date',
-    changeDate: 'Change date',
-    saveDate: 'Save',
-    deleteError: 'Failed to delete',
-    confirmDelete: 'Delete',
-    confirmCancel: 'Cancel',
-    shippingDelay: 'Handover deadline',
-    shippingDelayHint: 'With no code or photos in time, the order is cancelled and refunded',
-    day: 'day',
-    days: 'days',
-    weight: 'Weight (grams)',
-    weightHint: 'Item weight (used for the suggested shipping price)',
-    suggestedShipping: 'Suggested price',
-    shippingOverride: 'Your shipping price by post for this item',
-    shippingOverrideHint: 'Leave empty to use your settings price (or the suggested one)',
-    shippingWarning: 'Warning: if actual cost is higher, the difference will be deducted from your earnings',
-    perCarrier: 'depending on carrier',
-  },
-  he: {
-    title: 'הכנת השידור',
-    addItem: 'הוסף פריט',
-    photo: 'תמונה',
-    itemTitle: 'שם הפריט',
-    startingPrice: 'מחיר התחלתי (EUR)',
-    category: 'קטגוריה (אופציונלי)',
-    add: 'הוסף',
-    cancel: 'ביטול',
-    goLive: 'צא לשידור',
-    noItems: 'הוסף לפחות פריט אחד כדי להתחיל',
-    lot: 'לוט',
-    deleteConfirm: 'למחוק את הפריט?',
-    delete: 'מחק',
-    takePhoto: 'צלם תמונה',
-    choosePhoto: 'בחר מהגלריה',
-    saving: '...שומר',
-    items: 'פריטים',
-    duration: 'משך לכל פריט',
-    seconds: 'שנ',
-    durationHint: 'זמן מכירה לכל פריט',
-    quantity: 'כמות',
-    quantityHint: 'לכל פריט יהיה קוד ייחודי',
-    generating: '...{n} יוצר פריטים',
-    muxError: 'הגדרת הזרמת הווידאו נכשלה. הצופים עלולים לא לראות את הווידאו שלך.',
-    minPrice: '(מחיר מינימום (אופציונלי',
-    minPriceHint: 'אם אף הצעה לא מגיעה למחיר זה, הפריט יהיה לא נמכר',
-    buyNowPrice: '(מחיר קנייה מיידית (אופציונלי',
-    buyNowHint: 'מאפשר קנייה מיידית ללא הצעות',
-    csvUpload: 'CSV יבוא',
-    csvImporting: '...מייבא',
-    csvImported: 'פריטים יובאו {n}',
-    csvError: 'CSV שגיאת',
-    deleteStream: 'מחק שידור זה',
-    deleteStreamConfirm: 'למחוק את השידור ואת כל הפריטים? פעולה זו בלתי הפיכה.',
-    scheduledDate: 'תאריך מתוזמן',
-    changeDate: 'שנה תאריך',
-    saveDate: 'שמור',
-    deleteError: 'המחיקה נכשלה',
-    confirmDelete: 'מחק',
-    confirmCancel: 'ביטול',
-    shippingDelay: 'זמן למסירה',
-    shippingDelayHint: 'ללא קוד או תמונות בזמן, ההזמנה מבוטלת והכסף מוחזר',
-    day: 'יום',
-    days: 'ימים',
-    weight: '(משקל (גרם',
-    weightHint: 'משקל הפריט (למחיר המשלוח המומלץ)',
-    suggestedShipping: 'מחיר מוצע',
-    shippingOverride: 'מחיר המשלוח שלך בדואר לפריט הזה',
-    shippingOverrideHint: 'השאר ריק כדי להשתמש במחיר מההגדרות (או במחיר המומלץ)',
-    shippingWarning: 'שים לב: אם העלות בפועל גבוהה יותר, ההפרש ינוכה מהרווחים שלך',
-    perCarrier: 'בהתאם לשליח',
   },
   es: {
     title: 'Preparar el directo',
-    addItem: 'Agregar un articulo',
+    addItem: 'Añadir un artículo',
     photo: 'Foto',
-    itemTitle: 'Titulo del articulo',
-    startingPrice: 'Precio inicial (EUR)',
-    category: 'Categoria (opcional)',
-    add: 'Agregar',
+    itemTitle: 'Título del artículo',
+    startingPrice: 'Precio inicial ({cur})',
+    category: 'Categoría (opcional)',
+    add: 'Añadir',
     cancel: 'Cancelar',
-    goLive: 'Iniciar directo',
-    noItems: 'Agrega al menos un articulo para empezar',
+    goLive: 'Empezar directo',
+    noItems: 'Añade al menos un artículo para empezar',
     lot: 'Lote',
-    deleteConfirm: 'Eliminar este articulo?',
+    deleteConfirm: '¿Eliminar este artículo?',
     delete: 'Eliminar',
-    takePhoto: 'Tomar foto',
-    choosePhoto: 'Elegir de la galeria',
+    takePhoto: 'Hacer una foto',
+    choosePhoto: 'Elegir de la galería',
     saving: 'Guardando...',
-    items: 'articulos',
-    duration: 'Duracion por articulo',
+    itemOne: 'artículo',
+    itemFew: 'artículos',
+    items: 'artículos',
+    duration: 'Duración por artículo',
     seconds: 'seg',
-    durationHint: 'Tiempo de puja para cada articulo',
+    secShort: 's',
+    sdShort: 'MS',
+    sdTitle: 'Muerte súbita',
+    durationHint: 'Tiempo de puja para cada artículo',
     quantity: 'Cantidad',
-    quantityHint: 'Cada articulo tendra un codigo unico',
-    generating: 'Generando {n} articulos...',
-    muxError: 'La configuracion del streaming de video fallo. Los espectadores podrian no ver tu video.',
-    minPrice: 'Precio minimo (opcional)',
-    minPriceHint: 'Si ninguna puja alcanza este precio, el articulo no se vendera',
-    buyNowPrice: 'Precio compra inmediata (opcional)',
-    buyNowHint: 'Permite comprar sin pujar',
+    quantityHint: 'Cada artículo tendrá su propio código',
+    generating: 'Creando artículos ({n})...',
+    muxError: 'Ha fallado la configuración del vídeo en directo. Puede que los espectadores no vean tu vídeo.',
+    minPrice: 'Precio mínimo (opcional)',
+    minShort: 'mín.',
+    minPriceHint: 'Si ninguna puja llega a este precio, el artículo queda sin vender',
+    buyNowPrice: 'Precio de compra inmediata (opcional)',
+    buyNowHint: 'Permite comprar al instante sin pujar',
     csvUpload: 'Importar CSV',
     csvImporting: 'Importando...',
-    csvImported: '{n} articulos importados',
-    csvError: 'Error CSV',
+    csvImported: 'Artículos importados: {n}',
+    csvError: 'Error de CSV',
+    csvEmpty: 'el archivo está vacío',
+    csvColumns: 'las columnas "title" y "price" son obligatorias',
+    csvNoValid: 'ningún artículo válido',
+    uploadFailed: 'No se pudo subir la foto. Inténtalo de nuevo.',
+    createFailed: 'No se pudo crear el artículo. Inténtalo de nuevo.',
     deleteStream: 'Eliminar este directo',
-    deleteStreamConfirm: 'Eliminar este directo y todos sus articulos? Esta accion es irreversible.',
+    deleteStreamConfirm: '¿Eliminar este directo y todos sus artículos? Esta acción no se puede deshacer.',
     scheduledDate: 'Fecha programada',
     changeDate: 'Cambiar fecha',
     saveDate: 'Guardar',
-    deleteError: 'Error al eliminar',
+    deleteError: 'No se pudo eliminar',
     confirmDelete: 'Eliminar',
     confirmCancel: 'Cancelar',
+    back: 'Volver',
+    cancelEdit: 'Cancelar',
+    moveUp: 'Subir',
+    moveDown: 'Bajar',
+    deleteItem: 'Eliminar artículo',
+    decreaseQty: 'Reducir cantidad',
+    increaseQty: 'Aumentar cantidad',
     shippingDelay: 'Plazo de entrega',
     shippingDelayHint: 'Sin código ni fotos a tiempo, el pedido se cancela y se reembolsa',
-    day: 'dia',
-    days: 'dias',
+    day: 'día',
+    dayFew: 'días',
+    days: 'días',
     weight: 'Peso (gramos)',
     weightHint: 'Peso del artículo (para el precio de envío sugerido)',
     suggestedShipping: 'Precio sugerido',
-    shippingOverride: 'Tu precio de envío por correo para este artículo',
+    shippingOverride: 'Tu precio de envío para este artículo',
     shippingOverrideHint: 'Déjalo vacío para usar el precio de tus ajustes (o el sugerido)',
-    shippingWarning: 'Atencion: si el costo real es mayor, la diferencia se deducira de tus ganancias',
-    perCarrier: 'segun el transportista',
+    shippingWarning: 'Atención: si el coste real es mayor, la diferencia se descontará de tus ganancias',
+    perCarrier: 'según el transportista',
   },
-}
-// Russe : seulement les textes de la remise ; le reste retombe sur l'anglais
-// (traduction russe complète faite à part).
-;(pageContent as Record<string, typeof pageContent.en>).ru = {
-  ...pageContent.en,
-  shippingDelay: 'Срок передачи',
-  shippingDelayHint: 'Без кода или фото в срок заказ отменяется, деньги возвращаются',
-  weightHint: 'Вес товара (для рекомендуемой цены отправки)',
-  suggestedShipping: 'Рекомендуемая цена',
-  shippingOverride: 'Твоя цена отправки почтой для этого товара',
-  shippingOverrideHint: 'Оставь пустым, чтобы взять цену из настроек (или рекомендуемую)',
-}
+  ru: {
+    title: 'Подготовка эфира',
+    addItem: 'Добавить товар',
+    photo: 'Фото',
+    itemTitle: 'Название товара',
+    startingPrice: 'Стартовая цена ({cur})',
+    category: 'Категория (необязательно)',
+    add: 'Добавить',
+    cancel: 'Отмена',
+    goLive: 'Начать эфир',
+    noItems: 'Добавь хотя бы один товар, чтобы начать',
+    lot: 'Лот',
+    deleteConfirm: 'Удалить этот товар?',
+    delete: 'Удалить',
+    takePhoto: 'Сделать фото',
+    choosePhoto: 'Выбрать из галереи',
+    saving: 'Сохраняем...',
+    itemOne: 'товар',
+    itemFew: 'товара',
+    items: 'товаров',
+    duration: 'Время на товар',
+    seconds: 'сек',
+    secShort: 'с',
+    sdShort: 'ВС',
+    sdTitle: 'Внезапная смерть',
+    durationHint: 'Время торгов для каждого товара',
+    quantity: 'Количество',
+    quantityHint: 'У каждого товара будет свой уникальный код',
+    generating: 'Создаём товары ({n})...',
+    muxError: 'Не удалось настроить видеотрансляцию. Зрители могут не увидеть твоё видео.',
+    minPrice: 'Минимальная цена (необязательно)',
+    minShort: 'мин.',
+    minPriceHint: 'Если ни одна ставка не достигнет этой цены, товар останется непроданным',
+    buyNowPrice: 'Цена «Купить сразу» (необязательно)',
+    buyNowHint: 'Позволяет купить товар сразу, без торгов',
+    csvUpload: 'Импорт CSV',
+    csvImporting: 'Импортируем...',
+    csvImported: 'Импортировано товаров: {n}',
+    csvError: 'Ошибка CSV',
+    csvEmpty: 'файл пустой',
+    csvColumns: 'нужны столбцы "title" и "price"',
+    csvNoValid: 'нет ни одного подходящего товара',
+    uploadFailed: 'Не удалось загрузить фото. Попробуй ещё раз.',
+    createFailed: 'Не удалось создать товар. Попробуй ещё раз.',
+    deleteStream: 'Удалить этот эфир',
+    deleteStreamConfirm: 'Удалить этот эфир и все его товары? Это действие нельзя отменить.',
+    scheduledDate: 'Запланировано на',
+    changeDate: 'Изменить дату',
+    saveDate: 'Сохранить',
+    deleteError: 'Не удалось удалить',
+    confirmDelete: 'Удалить',
+    confirmCancel: 'Отмена',
+    back: 'Назад',
+    cancelEdit: 'Отмена',
+    moveUp: 'Поднять',
+    moveDown: 'Опустить',
+    deleteItem: 'Удалить товар',
+    decreaseQty: 'Уменьшить количество',
+    increaseQty: 'Увеличить количество',
+    shippingDelay: 'Срок передачи',
+    shippingDelayHint: 'Без кода или фото в срок заказ отменяется, деньги возвращаются',
+    day: 'день',
+    dayFew: 'дня',
+    days: 'дней',
+    weight: 'Вес (граммы)',
+    weightHint: 'Вес товара (для рекомендуемой цены отправки)',
+    suggestedShipping: 'Рекомендуемая цена',
+    shippingOverride: 'Твоя цена отправки для этого товара',
+    shippingOverrideHint: 'Оставь пустым, чтобы взять цену из настроек (или рекомендуемую)',
+    shippingWarning: 'Внимание: если реальная стоимость окажется выше, разница будет вычтена из твоего заработка',
+    perCarrier: 'в зависимости от перевозчика',
+  },
+  he: {
+    title: 'הכנת השידור',
+    addItem: 'הוספת פריט',
+    photo: 'תמונה',
+    itemTitle: 'שם הפריט',
+    startingPrice: 'מחיר פתיחה ({cur})',
+    category: 'קטגוריה (לא חובה)',
+    add: 'הוספה',
+    cancel: 'ביטול',
+    goLive: 'עולים לשידור חי',
+    noItems: 'צריך להוסיף לפחות פריט אחד כדי להתחיל',
+    lot: 'פריט',
+    deleteConfirm: 'למחוק את הפריט?',
+    delete: 'מחיקה',
+    takePhoto: 'צילום תמונה',
+    choosePhoto: 'בחירה מהגלריה',
+    saving: 'שומרים...',
+    itemOne: 'פריט',
+    itemFew: 'פריטים',
+    items: 'פריטים',
+    duration: 'זמן לכל פריט',
+    seconds: 'שנ׳',
+    secShort: 'שנ׳',
+    sdShort: 'מ״פ',
+    sdTitle: 'מוות פתאומי',
+    durationHint: 'זמן ההצעות לכל פריט',
+    quantity: 'כמות',
+    quantityHint: 'לכל פריט יהיה קוד ייחודי משלו',
+    generating: 'יוצרים פריטים ({n})...',
+    muxError: 'הגדרת שידור הווידאו נכשלה. ייתכן שהצופים לא יראו את הווידאו שלך.',
+    minPrice: 'מחיר מינימום (לא חובה)',
+    minShort: 'מינ׳',
+    minPriceHint: 'אם אף הצעה לא תגיע למחיר הזה, הפריט לא יימכר',
+    buyNowPrice: 'מחיר קנייה מיידית (לא חובה)',
+    buyNowHint: 'מאפשר לקנות מיד בלי להציע',
+    csvUpload: 'ייבוא CSV',
+    csvImporting: 'מייבאים...',
+    csvImported: 'יובאו פריטים: {n}',
+    csvError: 'שגיאת CSV',
+    csvEmpty: 'הקובץ ריק',
+    csvColumns: 'חובה לכלול את העמודות "title" ו-"price"',
+    csvNoValid: 'לא נמצאו פריטים תקינים',
+    uploadFailed: 'העלאת התמונה נכשלה. אפשר לנסות שוב.',
+    createFailed: 'יצירת הפריט נכשלה. אפשר לנסות שוב.',
+    deleteStream: 'מחיקת השידור',
+    deleteStreamConfirm: 'למחוק את השידור ואת כל הפריטים שלו? אי אפשר לבטל את הפעולה.',
+    scheduledDate: 'מתוכנן ל',
+    changeDate: 'שינוי תאריך',
+    saveDate: 'שמירה',
+    deleteError: 'המחיקה נכשלה',
+    confirmDelete: 'מחיקה',
+    confirmCancel: 'ביטול',
+    back: 'חזרה',
+    cancelEdit: 'ביטול',
+    moveUp: 'הזזה למעלה',
+    moveDown: 'הזזה למטה',
+    deleteItem: 'מחיקת הפריט',
+    decreaseQty: 'הקטנת הכמות',
+    increaseQty: 'הגדלת הכמות',
+    shippingDelay: 'זמן למסירה',
+    shippingDelayHint: 'בלי קוד או תמונות בזמן, ההזמנה מבוטלת והכסף מוחזר',
+    day: 'יום',
+    dayFew: 'ימים',
+    days: 'ימים',
+    weight: 'משקל (גרם)',
+    weightHint: 'משקל הפריט (לחישוב מחיר המשלוח המומלץ)',
+    suggestedShipping: 'מחיר מומלץ',
+    shippingOverride: 'מחיר המשלוח שלך לפריט הזה',
+    shippingOverrideHint: 'אפשר להשאיר ריק כדי להשתמש במחיר מההגדרות (או במחיר המומלץ)',
+    shippingWarning: 'שימו לב: אם העלות בפועל גבוהה יותר, ההפרש ינוכה מההכנסות שלך',
+    perCarrier: 'בהתאם לחברת המשלוחים',
+  },
+} satisfies Localized<Record<string, string>>
 
 const cameraModalContent = {
-  fr: { title: 'Camera & Microphone', desc: 'ShaPop a besoin de ta camera et de ton micro pour les lives', allow: 'Continuer', skip: 'Continuer' },
-  en: { title: 'Camera & Microphone', desc: 'ShaPop needs your camera and microphone for live streaming', allow: 'Continue', skip: 'Continue' },
-  he: { title: '\u05DE\u05E6\u05DC\u05DE\u05D4 \u05D5\u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF', desc: 'ShaPop \u05E6\u05E8\u05D9\u05DA \u05D0\u05EA \u05D4\u05DE\u05E6\u05DC\u05DE\u05D4 \u05D5\u05D4\u05DE\u05D9\u05E7\u05E8\u05D5\u05E4\u05D5\u05DF \u05E9\u05DC\u05DA \u05DC\u05E9\u05D9\u05D3\u05D5\u05E8 \u05D7\u05D9', allow: '\u05D4\u05DE\u05E9\u05DA', skip: '\u05D4\u05DE\u05E9\u05DA' },
-  es: { title: 'Camara y Microfono', desc: 'ShaPop necesita tu camara y microfono para las transmisiones en vivo', allow: 'Continuar', skip: 'Continuar' },
+  en: { title: 'Camera & microphone', desc: 'ShaPop needs your camera and microphone to go live', allow: 'Continue', skip: 'Continue' },
+  fr: { title: 'Caméra et micro', desc: 'ShaPop a besoin de ta caméra et de ton micro pour les lives', allow: 'Continuer', skip: 'Continuer' },
+  es: { title: 'Cámara y micrófono', desc: 'ShaPop necesita tu cámara y tu micrófono para los directos', allow: 'Continuar', skip: 'Continuar' },
+  ru: { title: 'Камера и микрофон', desc: 'ShaPop нужны камера и микрофон для прямых эфиров', allow: 'Продолжить', skip: 'Продолжить' },
+  he: { title: 'מצלמה ומיקרופון', desc: 'ShaPop צריכה גישה למצלמה ולמיקרופון שלך לשידורים חיים', allow: 'המשך', skip: 'המשך' },
+} satisfies Localized<{ title: string; desc: string; allow: string; skip: string }>
+
+/** Forme plurielle selon la langue (le russe a 3 formes : 1 товар, 2 товара, 5 товаров). */
+function plural(n: number, one: string, few: string, other: string): string {
+  const cat = new Intl.PluralRules(getLocale()).select(n)
+  return cat === 'one' ? one : cat === 'few' ? few : other
+}
+
+/** Poids lisible dans la langue courante (g / kg). */
+function formatWeight(grams: number): string {
+  const kg = grams >= 1000
+  try {
+    return new Intl.NumberFormat(getLocale(), {
+      style: 'unit', unit: kg ? 'kilogram' : 'gram', unitDisplay: 'short', maximumFractionDigits: 1,
+    }).format(kg ? grams / 1000 : grams)
+  } catch {
+    return kg ? `${(grams / 1000).toFixed(1)} kg` : `${grams} g` // i18n-ignore (repli technique)
+  }
 }
 
 interface SuggestedShipping {
@@ -301,9 +455,11 @@ interface DraftItem {
 export default function PrepareLivePage() {
   const { streamId } = useParams<{ streamId: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = (pageContent as Record<string, typeof pageContent.en>)[lang] || pageContent.fr
+  const { user, profile } = useAuth()
+  const ct = tr(pageContent)
+  // Devise du vendeur (pays de son profil) pour les prix affichés et saisis
+  const sellerCurrency = currencyForCountry(profile?.country)
+  const money = (n: number | string | null | undefined) => formatMoney(n, sellerCurrency)
   usePageTitle(ct.title)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -337,7 +493,7 @@ export default function PrepareLivePage() {
   const [confirmModal, setConfirmModal] = useState<{title: string, message: string, onConfirm: () => void} | null>(null)
   const [shippingDelay, setShippingDelay] = useState(4)
   const [showCameraModal, setShowCameraModal] = useState(false)
-  const camContent = cameraModalContent[lang as keyof typeof cameraModalContent] || cameraModalContent.fr
+  const camContent = tr(cameraModalContent)
 
   // Generate a unique 4-char alphanumeric code
   const generateUniqueCode = () => {
@@ -514,14 +670,16 @@ export default function PrepareLivePage() {
           .from('avatars')
           .upload(filePath, compressed, { contentType: 'image/jpeg', upsert: false })
         if (uploadError) {
-          setFormError(uploadError.message)
+          console.error('Upload error:', uploadError.message)
+          setFormError(ct.uploadFailed)
           setSaving(false)
           return
         }
         const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
         imageUrls = [urlData.publicUrl]
       } catch (err) {
-        setFormError(err instanceof Error ? err.message : 'Image upload failed')
+        console.error('Upload error:', err)
+        setFormError(ct.uploadFailed)
         setSaving(false)
         return
       }
@@ -558,7 +716,7 @@ export default function PrepareLivePage() {
 
       if (error) {
         console.error('Insert error:', error)
-        setFormError(error.message || 'Erreur lors de la creation')
+        setFormError(ct.createFailed)
         setSaving(false)
         return
       }
@@ -606,14 +764,14 @@ export default function PrepareLivePage() {
     try {
       const text = await file.text()
       const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
-      if (lines.length < 2) { alert(ct.csvError + ': fichier vide'); setCsvImporting(false); return }
+      if (lines.length < 2) { alert(`${ct.csvError} : ${ct.csvEmpty}`); setCsvImporting(false); return }
 
       // Parse header
       const header = lines[0].toLowerCase().split(/[;,]/).map(h => h.trim())
       const titleIdx = header.findIndex(h => h === 'title' || h === 'titre')
       const priceIdx = header.findIndex(h => h === 'price' || h === 'prix' || h === 'starting_price')
       if (titleIdx === -1 || priceIdx === -1) {
-        alert(ct.csvError + ': colonnes "title" et "price" requises')
+        alert(`${ct.csvError} : ${ct.csvColumns}`)
         setCsvImporting(false)
         return
       }
@@ -683,7 +841,7 @@ export default function PrepareLivePage() {
         setItems(prev => [...prev, ...newItems])
         alert(ct.csvImported.replace('{n}', String(newItems.length)))
       } else {
-        alert(ct.csvError + ': aucun article valide')
+        alert(`${ct.csvError} : ${ct.csvNoValid}`)
       }
     } catch (err) {
       console.error('CSV import error:', err)
@@ -763,7 +921,8 @@ export default function PrepareLivePage() {
           navigate('/go-live', { replace: true })
         } else {
           const body = await res.json().catch(() => ({ error: ct.deleteError }))
-          setDeleteError(body.error || ct.deleteError)
+          console.error('Delete stream error:', body.error)
+          setDeleteError(ct.deleteError)
         }
       },
     })
@@ -862,7 +1021,7 @@ export default function PrepareLivePage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             onClick={() => navigate(-1)}
-            aria-label={lang === 'fr' ? 'Retour' : lang === 'es' ? 'Volver' : lang === 'he' ? 'חזרה' : 'Back'}
+            aria-label={ct.back}
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
             }}
@@ -877,7 +1036,7 @@ export default function PrepareLivePage() {
             </h1>
             {stream && (
               <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>
-                {stream.title} — {items.length} {ct.items}
+                {stream.title} — {items.length} {plural(items.length, ct.itemOne, ct.itemFew, ct.items)}
               </p>
             )}
           </div>
@@ -899,7 +1058,7 @@ export default function PrepareLivePage() {
                   <line x1="3" y1="10" x2="21" y2="10" strokeLinecap="round"/>
                 </svg>
                 <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
-                  {ct.scheduledDate}: {stream.scheduled_at ? new Date(stream.scheduled_at).toLocaleString() : '—'}
+                  {ct.scheduledDate}: {stream.scheduled_at ? new Date(stream.scheduled_at).toLocaleString(getLocale()) : '—'}
                 </span>
               </div>
               {!editingDate && (
@@ -929,7 +1088,7 @@ export default function PrepareLivePage() {
                 }}>
                   {ct.saveDate}
                 </button>
-                <button onClick={() => setEditingDate(false)} aria-label={lang === 'fr' ? 'Annuler' : lang === 'es' ? 'Cancelar' : lang === 'he' ? 'ביטול' : 'Cancel'} style={{
+                <button onClick={() => setEditingDate(false)} aria-label={ct.cancelEdit} style={{
                   padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
                   color: '#888', fontSize: '13px', cursor: 'pointer',
                 }}>
@@ -973,7 +1132,7 @@ export default function PrepareLivePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  {d} {d === 1 ? ct.day : ct.days}
+                  {d} {plural(d, ct.day, ct.dayFew, ct.days)}
                 </button>
               ))}
             </div>
@@ -1077,32 +1236,30 @@ export default function PrepareLivePage() {
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
-                  {item.starting_price} €
+                  {money(item.starting_price)}
                 </span>
                 {item.min_price != null && item.min_price > 0 && (
                   <span style={{ fontSize: '11px', color: '#F59E0B' }}>
-                    min {item.min_price} €
+                    {ct.minShort} {money(item.min_price)}
                   </span>
                 )}
                 {item.buy_now_price != null && item.buy_now_price > 0 && (
                   <span style={{ fontSize: '11px', color: '#10B981', fontWeight: 600 }}>
-                    ⚡ {item.buy_now_price} €
+                    ⚡ {money(item.buy_now_price)}
                   </span>
                 )}
                 {item.weight_grams != null && item.weight_grams > 0 && (
                   <span style={{ fontSize: '11px', color: '#888' }}>
-                    {item.weight_grams >= 1000
-                      ? `${(item.weight_grams / 1000).toFixed(1)}kg`
-                      : `${item.weight_grams}g`}
+                    {formatWeight(item.weight_grams)}
                   </span>
                 )}
                 {item.seller_shipping_override != null && item.seller_shipping_override > 0 && (
                   <span style={{ fontSize: '11px', color: '#F0908A', fontWeight: 600 }}>
-                    {item.seller_shipping_override.toFixed(2)}&euro;
+                    {money(item.seller_shipping_override)}
                   </span>
                 )}
                 <span style={{ fontSize: '11px', color: '#666' }}>
-                  {item.duration_seconds}s
+                  {item.duration_seconds}{ct.secShort}
                 </span>
               </div>
             </div>
@@ -1112,7 +1269,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => handleMoveUp(index)}
                 disabled={index === 0}
-                aria-label={lang === 'fr' ? 'Monter' : lang === 'es' ? 'Subir' : lang === 'he' ? 'העלה' : 'Move up'}
+                aria-label={ct.moveUp}
                 style={{
                   width: '28px', height: '28px', borderRadius: '6px',
                   backgroundColor: index === 0 ? '#1A1A1A' : '#222',
@@ -1128,7 +1285,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => handleMoveDown(index)}
                 disabled={index === items.length - 1}
-                aria-label={lang === 'fr' ? 'Descendre' : lang === 'es' ? 'Bajar' : lang === 'he' ? 'הורד' : 'Move down'}
+                aria-label={ct.moveDown}
                 style={{
                   width: '28px', height: '28px', borderRadius: '6px',
                   backgroundColor: index === items.length - 1 ? '#1A1A1A' : '#222',
@@ -1146,7 +1303,7 @@ export default function PrepareLivePage() {
             {/* Delete */}
             <button
               onClick={() => handleDeleteItem(index)}
-              aria-label={lang === 'fr' ? 'Supprimer' : lang === 'es' ? 'Eliminar' : lang === 'he' ? 'מחק' : 'Delete item'}
+              aria-label={ct.deleteItem}
               style={{
                 width: '28px', height: '28px', borderRadius: '6px',
                 backgroundColor: 'rgba(232,52,78,0.15)',
@@ -1237,7 +1394,7 @@ export default function PrepareLivePage() {
               inputMode="decimal"
               value={formPrice}
               onChange={e => setFormPrice(e.target.value)}
-              placeholder={ct.startingPrice}
+              placeholder={ct.startingPrice.replace('{cur}', currencySymbol(sellerCurrency))}
               min="0"
               step="1"
               style={{
@@ -1319,9 +1476,7 @@ export default function PrepareLivePage() {
                 </div>
                 {formWeight && (
                   <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
-                    {parseInt(formWeight, 10) >= 1000
-                      ? `${(parseInt(formWeight, 10) / 1000).toFixed(1)}kg`
-                      : `${formWeight}g`}
+                    {formatWeight(parseInt(formWeight, 10) || 0)}
                   </span>
                 )}
               </div>
@@ -1344,12 +1499,12 @@ export default function PrepareLivePage() {
               />
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {[
-                  { label: '100g', value: 100 },
-                  { label: '250g', value: 250 },
-                  { label: '500g', value: 500 },
-                  { label: '1kg', value: 1000 },
-                  { label: '2kg', value: 2000 },
-                  { label: '5kg', value: 5000 },
+                  { label: formatWeight(100), value: 100 },
+                  { label: formatWeight(250), value: 250 },
+                  { label: formatWeight(500), value: 500 },
+                  { label: formatWeight(1000), value: 1000 },
+                  { label: formatWeight(2000), value: 2000 },
+                  { label: formatWeight(5000), value: 5000 },
                 ].map(preset => (
                   <button
                     key={preset.value}
@@ -1497,7 +1652,7 @@ export default function PrepareLivePage() {
                       cursor: 'pointer',
                     }}
                   >
-                    {sec}s
+                    {sec}{ct.secShort}
                   </button>
                 ))}
                 <button
@@ -1516,7 +1671,7 @@ export default function PrepareLivePage() {
                     cursor: 'pointer',
                   }}
                 >
-                  SD
+                  {ct.sdShort}
                 </button>
               </div>
             </div>
@@ -1543,7 +1698,7 @@ export default function PrepareLivePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <button
                     onClick={() => setFormQuantity(q => Math.max(1, q - 1))}
-                    aria-label={lang === 'fr' ? 'Diminuer la quantite' : lang === 'es' ? 'Disminuir cantidad' : lang === 'he' ? 'הפחת כמות' : 'Decrease quantity'}
+                    aria-label={ct.decreaseQty}
                     style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       backgroundColor: formQuantity <= 1 ? '#1A1A1A' : '#222',
@@ -1564,7 +1719,7 @@ export default function PrepareLivePage() {
                   </span>
                   <button
                     onClick={() => setFormQuantity(q => Math.min(99, q + 1))}
-                    aria-label={lang === 'fr' ? 'Augmenter la quantite' : lang === 'es' ? 'Aumentar cantidad' : lang === 'he' ? 'הגדל כמות' : 'Increase quantity'}
+                    aria-label={ct.increaseQty}
                     style={{
                       width: '36px', height: '36px', borderRadius: '10px',
                       backgroundColor: '#222',

@@ -2,91 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
+import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
 import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage, Giveaway } from '../types/database'
 import { getStreamQualityConstraints } from '../lib/settings'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
-
 const pageContent = {
-  fr: {
-    live: 'EN DIRECT',
-    viewers: 'spectateurs',
-    nextItem: 'Article suivant',
-    sold: 'Vendu !',
-    unsold: 'Invendu',
-    noMoreItems: 'Plus d\'articles',
-    lotSold: 'remporte par',
-    endLive: 'Terminer',
-    endConfirm: 'Terminer le live ?',
-    endYes: 'Oui, terminer',
-    endNo: 'Non, continuer',
-    lot: 'Lot',
-    startingAt: 'A partir de',
-    currentPrice: 'Prix actuel',
-    sendMessage: 'Message...',
-    send: 'Envoyer',
-    paymentAccepted: 'Paiement en attente',
-    addressOk: 'Commande creee',
-    waitingBids: 'En attente d\'encheres...',
-    noBids: 'Aucune enchere',
-    recap: 'Voir le recapitulatif',
-    startAuction: 'Lancer l\'enchere',
-    seconds: 'sec',
-    liveEnded: 'Live termine',
-    soldOf: 'vendus',
-    articlesLabel: 'articles',
-    anonymous: 'Anonyme',
-    back: 'Retour',
-    endAuction: 'Terminer l\'enchere',
-    addItem: 'Ajouter un article',
-    addItemTitle: 'Titre',
-    addItemPrice: 'Prix de depart (€)',
-    addItemMinPrice: 'Prix minimum (€)',
-    addItemBuyNow: 'Achat immediat (€)',
-    addItemAdd: 'Ajouter',
-    addItemCancel: 'Annuler',
-    messageFlagged: '[Message masque]',
-    auctionLive: 'Enchere en cours',
-    resolving: 'Resolution...',
-    giftTitle: 'Cadeau Surprise',
-    giftParticipants: 'participants',
-    giftDraw: 'Tirer au sort',
-    giftPrizePlaceholder: 'Decris le cadeau...',
-    giftLaunch: 'Lancer le cadeau',
-    giftActive: 'Cadeau en cours',
-    giftCancel: 'Annuler',
-    giftWinner: 'a gagne le cadeau !',
-    returningBuyers: 'fideles',
-    newBuyers: 'nouveaux',
-    obsTitle: 'Streamer depuis OBS',
-    obsUrl: 'URL RTMP',
-    obsKey: 'Cle de stream',
-    obsCopied: 'Copie !',
-    obsLoading: 'Generation...',
-    obsDesc: 'Collez ces infos dans OBS > Parametres > Stream',
-    boostLive: 'Booster',
-    boostActive: 'Booste !',
-    boostConfirm: 'Booster votre live pour 4,99€ ? Votre live sera mis en avant pendant 24h.',
-    boostConfirmYes: 'Payer 4,99€',
-    boostConfirmNo: 'Annuler',
-    boostNoCard: 'Ajoutez une carte bancaire dans Parametres > Paiements.',
-    boostPayFailed: 'Le paiement a echoue. Verifiez votre carte.',
-    cohostInvite: 'Inviter un co-host',
-    cohostSearch: 'Rechercher un vendeur...',
-    cohostRemove: 'Retirer le co-host',
-    cohostNone: 'Aucun vendeur trouve',
-    cohostActive: 'Co-host',
-    multicast: 'Multicast',
-    multicastTitle: 'Diffuser sur d\'autres plateformes',
-    multicastAdd: 'Ajouter une destination RTMP',
-    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
-    multicastStart: 'Diffuser',
-    multicastStop: 'Arreter',
-  },
   en: {
     live: 'LIVE',
     viewers: 'viewers',
@@ -98,7 +22,7 @@ const pageContent = {
     endLive: 'End',
     endConfirm: 'End the live?',
     endYes: 'Yes, end it',
-    endNo: 'No, continue',
+    endNo: 'No, keep going',
     lot: 'Lot',
     startingAt: 'Starting at',
     currentPrice: 'Current price',
@@ -110,145 +34,185 @@ const pageContent = {
     noBids: 'No bids',
     recap: 'View recap',
     startAuction: 'Start auction',
-    seconds: 'sec',
+    seconds: 's',
     liveEnded: 'Live ended',
     soldOf: 'sold',
     articlesLabel: 'items',
+    soldSummary: '{sold} of {total} items sold',
+    itemsAdded: 'Items added: {n}',
     anonymous: 'Anonymous',
     back: 'Back',
     endAuction: 'End auction',
     addItem: 'Add item',
     addItemTitle: 'Title',
-    addItemPrice: 'Starting price (€)',
-    addItemMinPrice: 'Minimum price (€)',
-    addItemBuyNow: 'Buy now price (€)',
+    addItemPrice: 'Starting price ({cur})',
+    addItemMinPrice: 'Minimum price ({cur})',
+    addItemBuyNow: 'Buy now price ({cur})',
     addItemAdd: 'Add',
     addItemCancel: 'Cancel',
+    sdShort: 'SD',
+    sdTitle: 'Sudden death',
     messageFlagged: '[Hidden message]',
     auctionLive: 'Auction live',
-    resolving: 'Resolving...',
-    giftTitle: 'Surprise Gift',
+    resolving: 'Wrapping up...',
+    minPrice: 'min: {price}',
+    giftTitle: 'Surprise gift',
     giftParticipants: 'participants',
     giftDraw: 'Draw winner',
     giftPrizePlaceholder: 'Describe the gift...',
     giftLaunch: 'Launch gift',
+    giftLaunched: 'Gift launched!',
     giftActive: 'Gift active',
     giftCancel: 'Cancel',
     giftWinner: 'won the gift!',
+    buyersOnly: 'Buyers only',
     returningBuyers: 'returning',
     newBuyers: 'new',
     obsTitle: 'Stream from OBS',
     obsUrl: 'RTMP URL',
-    obsKey: 'Stream Key',
+    obsKey: 'Stream key',
     obsCopied: 'Copied!',
     obsLoading: 'Generating...',
-    obsDesc: 'Paste these in OBS > Settings > Stream',
+    obsDesc: 'Paste these into OBS > Settings > Stream',
+    copy: 'Copy',
+    close: 'Close',
+    errorShort: 'Something went wrong',
+    boostTitle: 'Boost',
     boostLive: 'Boost',
     boostActive: 'Boosted!',
-    boostConfirm: 'Boost your live for €4.99? Your stream will be featured for 24h.',
-    boostConfirmYes: 'Pay €4.99',
+    boostConfirm: 'Boost your live for {price}? It will be featured for 24 hours.',
+    boostConfirmYes: 'Pay {price}',
     boostConfirmNo: 'Cancel',
-    boostNoCard: 'Please add a card in Settings > Payments first.',
+    boostNoCard: 'Add a card in Settings > Payments first.',
     boostPayFailed: 'Payment failed. Please check your card.',
-    cohostInvite: 'Invite co-host',
-    cohostSearch: 'Search a seller...',
+    cohostInvite: 'Invite a co-host',
+    cohostSearch: 'Search for a seller...',
     cohostRemove: 'Remove co-host',
     cohostNone: 'No seller found',
     cohostActive: 'Co-host',
     multicast: 'Multicast',
     multicastTitle: 'Stream to other platforms',
-    multicastAdd: 'Add RTMP destination',
+    multicastAdd: 'Add an RTMP destination',
     multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
     multicastStart: 'Start',
     multicastStop: 'Stop',
+    errReconnect: 'Error: please sign in again',
+    errGeneric: 'Something went wrong. Please try again.',
+    errNetwork: 'Network error',
+    errDraw: 'The draw failed',
+    errActivation: 'Couldn’t start the auction',
+    errAddItem: 'Couldn’t add the item',
+    sessionExpired: 'Session expired',
+    errCohostRemove: 'Couldn’t remove the co-host',
+    errMulticastStop: 'Couldn’t stop multicast',
   },
-  he: {
-    live: 'שידור',
-    viewers: 'צופים',
-    nextItem: 'פריט הבא',
-    sold: '!נמכר',
-    unsold: 'לא נמכר',
-    noMoreItems: 'אין עוד פריטים',
-    lotSold: 'נמכר ל',
-    endLive: 'סיים',
-    endConfirm: '?לסיים את השידור',
-    endYes: 'כן, סיים',
-    endNo: 'לא, המשך',
-    lot: 'לוט',
-    startingAt: 'החל מ',
-    currentPrice: 'מחיר נוכחי',
-    sendMessage: '...הודעה',
-    send: 'שלח',
-    paymentAccepted: 'ממתין לתשלום',
-    addressOk: 'הזמנה נוצרה',
-    waitingBids: '...ממתין להצעות',
-    noBids: 'אין הצעות',
-    recap: 'צפה בסיכום',
-    startAuction: 'התחל מכירה',
-    seconds: 'שנ',
-    liveEnded: 'השידור הסתיים',
-    soldOf: 'נמכרו',
-    articlesLabel: 'פריטים',
-    anonymous: 'אנונימי',
-    back: 'חזור',
-    endAuction: 'סיים מכירה',
-    addItem: 'הוסף פריט',
-    addItemTitle: 'כותרת',
-    addItemPrice: 'מחיר התחלתי (€)',
-    addItemMinPrice: 'מחיר מינימום (€)',
-    addItemBuyNow: '(€) מחיר קנייה מיידית',
-    addItemAdd: 'הוסף',
-    addItemCancel: 'ביטול',
-    messageFlagged: '[הודעה מוסתרת]',
-    auctionLive: 'מכירה בעיצומה',
-    resolving: '...פותר',
-    giftTitle: 'מתנה הפתעה',
-    giftParticipants: 'משתתפים',
-    giftDraw: 'הגרלה',
-    giftPrizePlaceholder: '...תאר את המתנה',
-    giftLaunch: 'השקת מתנה',
-    giftActive: 'מתנה פעילה',
-    giftCancel: 'ביטול',
-    giftWinner: 'זכה במתנה!',
-    returningBuyers: 'חוזרים',
-    newBuyers: 'חדשים',
-    obsTitle: 'שדר מ-OBS',
-    obsUrl: 'כתובת RTMP',
-    obsKey: 'מפתח שידור',
-    obsCopied: '!הועתק',
-    obsLoading: '...יוצר',
-    obsDesc: 'הדבק ב-OBS > הגדרות > שידור',
-    boostLive: 'בוסט',
-    boostActive: '!בוסט פעיל',
-    boostConfirm: 'לבוסט את השידור ב-4.99€? השידור יודגש למשך 24 שעות.',
-    boostConfirmYes: '€4.99 שלם',
-    boostConfirmNo: 'ביטול',
-    boostNoCard: 'הוסף כרטיס בהגדרות > תשלומים.',
-    boostPayFailed: 'התשלום נכשל. בדוק את הכרטיס.',
-    cohostInvite: 'הזמן שותף',
-    cohostSearch: '...חפש מוכר',
-    cohostRemove: 'הסר שותף',
-    cohostNone: 'לא נמצא מוכר',
-    cohostActive: 'שותף',
-    multicast: 'שידור מרובה',
-    multicastTitle: 'שדר לפלטפורמות אחרות',
-    multicastAdd: 'הוסף יעד RTMP',
+  fr: {
+    live: 'EN DIRECT',
+    viewers: 'spectateurs',
+    nextItem: 'Article suivant',
+    sold: 'Vendu !',
+    unsold: 'Invendu',
+    noMoreItems: 'Plus d’articles',
+    lotSold: 'remporté par',
+    endLive: 'Terminer',
+    endConfirm: 'Terminer le live ?',
+    endYes: 'Oui, terminer',
+    endNo: 'Non, continuer',
+    lot: 'Lot',
+    startingAt: 'À partir de',
+    currentPrice: 'Prix actuel',
+    sendMessage: 'Message...',
+    send: 'Envoyer',
+    paymentAccepted: 'Paiement en attente',
+    addressOk: 'Commande créée',
+    waitingBids: 'En attente d’enchères...',
+    noBids: 'Aucune enchère',
+    recap: 'Voir le récapitulatif',
+    startAuction: 'Lancer l’enchère',
+    seconds: 's',
+    liveEnded: 'Live terminé',
+    soldOf: 'vendus',
+    articlesLabel: 'articles',
+    soldSummary: '{sold} article(s) vendu(s) sur {total}',
+    itemsAdded: 'Articles ajoutés : {n}',
+    anonymous: 'Anonyme',
+    back: 'Retour',
+    endAuction: 'Terminer l’enchère',
+    addItem: 'Ajouter un article',
+    addItemTitle: 'Titre',
+    addItemPrice: 'Prix de départ ({cur})',
+    addItemMinPrice: 'Prix minimum ({cur})',
+    addItemBuyNow: 'Achat immédiat ({cur})',
+    addItemAdd: 'Ajouter',
+    addItemCancel: 'Annuler',
+    sdShort: 'MS',
+    sdTitle: 'Mort subite',
+    messageFlagged: '[Message masqué]',
+    auctionLive: 'Enchère en cours',
+    resolving: 'Clôture...',
+    minPrice: 'min : {price}',
+    giftTitle: 'Cadeau surprise',
+    giftParticipants: 'participants',
+    giftDraw: 'Tirer au sort',
+    giftPrizePlaceholder: 'Décris le cadeau...',
+    giftLaunch: 'Lancer le cadeau',
+    giftLaunched: 'Cadeau lancé !',
+    giftActive: 'Cadeau en cours',
+    giftCancel: 'Annuler',
+    giftWinner: 'a gagné le cadeau !',
+    buyersOnly: 'Acheteurs seulement',
+    returningBuyers: 'fidèles',
+    newBuyers: 'nouveaux',
+    obsTitle: 'Streamer depuis OBS',
+    obsUrl: 'URL RTMP',
+    obsKey: 'Clé de stream',
+    obsCopied: 'Copié !',
+    obsLoading: 'Génération...',
+    obsDesc: 'Colle ces infos dans OBS > Paramètres > Stream',
+    copy: 'Copier',
+    close: 'Fermer',
+    errorShort: 'Une erreur est survenue',
+    boostTitle: 'Boost',
+    boostLive: 'Booster',
+    boostActive: 'Boosté !',
+    boostConfirm: 'Booster ton live pour {price} ? Il sera mis en avant pendant 24 h.',
+    boostConfirmYes: 'Payer {price}',
+    boostConfirmNo: 'Annuler',
+    boostNoCard: 'Ajoute d’abord une carte dans Paramètres > Paiements.',
+    boostPayFailed: 'Le paiement a échoué. Vérifie ta carte.',
+    cohostInvite: 'Inviter un co-host',
+    cohostSearch: 'Rechercher un vendeur...',
+    cohostRemove: 'Retirer le co-host',
+    cohostNone: 'Aucun vendeur trouvé',
+    cohostActive: 'Co-host',
+    multicast: 'Multidiffusion',
+    multicastTitle: 'Diffuser sur d’autres plateformes',
+    multicastAdd: 'Ajouter une destination RTMP',
     multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
-    multicastStart: 'התחל',
-    multicastStop: 'עצור',
+    multicastStart: 'Diffuser',
+    multicastStop: 'Arrêter',
+    errReconnect: 'Erreur : reconnecte-toi',
+    errGeneric: 'Une erreur est survenue. Réessaie.',
+    errNetwork: 'Erreur réseau',
+    errDraw: 'Le tirage au sort a échoué',
+    errActivation: 'Impossible de lancer l’enchère',
+    errAddItem: 'Impossible d’ajouter l’article',
+    sessionExpired: 'Session expirée',
+    errCohostRemove: 'Impossible de retirer le co-host',
+    errMulticastStop: 'Impossible d’arrêter la multidiffusion',
   },
   es: {
-    live: 'EN VIVO',
+    live: 'EN DIRECTO',
     viewers: 'espectadores',
-    nextItem: 'Siguiente',
-    sold: 'Vendido!',
+    nextItem: 'Siguiente artículo',
+    sold: '¡Vendido!',
     unsold: 'No vendido',
-    noMoreItems: 'No hay mas',
+    noMoreItems: 'No hay más artículos',
     lotSold: 'ganado por',
     endLive: 'Terminar',
-    endConfirm: 'Terminar el directo?',
-    endYes: 'Si, terminar',
-    endNo: 'No, continuar',
+    endConfirm: '¿Terminar el directo?',
+    endYes: 'Sí, terminar',
+    endNo: 'No, seguir',
     lot: 'Lote',
     startingAt: 'Desde',
     currentPrice: 'Precio actual',
@@ -260,58 +224,273 @@ const pageContent = {
     noBids: 'Sin pujas',
     recap: 'Ver resumen',
     startAuction: 'Iniciar subasta',
-    seconds: 'seg',
+    seconds: 's',
     liveEnded: 'Directo terminado',
     soldOf: 'vendidos',
-    articlesLabel: 'articulos',
-    anonymous: 'Anonimo',
+    articlesLabel: 'artículos',
+    soldSummary: '{sold} de {total} artículos vendidos',
+    itemsAdded: 'Artículos añadidos: {n}',
+    anonymous: 'Anónimo',
     back: 'Volver',
     endAuction: 'Terminar subasta',
-    addItem: 'Agregar articulo',
-    addItemTitle: 'Titulo',
-    addItemPrice: 'Precio inicial (€)',
-    addItemMinPrice: 'Precio minimo (€)',
-    addItemBuyNow: 'Compra inmediata (€)',
-    addItemAdd: 'Agregar',
+    addItem: 'Añadir artículo',
+    addItemTitle: 'Título',
+    addItemPrice: 'Precio inicial ({cur})',
+    addItemMinPrice: 'Precio mínimo ({cur})',
+    addItemBuyNow: 'Precio de compra inmediata ({cur})',
+    addItemAdd: 'Añadir',
     addItemCancel: 'Cancelar',
+    sdShort: 'MS',
+    sdTitle: 'Muerte súbita',
     messageFlagged: '[Mensaje oculto]',
     auctionLive: 'Subasta en curso',
-    resolving: 'Resolviendo...',
-    giftTitle: 'Regalo Sorpresa',
+    resolving: 'Cerrando...',
+    minPrice: 'mín.: {price}',
+    giftTitle: 'Regalo sorpresa',
     giftParticipants: 'participantes',
     giftDraw: 'Sortear',
     giftPrizePlaceholder: 'Describe el regalo...',
     giftLaunch: 'Lanzar regalo',
+    giftLaunched: '¡Regalo lanzado!',
     giftActive: 'Regalo activo',
     giftCancel: 'Cancelar',
-    giftWinner: 'gano el regalo!',
-    returningBuyers: 'fieles',
+    giftWinner: '¡ha ganado el regalo!',
+    buyersOnly: 'Solo compradores',
+    returningBuyers: 'habituales',
     newBuyers: 'nuevos',
     obsTitle: 'Transmitir desde OBS',
     obsUrl: 'URL RTMP',
-    obsKey: 'Clave de stream',
-    obsCopied: 'Copiado!',
+    obsKey: 'Clave de transmisión',
+    obsCopied: '¡Copiado!',
     obsLoading: 'Generando...',
-    obsDesc: 'Pega esto en OBS > Ajustes > Emision',
+    obsDesc: 'Pega estos datos en OBS > Ajustes > Emisión',
+    copy: 'Copiar',
+    close: 'Cerrar',
+    errorShort: 'Algo salió mal',
+    boostTitle: 'Impulso',
     boostLive: 'Impulsar',
-    boostActive: 'Impulsado!',
-    boostConfirm: 'Impulsar tu directo por 4,99€? Sera destacado durante 24h.',
-    boostConfirmYes: 'Pagar 4,99€',
+    boostActive: '¡Impulsado!',
+    boostConfirm: '¿Impulsar tu directo por {price}? Se destacará durante 24 h.',
+    boostConfirmYes: 'Pagar {price}',
     boostConfirmNo: 'Cancelar',
-    boostNoCard: 'Anade una tarjeta en Ajustes > Pagos.',
-    boostPayFailed: 'El pago fallo. Revisa tu tarjeta.',
-    cohostInvite: 'Invitar co-host',
-    cohostSearch: 'Buscar vendedor...',
-    cohostRemove: 'Quitar co-host',
-    cohostNone: 'Ningun vendedor encontrado',
-    cohostActive: 'Co-host',
-    multicast: 'Multicast',
-    multicastTitle: 'Transmitir a otras plataformas',
-    multicastAdd: 'Agregar destino RTMP',
+    boostNoCard: 'Primero añade una tarjeta en Ajustes > Pagos.',
+    boostPayFailed: 'El pago ha fallado. Revisa tu tarjeta.',
+    cohostInvite: 'Invitar a un coanfitrión',
+    cohostSearch: 'Buscar un vendedor...',
+    cohostRemove: 'Quitar coanfitrión',
+    cohostNone: 'No se ha encontrado ningún vendedor',
+    cohostActive: 'Coanfitrión',
+    multicast: 'Multidifusión',
+    multicastTitle: 'Transmitir en otras plataformas',
+    multicastAdd: 'Añadir un destino RTMP',
     multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
     multicastStart: 'Iniciar',
     multicastStop: 'Detener',
+    errReconnect: 'Error: vuelve a iniciar sesión',
+    errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
+    errNetwork: 'Error de red',
+    errDraw: 'El sorteo ha fallado',
+    errActivation: 'No se pudo iniciar la subasta',
+    errAddItem: 'No se pudo añadir el artículo',
+    sessionExpired: 'Sesión caducada',
+    errCohostRemove: 'No se pudo quitar al coanfitrión',
+    errMulticastStop: 'No se pudo detener la multidifusión',
   },
+  ru: {
+    live: 'В ЭФИРЕ',
+    viewers: 'зрителей',
+    nextItem: 'Следующий товар',
+    sold: 'Продано!',
+    unsold: 'Не продано',
+    noMoreItems: 'Товаров больше нет',
+    lotSold: 'выиграл(а)',
+    endLive: 'Завершить',
+    endConfirm: 'Завершить эфир?',
+    endYes: 'Да, завершить',
+    endNo: 'Нет, продолжить',
+    lot: 'Лот',
+    startingAt: 'От',
+    currentPrice: 'Текущая цена',
+    sendMessage: 'Сообщение...',
+    send: 'Отправить',
+    paymentAccepted: 'Ожидается оплата',
+    addressOk: 'Заказ создан',
+    waitingBids: 'Ждём ставок...',
+    noBids: 'Ставок нет',
+    recap: 'Посмотреть итоги',
+    startAuction: 'Начать аукцион',
+    seconds: 'с',
+    liveEnded: 'Эфир завершён',
+    soldOf: 'продано',
+    articlesLabel: 'товаров',
+    soldSummary: 'Продано: {sold} из {total}',
+    itemsAdded: 'Добавлено товаров: {n}',
+    anonymous: 'Аноним',
+    back: 'Назад',
+    endAuction: 'Завершить аукцион',
+    addItem: 'Добавить товар',
+    addItemTitle: 'Название',
+    addItemPrice: 'Стартовая цена ({cur})',
+    addItemMinPrice: 'Минимальная цена ({cur})',
+    addItemBuyNow: 'Цена «Купить сразу» ({cur})',
+    addItemAdd: 'Добавить',
+    addItemCancel: 'Отмена',
+    sdShort: 'ВС',
+    sdTitle: 'Внезапная смерть',
+    messageFlagged: '[Сообщение скрыто]',
+    auctionLive: 'Аукцион идёт',
+    resolving: 'Подводим итог...',
+    minPrice: 'мин.: {price}',
+    giftTitle: 'Подарок-сюрприз',
+    giftParticipants: 'участников',
+    giftDraw: 'Разыграть',
+    giftPrizePlaceholder: 'Опиши подарок...',
+    giftLaunch: 'Запустить розыгрыш',
+    giftLaunched: 'Розыгрыш запущен!',
+    giftActive: 'Розыгрыш идёт',
+    giftCancel: 'Отмена',
+    giftWinner: 'выигрывает подарок!',
+    buyersOnly: 'Только покупатели',
+    returningBuyers: 'постоянные',
+    newBuyers: 'новые',
+    obsTitle: 'Трансляция из OBS',
+    obsUrl: 'RTMP URL',
+    obsKey: 'Ключ трансляции',
+    obsCopied: 'Скопировано!',
+    obsLoading: 'Создаём...',
+    obsDesc: 'Вставь это в OBS > Настройки > Трансляция',
+    copy: 'Копировать',
+    close: 'Закрыть',
+    errorShort: 'Что-то пошло не так',
+    boostTitle: 'Буст',
+    boostLive: 'Продвинуть',
+    boostActive: 'Продвигается!',
+    boostConfirm: 'Продвинуть эфир за {price}? Он будет в топе 24 часа.',
+    boostConfirmYes: 'Оплатить {price}',
+    boostConfirmNo: 'Отмена',
+    boostNoCard: 'Сначала добавь карту в Настройки > Платежи.',
+    boostPayFailed: 'Оплата не прошла. Проверь карту.',
+    cohostInvite: 'Пригласить соведущего',
+    cohostSearch: 'Найти продавца...',
+    cohostRemove: 'Убрать соведущего',
+    cohostNone: 'Продавец не найден',
+    cohostActive: 'Соведущий',
+    multicast: 'Мультистрим',
+    multicastTitle: 'Трансляция на другие платформы',
+    multicastAdd: 'Добавить RTMP-адрес',
+    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
+    multicastStart: 'Запустить',
+    multicastStop: 'Остановить',
+    errReconnect: 'Ошибка: войди снова',
+    errGeneric: 'Что-то пошло не так. Попробуй ещё раз.',
+    errNetwork: 'Ошибка сети',
+    errDraw: 'Не удалось провести розыгрыш',
+    errActivation: 'Не удалось начать аукцион',
+    errAddItem: 'Не удалось добавить товар',
+    sessionExpired: 'Сессия истекла',
+    errCohostRemove: 'Не удалось убрать соведущего',
+    errMulticastStop: 'Не удалось остановить мультистрим',
+  },
+  he: {
+    live: 'שידור חי',
+    viewers: 'צופים',
+    nextItem: 'הפריט הבא',
+    sold: 'נמכר!',
+    unsold: 'לא נמכר',
+    noMoreItems: 'אין עוד פריטים',
+    lotSold: 'זכה/תה:',
+    endLive: 'סיום',
+    endConfirm: 'לסיים את השידור?',
+    endYes: 'כן, לסיים',
+    endNo: 'לא, להמשיך',
+    lot: 'פריט',
+    startingAt: 'החל מ-',
+    currentPrice: 'מחיר נוכחי',
+    sendMessage: 'הודעה...',
+    send: 'שליחה',
+    paymentAccepted: 'ממתין לתשלום',
+    addressOk: 'ההזמנה נוצרה',
+    waitingBids: 'ממתינים להצעות...',
+    noBids: 'אין הצעות',
+    recap: 'לסיכום',
+    startAuction: 'התחלת מכירה פומבית',
+    seconds: 'שנ׳',
+    liveEnded: 'השידור הסתיים',
+    soldOf: 'נמכרו',
+    articlesLabel: 'פריטים',
+    soldSummary: 'נמכרו {sold} מתוך {total} פריטים',
+    itemsAdded: 'נוספו פריטים: {n}',
+    anonymous: 'אנונימי',
+    back: 'חזרה',
+    endAuction: 'סיום המכירה',
+    addItem: 'הוספת פריט',
+    addItemTitle: 'כותרת',
+    addItemPrice: 'מחיר פתיחה ({cur})',
+    addItemMinPrice: 'מחיר מינימום ({cur})',
+    addItemBuyNow: 'מחיר קנייה מיידית ({cur})',
+    addItemAdd: 'הוספה',
+    addItemCancel: 'ביטול',
+    sdShort: 'מ״פ',
+    sdTitle: 'מוות פתאומי',
+    messageFlagged: '[ההודעה הוסתרה]',
+    auctionLive: 'המכירה בעיצומה',
+    resolving: 'סוגרים...',
+    minPrice: 'מינ׳: {price}',
+    giftTitle: 'מתנת הפתעה',
+    giftParticipants: 'משתתפים',
+    giftDraw: 'הגרלה',
+    giftPrizePlaceholder: 'תאר/י את המתנה...',
+    giftLaunch: 'הפעלת המתנה',
+    giftLaunched: 'המתנה הופעלה!',
+    giftActive: 'מתנה פעילה',
+    giftCancel: 'ביטול',
+    giftWinner: 'זכה/תה במתנה!',
+    buyersOnly: 'לקונים בלבד',
+    returningBuyers: 'חוזרים',
+    newBuyers: 'חדשים',
+    obsTitle: 'שידור מ-OBS',
+    obsUrl: 'כתובת RTMP',
+    obsKey: 'מפתח שידור',
+    obsCopied: 'הועתק!',
+    obsLoading: 'יוצרים...',
+    obsDesc: 'הדביקו את הפרטים ב-OBS > הגדרות > שידור',
+    copy: 'העתקה',
+    close: 'סגירה',
+    errorShort: 'משהו השתבש',
+    boostTitle: 'בוסט',
+    boostLive: 'בוסט',
+    boostActive: 'הבוסט פעיל!',
+    boostConfirm: 'לקדם את השידור ב-{price}? הוא יוצג בבולטות למשך 24 שעות.',
+    boostConfirmYes: 'תשלום {price}',
+    boostConfirmNo: 'ביטול',
+    boostNoCard: 'קודם צריך להוסיף כרטיס בהגדרות > תשלומים.',
+    boostPayFailed: 'התשלום נכשל. כדאי לבדוק את הכרטיס.',
+    cohostInvite: 'הזמנת מנחה שותף',
+    cohostSearch: 'חיפוש מוכר/ת...',
+    cohostRemove: 'הסרת המנחה השותף',
+    cohostNone: 'לא נמצאו מוכרים',
+    cohostActive: 'מנחה שותף',
+    multicast: 'שידור מקביל',
+    multicastTitle: 'שידור לפלטפורמות נוספות',
+    multicastAdd: 'הוספת יעד RTMP',
+    multicastPlaceholder: 'rtmp://a.rtmp.youtube.com/live2/xxxx',
+    multicastStart: 'התחלה',
+    multicastStop: 'עצירה',
+    errReconnect: 'שגיאה: צריך להתחבר מחדש',
+    errGeneric: 'משהו השתבש. אפשר לנסות שוב.',
+    errNetwork: 'שגיאת רשת',
+    errDraw: 'ההגרלה נכשלה',
+    errActivation: 'לא ניתן להתחיל את המכירה',
+    errAddItem: 'לא ניתן להוסיף את הפריט',
+    sessionExpired: 'פג תוקף החיבור',
+    errCohostRemove: 'לא ניתן להסיר את המנחה השותף',
+    errMulticastStop: 'לא ניתן לעצור את השידור המקביל',
+  },
+} satisfies Localized<Record<string, string>>
+
+/** Remplace les {clés} d'un texte traduit. */
+function fill(text: string, vars: Record<string, string | number>): string {
+  return text.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`))
 }
 
 // Utility to lock/unlock body scroll — must be called on enter and EVERY exit path
@@ -336,9 +515,14 @@ function unlockBody() {
 export default function LiveSellerView() {
   const { streamId } = useParams<{ streamId: string }>()
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = pageContent[lang] || pageContent.fr
+  const { user, profile } = useAuth()
+  const ct = tr(pageContent)
+  // Devise du vendeur (pays de son profil) pour tous les prix affichés et saisis
+  const sellerCurrency = currencyForCountry(profile?.country)
+  const curSym = currencySymbol(sellerCurrency)
+  const money = (n: number | string | null | undefined) => formatMoney(n, sellerCurrency)
+  // Le boost est facturé 4,99 EUR par le serveur (server/src/routes/streams.ts)
+  const boostPrice = formatMoney(4.99, 'EUR') // i18n-ignore (devise réelle du paiement Stripe)
   usePageTitle(ct.live)
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -749,7 +933,7 @@ export default function LiveSellerView() {
     const { data: freshSession } = await supabase.auth.getSession()
     const token = freshSession.session?.access_token
     if (!token) {
-      showToast('Erreur: reconnecte-toi')
+      showToast(ct.errReconnect)
       return
     }
     try {
@@ -766,15 +950,15 @@ export default function LiveSellerView() {
         setActiveGiveaway(gw)
         setShowGiveawayForm(false)
         setGiveawayPrize('')
-        showToast('Cadeau lance !')
+        showToast(ct.giftLaunched)
       } else {
         const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }))
         console.error('Giveaway launch error:', resp.status, err)
-        showToast(`Erreur: ${err.error || resp.status}`)
+        showToast(ct.errGeneric)
       }
     } catch (err) {
       console.error('Failed to launch giveaway:', err)
-      showToast('Erreur reseau')
+      showToast(ct.errNetwork)
     }
   }
 
@@ -783,7 +967,7 @@ export default function LiveSellerView() {
     const { data: freshSession } = await supabase.auth.getSession()
     const token = freshSession.session?.access_token
     if (!token) {
-      showToast('Erreur: reconnecte-toi')
+      showToast(ct.errReconnect)
       return
     }
     setGiveawayDrawing(true)
@@ -808,11 +992,11 @@ export default function LiveSellerView() {
       } else {
         const err = await resp.json().catch(() => ({ error: 'Unknown error' }))
         console.error('Draw error:', resp.status, err)
-        showToast(err.error || 'Erreur lors du tirage')
+        showToast(ct.errDraw)
       }
     } catch (err) {
       console.error('Failed to draw winner:', err)
-      showToast('Erreur réseau')
+      showToast(ct.errNetwork)
     }
     setGiveawayDrawing(false)
   }
@@ -1006,7 +1190,7 @@ export default function LiveSellerView() {
     const { data: fs } = await supabase.auth.getSession()
     const tk = fs.session?.access_token
     if (!tk) {
-      showToast('Erreur: reconnecte-toi')
+      showToast(ct.errReconnect)
       console.error('[ACTIVATE] No session token — cannot activate')
       setTimeLeft(0)
       return
@@ -1044,7 +1228,7 @@ export default function LiveSellerView() {
         .eq('id', currentItem.id)
       if (dbErr) {
         console.error('[ACTIVATE] Direct DB fallback also failed:', dbErr.message)
-        showToast('Erreur activation')
+        showToast(ct.errActivation)
         setTimeLeft(0)
         return
       }
@@ -1123,7 +1307,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { alert('No token'); setBoostLoading(false); return }
+      if (!token) { alert(ct.sessionExpired); setBoostLoading(false); return }
       const resp = await apiFetch(`/api/streams/${streamId}/boost`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
@@ -1148,7 +1332,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { showToast('Session expirée'); setCohostSearching(false); return }
+      if (!token) { showToast(ct.sessionExpired); setCohostSearching(false); return }
       const resp = await apiFetch('/api/sellers/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1164,7 +1348,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { showToast('Session expirée'); return }
+      if (!token) { showToast(ct.sessionExpired); return }
       const resp = await apiFetch(`/api/streams/${streamId}/cohost`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1183,12 +1367,12 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { showToast('Session expirée'); return }
+      if (!token) { showToast(ct.sessionExpired); return }
       const resp = await apiFetch(`/api/streams/${streamId}/cohost`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (!resp.ok) { showToast('Erreur lors du retrait du co-hote'); return }
+      if (!resp.ok) { showToast(ct.errCohostRemove); return }
       setCohost(null)
     } catch (err) { console.error('Cohost remove error:', err) }
   }
@@ -1200,7 +1384,7 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { showToast('Session expirée'); setMulticastLoading(false); return }
+      if (!token) { showToast(ct.sessionExpired); setMulticastLoading(false); return }
       const resp = await apiFetch(`/api/streams/${streamId}/multicast`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -1219,12 +1403,12 @@ export default function LiveSellerView() {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) { showToast('Session expirée'); return }
+      if (!token) { showToast(ct.sessionExpired); return }
       const resp = await apiFetch(`/api/streams/${streamId}/multicast/${egressId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       })
-      if (!resp.ok) { showToast('Erreur arret multicast'); return }
+      if (!resp.ok) { showToast(ct.errMulticastStop); return }
       setMulticastDestinations(prev => prev.filter(d => d.egressId !== egressId))
     } catch (err) { console.error('Stop multicast error:', err) }
   }
@@ -1342,7 +1526,7 @@ export default function LiveSellerView() {
 
       if (error) {
         console.error('Add item error:', error)
-        showToast('Erreur: ' + (error.message || 'echec'))
+        showToast(ct.errAddItem)
         break
       }
       if (data) newItems.push(data)
@@ -1363,7 +1547,7 @@ export default function LiveSellerView() {
       setAddItemQuantity(1)
       setAddItemDuration(60)
       setShowAddItem(false)
-      showToast(`${newItems.length} ${ct.articlesLabel} ✓`)
+      showToast(`${fill(ct.itemsAdded, { n: newItems.length })} ✓`)
     }
     setAddingItem(false)
   }
@@ -1394,7 +1578,7 @@ export default function LiveSellerView() {
           {ct.liveEnded}
         </h2>
         <p style={{ fontSize: '15px', color: '#888', textAlign: 'center' }}>
-          {items.filter(it => it.status === 'sold').length} {ct.soldOf} / {items.length} {ct.articlesLabel}
+          {fill(ct.soldSummary, { sold: items.filter(it => it.status === 'sold').length, total: items.length })}
         </p>
         <button
           onClick={() => { unlockBody(); navigate(`/live-recap/${streamId}`) }}
@@ -1454,7 +1638,7 @@ export default function LiveSellerView() {
               style={{
                 position: 'absolute',
                 bottom: '0',
-                left: `${r.x}%`,
+                left: `${r.x}%`, // i18n-ignore (position aléatoire décorative)
                 fontSize: '32px',
                 animation: 'floatUpReaction 2s ease-out forwards',
                 pointerEvents: 'none',
@@ -1512,11 +1696,11 @@ export default function LiveSellerView() {
           <div style={{
             width: '7px', height: '7px', borderRadius: '50%',
             backgroundColor: lkConnected ? '#E8344E' : '#888',
-            marginRight: '6px',
+            marginInlineEnd: '6px',
             animation: lkConnected ? 'liveDot 1.5s ease-in-out infinite' : 'none',
             boxShadow: lkConnected ? '0 0 6px rgba(232,52,78,0.6)' : 'none',
           }} />
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{ marginRight: '3px' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{ marginInlineEnd: '3px' }}>
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
@@ -1597,7 +1781,7 @@ export default function LiveSellerView() {
           >
             <span style={{ fontSize: '16px', lineHeight: 1 }}>🎁</span>
             {activeGiveaway && activeGiveaway.status === 'active' && (
-              <span style={{ position: 'absolute', top: '-4px', right: '-4px', fontSize: '9px', fontWeight: 800, color: '#fff', backgroundColor: '#E8344E', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ position: 'absolute', top: '-4px', insetInlineEnd: '-4px', fontSize: '9px', fontWeight: 800, color: '#fff', backgroundColor: '#E8344E', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {activeGiveaway.entry_count}
               </span>
             )}
@@ -1621,7 +1805,7 @@ export default function LiveSellerView() {
             </button>
             {showToolsMenu && (
               <div style={{
-                position: 'absolute', top: '42px', right: 0,
+                position: 'absolute', top: '42px', insetInlineEnd: 0,
                 backgroundColor: 'rgba(20,20,20,0.95)',
                 backdropFilter: 'blur(12px)',
                 borderRadius: '14px',
@@ -1658,7 +1842,7 @@ export default function LiveSellerView() {
                     <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>
                   </svg>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: cohost ? '#8B5CF6' : '#fff' }}>
-                    Co-host{cohost ? `: ${cohost.display_name}` : ''}
+                    {ct.cohostActive}{cohost ? `: ${cohost.display_name}` : ''}
                   </span>
                 </button>
                 <button
@@ -1673,7 +1857,7 @@ export default function LiveSellerView() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={obsData ? '#60a5fa' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: obsData ? '#60a5fa' : '#fff' }}>OBS / RTMP</span>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: obsData ? '#60a5fa' : '#fff' }}>OBS / RTMP</span>{/* i18n-ignore */}
                 </button>
                 <button
                   onClick={() => { setShowToolsMenu(false); setShowMulticastModal(true) }}
@@ -1688,7 +1872,7 @@ export default function LiveSellerView() {
                     <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><line x1="2" y1="20" x2="2.01" y2="20"/>
                   </svg>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: multicastDestinations.length > 0 ? '#3B82F6' : '#fff' }}>
-                    Multicast{multicastDestinations.length > 0 ? ` (${multicastDestinations.length})` : ''}
+                    {ct.multicast}{multicastDestinations.length > 0 ? ` (${multicastDestinations.length})` : ''}
                   </span>
                 </button>
               </div>
@@ -1750,7 +1934,7 @@ export default function LiveSellerView() {
                 <span style={{
                   fontSize: '12px', fontWeight: 800, color: '#F0908A',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
-                  marginRight: '5px',
+                  marginInlineEnd: '5px',
                 }}>
                   {msg.user_profile?.display_name || ct.anonymous || '?'}
                 </span>
@@ -1883,11 +2067,11 @@ export default function LiveSellerView() {
                 </div>
               ) : null}
 
-              <div style={{ flexShrink: 0, textAlign: 'right' }}>
+              <div style={{ flexShrink: 0, textAlign: 'end' }}>
                 <p style={{
                   fontSize: '16px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
                 }}>
-                  {currentItem.current_price} <span style={{ color: '#F0908A' }}>€</span>
+                  {money(currentItem.current_price)}
                 </p>
               </div>
             </div>
@@ -1921,8 +2105,8 @@ export default function LiveSellerView() {
                   {timeLeft > 0 ? ct.auctionLive : ct.resolving}
                 </span>
                 {currentItem.min_price != null && currentItem.min_price > 0 && (
-                  <span style={{ fontSize: '9px', color: '#666', marginLeft: '6px' }}>
-                    min: {currentItem.min_price}€
+                  <span style={{ fontSize: '9px', color: '#666', marginInlineStart: '6px' }}>
+                    {fill(ct.minPrice, { price: money(currentItem.min_price) })}
                   </span>
                 )}
               </div>
@@ -2017,7 +2201,7 @@ export default function LiveSellerView() {
                 inputMode="decimal"
                 value={addItemPrice}
                 onChange={e => setAddItemPrice(e.target.value)}
-                placeholder={ct.addItemPrice}
+                placeholder={fill(ct.addItemPrice, { cur: curSym })}
                 min="0"
                 step="0.01"
                 style={{
@@ -2034,7 +2218,7 @@ export default function LiveSellerView() {
                 inputMode="decimal"
                 value={addItemMinPrice}
                 onChange={e => setAddItemMinPrice(e.target.value)}
-                placeholder={ct.addItemMinPrice}
+                placeholder={fill(ct.addItemMinPrice, { cur: curSym })}
                 min="0"
                 step="0.01"
                 style={{
@@ -2051,7 +2235,7 @@ export default function LiveSellerView() {
                 inputMode="decimal"
                 value={addItemBuyNowPrice}
                 onChange={e => setAddItemBuyNowPrice(e.target.value)}
-                placeholder={ct.addItemBuyNow}
+                placeholder={fill(ct.addItemBuyNow, { cur: curSym })}
                 min="0"
                 step="0.01"
                 style={{
@@ -2110,6 +2294,7 @@ export default function LiveSellerView() {
                 ))}
                 <button
                   onClick={() => setAddItemDuration(-1)}
+                  title={ct.sdTitle}
                   style={{
                     flex: 1, padding: '7px 0',
                     backgroundColor: addItemDuration === -1 ? 'rgba(232,52,78,0.2)' : 'rgba(255,255,255,0.06)',
@@ -2120,7 +2305,7 @@ export default function LiveSellerView() {
                     cursor: 'pointer',
                   }}
                 >
-                  SD
+                  {ct.sdShort}
                 </button>
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -2222,7 +2407,7 @@ export default function LiveSellerView() {
                     style={{ accentColor: '#FFD700', width: '18px', height: '18px', flexShrink: 0 }}
                   />
                   <span style={{ fontSize: '13px', color: giveawayBuyersOnly ? '#FFD700' : '#aaa', fontWeight: 600 }}>
-                    {lang === 'fr' ? 'Acheteurs seulement' : lang === 'he' ? 'קונים בלבד' : lang === 'es' ? 'Solo compradores' : 'Buyers only'}
+                    {ct.buyersOnly}
                   </span>
                 </label>
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -2411,7 +2596,7 @@ export default function LiveSellerView() {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
                     padding: '12px', backgroundColor: 'transparent', border: 'none',
-                    borderBottom: '1px solid #222', cursor: 'pointer', textAlign: 'left',
+                    borderBottom: '1px solid #222', cursor: 'pointer', textAlign: 'start',
                   }}
                 >
                   <div style={{
@@ -2512,9 +2697,9 @@ export default function LiveSellerView() {
             </div>
 
             <p style={{ fontSize: '11px', color: '#555', margin: '12px 0 0', lineHeight: 1.4 }}>
-              YouTube: rtmp://a.rtmp.youtube.com/live2/KEY<br/>
-              Instagram: rtmp://live-upload.instagram.com:443/rtmp/KEY<br/>
-              TikTok: rtmp://push.tiktokcdn.com/live/KEY
+              YouTube: rtmp://a.rtmp.youtube.com/live2/KEY<br/>{/* i18n-ignore */}
+              Instagram: rtmp://live-upload.instagram.com:443/rtmp/KEY<br/>{/* i18n-ignore */}
+              TikTok: rtmp://push.tiktokcdn.com/live/KEY{/* i18n-ignore */}
             </p>
           </div>
         </div>
@@ -2535,9 +2720,9 @@ export default function LiveSellerView() {
             width: '90%', maxWidth: '340px', textAlign: 'center',
           }}>
             <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚡</div>
-            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 12px' }}>Boost</h3>
+            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 12px' }}>{ct.boostTitle}</h3>
             <p style={{ color: '#aaa', fontSize: '14px', lineHeight: 1.5, margin: '0 0 24px' }}>
-              {ct.boostConfirm}
+              {fill(ct.boostConfirm, { price: boostPrice })}
             </p>
             <button
               onClick={handleBoostLive}
@@ -2548,7 +2733,7 @@ export default function LiveSellerView() {
                 marginBottom: '10px',
               }}
             >
-              {ct.boostConfirmYes}
+              {fill(ct.boostConfirmYes, { price: boostPrice })}
             </button>
             <button
               onClick={() => setShowBoostConfirm(false)}
@@ -2624,7 +2809,7 @@ export default function LiveSellerView() {
                         border: 'none', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
-                      {obsCopied === 'url' ? ct.obsCopied : 'Copy'}
+                      {obsCopied === 'url' ? ct.obsCopied : ct.copy}
                     </button>
                   </div>
                 </div>
@@ -2650,13 +2835,13 @@ export default function LiveSellerView() {
                         border: 'none', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
-                      {obsCopied === 'key' ? ct.obsCopied : 'Copy'}
+                      {obsCopied === 'key' ? ct.obsCopied : ct.copy}
                     </button>
                   </div>
                 </div>
               </div>
             ) : (
-              <p style={{ fontSize: '13px', color: '#f87171', textAlign: 'center' }}>Erreur</p>
+              <p style={{ fontSize: '13px', color: '#f87171', textAlign: 'center' }}>{ct.errorShort}</p>
             )}
 
             <button
@@ -2667,7 +2852,7 @@ export default function LiveSellerView() {
                 color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
               }}
             >
-              Fermer
+              {ct.close}
             </button>
           </div>
         </div>
@@ -2824,7 +3009,7 @@ export default function LiveSellerView() {
                 margin: 0,
                 textShadow: '0 2px 12px rgba(0,0,0,0.5)',
               }}>
-                {soldOverlay.price} €
+                {money(soldOverlay.price)}
               </p>
             )}
           </div>
