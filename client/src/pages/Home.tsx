@@ -18,8 +18,9 @@ import { rtlFlip } from '../lib/rtl'
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string }
 
 import { t, tr, useLang, setLang, LANGS, LANG_META, type Localized } from '../lib/i18n'
-import { getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
-import { getStoredGPSCountry } from '../lib/geolocation'
+import CitySearchField from '../components/CitySearchField'
+import { useCitySuggestions } from '../hooks/useCitySuggestions'
+import { buildCitySuggestions, sameCity, type CityOption } from '../lib/cities'
 import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 
 type HomeText = {
@@ -287,7 +288,7 @@ export default function Home() {
   const [activePromotion, setActivePromotion] = useState<{ id: string; title: string; description: string | null; type: string; discount_percent: number } | null>(null)
   const [promoBannerDismissed, setPromoBannerDismissed] = useState(false)
   const navigate = useNavigate()
-  const { city, loading: locationLoading, setManualCity } = useLocation()
+  const { city, cityLabel: cityName, cityOption, loading: locationLoading, setManualCity } = useLocation()
   const { user, loading: authLoading, updateCity } = useAuth()
 
   // Track page view on mount
@@ -478,7 +479,7 @@ export default function Home() {
     return result
   }, [filteredStreams, searchQuery, filterCity, filterMinRating])
 
-  const handleCitySelect = (selectedCity: string) => {
+  const handleCitySelect = (selectedCity: CityOption | null) => {
     setManualCity(selectedCity)
     setShowCityPicker(false)
   }
@@ -719,7 +720,7 @@ export default function Home() {
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span>{city}</span>
+                <span dir="auto">{cityName}</span>
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2.5">
                   <path d="M6 9l6 6 6-6"/>
                 </svg>
@@ -737,56 +738,12 @@ export default function Home() {
             )}
           </button>
 
-          {/* City picker dropdown */}
+          {/* City picker dropdown : toutes les villes, champ « Ta ville », villes autour de toi */}
           {showCityPicker && (
-            <div style={{
-              position: 'absolute', top: '100%', insetInlineStart: '16px',
-              backgroundColor: '#1C1C1E', borderRadius: '14px',
-              padding: '8px 0', zIndex: 50, minWidth: '220px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
-            }}>
-              <button
-                onClick={() => { setManualCity(''); setShowCityPicker(false) }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start',
-                  padding: '11px 16px', color: !city ? '#F0908A' : '#ccc',
-                  fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer',
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
-                </svg>
-                {t(lang, 'all_cities')}
-              </button>
-              {(() => {
-                const country = getStoredGPSCountry() || detectUserCountry()
-                const communities = getCommunitiesByCountry(country)
-                const commCities = communities.map(c => c.city).filter((c, i, arr) => arr.indexOf(c) === i)
-                const detectedCity = localStorage.getItem('shapop_user_city')
-                const allCities = detectedCity && !commCities.includes(detectedCity)
-                  ? [detectedCity, ...commCities]
-                  : commCities
-                return allCities.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => handleCitySelect(c)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start',
-                      padding: '11px 16px',
-                      color: city === c ? '#F0908A' : '#ccc',
-                      fontSize: '14px', background: 'transparent', border: 'none',
-                      cursor: 'pointer', fontWeight: c === detectedCity ? 700 : 400,
-                    }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    {c}{c === detectedCity && !commCities.includes(detectedCity) ? ' (GPS)' : ''}
-                  </button>
-                ))
-              })()}
-            </div>
+            <HomeCityMenu
+              current={cityOption}
+              onSelect={handleCitySelect}
+            />
           )}
         </div>
       </div>
@@ -1100,4 +1057,60 @@ export default function Home() {
       />
     </div>
   )
+}
+
+/** Menu du sélecteur de ville de l'accueil (monté seulement quand il est ouvert). */
+function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSelect: (city: CityOption | null) => void }) {
+  const lang = useLang()
+  const { status, detected, nearby, coords } = useCitySuggestions()
+  const suggestions = buildCitySuggestions({ detected, selected: current ? [current] : [], nearby, max: 8 })
+  const itemStyle = (active: boolean, bold = false) => ({
+    display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start' as const,
+    padding: '11px 16px', color: active ? '#F0908A' : '#ccc',
+    fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer',
+    fontWeight: bold ? 700 : 400,
+  })
+  return (
+    <div style={{
+      position: 'absolute', top: '100%', insetInlineStart: '16px',
+      backgroundColor: '#1C1C1E', borderRadius: '14px',
+      padding: '8px 0', zIndex: 50, width: 'min(320px, calc(100vw - 32px))',
+      maxHeight: '60vh', overflowY: 'auto',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
+    }}>
+      <button onClick={() => onSelect(null)} style={itemStyle(!current)}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+        </svg>
+        {t(lang, 'all_cities')}
+      </button>
+      <div style={{ padding: '4px 12px 8px' }}>
+        <CitySearchField onPick={onSelect} near={coords} background="#111" />
+      </div>
+      {status === 'locating' && suggestions.length === 0 && (
+        <p style={{ color: '#666', fontSize: '13px', margin: 0, padding: '6px 16px' }}>{t(lang, 'detecting_location')}</p>
+      )}
+      {suggestions.map(c => {
+        const isHere = !!detected && sameCity(detected.key, c.key)
+        return (
+          <button key={c.key} onClick={() => onSelect(c)} style={itemStyle(!!current && sameCity(current.key, c.key), isHere)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <span dir="auto">{c.label}</span>
+            {isHere && <span style={{ fontSize: '11px', color: '#777' }}>{tr(homeCityText, lang).here}</span>}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+const homeCityText: Localized<{ here: string }> = {
+  en: { here: '(you are here)' },
+  fr: { here: '(tu es ici)' },
+  es: { here: '(estás aquí)' },
+  ru: { here: '(ты здесь)' },
+  he: { here: '(את/ה כאן)' },
 }

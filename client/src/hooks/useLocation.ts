@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { tr, type Localized } from '../lib/i18n'
+import { getLang, tr, useLang, type Localized } from '../lib/i18n'
+import { cityLabel, getDevicePosition, reverseGeocodeCity, rememberCityLabel, type CityOption } from '../lib/cities'
 
 type LocationErrors = { unsupported: string; noCity: string; denied: string; failed: string }
 const locationErrors: Localized<LocationErrors> = {
@@ -11,80 +12,92 @@ const locationErrors: Localized<LocationErrors> = {
 }
 
 interface LocationState {
+  /** Valeur enregistrée (nom canonique, en anglais) — c'est elle qui va au profil. */
   city: string | null
+  /** Nom de la ville dans la langue de l'app. */
+  cityLabel: string | null
+  /** Ville complète (coordonnées, pays) quand elle est connue. */
+  cityOption: CityOption | null
   loading: boolean
   error: string | null
   requestLocation: () => void
-  setManualCity: (city: string) => void
+  /** Ville choisie à la main ; '' ou null = toutes les villes. */
+  setManualCity: (city: string | CityOption | null) => void
 }
 
 const STORAGE_KEY = 'shapop_user_city'
+const META_KEY = 'shapop_user_city_meta'
+
+function readMeta(key: string | null): CityOption | null {
+  if (!key) return null
+  try {
+    const meta = JSON.parse(localStorage.getItem(META_KEY) || 'null') as CityOption | null
+    return meta && meta.key === key ? meta : { key, label: key }
+  } catch { return { key, label: key } }
+}
+
+function store(option: CityOption | null) {
+  if (option) {
+    localStorage.setItem(STORAGE_KEY, option.key)
+    localStorage.setItem(META_KEY, JSON.stringify(option))
+  } else {
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(META_KEY)
+  }
+}
 
 export function useLocation(): LocationState {
-  const [city, setCity] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY))
+  const lang = useLang()
+  const [option, setOption] = useState<CityOption | null>(() => readMeta(localStorage.getItem(STORAGE_KEY)))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`,
-        { headers: { 'User-Agent': 'ShaPop/1.0' } } // i18n-ignore (en-tête technique)
-      )
-      const data = await res.json()
-      return data.address?.city || data.address?.town || data.address?.village || null
-    } catch {
-      return null
-    }
-  }
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
       setError(tr(locationErrors).unsupported)
       return
     }
-
     setLoading(true)
     setError(null)
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const detected = await reverseGeocode(position.coords.latitude, position.coords.longitude)
-        if (detected) {
-          setCity(detected)
-          localStorage.setItem(STORAGE_KEY, detected)
-        } else {
-          setError(tr(locationErrors).noCity)
-        }
+    getDevicePosition().then(async (pos) => {
+      if ('error' in pos) {
+        setError(pos.error === 'denied' ? tr(locationErrors).denied : tr(locationErrors).failed)
         setLoading(false)
-      },
-      (err) => {
-        setError(err.code === 1 ? tr(locationErrors).denied : tr(locationErrors).failed)
-        setLoading(false)
-      },
-      { enableHighAccuracy: false, timeout: 10000 }
-    )
+        return
+      }
+      const detected = await reverseGeocodeCity(pos.coords, getLang())
+      if (detected) {
+        setOption(detected)
+        store(detected)
+      } else {
+        setError(tr(locationErrors).noCity)
+      }
+      setLoading(false)
+    })
   }
 
-  const setManualCity = (newCity: string) => {
-    const value = newCity || null
-    setCity(value)
+  const setManualCity = (value: string | CityOption | null) => {
+    const next: CityOption | null = !value ? null : typeof value === 'string' ? { key: value, label: cityLabel(value) } : value
+    if (next) rememberCityLabel(next.key, getLang(), next.label)
+    setOption(next)
     setError(null)
-    if (value) {
-      localStorage.setItem(STORAGE_KEY, value)
-    } else {
-      localStorage.removeItem(STORAGE_KEY)
-    }
+    store(next)
   }
 
   // Auto-request on first load if no city saved
   // Defer so it doesn't block initial render / cause freeze on iOS WKWebView
   useEffect(() => {
-    if (!city) {
+    if (!option) {
       const timer = setTimeout(() => requestLocation(), 1500)
       return () => clearTimeout(timer)
     }
   }, [])
 
-  return { city, loading, error, requestLocation, setManualCity }
+  const city = option?.key ?? null
+  return {
+    city,
+    cityLabel: city ? cityLabel(city, lang) : null,
+    cityOption: option,
+    loading, error, requestLocation, setManualCity,
+  }
 }

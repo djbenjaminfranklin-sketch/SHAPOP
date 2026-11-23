@@ -1,6 +1,7 @@
 import type { Stream } from '../types/database'
 import type { LocalPreferences } from '../types/preferences'
 import { getBehaviorScore } from './behaviorTracker'
+import { sameCity } from './cities'
 
 type StreamWithSeller = Stream & {
   seller?: { display_name: string; avatar_url: string | null; store_name?: string }
@@ -44,7 +45,8 @@ export function computeMatchingScore(
   if (
     prefs.preferred_cities.length > 0 &&
     stream.city &&
-    prefs.preferred_cities.includes(stream.city)
+    // Même ville malgré l'orthographe (« Tel Aviv » / « Tel-Aviv-Yafo »)
+    prefs.preferred_cities.some(c => sameCity(c, stream.city))
   ) {
     score += 15
   }

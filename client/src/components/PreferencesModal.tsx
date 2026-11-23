@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { getLang, getLocale, tr, I18N_TRANSLATIONS, type Lang, type Localized } from '../lib/i18n'
+import { getLang, t, tr, I18N_TRANSLATIONS, type Lang, type Localized } from '../lib/i18n'
 import { categories } from './CategoryIcons'
-import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
-import { COUNTRIES, getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
-import type { CountryCode } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import CitySearchField from './CitySearchField'
+import { useCitySuggestions } from '../hooks/useCitySuggestions'
+import { buildCitySuggestions, optionFromKey, sameCity, type CityOption } from '../lib/cities'
 
 const modalContent: Localized<{
   personalizeYourFeed: string; chooseCategories: string; selectCities: string
   skip: string; next: string; letsGo: string
+  locating: string; locationOff: string; yourPosition: string; nearby: string
 }> = {
   en: {
     personalizeYourFeed: 'Personalize your feed',
@@ -19,6 +20,10 @@ const modalContent: Localized<{
     skip: 'Skip',
     next: 'Next',
     letsGo: 'Let’s go!',
+    locating: 'Finding cities around you…',
+    locationOff: 'Location unavailable: search for your city above.',
+    yourPosition: 'You are here',
+    nearby: 'Nearby',
   },
   fr: {
     personalizeYourFeed: 'Personnalise ton fil',
@@ -27,6 +32,10 @@ const modalContent: Localized<{
     skip: 'Passer',
     next: 'Suivant',
     letsGo: 'C’est parti !',
+    locating: 'Recherche des villes autour de toi…',
+    locationOff: 'Position indisponible : cherche ta ville ci-dessus.',
+    yourPosition: 'Tu es ici',
+    nearby: 'À proximité',
   },
   es: {
     personalizeYourFeed: 'Personaliza tu feed',
@@ -35,6 +44,10 @@ const modalContent: Localized<{
     skip: 'Omitir',
     next: 'Siguiente',
     letsGo: '¡Vamos!',
+    locating: 'Buscando ciudades cerca de ti…',
+    locationOff: 'Ubicación no disponible: busca tu ciudad arriba.',
+    yourPosition: 'Estás aquí',
+    nearby: 'Cerca',
   },
   ru: {
     personalizeYourFeed: 'Настрой свою ленту',
@@ -43,6 +56,10 @@ const modalContent: Localized<{
     skip: 'Пропустить',
     next: 'Далее',
     letsGo: 'Поехали!',
+    locating: 'Ищем города рядом с тобой…',
+    locationOff: 'Местоположение недоступно: найди свой город выше.',
+    yourPosition: 'Ты здесь',
+    nearby: 'Рядом',
   },
   he: {
     personalizeYourFeed: 'התאמה אישית של הפיד',
@@ -51,6 +68,10 @@ const modalContent: Localized<{
     skip: 'דילוג',
     next: 'הבא',
     letsGo: 'יאללה!',
+    locating: 'מחפשים ערים באזור שלך…',
+    locationOff: 'המיקום לא זמין: חפשו את העיר שלכם למעלה.',
+    yourPosition: 'את/ה כאן',
+    nearby: 'בקרבת מקום',
   },
 }
 
@@ -60,10 +81,6 @@ function categoryName(cat: { id: string; label: string }, lang: Lang): string {
   return dict[cat.id] || cat.label
 }
 
-/** Nom du pays dans la langue de l'app. */
-function countryName(code: string, fallback: string): string {
-  try { return new Intl.DisplayNames([getLocale()], { type: 'region' }).of(code) || fallback } catch { return fallback }
-}
 
 const STORAGE_KEY = 'shapop_preferences'
 
@@ -100,23 +117,9 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
   const lang = getLang()
   const ct = tr(modalContent)
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedCities, setSelectedCities] = useState<string[]>([])
+  // Valeurs enregistrées = noms canoniques ; les anciennes (ex. « Neuilly-sur-Seine ») restent valables
+  const [selectedCities, setSelectedCities] = useState<string[]>(() => loadPreferences()?.preferred_cities || [])
   const [step, setStep] = useState<'categories' | 'cities'>('categories')
-  const [userCountry, setUserCountry] = useState<CountryCode>(() => {
-    return getStoredGPSCountry() || detectUserCountry()
-  })
-
-  // Try GPS detection when modal opens
-  useEffect(() => {
-    if (visible) {
-      detectCountryByGPS().then(country => {
-        if (country) {
-          setUserCountry(country)
-          localStorage.setItem('shapop_country', country)
-        }
-      })
-    }
-  }, [visible])
 
   // Lock body scroll + hide BottomNav when modal is visible
   useEffect(() => {
@@ -130,14 +133,6 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     }
   }, [visible])
 
-  // Get cities from communities data for the detected country
-  const communities = getCommunitiesByCountry(userCountry)
-  const commCities = communities.map(c => c.city).filter((city, i, arr) => arr.indexOf(city) === i)
-  // Add the GPS-detected city at the top if not already in the list
-  const detectedCity = localStorage.getItem('shapop_user_city')
-  const countryCities = detectedCity && !commCities.includes(detectedCity)
-    ? [detectedCity, ...commCities]
-    : commCities
   if (!visible) return null
 
   const toggleCategory = (label: string) => {
@@ -146,11 +141,6 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
     )
   }
 
-  const toggleCity = (city: string) => {
-    setSelectedCities(prev =>
-      prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
-    )
-  }
 
   const handleSave = async () => {
     const prefs: LocalPreferences = {
@@ -290,84 +280,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
               })}
             </div>
           ) : (
-            <div style={{ paddingBottom: '16px' }}>
-              {/* Country selector */}
-              <div style={{
-                display: 'flex', gap: '8px', marginBottom: '16px',
-                overflowX: 'auto', paddingBottom: '4px',
-                WebkitOverflowScrolling: 'touch' as const,
-                scrollbarWidth: 'none' as const,
-                justifyContent: 'center',
-              }}>
-                {COUNTRIES.map(country => (
-                  <button
-                    key={country.code}
-                    onClick={() => setUserCountry(country.code)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '4px',
-                      padding: '6px 12px', borderRadius: '16px',
-                      border: userCountry === country.code
-                        ? '1.5px solid #F0908A'
-                        : '1px solid #333',
-                      backgroundColor: userCountry === country.code
-                        ? 'rgba(240,144,138,0.15)'
-                        : '#1A1A1A',
-                      cursor: 'pointer', flexShrink: 0,
-                      touchAction: 'manipulation',
-                    }}
-                  >
-                    <span className="no-theme-invert" style={{ fontSize: '14px' }}>{country.flag}</span>
-                    <span style={{
-                      fontSize: '12px', fontWeight: 600,
-                      color: userCountry === country.code ? '#F0908A' : '#888',
-                    }}>
-                      {countryName(country.code, country.name[lang] || country.name.en)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Cities for selected country */}
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '10px',
-                justifyContent: 'center',
-              }}>
-                {countryCities.map(city => {
-                  const isSelected = selectedCities.includes(city)
-                  return (
-                    <button
-                      key={city}
-                      onClick={() => toggleCity(city)}
-                      style={{
-                        padding: '12px 20px',
-                        borderRadius: '16px',
-                        border: isSelected ? '2px solid #F0908A' : '1px solid #333',
-                        backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
-                        color: isSelected ? '#F0908A' : '#ccc',
-                        fontSize: '14px',
-                        fontWeight: isSelected ? 700 : 500,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        touchAction: 'manipulation',
-                      }}
-                    >
-                      {isSelected ? (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      ) : (
-                        <span style={{ fontSize: '14px' }}>📍</span>
-                      )}
-                      {city}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+            <CitiesStep selected={selectedCities} onChange={setSelectedCities} />
           )}
         </div>
 
@@ -439,5 +352,99 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
       </div>
     </div>,
     document.body
+  )
+}
+
+const chipStyle = (isSelected: boolean) => ({
+  padding: '10px 16px',
+  borderRadius: '16px',
+  border: isSelected ? '2px solid #F0908A' : '1px solid #333',
+  backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
+  color: isSelected ? '#F0908A' : '#ccc',
+  fontSize: '14px',
+  fontWeight: isSelected ? 700 : 500,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '8px',
+  touchAction: 'manipulation' as const,
+})
+
+const CheckIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+)
+
+/**
+ * Étape « villes » : la ville de l'utilisateur et les villes proches (si la
+ * position est connue), un champ « Ta ville » pour n'importe quel pays, et
+ * « Toutes les villes » (aucune ville choisie) par défaut.
+ */
+function CitiesStep({ selected, onChange }: { selected: string[]; onChange: (cities: string[]) => void }) {
+  const lang = getLang()
+  const ct = tr(modalContent, lang)
+  const { status, detected, nearby, coords } = useCitySuggestions()
+  // Villes ajoutées par la recherche (gardées pour l'affichage)
+  const picked = useRef(new Map<string, CityOption>())
+
+  const selectedOptions = selected.map(k => picked.current.get(k) || optionFromKey(k, lang))
+  const suggestions = buildCitySuggestions({ detected, selected: selectedOptions, nearby, max: 14 })
+  const isSelected = (key: string) => selected.some(k => sameCity(k, key))
+
+  const toggle = (key: string) => {
+    onChange(isSelected(key) ? selected.filter(k => !sameCity(k, key)) : [...selected, key])
+  }
+
+  const addFromSearch = (city: CityOption) => {
+    picked.current.set(city.key, city)
+    if (!isSelected(city.key)) onChange([...selected, city.key])
+  }
+
+  return (
+    <div style={{ paddingBottom: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <CitySearchField onPick={addFromSearch} near={coords} />
+
+      {status === 'locating' && (
+        <p style={{ color: '#888', fontSize: '13px', margin: 0, textAlign: 'center' }}>{ct.locating}</p>
+      )}
+      {(status === 'denied' || status === 'unavailable') && (
+        <p style={{ color: '#888', fontSize: '13px', margin: 0, textAlign: 'center' }}>{ct.locationOff}</p>
+      )}
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+        <button onClick={() => onChange([])} style={chipStyle(selected.length === 0)} aria-pressed={selected.length === 0}>
+          {selected.length === 0 ? <CheckIcon /> : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+            </svg>
+          )}
+          {t(lang, 'all_cities')}
+        </button>
+        {suggestions.map(city => {
+          const on = isSelected(city.key)
+          const isHere = !!detected && sameCity(detected.key, city.key)
+          const isNear = !isHere && nearby.some(n => sameCity(n.key, city.key))
+          return (
+            <button key={city.key} onClick={() => toggle(city.key)} style={chipStyle(on)} aria-pressed={on}>
+              {on ? <CheckIcon /> : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              )}
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
+                <span dir="auto">{city.label}</span>
+                {(isHere || isNear) && (
+                  <span style={{ fontSize: '11px', fontWeight: 500, color: on ? '#F0908A' : '#777' }}>
+                    {isHere ? ct.yourPosition : ct.nearby}
+                  </span>
+                )}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
   )
 }
