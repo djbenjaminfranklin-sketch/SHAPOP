@@ -1,3 +1,13 @@
+import { getLang, tr, type Localized } from '../lib/i18n'
+
+const defaultLabels: Localized<{ confirm: string; cancel: string }> = {
+  en: { confirm: 'OK', cancel: 'Cancel' },
+  fr: { confirm: 'OK', cancel: 'Annuler' },
+  es: { confirm: 'Aceptar', cancel: 'Cancelar' },
+  ru: { confirm: 'ОК', cancel: 'Отмена' },
+  he: { confirm: 'אישור', cancel: 'ביטול' },
+}
+
 interface ConfirmModalProps {
   open: boolean
   title: string
@@ -13,13 +23,14 @@ export default function ConfirmModal({
   open,
   title,
   message,
-  confirmLabel = 'OK',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
   danger = false,
 }: ConfirmModalProps) {
   if (!open) return null
+  const labels = tr(defaultLabels, getLang())
 
   return (
     <div
@@ -47,6 +58,7 @@ export default function ConfirmModal({
         }}
       >
         <h3 style={{
+          textAlign: 'start',
           fontSize: '17px',
           fontWeight: 700,
           color: '#fff',
@@ -56,6 +68,7 @@ export default function ConfirmModal({
         </h3>
 
         <p style={{
+          textAlign: 'start',
           fontSize: '14px',
           color: '#999',
           lineHeight: 1.5,
@@ -79,7 +92,7 @@ export default function ConfirmModal({
               cursor: 'pointer',
             }}
           >
-            {cancelLabel}
+            {cancelLabel ?? labels.cancel}
           </button>
           <button
             onClick={onConfirm}
@@ -95,7 +108,7 @@ export default function ConfirmModal({
               cursor: 'pointer',
             }}
           >
-            {confirmLabel}
+            {confirmLabel ?? labels.confirm}
           </button>
         </div>
       </div>

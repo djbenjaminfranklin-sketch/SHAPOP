@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, type Lang, type Localized } from '../lib/i18n'
 import { detectCountryByGPS, getStoredGPSCountry } from '../lib/geolocation'
-import { COUNTRIES, getCountryDisplayName } from '../lib/data/communitiesData'
+import { COUNTRIES, getCountryDisplayName, detectUserCountry } from '../lib/data/communitiesData'
 import type { CountryCode } from '../lib/data/communitiesData'
 import CityStreamSheet from '../components/CityStreamSheet'
 import { useCityStreamCounts } from '../hooks/useCityStreamCounts'
@@ -10,51 +10,82 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
+type PluralForms = { one: string; few: string; many: string; other: string }
+type MapText = {
+  title: string
+  subtitle: string
+  communities: string
+  detecting: string
+  noLive: string
+  locationUnavailable: string
+  liveNowCount: PluralForms
+  livesCount: PluralForms
+}
 
-const mapContent = {
-  fr: {
-    title: 'Lives autour de toi',
-    subtitle: 'Decouvre les lives dans ta region',
-    communities: 'Communautes',
-    detecting: 'Localisation en cours...',
-    liveNow: 'En direct',
-    noLive: 'Aucun live pour le moment',
-    streams: 'streams',
-  },
+// {n} = nombre ; few/many servent au russe (ailleurs = other)
+const mapContent: Localized<MapText> = {
   en: {
     title: 'Lives near you',
     subtitle: 'Discover live streams in your area',
     communities: 'Communities',
     detecting: 'Detecting location...',
-    liveNow: 'Live now',
     noLive: 'No live streams right now',
-    streams: 'streams',
+    locationUnavailable: 'Location unavailable, showing a default country',
+    liveNowCount: { one: '{n} live now', few: '{n} live now', many: '{n} live now', other: '{n} live now' },
+    livesCount: { one: '{n} live', few: '{n} lives', many: '{n} lives', other: '{n} lives' },
   },
-  he: {
-    title: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05E7\u05E8\u05D5\u05D1\u05D9\u05DD',
-    subtitle: '\u05D2\u05DC\u05D4 \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05D7\u05D9\u05D9\u05DD \u05D1\u05D0\u05D6\u05D5\u05E8\u05DA',
-    communities: '\u05E7\u05D4\u05D9\u05DC\u05D5\u05EA',
-    detecting: '\u05DE\u05D6\u05D4\u05D4 \u05DE\u05D9\u05E7\u05D5\u05DD...',
-    liveNow: '\u05E2\u05DB\u05E9\u05D9\u05D5 \u05D1\u05E9\u05D9\u05D3\u05D5\u05E8',
-    noLive: '\u05D0\u05D9\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05DB\u05E8\u05D2\u05E2',
-    streams: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
+  fr: {
+    title: 'Lives autour de toi',
+    subtitle: 'Découvre les lives près de chez toi',
+    communities: 'Communautés',
+    detecting: 'Localisation en cours...',
+    noLive: 'Aucun live pour le moment',
+    locationUnavailable: 'Localisation indisponible, pays par défaut affiché',
+    liveNowCount: { one: '{n} en direct', few: '{n} en direct', many: '{n} en direct', other: '{n} en direct' },
+    livesCount: { one: '{n} live', few: '{n} lives', many: '{n} lives', other: '{n} lives' },
   },
   es: {
-    title: 'Lives cerca de ti',
-    subtitle: 'Descubre los directos en tu zona',
+    title: 'Directos cerca de ti',
+    subtitle: 'Descubre los directos de tu zona',
     communities: 'Comunidades',
-    detecting: 'Localizando...',
-    liveNow: 'En directo',
-    noLive: 'No hay directos ahora',
-    streams: 'streams',
+    detecting: 'Buscando tu ubicación...',
+    noLive: 'No hay directos ahora mismo',
+    locationUnavailable: 'Ubicación no disponible, se muestra un país por defecto',
+    liveNowCount: { one: '{n} en directo', few: '{n} en directo', many: '{n} en directo', other: '{n} en directo' },
+    livesCount: { one: '{n} directo', few: '{n} directos', many: '{n} directos', other: '{n} directos' },
   },
+  ru: {
+    title: 'Эфиры рядом с тобой',
+    subtitle: 'Находи прямые эфиры поблизости',
+    communities: 'Сообщества',
+    detecting: 'Определяем местоположение...',
+    noLive: 'Сейчас нет эфиров',
+    locationUnavailable: 'Местоположение недоступно, показана страна по умолчанию',
+    liveNowCount: { one: '{n} эфир сейчас', few: '{n} эфира сейчас', many: '{n} эфиров сейчас', other: '{n} эфира сейчас' },
+    livesCount: { one: '{n} эфир', few: '{n} эфира', many: '{n} эфиров', other: '{n} эфира' },
+  },
+  he: {
+    title: 'שידורים חיים קרוב אליך',
+    subtitle: 'גלו שידורים חיים באזור שלכם',
+    communities: 'קהילות',
+    detecting: 'מאתר מיקום...',
+    noLive: 'אין שידורים חיים כרגע',
+    locationUnavailable: 'המיקום לא זמין, מוצגת מדינת ברירת מחדל',
+    liveNowCount: { one: 'שידור חי אחד עכשיו', few: '{n} בשידור חי עכשיו', many: '{n} בשידור חי עכשיו', other: '{n} בשידור חי עכשיו' },
+    livesCount: { one: 'שידור אחד', few: '{n} שידורים', many: '{n} שידורים', other: '{n} שידורים' },
+  },
+}
+
+function plural(forms: PluralForms, n: number, lang: Lang): string {
+  const rule = new Intl.PluralRules(getLocale(lang)).select(n)
+  const form = rule === 'one' || rule === 'few' || rule === 'many' ? forms[rule] : forms.other
+  return form.replace('{n}', n.toLocaleString(getLocale(lang)))
 }
 
 // City images for visual cards - all verified working Unsplash URLs
 const cityImages: Record<string, string> = {
-  // France
-  'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=250&fit=crop',
+  // France (une ville par entrée : ce sont des images, pas du texte)
+  'Paris': 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=400&h=250&fit=crop', // i18n-ignore (image de ville)
   'Lyon': 'https://images.unsplash.com/photo-1524484485831-a92ffc0de03f?w=400&h=250&fit=crop',
   'Marseille': 'https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=400&h=250&fit=crop',
   'Bordeaux': 'https://images.unsplash.com/photo-1560983073-c29bff7438ef?w=400&h=250&fit=crop',
@@ -125,26 +156,19 @@ const cityImages: Record<string, string> = {
 export default function MapPage() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = mapContent[lang] || mapContent.fr
+  const lang = getLang()
+  const ct = tr(mapContent, lang)
   usePageTitle(ct.title)
 
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => {
     // Priority: GPS cache > profile country > language fallback
     return getStoredGPSCountry()
       || (profile?.country as CountryCode)
-      || 'FR'
+      || detectUserCountry()
   })
   const [detecting, setDetecting] = useState(true)
   const [selectedCity, setSelectedCity] = useState<string | null>(null)
   const [locationUnavailable, setLocationUnavailable] = useState(false)
-
-  const locationUnavailableMessages: Record<Lang, string> = {
-    fr: 'Localisation indisponible, affichage par défaut',
-    en: 'Location unavailable, showing default',
-    he: 'המיקום אינו זמין, מציג ברירת מחדל',
-    es: 'Ubicación no disponible, mostrando predeterminado',
-  }
 
   const { cityData, loading } = useCityStreamCounts(selectedCountry)
 
@@ -159,8 +183,8 @@ export default function MapPage() {
           })
         }
       } else {
-        // GPS permission denied or timed out — fallback to Paris / France
-        setSelectedCountry('FR')
+        // GPS refusé ou trop long : pays déduit (profil, langue, navigateur)
+        setSelectedCountry((profile?.country as CountryCode) || detectUserCountry())
         setLocationUnavailable(true)
       }
       setDetecting(false)
@@ -194,7 +218,7 @@ export default function MapPage() {
             </p>
             {locationUnavailable && !detecting && (
               <p style={{ fontSize: '12px', color: '#f97316', margin: '4px 0 0' }}>
-                {locationUnavailableMessages[lang]}
+                {ct.locationUnavailable}
               </p>
             )}
           </div>
@@ -276,7 +300,7 @@ export default function MapPage() {
           animation: 'pulse-live 1.5s ease-in-out infinite',
         }} />
         <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
-          {totalLive} {ct.liveNow}
+          {plural(ct.liveNowCount, totalLive, lang)}
         </span>
         <span style={{ fontSize: '13px', color: '#888' }}>
           {countryName}
@@ -319,7 +343,7 @@ export default function MapPage() {
                 overflow: 'hidden',
                 cursor: data.count > 0 ? 'pointer' : 'default',
                 padding: 0,
-                textAlign: 'left',
+                textAlign: 'start',
               }}
             >
               {/* City image */}
@@ -341,7 +365,7 @@ export default function MapPage() {
                 {/* Live badge */}
                 {data.count > 0 && (
                   <div style={{
-                    position: 'absolute', top: '8px', right: '8px',
+                    position: 'absolute', top: '8px', insetInlineEnd: '8px',
                     display: 'flex', alignItems: 'center', gap: '4px',
                     backgroundColor: 'rgba(232,52,78,0.9)',
                     backdropFilter: 'blur(4px)',
@@ -353,14 +377,14 @@ export default function MapPage() {
                       animation: 'pulse-dot 1.5s ease-in-out infinite',
                     }} />
                     <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>
-                      {data.count} live{data.count > 1 ? 's' : ''}
+                      {plural(ct.livesCount, data.count, lang)}
                     </span>
                   </div>
                 )}
 
                 {/* City name overlay */}
                 <div style={{
-                  position: 'absolute', bottom: '8px', left: '10px', right: '10px',
+                  position: 'absolute', bottom: '8px', insetInlineStart: '10px', insetInlineEnd: '10px',
                 }}>
                   <h3 style={{
                     fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0,
@@ -382,7 +406,7 @@ export default function MapPage() {
                           width: '24px', height: '24px', borderRadius: '50%',
                           border: '2px solid #0D0D0D',
                           overflow: 'hidden',
-                          marginLeft: i > 0 ? '-8px' : 0,
+                          marginInlineStart: i > 0 ? '-8px' : 0,
                           position: 'relative', zIndex: 3 - i,
                         }}
                       >
@@ -407,7 +431,7 @@ export default function MapPage() {
                     ))}
                   </div>
                   <span style={{ fontSize: '11px', color: '#888' }}>
-                    {data.count} {ct.streams}
+                    {plural(ct.livesCount, data.count, lang)}
                   </span>
                 </div>
               )}

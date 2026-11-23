@@ -1,27 +1,44 @@
 import { Link, useNavigate } from 'react-router-dom'
 import type { Stream } from '../../types/database'
-import { t, getLang } from '../../lib/i18n'
+import { t, getLang, getLocale, tr, type Localized } from '../../lib/i18n'
+import { findCommunityById } from '../../lib/data/communitiesData'
 import { rtlPos, rtlPadding } from '../../lib/rtl'
 import { trackStreamView } from '../../lib/behaviorTracker'
 
-// Community name lookup for badge display
-const COMMUNITY_NAMES: Record<string, string> = {
-  'comm-1': 'Paris Marketplace',
-  'comm-2': 'Lyon Vintage & Art',
-  'comm-3': 'Marseille Deals',
-  'comm-4': 'Bordeaux Market',
-  'comm-5': 'Madrid Bazaar',
-  'comm-6': 'Barcelona Market',
-  'comm-7': 'London Fashion',
-  'comm-8': 'New York Collectors',
-  'comm-9': 'Nice Premium',
-  'comm-10': 'Toulouse Market',
+// Anciens identifiants de communautés (avant les identifiants par pays) → nom affiché
+const LEGACY_COMMUNITY_IDS: Record<string, string> = {
+  'comm-1': 'fr-comm-1',
+  'comm-2': 'fr-comm-2',
+  'comm-3': 'fr-comm-3',
+  'comm-4': 'fr-comm-4',
+  'comm-5': 'es-comm-1',
+  'comm-6': 'es-comm-2',
+  'comm-7': 'gb-comm-1',
+  'comm-8': 'us-comm-1',
+  'comm-9': 'fr-comm-5',
+  'comm-10': 'fr-comm-6',
 }
 
-/** Format viewer count: 1234 → "1.2 k", 52 → "52" */
+function communityNameFor(id: string): string | null {
+  return findCommunityById(LEGACY_COMMUNITY_IDS[id] || id)?.name ?? null
+}
+
+type CardText = { seller: string; addFav: string; removeFav: string; boost: string; match: string }
+const cardText: Localized<CardText> = {
+  en: { seller: 'Seller', addFav: 'Add to favorites', removeFav: 'Remove from favorites', boost: 'BOOST', match: '{n}% match' },
+  fr: { seller: 'Vendeur', addFav: 'Ajouter aux favoris', removeFav: 'Retirer des favoris', boost: 'BOOST', match: '{n} % pour toi' },
+  es: { seller: 'Vendedor', addFav: 'Añadir a favoritos', removeFav: 'Quitar de favoritos', boost: 'DESTACADO', match: '{n} % para ti' },
+  ru: { seller: 'Продавец', addFav: 'Добавить в избранное', removeFav: 'Убрать из избранного', boost: 'ТОП', match: 'Совпадение {n}%' },
+  he: { seller: 'מוכר/ת', addFav: 'הוספה למועדפים', removeFav: 'הסרה מהמועדפים', boost: 'מקודם', match: '{n}% התאמה' },
+}
+
+/** Nombre de spectateurs : 1234 → « 1,2 k » / « 1.2K » selon la langue, 52 → « 52 » */
 function fmtViewers(n: number): string {
-  if (n >= 1000) return (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace('.', ',') + ' k'
-  return String(n)
+  try {
+    return new Intl.NumberFormat(getLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  } catch {
+    return String(n)
+  }
 }
 
 interface StreamCardProps {
@@ -32,9 +49,10 @@ interface StreamCardProps {
 
 export default function StreamCard({ stream, isFavorited, onToggleFavorite }: StreamCardProps) {
   const lang = getLang()
+  const ct = tr(cardText, lang)
   const navigate = useNavigate()
-  const sellerName = stream.seller?.store_name || stream.seller?.display_name || ({ fr: 'Vendeur', en: 'Seller', he: 'מוכר', es: 'Vendedor' })[getLang()]
-  const communityName = stream.community_id ? COMMUNITY_NAMES[stream.community_id] : null
+  const sellerName = stream.seller?.store_name || stream.seller?.display_name || ct.seller
+  const communityName = stream.community_id ? communityNameFor(stream.community_id) : null
 
   const goToSellerProfile = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -74,7 +92,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             <svg width="10" height="10" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            {stream.seller_score.toFixed(1)}
+            {stream.seller_score.toLocaleString(getLocale(lang), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
           </span>
         )}
       </div>
@@ -127,7 +145,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
               letterSpacing: '0.5px',
               boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
             }}>
-              ⚡ BOOST
+              <span aria-hidden="true">⚡</span> {ct.boost}
             </span>
           </div>
         )}
@@ -145,7 +163,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
               <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" stroke="none">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
-              {stream.matching_score}% match
+              {ct.match.replace('{n}', String(stream.matching_score))}
             </span>
           </div>
         )}
@@ -153,9 +171,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         {/* Favorite heart button */}
         {onToggleFavorite && (
           <button
-            aria-label={isFavorited
-              ? (lang === 'fr' ? 'Retirer des favoris' : lang === 'es' ? 'Quitar de favoritos' : lang === 'he' ? '\u05D4\u05E1\u05E8 \u05DE\u05D4\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD' : 'Remove from favorites')
-              : (lang === 'fr' ? 'Ajouter aux favoris' : lang === 'es' ? 'Agregar a favoritos' : lang === 'he' ? '\u05D4\u05D5\u05E1\u05E3 \u05DC\u05DE\u05D5\u05E2\u05D3\u05E4\u05D9\u05DD' : 'Add to favorites')}
+            aria-label={isFavorited ? ct.removeFav : ct.addFav}
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()

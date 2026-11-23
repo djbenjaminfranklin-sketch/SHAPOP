@@ -34,7 +34,7 @@ export const categories: { id: string; label: string; image: string }[] = [
 import { useState } from 'react'
 import CartoonAvatar from './CartoonAvatar'
 
-// "Suivis" icon — two connected people
+// Icône « Suivis » — two connected people
 function FollowingIcon({ size }: { size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 80 80" fill="none">
@@ -56,7 +56,7 @@ function FollowingIcon({ size }: { size: number }) {
   )
 }
 
-import { t } from '../lib/i18n'
+import { t, getLang } from '../lib/i18n'
 import type { TranslationKey } from '../lib/i18n'
 
 interface CategoryScrollProps {
@@ -65,14 +65,17 @@ interface CategoryScrollProps {
   lang?: string
 }
 
-export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScrollProps) {
+export function CategoryScroll({ selected, onSelect, lang: langProp }: CategoryScrollProps) {
+  const lang = langProp ?? getLang()
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set())
 
   return (
-    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', padding: '8px 0 8px 16px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
+    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBlock: '8px', paddingInlineStart: '16px', WebkitOverflowScrolling: 'touch' }} className="no-scrollbar">
       {categories.map(cat => {
         const isActive = selected === cat.id
         const imageFailed = failedImages.has(cat.id)
+        // cat.label reste la valeur stockée en base ; l'affichage passe par la traduction
+        const label = t(lang, cat.id as TranslationKey)
 
         return (
           <button
@@ -99,12 +102,12 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
                   fontStyle: 'italic', textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                   fontFamily: 'Georgia, serif',
                 }}>
-                  {cat.label.charAt(0).toUpperCase()}
+                  {label.charAt(0).toUpperCase()}
                 </span>
               ) : (
                 <img
                   src={cat.image}
-                  alt={cat.label}
+                  alt={label}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   loading="lazy"
                   onError={() => { setFailedImages(prev => new Set(prev).add(cat.id)) }}
@@ -123,7 +126,7 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
                     textAlign: 'center', lineHeight: 1.1,
                     textShadow: '0 1px 3px rgba(0,0,0,0.5)',
                   }}>
-                    {t(lang, cat.id as TranslationKey)}
+                    {label}
                   </span>
                 </div>
               )}
@@ -137,7 +140,7 @@ export function CategoryScroll({ selected, onSelect, lang = 'en' }: CategoryScro
                 maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}>
-                {t(lang, cat.id as TranslationKey)}
+                {label}
               </span>
             )}
           </button>

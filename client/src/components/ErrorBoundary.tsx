@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from 'react'
-import { getLang } from '../lib/i18n'
+import { tr, type Localized } from '../lib/i18n'
 
 interface Props {
   children: ReactNode
@@ -11,16 +11,15 @@ interface State {
   errorInfo: string | null
 }
 
-const getErrorText = () => {
-  const lang = getLang()
-  const texts: Record<string, { title: string; desc: string; btn: string; backBtn: string }> = {
-    fr: { title: 'Oups, une erreur est survenue', desc: 'Une erreur inattendue s\'est produite.', btn: 'Recharger', backBtn: 'Retour a l\'accueil' },
-    en: { title: 'Something went wrong', desc: 'An unexpected error occurred.', btn: 'Refresh', backBtn: 'Back to home' },
-    he: { title: 'משהו השתבש', desc: 'אירעה שגיאה בלתי צפויה.', btn: 'רענן', backBtn: 'חזרה לדף הבית' },
-    es: { title: 'Algo salio mal', desc: 'Ocurrio un error inesperado.', btn: 'Recargar', backBtn: 'Volver al inicio' },
-  }
-  return texts[lang] || texts.fr
+type ErrorText = { title: string; desc: string; technical: string; btn: string; backBtn: string }
+const errorTexts: Localized<ErrorText> = {
+  en: { title: 'Something went wrong', desc: 'An unexpected error occurred.', technical: 'A technical error occurred', btn: 'Refresh', backBtn: 'Back to home' },
+  fr: { title: 'Oups, une erreur est survenue', desc: 'Une erreur inattendue s\'est produite.', technical: 'Une erreur technique est survenue', btn: 'Recharger', backBtn: 'Retour à l\'accueil' },
+  es: { title: 'Algo salió mal', desc: 'Se produjo un error inesperado.', technical: 'Se produjo un error técnico', btn: 'Recargar', backBtn: 'Volver al inicio' },
+  ru: { title: 'Что-то пошло не так', desc: 'Произошла непредвиденная ошибка.', technical: 'Произошла техническая ошибка', btn: 'Обновить', backBtn: 'На главную' },
+  he: { title: 'משהו השתבש', desc: 'אירעה שגיאה בלתי צפויה.', technical: 'אירעה שגיאה טכנית', btn: 'רענון', backBtn: 'חזרה לדף הבית' },
 }
+const getErrorText = () => tr(errorTexts)
 
 export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -97,13 +96,13 @@ export default class ErrorBoundary extends Component<Props, State> {
             </p>
           )}
           {import.meta.env.DEV && this.state.errorInfo && (
-            <p style={{ fontSize: '10px', color: '#666', marginBottom: '24px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', textAlign: 'left', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto' }}>
+            <p style={{ fontSize: '10px', color: '#666', marginBottom: '24px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', textAlign: 'start', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto' }}>
               {this.state.errorInfo}
             </p>
           )}
           {!import.meta.env.DEV && (
             <p style={{ fontSize: '12px', color: '#888', marginBottom: '24px', maxWidth: '320px' }}>
-              Une erreur technique est survenue
+              {t.technical}
             </p>
           )}
           <div style={{ display: 'flex', gap: '12px', flexDirection: 'column', alignItems: 'center' }}>

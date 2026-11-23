@@ -1,10 +1,20 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { rtlPos, rtlFlip } from '../lib/rtl'
+import { getLang, tr, type Localized } from '../lib/i18n'
+
+const navText: Localized<{ back: string; home: string }> = {
+  en: { back: 'Back', home: 'Home' },
+  fr: { back: 'Retour', home: 'Accueil' },
+  es: { back: 'Atrás', home: 'Inicio' },
+  ru: { back: 'Назад', home: 'Главная' },
+  he: { back: 'חזרה', home: 'דף הבית' },
+}
 
 export default function HomeButton() {
   const location = useLocation()
   const navigate = useNavigate()
   const path = location.pathname
+  const nt = tr(navText, getLang())
 
   // Don't show on home, login/register, streams, or creation wizards (have their own back button)
   if (path === '/') return null
@@ -26,6 +36,7 @@ export default function HomeButton() {
       {/* Fixed back button — left */}
       <button
         onClick={() => navigate(-1)}
+        aria-label={nt.back}
         style={{
           position: 'fixed',
           top: 'calc(env(safe-area-inset-top, 12px) + 10px)',
@@ -51,10 +62,11 @@ export default function HomeButton() {
       {/* Fixed home button — center */}
       <button
         onClick={() => navigate('/')}
+        aria-label={nt.home}
         style={{
           position: 'fixed',
           top: 'calc(env(safe-area-inset-top, 12px) + 10px)',
-          left: '50%',
+          left: '50%', // i18n-ignore (centrage horizontal, symétrique)
           transform: 'translateX(-50%)',
           zIndex: 90,
           width: '36px',

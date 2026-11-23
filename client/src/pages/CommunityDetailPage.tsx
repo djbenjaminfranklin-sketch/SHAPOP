@@ -1,14 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { getLang } from '../lib/i18n'
-import { findCommunityById, getCountryDisplayName } from '../lib/data/communitiesData'
+import { getLang, getLocale, tr, type Lang, type Localized } from '../lib/i18n'
+import { findCommunityById, getCountryDisplayName, getCommunityDescription } from '../lib/data/communitiesData'
 import type { CommunityDisplay } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { rtlPos, rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
-
-type Lang = 'fr' | 'en' | 'he' | 'es'
 
 interface RecentStream {
   id: string
@@ -19,130 +17,172 @@ interface RecentStream {
   created_at: string
 }
 
-const detailContent = {
-  fr: {
-    title: 'Communauté',
-    members: 'Membres',
-    activeSellers: 'Vendeurs actifs',
-    livesPerWeek: 'Lives / semaine',
-    leaveCommunity: 'Quitter cette communaute',
-    joinCommunity: 'Rejoindre cette communaute',
-    livesOngoing: 'Lives en cours',
-    live: 'EN DIRECT',
-    popularMembers: 'Membres populaires',
-    recentActivity: 'Activite recente',
-    noRecentActivity: 'Aucune activite recente',
-    viewers: 'spectateurs',
-    streamEnded: 'Termine',
-    streamLive: 'En direct',
-    streamScheduled: 'Programme',
-    loadingActivity: 'Chargement...',
-    liveSingular: 'live',
-    livePlural: 'lives',
-  },
+type PluralForms = { one: string; few: string; many: string; other: string }
+type DetailText = {
+  title: string
+  back: string
+  members: string
+  activeSellers: string
+  livesPerWeek: string
+  leaveCommunity: string
+  joinCommunity: string
+  livesOngoing: string
+  live: string
+  popularMembers: string
+  recentActivity: string
+  noRecentActivity: string
+  streamEnded: string
+  streamLive: string
+  streamScheduled: string
+  loadingActivity: string
+  justNow: string
+  lives: PluralForms
+  viewers: PluralForms
+}
+
+// {n} = nombre ; few/many servent au russe (ailleurs = other)
+const detailContent: Localized<DetailText> = {
   en: {
     title: 'Community',
+    back: 'Back',
     members: 'Members',
     activeSellers: 'Active sellers',
     livesPerWeek: 'Lives / week',
     leaveCommunity: 'Leave this community',
     joinCommunity: 'Join this community',
-    livesOngoing: 'Lives in progress',
+    livesOngoing: 'Live now',
     live: 'LIVE',
     popularMembers: 'Popular members',
     recentActivity: 'Recent activity',
     noRecentActivity: 'No recent activity',
-    viewers: 'viewers',
     streamEnded: 'Ended',
     streamLive: 'Live',
     streamScheduled: 'Scheduled',
     loadingActivity: 'Loading...',
-    liveSingular: 'live',
-    livePlural: 'lives',
+    justNow: 'Just now',
+    lives: { one: '{n} live', few: '{n} lives', many: '{n} lives', other: '{n} lives' },
+    viewers: { one: '{n} viewer', few: '{n} viewers', many: '{n} viewers', other: '{n} viewers' },
   },
-  he: {
-    title: 'קהילה',
-    members: '\u05D7\u05D1\u05E8\u05D9\u05DD',
-    activeSellers: '\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC\u05D9\u05DD',
-    livesPerWeek: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD / \u05E9\u05D1\u05D5\u05E2',
-    leaveCommunity: '\u05E2\u05D6\u05D5\u05D1 \u05D0\u05EA \u05D4\u05E7\u05D4\u05D9\u05DC\u05D4',
-    joinCommunity: '\u05D4\u05E6\u05D8\u05E8\u05E4\u05D5 \u05DC\u05E7\u05D4\u05D9\u05DC\u05D4',
-    livesOngoing: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC\u05D9\u05DD',
-    live: '\u05E9\u05D9\u05D3\u05D5\u05E8',
-    popularMembers: '\u05D7\u05D1\u05E8\u05D9\u05DD \u05E4\u05D5\u05E4\u05D5\u05DC\u05E8\u05D9\u05D9\u05DD',
-    recentActivity: '\u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D4',
-    noRecentActivity: '\u05D0\u05D9\u05DF \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA',
-    viewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
-    streamEnded: '\u05D4\u05E1\u05EA\u05D9\u05D9\u05DD',
-    streamLive: '\u05E9\u05D9\u05D3\u05D5\u05E8',
-    streamScheduled: '\u05DE\u05EA\u05D5\u05DB\u05E0\u05DF',
-    loadingActivity: '\u05D8\u05D5\u05E2\u05DF...',
-    liveSingular: '\u05E9\u05D9\u05D3\u05D5\u05E8',
-    livePlural: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
+  fr: {
+    title: 'Communauté',
+    back: 'Retour',
+    members: 'Membres',
+    activeSellers: 'Vendeurs actifs',
+    livesPerWeek: 'Lives / semaine',
+    leaveCommunity: 'Quitter cette communauté',
+    joinCommunity: 'Rejoindre cette communauté',
+    livesOngoing: 'Lives en cours',
+    live: 'EN DIRECT',
+    popularMembers: 'Membres populaires',
+    recentActivity: 'Activité récente',
+    noRecentActivity: 'Aucune activité récente',
+    streamEnded: 'Terminé',
+    streamLive: 'En direct',
+    streamScheduled: 'Programmé',
+    loadingActivity: 'Chargement...',
+    justNow: 'À l\'instant',
+    lives: { one: '{n} live', few: '{n} lives', many: '{n} lives', other: '{n} lives' },
+    viewers: { one: '{n} spectateur', few: '{n} spectateurs', many: '{n} spectateurs', other: '{n} spectateurs' },
   },
   es: {
     title: 'Comunidad',
+    back: 'Atrás',
     members: 'Miembros',
     activeSellers: 'Vendedores activos',
-    livesPerWeek: 'Lives / semana',
+    livesPerWeek: 'Directos / semana',
     leaveCommunity: 'Salir de esta comunidad',
-    joinCommunity: 'Unirse a esta comunidad',
-    livesOngoing: 'Lives en curso',
+    joinCommunity: 'Unirme a esta comunidad',
+    livesOngoing: 'Directos en curso',
     live: 'EN DIRECTO',
     popularMembers: 'Miembros populares',
     recentActivity: 'Actividad reciente',
     noRecentActivity: 'No hay actividad reciente',
-    viewers: 'espectadores',
     streamEnded: 'Finalizado',
     streamLive: 'En directo',
     streamScheduled: 'Programado',
     loadingActivity: 'Cargando...',
-    liveSingular: 'directo',
-    livePlural: 'directos',
+    justNow: 'Ahora mismo',
+    lives: { one: '{n} directo', few: '{n} directos', many: '{n} directos', other: '{n} directos' },
+    viewers: { one: '{n} espectador', few: '{n} espectadores', many: '{n} espectadores', other: '{n} espectadores' },
+  },
+  ru: {
+    title: 'Сообщество',
+    back: 'Назад',
+    members: 'Участники',
+    activeSellers: 'Активные продавцы',
+    livesPerWeek: 'Эфиров в неделю',
+    leaveCommunity: 'Выйти из сообщества',
+    joinCommunity: 'Вступить в сообщество',
+    livesOngoing: 'Эфиры сейчас',
+    live: 'В ЭФИРЕ',
+    popularMembers: 'Популярные участники',
+    recentActivity: 'Недавняя активность',
+    noRecentActivity: 'Пока нет активности',
+    streamEnded: 'Завершён',
+    streamLive: 'В эфире',
+    streamScheduled: 'Запланирован',
+    loadingActivity: 'Загрузка...',
+    justNow: 'Только что',
+    lives: { one: '{n} эфир', few: '{n} эфира', many: '{n} эфиров', other: '{n} эфира' },
+    viewers: { one: '{n} зритель', few: '{n} зрителя', many: '{n} зрителей', other: '{n} зрителя' },
+  },
+  he: {
+    title: 'קהילה',
+    back: 'חזרה',
+    members: 'חברים',
+    activeSellers: 'מוכרים פעילים',
+    livesPerWeek: 'שידורים בשבוע',
+    leaveCommunity: 'יציאה מהקהילה',
+    joinCommunity: 'הצטרפות לקהילה',
+    livesOngoing: 'שידורים חיים עכשיו',
+    live: 'בשידור חי',
+    popularMembers: 'חברים פופולריים',
+    recentActivity: 'פעילות אחרונה',
+    noRecentActivity: 'אין פעילות אחרונה',
+    streamEnded: 'הסתיים',
+    streamLive: 'בשידור חי',
+    streamScheduled: 'מתוכנן',
+    loadingActivity: 'טוען...',
+    justNow: 'הרגע',
+    lives: { one: 'שידור אחד', few: '{n} שידורים', many: '{n} שידורים', other: '{n} שידורים' },
+    viewers: { one: 'צופה אחד', few: '{n} צופים', many: '{n} צופים', other: '{n} צופים' },
   },
 }
 
-function formatMemberCount(count: number): string {
-  if (count >= 1000) {
-    return (count / 1000).toFixed(1).replace('.0', '') + 'k'
+/** Nombre compact selon la langue : 1 234 → « 1,2 k » / « 1.2K » */
+function formatCount(n: number): string {
+  try {
+    return new Intl.NumberFormat(getLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  } catch {
+    return String(n)
   }
-  return count.toString()
 }
 
+function plural(forms: PluralForms, n: number): string {
+  const rule = new Intl.PluralRules(getLocale()).select(n)
+  const form = rule === 'one' || rule === 'few' || rule === 'many' ? forms[rule] : forms.other
+  return form.replace('{n}', formatCount(n))
+}
+
+/** « il y a 5 min », « 2 h ago », « לפני 3 ימים »… via Intl.RelativeTimeFormat */
 function formatTimeAgo(dateStr: string, lang: Lang): string {
-  const now = new Date()
-  const date = new Date(dateStr)
-  const diffMs = now.getTime() - date.getTime()
+  const diffMs = Date.now() - new Date(dateStr).getTime()
   const diffMin = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays = Math.floor(diffMs / 86400000)
-
-  const labels = {
-    fr: { min: 'min', hour: 'h', day: 'j', ago: 'Il y a' },
-    en: { min: 'min ago', hour: 'h ago', day: 'd ago', ago: '' },
-    he: { min: '\u05D3\u05E7\u05D5\u05EA', hour: '\u05E9\u05E2\u05D5\u05EA', day: '\u05D9\u05DE\u05D9\u05DD', ago: '\u05DC\u05E4\u05E0\u05D9' },
-    es: { min: 'min', hour: 'h', day: 'd', ago: 'Hace' },
-  }
-  const l = labels[lang] || labels.en
-
-  if (diffMin < 1) {
-    return lang === 'en' ? 'Just now' : lang === 'fr' ? 'A l\'instant' : lang === 'he' ? '\u05E2\u05DB\u05E9\u05D9\u05D5' : 'Ahora mismo'
-  }
-  if (diffMin < 60) {
-    return lang === 'en' ? `${diffMin} ${l.min}` : `${l.ago} ${diffMin} ${l.min}`
-  }
-  if (diffHours < 24) {
-    return lang === 'en' ? `${diffHours}${l.hour}` : `${l.ago} ${diffHours}${l.hour}`
-  }
-  return lang === 'en' ? `${diffDays}${l.day}` : `${l.ago} ${diffDays}${l.day}`
+  if (diffMin < 1) return tr(detailContent, lang).justNow
+  const rtf = new Intl.RelativeTimeFormat(getLocale(lang), { numeric: 'auto', style: 'short' })
+  if (diffMin < 60) return rtf.format(-diffMin, 'minute')
+  if (diffHours < 24) return rtf.format(-diffHours, 'hour')
+  return rtf.format(-diffDays, 'day')
 }
 
 export default function CommunityDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user, profile } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = detailContent[lang] || detailContent.fr
+  const lang = getLang()
+  const ct = tr(detailContent, lang)
   const [community, setCommunity] = useState<CommunityDisplay | null>(null)
   usePageTitle(community?.name || ct.title)
   const [joined, setJoined] = useState(false)
@@ -294,6 +334,7 @@ export default function CommunityDetailPage() {
         {/* Back button */}
         <button
           onClick={() => navigate('/communities')}
+          aria-label={ct.back}
           style={{
             position: 'absolute', top: 'calc(env(safe-area-inset-top, 12px) + 8px)', ...rtlPos('left', '16px'),
             width: '38px', height: '38px', borderRadius: '50%',
@@ -308,7 +349,7 @@ export default function CommunityDetailPage() {
         </button>
 
         {/* Community name overlay */}
-        <div style={{ position: 'absolute', bottom: '20px', left: '20px', right: '20px' }}>
+        <div style={{ position: 'absolute', bottom: '20px', insetInlineStart: '20px', insetInlineEnd: '20px' }}>
           <h1 style={{
             fontSize: '26px', fontWeight: 800, color: '#fff', margin: 0,
             letterSpacing: '-0.5px', lineHeight: 1.2,
@@ -333,7 +374,7 @@ export default function CommunityDetailPage() {
       {/* Description */}
       <div style={{ padding: '20px 20px 0' }}>
         <p style={{ fontSize: '14px', color: '#999', lineHeight: 1.5, margin: 0 }}>
-          {community.description}
+          {getCommunityDescription(community, lang)}
         </p>
       </div>
 
@@ -348,7 +389,7 @@ export default function CommunityDetailPage() {
       }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>
-            {formatMemberCount(community.member_count)}
+            {formatCount(community.member_count)}
           </div>
           <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{ct.members}</div>
         </div>
@@ -413,7 +454,7 @@ export default function CommunityDetailPage() {
               </h2>
             </div>
             <span style={{ fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
-              {activeStreams.length} {activeStreams.length > 1 ? ct.livePlural : ct.liveSingular}
+              {plural(ct.lives, activeStreams.length)}
             </span>
           </div>
 
@@ -450,7 +491,7 @@ export default function CommunityDetailPage() {
                   }} />
                   {/* Live badge */}
                   <div style={{
-                    position: 'absolute', top: '8px', left: '8px',
+                    position: 'absolute', top: '8px', insetInlineStart: '8px',
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     backgroundColor: '#E8344E', padding: '3px 8px', borderRadius: '6px',
                   }}>
@@ -460,7 +501,7 @@ export default function CommunityDetailPage() {
                   </div>
                   {/* Viewer count */}
                   <div style={{
-                    position: 'absolute', bottom: '8px', left: '8px',
+                    position: 'absolute', bottom: '8px', insetInlineStart: '8px',
                     display: 'flex', alignItems: 'center', gap: '4px',
                   }}>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -468,7 +509,7 @@ export default function CommunityDetailPage() {
                       <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                     <span style={{ fontSize: '11px', fontWeight: 600, color: '#fff' }}>
-                      {stream.viewers}
+                      {formatCount(stream.viewers)}
                     </span>
                   </div>
                 </div>
@@ -612,7 +653,7 @@ export default function CommunityDetailPage() {
                     </span>
                     {stream.viewer_count > 0 && (
                       <span style={{ fontSize: '11px', color: '#555' }}>
-                        {stream.viewer_count} {ct.viewers}
+                        {plural(ct.viewers, stream.viewer_count)}
                       </span>
                     )}
                   </div>

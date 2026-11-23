@@ -66,7 +66,7 @@ describe('CategoryIcons', () => {
     it('renders translated labels in Spanish', () => {
       render(<CategoryScroll selected="for_you" onSelect={() => {}} lang="es" />)
       expect(screen.getByText('Mi feed')).toBeInTheDocument()
-      expect(screen.getByText('Seguidos')).toBeInTheDocument()
+      expect(screen.getByText('Siguiendo')).toBeInTheDocument()
       expect(screen.getByText('Mujer')).toBeInTheDocument()
     })
 
@@ -78,10 +78,9 @@ describe('CategoryIcons', () => {
       // Simulate image load error on the first real image (fashion_w)
       fireEvent.error(images[0])
 
-      // After error, the fallback initial "M" (for "Mode femme" label) should render
-      // Actually the label text comes from the categories array, fashion_w label is "Mode femme"
-      // The fallback displays cat.label.charAt(0).toUpperCase() which is "M"
-      expect(screen.getByText('M')).toBeInTheDocument()
+      // After error, the fallback initial comes from the translated label:
+      // fashion_w in English is "Women" -> "W"
+      expect(screen.getByText('W')).toBeInTheDocument()
     })
 
     it('fallback initial uses first character of label (XSS-safe textContent)', () => {
@@ -89,8 +88,8 @@ describe('CategoryIcons', () => {
       const images = screen.getAllByRole('img')
 
       // Trigger error on multiple images to verify different initials
-      fireEvent.error(images[0]) // fashion_w -> "Mode femme" -> "M"
-      fireEvent.error(images[1]) // fashion_m -> "Mode homme" -> "M"
+      fireEvent.error(images[0]) // fashion_w -> "Women" -> "W"
+      fireEvent.error(images[1]) // fashion_m -> "Men" -> "M"
       fireEvent.error(images[2]) // sneakers -> "Sneakers" -> "S"
 
       // Verify the "S" initial for sneakers

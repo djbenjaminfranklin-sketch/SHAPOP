@@ -13,125 +13,258 @@ import { cacheGet, cacheSet } from '../lib/cache'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { rtlFlip } from '../lib/rtl'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string }; seller_score?: number; seller_trust_level?: string }
 
-import { t } from '../lib/i18n'
+import { t, tr, useLang, setLang, LANGS, LANG_META, type Localized } from '../lib/i18n'
 import { getCommunitiesByCountry, detectUserCountry } from '../lib/data/communitiesData'
 import { getStoredGPSCountry } from '../lib/geolocation'
 
-const homeContent = {
-  fr: {
-    sortedByRelevance: 'Trie par pertinence',
-    basedOnPrefs: 'Selon tes preferences',
-    modify: 'Modifier',
-  },
+type HomeText = {
+  sortedByRelevance: string
+  basedOnPrefs: string
+  modify: string
+  promoCta: string
+  promoCommission: string
+  promoShipping: string
+  promoBoth: string
+  directSales: string
+  emptyTitle: string
+  emptySubtitle: string
+  retry: string
+  tagline: string
+  subtitle: string
+  signIn: string
+  createAccount: string
+  filters: string
+  messages: string
+  notifications: string
+  language: string
+  recentSearches: string
+  clear: string
+  clearSearch: string
+  city: string
+  cityPlaceholder: string
+  minSellerRating: string
+  all: string
+  reset: string
+  refreshing: string
+  loadingStreams: string
+  closePromo: string
+  pageTitle: string
+}
+
+const homeContent: Localized<HomeText> = {
   en: {
     sortedByRelevance: 'Sorted by relevance',
     basedOnPrefs: 'Based on your preferences',
     modify: 'Edit',
+    promoCta: 'Grab it now!',
+    promoCommission: 'Reduced commission',
+    promoShipping: 'Reduced shipping',
+    promoBoth: 'Reduced commission + shipping',
+    directSales: 'Browse direct sales',
+    emptyTitle: 'No live streams right now',
+    emptySubtitle: 'Come back soon or start your own live!',
+    retry: 'Retry',
+    tagline: 'Live shopping,\nreinvented.',
+    subtitle: 'Buy, sell and join live streams with thousands of enthusiasts.',
+    signIn: 'Sign in',
+    createAccount: 'Create account',
+    filters: 'Filters',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    language: 'Language',
+    recentSearches: 'Recent searches',
+    clear: 'Clear',
+    clearSearch: 'Clear search',
+    city: 'City',
+    cityPlaceholder: 'London, New York...',
+    minSellerRating: 'Minimum seller rating',
+    all: 'All',
+    reset: 'Reset',
+    refreshing: 'Refreshing...',
+    loadingStreams: 'Loading live streams',
+    closePromo: 'Close',
+    pageTitle: 'ShaPop — Live Shopping',
   },
-  he: {
-    sortedByRelevance: '\u05DE\u05DE\u05D5\u05D9\u05DF \u05DC\u05E4\u05D9 \u05E8\u05DC\u05D5\u05D5\u05E0\u05D8\u05D9\u05D5\u05EA',
-    basedOnPrefs: '\u05DC\u05E4\u05D9 \u05D4\u05D4\u05E2\u05D3\u05E4\u05D5\u05EA \u05E9\u05DC\u05DA',
-    modify: '\u05E2\u05E8\u05D5\u05DA',
+  fr: {
+    sortedByRelevance: 'Trié par pertinence',
+    basedOnPrefs: 'Selon tes préférences',
+    modify: 'Modifier',
+    promoCta: 'Profites-en !',
+    promoCommission: 'Commission réduite',
+    promoShipping: 'Livraison réduite',
+    promoBoth: 'Commission + livraison réduites',
+    directSales: 'Voir les ventes directes',
+    emptyTitle: 'Aucun live en ce moment',
+    emptySubtitle: 'Reviens bientôt ou lance ton propre live !',
+    retry: 'Réessayer',
+    tagline: 'Le shopping en live,\nréinventé.',
+    subtitle: 'Achète, vends et rejoins des lives avec des milliers de passionnés.',
+    signIn: 'Se connecter',
+    createAccount: 'Créer un compte',
+    filters: 'Filtres',
+    messages: 'Messages',
+    notifications: 'Notifications',
+    language: 'Langue',
+    recentSearches: 'Recherches récentes',
+    clear: 'Effacer',
+    clearSearch: 'Effacer la recherche',
+    city: 'Ville',
+    cityPlaceholder: 'Londres, New York...',
+    minSellerRating: 'Note minimale du vendeur',
+    all: 'Tous',
+    reset: 'Réinitialiser',
+    refreshing: 'Actualisation...',
+    loadingStreams: 'Chargement des lives',
+    closePromo: 'Fermer',
+    pageTitle: 'ShaPop — Shopping en live',
   },
   es: {
     sortedByRelevance: 'Ordenado por relevancia',
     basedOnPrefs: 'Según tus preferencias',
     modify: 'Editar',
-  },
-} as Record<string, { sortedByRelevance: string; basedOnPrefs: string; modify: string }>
-
-const promoBannerText = {
-  fr: { cta: 'Profitez-en !', commission: 'Commission reduite', shipping: 'Livraison reduite', both: 'Commission + Livraison reduites' },
-  en: { cta: 'Take advantage!', commission: 'Reduced commission', shipping: 'Reduced shipping', both: 'Commission + Shipping reduced' },
-  he: { cta: '!נצלו את ההזדמנות', commission: 'עמלה מופחתת', shipping: 'משלוח מופחת', both: 'עמלה + משלוח מופחתים' },
-  es: { cta: 'Aprovecha!', commission: 'Comisión reducida', shipping: 'Envío reducido', both: 'Comisión + Envío reducidos' },
-} as Record<string, { cta: string; commission: string; shipping: string; both: string }>
-
-const directSalesBanner = {
-  fr: 'Acceder aux ventes directes',
-  en: 'Browse direct sales',
-  he: 'גלה מכירות ישירות',
-  es: 'Ver ventas directas',
-} as Record<string, string>
-
-// Category ID → localized label mapping (matches CategoryIcons IDs)
-const catLabels: Record<string, Record<string, string>> = {
-  fashion_w: { fr: 'Mode femme', en: "Women's fashion", he: 'אופנת נשים', es: 'Moda mujer' },
-  fashion_m: { fr: 'Mode homme', en: "Men's fashion", he: 'אופנת גברים', es: 'Moda hombre' },
-  sneakers: { fr: 'Sneakers', en: 'Sneakers', he: 'סניקרס', es: 'Sneakers' },
-  bags: { fr: 'Sacs', en: 'Bags', he: 'תיקים', es: 'Bolsos' },
-  jewelry: { fr: 'Bijoux', en: 'Jewelry', he: 'תכשיטים', es: 'Joyería' },
-  watches: { fr: 'Montres', en: 'Watches', he: 'שעונים', es: 'Relojes' },
-  beauty: { fr: 'Beaute', en: 'Beauty', he: 'יופי', es: 'Belleza' },
-  electronics: { fr: 'High-tech', en: 'Electronics', he: 'אלקטרוניקה', es: 'Electrónica' },
-  gaming: { fr: 'Gaming', en: 'Gaming', he: 'גיימינג', es: 'Gaming' },
-  cards: { fr: 'Cartes', en: 'Cards', he: 'קלפים', es: 'Cartas' },
-  toys: { fr: 'Jouets', en: 'Toys', he: 'צעצועים', es: 'Juguetes' },
-  vintage: { fr: 'Vintage', en: 'Vintage', he: 'וינטג׳', es: 'Vintage' },
-  art: { fr: 'Art', en: 'Art', he: 'אמנות', es: 'Arte' },
-  furniture: { fr: 'Meubles', en: 'Furniture', he: 'רהיטים', es: 'Muebles' },
-  home: { fr: 'Maison', en: 'Home', he: 'בית', es: 'Hogar' },
-  sports: { fr: 'Sport', en: 'Sports', he: 'ספורט', es: 'Deportes' },
-  fitness: { fr: 'Fitness', en: 'Fitness', he: 'כושר', es: 'Fitness' },
-  music: { fr: 'Musique', en: 'Music', he: 'מוזיקה', es: 'Música' },
-  books: { fr: 'Livres', en: 'Books', he: 'ספרים', es: 'Libros' },
-  kids: { fr: 'Enfants', en: 'Kids', he: 'ילדים', es: 'Niños' },
-  pets: { fr: 'Animaux', en: 'Pets', he: 'חיות מחמד', es: 'Mascotas' },
-  auto: { fr: 'Auto-Moto', en: 'Auto-Moto', he: 'רכב', es: 'Auto-Moto' },
-  garden: { fr: 'Jardin', en: 'Garden', he: 'גינה', es: 'Jardín' },
-  food: { fr: 'Food', en: 'Food', he: 'אוכל', es: 'Comida' },
-  handmade: { fr: 'Fait main', en: 'Handmade', he: 'עבודת יד', es: 'Hecho a mano' },
-  collect: { fr: 'Collection', en: 'Collectibles', he: 'אספנות', es: 'Colección' },
-  photo: { fr: 'Photo', en: 'Photo', he: 'צילום', es: 'Foto' },
-  tools: { fr: 'Bricolage', en: 'DIY & Tools', he: 'כלי עבודה', es: 'Bricolaje' },
-}
-
-const emptyStateText: Record<string, { title: string; subtitle: string }> = {
-  fr: { title: 'Aucun live en cours', subtitle: 'Reviens bientot ou lance ton propre live !' },
-  en: { title: 'No live streams right now', subtitle: 'Come back soon or start your own live!' },
-  he: { title: 'אין שידורים חיים כרגע', subtitle: 'חזור בקרוב או התחל שידור משלך!' },
-  es: { title: 'No hay directos ahora', subtitle: 'Vuelve pronto o empieza tu propio directo!' },
-}
-
-const retryText: Record<string, string> = {
-  fr: 'Reessayer',
-  en: 'Retry',
-  he: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
-  es: 'Reintentar',
-}
-
-const welcomeContent = {
-  fr: {
-    tagline: 'Le shopping en live,\nreinvente.',
-    subtitle: 'Achete, vends et participe aux lives en direct avec des milliers de passionnes.',
-    signIn: 'Se connecter',
-    createAccount: 'Creer un compte',
-  },
-  en: {
-    tagline: 'Live shopping,\nreinvented.',
-    subtitle: 'Buy, sell and join live streams with thousands of passionate people.',
-    signIn: 'Sign in',
-    createAccount: 'Create account',
-  },
-  he: {
-    tagline: 'קניות בשידור חי,\nהמצאה מחדש.',
-    subtitle: 'קנו, מכרו והצטרפו לשידורים חיים עם אלפי אנשים.',
-    signIn: 'התחבר',
-    createAccount: 'צור חשבון',
-  },
-  es: {
-    tagline: 'Shopping en vivo,\nreinventado.',
-    subtitle: 'Compra, vende y únete a las transmisiones en vivo con miles de apasionados.',
+    promoCta: '¡Aprovéchalo!',
+    promoCommission: 'Comisión reducida',
+    promoShipping: 'Envío reducido',
+    promoBoth: 'Comisión + envío reducidos',
+    directSales: 'Ver ventas directas',
+    emptyTitle: 'No hay directos ahora mismo',
+    emptySubtitle: '¡Vuelve pronto o empieza tu propio directo!',
+    retry: 'Reintentar',
+    tagline: 'Compras en directo,\nreinventadas.',
+    subtitle: 'Compra, vende y únete a directos con miles de apasionados.',
     signIn: 'Iniciar sesión',
     createAccount: 'Crear cuenta',
+    filters: 'Filtros',
+    messages: 'Mensajes',
+    notifications: 'Notificaciones',
+    language: 'Idioma',
+    recentSearches: 'Búsquedas recientes',
+    clear: 'Borrar',
+    clearSearch: 'Borrar búsqueda',
+    city: 'Ciudad',
+    cityPlaceholder: 'Londres, Nueva York...',
+    minSellerRating: 'Valoración mínima del vendedor',
+    all: 'Todos',
+    reset: 'Restablecer',
+    refreshing: 'Actualizando...',
+    loadingStreams: 'Cargando directos',
+    closePromo: 'Cerrar',
+    pageTitle: 'ShaPop — Compras en directo',
   },
-} as Record<string, { tagline: string; subtitle: string; signIn: string; createAccount: string }>
+  ru: {
+    sortedByRelevance: 'По релевантности',
+    basedOnPrefs: 'С учётом твоих предпочтений',
+    modify: 'Изменить',
+    promoCta: 'Успей воспользоваться!',
+    promoCommission: 'Сниженная комиссия',
+    promoShipping: 'Сниженная доставка',
+    promoBoth: 'Сниженные комиссия и доставка',
+    directSales: 'Смотреть прямые продажи',
+    emptyTitle: 'Сейчас нет эфиров',
+    emptySubtitle: 'Загляни позже или запусти свой эфир!',
+    retry: 'Повторить',
+    tagline: 'Покупки в прямом эфире —\nпо-новому.',
+    subtitle: 'Покупай, продавай и участвуй в эфирах вместе с тысячами увлечённых людей.',
+    signIn: 'Войти',
+    createAccount: 'Создать аккаунт',
+    filters: 'Фильтры',
+    messages: 'Сообщения',
+    notifications: 'Уведомления',
+    language: 'Язык',
+    recentSearches: 'Недавние запросы',
+    clear: 'Очистить',
+    clearSearch: 'Очистить поиск',
+    city: 'Город',
+    cityPlaceholder: 'Лондон, Нью-Йорк...',
+    minSellerRating: 'Минимальный рейтинг продавца',
+    all: 'Все',
+    reset: 'Сбросить',
+    refreshing: 'Обновление...',
+    loadingStreams: 'Загрузка эфиров',
+    closePromo: 'Закрыть',
+    pageTitle: 'ShaPop — покупки в прямом эфире',
+  },
+  he: {
+    sortedByRelevance: 'ממוין לפי רלוונטיות',
+    basedOnPrefs: 'לפי ההעדפות שלך',
+    modify: 'עריכה',
+    promoCta: 'נצלו את ההזדמנות!',
+    promoCommission: 'עמלה מופחתת',
+    promoShipping: 'משלוח מוזל',
+    promoBoth: 'עמלה ומשלוח מוזלים',
+    directSales: 'למכירות הישירות',
+    emptyTitle: 'אין שידורים חיים כרגע',
+    emptySubtitle: 'חזרו בקרוב או פתחו שידור חי משלכם!',
+    retry: 'נסו שוב',
+    tagline: 'קניות בשידור חי,\nבגרסה חדשה.',
+    subtitle: 'קונים, מוכרים ומצטרפים לשידורים חיים עם אלפי חובבים.',
+    signIn: 'התחברות',
+    createAccount: 'יצירת חשבון',
+    filters: 'מסננים',
+    messages: 'הודעות',
+    notifications: 'התראות',
+    language: 'שפה',
+    recentSearches: 'חיפושים אחרונים',
+    clear: 'ניקוי',
+    clearSearch: 'ניקוי החיפוש',
+    city: 'עיר',
+    cityPlaceholder: 'לונדון, ניו יורק...',
+    minSellerRating: 'דירוג מוכר מינימלי',
+    all: 'הכל',
+    reset: 'איפוס',
+    refreshing: 'מרענן...',
+    loadingStreams: 'טוען שידורים חיים',
+    closePromo: 'סגירה',
+    pageTitle: 'ShaPop — קניות בשידור חי',
+  },
+}
+
+// Identifiant de catégorie → libellés possibles en base (toutes langues confondues),
+// pour retrouver les lives d'une catégorie quelle que soit la langue du vendeur.
+const catLabels: Record<string, Localized<string>> = {
+  fashion_w: { en: "Women's fashion", fr: 'Mode femme', es: 'Moda mujer', ru: 'Женская мода', he: 'אופנת נשים' },
+  fashion_m: { en: "Men's fashion", fr: 'Mode homme', es: 'Moda hombre', ru: 'Мужская мода', he: 'אופנת גברים' },
+  sneakers: { en: 'Sneakers', fr: 'Sneakers', es: 'Sneakers', ru: 'Кроссовки', he: 'סניקרס' },
+  bags: { en: 'Bags', fr: 'Sacs', es: 'Bolsos', ru: 'Сумки', he: 'תיקים' },
+  jewelry: { en: 'Jewelry', fr: 'Bijoux', es: 'Joyería', ru: 'Украшения', he: 'תכשיטים' },
+  watches: { en: 'Watches', fr: 'Montres', es: 'Relojes', ru: 'Часы', he: 'שעונים' },
+  beauty: { en: 'Beauty', fr: 'Beauté', es: 'Belleza', ru: 'Красота', he: 'יופי' },
+  electronics: { en: 'Electronics', fr: 'High-tech', es: 'Electrónica', ru: 'Электроника', he: 'אלקטרוניקה' },
+  gaming: { en: 'Gaming', fr: 'Gaming', es: 'Gaming', ru: 'Игры', he: 'גיימינג' },
+  cards: { en: 'Cards', fr: 'Cartes', es: 'Cartas', ru: 'Карточки', he: 'קלפים' },
+  toys: { en: 'Toys', fr: 'Jouets', es: 'Juguetes', ru: 'Игрушки', he: 'צעצועים' },
+  vintage: { en: 'Vintage', fr: 'Vintage', es: 'Vintage', ru: 'Винтаж', he: 'וינטג׳' },
+  art: { en: 'Art', fr: 'Art', es: 'Arte', ru: 'Искусство', he: 'אמנות' },
+  furniture: { en: 'Furniture', fr: 'Meubles', es: 'Muebles', ru: 'Мебель', he: 'רהיטים' },
+  home: { en: 'Home', fr: 'Maison', es: 'Hogar', ru: 'Дом', he: 'בית' },
+  sports: { en: 'Sports', fr: 'Sport', es: 'Deportes', ru: 'Спорт', he: 'ספורט' },
+  fitness: { en: 'Fitness', fr: 'Fitness', es: 'Fitness', ru: 'Фитнес', he: 'כושר' },
+  music: { en: 'Music', fr: 'Musique', es: 'Música', ru: 'Музыка', he: 'מוזיקה' },
+  books: { en: 'Books', fr: 'Livres', es: 'Libros', ru: 'Книги', he: 'ספרים' },
+  kids: { en: 'Kids', fr: 'Enfants', es: 'Niños', ru: 'Детям', he: 'ילדים' },
+  pets: { en: 'Pets', fr: 'Animaux', es: 'Mascotas', ru: 'Животные', he: 'חיות מחמד' },
+  auto: { en: 'Auto-Moto', fr: 'Auto-Moto', es: 'Auto-Moto', ru: 'Авто и мото', he: 'רכב' },
+  garden: { en: 'Garden', fr: 'Jardin', es: 'Jardín', ru: 'Сад', he: 'גינה' },
+  food: { en: 'Food', fr: 'Food', es: 'Comida', ru: 'Еда', he: 'אוכל' },
+  handmade: { en: 'Handmade', fr: 'Fait main', es: 'Hecho a mano', ru: 'Ручная работа', he: 'עבודת יד' },
+  collect: { en: 'Collectibles', fr: 'Collection', es: 'Colección', ru: 'Коллекционное', he: 'אספנות' },
+  photo: { en: 'Photo', fr: 'Photo', es: 'Foto', ru: 'Фото', he: 'צילום' },
+  tools: { en: 'DIY & Tools', fr: 'Bricolage', es: 'Bricolaje', ru: 'Инструменты', he: 'כלי עבודה' },
+}
+
+// Anciennes valeurs enregistrées en base (sans accent) encore reconnues
+const legacyCatLabels: Record<string, string[]> = {
+  beauty: ['Beaute'],
+}
 
 export default function Home() {
-  usePageTitle('ShaPop — Live Shopping')
+  const lang = useLang()
+  const ht = tr(homeContent, lang)
+  usePageTitle(ht.pageTitle)
   const [streams, setStreams] = useState<StreamWithSeller[]>(() => {
     // Load cached streams instantly (5 min TTL — stale streams disappear fast)
     return cacheGet<StreamWithSeller[]>('home_streams', 5 * 60 * 1000) || []
@@ -142,7 +275,6 @@ export default function Home() {
   const [loading, setLoading] = useState(!hasCachedStreams.current)
   const [refreshing, setRefreshing] = useState(hasCachedStreams.current)
   const [showCityPicker, setShowCityPicker] = useState(false)
-  const [lang, setLang] = useState(() => localStorage.getItem('shapop_lang') || 'fr')
   const [showLangPicker, setShowLangPicker] = useState(false)
   const [showPrefsModal, setShowPrefsModal] = useState(() => {
     // Only show after a fresh login/register, not on app restart
@@ -315,14 +447,19 @@ export default function Home() {
       return streams
     }
     if (selectedCategory === 'following') return streams
-    // Filter by category label
-    const expectedLabel = catLabels[selectedCategory]?.[lang] || catLabels[selectedCategory]?.fr
-    if (expectedLabel) {
-      const filtered = streams.filter(s => s.category === expectedLabel)
+    // Filtre par catégorie : on accepte le libellé dans n'importe quelle langue
+    const labels = catLabels[selectedCategory]
+    if (labels) {
+      const accepted = new Set<string>([
+        ...Object.values(labels),
+        ...(legacyCatLabels[selectedCategory] || []),
+        ...categories.filter(c => c.id === selectedCategory).map(c => c.label),
+      ])
+      const filtered = streams.filter(s => accepted.has(s.category))
       if (filtered.length > 0) return filtered
     }
     return streams
-  }, [streams, selectedCategory, lang])
+  }, [streams, selectedCategory])
 
   const displayStreams = useMemo(() => {
     const blocked: string[] = JSON.parse(localStorage.getItem('shapop_blocked_users') || '[]')
@@ -370,7 +507,6 @@ export default function Home() {
   // Pull-to-refresh (disabled — causes glitchy behavior on iOS WKWebView)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const wc = welcomeContent[lang] || welcomeContent.fr
 
   // ═══ WELCOME SCREEN — shown when user is not logged in ═══
   if (!user && !authLoading) {
@@ -388,13 +524,13 @@ export default function Home() {
           textAlign: 'center', lineHeight: 1.2, margin: '0 0 16px',
           whiteSpace: 'pre-line',
         }}>
-          {wc.tagline}
+          {ht.tagline}
         </h1>
         <p style={{
           fontSize: '15px', color: '#888', textAlign: 'center',
           lineHeight: 1.5, maxWidth: '320px', margin: '0 0 40px',
         }}>
-          {wc.subtitle}
+          {ht.subtitle}
         </p>
         <Link to="/login" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
@@ -403,7 +539,7 @@ export default function Home() {
           color: '#fff', fontSize: '16px', fontWeight: 700, textAlign: 'center',
           boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
         }}>
-          {wc.signIn}
+          {ht.signIn}
         </Link>
         <Link to="/register" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
@@ -411,7 +547,7 @@ export default function Home() {
           backgroundColor: 'transparent', border: '1.5px solid #333',
           color: '#ccc', fontSize: '16px', fontWeight: 700, textAlign: 'center',
         }}>
-          {wc.createAccount}
+          {ht.createAccount}
         </Link>
       </div>
     )
@@ -448,7 +584,7 @@ export default function Home() {
               style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1, minWidth: 0 }}
             />
             {searchQuery && (
-              <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
+              <button onClick={() => setSearchQuery('')} aria-label={ht.clearSearch} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             )}
@@ -456,7 +592,7 @@ export default function Home() {
           {/* Filter button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            aria-label={lang === 'fr' ? 'Filtres' : lang === 'es' ? 'Filtros' : lang === 'he' ? 'מסננים' : 'Filters'}
+            aria-label={ht.filters}
             style={{
               padding: '6px', background: 'none', border: 'none', cursor: 'pointer',
               position: 'relative', flexShrink: 0,
@@ -468,56 +604,67 @@ export default function Home() {
               <line x1="10" y1="18" x2="14" y2="18" strokeLinecap="round"/>
             </svg>
             {(filterCity || filterMinRating > 0) && (
-              <div style={{ position: 'absolute', top: '6px', right: '6px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F0908A' }} />
+              <div style={{ position: 'absolute', top: '6px', insetInlineEnd: '6px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F0908A' }} />
             )}
           </button>
           {/* Chat icon */}
-          <button onClick={() => navigate('/messages')} aria-label={lang === 'fr' ? 'Messages' : lang === 'es' ? 'Mensajes' : lang === 'he' ? 'הודעות' : 'Messages'} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+          <button onClick={() => navigate('/messages')} aria-label={ht.messages} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5">
               <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
           {/* Notifications */}
-          <button onClick={() => navigate('/notifications')} aria-label={lang === 'fr' ? 'Notifications' : lang === 'es' ? 'Notificaciones' : lang === 'he' ? 'התראות' : 'Notifications'} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button onClick={() => navigate('/notifications')} aria-label={ht.notifications} style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="1.5" style={{ overflow: 'visible', display: 'block' }}>
               <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M13.73 21a2 2 0 01-3.46 0" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          {/* Language flag */}
-          <div style={{ position: 'relative' }}>
+          {/* Langue : bouton drapeau seul (la place manque pour le nom à 390 px), menu drapeau + nom natif */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <button
+              type="button"
               onClick={() => setShowLangPicker(!showLangPicker)}
-              aria-label={lang === 'fr' ? 'Langue' : lang === 'es' ? 'Idioma' : lang === 'he' ? 'שפה' : 'Language'}
+              aria-haspopup="menu"
+              aria-expanded={showLangPicker}
+              aria-label={`${ht.language} : ${LANG_META[lang].name}`}
+              data-testid="lang-selector"
               style={{
                 width: '32px', height: '32px', borderRadius: '50%',
-                backgroundColor: '#F5C518', border: 'none',
+                backgroundColor: '#1C1C1E', border: '1px solid #2A2A2A',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: '14px', flexShrink: 0,
+                cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: 0,
               }}
             >
-              {lang === 'fr' ? '🇫🇷' : lang === 'he' ? '🇮🇱' : lang === 'es' ? '🇪🇸' : '🇬🇧'}
+              <span aria-hidden="true">{LANG_META[lang].flag}</span>
             </button>
             {showLangPicker && (
-              <div style={{
-                position: 'absolute', top: '110%', right: 0,
+              <div role="menu" style={{
+                position: 'absolute', top: '110%', insetInlineEnd: 0,
                 backgroundColor: '#1C1C1E', borderRadius: '14px',
-                padding: '6px 0', zIndex: 51, minWidth: '150px',
+                padding: '6px 0', zIndex: 51, minWidth: '170px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
               }}>
-                {([['fr', 'Francais', '🇫🇷'], ['en', 'English', '🇬🇧'], ['he', 'עברית', '🇮🇱'], ['es', 'Espanol', '🇪🇸']] as const).map(([code, label, flag]) => (
+                {LANGS.map(code => (
                   <button
                     key={code}
-                    onClick={() => { setLang(code); localStorage.setItem('shapop_lang', code); setShowLangPicker(false) }}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={lang === code}
+                    lang={code}
+                    dir={code === 'he' ? 'rtl' : 'ltr'}
+                    data-testid={`lang-option-${code}`}
+                    onClick={() => { setShowLangPicker(false); if (code !== lang) setLang(code) }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
                       padding: '11px 16px', background: 'transparent', border: 'none',
                       color: lang === code ? '#F0908A' : '#ccc', fontSize: '14px',
-                      fontWeight: lang === code ? 700 : 400, cursor: 'pointer', textAlign: 'left',
+                      fontWeight: lang === code ? 700 : 400, cursor: 'pointer', textAlign: 'start',
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>{flag}</span>
-                    {label}
+                    <span aria-hidden="true" style={{ fontSize: '18px' }}>{LANG_META[code].flag}</span>
+                    <span style={{ flex: 1 }}>{LANG_META[code].name}</span>
+                    {lang === code && <span aria-hidden="true">✓</span>}
                   </button>
                 ))}
               </div>
@@ -530,13 +677,13 @@ export default function Home() {
           <div style={{ padding: '4px 16px 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
               <span style={{ fontSize: '12px', color: '#888', fontWeight: 600 }}>
-                {lang === 'fr' ? 'Recherches recentes' : lang === 'es' ? 'Busquedas recientes' : lang === 'he' ? 'חיפושים אחרונים' : 'Recent searches'}
+                {ht.recentSearches}
               </span>
               <button
                 onClick={() => { setSearchHistory([]); localStorage.removeItem('shapop_search_history') }}
                 style={{ background: 'none', border: 'none', color: '#F0908A', fontSize: '12px', cursor: 'pointer' }}
               >
-                {lang === 'fr' ? 'Effacer' : lang === 'es' ? 'Borrar' : lang === 'he' ? 'נקה' : 'Clear'}
+                {ht.clear}
               </button>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -548,7 +695,8 @@ export default function Home() {
                   >{item}</button>
                   <button
                     onClick={() => removeSearchHistoryItem(item)}
-                    style={{ background: 'none', border: 'none', padding: '0 0 0 2px', cursor: 'pointer' }}
+                    aria-label={`${ht.clear} ${item}`}
+                    style={{ background: 'none', border: 'none', padding: 0, paddingInlineStart: '2px', cursor: 'pointer' }}
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
                   </button>
@@ -562,7 +710,7 @@ export default function Home() {
         <div style={{ padding: '0 16px 6px', display: 'flex', alignItems: 'center', position: 'relative' }}>
           <button
             onClick={() => setShowCityPicker(!showCityPicker)}
-            aria-label={lang === 'fr' ? 'Ville' : lang === 'es' ? 'Ciudad' : lang === 'he' ? 'עיר' : 'City'}
+            aria-label={ht.city}
             style={{
               background: 'transparent', border: 'none',
               padding: '2px 0', color: '#888', fontSize: '13px',
@@ -599,7 +747,7 @@ export default function Home() {
           {/* City picker dropdown */}
           {showCityPicker && (
             <div style={{
-              position: 'absolute', top: '100%', left: '16px',
+              position: 'absolute', top: '100%', insetInlineStart: '16px',
               backgroundColor: '#1C1C1E', borderRadius: '14px',
               padding: '8px 0', zIndex: 50, minWidth: '220px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
@@ -607,7 +755,7 @@ export default function Home() {
               <button
                 onClick={() => { setManualCity(''); setShowCityPicker(false) }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
+                  display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start',
                   padding: '11px 16px', color: !city ? '#F0908A' : '#ccc',
                   fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer',
                 }}
@@ -630,7 +778,7 @@ export default function Home() {
                     key={c}
                     onClick={() => handleCitySelect(c)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'left',
+                      display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start',
                       padding: '11px 16px',
                       color: city === c ? '#F0908A' : '#ccc',
                       fontSize: '14px', background: 'transparent', border: 'none',
@@ -675,13 +823,13 @@ export default function Home() {
           {/* City filter */}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
-              {lang === 'fr' ? 'Ville' : lang === 'es' ? 'Ciudad' : lang === 'he' ? 'עיר' : 'City'}
+              {ht.city}
             </label>
             <input
               type="text"
               value={filterCity}
               onChange={e => setFilterCity(e.target.value)}
-              placeholder={lang === 'fr' ? 'Paris, Lyon...' : 'Paris, Madrid...'}
+              placeholder={ht.cityPlaceholder}
               style={{
                 width: '100%', padding: '10px 12px', boxSizing: 'border-box',
                 backgroundColor: '#0D0D0D', border: '1px solid #333',
@@ -692,7 +840,7 @@ export default function Home() {
           {/* Seller rating filter */}
           <div>
             <label style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
-              {lang === 'fr' ? 'Note vendeur minimum' : lang === 'es' ? 'Calificacion minima' : lang === 'he' ? 'דירוג מינימלי' : 'Min seller rating'}
+              {ht.minSellerRating}
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {[0, 3, 4, 4.5].map(r => (
@@ -708,7 +856,7 @@ export default function Home() {
                     fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                   }}
                 >
-                  {r === 0 ? (lang === 'fr' ? 'Tous' : lang === 'es' ? 'Todos' : lang === 'he' ? 'הכל' : 'All') : `${r}+`}
+                  {r === 0 ? ht.all : `${r.toLocaleString(LANG_META[lang].locale)}+`}
                 </button>
               ))}
             </div>
@@ -723,7 +871,7 @@ export default function Home() {
                 color: '#888', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
               }}
             >
-              {lang === 'fr' ? 'Reinitialiser' : lang === 'es' ? 'Restablecer' : lang === 'he' ? 'איפוס' : 'Reset'}
+              {ht.reset}
             </button>
           )}
         </div>
@@ -731,8 +879,9 @@ export default function Home() {
 
       {/* Promotion banner */}
       {activePromotion && !promoBannerDismissed && (() => {
-        const pt = promoBannerText[lang] || promoBannerText.fr
-        const typeKey = activePromotion.type as 'commission' | 'shipping' | 'both'
+        const promoLabel = activePromotion.type === 'commission' ? ht.promoCommission
+          : activePromotion.type === 'shipping' ? ht.promoShipping
+          : ht.promoBoth
         return (
           <div style={{
             margin: '0 16px 12px 16px',
@@ -746,8 +895,9 @@ export default function Home() {
             {/* Close button */}
             <button
               onClick={() => setPromoBannerDismissed(true)}
+              aria-label={ht.closePromo}
               style={{
-                position: 'absolute', top: '8px', right: '8px',
+                position: 'absolute', top: '8px', insetInlineEnd: '8px',
                 background: 'rgba(0,0,0,0.3)', border: 'none',
                 borderRadius: '50%', width: '24px', height: '24px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -770,11 +920,11 @@ export default function Home() {
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: '#fff', fontSize: '15px', fontWeight: 800, margin: '0 0 2px', paddingRight: '20px' }}>
+                <p style={{ color: '#fff', fontSize: '15px', fontWeight: 800, margin: '0 0 2px', paddingInlineEnd: '20px' }}>
                   {activePromotion.title}
                 </p>
                 <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', margin: '0 0 4px' }}>
-                  {activePromotion.description || (pt[typeKey] + ' -' + activePromotion.discount_percent + '%')}
+                  {activePromotion.description || `${promoLabel} -${activePromotion.discount_percent}%`}
                 </p>
                 <span style={{
                   display: 'inline-block',
@@ -785,7 +935,7 @@ export default function Home() {
                   fontSize: '11px',
                   fontWeight: 700,
                 }}>
-                  {pt.cta}
+                  {ht.promoCta}
                 </span>
               </div>
             </div>
@@ -816,10 +966,10 @@ export default function Home() {
               </svg>
             </div>
             <p style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: 0 }}>
-              {directSalesBanner[lang] || directSalesBanner.fr}
+              {ht.directSales}
             </p>
           </div>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}>
             <path d="M9 18l6-6-6-6"/>
           </svg>
         </div>
@@ -854,10 +1004,10 @@ export default function Home() {
             </div>
             <div>
               <p style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: 0 }}>
-                {(homeContent[lang] || homeContent.fr).sortedByRelevance}
+                {ht.sortedByRelevance}
               </p>
               <p style={{ color: '#888', fontSize: '11px', margin: '2px 0 0 0' }}>
-                {(homeContent[lang] || homeContent.fr).basedOnPrefs}
+                {ht.basedOnPrefs}
               </p>
             </div>
           </div>
@@ -874,7 +1024,7 @@ export default function Home() {
               cursor: 'pointer',
             }}
           >
-            {(homeContent[lang] || homeContent.fr).modify}
+            {ht.modify}
           </button>
         </div>
       )}
@@ -894,14 +1044,14 @@ export default function Home() {
             animation: 'spin 0.8s linear infinite',
           }} />
           <span style={{ fontSize: '11px', color: '#555', fontWeight: 500 }}>
-            {lang === 'fr' ? 'Actualisation...' : lang === 'es' ? 'Actualizando...' : lang === 'he' ? '...מעדכן' : 'Refreshing...'}
+            {ht.refreshing}
           </span>
         </div>
       )}
 
       {/* Streams grid — 2 columns */}
       {loading ? (
-        <div className="flex justify-center py-20" role="status" aria-label={lang === 'fr' ? 'Chargement des lives' : lang === 'es' ? 'Cargando directos' : lang === 'he' ? 'טוען שידורים' : 'Loading streams'}>
+        <div className="flex justify-center py-20" role="status" aria-label={ht.loadingStreams}>
           <div className="w-8 h-8 border-2 border-[#333] border-t-accent rounded-full animate-spin" />
         </div>
       ) : fetchError ? (
@@ -923,7 +1073,7 @@ export default function Home() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
             </svg>
-            {retryText[lang] || retryText.fr}
+            {ht.retry}
           </button>
         </div>
       ) : displayStreams.length === 0 ? (
@@ -935,10 +1085,10 @@ export default function Home() {
             </svg>
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
-            {(emptyStateText[lang] || emptyStateText.fr).title}
+            {ht.emptyTitle}
           </h3>
           <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
-            {(emptyStateText[lang] || emptyStateText.fr).subtitle}
+            {ht.emptySubtitle}
           </p>
         </div>
       ) : (

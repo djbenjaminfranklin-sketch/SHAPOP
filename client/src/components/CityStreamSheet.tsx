@@ -1,6 +1,26 @@
 import { useEffect, useRef } from 'react'
 import StreamCard from './stream/StreamCard'
 import type { CityStreamData } from '../hooks/useCityStreamCounts'
+import { getLang, getLocale, tr, type Lang, type Localized } from '../lib/i18n'
+
+// Pluriels : une, quelques, plusieurs (le russe a 3 formes ; ailleurs few/many = other)
+type PluralForms = { one: string; few: string; many: string; other: string }
+const liveCountText: Localized<PluralForms> = {
+  en: { one: '{n} live stream now', few: '{n} live streams now', many: '{n} live streams now', other: '{n} live streams now' },
+  fr: { one: '{n} live en cours', few: '{n} lives en cours', many: '{n} lives en cours', other: '{n} lives en cours' },
+  es: { one: '{n} directo ahora', few: '{n} directos ahora', many: '{n} directos ahora', other: '{n} directos ahora' },
+  ru: { one: '{n} эфир сейчас', few: '{n} эфира сейчас', many: '{n} эфиров сейчас', other: '{n} эфира сейчас' },
+  he: { one: 'שידור חי אחד עכשיו', few: '{n} שידורים חיים עכשיו', many: '{n} שידורים חיים עכשיו', other: '{n} שידורים חיים עכשיו' },
+}
+
+const closeText: Localized<string> = { en: 'Close', fr: 'Fermer', es: 'Cerrar', ru: 'Закрыть', he: 'סגירה' }
+
+function liveCount(n: number, lang: Lang): string {
+  const forms = tr(liveCountText, lang)
+  const rule = new Intl.PluralRules(getLocale(lang)).select(n)
+  const form = rule === 'one' || rule === 'few' || rule === 'many' ? forms[rule] : forms.other
+  return form.replace('{n}', n.toLocaleString(getLocale(lang)))
+}
 
 interface CityStreamSheetProps {
   city: string
@@ -10,6 +30,7 @@ interface CityStreamSheetProps {
 
 export default function CityStreamSheet({ city, data, onClose }: CityStreamSheetProps) {
   const sheetRef = useRef<HTMLDivElement>(null)
+  const lang = getLang()
 
   // Close on Escape key
   useEffect(() => {
@@ -39,8 +60,8 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
           bottom: 0, left: 0, right: 0,
           zIndex: 61,
           backgroundColor: '#111',
-          borderTopLeftRadius: '20px',
-          borderTopRightRadius: '20px',
+          borderStartStartRadius: '20px',
+          borderStartEndRadius: '20px',
           maxHeight: '60vh',
           display: 'flex',
           flexDirection: 'column',
@@ -70,11 +91,12 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
               {city}
             </h2>
             <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
-              {data.count} stream{data.count > 1 ? 's' : ''} en direct
+              {liveCount(data.count, lang)}
             </p>
           </div>
           <button
             onClick={onClose}
+            aria-label={tr(closeText, lang)}
             style={{
               width: '32px', height: '32px', borderRadius: '50%',
               backgroundColor: '#222', border: 'none',

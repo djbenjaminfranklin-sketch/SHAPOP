@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import type { Stream } from '../types/database'
-import type { CountryCode } from '../lib/data/communitiesData'
+import { getCommunitiesByCountry, detectUserCountry, type CountryCode } from '../lib/data/communitiesData'
 
 type StreamWithSeller = Omit<Stream, 'seller'> & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
 
@@ -12,24 +12,13 @@ export interface CityStreamData {
 
 export type CityStreamMap = Record<string, CityStreamData>
 
-// Cities per country
-const CITIES_BY_COUNTRY: Record<CountryCode, string[]> = {
-  FR: ['Paris', 'Lyon', 'Marseille', 'Bordeaux', 'Nice', 'Toulouse', 'Strasbourg', 'Nantes'],
-  ES: ['Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Malaga', 'Bilbao'],
-  US: ['New York', 'Los Angeles', 'Miami', 'Chicago', 'San Francisco', 'Austin'],
-  GB: ['London', 'Manchester', 'Birmingham', 'Edinburgh'],
-  BR: ['Sao Paulo', 'Rio de Janeiro', 'Brasilia', 'Salvador', 'Belo Horizonte'],
-  JP: ['Tokyo', 'Osaka', 'Kyoto', 'Yokohama'],
-  DE: ['Berlin', 'Munich', 'Hamburg', 'Frankfurt'],
-  IT: ['Roma', 'Milano', 'Napoli', 'Firenze'],
-  IL: ['Tel Aviv', 'Jerusalem', 'Haifa'],
-  PT: ['Lisboa', 'Porto', 'Faro'],
-  MA: ['Casablanca', 'Marrakech', 'Rabat', 'Tanger'],
-  CA: ['Toronto', 'Montreal', 'Vancouver', 'Calgary'],
+// Villes d'un pays : celles de ses communautés (aucune liste propre à un pays en dur)
+function citiesForCountry(country: CountryCode): string[] {
+  return Array.from(new Set(getCommunitiesByCountry(country).map(c => c.city).filter(Boolean)))
 }
 
 function groupByCities(streams: StreamWithSeller[], country: CountryCode): CityStreamMap {
-  const cities = CITIES_BY_COUNTRY[country] || []
+  const cities = citiesForCountry(country)
   const map: CityStreamMap = {}
   for (const city of cities) {
     map[city] = { count: 0, streams: [] }
@@ -43,7 +32,7 @@ function groupByCities(streams: StreamWithSeller[], country: CountryCode): CityS
   return map
 }
 
-export function useCityStreamCounts(country: CountryCode = 'FR') {
+export function useCityStreamCounts(country: CountryCode = detectUserCountry()) {
   const [cityData, setCityData] = useState<CityStreamMap>(() => groupByCities([], country))
   const [loading, setLoading] = useState(true)
 
@@ -61,7 +50,7 @@ export function useCityStreamCounts(country: CountryCode = 'FR') {
       const streams = ((data || []) as unknown as StreamWithSeller[])
 
       // Filter streams that belong to this country's cities
-      const countryCities = CITIES_BY_COUNTRY[country] || []
+      const countryCities = citiesForCountry(country)
       const countryStreams = streams.filter(s => s.city && countryCities.includes(s.city))
 
       setCityData(groupByCities(countryStreams, country))

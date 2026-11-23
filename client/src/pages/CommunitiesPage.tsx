@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, tr, type Localized } from '../lib/i18n'
 import {
   getCommunitiesByCountry,
   getAllCommunities,
@@ -13,27 +13,27 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
+type PluralForms = { one: string; few: string; many: string; other: string }
+type PageText = {
+  localCommunities: string
+  subtitle: string
+  searchPlaceholder: string
+  communities: string
+  membersLabel: string
+  activeLives: string
+  nearYou: string
+  discoverMore: string
+  noCommunityFound: string
+  tryOtherKeyword: string
+  join: string
+  memberCheck: string
+  yourCountry: string
+  members: PluralForms
+  lives: PluralForms
+}
 
-const pageContent = {
-  fr: {
-    localCommunities: 'Communautes locales',
-    subtitle: 'Rejoins les vendeurs et acheteurs de ta ville',
-    searchPlaceholder: 'Rechercher une communaute...',
-    communities: 'Communautes',
-    membersLabel: 'Membres',
-    activeLives: 'Lives actifs',
-    nearYou: 'Pres de chez toi',
-    discoverMore: 'Decouvrir plus',
-    noCommunityFound: 'Aucune communaute trouvee',
-    tryOtherKeyword: 'Essaie avec un autre mot-cle',
-    members: 'membres',
-    join: 'Rejoindre',
-    memberCheck: 'Membre \u2713',
-    yourCountry: 'Ton pays',
-    liveSingular: 'live',
-    livePlural: 'lives',
-  },
+// {n} = nombre ; few/many servent au russe (ailleurs = other)
+const pageContent: Localized<PageText> = {
   en: {
     localCommunities: 'Local communities',
     subtitle: 'Join sellers and buyers in your city',
@@ -45,56 +45,95 @@ const pageContent = {
     discoverMore: 'Discover more',
     noCommunityFound: 'No community found',
     tryOtherKeyword: 'Try another keyword',
-    members: 'members',
     join: 'Join',
-    memberCheck: 'Member \u2713',
+    memberCheck: 'Member ✓',
     yourCountry: 'Your country',
-    liveSingular: 'live',
-    livePlural: 'lives',
+    members: { one: '{n} member', few: '{n} members', many: '{n} members', other: '{n} members' },
+    lives: { one: '{n} live', few: '{n} lives', many: '{n} lives', other: '{n} lives' },
   },
-  he: {
-    localCommunities: '\u05E7\u05D4\u05D9\u05DC\u05D5\u05EA \u05DE\u05E7\u05D5\u05DE\u05D9\u05D5\u05EA',
-    subtitle: '\u05D4\u05E6\u05D8\u05E8\u05E4\u05D5 \u05DC\u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05D5\u05E7\u05D5\u05E0\u05D9\u05DD \u05D1\u05E2\u05D9\u05E8 \u05E9\u05DC\u05DA',
-    searchPlaceholder: '\u05D7\u05E4\u05E9 \u05E7\u05D4\u05D9\u05DC\u05D4...',
-    communities: '\u05E7\u05D4\u05D9\u05DC\u05D5\u05EA',
-    membersLabel: '\u05D7\u05D1\u05E8\u05D9\u05DD',
-    activeLives: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD \u05E4\u05E2\u05D9\u05DC\u05D9\u05DD',
-    nearYou: '\u05E7\u05E8\u05D5\u05D1 \u05D0\u05DC\u05D9\u05DA',
-    discoverMore: '\u05D2\u05DC\u05D4 \u05E2\u05D5\u05D3',
-    noCommunityFound: '\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4 \u05E7\u05D4\u05D9\u05DC\u05D4',
-    tryOtherKeyword: '\u05E0\u05E1\u05D4 \u05DE\u05D9\u05DC\u05EA \u05DE\u05E4\u05EA\u05D7 \u05D0\u05D7\u05E8\u05EA',
-    members: '\u05D7\u05D1\u05E8\u05D9\u05DD',
-    join: '\u05D4\u05E6\u05D8\u05E8\u05E4\u05D5',
-    memberCheck: '\u05D7\u05D1\u05E8 \u2713',
-    yourCountry: '\u05D4\u05DE\u05D3\u05D9\u05E0\u05D4 \u05E9\u05DC\u05DA',
-    liveSingular: '\u05E9\u05D9\u05D3\u05D5\u05E8',
-    livePlural: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
+  fr: {
+    localCommunities: 'Communautés locales',
+    subtitle: 'Rejoins les vendeurs et acheteurs de ta ville',
+    searchPlaceholder: 'Rechercher une communauté...',
+    communities: 'Communautés',
+    membersLabel: 'Membres',
+    activeLives: 'Lives actifs',
+    nearYou: 'Près de chez toi',
+    discoverMore: 'Découvrir plus',
+    noCommunityFound: 'Aucune communauté trouvée',
+    tryOtherKeyword: 'Essaie avec un autre mot-clé',
+    join: 'Rejoindre',
+    memberCheck: 'Membre ✓',
+    yourCountry: 'Ton pays',
+    members: { one: '{n} membre', few: '{n} membres', many: '{n} membres', other: '{n} membres' },
+    lives: { one: '{n} live', few: '{n} lives', many: '{n} lives', other: '{n} lives' },
   },
   es: {
     localCommunities: 'Comunidades locales',
-    subtitle: 'Unete a vendedores y compradores de tu ciudad',
+    subtitle: 'Únete a vendedores y compradores de tu ciudad',
     searchPlaceholder: 'Buscar una comunidad...',
     communities: 'Comunidades',
     membersLabel: 'Miembros',
-    activeLives: 'Lives activos',
+    activeLives: 'Directos activos',
     nearYou: 'Cerca de ti',
-    discoverMore: 'Descubrir mas',
-    noCommunityFound: 'No se encontro ninguna comunidad',
-    tryOtherKeyword: 'Intenta con otra palabra clave',
-    members: 'miembros',
-    join: 'Unirse',
-    memberCheck: 'Miembro \u2713',
-    yourCountry: 'Tu pais',
-    liveSingular: 'directo',
-    livePlural: 'directos',
+    discoverMore: 'Descubrir más',
+    noCommunityFound: 'No se encontró ninguna comunidad',
+    tryOtherKeyword: 'Prueba con otra palabra clave',
+    join: 'Unirme',
+    memberCheck: 'Miembro ✓',
+    yourCountry: 'Tu país',
+    members: { one: '{n} miembro', few: '{n} miembros', many: '{n} miembros', other: '{n} miembros' },
+    lives: { one: '{n} directo', few: '{n} directos', many: '{n} directos', other: '{n} directos' },
+  },
+  ru: {
+    localCommunities: 'Местные сообщества',
+    subtitle: 'Присоединяйся к продавцам и покупателям своего города',
+    searchPlaceholder: 'Найти сообщество...',
+    communities: 'Сообщества',
+    membersLabel: 'Участники',
+    activeLives: 'Активные эфиры',
+    nearYou: 'Рядом с тобой',
+    discoverMore: 'Ещё сообщества',
+    noCommunityFound: 'Сообщества не найдены',
+    tryOtherKeyword: 'Попробуй другое ключевое слово',
+    join: 'Вступить',
+    memberCheck: 'Ты участник ✓',
+    yourCountry: 'Твоя страна',
+    members: { one: '{n} участник', few: '{n} участника', many: '{n} участников', other: '{n} участника' },
+    lives: { one: '{n} эфир', few: '{n} эфира', many: '{n} эфиров', other: '{n} эфира' },
+  },
+  he: {
+    localCommunities: 'קהילות מקומיות',
+    subtitle: 'הצטרפו למוכרים ולקונים בעיר שלכם',
+    searchPlaceholder: 'חיפוש קהילה...',
+    communities: 'קהילות',
+    membersLabel: 'חברים',
+    activeLives: 'שידורים פעילים',
+    nearYou: 'קרוב אליך',
+    discoverMore: 'לגלות עוד',
+    noCommunityFound: 'לא נמצאה קהילה',
+    tryOtherKeyword: 'נסו מילת חיפוש אחרת',
+    join: 'הצטרפות',
+    memberCheck: 'חבר/ה ✓',
+    yourCountry: 'המדינה שלך',
+    members: { one: 'חבר אחד', few: '{n} חברים', many: '{n} חברים', other: '{n} חברים' },
+    lives: { one: 'שידור אחד', few: '{n} שידורים', many: '{n} שידורים', other: '{n} שידורים' },
   },
 }
 
-function formatMemberCount(count: number): string {
-  if (count >= 1000) {
-    return (count / 1000).toFixed(1).replace('.0', '') + 'k'
+/** Nombre compact selon la langue : 1 234 → « 1,2 k » / « 1.2K » */
+function formatCount(n: number): string {
+  try {
+    return new Intl.NumberFormat(getLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+  } catch {
+    return String(n)
   }
-  return count.toString()
+}
+
+function plural(forms: PluralForms, n: number): string {
+  const rule = new Intl.PluralRules(getLocale()).select(n)
+  const form = rule === 'one' || rule === 'few' || rule === 'many' ? forms[rule] : forms.other
+  return form.replace('{n}', formatCount(n))
 }
 
 export { getAllCommunities }
@@ -103,8 +142,8 @@ export type { CommunityDisplay }
 export default function CommunitiesPage() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = pageContent[lang] || pageContent.fr
+  const lang = getLang()
+  const ct = tr(pageContent, lang)
   usePageTitle(ct.communities)
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState<CountryCode>(() => {
@@ -202,9 +241,7 @@ export default function CommunitiesPage() {
   // Compute stats for selected country using real data
   const totalMembers = communities.reduce((sum, c) => sum + c.member_count, 0)
   const totalLives = communities.reduce((sum, c) => sum + c.live_count, 0)
-  const formattedMembers = totalMembers >= 1000
-    ? (totalMembers / 1000).toFixed(1).replace('.0', '') + 'k'
-    : totalMembers.toString()
+  const formattedMembers = formatCount(totalMembers)
 
   // Split into "nearby" (first 4) and "discover" (rest) for visual grouping
   const nearby = filtered.slice(0, 4)
@@ -344,9 +381,9 @@ export default function CommunitiesPage() {
         justifyContent: 'space-around',
       }}>
         {[
-          { value: String(communities.length), label: ct.communities },
+          { value: formatCount(communities.length), label: ct.communities },
           { value: formattedMembers, label: ct.membersLabel },
-          { value: String(totalLives), label: ct.activeLives },
+          { value: formatCount(totalLives), label: ct.activeLives },
         ].map((stat) => (
           <div key={stat.label} style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '20px', fontWeight: 800, color: '#F0908A' }}>{stat.value}</div>
@@ -445,7 +482,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
   joined: boolean
   onToggleJoin: (e: React.MouseEvent, id: string) => void
   onTap: () => void
-  ct: typeof pageContent['fr']
+  ct: PageText
 }) {
   return (
     <div
@@ -476,7 +513,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
         {/* Live indicator */}
         {community.live_count > 0 && (
           <div style={{
-            position: 'absolute', top: '8px', left: '8px',
+            position: 'absolute', top: '8px', insetInlineStart: '8px',
             display: 'flex', alignItems: 'center', gap: '4px',
             backgroundColor: 'rgba(232,52,78,0.9)', backdropFilter: 'blur(4px)',
             padding: '3px 8px', borderRadius: '8px',
@@ -487,7 +524,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
               animation: 'pulse-dot 1.5s ease-in-out infinite',
             }} />
             <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>
-              {community.live_count} {community.live_count > 1 ? ct.livePlural : ct.liveSingular}
+              {plural(ct.lives, community.live_count)}
             </span>
           </div>
         )}
@@ -523,7 +560,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize: '12px', color: '#888' }}>
-            {formatMemberCount(community.member_count)} {ct.members}
+            {plural(ct.members, community.member_count)}
           </span>
         </div>
 

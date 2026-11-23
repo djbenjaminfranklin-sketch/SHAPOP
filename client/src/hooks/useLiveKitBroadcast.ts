@@ -1,5 +1,14 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Room, RoomEvent, type LocalTrackPublication } from 'livekit-client'
+import { tr, type Localized } from '../lib/i18n'
+
+const broadcastError: Localized<string> = {
+  en: 'Couldn\'t start the live stream. Check your connection and try again.',
+  fr: 'Impossible de lancer le live. Vérifie ta connexion et réessaie.',
+  es: 'No se pudo iniciar el directo. Revisa tu conexión e inténtalo de nuevo.',
+  ru: 'Не удалось запустить эфир. Проверь подключение и попробуй ещё раз.',
+  he: 'לא הצלחנו להתחיל את השידור החי. בדקו את החיבור ונסו שוב.',
+}
 
 interface UseLiveKitBroadcastOptions {
   livekitUrl: string | undefined
@@ -114,7 +123,8 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
       }
       setIsBroadcasting(true)
     } catch (err) {
-      setError(`LiveKit error: ${(err as Error).message}`)
+      console.error('LiveKit error:', (err as Error).message) // i18n-ignore (journal)
+      setError(tr(broadcastError))
       setIsConnected(false)
       setIsBroadcasting(false)
     }

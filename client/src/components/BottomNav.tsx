@@ -1,17 +1,115 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { t, getLang } from '../lib/i18n'
+import { t, getLang, tr, type Localized } from '../lib/i18n'
 import { rtlTextAlign, rtlFlip } from '../lib/rtl'
 import SellPopup from './seller/SellPopup'
 import CartoonAvatar from './CartoonAvatar'
 
-type Lang = ReturnType<typeof getLang>
-const tx = (fr: string, en: string, he: string, es: string, lang: Lang) => {
-  if (lang === 'en') return en
-  if (lang === 'he') return he
-  if (lang === 'es') return es
-  return fr
+type NavText = {
+  myProfile: string
+  dashboard: string
+  myAccount: string
+  payments: string
+  addresses: string
+  notifications: string
+  verification: string
+  settings: string
+  security: string
+  messages: string
+  referrals: string
+  viewProfile: string
+  signOut: string
+  user: string
+  mainNav: string
+}
+
+const navText: Localized<NavText> = {
+  en: {
+    myProfile: 'My profile',
+    dashboard: 'Dashboard',
+    myAccount: 'My account',
+    payments: 'Payments & shipping',
+    addresses: 'Addresses',
+    notifications: 'Notifications',
+    verification: 'Identity verification',
+    settings: 'Settings',
+    security: 'Security',
+    messages: 'Messages',
+    referrals: 'Referrals',
+    viewProfile: 'View my profile',
+    signOut: 'Sign out',
+    user: 'User',
+    mainNav: 'Main navigation',
+  },
+  fr: {
+    myProfile: 'Mon profil',
+    dashboard: 'Tableau de bord',
+    myAccount: 'Mon compte',
+    payments: 'Paiements et livraison',
+    addresses: 'Adresses',
+    notifications: 'Notifications',
+    verification: 'Vérification d\'identité',
+    settings: 'Paramètres',
+    security: 'Sécurité',
+    messages: 'Messages',
+    referrals: 'Parrainages',
+    viewProfile: 'Voir mon profil',
+    signOut: 'Déconnexion',
+    user: 'Utilisateur',
+    mainNav: 'Navigation principale',
+  },
+  es: {
+    myProfile: 'Mi perfil',
+    dashboard: 'Panel de control',
+    myAccount: 'Mi cuenta',
+    payments: 'Pagos y envíos',
+    addresses: 'Direcciones',
+    notifications: 'Notificaciones',
+    verification: 'Verificación de identidad',
+    settings: 'Ajustes',
+    security: 'Seguridad',
+    messages: 'Mensajes',
+    referrals: 'Invitaciones',
+    viewProfile: 'Ver mi perfil',
+    signOut: 'Cerrar sesión',
+    user: 'Usuario',
+    mainNav: 'Navegación principal',
+  },
+  ru: {
+    myProfile: 'Мой профиль',
+    dashboard: 'Панель продавца',
+    myAccount: 'Мой аккаунт',
+    payments: 'Оплата и доставка',
+    addresses: 'Адреса',
+    notifications: 'Уведомления',
+    verification: 'Подтверждение личности',
+    settings: 'Настройки',
+    security: 'Безопасность',
+    messages: 'Сообщения',
+    referrals: 'Приглашения',
+    viewProfile: 'Открыть мой профиль',
+    signOut: 'Выйти',
+    user: 'Пользователь',
+    mainNav: 'Основная навигация',
+  },
+  he: {
+    myProfile: 'הפרופיל שלי',
+    dashboard: 'לוח בקרה',
+    myAccount: 'החשבון שלי',
+    payments: 'תשלומים ומשלוחים',
+    addresses: 'כתובות',
+    notifications: 'התראות',
+    verification: 'אימות זהות',
+    settings: 'הגדרות',
+    security: 'אבטחה',
+    messages: 'הודעות',
+    referrals: 'הזמנת חברים',
+    viewProfile: 'לצפייה בפרופיל שלי',
+    signOut: 'התנתקות',
+    user: 'משתמש',
+    mainNav: 'ניווט ראשי',
+  },
 }
 
 export default function BottomNav() {
@@ -20,6 +118,7 @@ export default function BottomNav() {
   const { user, profile, signOut } = useAuth()
   const path = location.pathname
   const lang = getLang()
+  const nt = tr(navText, lang)
   const [showSell, setShowSell] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
 
@@ -94,57 +193,57 @@ export default function BottomNav() {
   const menuItems: { icon: React.JSX.Element; label: string; to: string; color?: string }[] = [
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
-      label: tx('Mon profil', 'My profile', 'הפרופיל שלי', 'Mi perfil', lang),
+      label: nt.myProfile,
       to: `/seller/${user.id}`,
     },
     ...(profile?.is_seller ? [{
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
-      label: tx('Tableau de bord', 'Dashboard', 'לוח בקרה', 'Panel de control', lang),
+      label: nt.dashboard,
       to: '/dashboard',
     }] : []),
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
-      label: tx('Mon compte', 'My account', 'החשבון שלי', 'Mi cuenta', lang),
+      label: nt.myAccount,
       to: '/profile',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>,
-      label: tx('Paiements et livraison', 'Payments & shipping', 'תשלומים ומשלוח', 'Pagos y envio', lang),
+      label: nt.payments,
       to: '/payments',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>,
-      label: tx('Adresses', 'Addresses', 'כתובות', 'Direcciones', lang),
+      label: nt.addresses,
       to: '/addresses',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
-      label: tx('Notifications', 'Notifications', 'התראות', 'Notificaciones', lang),
+      label: nt.notifications,
       to: '/notifications',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/></svg>,
-      label: tx('Verification d\'identite', 'Identity verification', 'אימות זהות', 'Verificacion de identidad', lang),
+      label: nt.verification,
       to: '/verification',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>,
-      label: tx('Parametres', 'Settings', 'הגדרות', 'Ajustes', lang),
+      label: nt.settings,
       to: '/account-controls',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>,
-      label: tx('Securite', 'Security', 'אבטחה', 'Seguridad', lang),
+      label: nt.security,
       to: '/security',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2v10z"/></svg>,
-      label: tx('Messages', 'Messages', 'הודעות', 'Mensajes', lang),
+      label: nt.messages,
       to: '/messages',
     },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>,
-      label: tx('Parrainages', 'Referrals', 'הפניות', 'Referidos', lang),
+      label: nt.referrals,
       to: '/referrals',
     },
   ]
@@ -215,10 +314,10 @@ export default function BottomNav() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '17px', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {profile?.display_name || profile?.username || 'User'}
+                  {profile?.display_name || profile?.username || nt.user}
                 </div>
                 <div style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>
-                  {tx('Voir mon profil', 'View my profile', 'צפה בפרופיל שלי', 'Ver mi perfil', lang)}
+                  {nt.viewProfile}
                 </div>
               </div>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ ...rtlFlip() }}>
@@ -277,7 +376,7 @@ export default function BottomNav() {
                   </svg>
                 </div>
                 <span style={{ fontSize: '15px', color: '#EF4444', fontWeight: 600 }}>
-                  {tx('Deconnexion', 'Sign out', 'התנתק', 'Cerrar sesion', lang)}
+                  {nt.signOut}
                 </span>
               </button>
             </div>
@@ -292,7 +391,7 @@ export default function BottomNav() {
       `}</style>
 
       <nav
-        aria-label={lang === 'fr' ? 'Navigation principale' : lang === 'es' ? 'Navegacion principal' : lang === 'he' ? '\u05E0\u05D9\u05D5\u05D5\u05D8 \u05E8\u05D0\u05E9\u05D9' : 'Main navigation'}
+        aria-label={nt.mainNav}
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           backgroundColor: '#0A0A0A', borderTop: '1px solid #1A1A1A', zIndex: 50,

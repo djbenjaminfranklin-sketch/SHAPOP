@@ -1,11 +1,9 @@
 import { useState, useRef, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, LANGS, type Localized } from '../lib/i18n'
 import { track } from '../lib/analytics'
 import { usePageTitle } from '../hooks/usePageTitle'
-
-type Lang = 'fr' | 'en' | 'he' | 'es'
 
 const trendingSearches = ['Nike Dunk', 'Pokemon', 'iPhone 16', 'Vintage', 'Sneakers']
 
@@ -73,20 +71,15 @@ const categoryImages = [
   'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&h=200&fit=crop',
 ]
 
-const exploreContent = {
-  fr: {
-    searchPlaceholder: 'Rechercher des categories...',
-    trending: 'Suggestions',
-    categoriesLabel: 'Categories',
-    noCategoryFound: 'Aucune categorie trouvee',
-    categoryNames: [
-      'Mode', 'Sneakers', 'Electronique', 'Cartes', 'Bijoux',
-      'Montres', 'Jouets', 'Vintage', 'Maison', 'Beaute',
-      'Sport', 'Art', 'Gaming', 'Livres', 'Musique',
-      'Auto-Moto', 'Sacs', 'Figurines', 'Comics / Manga', 'Vinyles',
-      'Bebe / Enfants', 'Photo / Camera', 'Accessoires', 'Telephonie',
-    ],
-  },
+type ExploreText = {
+  searchPlaceholder: string
+  trending: string
+  categoriesLabel: string
+  noCategoryFound: string
+  categoryNames: string[]
+}
+
+const exploreContent: Localized<ExploreText> = {
   en: {
     searchPlaceholder: 'Search categories...',
     trending: 'Suggestions',
@@ -96,34 +89,60 @@ const exploreContent = {
       'Fashion', 'Sneakers', 'Electronics', 'Cards', 'Jewelry',
       'Watches', 'Toys', 'Vintage', 'Home', 'Beauty',
       'Sport', 'Art', 'Gaming', 'Books', 'Music',
-      'Auto-Moto', 'Bags', 'Figurines', 'Comics / Manga', 'Vinyl',
+      'Cars & bikes', 'Bags', 'Figurines', 'Comics / Manga', 'Vinyl',
       'Baby / Kids', 'Photo / Camera', 'Accessories', 'Phones',
     ],
   },
-  he: {
-    searchPlaceholder: '...\u05D7\u05E4\u05E9 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA',
-    trending: '\u05D4\u05E6\u05E2\u05D5\u05EA',
-    categoriesLabel: '\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA',
-    noCategoryFound: '\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0\u05D4 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4',
+  fr: {
+    searchPlaceholder: 'Rechercher des catégories...',
+    trending: 'Suggestions',
+    categoriesLabel: 'Catégories',
+    noCategoryFound: 'Aucune catégorie trouvée',
     categoryNames: [
-      '\u05D0\u05D5\u05E4\u05E0\u05D4', 'Sneakers', '\u05D0\u05DC\u05E7\u05D8\u05E8\u05D5\u05E0\u05D9\u05E7\u05D4', '\u05E7\u05DC\u05E4\u05D9\u05DD', '\u05EA\u05DB\u05E9\u05D9\u05D8\u05D9\u05DD',
-      '\u05E9\u05E2\u05D5\u05E0\u05D9\u05DD', '\u05E6\u05E2\u05E6\u05D5\u05E2\u05D9\u05DD', '\u05D5\u05D9\u05E0\u05D8\u05D2\u05F3', '\u05D1\u05D9\u05EA', '\u05D9\u05D5\u05E4\u05D9',
-      '\u05E1\u05E4\u05D5\u05E8\u05D8', '\u05D0\u05DE\u05E0\u05D5\u05EA', '\u05D2\u05D9\u05D9\u05DE\u05D9\u05E0\u05D2', '\u05E1\u05E4\u05E8\u05D9\u05DD', '\u05DE\u05D5\u05D6\u05D9\u05E7\u05D4',
-      '\u05E8\u05DB\u05D1', '\u05EA\u05D9\u05E7\u05D9\u05DD', '\u05E4\u05D9\u05D2\u05D5\u05E8\u05D9\u05DD', '\u05E7\u05D5\u05DE\u05D9\u05E7\u05E1 / \u05DE\u05E0\u05D2\u05D4', '\u05EA\u05E7\u05DC\u05D9\u05D8\u05D9\u05DD',
-      '\u05EA\u05D9\u05E0\u05D5\u05E7\u05D5\u05EA / \u05D9\u05DC\u05D3\u05D9\u05DD', '\u05E6\u05D9\u05DC\u05D5\u05DD / \u05DE\u05E6\u05DC\u05DE\u05D4', '\u05D0\u05E7\u05E1\u05E1\u05D5\u05E8\u05D9\u05DD', '\u05D8\u05DC\u05E4\u05D5\u05E0\u05D9\u05D4',
+      'Mode', 'Sneakers', 'Électronique', 'Cartes', 'Bijoux',
+      'Montres', 'Jouets', 'Vintage', 'Maison', 'Beauté',
+      'Sport', 'Art', 'Gaming', 'Livres', 'Musique',
+      'Auto-Moto', 'Sacs', 'Figurines', 'BD / Manga', 'Vinyles',
+      'Bébé / Enfants', 'Photo / Caméra', 'Accessoires', 'Téléphonie',
     ],
   },
   es: {
-    searchPlaceholder: 'Buscar categorias...',
+    searchPlaceholder: 'Buscar categorías...',
     trending: 'Sugerencias',
-    categoriesLabel: 'Categorias',
-    noCategoryFound: 'No se encontro ninguna categoria',
+    categoriesLabel: 'Categorías',
+    noCategoryFound: 'No se encontró ninguna categoría',
     categoryNames: [
-      'Moda', 'Sneakers', 'Electronica', 'Cartas', 'Joyas',
+      'Moda', 'Sneakers', 'Electrónica', 'Cartas', 'Joyas',
       'Relojes', 'Juguetes', 'Vintage', 'Hogar', 'Belleza',
-      'Deporte', 'Arte', 'Gaming', 'Libros', 'Musica',
-      'Auto-Moto', 'Bolsos', 'Figuras', 'Comics / Manga', 'Vinilos',
-      'Bebe / Ninos', 'Foto / Camara', 'Accesorios', 'Telefonia',
+      'Deporte', 'Arte', 'Gaming', 'Libros', 'Música',
+      'Motor', 'Bolsos', 'Figuras', 'Cómics / Manga', 'Vinilos',
+      'Bebé / Niños', 'Foto / Cámara', 'Accesorios', 'Telefonía',
+    ],
+  },
+  ru: {
+    searchPlaceholder: 'Поиск по категориям...',
+    trending: 'Подсказки',
+    categoriesLabel: 'Категории',
+    noCategoryFound: 'Категории не найдены',
+    categoryNames: [
+      'Мода', 'Кроссовки', 'Электроника', 'Карточки', 'Украшения',
+      'Часы', 'Игрушки', 'Винтаж', 'Дом', 'Красота',
+      'Спорт', 'Искусство', 'Игры', 'Книги', 'Музыка',
+      'Авто и мото', 'Сумки', 'Фигурки', 'Комиксы / манга', 'Винил',
+      'Малыши / дети', 'Фото / камеры', 'Аксессуары', 'Телефоны',
+    ],
+  },
+  he: {
+    searchPlaceholder: 'חיפוש קטגוריות...',
+    trending: 'הצעות',
+    categoriesLabel: 'קטגוריות',
+    noCategoryFound: 'לא נמצאה קטגוריה',
+    categoryNames: [
+      'אופנה', 'סניקרס', 'אלקטרוניקה', 'קלפים', 'תכשיטים',
+      'שעונים', 'צעצועים', 'וינטג׳', 'בית', 'יופי',
+      'ספורט', 'אמנות', 'גיימינג', 'ספרים', 'מוזיקה',
+      'רכב ואופנועים', 'תיקים', 'פסלונים', 'קומיקס / מנגה', 'תקליטים',
+      'תינוקות / ילדים', 'צילום / מצלמות', 'אקססוריז', 'סלולר',
     ],
   },
 }
@@ -131,8 +150,8 @@ const exploreContent = {
 export default function Explore() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const lang = (getLang() || 'fr') as Lang
-  const ct = exploreContent[lang] || exploreContent.fr
+  const lang = getLang()
+  const ct = tr(exploreContent, lang)
   usePageTitle(ct.categoriesLabel)
   const allCategories = ct.categoryNames.map((name, i) => ({ name, img: categoryImages[i], idx: i }))
   const [search, setSearch] = useState('')
@@ -148,16 +167,12 @@ export default function Explore() {
     return () => clearTimeout(timeout)
   }, [search])
 
-  // Build unique suggestion terms from category names + keywords + trending
+  // Suggestions : noms de catégories dans la langue courante + recherches tendance
+  // (les mots-clés multilingues servent à la recherche, pas à l'affichage)
   const suggestionTerms = useMemo(() => {
     const terms = new Set<string>()
     ct.categoryNames.forEach(name => terms.add(name))
     trendingSearches.forEach(t => terms.add(t))
-    categoryKeywords.forEach(kw => {
-      kw.split(' ').filter(w => w.length >= 3).forEach(w =>
-        terms.add(w.charAt(0).toUpperCase() + w.slice(1))
-      )
-    })
     return Array.from(terms)
   }, [ct.categoryNames])
 
@@ -176,6 +191,8 @@ export default function Explore() {
     ? allCategories.filter(c => {
         const q = search.toLowerCase()
         if (c.name.toLowerCase().includes(q)) return true
+        // Nom de la catégorie dans n'importe laquelle des 5 langues
+        if (LANGS.some(l => (exploreContent[l].categoryNames[c.idx] || '').toLowerCase().includes(q))) return true
         const kw = categoryKeywords[c.idx] || ''
         return kw.includes(q)
       })
@@ -226,7 +243,7 @@ export default function Explore() {
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
           <div style={{
-            position: 'absolute', left: '16px', right: '16px', top: '100%',
+            position: 'absolute', insetInlineStart: '16px', insetInlineEnd: '16px', top: '100%',
             marginTop: '4px', backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
             borderRadius: '16px', overflow: 'hidden', zIndex: 50,
           }}>
@@ -239,7 +256,7 @@ export default function Explore() {
                   width: '100%', padding: '12px 16px',
                   background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #222' : 'none',
                   color: '#ddd', fontSize: '15px', fontFamily: 'inherit',
-                  cursor: 'pointer', textAlign: 'left',
+                  cursor: 'pointer', textAlign: 'start',
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" style={{ flexShrink: 0 }}>

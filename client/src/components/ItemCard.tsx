@@ -1,26 +1,41 @@
 import { Link } from 'react-router-dom'
 import type { Item } from '../types/database'
-import { getLang } from '../lib/i18n'
+import { getLang, tr, type Localized } from '../lib/i18n'
 import { rtlPos } from '../lib/rtl'
+import { formatItemPrice } from '../lib/fulfillment'
+import { useAuth } from '../contexts/AuthContext'
+
+type CardText = { seller: string; addFav: string; removeFav: string; ai: string }
+const cardText: Localized<CardText> = {
+  en: { seller: 'Seller', addFav: 'Add to favorites', removeFav: 'Remove from favorites', ai: 'AI' },
+  fr: { seller: 'Vendeur', addFav: 'Ajouter aux favoris', removeFav: 'Retirer des favoris', ai: 'IA' },
+  es: { seller: 'Vendedor', addFav: 'Añadir a favoritos', removeFav: 'Quitar de favoritos', ai: 'IA' },
+  ru: { seller: 'Продавец', addFav: 'Добавить в избранное', removeFav: 'Убрать из избранного', ai: 'ИИ' },
+  he: { seller: 'מוכר/ת', addFav: 'הוספה למועדפים', removeFav: 'הסרה מהמועדפים', ai: 'AI' },
+}
+
+const conditionLabels: Record<string, Localized<string>> = {
+  new: { en: 'New', fr: 'Neuf', es: 'Nuevo', ru: 'Новое', he: 'חדש' },
+  like_new: { en: 'Like new', fr: 'Comme neuf', es: 'Como nuevo', ru: 'Как новое', he: 'כמו חדש' },
+  good: { en: 'Good', fr: 'Bon état', es: 'Buen estado', ru: 'Хорошее', he: 'מצב טוב' },
+  fair: { en: 'Fair', fr: 'Correct', es: 'Aceptable', ru: 'Удовлетворительное', he: 'סביר' },
+}
 
 interface ItemCardProps {
-  item: Item & { seller?: { display_name?: string; avatar_url?: string | null } }
+  item: Item & { seller?: { display_name?: string; avatar_url?: string | null; country?: string | null } }
   isFavorited?: boolean
   onToggleFavorite?: (itemId: string) => void
 }
 
 export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCardProps) {
   const lang = getLang()
-  const sellerName = item.seller?.display_name || ({ fr: 'Vendeur', en: 'Seller', he: 'מוכר', es: 'Vendedor' })[getLang()]
+  const ct = tr(cardText, lang)
+  const { profile } = useAuth()
+  const sellerName = item.seller?.display_name || ct.seller
   const price = item.current_price ?? item.starting_price
   const imageUrl = item.image_urls?.[0]
-
-  const conditionLabels: Record<string, Record<string, string>> = {
-    new: { fr: 'Neuf', en: 'New', he: 'חדש', es: 'Nuevo' },
-    like_new: { fr: 'Comme neuf', en: 'Like new', he: 'כמו חדש', es: 'Como nuevo' },
-    good: { fr: 'Bon etat', en: 'Good', he: 'מצב טוב', es: 'Buen estado' },
-    fair: { fr: 'Correct', en: 'Fair', he: 'סביר', es: 'Aceptable' },
-  }
+  // Devise : pays du vendeur, à défaut celui de l'utilisateur connecté
+  const priceCountry = item.seller?.country || profile?.country
 
   return (
     <Link to={`/item/${item.id}`} style={{ display: 'block', textDecoration: 'none' }}>
@@ -68,7 +83,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
             <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            AI
+            {ct.ai}
           </span>
         </div>
 
@@ -79,7 +94,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff',
               fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: '8px',
             }}>
-              {conditionLabels[item.ai_condition]?.[lang] || item.ai_condition}
+              {conditionLabels[item.ai_condition]?.[lang] ?? item.ai_condition}
             </span>
           </div>
         )}
@@ -92,7 +107,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
               e.stopPropagation()
               onToggleFavorite(item.id)
             }}
-            aria-label={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            aria-label={isFavorited ? ct.removeFav : ct.addFav}
             style={{
               position: 'absolute',
               bottom: '10px',
@@ -125,7 +140,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
             color: '#fff', fontSize: '14px', fontWeight: 700,
             padding: '5px 10px', borderRadius: '8px',
           }}>
-            {price}€
+            {formatItemPrice(price, priceCountry, lang)}
           </span>
         </div>
       </div>
