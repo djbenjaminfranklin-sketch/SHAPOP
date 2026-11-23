@@ -1,0 +1,90 @@
+apply plugin: 'com.android.application'
+
+// Signature de la version Google Play (clé d'envoi « shapop-upload »).
+// Les secrets viennent de android/keystore.properties (ignoré par git) ou des variables
+// d'environnement SHAPOP_UPLOAD_STORE_FILE / SHAPOP_UPLOAD_STORE_PASSWORD /
+// SHAPOP_UPLOAD_KEY_ALIAS / SHAPOP_UPLOAD_KEY_PASSWORD. Sans eux, la release n'est PAS signée
+// (jamais avec la clé de debug).
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+def uploadSetting = { String propName, String envName ->
+    def v = keystoreProps.getProperty(propName)
+    return (v != null && !v.isEmpty()) ? v : System.getenv(envName)
+}
+def uploadStoreFile = uploadSetting('storeFile', 'SHAPOP_UPLOAD_STORE_FILE')
+def uploadStorePassword = uploadSetting('storePassword', 'SHAPOP_UPLOAD_STORE_PASSWORD')
+def uploadKeyAlias = uploadSetting('keyAlias', 'SHAPOP_UPLOAD_KEY_ALIAS') ?: 'shapop-upload'
+def uploadKeyPassword = uploadSetting('keyPassword', 'SHAPOP_UPLOAD_KEY_PASSWORD') ?: uploadStorePassword
+def hasUploadKey = uploadStoreFile && uploadStorePassword && file(uploadStoreFile).exists()
+
+android {
+    namespace = "com.shapop.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.shapop.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.1"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    // Seulement les 5 langues de l'app (les bibliothèques en apportent des dizaines)
+    androidResources {
+        localeFilters += ["en", "fr", "es", "ru", "iw", "he"]
+    }
+    signingConfigs {
+        if (hasUploadKey) {
+            upload {
+                storeFile file(uploadStoreFile)
+                storePassword uploadStorePassword
+                keyAlias uploadKeyAlias
+                keyPassword uploadKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            // Seulement la clé d'envoi ShaPop ; sans elle, l'APK/AAB de release reste non signé.
+            signingConfig hasUploadKey ? signingConfigs.upload : null
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

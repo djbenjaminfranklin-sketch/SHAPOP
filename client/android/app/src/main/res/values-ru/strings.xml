@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="notification_channel_name">Сообщения, заказы и эфиры</string>
+    <string name="notification_channel_description">Новые сообщения, статус заказов и эфиры продавцов, на которых ты подписан(а)</string>
+</resources>

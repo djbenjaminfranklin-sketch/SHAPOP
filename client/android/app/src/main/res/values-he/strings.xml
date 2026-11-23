@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="notification_channel_name">הודעות, הזמנות ושידורים חיים</string>
+    <string name="notification_channel_description">הודעות חדשות, עדכוני הזמנות ושידורים חיים של מוכרים שאת/ה עוקב/ת אחריהם</string>
+</resources>

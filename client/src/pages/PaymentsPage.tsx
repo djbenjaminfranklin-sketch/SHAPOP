@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api'
 import { showToast } from '../lib/toast'
 import { Browser } from '@capacitor/browser'
 import { Capacitor } from '@capacitor/core'
+import { isAndroidApp } from '../lib/nativePlatform'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { rtlFlip } from '../lib/rtl'
@@ -730,6 +731,8 @@ export default function PaymentsPage() {
         setApplePayAvailable(true)
         return
       }
+      // App Android : pas d'Apple Pay
+      if (isAndroidApp()) return
       try {
         const stripe = await getStripePromise()
         if (!stripe) return
@@ -1520,7 +1523,8 @@ export default function PaymentsPage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
               </button>
 
-              {/* Apple Pay */}
+              {/* Apple Pay (jamais sur l'app Android : carte bancaire dans la WebView) */}
+              {!isAndroidApp() && (
               <button
                 onClick={() => {
                   if (!applePayAvailable) return
@@ -1558,6 +1562,7 @@ export default function PaymentsPage() {
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
                 )}
               </button>
+              )}
             </div>
           </div>
         </div>

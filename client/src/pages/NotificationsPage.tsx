@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { getLocale, tr, type Localized } from '../lib/i18n'
 import { usePushNotifications } from '../hooks/usePushNotifications'
+import { usePushAvailable } from '../lib/nativePlatform'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
@@ -183,6 +183,7 @@ export default function NotificationsPage() {
   const navigate = useNavigate()
   const c = tr(content)
   const { requestPermission, checkPermission } = usePushNotifications()
+  const pushAvailable = usePushAvailable()
   usePageTitle(c.title)
 
   const [toggles, setToggles] = useState<Record<NotifKey, boolean>>(DEFAULT_TOGGLES)
@@ -263,7 +264,7 @@ export default function NotificationsPage() {
     setToggles(prev => ({ ...prev, [key]: newValue }))
 
     // If push not enabled yet, request permission first
-    if (newValue && !pushEnabled && Capacitor.isNativePlatform()) {
+    if (newValue && !pushEnabled && pushAvailable) {
       const granted = await requestPermission()
       if (granted) {
         setPushEnabled(true)
@@ -287,14 +288,15 @@ export default function NotificationsPage() {
       },
       body: JSON.stringify({ column, value: newValue, allPrefs: updatedToggles }),
     })
-  }, [user, session, toggles, pushEnabled, requestPermission])
+  }, [user, session, toggles, pushEnabled, pushAvailable, requestPermission])
 
   if (!user) {
     navigate('/login', { replace: true })
     return null
   }
 
-  const isNative = Capacitor.isNativePlatform()
+  // Bandeau « activer les notifications » : seulement si l'app peut en recevoir
+  const isNative = pushAvailable
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}>

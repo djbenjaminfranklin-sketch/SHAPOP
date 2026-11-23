@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Petite icône des notifications (Android la teinte : forme blanche sur fond transparent).
+     Sac de courses avec un bouton « lecture » : la vente en direct de ShaPop. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M9,6.5V6a3,3 0,0 1,6 0v0.5h3.2a1,1 0,0 1,1 0.92l0.95,12A1.5,1.5 0,0 1,18.65 21H5.35a1.5,1.5 0,0 1,-1.5 -1.58l0.95,-12A1,1 0,0 1,5.8 6.5ZM10.6,6.5h2.8V6a1.4,1.4 0,0 0,-2.8 0ZM10.2,10.6v6.3a0.5,0.5 0,0 0,0.76 0.43l5,-3.15a0.5,0.5 0,0 0,0 -0.85l-5,-3.15a0.5,0.5 0,0 0,-0.76 0.42Z" />
+</vector>

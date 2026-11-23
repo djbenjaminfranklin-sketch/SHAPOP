@@ -7,6 +7,7 @@ import { hapticTap } from './lib/haptics'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { usePushNotifications } from './hooks/usePushNotifications'
+import { isPushAvailable, syncAndroidSystemBars } from './lib/nativePlatform'
 import PrePermissionModal from './components/PrePermissionModal'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import BottomNav from './components/BottomNav'
@@ -129,8 +130,9 @@ function PushAutoRegister() {
       return
     }
 
-    // Check current permission status
-    PushNotifications.checkPermissions().then(result => {
+    // Check current permission status (Android sans Firebase : pas de notifications, on ne demande rien)
+    isPushAvailable().then(ok => ok ? PushNotifications.checkPermissions() : null).then(result => {
+      if (!result) return
       if (result.receive === 'granted') {
         // Already granted, just re-register
         doRequest()
@@ -203,6 +205,9 @@ function useAppSettings() {
         const html = document.documentElement
         const appearance = s.appearance || 'light'
         const isLight = appearance === 'light' || (appearance === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+        // App Android : icônes des barres système lisibles sur le thème choisi
+        syncAndroidSystemBars(isLight)
 
         // Manage the counter-inversion stylesheet for media elements
         let styleEl = document.getElementById('shapop-theme-fix') as HTMLStyleElement | null

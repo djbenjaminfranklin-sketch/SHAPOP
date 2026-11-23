@@ -5,12 +5,15 @@ import { PushNotifications } from '@capacitor/push-notifications'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { isNightModeActive } from '../lib/settings'
+import { isPushAvailable, pushPlatform } from '../lib/nativePlatform'
 
 const PENDING_DEEPLINK_KEY = 'shapop_pending_deeplink'
 
 /**
- * Registers push notifications on iOS, stores the device token via API.
- * Call `requestPermission()` to trigger the iOS permission prompt.
+ * Registers push notifications (iOS : APNs, Android : FCM), stores the device token via API
+ * with its platform so the server picks APNs or FCM.
+ * Call `requestPermission()` to trigger the system permission prompt.
+ * On Android, nothing is requested when the app was built without Firebase (google-services.json).
  *
  * On cold start, deep links from push notifications are stored in localStorage
  * and consumed once React Router is mounted.
@@ -40,7 +43,7 @@ export function usePushNotifications() {
         },
         body: JSON.stringify({
           token,
-          platform: Capacitor.getPlatform() === 'ios' ? 'ios' : 'android',
+          platform: pushPlatform() ?? 'ios',
         }),
       })
       if (res.ok) {
@@ -74,8 +77,8 @@ export function usePushNotifications() {
   // Clear badge count when app opens
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
-    PushNotifications.checkPermissions().then(result => {
-      if (result.receive === 'granted') {
+    isPushAvailable().then(ok => ok ? PushNotifications.checkPermissions() : null).then(result => {
+      if (result?.receive === 'granted') {
         PushNotifications.removeAllDeliveredNotifications()
       }
     }).catch(() => {})
@@ -128,6 +131,7 @@ export function usePushNotifications() {
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) return false
+    if (!(await isPushAvailable())) return false
     const result = await PushNotifications.requestPermissions()
     if (result.receive === 'granted') {
       await PushNotifications.register()
@@ -138,6 +142,7 @@ export function usePushNotifications() {
 
   const checkPermission = useCallback(async (): Promise<boolean> => {
     if (!Capacitor.isNativePlatform()) return false
+    if (!(await isPushAvailable())) return false
     const result = await PushNotifications.checkPermissions()
     return result.receive === 'granted'
   }, [])

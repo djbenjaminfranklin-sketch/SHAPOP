@@ -9,6 +9,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      // Enregistré à la main dans main.tsx, et SEULEMENT sur le web : dans l'app Android
+      // (https://localhost) un service worker servirait d'anciens fichiers après une mise à jour.
+      injectRegister: false,
       manifest: {
         name: 'ShaPop — Live Shopping',
         short_name: 'ShaPop',

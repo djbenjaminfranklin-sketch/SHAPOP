@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="notification_channel_name">Mensajes, pedidos y directos</string>
+    <string name="notification_channel_description">Nuevos mensajes, seguimiento de tus pedidos y directos de los vendedores que sigues</string>
+</resources>

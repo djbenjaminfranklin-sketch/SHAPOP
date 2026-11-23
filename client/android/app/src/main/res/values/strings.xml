@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name" translatable="false">ShaPop</string>
+    <string name="title_activity_main" translatable="false">ShaPop</string>
+    <string name="package_name" translatable="false">com.shapop.app</string>
+    <string name="custom_url_scheme" translatable="false">com.shapop.app</string>
+    <string name="default_notification_channel_id" translatable="false">shapop_default</string>
+
+    <!-- Canal de notifications (Réglages Android > Notifications) -->
+    <string name="notification_channel_name">Messages, orders and lives</string>
+    <string name="notification_channel_description">New messages, order updates and lives from sellers you follow</string>
+</resources>

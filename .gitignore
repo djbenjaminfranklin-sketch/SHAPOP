@@ -39,3 +39,8 @@ Thumbs.db
 
 # Local
 *.local
+
+# Clés de signature (sauvegardes locales, jamais dans git)
+cles-signature/
+*.keystore
+*.jks

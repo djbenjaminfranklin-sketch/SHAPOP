@@ -11,10 +11,21 @@ const config: CapacitorConfig = {
     backgroundColor: '#0a0a0a',
     scrollEnabled: false,
   },
+  android: {
+    backgroundColor: '#0a0a0a',
+    allowMixedContent: false,
+  },
   server: {
     allowNavigation: ['*.supabase.co', '*.stripe.com', '*.onrender.com']
   },
   plugins: {
+    // Android 15+ (bord à bord) : la WebView reçoit les vraies marges des barres système
+    // (--safe-area-inset-*, et env() avec viewport-fit=cover). Icônes foncées au démarrage
+    // (thème clair par défaut) ; App.tsx les passe en clair si l'utilisateur choisit le thème sombre.
+    SystemBars: {
+      insetsHandling: 'css',
+      style: 'LIGHT',
+    },
     PushNotifications: {
       presentationOptions: ['badge', 'sound', 'alert'],
     },
