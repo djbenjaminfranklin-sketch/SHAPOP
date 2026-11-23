@@ -3,61 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
-import { getLang } from '../lib/i18n'
+import { getLang, getLocale, type Lang, type Localized } from '../lib/i18n'
+import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import VodPlayer from '../components/stream/VodPlayer'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = ReturnType<typeof getLang>
 
 // =============================================
-// Translations (fr, en, he, es)
+// Traductions (en, fr, es, ru, he)
 // =============================================
-const content: Record<string, Record<string, string>> = {
-  fr: {
-    back: 'Retour',
-    followers: 'Followers',
-    followingLabel: 'Suivi(e)s',
-    follow: 'Suivre',
-    unfollow: 'Suivi',
-    messages: 'Messages',
-    editProfile: 'Modifier le profil',
-    shopTab: 'Boutique',
-    livesTab: 'Lives',
-    reviewsTab: 'Avis',
-    reviews: 'avis',
-    avgDelivery: 'Delai de livraison moyen',
-    sold: 'Vendu',
-    days: 'j',
-    noItems: 'Aucun article en vente',
-    noLives: 'Aucun live',
-    noReviews: 'Aucun avis pour le moment',
-    loading: 'Chargement...',
-    notFound: 'Vendeur introuvable',
-    live: 'En direct',
-    scheduled: 'Programme',
-    ended: 'Termine',
-    retry: 'Reessayer',
-    reply: 'Repondre',
-    sellerReply: 'Reponse du vendeur',
-    send: 'Envoyer',
-    seePurchase: 'Voir l\'achat',
-    ordersTab: 'Commandes',
-    financesTab: 'Finances',
-    totalRevenue: 'CA total',
-    monthlyRevenue: 'CA du mois',
-    totalSales: 'Ventes totales',
-    avgViewers: 'Spectateurs moy.',
-    stripeConnected: 'Stripe connecte',
-    stripePending: 'Stripe en attente',
-    stripeNotConnected: 'Stripe non connecte',
-    openPayments: 'Gerer les paiements',
-    viewAll: 'Tout voir',
-    noOrders: 'Aucune commande recente',
-    watchVod: 'Regarder la VOD',
-    recap: 'Recapitulatif',
-    peakViewers: 'spectateurs',
-  },
+type SellerText = Record<'back' | 'followers' | 'followingLabel' | 'follow' | 'unfollow' | 'messages' | 'editProfile' | 'shopTab' | 'livesTab' | 'reviewsTab' | 'reviews' | 'avgDelivery' | 'sold' | 'days' | 'noItems' | 'noLives' | 'noReviews' | 'loading' | 'notFound' | 'live' | 'scheduled' | 'ended' | 'retry' | 'reply' | 'sellerReply' | 'send' | 'seePurchase' | 'ordersTab' | 'financesTab' | 'totalRevenue' | 'monthlyRevenue' | 'totalSales' | 'avgViewers' | 'stripeConnected' | 'stripePending' | 'stripeNotConnected' | 'openPayments' | 'viewAll' | 'noOrders' | 'watchVod' | 'recap' | 'peakViewers' | 'minutes' | 'seeMoment' | 'buyer' | 'user' | 'video' | 'total' | 'stPaid' | 'stPreparing' | 'stShipped' | 'stDelivered' | 'stPending' | 'stRefunded', string>
+
+const content: Localized<SellerText> = {
   en: {
     back: 'Back',
     followers: 'Followers',
@@ -70,7 +28,7 @@ const content: Record<string, Record<string, string>> = {
     livesTab: 'Lives',
     reviewsTab: 'Reviews',
     reviews: 'reviews',
-    avgDelivery: 'Avg delivery time',
+    avgDelivery: 'Avg. delivery time',
     sold: 'Sold',
     days: 'd',
     noItems: 'No items for sale',
@@ -83,68 +41,92 @@ const content: Record<string, Record<string, string>> = {
     ended: 'Ended',
     retry: 'Retry',
     reply: 'Reply',
-    sellerReply: 'Seller reply',
+    sellerReply: 'Seller\'s reply',
     send: 'Send',
     seePurchase: 'See purchase',
     ordersTab: 'Orders',
     financesTab: 'Finances',
     totalRevenue: 'Total revenue',
-    monthlyRevenue: 'Monthly revenue',
+    monthlyRevenue: 'This month',
     totalSales: 'Total sales',
-    avgViewers: 'Avg viewers',
+    avgViewers: 'Avg. viewers',
     stripeConnected: 'Stripe connected',
     stripePending: 'Stripe pending',
     stripeNotConnected: 'Stripe not connected',
     openPayments: 'Manage payments',
     viewAll: 'View all',
     noOrders: 'No recent orders',
-    watchVod: 'Watch VOD',
+    watchVod: 'Watch replay',
     recap: 'Recap',
     peakViewers: 'viewers',
+    minutes: 'min',
+    seeMoment: 'See the moment',
+    buyer: 'Buyer',
+    user: 'User',
+    video: 'Video',
+    total: 'Total',
+    stPaid: 'Paid',
+    stPreparing: 'Preparing',
+    stShipped: 'Shipped',
+    stDelivered: 'Delivered',
+    stPending: 'Pending',
+    stRefunded: 'Refunded',
   },
-  he: {
-    back: '\u05D7\u05D6\u05E8\u05D4',
-    followers: '\u05E2\u05D5\u05E7\u05D1\u05D9\u05DD',
-    followingLabel: '\u05E2\u05D5\u05E7\u05D1',
-    follow: '\u05E2\u05E7\u05D5\u05D1',
-    unfollow: '\u05E2\u05D5\u05E7\u05D1',
-    messages: '\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA',
-    editProfile: '\u05E2\u05E8\u05D5\u05DA \u05E4\u05E8\u05D5\u05E4\u05D9\u05DC',
-    shopTab: '\u05D7\u05E0\u05D5\u05EA',
-    livesTab: '\u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
-    reviewsTab: '\u05D1\u05D9\u05E7\u05D5\u05E8\u05D5\u05EA',
-    reviews: '\u05D1\u05D9\u05E7\u05D5\u05E8\u05D5\u05EA',
-    avgDelivery: '\u05D6\u05DE\u05DF \u05DE\u05E9\u05DC\u05D5\u05D7 \u05DE\u05DE\u05D5\u05E6\u05E2',
-    sold: '\u05E0\u05DE\u05DB\u05E8',
-    days: '\u05D9',
-    noItems: '\u05D0\u05D9\u05DF \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05DC\u05DE\u05DB\u05D9\u05E8\u05D4',
-    noLives: '\u05D0\u05D9\u05DF \u05E9\u05D9\u05D3\u05D5\u05E8\u05D9\u05DD',
-    noReviews: '\u05D0\u05D9\u05DF \u05D1\u05D9\u05E7\u05D5\u05E8\u05D5\u05EA \u05E2\u05D3\u05D9\u05D9\u05DF',
-    loading: '\u05D8\u05D5\u05E2\u05DF...',
-    notFound: '\u05DE\u05D5\u05DB\u05E8 \u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0',
-    live: '\u05E9\u05D9\u05D3\u05D5\u05E8',
-    scheduled: '\u05DE\u05EA\u05D5\u05DB\u05E0\u05DF',
-    ended: '\u05D4\u05E1\u05EA\u05D9\u05D9\u05DD',
-    retry: '\u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
-    reply: '\u05D4\u05E9\u05D1',
-    sellerReply: '\u05EA\u05D2\u05D5\u05D1\u05EA \u05D4\u05DE\u05D5\u05DB\u05E8',
-    send: '\u05E9\u05DC\u05D7',
-    seePurchase: '\u05E6\u05E4\u05D4 \u05D1\u05E8\u05DB\u05D9\u05E9\u05D4',
-    ordersTab: '\u05D4\u05D6\u05DE\u05E0\u05D5\u05EA',
-    financesTab: '\u05DB\u05E1\u05E4\u05D9\u05DD',
-    totalRevenue: '\u05DE\u05D7\u05D6\u05D5\u05E8 \u05DB\u05D5\u05DC\u05DC',
-    monthlyRevenue: '\u05DE\u05D7\u05D6\u05D5\u05E8 \u05D7\u05D5\u05D3\u05E9\u05D9',
-    totalSales: '\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA',
-    avgViewers: '\u05E6\u05D5\u05E4\u05D9\u05DD \u05DE\u05DE\u05D5\u05E6\u05E2',
-    stripeConnected: 'Stripe \u05DE\u05D7\u05D5\u05D1\u05E8',
-    stripePending: 'Stripe \u05D1\u05D4\u05DE\u05EA\u05E0\u05D4',
-    stripeNotConnected: 'Stripe \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8',
-    openPayments: '\u05E0\u05D4\u05DC \u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD',
-    viewAll: '\u05E6\u05E4\u05D4 \u05D4\u05DB\u05DC',
-    noOrders: '\u05D0\u05D9\u05DF \u05D4\u05D6\u05DE\u05E0\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA',
-    watchVod: '\u05E6\u05E4\u05D4 VOD',
-    recap: '\u05E1\u05D9\u05DB\u05D5\u05DD',
-    peakViewers: '\u05E6\u05D5\u05E4\u05D9\u05DD',
+  fr: {
+    back: 'Retour',
+    followers: 'Abonnés',
+    followingLabel: 'Abonnements',
+    follow: 'Suivre',
+    unfollow: 'Suivi',
+    messages: 'Messages',
+    editProfile: 'Modifier le profil',
+    shopTab: 'Boutique',
+    livesTab: 'Lives',
+    reviewsTab: 'Avis',
+    reviews: 'avis',
+    avgDelivery: 'Délai de livraison moyen',
+    sold: 'Vendu',
+    days: 'j',
+    noItems: 'Aucun article en vente',
+    noLives: 'Aucun live',
+    noReviews: 'Aucun avis pour le moment',
+    loading: 'Chargement...',
+    notFound: 'Vendeur introuvable',
+    live: 'En direct',
+    scheduled: 'Programmé',
+    ended: 'Terminé',
+    retry: 'Réessayer',
+    reply: 'Répondre',
+    sellerReply: 'Réponse du vendeur',
+    send: 'Envoyer',
+    seePurchase: 'Voir l\'achat',
+    ordersTab: 'Commandes',
+    financesTab: 'Finances',
+    totalRevenue: 'CA total',
+    monthlyRevenue: 'CA du mois',
+    totalSales: 'Ventes totales',
+    avgViewers: 'Spectateurs moy.',
+    stripeConnected: 'Stripe connecté',
+    stripePending: 'Stripe en attente',
+    stripeNotConnected: 'Stripe non connecté',
+    openPayments: 'Gérer les paiements',
+    viewAll: 'Tout voir',
+    noOrders: 'Aucune commande récente',
+    watchVod: 'Revoir le live',
+    recap: 'Récapitulatif',
+    peakViewers: 'spectateurs',
+    minutes: 'min',
+    seeMoment: 'Voir le moment',
+    buyer: 'Acheteur',
+    user: 'Utilisateur',
+    video: 'Vidéo',
+    total: 'Total',
+    stPaid: 'Payée',
+    stPreparing: 'En préparation',
+    stShipped: 'Expédiée',
+    stDelivered: 'Livrée',
+    stPending: 'En attente',
+    stRefunded: 'Remboursée',
   },
   es: {
     back: 'Volver',
@@ -155,18 +137,18 @@ const content: Record<string, Record<string, string>> = {
     messages: 'Mensajes',
     editProfile: 'Editar perfil',
     shopTab: 'Tienda',
-    livesTab: 'Lives',
+    livesTab: 'Directos',
     reviewsTab: 'Opiniones',
     reviews: 'opiniones',
-    avgDelivery: 'Tiempo medio de envio',
+    avgDelivery: 'Tiempo medio de envío',
     sold: 'Vendido',
     days: 'd',
-    noItems: 'Sin articulos en venta',
-    noLives: 'Sin directos',
-    noReviews: 'Sin opiniones todavia',
+    noItems: 'No hay artículos en venta',
+    noLives: 'Aún no hay directos',
+    noReviews: 'Aún no hay opiniones',
     loading: 'Cargando...',
     notFound: 'Vendedor no encontrado',
-    live: 'En vivo',
+    live: 'En directo',
     scheduled: 'Programado',
     ended: 'Terminado',
     retry: 'Reintentar',
@@ -176,8 +158,8 @@ const content: Record<string, Record<string, string>> = {
     seePurchase: 'Ver compra',
     ordersTab: 'Pedidos',
     financesTab: 'Finanzas',
-    totalRevenue: 'Ingreso total',
-    monthlyRevenue: 'Ingreso mensual',
+    totalRevenue: 'Ingresos totales',
+    monthlyRevenue: 'Este mes',
     totalSales: 'Ventas totales',
     avgViewers: 'Espectadores prom.',
     stripeConnected: 'Stripe conectado',
@@ -185,11 +167,149 @@ const content: Record<string, Record<string, string>> = {
     stripeNotConnected: 'Stripe no conectado',
     openPayments: 'Gestionar pagos',
     viewAll: 'Ver todo',
-    noOrders: 'Sin pedidos recientes',
-    watchVod: 'Ver VOD',
+    noOrders: 'No hay pedidos recientes',
+    watchVod: 'Ver repetición',
     recap: 'Resumen',
     peakViewers: 'espectadores',
+    minutes: 'min',
+    seeMoment: 'Ver el momento',
+    buyer: 'Comprador',
+    user: 'Usuario',
+    video: 'Vídeo',
+    total: 'Total',
+    stPaid: 'Pagado',
+    stPreparing: 'En preparación',
+    stShipped: 'Enviado',
+    stDelivered: 'Entregado',
+    stPending: 'Pendiente',
+    stRefunded: 'Reembolsado',
   },
+  ru: {
+    back: 'Назад',
+    followers: 'Подписчики',
+    followingLabel: 'Подписки',
+    follow: 'Подписаться',
+    unfollow: 'Вы подписаны',
+    messages: 'Сообщения',
+    editProfile: 'Редактировать профиль',
+    shopTab: 'Магазин',
+    livesTab: 'Эфиры',
+    reviewsTab: 'Отзывы',
+    reviews: 'отзывов',
+    avgDelivery: 'Средний срок доставки',
+    sold: 'Продано',
+    days: 'дн.',
+    noItems: 'Нет товаров в продаже',
+    noLives: 'Эфиров пока нет',
+    noReviews: 'Отзывов пока нет',
+    loading: 'Загрузка...',
+    notFound: 'Продавец не найден',
+    live: 'В эфире',
+    scheduled: 'Запланирован',
+    ended: 'Завершён',
+    retry: 'Повторить',
+    reply: 'Ответить',
+    sellerReply: 'Ответ продавца',
+    send: 'Отправить',
+    seePurchase: 'Посмотреть покупку',
+    ordersTab: 'Заказы',
+    financesTab: 'Финансы',
+    totalRevenue: 'Общая выручка',
+    monthlyRevenue: 'За этот месяц',
+    totalSales: 'Всего продаж',
+    avgViewers: 'Ср. число зрителей',
+    stripeConnected: 'Stripe подключён',
+    stripePending: 'Stripe на проверке',
+    stripeNotConnected: 'Stripe не подключён',
+    openPayments: 'Управлять платежами',
+    viewAll: 'Смотреть всё',
+    noOrders: 'Недавних заказов нет',
+    watchVod: 'Смотреть запись',
+    recap: 'Итоги',
+    peakViewers: 'зрителей',
+    minutes: 'мин',
+    seeMoment: 'Смотреть момент',
+    buyer: 'Покупатель',
+    user: 'Пользователь',
+    video: 'Видео',
+    total: 'Итого',
+    stPaid: 'Оплачен',
+    stPreparing: 'Готовится',
+    stShipped: 'Отправлен',
+    stDelivered: 'Доставлен',
+    stPending: 'Ожидает оплаты',
+    stRefunded: 'Возвращены деньги',
+  },
+  he: {
+    back: 'חזרה',
+    followers: 'עוקבים',
+    followingLabel: 'נעקבים',
+    follow: 'מעקב',
+    unfollow: 'במעקב',
+    messages: 'הודעות',
+    editProfile: 'עריכת פרופיל',
+    shopTab: 'חנות',
+    livesTab: 'שידורים',
+    reviewsTab: 'ביקורות',
+    reviews: 'ביקורות',
+    avgDelivery: 'זמן משלוח ממוצע',
+    sold: 'נמכר',
+    days: 'ימ׳',
+    noItems: 'אין פריטים למכירה',
+    noLives: 'עדיין אין שידורים',
+    noReviews: 'עדיין אין ביקורות',
+    loading: 'טוען...',
+    notFound: 'המוכר/ת לא נמצא/ה',
+    live: 'שידור חי',
+    scheduled: 'מתוכנן',
+    ended: 'הסתיים',
+    retry: 'נסו שוב',
+    reply: 'תגובה',
+    sellerReply: 'תגובת המוכר/ת',
+    send: 'שליחה',
+    seePurchase: 'לצפייה ברכישה',
+    ordersTab: 'הזמנות',
+    financesTab: 'כספים',
+    totalRevenue: 'הכנסות כוללות',
+    monthlyRevenue: 'החודש',
+    totalSales: 'סך המכירות',
+    avgViewers: 'צופים בממוצע',
+    stripeConnected: 'Stripe מחובר',
+    stripePending: 'Stripe בבדיקה',
+    stripeNotConnected: 'Stripe לא מחובר',
+    openPayments: 'ניהול תשלומים',
+    viewAll: 'הצג הכול',
+    noOrders: 'אין הזמנות אחרונות',
+    watchVod: 'צפייה בהקלטה',
+    recap: 'סיכום',
+    peakViewers: 'צופים',
+    minutes: 'דק׳',
+    seeMoment: 'לצפייה ברגע',
+    buyer: 'קונה',
+    user: 'משתמש/ת',
+    video: 'וידאו',
+    total: 'סה״כ',
+    stPaid: 'שולם',
+    stPreparing: 'בהכנה',
+    stShipped: 'נשלח',
+    stDelivered: 'נמסר',
+    stPending: 'ממתין',
+    stRefunded: 'הוחזר',
+  },
+}
+
+// « N articles » avec les pluriels de chaque langue (le russe en a trois).
+const ITEMS_PLURAL: Localized<{ one: string; few: string; many: string; other: string }> = {
+  en: { one: 'item', few: 'items', many: 'items', other: 'items' },
+  fr: { one: 'article', few: 'articles', many: 'articles', other: 'articles' },
+  es: { one: 'artículo', few: 'artículos', many: 'artículos', other: 'artículos' },
+  ru: { one: 'товар', few: 'товара', many: 'товаров', other: 'товара' },
+  he: { one: 'פריט', few: 'פריטים', many: 'פריטים', other: 'פריטים' },
+}
+function itemsLabel(n: number, lang: Lang): string {
+  const forms = ITEMS_PLURAL[lang] ?? ITEMS_PLURAL.en
+  const rule = new Intl.PluralRules(getLocale(lang)).select(n)
+  return (rule in forms ? forms[rule as keyof typeof forms] : forms.other)
 }
 
 // =============================================
@@ -201,6 +321,7 @@ interface SellerProfile {
   avatar_url: string | null
   bio: string | null
   username: string
+  country?: string | null
 }
 
 interface SellerData {
@@ -259,6 +380,7 @@ interface RecentOrder {
   stream_id?: string | null
   purchase_stream_offset_seconds?: number | null
   recording_url?: string | null
+  currency?: string | null
 }
 
 interface DashboardData {
@@ -272,18 +394,19 @@ interface DashboardData {
 // =============================================
 // BuyerGroupCard — grouped orders from same buyer
 // =============================================
-function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabel, navigate, onVideoMoment }: {
+function BuyerGroupCard({ group, buyerName, total, lang, currency, statusColor, statusLabel, navigate, onVideoMoment }: {
   group: RecentOrder[]
   buyerName: string
   total: number
-  lang: string
+  lang: Lang
+  currency: string
   statusColor: Record<string, string>
   statusLabel: (s: string) => string
   navigate: (path: string) => void
   onVideoMoment?: (url: string, title: string, offset: number) => void
 }) {
   const [expanded, setExpanded] = useState(false)
-  const itemsLabel = lang === 'fr' ? 'articles' : lang === 'es' ? 'articulos' : 'items'
+  const t = content[lang] ?? content.en
 
   return (
     <div style={{
@@ -316,11 +439,11 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
               padding: '2px 8px', borderRadius: '100px',
               border: '1px solid rgba(59,130,246,0.25)',
             }}>
-              {group.length} {itemsLabel}
+              {group.length} {itemsLabel(group.length, lang)}
             </span>
           </div>
           <p style={{ fontSize: '14px', fontWeight: 600, color: '#F0908A', margin: 0 }}>
-            Total: {total.toFixed(2)}&euro;
+            {t.total} : {formatMoney(total, group[0]?.currency || currency)}
           </p>
         </div>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
@@ -359,7 +482,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                     {statusLabel(order.status)}
                   </span>
                   <span style={{ fontSize: '11px', color: '#555' }}>
-                    {new Date(order.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
+                    {new Date(order.created_at).toLocaleDateString(getLocale(), {
                       day: 'numeric', month: 'short',
                     })}
                   </span>
@@ -369,7 +492,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onVideoMoment(order.recording_url!, order.item_title || 'Video', order.purchase_stream_offset_seconds!)
+                    onVideoMoment(order.recording_url!, order.item_title || t.video, order.purchase_stream_offset_seconds!)
                   }}
                   style={{
                     width: '28px', height: '28px', borderRadius: '50%',
@@ -377,7 +500,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', flexShrink: 0, padding: 0,
                   }}
-                  title={lang === 'fr' ? 'Voir le moment' : 'See moment'}
+                  title={t.seeMoment}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
                     <polygon points="5 3 19 12 5 21 5 3" />
@@ -385,7 +508,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, statusColor, statusLabe
                 </button>
               )}
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
-                {(order.amount || 0).toFixed(2)}&euro;
+                {formatMoney(order.amount || 0, order.currency || currency)}
               </span>
             </div>
           ))}
@@ -403,7 +526,7 @@ export default function SellerProfilePage() {
   const navigate = useNavigate()
   const { user, session } = useAuth()
   const lang: Lang = getLang()
-  const t = content[lang] || content.fr
+  const t = content[lang] ?? content.en
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -476,7 +599,7 @@ export default function SellerProfilePage() {
       // Fetch profile
       const { data: prof } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, bio, username')
+        .select('id, display_name, avatar_url, bio, username, country')
         .eq('id', sellerId)
         .single()
 
@@ -705,7 +828,7 @@ export default function SellerProfilePage() {
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div
           role="status"
-          aria-label={lang === 'fr' ? 'Chargement' : lang === 'es' ? 'Cargando' : lang === 'he' ? 'טוען' : 'Loading'}
+          aria-label={t.loading}
           style={{
             width: '32px', height: '32px', border: '3px solid #333',
             borderTopColor: '#E8344E', borderRadius: '50%',
@@ -740,6 +863,8 @@ export default function SellerProfilePage() {
 
   const displayName = profile.display_name || profile.username
   const bio = sellerData?.store_description || profile.bio
+  // Devise du vendeur (prix des articles, CA) : celle de son pays.
+  const sellerCurrency = currencyForCountry(profile.country)
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '100px' }}>
@@ -850,7 +975,7 @@ export default function SellerProfilePage() {
         {/* Followers / Following text */}
         <p style={{ fontSize: '14px', color: '#aaa', margin: '0 0 16px' }}>
           <span style={{ fontWeight: 700, color: '#fff' }}>{followersCount}</span>{' '}{t.followers}
-          {' '}&middot;{' '}
+          {' '}&middot;{' '}{/* i18n-ignore (séparateur) */}
           <span style={{ fontWeight: 700, color: '#fff' }}>{followingCount}</span>{' '}{t.followingLabel}
         </p>
 
@@ -1021,7 +1146,7 @@ export default function SellerProfilePage() {
                     )}
                     {item.status === 'sold' && (
                       <div style={{
-                        position: 'absolute', top: '8px', left: '8px',
+                        position: 'absolute', top: '8px', insetInlineStart: '8px',
                         backgroundColor: 'rgba(232,52,78,0.9)', color: '#fff',
                         fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
                       }}>
@@ -1037,7 +1162,7 @@ export default function SellerProfilePage() {
                       {item.title}
                     </p>
                     <p style={{ fontSize: '15px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                      {item.current_price || item.starting_price}&euro;
+                      {formatMoney(item.current_price || item.starting_price, sellerCurrency)}
                     </p>
                   </div>
                 </div>
@@ -1108,12 +1233,12 @@ export default function SellerProfilePage() {
                       {/* Duration badge */}
                       {durationMin != null && durationMin > 0 && (
                         <span style={{
-                          position: 'absolute', bottom: '4px', right: '4px',
+                          position: 'absolute', bottom: '4px', insetInlineEnd: '4px',
                           backgroundColor: 'rgba(0,0,0,0.75)', color: '#fff',
                           fontSize: '10px', fontWeight: 700, padding: '2px 5px',
                           borderRadius: '4px',
                         }}>
-                          {durationMin}min
+                          {durationMin} {t.minutes}
                         </span>
                       )}
                     </div>
@@ -1140,7 +1265,7 @@ export default function SellerProfilePage() {
                       </div>
                       {stream.scheduled_at && (
                         <span style={{ fontSize: '12px', color: '#666' }}>
-                          {new Date(stream.scheduled_at).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
+                          {new Date(stream.scheduled_at).toLocaleDateString(getLocale(), {
                             day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                           })}
                         </span>
@@ -1152,10 +1277,10 @@ export default function SellerProfilePage() {
                           style={{
                             background: 'none', border: 'none', padding: 0,
                             color: '#F0908A', fontSize: '12px', fontWeight: 600,
-                            cursor: 'pointer', textAlign: 'left', marginTop: '2px',
+                            cursor: 'pointer', textAlign: 'start', marginTop: '2px',
                           }}
                         >
-                          {t.recap} &rarr;
+                          {t.recap} <span style={{ display: 'inline-block', ...rtlFlip() }}>&rarr;</span>{/* i18n-ignore (flèche) */}
                         </button>
                       )}
                     </div>
@@ -1173,7 +1298,7 @@ export default function SellerProfilePage() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {reviews.map(review => {
-                const buyerName = (review.buyer as { display_name: string } | null)?.display_name || 'User'
+                const buyerName = (review.buyer as { display_name: string } | null)?.display_name || t.user
                 const buyerAvatar = (review.buyer as { avatar_url: string | null } | null)?.avatar_url
                 return (
                   <div key={review.id} style={{
@@ -1198,7 +1323,7 @@ export default function SellerProfilePage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                           {renderStars(review.rating, 12)}
                           <span style={{ fontSize: '11px', color: '#666' }}>
-                            {new Date(review.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
+                            {new Date(review.created_at).toLocaleDateString(getLocale(), {
                               day: 'numeric', month: 'short', year: 'numeric',
                             })}
                           </span>
@@ -1215,7 +1340,7 @@ export default function SellerProfilePage() {
                     {review.seller_response && (
                       <div style={{
                         marginTop: '10px', padding: '10px 12px', backgroundColor: '#222',
-                        borderRadius: '10px', borderLeft: '3px solid #F0908A',
+                        borderRadius: '10px', borderInlineStart: '3px solid #F0908A',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1322,8 +1447,11 @@ export default function SellerProfilePage() {
               pending_payment: '#F59E0B', pending: '#F59E0B', preparing: '#F59E0B',
             }
             const statusLabel = (s: string) => {
-              if (lang === 'fr') return s === 'paid' ? 'Paye' : s === 'preparing' ? 'Prep.' : s === 'shipped' ? 'Expedie' : s === 'delivered' ? 'Livre' : s === 'pending_payment' ? 'En attente' : s === 'refunded' ? 'Rembourse' : s
-              return s === 'paid' ? 'Paid' : s === 'preparing' ? 'Prep.' : s === 'shipped' ? 'Shipped' : s === 'delivered' ? 'Delivered' : s === 'pending_payment' ? 'Pending' : s === 'refunded' ? 'Refunded' : s
+              const labels: Record<string, string> = {
+                paid: t.stPaid, preparing: t.stPreparing, shipped: t.stShipped, delivered: t.stDelivered,
+                pending_payment: t.stPending, pending: t.stPending, refunded: t.stRefunded,
+              }
+              return labels[s] ?? s
             }
             // Group by buyer_id
             const grouped: Record<string, RecentOrder[]> = {}
@@ -1339,12 +1467,12 @@ export default function SellerProfilePage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {/* Grouped orders by buyer */}
                 {buyerGroups.map((group, gi) => {
-                  const buyerName = group[0].buyer_name || (lang === 'fr' ? 'Acheteur' : 'Buyer')
+                  const buyerName = group[0].buyer_name || t.buyer
                   const total = group.reduce((s, o) => s + (o.amount || 0), 0)
                   const _expanded = false
                   void _expanded
                   return <BuyerGroupCard key={gi} group={group} buyerName={buyerName} total={total}
-                    lang={lang} statusColor={statusColor} statusLabel={statusLabel} navigate={navigate}
+                    lang={lang} currency={sellerCurrency} statusColor={statusColor} statusLabel={statusLabel} navigate={navigate}
                     onVideoMoment={(url, title, offset) => setVodModal({ url, title, offset })} />
                 })}
                 {/* Single orders */}
@@ -1376,7 +1504,7 @@ export default function SellerProfilePage() {
                           {statusLabel(order.status)}
                         </span>
                         <span style={{ fontSize: '12px', color: '#666' }}>
-                          {new Date(order.created_at).toLocaleDateString(lang === 'he' ? 'he-IL' : lang === 'es' ? 'es-ES' : lang === 'en' ? 'en-US' : 'fr-FR', {
+                          {new Date(order.created_at).toLocaleDateString(getLocale(), {
                             day: 'numeric', month: 'short',
                           })}
                         </span>
@@ -1389,21 +1517,21 @@ export default function SellerProfilePage() {
                               e.stopPropagation()
                               setVodModal({
                                 url: order.recording_url!,
-                                title: order.item_title || 'Video',
+                                title: order.item_title || t.video,
                                 offset: order.purchase_stream_offset_seconds!,
                               })
                             }}
                             style={{ fontSize: '10px', fontWeight: 700, color: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
                           >
-                            {lang === 'fr' ? 'Voir le moment' : 'See moment'}
+                            {t.seeMoment}
                           </span>
                         )}
                       </div>
                     </div>
                     <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>
-                      {(order.amount || 0).toFixed(2)}&euro;
+                      {formatMoney(order.amount || 0, order.currency || sellerCurrency)}
                     </span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" style={rtlFlip()}>
                       <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
@@ -1436,13 +1564,13 @@ export default function SellerProfilePage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
                   <p style={{ fontSize: '22px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
-                    {dashboardData ? `${dashboardData.total_revenue.toLocaleString()}\u20AC` : '-'}
+                    {dashboardData ? formatMoney(dashboardData.total_revenue, sellerCurrency) : '-'}
                   </p>
                   <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>{t.totalRevenue}</p>
                 </div>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
                   <p style={{ fontSize: '22px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
-                    {dashboardData ? `${dashboardData.monthly_revenue.toLocaleString()}\u20AC` : '-'}
+                    {dashboardData ? formatMoney(dashboardData.monthly_revenue, sellerCurrency) : '-'}
                   </p>
                   <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>{t.monthlyRevenue}</p>
                 </div>

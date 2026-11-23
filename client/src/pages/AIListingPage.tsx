@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { getLang } from '../lib/i18n'
+import { getLang, type Lang, type Localized } from '../lib/i18n'
+import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
 import { showToast } from '../lib/toast'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-type Lang = 'fr' | 'en' | 'he' | 'es'
 type Step = 'upload' | 'analyzing' | 'results' | 'success'
 
 interface AIResult {
@@ -22,54 +22,13 @@ interface AIResult {
   description: string
 }
 
-const content = {
-  fr: {
-    title: 'Annonce IA',
-    iaExpress: 'IA Express',
-    takePhoto: 'Prends une photo',
-    importGallery: 'ou importe depuis ta galerie',
-    stepPhoto: 'Photo',
-    stepPhotoDesc: 'Prends une photo',
-    stepAnalysis: 'Analyse',
-    stepAnalysisDesc: 'L\'IA analyse',
-    stepPublish: 'Publie',
-    stepPublishDesc: 'Confirme et vends',
-    analysisSteps: [
-      'Analyse en cours...',
-      'Detection de l\'objet...',
-      'Identification de la marque...',
-      'Evaluation de l\'etat...',
-      'Estimation du prix...',
-      'Generation des tags...',
-      'Finalisation...',
-    ],
-    aiAnalysisComplete: 'Analyse IA terminee',
-    confidence: 'Confiance',
-    estimatedPrice: 'Prix estime par l\'IA',
-    priceBasedOn: 'Base sur les ventes recentes d\'articles similaires',
-    aiTags: 'Tags IA',
-    titleLabel: 'Titre',
-    categoryLabel: 'Categorie',
-    conditionLabel: 'Etat',
-    startingPrice: 'Prix de vente',
-    descriptionLabel: 'Description',
-    generatedByAI: 'Generee par IA',
-    createListing: 'Creer l\'annonce',
-    saving: 'Sauvegarde en cours...',
-    listingCreated: 'Annonce creee avec succes !',
-    listingError: 'Erreur lors de la creation. Reessayez.',
-    scanBarcode: 'Scanner un code-barres',
-    scanning: 'Scannez un code-barres...',
-    barcodeFound: 'Code-barres detecte',
-    barcodeNotFound: 'Aucun produit trouve pour ce code',
-    lookingUp: 'Recherche du produit...',
-    categories: [
-      'Sneakers', 'Mode Femme', 'Mode Homme', 'Sacs', 'Bijoux',
-      'Montres', 'High-tech', 'Gaming', 'Cartes', 'Vintage',
-      'Art', 'Jouets', 'Musique', 'Sport', 'Photo',
-    ],
-    conditions: ['Neuf', 'Comme neuf', 'Bon etat', 'Correct'],
-  },
+type AIText = Record<'title' | 'iaExpress' | 'takePhoto' | 'importGallery' | 'stepPhoto' | 'stepPhotoDesc' | 'stepAnalysis' | 'stepAnalysisDesc' | 'stepPublish' | 'stepPublishDesc' | 'aiAnalysisComplete' | 'confidence' | 'estimatedPrice' | 'priceBasedOn' | 'aiTags' | 'titleLabel' | 'categoryLabel' | 'conditionLabel' | 'startingPrice' | 'descriptionLabel' | 'generatedByAI' | 'createListing' | 'saving' | 'listingCreated' | 'listingError' | 'missingFields' | 'invalidPrice' | 'scanBarcode' | 'scanning' | 'barcodeFound' | 'barcodeNotFound' | 'lookingUp' | 'analysisFailed' | 'cameraUnavailable' | 'previewAlt' | 'scanningAlt' | 'itemAlt' | 'barcodePlaceholder' | 'ok', string> & {
+  analysisSteps: string[]
+  categories: string[]
+  conditions: string[]
+}
+
+const content: Localized<AIText> = {
   en: {
     title: 'AI listing',
     iaExpress: 'AI Express',
@@ -81,20 +40,11 @@ const content = {
     stepAnalysisDesc: 'AI analyzes',
     stepPublish: 'Publish',
     stepPublishDesc: 'Confirm and sell',
-    analysisSteps: [
-      'Analyzing...',
-      'Detecting the item...',
-      'Identifying the brand...',
-      'Evaluating condition...',
-      'Estimating price...',
-      'Generating tags...',
-      'Finalizing...',
-    ],
     aiAnalysisComplete: 'AI analysis complete',
     confidence: 'Confidence',
     estimatedPrice: 'AI estimated price',
     priceBasedOn: 'Based on recent sales of similar items',
-    aiTags: 'AI Tags',
+    aiTags: 'AI tags',
     titleLabel: 'Title',
     categoryLabel: 'Category',
     conditionLabel: 'Condition',
@@ -103,129 +53,220 @@ const content = {
     generatedByAI: 'AI generated',
     createListing: 'Create listing',
     saving: 'Saving...',
-    listingCreated: 'Listing created successfully!',
-    listingError: 'Error creating listing. Please try again.',
+    listingCreated: 'Listing created!',
+    listingError: 'Couldn\'t create the listing. Please try again.',
+    missingFields: 'Add a title and a category.',
+    invalidPrice: 'Enter a valid price.',
     scanBarcode: 'Scan a barcode',
     scanning: 'Scan a barcode...',
     barcodeFound: 'Barcode detected',
     barcodeNotFound: 'No product found for this barcode',
     lookingUp: 'Looking up product...',
-    categories: [
-      'Sneakers', 'Women\'s Fashion', 'Men\'s Fashion', 'Bags', 'Jewelry',
-      'Watches', 'Tech', 'Gaming', 'Cards', 'Vintage',
-      'Art', 'Toys', 'Music', 'Sport', 'Photo',
-    ],
+    analysisFailed: 'Analysis failed. Please try again.',
+    cameraUnavailable: 'Camera not available',
+    previewAlt: 'Preview',
+    scanningAlt: 'Photo being analyzed',
+    itemAlt: 'Item',
+    barcodePlaceholder: 'EAN / UPC code',
+    ok: 'OK',
+    analysisSteps: ['Analyzing...', 'Detecting the item...', 'Identifying the brand...', 'Assessing condition...', 'Estimating price...', 'Generating tags...', 'Finishing up...'],
+    categories: ['Sneakers', 'Women\'s fashion', 'Men\'s fashion', 'Bags', 'Jewelry', 'Watches', 'Tech', 'Gaming', 'Cards', 'Vintage', 'Art', 'Toys', 'Music', 'Sport', 'Photo'],
     conditions: ['New', 'Like new', 'Good condition', 'Fair'],
   },
-  he: {
-    title: 'מודעה עם AI',
-    iaExpress: 'AI Express',
-    takePhoto: '\u05E6\u05DC\u05DD \u05EA\u05DE\u05D5\u05E0\u05D4',
-    importGallery: '\u05D0\u05D5 \u05D9\u05D9\u05D1\u05D0 \u05DE\u05D4\u05D2\u05DC\u05E8\u05D9\u05D4',
-    stepPhoto: '\u05EA\u05DE\u05D5\u05E0\u05D4',
-    stepPhotoDesc: '\u05E6\u05DC\u05DD \u05EA\u05DE\u05D5\u05E0\u05D4',
-    stepAnalysis: '\u05E0\u05D9\u05EA\u05D5\u05D7',
-    stepAnalysisDesc: 'AI \u05DE\u05E0\u05EA\u05D7',
-    stepPublish: '\u05E4\u05E8\u05E1\u05DD',
-    stepPublishDesc: '\u05D0\u05E9\u05E8 \u05D5\u05DE\u05DB\u05D5\u05E8',
-    analysisSteps: [
-      '\u05DE\u05E0\u05EA\u05D7...',
-      '\u05DE\u05D6\u05D4\u05D4 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D9\u05D8...',
-      '\u05DE\u05D6\u05D4\u05D4 \u05D0\u05EA \u05D4\u05DE\u05D5\u05EA\u05D2...',
-      '\u05DE\u05E2\u05E8\u05D9\u05DA \u05DE\u05E6\u05D1...',
-      '\u05DE\u05E2\u05E8\u05D9\u05DA \u05DE\u05D7\u05D9\u05E8...',
-      '\u05D9\u05D5\u05E6\u05E8 \u05EA\u05D2\u05D9\u05D5\u05EA...',
-      '\u05DE\u05E1\u05D9\u05D9\u05DD...',
-    ],
-    aiAnalysisComplete: '\u05E0\u05D9\u05EA\u05D5\u05D7 AI \u05D4\u05D5\u05E9\u05DC\u05DD',
-    confidence: '\u05D1\u05D9\u05D8\u05D7\u05D5\u05DF',
-    estimatedPrice: '\u05DE\u05D7\u05D9\u05E8 \u05DE\u05E9\u05D5\u05E2\u05E8 \u05E2\u05DC \u05D9\u05D3\u05D9 AI',
-    priceBasedOn: '\u05DE\u05D1\u05D5\u05E1\u05E1 \u05E2\u05DC \u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05D0\u05D7\u05E8\u05D5\u05E0\u05D5\u05EA \u05E9\u05DC \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05D3\u05D5\u05DE\u05D9\u05DD',
-    aiTags: '\u05EA\u05D2\u05D9\u05D5\u05EA AI',
-    titleLabel: '\u05DB\u05D5\u05EA\u05E8\u05EA',
-    categoryLabel: '\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4',
-    conditionLabel: '\u05DE\u05E6\u05D1',
-    startingPrice: '\u05DE\u05D7\u05D9\u05E8 \u05DE\u05DB\u05D9\u05E8\u05D4',
-    descriptionLabel: '\u05EA\u05D9\u05D0\u05D5\u05E8',
-    generatedByAI: '\u05E0\u05D5\u05E6\u05E8 \u05E2\u05DC \u05D9\u05D3\u05D9 AI',
-    createListing: '\u05E6\u05D5\u05E8 \u05DE\u05D5\u05D3\u05E2\u05D4',
-    saving: '...\u05E9\u05D5\u05DE\u05E8',
-    listingCreated: '\u05D4\u05DE\u05D5\u05D3\u05E2\u05D4 \u05E0\u05D5\u05E6\u05E8\u05D4 \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4!',
-    listingError: '.\u05E9\u05D2\u05D9\u05D0\u05D4 \u05D1\u05D9\u05E6\u05D9\u05E8\u05EA \u05D4\u05DE\u05D5\u05D3\u05E2\u05D4. \u05E0\u05E1\u05D4 \u05E9\u05D5\u05D1',
-    scanBarcode: '\u05E1\u05E8\u05D5\u05E7 \u05D1\u05E8\u05E7\u05D5\u05D3',
-    scanning: '\u05E1\u05E8\u05D5\u05E7 \u05D1\u05E8\u05E7\u05D5\u05D3...',
-    barcodeFound: '\u05D1\u05E8\u05E7\u05D5\u05D3 \u05D6\u05D5\u05D4\u05D4',
-    barcodeNotFound: '\u05DC\u05D0 \u05E0\u05DE\u05E6\u05D0 \u05DE\u05D5\u05E6\u05E8 \u05DC\u05D1\u05E8\u05E7\u05D5\u05D3 \u05D6\u05D4',
-    lookingUp: '\u05DE\u05D7\u05E4\u05E9 \u05DE\u05D5\u05E6\u05E8...',
-    categories: [
-      'Sneakers', '\u05D0\u05D5\u05E4\u05E0\u05EA \u05E0\u05E9\u05D9\u05DD', '\u05D0\u05D5\u05E4\u05E0\u05EA \u05D2\u05D1\u05E8\u05D9\u05DD', '\u05EA\u05D9\u05E7\u05D9\u05DD', '\u05EA\u05DB\u05E9\u05D9\u05D8\u05D9\u05DD',
-      '\u05E9\u05E2\u05D5\u05E0\u05D9\u05DD', '\u05D8\u05E7', 'Gaming', '\u05E7\u05DC\u05E4\u05D9\u05DD', '\u05D5\u05D9\u05E0\u05D8\u05D2\u05F3',
-      '\u05D0\u05DE\u05E0\u05D5\u05EA', '\u05E6\u05E2\u05E6\u05D5\u05E2\u05D9\u05DD', '\u05DE\u05D5\u05D6\u05D9\u05E7\u05D4', '\u05E1\u05E4\u05D5\u05E8\u05D8', '\u05E6\u05D9\u05DC\u05D5\u05DD',
-    ],
-    conditions: ['\u05D7\u05D3\u05E9', '\u05DB\u05DE\u05D5 \u05D7\u05D3\u05E9', '\u05DE\u05E6\u05D1 \u05D8\u05D5\u05D1', '\u05E1\u05D1\u05D9\u05E8'],
+  fr: {
+    title: 'Annonce IA',
+    iaExpress: 'IA Express',
+    takePhoto: 'Prends une photo',
+    importGallery: 'ou importe depuis ta galerie',
+    stepPhoto: 'Photo',
+    stepPhotoDesc: 'Prends une photo',
+    stepAnalysis: 'Analyse',
+    stepAnalysisDesc: 'L\'IA analyse',
+    stepPublish: 'Publie',
+    stepPublishDesc: 'Confirme et vends',
+    aiAnalysisComplete: 'Analyse IA terminée',
+    confidence: 'Confiance',
+    estimatedPrice: 'Prix estimé par l\'IA',
+    priceBasedOn: 'Basé sur les ventes récentes d\'articles similaires',
+    aiTags: 'Tags IA',
+    titleLabel: 'Titre',
+    categoryLabel: 'Catégorie',
+    conditionLabel: 'État',
+    startingPrice: 'Prix de vente',
+    descriptionLabel: 'Description',
+    generatedByAI: 'Générée par IA',
+    createListing: 'Créer l\'annonce',
+    saving: 'Enregistrement...',
+    listingCreated: 'Annonce créée !',
+    listingError: 'Impossible de créer l\'annonce. Réessaie.',
+    missingFields: 'Ajoute un titre et une catégorie.',
+    invalidPrice: 'Saisis un prix valide.',
+    scanBarcode: 'Scanner un code-barres',
+    scanning: 'Scanne un code-barres...',
+    barcodeFound: 'Code-barres détecté',
+    barcodeNotFound: 'Aucun produit trouvé pour ce code',
+    lookingUp: 'Recherche du produit...',
+    analysisFailed: 'L\'analyse a échoué. Réessaie.',
+    cameraUnavailable: 'Caméra indisponible',
+    previewAlt: 'Aperçu',
+    scanningAlt: 'Photo en cours d\'analyse',
+    itemAlt: 'Article',
+    barcodePlaceholder: 'Code EAN / UPC',
+    ok: 'OK',
+    analysisSteps: ['Analyse en cours...', 'Détection de l\'objet...', 'Identification de la marque...', 'Évaluation de l\'état...', 'Estimation du prix...', 'Génération des tags...', 'Finalisation...'],
+    categories: ['Sneakers', 'Mode Femme', 'Mode Homme', 'Sacs', 'Bijoux', 'Montres', 'High-tech', 'Gaming', 'Cartes', 'Vintage', 'Art', 'Jouets', 'Musique', 'Sport', 'Photo'],
+    conditions: ['Neuf', 'Comme neuf', 'Bon état', 'Correct'],
   },
   es: {
-    title: 'Anuncio IA',
+    title: 'Anuncio con IA',
     iaExpress: 'IA Express',
-    takePhoto: 'Toma una foto',
-    importGallery: 'o importa desde tu galeria',
+    takePhoto: 'Haz una foto',
+    importGallery: 'o súbela desde tu galería',
     stepPhoto: 'Foto',
-    stepPhotoDesc: 'Toma una foto',
-    stepAnalysis: 'Analisis',
+    stepPhotoDesc: 'Haz una foto',
+    stepAnalysis: 'Análisis',
     stepAnalysisDesc: 'La IA analiza',
     stepPublish: 'Publica',
     stepPublishDesc: 'Confirma y vende',
-    analysisSteps: [
-      'Analizando...',
-      'Detectando el objeto...',
-      'Identificando la marca...',
-      'Evaluando el estado...',
-      'Estimando el precio...',
-      'Generando etiquetas...',
-      'Finalizando...',
-    ],
-    aiAnalysisComplete: 'Analisis IA completado',
-    confidence: 'Confianza',
-    estimatedPrice: 'Precio estimado por IA',
-    priceBasedOn: 'Basado en ventas recientes de articulos similares',
+    aiAnalysisComplete: 'Análisis de IA completado',
+    confidence: 'Fiabilidad',
+    estimatedPrice: 'Precio estimado por la IA',
+    priceBasedOn: 'Basado en ventas recientes de artículos similares',
     aiTags: 'Etiquetas IA',
-    titleLabel: 'Titulo',
-    categoryLabel: 'Categoria',
+    titleLabel: 'Título',
+    categoryLabel: 'Categoría',
     conditionLabel: 'Estado',
     startingPrice: 'Precio de venta',
-    descriptionLabel: 'Descripcion',
+    descriptionLabel: 'Descripción',
     generatedByAI: 'Generada por IA',
     createListing: 'Crear anuncio',
     saving: 'Guardando...',
-    listingCreated: 'Anuncio creado con exito!',
-    listingError: 'Error al crear el anuncio. Intentalo de nuevo.',
-    scanBarcode: 'Escanear codigo de barras',
-    scanning: 'Escanea un codigo de barras...',
-    barcodeFound: 'Codigo de barras detectado',
-    barcodeNotFound: 'No se encontro producto para este codigo',
-    lookingUp: 'Buscando producto...',
-    categories: [
-      'Sneakers', 'Moda Mujer', 'Moda Hombre', 'Bolsos', 'Joyas',
-      'Relojes', 'Tecnologia', 'Gaming', 'Cartas', 'Vintage',
-      'Arte', 'Juguetes', 'Musica', 'Deporte', 'Foto',
-    ],
+    listingCreated: '¡Anuncio creado!',
+    listingError: 'No se pudo crear el anuncio. Inténtalo de nuevo.',
+    missingFields: 'Añade un título y una categoría.',
+    invalidPrice: 'Introduce un precio válido.',
+    scanBarcode: 'Escanear un código de barras',
+    scanning: 'Escanea un código de barras...',
+    barcodeFound: 'Código de barras detectado',
+    barcodeNotFound: 'No se encontró ningún producto con este código',
+    lookingUp: 'Buscando el producto...',
+    analysisFailed: 'El análisis falló. Inténtalo de nuevo.',
+    cameraUnavailable: 'Cámara no disponible',
+    previewAlt: 'Vista previa',
+    scanningAlt: 'Foto en análisis',
+    itemAlt: 'Artículo',
+    barcodePlaceholder: 'Código EAN / UPC',
+    ok: 'OK',
+    analysisSteps: ['Analizando...', 'Detectando el objeto...', 'Identificando la marca...', 'Evaluando el estado...', 'Estimando el precio...', 'Generando etiquetas...', 'Terminando...'],
+    categories: ['Zapatillas', 'Moda mujer', 'Moda hombre', 'Bolsos', 'Joyería', 'Relojes', 'Tecnología', 'Gaming', 'Cartas', 'Vintage', 'Arte', 'Juguetes', 'Música', 'Deporte', 'Fotografía'],
     conditions: ['Nuevo', 'Como nuevo', 'Buen estado', 'Aceptable'],
+  },
+  ru: {
+    title: 'Объявление с ИИ',
+    iaExpress: 'ИИ Экспресс',
+    takePhoto: 'Сделай фото',
+    importGallery: 'или загрузи из галереи',
+    stepPhoto: 'Фото',
+    stepPhotoDesc: 'Сделай фото',
+    stepAnalysis: 'Анализ',
+    stepAnalysisDesc: 'ИИ анализирует',
+    stepPublish: 'Публикация',
+    stepPublishDesc: 'Подтверди и продавай',
+    aiAnalysisComplete: 'Анализ ИИ завершён',
+    confidence: 'Точность',
+    estimatedPrice: 'Цена по оценке ИИ',
+    priceBasedOn: 'На основе недавних продаж похожих товаров',
+    aiTags: 'Теги ИИ',
+    titleLabel: 'Название',
+    categoryLabel: 'Категория',
+    conditionLabel: 'Состояние',
+    startingPrice: 'Цена продажи',
+    descriptionLabel: 'Описание',
+    generatedByAI: 'Создано ИИ',
+    createListing: 'Создать объявление',
+    saving: 'Сохранение...',
+    listingCreated: 'Объявление создано!',
+    listingError: 'Не удалось создать объявление. Попробуй ещё раз.',
+    missingFields: 'Укажи название и категорию.',
+    invalidPrice: 'Укажи корректную цену.',
+    scanBarcode: 'Сканировать штрихкод',
+    scanning: 'Наведи камеру на штрихкод...',
+    barcodeFound: 'Штрихкод найден',
+    barcodeNotFound: 'По этому штрихкоду ничего не найдено',
+    lookingUp: 'Ищем товар...',
+    analysisFailed: 'Не удалось выполнить анализ. Попробуй ещё раз.',
+    cameraUnavailable: 'Камера недоступна',
+    previewAlt: 'Предпросмотр',
+    scanningAlt: 'Фото на анализе',
+    itemAlt: 'Товар',
+    barcodePlaceholder: 'Код EAN / UPC',
+    ok: 'ОК',
+    analysisSteps: ['Анализируем...', 'Распознаём предмет...', 'Определяем бренд...', 'Оцениваем состояние...', 'Оцениваем цену...', 'Подбираем теги...', 'Почти готово...'],
+    categories: ['Кроссовки', 'Женская мода', 'Мужская мода', 'Сумки', 'Украшения', 'Часы', 'Техника', 'Гейминг', 'Карточки', 'Винтаж', 'Искусство', 'Игрушки', 'Музыка', 'Спорт', 'Фото'],
+    conditions: ['Новое', 'Как новое', 'Хорошее', 'Удовлетворительное'],
+  },
+  he: {
+    title: 'מודעה עם AI',
+    iaExpress: 'AI אקספרס',
+    takePhoto: 'צלמו תמונה',
+    importGallery: 'או העלו מהגלריה',
+    stepPhoto: 'תמונה',
+    stepPhotoDesc: 'צלמו תמונה',
+    stepAnalysis: 'ניתוח',
+    stepAnalysisDesc: 'ה-AI מנתח',
+    stepPublish: 'פרסום',
+    stepPublishDesc: 'אשרו ומכרו',
+    aiAnalysisComplete: 'ניתוח ה-AI הושלם',
+    confidence: 'רמת ביטחון',
+    estimatedPrice: 'מחיר משוער לפי AI',
+    priceBasedOn: 'מבוסס על מכירות אחרונות של פריטים דומים',
+    aiTags: 'תגיות AI',
+    titleLabel: 'כותרת',
+    categoryLabel: 'קטגוריה',
+    conditionLabel: 'מצב',
+    startingPrice: 'מחיר מכירה',
+    descriptionLabel: 'תיאור',
+    generatedByAI: 'נוצר ב-AI',
+    createListing: 'יצירת מודעה',
+    saving: 'שומר...',
+    listingCreated: 'המודעה נוצרה!',
+    listingError: 'לא הצלחנו ליצור את המודעה. נסו שוב.',
+    missingFields: 'הוסיפו כותרת וקטגוריה.',
+    invalidPrice: 'הזינו מחיר תקין.',
+    scanBarcode: 'סריקת ברקוד',
+    scanning: 'סרקו ברקוד...',
+    barcodeFound: 'הברקוד זוהה',
+    barcodeNotFound: 'לא נמצא מוצר לברקוד הזה',
+    lookingUp: 'מחפש את המוצר...',
+    analysisFailed: 'הניתוח נכשל. נסו שוב.',
+    cameraUnavailable: 'המצלמה לא זמינה',
+    previewAlt: 'תצוגה מקדימה',
+    scanningAlt: 'תמונה בניתוח',
+    itemAlt: 'פריט',
+    barcodePlaceholder: 'קוד EAN / UPC',
+    ok: 'אישור',
+    analysisSteps: ['מנתח...', 'מזהה את הפריט...', 'מזהה את המותג...', 'מעריך את המצב...', 'מעריך מחיר...', 'יוצר תגיות...', 'מסיים...'],
+    categories: ['סניקרס', 'אופנת נשים', 'אופנת גברים', 'תיקים', 'תכשיטים', 'שעונים', 'טכנולוגיה', 'גיימינג', 'קלפים', 'וינטג׳', 'אמנות', 'צעצועים', 'מוזיקה', 'ספורט', 'צילום'],
+    conditions: ['חדש', 'כמו חדש', 'מצב טוב', 'סביר'],
   },
 }
 
-const categoriesFr = [
+// Valeurs ENREGISTRÉES (codes français fixes, aussi renvoyés par analyze-image) : ne pas traduire.
+const categoriesFr = [ // i18n-ignore (codes enregistrés)
   'Sneakers', 'Mode Femme', 'Mode Homme', 'Sacs', 'Bijoux',
   'Montres', 'High-tech', 'Gaming', 'Cartes', 'Vintage',
   'Art', 'Jouets', 'Musique', 'Sport', 'Photo',
 ]
 
-const conditionsFr = ['Neuf', 'Comme neuf', 'Bon etat', 'Correct']
+const conditionsFr = ['Neuf', 'Comme neuf', 'Bon etat', 'Correct'] // i18n-ignore (codes enregistrés)
 
 export default function AIListingPage() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
-  const lang = (getLang() || 'fr') as Lang
-  const t = content[lang] || content.fr
+  const lang: Lang = getLang()
+  const t = content[lang] ?? content.en
+  // Devise du vendeur : sert à l'estimation de l'IA et au champ de prix.
+  const currency = currencyForCountry(profile?.country)
   usePageTitle(t.title)
 
   // Block non-sellers
@@ -325,7 +366,7 @@ export default function AIListingPage() {
     try {
       // Call the Supabase Edge Function for real AI analysis
       const { data, error } = await supabase.functions.invoke('analyze-image', {
-        body: { image: imageData },
+        body: { image: imageData, lang: getLang(), currency },
       })
 
       clearInterval(animInterval)
@@ -358,11 +399,7 @@ export default function AIListingPage() {
   }
 
   const handleAnalysisError = () => {
-    const errorMsg = lang === 'en' ? 'Analysis failed. Please try again.'
-      : lang === 'he' ? 'הניתוח נכשל. אנא נסה שוב.'
-      : lang === 'es' ? 'El analisis fallo. Intentalo de nuevo.'
-      : "L'analyse a echoue. Veuillez reessayer."
-    setAnalysisError(errorMsg)
+    setAnalysisError(t.analysisFailed)
     setStep('upload')
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview)
@@ -438,7 +475,10 @@ export default function AIListingPage() {
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({}))
         console.error('Create listing error:', err)
-        showToast(err.error || t.listingError, 'error')
+        const code = String(err?.error || '')
+        showToast(code.startsWith('Missing required fields') ? t.missingFields
+          : code.startsWith('Price ') ? t.invalidPrice
+          : t.listingError, 'error')
         setSaving(false)
         return
       }
@@ -513,7 +553,7 @@ export default function AIListingPage() {
       }
     } catch {
       stopBarcodeScanner()
-      setAnalysisError(lang === 'fr' ? 'Camera non disponible' : 'Camera not available')
+      setAnalysisError(t.cameraUnavailable)
     }
   }
 
@@ -533,7 +573,7 @@ export default function AIListingPage() {
         const result: AIResult = {
           title: product.product_name || product.generic_name || barcode,
           category: guessCategory(product.categories_tags || []),
-          condition: lang === 'fr' ? 'Neuf' : lang === 'he' ? '\u05D7\u05D3\u05E9' : lang === 'es' ? 'Nuevo' : 'New',
+          condition: conditionsFr[0],
           confidence: 0.7,
           tags: (product.brands_tags || []).slice(0, 5),
           priceLow: 1,
@@ -561,7 +601,7 @@ export default function AIListingPage() {
         const result: AIResult = {
           title: item.title || barcode,
           category: guessCategory([item.category || '']),
-          condition: lang === 'fr' ? 'Neuf' : lang === 'he' ? '\u05D7\u05D3\u05E9' : lang === 'es' ? 'Nuevo' : 'New',
+          condition: conditionsFr[0],
           confidence: 0.7,
           tags: [item.brand].filter(Boolean),
           priceLow: Math.max(1, Math.floor((item.lowest_recorded_price || 5) * 0.5)),
@@ -665,7 +705,7 @@ export default function AIListingPage() {
         {imagePreview ? (
           <img
             src={imagePreview}
-            alt="Preview"
+            alt={t.previewAlt}
             loading="lazy"
             style={{
               position: 'absolute', inset: 0, width: '100%', height: '100%',
@@ -697,31 +737,31 @@ export default function AIListingPage() {
 
             {/* Decorative scan lines */}
             <div style={{
-              position: 'absolute', top: '20px', left: '20px',
+              position: 'absolute', top: '20px', left: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
               borderTop: '2px solid rgba(240,144,138,0.5)',
-              borderLeft: '2px solid rgba(240,144,138,0.5)',
+              borderLeft: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '4px 0 0 0',
             }} />
             <div style={{
-              position: 'absolute', top: '20px', right: '20px',
+              position: 'absolute', top: '20px', right: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
               borderTop: '2px solid rgba(240,144,138,0.5)',
-              borderRight: '2px solid rgba(240,144,138,0.5)',
+              borderRight: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '0 4px 0 0',
             }} />
             <div style={{
-              position: 'absolute', bottom: '20px', left: '20px',
+              position: 'absolute', bottom: '20px', left: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
               borderBottom: '2px solid rgba(240,144,138,0.5)',
-              borderLeft: '2px solid rgba(240,144,138,0.5)',
+              borderLeft: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '0 0 0 4px',
             }} />
             <div style={{
-              position: 'absolute', bottom: '20px', right: '20px',
+              position: 'absolute', bottom: '20px', right: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
               borderBottom: '2px solid rgba(240,144,138,0.5)',
-              borderRight: '2px solid rgba(240,144,138,0.5)',
+              borderRight: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '0 0 4px 0',
             }} />
           </>
@@ -806,7 +846,7 @@ export default function AIListingPage() {
         {imagePreview && (
           <img
             src={imagePreview}
-            alt="Scanning"
+            alt={t.scanningAlt}
             loading="lazy"
             style={{
               width: '100%', height: '100%', objectFit: 'cover',
@@ -820,10 +860,10 @@ export default function AIListingPage() {
           animation: 'scanMove 1.5s ease-in-out infinite',
         }} />
         {/* Corner markers */}
-        <div style={{ position: 'absolute', top: '10px', left: '10px', width: '24px', height: '24px', borderTop: '3px solid #F0908A', borderLeft: '3px solid #F0908A', borderRadius: '4px 0 0 0' }} />
-        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '24px', height: '24px', borderTop: '3px solid #F0908A', borderRight: '3px solid #F0908A', borderRadius: '0 4px 0 0' }} />
-        <div style={{ position: 'absolute', bottom: '10px', left: '10px', width: '24px', height: '24px', borderBottom: '3px solid #F0908A', borderLeft: '3px solid #F0908A', borderRadius: '0 0 0 4px' }} />
-        <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '24px', height: '24px', borderBottom: '3px solid #F0908A', borderRight: '3px solid #F0908A', borderRadius: '0 0 4px 0' }} />
+        <div style={{ position: 'absolute', top: '10px', left: '10px', width: '24px', height: '24px', borderTop: '3px solid #F0908A', borderLeft: '3px solid #F0908A', borderRadius: '4px 0 0 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '24px', height: '24px', borderTop: '3px solid #F0908A', borderRight: '3px solid #F0908A', borderRadius: '0 4px 0 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', bottom: '10px', left: '10px', width: '24px', height: '24px', borderBottom: '3px solid #F0908A', borderLeft: '3px solid #F0908A', borderRadius: '0 0 0 4px' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '24px', height: '24px', borderBottom: '3px solid #F0908A', borderRight: '3px solid #F0908A', borderRadius: '0 0 4px 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
         {/* Pulsing border */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '24px',
@@ -914,7 +954,7 @@ export default function AIListingPage() {
             {imagePreview && (
               <img
                 src={imagePreview}
-                alt="Item"
+                alt={t.itemAlt}
                 loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
@@ -951,7 +991,7 @@ export default function AIListingPage() {
           position: 'relative', overflow: 'hidden',
         }}>
           <div style={{
-            position: 'absolute', top: '-20px', right: '-20px',
+            position: 'absolute', top: '-20px', insetInlineEnd: '-20px',
             width: '80px', height: '80px', borderRadius: '50%',
             backgroundColor: 'rgba(255,255,255,0.1)',
           }} />
@@ -959,7 +999,7 @@ export default function AIListingPage() {
             {t.estimatedPrice}
           </p>
           <p style={{ fontSize: '28px', fontWeight: 900, color: '#fff', marginBottom: '2px' }}>
-            {aiResult.priceLow} - {aiResult.priceHigh} €
+            {formatMoney(aiResult.priceLow, currency)} – {formatMoney(aiResult.priceHigh, currency)}
           </p>
           <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
             {t.priceBasedOn}
@@ -1035,7 +1075,7 @@ export default function AIListingPage() {
                 outline: 'none', appearance: 'none',
                 backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E")',
                 backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 16px center',
+                backgroundPosition: lang === 'he' ? 'left 16px center' : 'right 16px center', // i18n-ignore (flèche du menu)
                 boxSizing: 'border-box',
               }}
             >
@@ -1083,17 +1123,17 @@ export default function AIListingPage() {
                 value={editPrice}
                 onChange={(e) => setEditPrice(e.target.value)}
                 style={{
-                  width: '100%', padding: '14px 50px 14px 16px', borderRadius: '14px',
+                  width: '100%', paddingBlock: '14px', paddingInlineStart: '16px', paddingInlineEnd: '50px', borderRadius: '14px',
                   backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
                   color: '#fff', fontSize: '15px', fontWeight: 600,
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
               <span style={{
-                position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)',
+                position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)',
                 fontSize: '15px', fontWeight: 700, color: '#555',
               }}>
-                €
+                {currencySymbol(currency)}
               </span>
             </div>
           </div>
@@ -1262,7 +1302,7 @@ export default function AIListingPage() {
             />
             {/* Scan line animation */}
             <div style={{
-              position: 'absolute', top: '50%', left: '50%',
+              position: 'absolute', top: '50%', left: '50%', // i18n-ignore (centrage)
               transform: 'translate(-50%, -50%)',
               width: '280px', height: '160px',
               border: '2px solid rgba(59,130,246,0.5)',
@@ -1288,7 +1328,7 @@ export default function AIListingPage() {
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px', maxWidth: '340px', margin: '12px auto 0' }}>
               <input
                 type="text"
-                placeholder="EAN / UPC"
+                placeholder={t.barcodePlaceholder}
                 id="barcode-manual-input"
                 style={{
                   flex: 1, padding: '12px', borderRadius: '10px',
@@ -1313,7 +1353,7 @@ export default function AIListingPage() {
                   border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                OK
+                {t.ok}
               </button>
             </div>
           </div>
