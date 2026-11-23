@@ -11,6 +11,7 @@ import CreateLiveWizard from '../components/seller/CreateLiveWizard'
 import EngagementSummary from '../components/seller/EngagementSummary'
 import { ft } from '../lib/fulfillmentText'
 import { usePageTitle } from '../hooks/usePageTitle'
+import PageBackButton, { BackArrowButton } from '../components/PageBackButton'
 
 interface HealthMetrics {
   dispute_rate: number
@@ -423,10 +424,13 @@ export default function Dashboard() {
         {/* ─── Hero Section with gradient background ─── */}
         <div style={{
           position: 'relative',
-          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 20px)',
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
           paddingBottom: '40px',
           overflow: 'hidden',
         }}>
+          <div style={{ position: 'relative', zIndex: 1, padding: '0 12px', marginBottom: '8px' }}>
+            <BackArrowButton />
+          </div>
           {/* Background gradient orbs */}
           <div style={{
             position: 'absolute', top: '-60px', insetInlineStart: '-40px',
@@ -835,9 +839,11 @@ export default function Dashboard() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000' }}>
+      <PageBackButton style={{ paddingBottom: '4px' }} />
+
       {/* Performance en direct - Engagement Summary */}
       <div style={{
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
+        paddingTop: '4px',
       }}>
         <EngagementSummary />
       </div>

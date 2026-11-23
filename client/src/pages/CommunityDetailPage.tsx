@@ -7,6 +7,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { rtlPos, rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import PageBackButton from '../components/PageBackButton'
 
 interface RecentStream {
   id: string
@@ -294,14 +295,17 @@ export default function CommunityDetailPage() {
     return (
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: 'flex', flexDirection: 'column',
       }}>
-        <div style={{
-          width: '32px', height: '32px',
-          border: '2px solid #333', borderTopColor: '#F0908A',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-        }} />
+        <PageBackButton fallback="/communities" />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: '32px', height: '32px',
+            border: '2px solid #333', borderTopColor: '#F0908A',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} />
+        </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )

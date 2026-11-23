@@ -12,6 +12,7 @@ import type { CommunityDisplay, CountryCode } from '../lib/data/communitiesData'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { BackArrowButton } from '../components/PageBackButton'
 
 type PluralForms = { one: string; few: string; many: string; other: string }
 type PageText = {
@@ -259,6 +260,7 @@ export default function CommunitiesPage() {
       {/* Header */}
       <div style={{ padding: '20px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+          <BackArrowButton />
           <div style={{
             width: '36px', height: '36px', borderRadius: '10px',
             background: 'linear-gradient(135deg, #F0908A, #E06860)',

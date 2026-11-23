@@ -4,8 +4,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { getLang, getLocale, type Lang, type Localized } from '../lib/i18n'
 import { formatMoney, currencyForCountry } from '../lib/fulfillment'
-import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { BackArrowButton } from '../components/PageBackButton'
 
 // Admin access is verified server-side via requireAdmin middleware
 // Client-side check uses /api/admin/stats response to gate UI
@@ -2174,9 +2174,7 @@ export default function AdminPage() {
           {/* Header */}
           <div style={{ padding: '16px 20px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button onClick={() => navigate('/profile')} style={{ background: 'none', border: 'none', padding: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{...rtlFlip()}}><path d="M15 18l-6-6 6-6"/></svg>
-              </button>
+              <BackArrowButton fallback="/profile" />
               <div>
                 <h1 style={{ fontSize: '22px', fontWeight: 900, color: '#fff', margin: 0 }}>{ct.pageTitle}</h1>
                 <p style={{ fontSize: '11px', color: '#555', margin: '2px 0 0' }}>{ct.backOffice}</p>

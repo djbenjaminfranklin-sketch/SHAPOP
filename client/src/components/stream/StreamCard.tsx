@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import type { Stream } from '../../types/database'
-import { t, getLang, getLocale, tr, type Localized } from '../../lib/i18n'
+import { t, getLang, getLocale, tr, I18N_TRANSLATIONS, type Localized } from '../../lib/i18n'
 import { findCommunityById } from '../../lib/data/communitiesData'
 import { rtlPos, rtlPadding } from '../../lib/rtl'
 import { trackStreamView } from '../../lib/behaviorTracker'
@@ -226,7 +226,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           {stream.title}
         </p>
         <p style={{ fontSize: '12px', fontWeight: 600, color: '#5B9FE4', marginTop: '3px', margin: '3px 0 0' }}>
-          {stream.category}
+          {stream.category && stream.category in I18N_TRANSLATIONS.en ? t(getLang(), stream.category as Parameters<typeof t>[1]) : stream.category}
         </p>
       </div>
     </Link>

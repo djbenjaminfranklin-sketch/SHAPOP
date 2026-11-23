@@ -9,6 +9,8 @@ import { showToast } from '../lib/toast'
 import { apiFetch } from '../lib/api'
 import CartoonAvatar from '../components/CartoonAvatar'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { App as CapApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 
 interface MyStream {
   id: string
@@ -20,6 +22,12 @@ interface MyStream {
 }
 
 export default function Profile() {
+  // Numéro de version réel de l'app installée (sur le web : celui de package.json)
+  const [appVersion, setAppVersion] = useState("")
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    CapApp.getInfo().then(i => setAppVersion(`v${i.version} (${i.build})`)).catch(() => {})
+  }, [])
   const { user, profile, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const lang = useLang()
@@ -996,7 +1004,7 @@ export default function Profile() {
 
         {/* ── Version ─────────────────────────────────────────────── */}
         <div style={{ textAlign: 'center', paddingBottom: '24px', ...entrance('280ms') }}>
-          <p style={{ fontSize: '12px', color: '#444', margin: 0 }}>v1.0.0 (1)</p>
+          <p style={{ fontSize: '12px', color: '#444', margin: 0 }}>{appVersion}</p>{/* i18n-ignore */}
           <p style={{ fontSize: '12px', color: '#444', margin: '2px 0 0' }}>&copy; 2026 ShaPop</p>{/* i18n-ignore */}
         </div>
 
