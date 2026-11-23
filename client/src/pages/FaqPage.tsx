@@ -32,7 +32,7 @@ const content = {
     generalFaq: [
       { q: 'Où ShaPop est-il disponible ?', a: 'ShaPop est disponible en France, en Espagne, au Royaume-Uni et aux États-Unis. Nous prévoyons de nous étendre à d\'autres pays prochainement.' },
       { q: 'Comment supprimer mon compte ?', a: 'Allez dans Profil > Préférences > Supprimer le compte. Vos données personnelles seront supprimées sous 30 jours. Les enregistrements de transactions sont conservés 7 ans conformément à la loi.' },
-      { q: 'Comment signaler un problème ?', a: 'Utilisez l\'option « Nous contacter » dans votre Profil, ou envoyez-nous un e-mail à shapopcontact@gmail.com. Nous répondons sous 24 heures.' },
+      { q: 'Comment signaler un problème ?', a: 'Utilisez l\'option « Nous contacter » dans votre Profil, ou envoyez-nous un e-mail à support@shapop.app. Nous répondons sous 24 heures.' },
       { q: 'ShaPop est-il gratuit ?', a: 'Oui ! L\'application est gratuite à télécharger et à utiliser. Les acheteurs ne paient aucun frais. Les vendeurs paient uniquement sur les ventes effectuées (~13% total TTC).' },
     ] as FaqItem[],
   },
@@ -61,7 +61,7 @@ const content = {
     generalFaq: [
       { q: 'Where is ShaPop available?', a: 'ShaPop is available in France, Spain, UK, and USA. We plan to expand to additional countries soon.' },
       { q: 'How do I delete my account?', a: 'Go to Profile > Preferences > Delete Account. Your personal data will be removed within 30 days. Transaction records are kept for 7 years as required by law.' },
-      { q: 'How do I report a problem?', a: 'Use the "Contact us" option in your Profile, or email us at shapopcontact@gmail.com. We respond within 24 hours.' },
+      { q: 'How do I report a problem?', a: 'Use the "Contact us" option in your Profile, or email us at support@shapop.app. We respond within 24 hours.' },
       { q: 'Is ShaPop free to use?', a: 'Yes! The app is free to download and use. Buyers pay no fees. Sellers only pay fees on completed sales (~13% total incl. VAT).' },
     ] as FaqItem[],
   },
@@ -90,7 +90,7 @@ const content = {
     generalFaq: [
       { q: '\u05D4\u05D9\u05DB\u05DF ShaPop \u05D6\u05DE\u05D9\u05E0\u05D4?', a: 'ShaPop \u05D6\u05DE\u05D9\u05E0\u05D4 \u05D1\u05E6\u05E8\u05E4\u05EA, \u05E1\u05E4\u05E8\u05D3, \u05D1\u05E8\u05D9\u05D8\u05E0\u05D9\u05D4 \u05D5\u05D0\u05E8\u05D4"\u05D1. \u05D0\u05E0\u05D5 \u05DE\u05EA\u05DB\u05E0\u05E0\u05D9\u05DD \u05DC\u05D4\u05EA\u05E8\u05D7\u05D1 \u05DC\u05DE\u05D3\u05D9\u05E0\u05D5\u05EA \u05E0\u05D5\u05E1\u05E4\u05D5\u05EA \u05D1\u05E7\u05E8\u05D5\u05D1.' },
       { q: '\u05D0\u05D9\u05DA \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D7\u05E9\u05D1\u05D5\u05DF?', a: '\u05DC\u05DB\u05D5 \u05DC\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC > \u05D4\u05E2\u05D3\u05E4\u05D5\u05EA > \u05DE\u05D7\u05D9\u05E7\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF. \u05D4\u05DE\u05D9\u05D3\u05E2 \u05D4\u05D0\u05D9\u05E9\u05D9 \u05D9\u05D9\u05DE\u05D7\u05E7 \u05EA\u05D5\u05DA 30 \u05D9\u05D5\u05DD.' },
-      { q: '\u05D0\u05D9\u05DA \u05DE\u05D3\u05D5\u05D5\u05D7\u05D9\u05DD \u05E2\u05DC \u05D1\u05E2\u05D9\u05D4?', a: '\u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA "\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8" \u05D1\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC, \u05D0\u05D5 \u05E9\u05DC\u05D7\u05D5 \u05DE\u05D9\u05D9\u05DC \u05DC-shapopcontact@gmail.com. \u05D0\u05E0\u05D5 \u05E2\u05D5\u05E0\u05D9\u05DD \u05EA\u05D5\u05DA 24 \u05E9\u05E2\u05D5\u05EA.' },
+      { q: '\u05D0\u05D9\u05DA \u05DE\u05D3\u05D5\u05D5\u05D7\u05D9\u05DD \u05E2\u05DC \u05D1\u05E2\u05D9\u05D4?', a: '\u05D4\u05E9\u05EA\u05DE\u05E9\u05D5 \u05D1\u05D0\u05E4\u05E9\u05E8\u05D5\u05EA "\u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8" \u05D1\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC, \u05D0\u05D5 \u05E9\u05DC\u05D7\u05D5 \u05DE\u05D9\u05D9\u05DC \u05DC-support@shapop.app. \u05D0\u05E0\u05D5 \u05E2\u05D5\u05E0\u05D9\u05DD \u05EA\u05D5\u05DA 24 \u05E9\u05E2\u05D5\u05EA.' },
       { q: '\u05D4\u05D0\u05DD ShaPop \u05D7\u05D9\u05E0\u05DE\u05D9\u05EA?', a: '\u05DB\u05DF! \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05D7\u05D9\u05E0\u05DE\u05D9\u05EA \u05DC\u05D4\u05D5\u05E8\u05D3\u05D4 \u05D5\u05DC\u05E9\u05D9\u05DE\u05D5\u05E9. \u05E7\u05D5\u05E0\u05D9\u05DD \u05DC\u05D0 \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05E2\u05DE\u05DC\u05D5\u05EA. \u05DE\u05D5\u05DB\u05E8\u05D9\u05DD \u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05E2\u05DE\u05DC\u05D4 \u05E7\u05D8\u05E0\u05D4 \u05E8\u05E7 \u05DE\u05DE\u05DB\u05D9\u05E8\u05D5\u05EA \u05E9\u05D4\u05D5\u05E9\u05DC\u05DE\u05D5.' },
     ] as FaqItem[],
   },
@@ -119,7 +119,7 @@ const content = {
     generalFaq: [
       { q: '\u00BFD\u00F3nde est\u00E1 disponible ShaPop?', a: 'ShaPop est\u00E1 disponible en Francia, Espa\u00F1a, Reino Unido y Estados Unidos. Planeamos expandirnos a otros pa\u00EDses pr\u00F3ximamente.' },
       { q: '\u00BFC\u00F3mo elimino mi cuenta?', a: 'Ve a Perfil > Preferencias > Eliminar cuenta. Tus datos personales se eliminar\u00E1n en un plazo de 30 d\u00EDas. Los registros de transacciones se conservan durante 7 a\u00F1os conforme a la ley.' },
-      { q: '\u00BFC\u00F3mo reporto un problema?', a: 'Utiliza la opci\u00F3n \u00ABCont\u00E1ctanos\u00BB en tu Perfil, o env\u00EDanos un correo electr\u00F3nico a shapopcontact@gmail.com. Respondemos en un plazo de 24 horas.' },
+      { q: '\u00BFC\u00F3mo reporto un problema?', a: 'Utiliza la opci\u00F3n \u00ABCont\u00E1ctanos\u00BB en tu Perfil, o env\u00EDanos un correo electr\u00F3nico a support@shapop.app. Respondemos en un plazo de 24 horas.' },
       { q: '\u00BFEs gratis ShaPop?', a: '\u00A1S\u00ED! La aplicaci\u00F3n es gratuita para descargar y usar. Los compradores no pagan ninguna comisi\u00F3n. Los vendedores solo pagan sobre las ventas realizadas (~13% total IVA incl.).' },
     ] as FaqItem[],
   },

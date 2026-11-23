@@ -234,7 +234,7 @@ export default function ContactPage() {
         {/* Direct email */}
         <div style={{ marginTop: '32px', padding: '16px', backgroundColor: '#111', borderRadius: '12px' }}>
           <p style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>{c.email}</p>
-          <a href="mailto:shapopcontact@gmail.com" style={{ fontSize: '15px', color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>shapopcontact@gmail.com</a>
+          <a href="mailto:support@shapop.app" style={{ fontSize: '15px', color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>support@shapop.app</a>
           <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>{c.hours}</p>
         </div>
       </div>

@@ -20,7 +20,7 @@ const content = {
       { h: '10. Limitation de responsabilité', p: 'DANS TOUTE LA MESURE PERMISE PAR LA LOI, SHAPOP NE POURRA ÊTRE TENUE RESPONSABLE DES DOMMAGES INDIRECTS, ACCESSOIRES, SPÉCIAUX OU CONSÉCUTIFS RÉSULTANT DE VOTRE UTILISATION DE L\'APPLICATION.' },
       { h: '11. Conditions spécifiques à Apple', p: 'Le présent CLUF est conclu entre vous et ShaPop uniquement, et non avec Apple Inc. Apple n\'a aucune obligation de fournir des services de maintenance ou d\'assistance. En cas de non-conformité de l\'Application aux garanties applicables, vous pouvez en informer Apple pour obtenir un remboursement du prix d\'achat (le cas échéant). Apple n\'est pas responsable du traitement des réclamations relatives à l\'Application. Apple et ses filiales sont des tiers bénéficiaires du présent CLUF.' },
       { h: '12. Droit applicable', p: 'Le présent CLUF est régi par les lois de la France. Les litiges seront tranchés par les tribunaux de Paris.' },
-      { h: '13. Contact', p: 'Pour toute question relative au présent CLUF : shapopcontact@gmail.com' },
+      { h: '13. Contact', p: 'Pour toute question relative au présent CLUF : support@shapop.app' },
     ],
   },
   en: {
@@ -39,7 +39,7 @@ const content = {
       { h: '10. Limitation of Liability', p: 'TO THE MAXIMUM EXTENT PERMITTED BY LAW, SHAPOP SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES ARISING FROM YOUR USE OF THE APP.' },
       { h: '11. Apple-Specific Terms', p: 'This EULA is between you and ShaPop only, not Apple Inc. Apple has no obligation to furnish any maintenance or support services. In the event of any failure of the App to conform to applicable warranties, you may notify Apple for a refund of the purchase price (if any). Apple is not responsible for addressing any claims relating to the App. Apple and its subsidiaries are third-party beneficiaries of this EULA.' },
       { h: '12. Governing Law', p: 'This EULA is governed by the laws of France. Disputes shall be resolved in the courts of Paris.' },
-      { h: '13. Contact', p: 'For questions about this EULA: shapopcontact@gmail.com' },
+      { h: '13. Contact', p: 'For questions about this EULA: support@shapop.app' },
     ],
   },
   he: {
@@ -58,7 +58,7 @@ const content = {
       { h: '10. \u05D4\u05D2\u05D1\u05DC\u05EA \u05D0\u05D7\u05E8\u05D9\u05D5\u05EA', p: '\u05D1\u05DE\u05D9\u05D3\u05D4 \u05D4\u05DE\u05E8\u05D1\u05D9\u05EA \u05D4\u05DE\u05D5\u05EA\u05E8\u05EA \u05D1\u05D7\u05D5\u05E7, ShaPop \u05DC\u05D0 \u05EA\u05D9\u05E9\u05D0 \u05D1\u05D0\u05D7\u05E8\u05D9\u05D5\u05EA \u05DC\u05E0\u05D6\u05E7\u05D9\u05DD \u05E2\u05E7\u05D9\u05E4\u05D9\u05DD.' },
       { h: '11. \u05EA\u05E0\u05D0\u05D9 Apple', p: '\u05D4\u05E1\u05DB\u05DD \u05D6\u05D4 \u05D1\u05D9\u05E0\u05DA \u05DC\u05D1\u05D9\u05DF ShaPop \u05D1\u05DC\u05D1\u05D3, \u05DC\u05D0 Apple. \u05DC-Apple \u05D0\u05D9\u05DF \u05D7\u05D5\u05D1\u05EA \u05EA\u05D7\u05D6\u05D5\u05E7\u05D4 \u05D0\u05D5 \u05EA\u05DE\u05D9\u05DB\u05D4. Apple \u05D5\u05D7\u05D1\u05E8\u05D5\u05EA \u05D4\u05D1\u05EA \u05E9\u05DC\u05D4 \u05D4\u05DD \u05DE\u05D5\u05D8\u05D1\u05D9\u05DD \u05E9\u05DC \u05D4\u05E1\u05DB\u05DD \u05D6\u05D4.' },
       { h: '12. \u05D3\u05D9\u05DF \u05D7\u05DC', p: '\u05D4\u05E1\u05DB\u05DD \u05DB\u05E4\u05D5\u05E3 \u05DC\u05D3\u05D9\u05E0\u05D9 \u05E6\u05E8\u05E4\u05EA. \u05E1\u05DB\u05E1\u05D5\u05DB\u05D9\u05DD \u05D9\u05D5\u05DB\u05E8\u05E2\u05D5 \u05D1\u05D1\u05EA\u05D9 \u05D4\u05DE\u05E9\u05E4\u05D8 \u05D1\u05E4\u05E8\u05D9\u05D6.' },
-      { h: '13. \u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', p: '\u05DC\u05E9\u05D0\u05DC\u05D5\u05EA: shapopcontact@gmail.com' },
+      { h: '13. \u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', p: '\u05DC\u05E9\u05D0\u05DC\u05D5\u05EA: support@shapop.app' },
     ],
   },
   es: {
@@ -77,7 +77,7 @@ const content = {
       { h: '10. Limitacion de Responsabilidad', p: 'SHAPOP NO SERA RESPONSABLE POR DANOS INDIRECTOS, INCIDENTALES O CONSECUENTES.' },
       { h: '11. Terminos de Apple', p: 'Este EULA es entre usted y ShaPop, no Apple. Apple no tiene obligacion de mantenimiento. Apple y sus subsidiarias son terceros beneficiarios de este EULA.' },
       { h: '12. Ley Aplicable', p: 'Este EULA se rige por las leyes de Francia. Disputas en tribunales de Paris.' },
-      { h: '13. Contacto', p: 'Preguntas: shapopcontact@gmail.com' },
+      { h: '13. Contacto', p: 'Preguntas: support@shapop.app' },
     ],
   },
 }

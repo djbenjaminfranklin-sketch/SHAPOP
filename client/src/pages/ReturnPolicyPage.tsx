@@ -16,7 +16,7 @@ const content = {
       { h: '6. Frais de livraison', p: 'Les frais de retour sont a la charge de l\'acheteur, sauf en cas d\'article defectueux, non conforme a la description ou envoye par erreur. Dans ces cas, les frais de retour sont pris en charge par le vendeur.' },
       { h: '7. Litiges', p: 'En cas de litige entre l\'acheteur et le vendeur concernant un retour, ShaPop propose un service de mediation. Si le litige persiste, vous pouvez contacter notre equipe support pour une resolution.' },
       { h: '8. Obligations du vendeur', p: 'Le droit francais de la consommation s\'applique a toutes les transactions, independamment de la politique individuelle du vendeur. Les vendeurs sont tenus de respecter le droit de retractation de 14 jours et les garanties legales de conformite.' },
-      { h: '9. Contact', p: 'Pour toute question concernant les retours et remboursements : shapopcontact@gmail.com' },
+      { h: '9. Contact', p: 'Pour toute question concernant les retours et remboursements : support@shapop.app' },
     ],
   },
   en: {
@@ -31,7 +31,7 @@ const content = {
       { h: '6. Shipping Costs', p: 'Return shipping costs are the buyer\'s responsibility, except in cases of defective items, items not matching the description, or items sent in error. In these cases, return shipping is covered by the seller.' },
       { h: '7. Disputes', p: 'In case of a dispute between the buyer and seller regarding a return, ShaPop offers a mediation service. If the dispute persists, you can contact our support team for resolution.' },
       { h: '8. Seller Obligations', p: 'French consumer law applies to all transactions, regardless of the seller\'s individual policy. Sellers are required to respect the 14-day withdrawal right and legal conformity guarantees.' },
-      { h: '9. Contact', p: 'For any questions about returns and refunds: shapopcontact@gmail.com' },
+      { h: '9. Contact', p: 'For any questions about returns and refunds: support@shapop.app' },
     ],
   },
   he: {
@@ -46,7 +46,7 @@ const content = {
       { h: '6. \u05E2\u05DC\u05D5\u05D9\u05D5\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7', p: '\u05E2\u05DC\u05D5\u05D9\u05D5\u05EA \u05DE\u05E9\u05DC\u05D5\u05D7 \u05D4\u05D7\u05D6\u05E8\u05D4 \u05D4\u05DF \u05E2\u05DC \u05D4\u05E7\u05D5\u05E0\u05D4, \u05DC\u05DE\u05E2\u05D8 \u05E4\u05E8\u05D9\u05D8 \u05E4\u05D2\u05D5\u05DD \u05D0\u05D5 \u05DC\u05D0 \u05EA\u05D5\u05D0\u05DD \u05D0\u05EA \u05D4\u05EA\u05D9\u05D0\u05D5\u05E8.' },
       { h: '7. \u05E1\u05DB\u05E1\u05D5\u05DB\u05D9\u05DD', p: '\u05D1\u05DE\u05E7\u05E8\u05D4 \u05E9\u05DC \u05E1\u05DB\u05E1\u05D5\u05DA, ShaPop \u05DE\u05E6\u05D9\u05E2\u05D4 \u05E9\u05D9\u05E8\u05D5\u05EA \u05D2\u05D9\u05E9\u05D5\u05E8. \u05D0\u05DD \u05D4\u05E1\u05DB\u05E1\u05D5\u05DA \u05E0\u05DE\u05E9\u05DA, \u05E4\u05E0\u05D5 \u05DC\u05E6\u05D5\u05D5\u05EA \u05D4\u05EA\u05DE\u05D9\u05DB\u05D4.' },
       { h: '8. \u05D7\u05D5\u05D1\u05D5\u05EA \u05D4\u05DE\u05D5\u05DB\u05E8', p: '\u05D7\u05D5\u05E7 \u05D4\u05E6\u05E8\u05DB\u05E0\u05D5\u05EA \u05D4\u05E6\u05E8\u05E4\u05EA\u05D9 \u05D7\u05DC \u05E2\u05DC \u05DB\u05DC \u05D4\u05E2\u05E1\u05E7\u05D0\u05D5\u05EA, \u05DC\u05DC\u05D0 \u05E7\u05E9\u05E8 \u05DC\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05EA \u05E9\u05DC \u05D4\u05DE\u05D5\u05DB\u05E8.' },
-      { h: '9. \u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', p: '\u05DC\u05E9\u05D0\u05DC\u05D5\u05EA \u05E2\u05DC \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA: shapopcontact@gmail.com' },
+      { h: '9. \u05E6\u05D5\u05E8 \u05E7\u05E9\u05E8', p: '\u05DC\u05E9\u05D0\u05DC\u05D5\u05EA \u05E2\u05DC \u05D4\u05D7\u05D6\u05E8\u05D5\u05EA: support@shapop.app' },
     ],
   },
   es: {
@@ -61,7 +61,7 @@ const content = {
       { h: '6. Gastos de Envio', p: 'Los gastos de envio de devolucion corren a cargo del comprador, excepto en caso de articulo defectuoso, no conforme con la descripcion o enviado por error.' },
       { h: '7. Disputas', p: 'En caso de disputa entre comprador y vendedor, ShaPop ofrece un servicio de mediacion. Si la disputa persiste, puedes contactar a nuestro equipo de soporte.' },
       { h: '8. Obligaciones del Vendedor', p: 'La ley francesa de consumo se aplica a todas las transacciones, independientemente de la politica individual del vendedor. Los vendedores deben respetar el derecho de desistimiento de 14 dias.' },
-      { h: '9. Contacto', p: 'Para preguntas sobre devoluciones y reembolsos: shapopcontact@gmail.com' },
+      { h: '9. Contacto', p: 'Para preguntas sobre devoluciones y reembolsos: support@shapop.app' },
     ],
   },
 }

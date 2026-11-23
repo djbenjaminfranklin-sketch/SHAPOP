@@ -4914,7 +4914,7 @@ export default function StreamView() {
                 setShowMoreMenu(false)
                 if (stream) {
                   const subject = encodeURIComponent(`Signalement live ${stream.id}`)
-                  window.open(`mailto:shapopcontact@gmail.com?subject=${subject}`, '_blank')
+                  window.open(`mailto:support@shapop.app?subject=${subject}`, '_blank')
                 }
               }}
               style={{
