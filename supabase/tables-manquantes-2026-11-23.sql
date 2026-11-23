@@ -20,3 +20,7 @@ CREATE TABLE IF NOT EXISTS public.spend_limits (
 );
 ALTER TABLE public.spend_limits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY spend_limits_select_own ON public.spend_limits FOR SELECT USING (auth.uid() = user_id);
+
+-- Avis : liens vers les profils (sinon /api/sellers/:id/reviews renvoyait 500)
+alter table public.reviews add constraint reviews_buyer_id_fkey foreign key (buyer_id) references public.profiles(id) on delete cascade;
+alter table public.reviews add constraint reviews_seller_id_fkey foreign key (seller_id) references public.profiles(id) on delete cascade;
