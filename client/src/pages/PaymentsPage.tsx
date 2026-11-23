@@ -913,7 +913,7 @@ export default function PaymentsPage() {
             </p>
             <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0', lineHeight: 1.4 }}>
               {defaultAddress
-                ? `${defaultAddress.street}\n${defaultAddress.zip} ${defaultAddress.city}`
+                ? (defaultAddress.street.toUpperCase().includes(String(defaultAddress.city || '').toUpperCase()) && defaultAddress.city ? defaultAddress.street : `${defaultAddress.street}\n${defaultAddress.zip} ${defaultAddress.city}`)
                 : c.noAddress}
             </p>
           </div>

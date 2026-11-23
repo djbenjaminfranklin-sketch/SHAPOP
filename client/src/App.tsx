@@ -11,7 +11,6 @@ import { isPushAvailable, syncAndroidSystemBars } from './lib/nativePlatform'
 import PrePermissionModal from './components/PrePermissionModal'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import BottomNav from './components/BottomNav'
-import HomeButton from './components/HomeButton'
 import SplashScreen from './components/SplashScreen'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getLang, getDir, t, tr, useLang, applyDocumentLang, type Localized } from './lib/i18n'
@@ -337,7 +336,6 @@ export default function App() {
               {t(lang, 'skip_to_content')}
             </a>
             <OfflineBanner />
-            <HomeButton />
             <Suspense fallback={<PageLoader />}>
               <main id="main-content">
               <Routes>

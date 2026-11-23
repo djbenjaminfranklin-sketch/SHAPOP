@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getDir, getLang } from '../../lib/i18n'
+import { getDir, getLang, getLocale } from '../../lib/i18n'
 import { ApiError, formatMoney, fulfillmentApi, type SellerFulfillmentSettings } from '../../lib/fulfillment'
 import { errorText, ft } from '../../lib/fulfillmentText'
 
@@ -102,7 +102,7 @@ export default function FulfillmentSettings() {
                 background: delay === d ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#0D0D0D',
                 border: delay === d ? 'none' : '1px solid #222', color: delay === d ? '#fff' : '#888',
               }}>
-              {d} {t.days}
+              {(() => { try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'day', unitDisplay: 'long' }).format(d) } catch { return `${d} ${t.days}` } })()}
             </button>
           ))}
         </div>
