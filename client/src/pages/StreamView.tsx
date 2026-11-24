@@ -27,6 +27,7 @@ import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 import { useLiveScreen } from '../hooks/useLiveScreen'
+import ReportSheet from '../components/ReportSheet'
 
 const streamContent = {
   en: {
@@ -936,6 +937,7 @@ export default function StreamView() {
 
   // More menu state
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showReport, setShowReport] = useState(false)
 
   // Multi-view state
   const [multiViewStreams, setMultiViewStreams] = useState<{ id: string; title: string; sellerName: string; sellerCountry: string | null; lkUrl: string; lkToken: string }[]>([])
@@ -4890,6 +4892,16 @@ export default function StreamView() {
       )}
 
       {/* ═══ MORE MENU ═══ */}
+      {showReport && stream && (
+        <ReportSheet
+          reportedId={stream.seller_id}
+          streamId={stream.id}
+          itemId={activeAuction?.id || null}
+          context="live"
+          onClose={() => setShowReport(false)}
+          onDone={(msg) => { setShowReport(false); showToast(msg) }}
+        />
+      )}
       {showMoreMenu && (
         <div
           onClick={() => setShowMoreMenu(false)}
@@ -4919,10 +4931,7 @@ export default function StreamView() {
             <button
               onClick={() => {
                 setShowMoreMenu(false)
-                if (stream) {
-                  const subject = encodeURIComponent(`${ct.reportSubject} ${stream.id}`)
-                  window.open(`mailto:support@shapop.app?subject=${subject}`, '_blank')
-                }
+                if (stream) setShowReport(true)
               }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
