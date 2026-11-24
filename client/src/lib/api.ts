@@ -4,8 +4,10 @@
 export const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000'
 
 // Helper for API fetch calls
+// Jamais de réponse servie depuis le cache HTTP du téléphone : sinon un 304 rend
+// l'ancien état (ex. « pas de compte bancaire » juste après l'avoir enregistré).
 export function apiFetch(path: string, options?: RequestInit): Promise<Response> {
-  return fetch(`${API_URL}${path}`, options)
+  return fetch(`${API_URL}${path}`, { cache: 'no-store', ...options })
 }
 
 // WebSocket URL builder
