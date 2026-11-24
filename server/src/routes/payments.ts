@@ -7,7 +7,8 @@ import { requireAuth, paymentLimiter } from '../middleware'
 import { calculateFees, getPaypalAccessToken } from '../utils'
 import { getActivePromotion, getValidPromoCode } from './promotions'
 import { markOrderPaid } from '../services/orderLifecycle'
-import { captureAuthorizedPayment, captureRapydOrder } from '../services/cardAuthorization'
+import { captureAuthorizedPayment, captureRapydOrder, captureAirwallexOrder } from '../services/cardAuthorization'
+import * as awx from '../payments/airwallex'
 import { userHasSavedCard } from '../viewerPreview'
 import { providerForCountry } from '../payments/provider'
 import { rapydConfig, createCustomer as createRapydCustomer, createSaveCardPage, createPersonWallet, createIdentityPage } from '../payments/rapyd'
@@ -237,9 +238,19 @@ router.get('/api/stripe/card-info', requireAuth, async (req: AuthenticatedReques
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, airwallex_customer_id')
       .eq('id', userId)
       .single()
+
+    // Israël : carte enregistrée chez Airwallex
+    if (profile?.airwallex_customer_id && awx.airwallexConfig().enabled) {
+      const consent = await awx.latestVerifiedConsent(profile.airwallex_customer_id).catch(() => null)
+      const card = consent?.payment_method?.card
+      if (consent) {
+        res.json({ has_card: true, provider: 'airwallex', brand: (card?.brand || 'card').toLowerCase(), last4: card?.last4 || '****', exp_month: card?.expiry_month ? Number(card.expiry_month) : undefined, exp_year: card?.expiry_year ? Number(card.expiry_year) : undefined })
+        return
+      }
+    }
 
     if (!profile?.stripe_customer_id) {
       res.json({ has_card: false })
@@ -383,6 +394,81 @@ router.post('/api/rapyd/seller-identity', paymentLimiter, requireAuth, async (re
   }
 })
 
+// =============================================
+// AIRWALLEX (Israël) — carte de l'acheteur et compte bancaire du vendeur
+// =============================================
+async function ensureAirwallexCustomer(userId: string, email?: string): Promise<string> {
+  const { data: profile } = await supabase.from('profiles').select('airwallex_customer_id, display_name, username').eq('id', userId).maybeSingle()
+  const existing = (profile as { airwallex_customer_id?: string | null } | null)?.airwallex_customer_id
+  if (existing) return existing
+  const c = await awx.createCustomer({ merchantCustomerId: userId, email, name: profile?.display_name || profile?.username || null })
+  await supabase.from('profiles').update({ airwallex_customer_id: c.id }).eq('id', userId)
+  return c.id
+}
+
+router.post('/api/airwallex/card-page', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!awx.airwallexConfig().enabled) { res.status(503).json({ error: 'airwallex_not_enabled' }); return }
+    const customerId = await ensureAirwallexCustomer(req.user!.id, req.user!.email)
+    const session = await awx.createSaveCardSession({ customerId, currency: 'ILS', successUrl: process.env.AIRWALLEX_SUCCESS_URL || 'https://shapop.onrender.com/card-saved' })
+    res.json({ redirect_url: session.url })
+  } catch (err: any) {
+    console.error('[airwallex] card-page', err?.message || err, err?.code)
+    res.status(500).json({ error: 'Failed to open card page' })
+  }
+})
+
+const IsraeliBankBody = z.object({
+  first_name: z.string().trim().min(1).max(60),
+  last_name: z.string().trim().min(1).max(60),
+  iban: z.string().trim().min(15).max(40),
+  street: z.string().trim().min(3).max(120),
+  city: z.string().trim().min(1).max(60),
+  postcode: z.string().trim().max(12).optional(),
+})
+
+router.get('/api/payouts-il/status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id
+  const [{ data: seller }, { data: profile }] = await Promise.all([
+    supabase.from('sellers').select('airwallex_beneficiary_id, payout_bank_last4').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('country').eq('id', userId).maybeSingle(),
+  ])
+  const sel = seller as { airwallex_beneficiary_id?: string | null; payout_bank_last4?: string | null } | null
+  res.json({
+    enabled: awx.airwallexConfig().enabled,
+    country: (profile as { country?: string | null } | null)?.country || null,
+    has_bank: !!sel?.airwallex_beneficiary_id,
+    bank_last4: sel?.payout_bank_last4 || null,
+  })
+})
+
+router.post('/api/payouts-il/bank', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!awx.airwallexConfig().enabled) { res.status(503).json({ error: 'airwallex_not_enabled' }); return }
+    const parsed = IsraeliBankBody.safeParse(req.body)
+    if (!parsed.success) { res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors }); return }
+    const b = parsed.data
+    const iban = awx.normalizeIsraeliIban(b.iban)
+    if (!iban) { res.status(400).json({ error: 'invalid_iban' }); return }
+    const userId = req.user!.id
+    const ben = await awx.createIsraeliBeneficiary({ firstName: b.first_name, lastName: b.last_name, iban, city: b.city, street: b.street, postcode: b.postcode || null, nickname: `shapop_${userId}` })
+    const id = ben.beneficiary_id || ben.id
+    if (!id) throw new Error('no beneficiary id')
+    await supabase.from('sellers').upsert({ id: userId, airwallex_beneficiary_id: id, payout_bank_last4: iban.slice(-4) }, { onConflict: 'id' })
+    res.json({ success: true, bank_last4: iban.slice(-4) })
+  } catch (err: any) {
+    console.error('[airwallex] bank', err?.message || err, err?.code, JSON.stringify(err?.details || '').slice(0, 300))
+    res.status(err?.status === 400 ? 400 : 500).json({ error: err?.status === 400 ? 'bank_rejected' : 'Failed to save bank account' })
+  }
+})
+
+// Page affichée par le navigateur intégré après l'enregistrement de la carte (Airwallex)
+router.get('/card-saved', (_req: Request, res: Response) => {
+  res.type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ShaPop</title>
+<style>body{font-family:-apple-system,system-ui,sans-serif;background:#0b0b0b;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;text-align:center;padding:24px}h1{color:#22C55E;font-size:24px}p{color:#bbb;line-height:1.6}</style></head>
+<body><div><h1>✓</h1><p>Card saved — you can close this page.<br>Carte enregistrée — tu peux fermer cette page.<br>Tarjeta guardada — puedes cerrar esta página.<br>Карта сохранена — можно закрыть страницу.<br>הכרטיס נשמר — אפשר לסגור את הדף.</p></div></body></html>`)
+})
+
 // Create a PaymentIntent when a buyer wins an auction
 router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -423,7 +509,7 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     const isAdminSeller = isAdminUser(sellerAuth?.user?.email ?? undefined)
 
     // Commande Israël (Rapyd) : pas de compte Stripe du vendeur à vérifier
-    const isRapydOrder = order.payment_provider === 'rapyd'
+    const isRapydOrder = order.payment_provider === 'rapyd' || order.payment_provider === 'airwallex'
 
     if (!isRapydOrder && !isPaypalSeller && !isAdminSeller) {
       // Stripe seller: must have a connected Stripe account
@@ -513,16 +599,17 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
 
     // Israël (Rapyd) : on prélève l'argent réservé à la fin de l'enchère (montant réel)
     if (isRapydOrder) {
-      const paid = await captureRapydOrder(order_id, totalAmount)
-      if (!paid) { res.status(402).json({ error: 'card_declined', provider: 'rapyd' }); return }
+      const prov = order.payment_provider as string
+      const paid = prov === 'airwallex' ? await captureAirwallexOrder(order_id, totalAmount) : await captureRapydOrder(order_id, totalAmount)
+      if (!paid) { res.status(402).json({ error: 'card_declined', provider: prov }); return }
       await supabase.from('orders').update({
-        payout_method: 'rapyd', shipping_cost: shippingCost, total_amount: totalAmount,
+        payout_method: prov, shipping_cost: shippingCost, total_amount: totalAmount,
         platform_fee: fees.platformFee, processing_fee: fees.processingFee, seller_payout: fees.sellerPayout,
         ...(promotionId ? { promotion_id: promotionId } : {}),
         ...(promoCodeId ? { promo_code_id: promoCodeId, promo_discount: promoDiscount } : {}),
       }).eq('id', order_id)
       await markOrderPaid(order_id)
-      res.json({ auto_charged: true, provider: 'rapyd', shipping_cost: shippingCost, total_amount: totalAmount })
+      res.json({ auto_charged: true, provider: prov, shipping_cost: shippingCost, total_amount: totalAmount })
       return
     }
 

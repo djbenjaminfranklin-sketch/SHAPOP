@@ -6,6 +6,7 @@ import { calculateFees, notifyFollowersSellerLive, notifyUserT, getPaypalAccessT
 import { localized, money, getUserCurrency } from '../i18n'
 import { markOrderPaid } from '../services/orderLifecycle'
 import { verifyRapydWebhook } from '../payments/rapyd'
+import { verifyAirwallexWebhook } from '../payments/airwallex'
 
 // Idempotency: in-memory cache + database persistence
 // The in-memory Set acts as a fast-path to avoid DB lookups on every webhook.
@@ -529,6 +530,32 @@ export async function rapydWebhookHandler(req: Request, res: Response) {
     res.json({ received: true })
   } catch (err) {
     console.error('[Rapyd webhook]', err)
+    res.status(500).json({ error: 'Webhook error' })
+  }
+}
+
+// =============================================
+// AIRWALLEX (Israël) — confirmations (le serveur interroge déjà Airwallex à chaque étape ;
+// le webhook sert de filet). Secret : AIRWALLEX_WEBHOOK_SECRET.
+// =============================================
+export async function airwallexWebhookHandler(req: Request, res: Response) {
+  try {
+    const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(req.body || {})
+    if (!verifyAirwallexWebhook({ timestamp: String(req.headers['x-timestamp'] || ''), signature: String(req.headers['x-signature'] || ''), body: raw })) {
+      res.status(401).json({ error: 'Invalid signature' }); return
+    }
+    const event = JSON.parse(raw) as { id?: string; name?: string; data?: { object?: { merchant_order_id?: string; metadata?: Record<string, string> } } }
+    if (event.id && await isEventProcessed('airwallex', event.id)) { res.json({ received: true, duplicate: true }); return }
+    const obj = event.data?.object
+    const orderId = obj?.metadata?.order_id || obj?.merchant_order_id
+    if (event.name === 'payment_intent.succeeded' && orderId) {
+      const { data: o } = await supabase.from('orders').select('fulfillment_method').eq('id', orderId).maybeSingle()
+      // Payée seulement si l'acheteur a choisi la remise (sinon c'est juste la réservation)
+      if (o && (o as { fulfillment_method?: string | null }).fulfillment_method) await markOrderPaid(orderId)
+    }
+    res.json({ received: true })
+  } catch (err) {
+    console.error('[Airwallex webhook]', err)
     res.status(500).json({ error: 'Webhook error' })
   }
 }

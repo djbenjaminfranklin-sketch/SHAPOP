@@ -11,6 +11,7 @@ import { isPaidStatus } from '../fulfillment'
 import { postPriceForOrder } from '../routes/fulfillment'
 import { providerForSeller } from '../payments/provider'
 import * as rapyd from '../payments/rapyd'
+import * as awx from '../payments/airwallex'
 
 export type AuthorizationStatus = 'authorized' | 'paid' | 'declined' | 'no_card' | 'error'
 export type AuthorizationResult = { status: AuthorizationStatus; code?: string }
@@ -24,6 +25,7 @@ type OrderRow = {
   status: string
   auth_payment_intent_id: string | null
   rapyd_payment_id?: string | null
+  airwallex_intent_id?: string | null
 }
 
 /** Destination de l'argent : compte Stripe du vendeur, ou compte ShaPop (admin / PayPal). */
@@ -58,7 +60,7 @@ async function saveResult(orderId: string, fields: Record<string, unknown>) {
 export async function authorizeOrderPayment(orderId: string, opts: { notifyBuyer?: boolean } = {}): Promise<AuthorizationResult> {
   const { data: order } = await supabase
     .from('orders')
-    .select('id, buyer_id, seller_id, item_id, amount, status, auth_payment_intent_id, rapyd_payment_id')
+    .select('id, buyer_id, seller_id, item_id, amount, status, auth_payment_intent_id, rapyd_payment_id, airwallex_intent_id')
     .eq('id', orderId)
     .maybeSingle<OrderRow>()
   if (!order) return { status: 'error', code: 'order_not_found' }
@@ -66,7 +68,9 @@ export async function authorizeOrderPayment(orderId: string, opts: { notifyBuyer
   if (order.status !== 'pending_payment') return { status: 'error', code: 'order_closed' }
 
   // Israël → Rapyd ; autres pays → Stripe (suite de la fonction)
-  if (await providerForSeller(order.seller_id) === 'rapyd') return authorizeWithRapyd(order, opts)
+  const provider = await providerForSeller(order.seller_id)
+  if (provider === 'airwallex') return authorizeWithAirwallex(order, opts)
+  if (provider === 'rapyd') return authorizeWithRapyd(order, opts)
 
   // Une autorisation encore valable ? On la garde. Sinon on l'annule avant d'en refaire une.
   if (order.auth_payment_intent_id) {
@@ -288,4 +292,103 @@ export async function captureRapydOrder(orderId: string, totalAmount: number): P
     console.error('[cardAuthorization] rapyd capture', err?.message || err)
     return false
   }
+}
+
+// ---------------------------------------------------------------------------
+// Airwallex (Israël) : réserve sur la carte enregistrée du gagnant (consentement « marchand »),
+// prélevée au choix de la remise (captureAirwallexOrder), versée au vendeur à la remise.
+// ---------------------------------------------------------------------------
+async function notifyDeclined(order: OrderRow, currency: string) {
+  const { data: item } = order.item_id
+    ? await supabase.from('items').select('title').eq('id', order.item_id).maybeSingle()
+    : { data: null as { title: string | null } | null }
+  await notifyUserT(order.buyer_id, 'card_declined', 'cardDeclined', {
+    item: item?.title || localized('fallback.item'),
+    amount: money(Number(order.amount), currency),
+  }, { order_id: order.id }).catch(() => {})
+}
+
+async function authorizeWithAirwallex(order: OrderRow, opts: { notifyBuyer?: boolean }): Promise<AuthorizationResult> {
+  if (order.airwallex_intent_id) {
+    try {
+      const prev = await awx.getIntent(order.airwallex_intent_id)
+      if (prev.status === 'REQUIRES_CAPTURE') return { status: 'authorized' }
+      if (prev.status === 'SUCCEEDED') return { status: 'paid' }
+      if (['REQUIRES_PAYMENT_METHOD', 'REQUIRES_CUSTOMER_ACTION'].includes(prev.status)) await awx.cancel(prev.id).catch(() => {})
+    } catch { /* introuvable : on refait */ }
+  }
+  const info = await postPriceForOrder(order)
+  const itemAmount = Number(order.amount)
+  const holdAmount = Math.round((itemAmount + (info.postPrice || 0)) * 100) / 100
+  const currency = String(info.currency || 'ILS').toUpperCase()
+  const { data: buyer } = await supabase.from('profiles').select('airwallex_customer_id').eq('id', order.buyer_id).maybeSingle()
+  const customerId = (buyer as { airwallex_customer_id?: string | null } | null)?.airwallex_customer_id
+
+  let result: AuthorizationResult
+  let intentId: string | null = null
+  try {
+    const consent = customerId ? await awx.latestVerifiedConsent(customerId) : null
+    if (!customerId || !consent) {
+      result = { status: 'no_card' }
+    } else {
+      const intent = await awx.authorize({ orderId: order.id, amount: holdAmount, currency, customerId, consent })
+      intentId = intent.id
+      result = intent.status === 'REQUIRES_CAPTURE' ? { status: 'authorized' }
+        : intent.status === 'SUCCEEDED' ? { status: 'authorized' }
+        : { status: 'declined', code: intent.latest_payment_attempt?.failure_code || intent.status }
+    }
+  } catch (err: any) {
+    intentId = err?.intentId || intentId
+    if (err instanceof awx.AirwallexError && err.status >= 400 && err.status < 500) {
+      result = { status: 'declined', code: err.code || 'card_declined' }
+    } else {
+      console.error('[cardAuthorization] airwallex', err?.message || err)
+      result = { status: 'error', code: 'provider_error' }
+    }
+  }
+  await saveResult(order.id, {
+    payment_provider: 'airwallex',
+    airwallex_intent_id: intentId,
+    auth_status: result.status,
+    auth_amount: result.status === 'authorized' ? holdAmount : null,
+    auth_error_code: result.code || null,
+    currency: info.currency,
+  })
+  if ((result.status === 'declined' || result.status === 'no_card') && opts.notifyBuyer !== false) await notifyDeclined(order, info.currency)
+  return result
+}
+
+/** Prélèvement Airwallex au choix de la remise. Renvoie true si la commande est payée. */
+export async function captureAirwallexOrder(orderId: string, totalAmount: number): Promise<boolean> {
+  const readIntent = async () => {
+    const { data } = await supabase.from('orders').select('airwallex_intent_id').eq('id', orderId).maybeSingle()
+    return (data as { airwallex_intent_id?: string | null } | null)?.airwallex_intent_id || null
+  }
+  try {
+    let id = await readIntent()
+    let intent = id ? await awx.getIntent(id).catch(() => null) : null
+    if (intent?.status === 'SUCCEEDED') return true
+    if (!intent || intent.status !== 'REQUIRES_CAPTURE' || Number(intent.amount) < totalAmount) {
+      // Pas d'autorisation valable (refusée, expirée, montant trop bas) : nouvel essai avec la carte actuelle
+      if (intent && intent.status === 'REQUIRES_CAPTURE') await awx.cancel(intent.id).catch(() => {})
+      const r = await authorizeOrderPayment(orderId, { notifyBuyer: false })
+      if (r.status !== 'authorized') return false
+      id = await readIntent()
+      if (!id) return false
+    }
+    const captured = await awx.capture(id!, totalAmount)
+    return captured.status === 'SUCCEEDED' || Number(captured.captured_amount || 0) >= totalAmount
+  } catch (err: any) {
+    console.error('[cardAuthorization] airwallex capture', err?.message || err)
+    return false
+  }
+}
+
+/** Annule la réservation Airwallex d'une commande annulée. */
+export async function releaseAirwallexAuthorization(intentId: string | null | undefined): Promise<void> {
+  if (!intentId) return
+  try {
+    const i = await awx.getIntent(intentId)
+    if (['REQUIRES_CAPTURE', 'REQUIRES_PAYMENT_METHOD', 'REQUIRES_CUSTOMER_ACTION'].includes(i.status)) await awx.cancel(i.id)
+  } catch { /* déjà libérée */ }
 }

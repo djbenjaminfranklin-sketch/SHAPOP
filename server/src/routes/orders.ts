@@ -6,7 +6,7 @@ import { requireAuth } from '../middleware'
 import { calculateFees, notifyUserT, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
 import { localized, money } from '../i18n'
 import { shortOrderRef } from '../fulfillment'
-import { authorizeOrderPayment, releaseAuthorization } from '../services/cardAuthorization'
+import { authorizeOrderPayment, releaseAuthorization, releaseAirwallexAuthorization } from '../services/cardAuthorization'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -206,7 +206,7 @@ router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequ
 
     const { data: order } = await supabase
       .from('orders')
-      .select('id, status, buyer_id, seller_id, stripe_payment_intent_id, auth_payment_intent_id')
+      .select('id, status, buyer_id, seller_id, stripe_payment_intent_id, auth_payment_intent_id, airwallex_intent_id')
       .eq('id', orderId)
       .single()
 
@@ -233,6 +233,7 @@ router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequ
     }
     // Libère l'argent réservé sur la carte à la fin de l'enchère
     await releaseAuthorization(order.auth_payment_intent_id)
+    await releaseAirwallexAuthorization(order.airwallex_intent_id)
 
     await supabase
       .from('orders')

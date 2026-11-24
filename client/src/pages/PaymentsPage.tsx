@@ -22,7 +22,7 @@ const content = {
     payTitle: 'Payment methods',
     securePayments: 'Connect Stripe to get paid',
     ilPayoutsTitle: 'Get paid in Israel',
-    ilPayoutsDesc: 'Receive your sales in your Israeli bank account through Rapyd, a licensed payment company.',
+    ilPayoutsDesc: 'Receive your sales in your Israeli bank account through Airwallex, a licensed payment company.',
     ilPayoutsBtn: 'Set up my payments',
     secureDesc: 'Stripe handles your payments securely. Buyers pay, and the money lands in your account automatically.',
     setupPayment: 'Connect with Stripe',
@@ -96,7 +96,7 @@ const content = {
     payTitle: 'Moyens de paiement',
     securePayments: 'Connecte Stripe pour être payé',
     ilPayoutsTitle: 'Être payé en Israël',
-    ilPayoutsDesc: 'Reçois tes ventes sur ton compte bancaire israélien grâce à Rapyd, une société de paiement agréée.',
+    ilPayoutsDesc: 'Reçois tes ventes sur ton compte bancaire israélien grâce à Airwallex, une société de paiement agréée.',
     ilPayoutsBtn: 'Configurer mes paiements',
     secureDesc: 'Stripe gère tes paiements en toute sécurité. Les acheteurs paient, et tu reçois ton argent automatiquement.',
     setupPayment: 'Se connecter avec Stripe',
@@ -170,7 +170,7 @@ const content = {
     payTitle: 'Métodos de pago',
     securePayments: 'Conecta Stripe para cobrar',
     ilPayoutsTitle: 'Cobrar en Israel',
-    ilPayoutsDesc: 'Recibe tus ventas en tu cuenta bancaria israelí con Rapyd, una empresa de pagos autorizada.',
+    ilPayoutsDesc: 'Recibe tus ventas en tu cuenta bancaria israelí con Airwallex, una empresa de pagos autorizada.',
     ilPayoutsBtn: 'Configurar mis pagos',
     secureDesc: 'Stripe gestiona tus pagos de forma segura. Los compradores pagan y tú recibes el dinero automáticamente.',
     setupPayment: 'Conectar con Stripe',
@@ -244,7 +244,7 @@ const content = {
     payTitle: 'Способы оплаты',
     securePayments: 'Подключи Stripe, чтобы получать оплату',
     ilPayoutsTitle: 'Получать оплату в Израиле',
-    ilPayoutsDesc: 'Получай деньги за продажи на израильский банковский счёт через Rapyd — лицензированную платёжную компанию.',
+    ilPayoutsDesc: 'Получай деньги за продажи на израильский банковский счёт через Airwallex — лицензированную платёжную компанию.',
     ilPayoutsBtn: 'Настроить выплаты',
     secureDesc: 'Stripe надёжно обрабатывает твои платежи. Покупатели платят, а деньги поступают тебе автоматически.',
     setupPayment: 'Подключить Stripe',
@@ -318,7 +318,7 @@ const content = {
     payTitle: 'אמצעי תשלום',
     securePayments: 'חבר/י את Stripe כדי לקבל תשלומים',
     ilPayoutsTitle: 'קבלת תשלומים בישראל',
-    ilPayoutsDesc: 'קבלו את כספי המכירות לחשבון הבנק בישראל דרך Rapyd, חברת תשלומים מורשית.',
+    ilPayoutsDesc: 'קבלו את כספי המכירות לחשבון הבנק בישראל דרך Airwallex, חברת תשלומים מורשית.',
     ilPayoutsBtn: 'הגדרת התשלומים שלי',
     secureDesc: 'Stripe מנהל את התשלומים שלך בצורה מאובטחת. הקונים משלמים, והכסף מגיע אליך אוטומטית.',
     setupPayment: 'התחברות עם Stripe',
@@ -642,8 +642,8 @@ export default function PaymentsPage() {
       if (s0) {
         const pr = await apiFetch('/api/payments/provider', { headers: { 'Authorization': `Bearer ${s0.access_token}` } })
         const prov = pr.ok ? await pr.json() : null
-        if (prov?.provider === 'rapyd') {
-          const cp = await apiFetch('/api/rapyd/card-page', {
+        if (prov?.provider === 'rapyd' || prov?.provider === 'airwallex') {
+          const cp = await apiFetch(prov.provider === 'airwallex' ? '/api/airwallex/card-page' : '/api/rapyd/card-page', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s0.access_token}` },
             body: JSON.stringify({ lang: getLang() }),
@@ -755,9 +755,10 @@ export default function PaymentsPage() {
     let listener: { remove: () => void } | undefined
     Browser.addListener('browserFinished', () => {
       fetchStatus()
+      fetchCardInfo() // retour de la page de carte (Israël)
     }).then(l => { listener = l })
     return () => { listener?.remove() }
-  }, [fetchStatus])
+  }, [fetchStatus, fetchCardInfo])
 
   // Countries list (Stripe + PayPal-only)
   const PAYPAL_ONLY_COUNTRIES = ['IL']

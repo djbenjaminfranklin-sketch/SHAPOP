@@ -1,9 +1,7 @@
-// « Être payé en Israël » : le vendeur israélien crée son portefeuille Rapyd puis vérifie son identité
-// (page sécurisée de Rapyd). Tant que Rapyd n'est pas activé côté serveur, l'écran l'annonce et
-// le bouton reste grisé.
+// « Être payé en Israël » : le vendeur israélien enregistre son compte bancaire (IBAN IL…) ;
+// ShaPop lui vire sa part en shekels par Airwallex (virement local Masav) quand la remise est confirmée.
+// Tant que le paiement en Israël n'est pas activé côté serveur, l'écran l'annonce et le bouton reste grisé.
 import { useCallback, useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { Browser } from '@capacitor/browser'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang, tr } from '../lib/i18n'
@@ -12,68 +10,64 @@ import PageBackButton from '../components/PageBackButton'
 
 const pageContent = {
   en: {
-    title: 'Get paid in Israel', intro: 'To receive your sales in your Israeli bank account, ShaPop uses Rapyd, a licensed payment company. It takes 2 minutes.',
-    soon: 'Payments in Israel are opening soon. You will be able to create your wallet as soon as it opens.',
-    step1: '1. Your wallet', step1Done: 'Wallet created', step2: '2. Verify your identity', step2Hint: 'Have your ID card (teudat zehut) or passport ready. Rapyd asks for a photo of it and a selfie.',
-    firstName: 'First name', lastName: 'Last name', birth: 'Date of birth', phone: 'Phone number', address: 'Address (street and number)', city: 'City',
-    create: 'Create my wallet', creating: 'Creating…', verify: 'Verify my identity', opening: 'Opening…',
-    kyc: { none: 'Not verified yet', pending: 'Verification in progress', verified: 'Identity verified: you can get paid', rejected: 'Verification refused: try again' },
-    error: 'Something went wrong. Check your details and try again.', missing: 'Fill in all the fields.',
-    why: 'Why? The law requires the payment company to know who receives the money. ShaPop never sees your ID.',
+    title: 'Get paid in Israel', intro: 'Your sales are paid in shekels into your Israeli bank account, 1 to 2 business days after the handover. ShaPop uses Airwallex, a licensed payment company.',
+    soon: 'Payments in Israel are opening soon. You will be able to add your bank account as soon as it opens.',
+    bankTitle: 'Your bank account', firstName: 'First name', lastName: 'Last name (as on the bank account)', iban: 'IBAN (starts with IL, 23 characters)', street: 'Address (street and number)', city: 'City', postcode: 'Postcode (optional)',
+    save: 'Save my bank account', saving: 'Saving…', saved: 'Bank account saved', change: 'Change my bank account', ending: 'Account ending in',
+    ibanHint: 'Find your IBAN in your bank app or on a bank statement.', badIban: 'This IBAN is not valid. Check it on your bank statement.', rejected: 'The bank details were refused. Check them and try again.',
+    error: 'Something went wrong. Try again.', missing: 'Fill in all the required fields.',
   },
   fr: {
-    title: 'Être payé en Israël', intro: 'Pour recevoir tes ventes sur ton compte bancaire israélien, ShaPop passe par Rapyd, une société de paiement agréée. Ça prend 2 minutes.',
-    soon: 'Le paiement en Israël ouvre bientôt. Tu pourras créer ton portefeuille dès son ouverture.',
-    step1: '1. Ton portefeuille', step1Done: 'Portefeuille créé', step2: '2. Vérifie ton identité', step2Hint: 'Prépare ta carte d’identité (teudat zehut) ou ton passeport. Rapyd demande une photo de la pièce et un selfie.',
-    firstName: 'Prénom', lastName: 'Nom', birth: 'Date de naissance', phone: 'Numéro de téléphone', address: 'Adresse (rue et numéro)', city: 'Ville',
-    create: 'Créer mon portefeuille', creating: 'Création…', verify: 'Vérifier mon identité', opening: 'Ouverture…',
-    kyc: { none: 'Pas encore vérifiée', pending: 'Vérification en cours', verified: 'Identité vérifiée : tu peux être payé', rejected: 'Vérification refusée : réessaie' },
-    error: 'Un problème est survenu. Vérifie tes informations et réessaie.', missing: 'Remplis tous les champs.',
-    why: 'Pourquoi ? La loi oblige la société de paiement à savoir qui reçoit l’argent. ShaPop ne voit jamais ta pièce d’identité.',
+    title: 'Être payé en Israël', intro: 'Tes ventes te sont versées en shekels sur ton compte bancaire israélien, 1 à 2 jours ouvrés après la remise. ShaPop passe par Airwallex, une société de paiement agréée.',
+    soon: 'Le paiement en Israël ouvre bientôt. Tu pourras ajouter ton compte bancaire dès son ouverture.',
+    bankTitle: 'Ton compte bancaire', firstName: 'Prénom', lastName: 'Nom (comme sur le compte bancaire)', iban: 'IBAN (commence par IL, 23 caractères)', street: 'Adresse (rue et numéro)', city: 'Ville', postcode: 'Code postal (facultatif)',
+    save: 'Enregistrer mon compte bancaire', saving: 'Enregistrement…', saved: 'Compte bancaire enregistré', change: 'Changer de compte bancaire', ending: 'Compte se terminant par',
+    ibanHint: 'Ton IBAN se trouve dans l’appli de ta banque ou sur un relevé.', badIban: 'Cet IBAN n’est pas valable. Vérifie-le sur ton relevé.', rejected: 'Les coordonnées bancaires ont été refusées. Vérifie-les et réessaie.',
+    error: 'Un problème est survenu. Réessaie.', missing: 'Remplis tous les champs obligatoires.',
   },
   es: {
-    title: 'Cobrar en Israel', intro: 'Para recibir tus ventas en tu cuenta bancaria israelí, ShaPop usa Rapyd, una empresa de pagos autorizada. Tarda 2 minutos.',
-    soon: 'Los pagos en Israel abren pronto. Podrás crear tu monedero en cuanto abran.',
-    step1: '1. Tu monedero', step1Done: 'Monedero creado', step2: '2. Verifica tu identidad', step2Hint: 'Ten a mano tu documento de identidad (teudat zehut) o tu pasaporte. Rapyd pide una foto del documento y un selfie.',
-    firstName: 'Nombre', lastName: 'Apellidos', birth: 'Fecha de nacimiento', phone: 'Teléfono', address: 'Dirección (calle y número)', city: 'Ciudad',
-    create: 'Crear mi monedero', creating: 'Creando…', verify: 'Verificar mi identidad', opening: 'Abriendo…',
-    kyc: { none: 'Aún no verificada', pending: 'Verificación en curso', verified: 'Identidad verificada: ya puedes cobrar', rejected: 'Verificación rechazada: inténtalo de nuevo' },
-    error: 'Algo ha fallado. Revisa tus datos e inténtalo de nuevo.', missing: 'Rellena todos los campos.',
-    why: '¿Por qué? La ley obliga a la empresa de pagos a saber quién recibe el dinero. ShaPop nunca ve tu documento.',
+    title: 'Cobrar en Israel', intro: 'Tus ventas se pagan en shékels en tu cuenta bancaria israelí, 1 o 2 días hábiles después de la entrega. ShaPop usa Airwallex, una empresa de pagos autorizada.',
+    soon: 'Los pagos en Israel abren pronto. Podrás añadir tu cuenta bancaria en cuanto abran.',
+    bankTitle: 'Tu cuenta bancaria', firstName: 'Nombre', lastName: 'Apellidos (como en la cuenta)', iban: 'IBAN (empieza por IL, 23 caracteres)', street: 'Dirección (calle y número)', city: 'Ciudad', postcode: 'Código postal (opcional)',
+    save: 'Guardar mi cuenta bancaria', saving: 'Guardando…', saved: 'Cuenta bancaria guardada', change: 'Cambiar de cuenta bancaria', ending: 'Cuenta terminada en',
+    ibanHint: 'Encontrarás tu IBAN en la app de tu banco o en un extracto.', badIban: 'Este IBAN no es válido. Revísalo en tu extracto.', rejected: 'Los datos bancarios fueron rechazados. Revísalos e inténtalo de nuevo.',
+    error: 'Algo ha fallado. Inténtalo de nuevo.', missing: 'Rellena todos los campos obligatorios.',
   },
   ru: {
-    title: 'Получать оплату в Израиле', intro: 'Чтобы получать деньги за продажи на израильский банковский счёт, ShaPop работает с Rapyd — лицензированной платёжной компанией. Это займёт 2 минуты.',
-    soon: 'Оплата в Израиле скоро откроется. Ты сможешь создать кошелёк сразу после открытия.',
-    step1: '1. Твой кошелёк', step1Done: 'Кошелёк создан', step2: '2. Подтверди личность', step2Hint: 'Подготовь теудат зеут или паспорт. Rapyd попросит фото документа и селфи.',
-    firstName: 'Имя', lastName: 'Фамилия', birth: 'Дата рождения', phone: 'Телефон', address: 'Адрес (улица и номер дома)', city: 'Город',
-    create: 'Создать кошелёк', creating: 'Создаём…', verify: 'Подтвердить личность', opening: 'Открываем…',
-    kyc: { none: 'Ещё не подтверждена', pending: 'Проверка идёт', verified: 'Личность подтверждена: можно получать оплату', rejected: 'Проверка отклонена: попробуй снова' },
-    error: 'Что-то пошло не так. Проверь данные и попробуй снова.', missing: 'Заполни все поля.',
-    why: 'Зачем? По закону платёжная компания должна знать, кто получает деньги. ShaPop никогда не видит твой документ.',
+    title: 'Получать оплату в Израиле', intro: 'Деньги за продажи приходят в шекелях на твой израильский банковский счёт через 1–2 рабочих дня после передачи товара. ShaPop работает с Airwallex — лицензированной платёжной компанией.',
+    soon: 'Оплата в Израиле скоро откроется. Ты сможешь добавить банковский счёт сразу после открытия.',
+    bankTitle: 'Твой банковский счёт', firstName: 'Имя', lastName: 'Фамилия (как в банке)', iban: 'IBAN (начинается с IL, 23 символа)', street: 'Адрес (улица и номер дома)', city: 'Город', postcode: 'Индекс (необязательно)',
+    save: 'Сохранить счёт', saving: 'Сохраняем…', saved: 'Банковский счёт сохранён', change: 'Сменить счёт', ending: 'Счёт заканчивается на',
+    ibanHint: 'IBAN есть в приложении твоего банка или в выписке.', badIban: 'Этот IBAN неверный. Проверь его по выписке.', rejected: 'Банковские данные отклонены. Проверь их и попробуй снова.',
+    error: 'Что-то пошло не так. Попробуй снова.', missing: 'Заполни все обязательные поля.',
   },
   he: {
-    title: 'קבלת תשלומים בישראל', intro: 'כדי לקבל את כספי המכירות לחשבון הבנק שלך בישראל, ShaPop עובדת עם Rapyd, חברת תשלומים מורשית. זה לוקח 2 דקות.',
-    soon: 'התשלומים בישראל ייפתחו בקרוב. אפשר יהיה ליצור ארנק מיד עם הפתיחה.',
-    step1: '1. הארנק שלך', step1Done: 'הארנק נוצר', step2: '2. אימות זהות', step2Hint: 'הכינו תעודת זהות או דרכון. Rapyd תבקש צילום של המסמך וסלפי.',
-    firstName: 'שם פרטי', lastName: 'שם משפחה', birth: 'תאריך לידה', phone: 'מספר טלפון', address: 'כתובת (רחוב ומספר)', city: 'עיר',
-    create: 'יצירת הארנק שלי', creating: 'יוצרים…', verify: 'אימות הזהות שלי', opening: 'פותחים…',
-    kyc: { none: 'עדיין לא אומתה', pending: 'האימות בתהליך', verified: 'הזהות אומתה: אפשר לקבל תשלומים', rejected: 'האימות נדחה: נסו שוב' },
-    error: 'משהו השתבש. בדקו את הפרטים ונסו שוב.', missing: 'יש למלא את כל השדות.',
-    why: 'למה? החוק מחייב את חברת התשלומים לדעת מי מקבל את הכסף. ShaPop לעולם לא רואה את התעודה שלך.',
+    title: 'קבלת תשלומים בישראל', intro: 'כספי המכירות מועברים בשקלים לחשבון הבנק שלך בישראל, יום-יומיים עסקים אחרי המסירה. ShaPop עובדת עם Airwallex, חברת תשלומים מורשית.',
+    soon: 'התשלומים בישראל ייפתחו בקרוב. אפשר יהיה להוסיף חשבון בנק מיד עם הפתיחה.',
+    bankTitle: 'חשבון הבנק שלך', firstName: 'שם פרטי', lastName: 'שם משפחה (כמו בחשבון הבנק)', iban: 'IBAN (מתחיל ב-IL, 23 תווים)', street: 'כתובת (רחוב ומספר)', city: 'עיר', postcode: 'מיקוד (לא חובה)',
+    save: 'שמירת חשבון הבנק', saving: 'שומרים…', saved: 'חשבון הבנק נשמר', change: 'החלפת חשבון בנק', ending: 'חשבון המסתיים ב-',
+    ibanHint: 'את ה-IBAN אפשר למצוא באפליקציית הבנק או בדף חשבון.', badIban: 'מספר ה-IBAN לא תקין. בדקו אותו בדף החשבון.', rejected: 'פרטי הבנק נדחו. בדקו אותם ונסו שוב.',
+    error: 'משהו השתבש. נסו שוב.', missing: 'יש למלא את כל שדות החובה.',
   },
 }
 
-type Status = { enabled: boolean; country: string | null; has_wallet: boolean; kyc_status: 'none' | 'pending' | 'verified' | 'rejected' }
+type Status = { enabled: boolean; country: string | null; has_bank: boolean; bank_last4: string | null }
 
 export default function PayoutsIsraelPage() {
-  const lang = getLang()
-  const ct = tr(pageContent, lang)
+  const ct = tr(pageContent, getLang())
   usePageTitle(ct.title)
-  const [params] = useSearchParams()
   const [status, setStatus] = useState<Status | null>(null)
-  const [form, setForm] = useState({ first_name: '', last_name: '', date_of_birth: '', phone: '', address: '', city: '' })
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ first_name: '', last_name: '', iban: '', street: '', city: '', postcode: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // On arrive depuis le bas de la page Paiements : remettre l'écran en haut
+  useEffect(() => {
+    const top = () => { window.scrollTo(0, 0); document.scrollingElement?.scrollTo(0, 0); document.body.scrollTop = 0 }
+    top(); const t = setTimeout(top, 80)
+    return () => clearTimeout(t)
+  }, [])
 
   const auth = useCallback(async (): Promise<Record<string, string>> => {
     const { data } = await supabase.auth.getSession()
@@ -82,53 +76,27 @@ export default function PayoutsIsraelPage() {
 
   const load = useCallback(async () => {
     try {
-      const r = await apiFetch('/api/rapyd/seller-status', { headers: await auth() })
+      const r = await apiFetch('/api/payouts-il/status', { headers: await auth() })
       if (r.ok) setStatus(await r.json())
     } catch { /* hors ligne */ }
   }, [auth])
+  useEffect(() => { load() }, [load])
 
-  // On arrive depuis le bas de la page Paiements : remettre l'écran en haut
-  useEffect(() => {
-    const top = () => {
-      window.scrollTo(0, 0)
-      document.scrollingElement?.scrollTo(0, 0)
-      document.body.scrollTop = 0
-      document.getElementById('root')?.scrollTo?.(0, 0)
-    }
-    top(); const t = setTimeout(top, 80)
-    return () => clearTimeout(t)
-  }, [])
-  useEffect(() => { load() }, [load, params])
-  useEffect(() => {
-    let l: { remove: () => void } | undefined
-    Browser.addListener('browserFinished', () => { load() }).then(x => { l = x })
-    return () => { l?.remove() }
-  }, [load])
-
-  const createWallet = async () => {
+  const save = async () => {
     setError(null)
-    if (Object.values(form).some(v => !v.trim())) { setError(ct.missing); return }
+    if ([form.first_name, form.last_name, form.iban, form.street, form.city].some(v => !v.trim())) { setError(ct.missing); return }
     setBusy(true)
     try {
-      const r = await apiFetch('/api/rapyd/seller-wallet', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await auth()) }, body: JSON.stringify(form) })
-      if (!r.ok) { setError(ct.error); return }
+      const r = await apiFetch('/api/payouts-il/bank', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await auth()) }, body: JSON.stringify(form) })
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) { setError(d?.error === 'invalid_iban' ? ct.badIban : d?.error === 'bank_rejected' ? ct.rejected : ct.error); return }
+      setEditing(false)
       await load()
     } catch { setError(ct.error) } finally { setBusy(false) }
   }
 
-  const verifyIdentity = async () => {
-    setError(null); setBusy(true)
-    try {
-      const r = await apiFetch('/api/rapyd/seller-identity', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await auth()) } })
-      const d = r.ok ? await r.json() : null
-      if (!d?.redirect_url) { setError(ct.error); return }
-      await Browser.open({ url: d.redirect_url, presentationStyle: 'popover' })
-    } catch { setError(ct.error) } finally { setBusy(false) }
-  }
-
   const enabled = !!status?.enabled
-  const kyc = status?.kyc_status || 'none'
-  const kycColor = kyc === 'verified' ? '#22C55E' : kyc === 'rejected' ? '#E8344E' : kyc === 'pending' ? '#F59E0B' : '#888'
+  const showForm = !status?.has_bank || editing
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
@@ -140,56 +108,49 @@ export default function PayoutsIsraelPage() {
         <p style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#F59E0B', fontSize: '14px', fontWeight: 600 }}>{ct.soon}</p>
       )}
 
-      {/* Étape 1 : portefeuille */}
-      <section style={card}>
-        <p style={stepTitle}>{ct.step1}</p>
-        {status?.has_wallet ? (
-          <p style={{ margin: 0, color: '#22C55E', fontWeight: 700 }}>✓ {ct.step1Done}</p>
+      <section style={{ backgroundColor: '#111', border: '1px solid #222', borderRadius: '14px', padding: '14px', marginBottom: '14px' }}>
+        <p style={{ margin: '0 0 10px', fontSize: '16px', fontWeight: 800 }}>{ct.bankTitle}</p>
+        {!showForm ? (
+          <>
+            <p style={{ margin: '0 0 6px', color: '#22C55E', fontWeight: 700 }}>✓ {ct.saved}</p>
+            {status?.bank_last4 && <p style={{ margin: '0 0 12px', color: '#aaa', fontSize: '14px' }}>{ct.ending} {status.bank_last4}</p>}
+            <button onClick={() => setEditing(true)} style={{ ...btn(true), background: 'transparent', border: '1px solid #444', color: '#ddd' }}>{ct.change}</button>
+          </>
         ) : (
           <>
             <div style={{ display: 'flex', gap: '8px' }}>
               <Field label={ct.firstName} value={form.first_name} onChange={v => setForm({ ...form, first_name: v })} autoComplete="given-name" />
               <Field label={ct.lastName} value={form.last_name} onChange={v => setForm({ ...form, last_name: v })} autoComplete="family-name" />
             </div>
-            <Field label={ct.birth} type="date" value={form.date_of_birth} onChange={v => setForm({ ...form, date_of_birth: v })} autoComplete="bday" />
-            <Field label={ct.phone} type="tel" value={form.phone} onChange={v => setForm({ ...form, phone: v })} autoComplete="tel" placeholder="+972 5…" />
-            <Field label={ct.address} value={form.address} onChange={v => setForm({ ...form, address: v })} autoComplete="street-address" />
-            <Field label={ct.city} value={form.city} onChange={v => setForm({ ...form, city: v })} autoComplete="address-level2" />
-            <button onClick={createWallet} disabled={!enabled || busy} style={btn(enabled && !busy)}>{busy ? ct.creating : ct.create}</button>
+            <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder="IL62 0108 0000 0009 9999 999" dir="ltr" />
+            <p style={{ margin: '-4px 0 8px', fontSize: '12px', color: '#777' }}>{ct.ibanHint}</p>
+            <Field label={ct.street} value={form.street} onChange={v => setForm({ ...form, street: v })} autoComplete="street-address" />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Field label={ct.city} value={form.city} onChange={v => setForm({ ...form, city: v })} autoComplete="address-level2" />
+              <Field label={ct.postcode} value={form.postcode} onChange={v => setForm({ ...form, postcode: v })} autoComplete="postal-code" />
+            </div>
+            <button onClick={save} disabled={!enabled || busy} style={btn(enabled && !busy)}>{busy ? ct.saving : ct.save}</button>
           </>
         )}
       </section>
 
-      {/* Étape 2 : identité */}
-      <section style={{ ...card, opacity: status?.has_wallet ? 1 : 0.5 }}>
-        <p style={stepTitle}>{ct.step2}</p>
-        <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#aaa', lineHeight: 1.5 }}>{ct.step2Hint}</p>
-        <p style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700, color: kycColor }}>{ct.kyc[kyc]}</p>
-        {kyc !== 'verified' && (
-          <button onClick={verifyIdentity} disabled={!enabled || !status?.has_wallet || busy} style={btn(enabled && !!status?.has_wallet && !busy)}>{busy ? ct.opening : ct.verify}</button>
-        )}
-      </section>
-
       {error && <p role="alert" style={{ color: '#E8344E', fontSize: '14px', fontWeight: 600 }}>{error}</p>}
-      <p style={{ fontSize: '12px', color: '#777', lineHeight: 1.5 }}>{ct.why}</p>
     </div>
   )
 }
 
-const card: React.CSSProperties = { backgroundColor: '#111', border: '1px solid #222', borderRadius: '14px', padding: '14px', marginBottom: '14px' }
-const stepTitle: React.CSSProperties = { margin: '0 0 10px', fontSize: '16px', fontWeight: 800 }
 const btn = (on: boolean): React.CSSProperties => ({
   width: '100%', marginTop: '6px', padding: '14px', borderRadius: '12px', border: 'none',
   background: on ? 'linear-gradient(135deg, #E8344E, #F0908A)' : '#2A2A2A', color: on ? '#fff' : '#777',
   fontSize: '15px', fontWeight: 800, cursor: on ? 'pointer' : 'default',
 })
 
-function Field({ label, value, onChange, type = 'text', autoComplete, placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; autoComplete?: string; placeholder?: string }) {
+function Field({ label, value, onChange, autoComplete, placeholder, dir }: { label: string; value: string; onChange: (v: string) => void; autoComplete?: string; placeholder?: string; dir?: 'ltr' | 'rtl' }) {
   return (
     <label style={{ display: 'block', flex: 1, marginBottom: '8px' }}>
       <span style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>{label}</span>
       <input
-        type={type} value={value} onChange={e => onChange(e.target.value)} autoComplete={autoComplete} placeholder={placeholder}
+        value={value} onChange={e => onChange(e.target.value)} autoComplete={autoComplete} placeholder={placeholder} dir={dir}
         style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: '15px' }}
       />
     </label>

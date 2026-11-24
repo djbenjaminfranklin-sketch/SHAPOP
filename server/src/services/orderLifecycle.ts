@@ -1,5 +1,6 @@
 import { supabase, resend, ADMIN_EMAILS } from '../config'
 import { transferToWallet } from '../payments/rapyd'
+import { transferToBeneficiary } from '../payments/airwallex'
 import { notifyUserT, calculateFees, escapeHtml } from '../utils'
 import { HANDOVER_DELAY_DEFAULT_DAYS, generateHandoverCode, shortOrderRef } from '../fulfillment'
 
@@ -130,6 +131,20 @@ export async function releaseOrderPayout(
     .select('*')
   const row = updated && updated[0]
   if (!row) return null
+
+  // Israël (Airwallex) : virement en shekels sur le compte bancaire israélien du vendeur
+  if (row.payment_provider === 'airwallex') {
+    try {
+      const { data: seller } = await supabase.from('sellers').select('airwallex_beneficiary_id').eq('id', row.seller_id).maybeSingle()
+      const ben = (seller as { airwallex_beneficiary_id?: string | null } | null)?.airwallex_beneficiary_id
+      if (!ben) throw new Error('compte bancaire du vendeur manquant')
+      const t = await transferToBeneficiary({ beneficiaryId: ben, amount: Number(row.seller_payout), currency: String(row.currency || 'ILS').toUpperCase(), orderId })
+      await supabase.from('orders').update({ payout_transfer_id: t.id }).eq('id', orderId)
+    } catch (err) {
+      console.error('[payout] airwallex', err)
+      await alertAdmins('Versement Airwallex à faire à la main', `Commande ${orderId} : le virement au vendeur a échoué (${(err as Error).message}).`)
+    }
+  }
 
   // Israël (Rapyd) : la part du vendeur passe du portefeuille ShaPop au sien
   if (row.payment_provider === 'rapyd') {

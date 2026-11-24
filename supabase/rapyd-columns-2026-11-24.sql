@@ -9,3 +9,9 @@ ALTER TABLE public.orders
 ALTER TABLE public.sellers
   ADD COLUMN IF NOT EXISTS rapyd_contact_id text,
   ADD COLUMN IF NOT EXISTS rapyd_kyc_status text;
+-- Airwallex pour Israël (à la place de Rapyd)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS airwallex_customer_id text;
+ALTER TABLE public.sellers ADD COLUMN IF NOT EXISTS airwallex_beneficiary_id text;
+ALTER TABLE public.sellers ADD COLUMN IF NOT EXISTS payout_bank_last4 text;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS airwallex_intent_id text;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payout_transfer_id text;

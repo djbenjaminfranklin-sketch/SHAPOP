@@ -7,12 +7,13 @@
 // =============================================
 import { supabase, stripe, livekitRoomService, FREE_PREVIEW_SECONDS } from './config'
 import { rapydConfig, getCustomer } from './payments/rapyd'
+import { airwallexConfig, latestVerifiedConsent } from './payments/airwallex'
 
 /** Même règle que /api/stripe/check-card et la vérification avant enchère. */
 export async function userHasSavedCard(userId: string): Promise<boolean> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_customer_id, rapyd_customer_id')
+    .select('stripe_customer_id, rapyd_customer_id, airwallex_customer_id')
     .eq('id', userId)
     .single()
   if (profile?.stripe_customer_id) {
@@ -22,6 +23,10 @@ export async function userHasSavedCard(userId: string): Promise<boolean> {
       limit: 1,
     })
     if (pms.data.length > 0) return true
+  }
+  // Israël : carte enregistrée chez Airwallex (quand il est activé)
+  if (profile?.airwallex_customer_id && airwallexConfig().enabled) {
+    try { if (await latestVerifiedConsent(profile.airwallex_customer_id as string)) return true } catch { /* suite */ }
   }
   // Israël : carte enregistrée chez Rapyd (seulement quand Rapyd est activé)
   if (profile?.rapyd_customer_id && rapydConfig().enabled) {
