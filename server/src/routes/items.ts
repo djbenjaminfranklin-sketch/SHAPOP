@@ -96,6 +96,7 @@ router.get('/api/items/direct-sales', async (req: Request, res: Response) => {
       .select('*, seller:profiles!seller_id(display_name, avatar_url)')
       .is('stream_id', null)
       .eq('ai_generated', true)
+      .is('moderation_status', null) // articles masqués par la modération exclus
       .in('status', ['draft', 'pending', 'active'])
       .order('created_at', { ascending: false })
 
@@ -113,6 +114,16 @@ router.get('/api/items/direct-sales', async (req: Request, res: Response) => {
   }
 })
 
+// Identifiant de l'utilisateur si un jeton valide est fourni (route publique sinon)
+async function optionalUserId(req: Request): Promise<string | null> {
+  const h = req.headers.authorization
+  if (!h?.startsWith('Bearer ')) return null
+  try {
+    const { data } = await supabase.auth.getUser(h.split('Bearer ')[1])
+    return data.user?.id || null
+  } catch { return null }
+}
+
 router.get('/api/items/:id', async (req: Request, res: Response) => {
   try {
     const { data, error } = await supabase
@@ -124,6 +135,14 @@ router.get('/api/items/:id', async (req: Request, res: Response) => {
     if (error || !data) {
       res.status(404).json({ error: 'Item not found' })
       return
+    }
+    // Article masqué / supprimé par la modération : visible seulement par son vendeur ou son gagnant
+    if (data.moderation_status) {
+      const viewerId = await optionalUserId(req)
+      if (!viewerId || (viewerId !== data.seller_id && viewerId !== data.winner_id)) {
+        res.status(404).json({ error: 'Item not found' })
+        return
+      }
     }
     res.json(data)
   } catch (err) {
@@ -140,12 +159,16 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
     // Verify ownership
     const { data: item } = await supabase
       .from('items')
-      .select('seller_id')
+      .select('seller_id, moderation_status')
       .eq('id', req.params.id)
       .single()
 
     if (!item || item.seller_id !== req.user!.id) {
       res.status(403).json({ error: 'You can only start auctions for your own items' })
+      return
+    }
+    if (item.moderation_status) {
+      res.status(403).json({ error: 'Item removed by moderation' })
       return
     }
 
@@ -375,7 +398,7 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
       .eq('id', req.params.id)
       .single()
 
-    if (!item) { res.status(404).json({ error: 'Item not found' }); return }
+    if (!item || item.moderation_status) { res.status(404).json({ error: 'Item not found' }); return }
     if (item.seller_id === buyerId) { res.status(400).json({ error: 'Cannot buy your own item' }); return }
     if (item.status === 'sold') { res.status(400).json({ error: 'Item is already sold' }); return }
 
@@ -641,7 +664,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
 
     const { data: item, error: itemErr } = await supabase
       .from('items')
-      .select('seller_id, starting_price, current_price, status')
+      .select('seller_id, starting_price, current_price, status, moderation_status')
       .eq('id', itemId)
       .single()
 
@@ -660,6 +683,10 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
     if (item.seller_id !== req.user!.id) {
       console.error(`[Activate] Ownership mismatch: item.seller_id=${item.seller_id} req.user.id=${req.user!.id}`)
       res.status(403).json({ error: 'Not your item' })
+      return
+    }
+    if (item.moderation_status) {
+      res.status(403).json({ error: 'Item removed by moderation' })
       return
     }
 
@@ -799,11 +826,11 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
     // Verify item exists and is active (include title and stream_id for outbid notification)
     const { data: item } = await supabase
       .from('items')
-      .select('id, current_price, status, seller_id, title, stream_id')
+      .select('id, current_price, status, seller_id, title, stream_id, moderation_status')
       .eq('id', itemId)
       .single()
 
-    if (!item) {
+    if (!item || item.moderation_status) {
       res.status(404).json({ error: 'Item not found' })
       return
     }
@@ -899,11 +926,11 @@ router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, async (req: Authe
     // Verify item exists and is active
     const { data: item } = await supabase
       .from('items')
-      .select('id, current_price, status, seller_id')
+      .select('id, current_price, status, seller_id, moderation_status')
       .eq('id', itemId)
       .single()
 
-    if (!item) {
+    if (!item || item.moderation_status) {
       res.status(404).json({ error: 'Item not found' })
       return
     }
@@ -1002,11 +1029,11 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
     // Verify item exists and is NOT yet active
     const { data: item } = await supabase
       .from('items')
-      .select('id, status, seller_id, starting_price')
+      .select('id, status, seller_id, starting_price, moderation_status')
       .eq('id', itemId)
       .single()
 
-    if (!item) {
+    if (!item || item.moderation_status) {
       res.status(404).json({ error: 'Item not found' })
       return
     }

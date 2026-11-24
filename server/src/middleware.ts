@@ -88,7 +88,7 @@ export const aiLimiter = rateLimit({
 
 export const adminLimiter = rateLimit({
   windowMs: 60_000,
-  max: 60,
+  max: 150, // admin web de bureau : plusieurs appels par page
   message: { error: 'Too many admin requests, slow down' },
 })
 

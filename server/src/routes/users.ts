@@ -123,13 +123,17 @@ router.delete('/api/users/:id/block', requireAuth, async (req: AuthenticatedRequ
 
 router.post('/api/report', reportLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { reported_id, reason, context } = req.body
+    const { reported_id, reason, context, item_id, stream_id, message_id } = req.body
     if (!reported_id || !reason) { res.status(400).json({ error: 'reported_id and reason required' }); return }
+    const uuidOrNull = (v: unknown) => (typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v) ? v : null)
     await supabase.from('reports').insert({
       reporter_id: req.user!.id,
       reported_id,
       reason: String(reason).slice(0, 500),
       context: context ? String(context).slice(0, 200) : null,
+      item_id: uuidOrNull(item_id),
+      stream_id: uuidOrNull(stream_id),
+      message_id: uuidOrNull(message_id),
     })
     res.json({ success: true })
   } catch (err) {
@@ -497,6 +501,7 @@ router.get('/api/item-favorites', requireAuth, async (req: AuthenticatedRequest,
       .from('items')
       .select('*, seller:profiles!seller_id(display_name, avatar_url)')
       .in('id', itemIds)
+      .is('moderation_status', null) // articles masqués par la modération exclus
 
     // Preserve favorites order
     const itemMap = new Map((items || []).map(i => [i.id, i]))

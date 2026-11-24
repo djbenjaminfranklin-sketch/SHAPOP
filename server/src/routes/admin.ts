@@ -1037,4 +1037,565 @@ router.get('/api/admin/seller-trusts', requireAdmin, async (_req: AuthenticatedR
   }
 })
 
+// =============================================
+// ADMIN WEB (bureau) — fiche 360, signalements, articles, commandes, recherche
+// =============================================
+const ADMIN_PROOF_BUCKET = 'order-proofs'
+const ADMIN_SIGNED_TTL = 600
+
+type Row = Record<string, any>
+
+// E-mail / téléphone des comptes (auth.users), via la fonction réservée au serveur
+async function authInfo(opts: { ids?: string[]; search?: string }): Promise<Map<string, Row>> {
+  const map = new Map<string, Row>()
+  if (opts.ids && opts.ids.length === 0) return map
+  try {
+    const { data } = await supabase.rpc('admin_auth_users', { p_search: opts.search ?? null, p_ids: opts.ids ?? null })
+    for (const u of (data || []) as Row[]) map.set(u.id, u)
+  } catch (err) {
+    console.error('[admin] auth info:', (err as Error).message)
+  }
+  return map
+}
+
+async function signProof(path: string | null | undefined): Promise<string | null> {
+  if (!path) return null
+  if (/^https?:\/\//.test(path)) return path
+  try {
+    const { data } = await supabase.storage.from(ADMIN_PROOF_BUCKET).createSignedUrl(path, ADMIN_SIGNED_TTL)
+    return data?.signedUrl || null
+  } catch { return null }
+}
+
+async function profilesMap(ids: string[]): Promise<Map<string, Row>> {
+  const uniq = [...new Set(ids.filter(Boolean))]
+  const map = new Map<string, Row>()
+  if (uniq.length === 0) return map
+  const { data } = await supabase.from('profiles').select('id, username, display_name, avatar_url, country, is_seller, is_suspended, is_banned').in('id', uniq)
+  for (const p of (data || []) as Row[]) map.set(p.id, p)
+  return map
+}
+
+// Référence courte d'une commande (8 premiers caractères de l'identifiant) → plage d'UUID
+function uuidPrefixRange(ref: string): [string, string] | null {
+  const hex = ref.toLowerCase().replace(/[^0-9a-f]/g, '').slice(0, 32)
+  if (hex.length < 4) return null
+  const fmt = (h: string) => `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`
+  return [fmt(hex.padEnd(32, '0')), fmt(hex.padEnd(32, 'f'))]
+}
+
+const safeLike = (s: string) => s.replace(/[%_\\,()]/g, ' ').trim()
+
+// Commandes enrichies : article, acheteur, vendeur, preuves signées (si demandé)
+async function enrichOrders(orders: Row[], withProofs = false): Promise<Row[]> {
+  const people = await profilesMap(orders.flatMap(o => [o.buyer_id, o.seller_id]))
+  return Promise.all(orders.map(async o => {
+    const out: Row = {
+      ...o,
+      ref: String(o.id).slice(0, 8).toUpperCase(),
+      buyer: people.get(o.buyer_id) || null,
+      seller_profile: people.get(o.seller_id) || null,
+    }
+    if (withProofs) {
+      out.proofs = {
+        parcel_url: await signProof(o.proof_parcel_path),
+        slip_url: await signProof(o.proof_slip_path),
+        shipping_proof_url: await signProof(o.shipping_proof_url),
+        label_url: o.label_url || null,
+      }
+    }
+    return out
+  }))
+}
+
+// --- Admin web : liste des utilisateurs enrichie (e-mail, téléphone, filtres) ---
+router.get('/api/admin/users-search', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(100, Number(req.query.limit) || 50)
+    const search = safeLike(String(req.query.search || ''))
+    const role = String(req.query.role || '')       // seller | buyer
+    const status = String(req.query.status || '')   // suspended | banned | active
+    const country = String(req.query.country || '').toUpperCase().slice(0, 2)
+
+    let query = supabase.from('profiles').select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+
+    if (search) {
+      const byAuth = await authInfo({ search })
+      const ids = [...byAuth.keys()]
+      const orParts = [`username.ilike.%${search}%`, `display_name.ilike.%${search}%`]
+      if (ids.length) orParts.push(`id.in.(${ids.join(',')})`)
+      if (/^[0-9a-f-]{36}$/i.test(search)) orParts.push(`id.eq.${search}`)
+      query = query.or(orParts.join(','))
+    }
+    if (role === 'seller') query = query.eq('is_seller', true)
+    if (role === 'buyer') query = query.eq('is_seller', false)
+    if (status === 'suspended') query = query.eq('is_suspended', true).eq('is_banned', false)
+    if (status === 'banned') query = query.eq('is_banned', true)
+    if (status === 'active') query = query.eq('is_suspended', false).eq('is_banned', false)
+    if (country) query = query.eq('country', country)
+
+    const { data, count, error } = await query
+    if (error) throw error
+    const auth = await authInfo({ ids: (data || []).map((p: Row) => p.id) })
+    const users = (data || []).map((p: Row) => ({
+      ...p,
+      email: auth.get(p.id)?.email || null,
+      phone: auth.get(p.id)?.phone || null,
+      last_sign_in_at: auth.get(p.id)?.last_sign_in_at || null,
+    }))
+    res.json({ users, total: count || 0, page, limit })
+  } catch (err) {
+    console.error('[admin] users-search:', err)
+    res.status(500).json({ error: 'Failed to fetch users' })
+  }
+})
+
+// --- Admin web : fiche client 360 ---
+router.get('/api/admin/users/:id/full', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = paramStr(req.params.id)
+    if (!/^[0-9a-f-]{36}$/i.test(userId)) { res.status(400).json({ error: 'Invalid id' }); return }
+
+    const [profileRes, sellerRes, trustRes, scoreRes, itemsRes, streamsRes, buyOrdersRes, sellOrdersRes, bidsRes, reviewsRes, reportsByRes, reportsAgainstRes, notesRes, auditRes, disputesRes] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      supabase.from('sellers').select('*').eq('id', userId).maybeSingle(),
+      supabase.from('seller_trust').select('*').eq('seller_id', userId).maybeSingle(),
+      supabase.from('buyer_scores').select('*').eq('user_id', userId).maybeSingle(),
+      supabase.from('items').select('*').eq('seller_id', userId).order('created_at', { ascending: false }).limit(500),
+      supabase.from('streams').select(STREAMS_SAFE_COLUMNS).eq('seller_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('orders').select('*').eq('buyer_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('orders').select('*').eq('seller_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('bids').select('id', { count: 'exact', head: true }).eq('bidder_id', userId),
+      supabase.from('reviews').select('*').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`).order('created_at', { ascending: false }).limit(200),
+      supabase.from('reports').select('*').eq('reporter_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('reports').select('*').eq('reported_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('admin_notes').select('*').eq('target_user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('admin_audit_log').select('*').eq('target_id', userId).order('created_at', { ascending: false }).limit(200),
+      supabase.from('disputes').select('*').or(`buyer_id.eq.${userId},seller_id.eq.${userId}`).order('created_at', { ascending: false }).limit(100),
+    ])
+
+    if (!profileRes.data) { res.status(404).json({ error: 'User not found' }); return }
+
+    const auth = await authInfo({ ids: [userId] })
+    const allOrders = [...(buyOrdersRes.data || []), ...(sellOrdersRes.data || [])] as Row[]
+    const itemIds = [...new Set(allOrders.map(o => o.item_id).filter(Boolean))]
+    const { data: orderItems } = itemIds.length
+      ? await supabase.from('items').select('id, title, image_urls').in('id', itemIds)
+      : { data: [] as Row[] }
+    const itemMap = new Map((orderItems || []).map((i: Row) => [i.id, i]))
+    const withItem = async (list: Row[]) => (await enrichOrders(list, true)).map(o => ({ ...o, item: itemMap.get(o.item_id) || null }))
+
+    const reportPeople = await profilesMap([
+      ...(reportsByRes.data || []).map((r: Row) => r.reported_id),
+      ...(reportsAgainstRes.data || []).map((r: Row) => r.reporter_id),
+      ...(reviewsRes.data || []).flatMap((r: Row) => [r.buyer_id, r.seller_id]),
+    ])
+    const tagPeople = (list: Row[]) => list.map(r => ({
+      ...r,
+      reporter: reportPeople.get(r.reporter_id) || null,
+      reported: reportPeople.get(r.reported_id) || null,
+      buyer: r.buyer_id ? reportPeople.get(r.buyer_id) || null : undefined,
+    }))
+
+    const purchases = await withItem((buyOrdersRes.data || []) as Row[])
+    const sales = await withItem((sellOrdersRes.data || []) as Row[])
+    const sumBy = (list: Row[]) => list.filter(o => ['paid', 'shipped', 'handed_over', 'delivered'].includes(o.status))
+      .reduce((acc: Record<string, number>, o) => {
+        const cur = o.currency || 'EUR'
+        acc[cur] = Math.round(((acc[cur] || 0) + Number(o.amount || 0)) * 100) / 100
+        return acc
+      }, {})
+
+    res.json({
+      profile: { ...profileRes.data, email: auth.get(userId)?.email || null, phone: auth.get(userId)?.phone || null, last_sign_in_at: auth.get(userId)?.last_sign_in_at || null },
+      seller: sellerRes.data || null,
+      seller_trust: trustRes.data || null,
+      buyer_score: scoreRes.data || null,
+      items: itemsRes.data || [],
+      streams: streamsRes.data || [],
+      purchases,
+      sales,
+      disputes: disputesRes.data || [],
+      bids_count: bidsRes.count || 0,
+      reviews: tagPeople((reviewsRes.data || []) as Row[]),
+      reports_by: tagPeople((reportsByRes.data || []) as Row[]),
+      reports_against: tagPeople((reportsAgainstRes.data || []) as Row[]),
+      notes: notesRes.data || [],
+      audit: auditRes.data || [],
+      stats: {
+        purchases: purchases.length,
+        sales: sales.length,
+        spent: sumBy(purchases),
+        earned: sumBy(sales),
+        items: (itemsRes.data || []).length,
+        streams: (streamsRes.data || []).length,
+      },
+    })
+  } catch (err) {
+    console.error('[admin] user full:', err)
+    res.status(500).json({ error: 'Failed to fetch user' })
+  }
+})
+
+// --- Admin web : tableau de bord (chiffres par devise + derniers signalements / litiges) ---
+router.get('/api/admin/dashboard', requireAdmin, async (_req: AuthenticatedRequest, res: Response) => {
+  try {
+    const head = (q: any) => q.then((r: any) => r.count || 0)
+    const [users, sellers, livesNow, orders, paid, disputesOpen, reportsOpen, hiddenItems] = await Promise.all([
+      head(supabase.from('profiles').select('id', { count: 'exact', head: true })),
+      head(supabase.from('sellers').select('id', { count: 'exact', head: true })),
+      head(supabase.from('streams').select('id', { count: 'exact', head: true }).eq('status', 'live')),
+      head(supabase.from('orders').select('id', { count: 'exact', head: true })),
+      head(supabase.from('orders').select('id', { count: 'exact', head: true }).in('status', ['paid', 'shipped', 'handed_over', 'delivered'])),
+      head(supabase.from('disputes').select('id', { count: 'exact', head: true }).not('status', 'in', '(resolved_buyer,resolved_seller)')),
+      head(supabase.from('reports').select('id', { count: 'exact', head: true }).eq('status', 'open')),
+      head(supabase.from('items').select('id', { count: 'exact', head: true }).not('moderation_status', 'is', null)),
+    ])
+    const { data: revenueRows } = await supabase.from('orders').select('amount, platform_fee, currency, payment_provider').in('status', ['paid', 'shipped', 'handed_over', 'delivered'])
+    const revenue: Record<string, { amount: number; fees: number; count: number }> = {}
+    const providers: Record<string, number> = {}
+    for (const o of (revenueRows || []) as Row[]) {
+      const cur = o.currency || 'EUR'
+      revenue[cur] = revenue[cur] || { amount: 0, fees: 0, count: 0 }
+      revenue[cur].amount = Math.round((revenue[cur].amount + Number(o.amount || 0)) * 100) / 100
+      revenue[cur].fees = Math.round((revenue[cur].fees + Number(o.platform_fee || 0)) * 100) / 100
+      revenue[cur].count++
+      providers[o.payment_provider || 'stripe'] = (providers[o.payment_provider || 'stripe'] || 0) + 1
+    }
+    const [{ data: lastReports }, { data: lastDisputes }, { data: lastOrders }] = await Promise.all([
+      supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(8),
+      supabase.from('disputes').select('*').order('created_at', { ascending: false }).limit(8),
+      supabase.from('orders').select('*').order('created_at', { ascending: false }).limit(8),
+    ])
+    const people = await profilesMap([
+      ...(lastReports || []).flatMap((r: Row) => [r.reporter_id, r.reported_id]),
+      ...(lastDisputes || []).flatMap((d: Row) => [d.buyer_id, d.seller_id]),
+    ])
+    res.json({
+      counts: { users, sellers, lives_now: livesNow, orders, paid_orders: paid, disputes_open: disputesOpen, reports_open: reportsOpen, hidden_items: hiddenItems },
+      revenue,
+      providers,
+      latest_reports: (lastReports || []).map((r: Row) => ({ ...r, reporter: people.get(r.reporter_id) || null, reported: people.get(r.reported_id) || null })),
+      latest_disputes: (lastDisputes || []).map((d: Row) => ({ ...d, buyer: people.get(d.buyer_id) || null, seller_profile: people.get(d.seller_id) || null })),
+      latest_orders: await enrichOrders((lastOrders || []) as Row[]),
+    })
+  } catch (err) {
+    console.error('[admin] dashboard:', err)
+    res.status(500).json({ error: 'Failed to fetch dashboard' })
+  }
+})
+
+// --- Admin web : file des signalements ---
+router.get('/api/admin/reports', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const status = String(req.query.status || 'open') // open | resolved | all
+    const type = String(req.query.type || '')        // item | stream | message | user
+    let query = supabase.from('reports').select('*').order('created_at', { ascending: false }).limit(200)
+    if (status === 'open') query = query.eq('status', 'open')
+    if (status === 'resolved') query = query.neq('status', 'open')
+    if (type === 'item') query = query.not('item_id', 'is', null)
+    if (type === 'stream') query = query.not('stream_id', 'is', null)
+    if (type === 'message') query = query.not('message_id', 'is', null)
+    if (type === 'user') query = query.is('item_id', null).is('stream_id', null).is('message_id', null)
+    const { data, error } = await query
+    if (error) throw error
+    const reports = (data || []) as Row[]
+
+    const people = await profilesMap(reports.flatMap(r => [r.reporter_id, r.reported_id]))
+    const itemIds = reports.map(r => r.item_id).filter(Boolean)
+    const streamIds = reports.map(r => r.stream_id).filter(Boolean)
+    const messageIds = reports.map(r => r.message_id).filter(Boolean)
+    const [itemsRes, streamsRes, chatRes, convRes] = await Promise.all([
+      itemIds.length ? supabase.from('items').select('id, title, image_urls, status, moderation_status, seller_id').in('id', itemIds) : Promise.resolve({ data: [] }),
+      streamIds.length ? supabase.from('streams').select('id, title, status, thumbnail_url, recording_url, seller_id').in('id', streamIds) : Promise.resolve({ data: [] }),
+      messageIds.length ? supabase.from('chat_messages').select('id, message, user_id, stream_id, created_at').in('id', messageIds) : Promise.resolve({ data: [] }),
+      messageIds.length ? supabase.from('conversation_messages').select('id, message, sender_id, conversation_id, created_at, attachment_urls').in('id', messageIds) : Promise.resolve({ data: [] }),
+    ])
+    const byId = (rows: any) => new Map(((rows?.data || []) as Row[]).map(r => [r.id, r]))
+    const items = byId(itemsRes), streams = byId(streamsRes), chats = byId(chatRes), convs = byId(convRes)
+
+    // Autres sources : formulaire de contact + messages filtrés automatiquement
+    const [contactRes, flaggedRes] = await Promise.all([
+      supabase.from('contact_messages').select('*').order('created_at', { ascending: false }).limit(100),
+      supabase.from('conversation_messages').select('id, conversation_id, sender_id, message, flag_reason, created_at').eq('is_flagged', true).order('created_at', { ascending: false }).limit(100),
+    ])
+
+    res.json({
+      reports: reports.map(r => ({
+        ...r,
+        reporter: people.get(r.reporter_id) || null,
+        reported: people.get(r.reported_id) || null,
+        item: r.item_id ? items.get(r.item_id) || null : null,
+        stream: r.stream_id ? streams.get(r.stream_id) || null : null,
+        message: r.message_id ? chats.get(r.message_id) || convs.get(r.message_id) || null : null,
+      })),
+      contact_messages: contactRes.data || [],
+      flagged_messages: flaggedRes.data || [],
+    })
+  } catch (err) {
+    console.error('[admin] reports:', err)
+    res.status(500).json({ error: 'Failed to fetch reports' })
+  }
+})
+
+async function setItemModeration(itemId: string, status: 'hidden' | 'removed' | null, adminId: string, reason: string | null) {
+  return supabase.from('items').update({
+    moderation_status: status,
+    moderated_at: status ? new Date().toISOString() : null,
+    moderated_by: status ? adminId : null,
+    moderation_reason: status ? reason : null,
+  }).eq('id', itemId)
+}
+
+async function suspendProfile(userId: string, reason: string) {
+  return supabase.from('profiles').update({ is_suspended: true, suspension_reason: reason, suspended_at: new Date().toISOString() }).eq('id', userId)
+}
+
+// --- Admin web : traiter un signalement ---
+router.post('/api/admin/reports/:id/resolve', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const reportId = paramStr(req.params.id)
+    const { action, note } = req.body || {}
+    const allowed = ['dismiss', 'warn', 'suspend', 'ban', 'remove_item']
+    if (!allowed.includes(action)) { res.status(400).json({ error: `action must be one of ${allowed.join(', ')}` }); return }
+    const reason = typeof note === 'string' ? note.trim().slice(0, 1000) : ''
+
+    const { data: report } = await supabase.from('reports').select('*').eq('id', reportId).maybeSingle()
+    if (!report) { res.status(404).json({ error: 'Report not found' }); return }
+
+    if (action === 'suspend') {
+      const { error } = await suspendProfile(report.reported_id, reason || 'Suspended after report')
+      if (error) throw error
+      await logAdminAction(req.user!.id, req.user!.email || '', 'suspend_user', 'user', report.reported_id, { reason, report_id: reportId })
+    }
+    if (action === 'ban') {
+      const { error } = await supabase.from('profiles').update({
+        is_banned: true, is_suspended: true, suspension_reason: reason || 'Banned after report', banned_at: new Date().toISOString(),
+      }).eq('id', report.reported_id)
+      if (error) throw error
+      const { data: authUser } = await supabase.auth.admin.getUserById(report.reported_id)
+      if (authUser?.user?.email) {
+        await supabase.from('banned_identifiers').upsert([{ type: 'email', value: authUser.user.email.toLowerCase().trim(), banned_user_id: report.reported_id, banned_by: req.user!.id, reason: reason || 'Banned after report' }], { onConflict: 'type,value' })
+      }
+      await logAdminAction(req.user!.id, req.user!.email || '', 'ban_user', 'user', report.reported_id, { reason, report_id: reportId })
+    }
+    if (action === 'remove_item') {
+      if (!report.item_id) { res.status(400).json({ error: 'This report has no item' }); return }
+      const { error } = await setItemModeration(report.item_id, 'removed', req.user!.id, reason || 'Removed after report')
+      if (error) throw error
+      await logAdminAction(req.user!.id, req.user!.email || '', 'remove_item', 'item', report.item_id, { reason, report_id: reportId })
+    }
+    if (action === 'warn') {
+      // Avertissement consigné dans les notes admin (aucun message envoyé à l'utilisateur)
+      await supabase.from('admin_notes').insert({
+        target_user_id: report.reported_id, admin_id: req.user!.id, admin_email: req.user!.email || '',
+        note: `Avertissement (signalement ${String(reportId).slice(0, 8)}) : ${reason || report.reason}`,
+      })
+    }
+
+    const { error } = await supabase.from('reports').update({
+      status: action === 'dismiss' ? 'dismissed' : 'resolved',
+      resolved_at: new Date().toISOString(),
+      resolved_by: req.user!.id,
+      resolution_action: action,
+      resolution_note: reason || null,
+    }).eq('id', reportId)
+    if (error) throw error
+
+    await logAdminAction(req.user!.id, req.user!.email || '', `resolve_report_${action}`, 'report', reportId, { reason, reported_id: report.reported_id })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[admin] resolve report:', err)
+    res.status(500).json({ error: 'Failed to resolve report' })
+  }
+})
+
+// --- Admin web : message du formulaire de contact → statut ---
+router.post('/api/admin/contact-messages/:id/status', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = paramStr(req.params.id)
+    const status = String((req.body || {}).status || '')
+    if (!['new', 'read', 'replied', 'closed'].includes(status)) { res.status(400).json({ error: 'Invalid status' }); return }
+    const { error } = await supabase.from('contact_messages').update({ status }).eq('id', id)
+    if (error) throw error
+    await logAdminAction(req.user!.id, req.user!.email || '', 'contact_message_status', 'contact_message', id, { status })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[admin] contact status:', err)
+    res.status(500).json({ error: 'Failed to update message' })
+  }
+})
+
+// --- Admin web : tous les articles (photos, recherche titre / code [ABCD]) ---
+router.get('/api/admin/items', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(200, Number(req.query.limit) || 60)
+    const search = safeLike(String(req.query.search || '').replace(/[[\]]/g, ''))
+    const sellerId = String(req.query.seller || '')
+    const status = String(req.query.status || '')           // draft | pending | active | sold
+    const moderation = String(req.query.moderation || '')   // visible | hidden | removed | moderated
+
+    let query = supabase.from('items').select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+    if (search) query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`)
+    if (/^[0-9a-f-]{36}$/i.test(sellerId)) query = query.eq('seller_id', sellerId)
+    if (status) query = query.eq('status', status)
+    if (moderation === 'visible') query = query.is('moderation_status', null)
+    if (moderation === 'hidden' || moderation === 'removed') query = query.eq('moderation_status', moderation)
+    if (moderation === 'moderated') query = query.not('moderation_status', 'is', null)
+
+    const { data, count, error } = await query
+    if (error) throw error
+    const people = await profilesMap((data || []).map((i: Row) => i.seller_id))
+    res.json({ items: (data || []).map((i: Row) => ({ ...i, seller: people.get(i.seller_id) || null })), total: count || 0, page, limit })
+  } catch (err) {
+    console.error('[admin] items:', err)
+    res.status(500).json({ error: 'Failed to fetch items' })
+  }
+})
+
+for (const [path, status, action] of [['hide', 'hidden', 'hide_item'], ['unhide', null, 'unhide_item'], ['delete', 'removed', 'remove_item']] as const) {
+  router.post(`/api/admin/items/:id/${path}`, requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const itemId = paramStr(req.params.id)
+      const reason = typeof req.body?.reason === 'string' ? req.body.reason.trim().slice(0, 1000) : ''
+      if (status && !reason) { res.status(400).json({ error: 'Reason is required' }); return }
+      const { data: item } = await supabase.from('items').select('id, seller_id, title').eq('id', itemId).maybeSingle()
+      if (!item) { res.status(404).json({ error: 'Item not found' }); return }
+      const { error } = await setItemModeration(itemId, status, req.user!.id, reason || null)
+      if (error) throw error
+      await logAdminAction(req.user!.id, req.user!.email || '', action, 'item', itemId, { reason, seller_id: item.seller_id, title: item.title })
+      res.json({ success: true, moderation_status: status })
+    } catch (err) {
+      console.error(`[admin] ${action}:`, err)
+      res.status(500).json({ error: 'Failed to update item' })
+    }
+  })
+}
+
+// --- Admin web : commandes (recherche réf / acheteur / vendeur, fournisseur, statut) ---
+router.get('/api/admin/orders-search', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const page = Math.max(1, Number(req.query.page) || 1)
+    const limit = Math.min(100, Number(req.query.limit) || 50)
+    const search = safeLike(String(req.query.search || '').replace(/^#/, ''))
+    const provider = String(req.query.provider || '')
+    const status = String(req.query.status || '')
+    const fulfillment = String(req.query.fulfillment || '')
+    const userId = String(req.query.user || '')
+
+    let query = supabase.from('orders').select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
+    if (provider) query = query.eq('payment_provider', provider)
+    if (status) query = query.eq('status', status)
+    if (fulfillment) query = query.eq('fulfillment_method', fulfillment)
+    if (/^[0-9a-f-]{36}$/i.test(userId)) query = query.or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+    if (search) {
+      const range = /^[0-9a-f-]{4,36}$/i.test(search) ? uuidPrefixRange(search) : null
+      const { data: ppl } = await supabase.from('profiles').select('id').or(`username.ilike.%${search}%,display_name.ilike.%${search}%`).limit(50)
+      const auth = await authInfo({ search })
+      const ids = [...new Set([...(ppl || []).map((p: Row) => p.id), ...auth.keys()])]
+      const parts: string[] = []
+      if (range) parts.push(`and(id.gte.${range[0]},id.lte.${range[1]})`)
+      if (ids.length) parts.push(`buyer_id.in.(${ids.join(',')})`, `seller_id.in.(${ids.join(',')})`)
+      if (parts.length === 0) { res.json({ orders: [], total: 0, page, limit }); return }
+      query = query.or(parts.join(','))
+    }
+    const { data, count, error } = await query
+    if (error) throw error
+    const orders = await enrichOrders((data || []) as Row[])
+    const itemIds = [...new Set(orders.map(o => o.item_id).filter(Boolean))]
+    const { data: items } = itemIds.length ? await supabase.from('items').select('id, title, image_urls').in('id', itemIds) : { data: [] as Row[] }
+    const itemMap = new Map((items || []).map((i: Row) => [i.id, i]))
+    res.json({ orders: orders.map(o => ({ ...o, item: itemMap.get(o.item_id) || null })), total: count || 0, page, limit })
+  } catch (err) {
+    console.error('[admin] orders-search:', err)
+    res.status(500).json({ error: 'Failed to fetch orders' })
+  }
+})
+
+// --- Admin web : détail d'une commande (preuves signées, adresse, litige, avis) ---
+router.get('/api/admin/orders/:id', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = paramStr(req.params.id)
+    if (!/^[0-9a-f-]{36}$/i.test(orderId)) { res.status(400).json({ error: 'Invalid id' }); return }
+    const { data: order } = await supabase.from('orders').select('*').eq('id', orderId).maybeSingle()
+    if (!order) { res.status(404).json({ error: 'Order not found' }); return }
+    const [[enriched], itemRes, disputeRes, reviewRes, proofsRes, auth] = await Promise.all([
+      enrichOrders([order as Row], true),
+      order.item_id ? supabase.from('items').select('*').eq('id', order.item_id).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from('disputes').select('*').eq('order_id', orderId),
+      supabase.from('reviews').select('*').eq('order_id', orderId),
+      supabase.from('shipping_proofs').select('*').eq('order_id', orderId),
+      authInfo({ ids: [order.buyer_id, order.seller_id].filter(Boolean) }),
+    ])
+    const shippingProofs = await Promise.all(((proofsRes.data || []) as Row[]).map(async p => ({ ...p, signed_url: await signProof(p.url) })))
+    res.json({
+      ...enriched,
+      buyer_email: auth.get(order.buyer_id)?.email || null,
+      seller_email: auth.get(order.seller_id)?.email || null,
+      item: (itemRes as any).data || null,
+      disputes: disputeRes.data || [],
+      reviews: reviewRes.data || [],
+      shipping_proofs: shippingProofs,
+    })
+  } catch (err) {
+    console.error('[admin] order detail:', err)
+    res.status(500).json({ error: 'Failed to fetch order' })
+  }
+})
+
+// --- Admin web : historique des lives (tous statuts) ---
+router.get('/api/admin/streams-history', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const limit = Math.min(200, Number(req.query.limit) || 100)
+    const { data, error } = await supabase.from('streams').select(STREAMS_SAFE_COLUMNS)
+      .order('created_at', { ascending: false }).limit(limit)
+    if (error) throw error
+    const people = await profilesMap((data || []).map((s: any) => s.seller_id))
+    res.json((data || []).map((s: any) => ({ ...s, seller_profile: people.get(s.seller_id) || null })))
+  } catch (err) {
+    console.error('[admin] streams-history:', err)
+    res.status(500).json({ error: 'Failed to fetch streams' })
+  }
+})
+
+// --- Admin web : recherche globale ---
+router.get('/api/admin/search', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const raw = String(req.query.q || '').trim()
+    const q = safeLike(raw.replace(/^#/, '').replace(/[[\]]/g, ''))
+    if (q.length < 2) { res.json({ users: [], orders: [], items: [] }); return }
+
+    const auth = await authInfo({ search: q })
+    const authIds = [...auth.keys()]
+    const userOr = [`username.ilike.%${q}%`, `display_name.ilike.%${q}%`]
+    if (authIds.length) userOr.push(`id.in.(${authIds.join(',')})`)
+    if (/^[0-9a-f-]{36}$/i.test(q)) userOr.push(`id.eq.${q}`)
+    const range = /^[0-9a-f-]{4,36}$/i.test(q) ? uuidPrefixRange(q) : null
+
+    const [usersRes, ordersRes, itemsRes] = await Promise.all([
+      supabase.from('profiles').select('id, username, display_name, avatar_url, country, is_seller, is_suspended, is_banned').or(userOr.join(',')).limit(20),
+      range ? supabase.from('orders').select('*').gte('id', range[0]).lte('id', range[1]).limit(20) : Promise.resolve({ data: [] }),
+      supabase.from('items').select('id, title, image_urls, status, moderation_status, seller_id, current_price').ilike('title', `%${q}%`).limit(30),
+    ])
+    const users = ((usersRes.data || []) as Row[])
+    const emails = await authInfo({ ids: users.map(u => u.id) })
+    res.json({
+      users: users.map(u => ({ ...u, email: emails.get(u.id)?.email || null, phone: emails.get(u.id)?.phone || null })),
+      orders: await enrichOrders(((ordersRes as any).data || []) as Row[]),
+      items: itemsRes.data || [],
+    })
+  } catch (err) {
+    console.error('[admin] search:', err)
+    res.status(500).json({ error: 'Search failed' })
+  }
+})
+
 export default router

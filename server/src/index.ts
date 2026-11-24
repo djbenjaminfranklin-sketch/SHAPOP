@@ -59,6 +59,7 @@ app.use(helmet({
 }))
 
 // CORS - accept configured origins + Capacitor
+const ADMIN_WEB_ORIGINS = ['https://admin.shapop.app', 'https://shapop-admin.vercel.app', 'http://localhost:5174']
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:5173']
@@ -68,6 +69,8 @@ app.use(cors({
     if (origin.startsWith('capacitor://') || origin.startsWith('ionic://')) return callback(null, true)
     // App Android (Capacitor) : la WebView sert l'app depuis https://localhost
     if (origin === 'https://localhost') return callback(null, true)
+    // Admin web (bureau)
+    if (ADMIN_WEB_ORIGINS.includes(origin)) return callback(null, true)
     // Allow configured origins
     if (allowed.includes(origin)) return callback(null, true)
     callback(null, false)
