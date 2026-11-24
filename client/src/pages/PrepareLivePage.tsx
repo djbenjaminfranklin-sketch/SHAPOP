@@ -824,18 +824,23 @@ export default function PrepareLivePage() {
     const queue = files.map((f, i) => ({ f, row: rows[i] }))
     const worker = async () => {
       for (let job = queue.shift(); job; job = queue.shift()) {
-        try {
-          const compressed = await compressImage(job.f)
-          const filePath = `items/${user.id}/${Date.now()}-${job.row.key}.jpg`
-          const { error } = await supabase.storage.from('avatars').upload(filePath, compressed, { contentType: 'image/jpeg', upsert: false })
-          if (error) throw error
-          const url = supabase.storage.from('avatars').getPublicUrl(filePath).data.publicUrl
-          uploaded.push({ key: job.row.key, url })
-          updateRow(job.row.key, { imageUrl: url, status: 'naming' })
-        } catch (err) {
-          console.error('batch upload', err)
-          updateRow(job.row.key, { status: 'error' })
+        let done = false
+        for (let attempt = 0; attempt < 3 && !done; attempt++) {
+          try {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt))
+            const compressed = await compressImage(job.f)
+            const filePath = `items/${user.id}/${Date.now()}-${job.row.key}.jpg`
+            const { error } = await supabase.storage.from('avatars').upload(filePath, compressed, { contentType: 'image/jpeg', upsert: false })
+            if (error) throw error
+            const url = supabase.storage.from('avatars').getPublicUrl(filePath).data.publicUrl
+            uploaded.push({ key: job.row.key, url })
+            updateRow(job.row.key, { imageUrl: url, status: 'naming' })
+            done = true
+          } catch (err) {
+            console.error('batch upload', err)
+          }
         }
+        if (!done) updateRow(job.row.key, { status: 'error' })
       }
     }
     await Promise.all([worker(), worker(), worker()])
@@ -2050,6 +2055,32 @@ export default function PrepareLivePage() {
         flexShrink: 0,
       }}>
         {!showForm && (
+          <>
+          <button
+            onClick={() => photosInputRef.current?.click()}
+            style={{
+              width: '100%', padding: '16px',
+              background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)',
+              border: 'none', borderRadius: '14px',
+              color: '#fff', fontSize: '16px', fontWeight: 800,
+              cursor: 'pointer', whiteSpace: 'nowrap',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+            {ct.photosAi}
+          </button>
+          <input
+            ref={photosInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={e => { handlePhotosPicked(e.target.files); e.target.value = '' }}
+          />
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => setShowForm(true)}
@@ -2069,31 +2100,6 @@ export default function PrepareLivePage() {
               </svg>
               {ct.addItem}
             </button>
-            <button
-              onClick={() => photosInputRef.current?.click()}
-              style={{
-                padding: '16px',
-                background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)',
-                border: 'none', borderRadius: '14px',
-                color: '#fff', fontSize: '13px', fontWeight: 800,
-                cursor: 'pointer', whiteSpace: 'nowrap',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-              }}
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
-                <circle cx="12" cy="13" r="4" />
-              </svg>
-              {ct.photosAi}
-            </button>
-            <input
-              ref={photosInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => { handlePhotosPicked(e.target.files); e.target.value = '' }}
-            />
             <button
               onClick={() => csvInputRef.current?.click()}
               disabled={csvImporting}
@@ -2127,6 +2133,7 @@ export default function PrepareLivePage() {
               }}
             />
           </div>
+          </>
         )}
 
         <button
