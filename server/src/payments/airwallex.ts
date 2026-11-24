@@ -90,8 +90,6 @@ export async function authorize(input: { orderId: string; amount: number; curren
   try {
     const confirmed = await awxRequest<AwxIntent>('POST', `/api/v1/pa/payment_intents/${intent.id}/confirm`, {
       request_id: rid('cf'), customer_id: input.customerId, payment_consent_id: input.consent.id,
-      payment_method: { id: input.consent.payment_method!.id, type: 'card' },
-      triggered_by: 'merchant',
       payment_method_options: { card: { auto_capture: false } },
     })
     return confirmed
