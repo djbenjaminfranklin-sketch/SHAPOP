@@ -621,6 +621,29 @@ export default function PaymentsPage() {
     setSetupSuccess(false)
     setSetupLoading(false)
     setSetupClientSecret(null)
+    // Israël (Rapyd, quand il est activé) : la carte s'enregistre sur la page sécurisée de Rapyd
+    try {
+      const { data: { session: s0 } } = await supabase.auth.getSession()
+      if (s0) {
+        const pr = await apiFetch('/api/payments/provider', { headers: { 'Authorization': `Bearer ${s0.access_token}` } })
+        const prov = pr.ok ? await pr.json() : null
+        if (prov?.provider === 'rapyd') {
+          const cp = await apiFetch('/api/rapyd/card-page', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s0.access_token}` },
+            body: JSON.stringify({ lang: getLang() }),
+          })
+          const page = cp.ok ? await cp.json() : null
+          if (page?.redirect_url) {
+            await Browser.open({ url: page.redirect_url, presentationStyle: 'popover' })
+            return
+          }
+          setSetupError(c.buyerCardError)
+          setShowCardSetup(true)
+          return
+        }
+      }
+    } catch { /* on continue avec Stripe */ }
     setShowCardSetup(true)
     // Le formulaire s'ouvre en bas de la page : on le fait défiler jusqu'à lui
     setTimeout(() => document.getElementById('card-setup-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
