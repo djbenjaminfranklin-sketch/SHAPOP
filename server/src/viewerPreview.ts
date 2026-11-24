@@ -6,21 +6,31 @@
 //   (table stream_preview_views), donc pas de remise à zéro en quittant / rouvrant le direct.
 // =============================================
 import { supabase, stripe, livekitRoomService, FREE_PREVIEW_SECONDS } from './config'
+import { rapydConfig, getCustomer } from './payments/rapyd'
 
 /** Même règle que /api/stripe/check-card et la vérification avant enchère. */
 export async function userHasSavedCard(userId: string): Promise<boolean> {
   const { data: profile } = await supabase
     .from('profiles')
-    .select('stripe_customer_id')
+    .select('stripe_customer_id, rapyd_customer_id')
     .eq('id', userId)
     .single()
-  if (!profile?.stripe_customer_id) return false
-  const pms = await stripe.paymentMethods.list({
-    customer: profile.stripe_customer_id as string,
-    type: 'card',
-    limit: 1,
-  })
-  return pms.data.length > 0
+  if (profile?.stripe_customer_id) {
+    const pms = await stripe.paymentMethods.list({
+      customer: profile.stripe_customer_id as string,
+      type: 'card',
+      limit: 1,
+    })
+    if (pms.data.length > 0) return true
+  }
+  // Israël : carte enregistrée chez Rapyd (seulement quand Rapyd est activé)
+  if (profile?.rapyd_customer_id && rapydConfig().enabled) {
+    try {
+      const c = await getCustomer(profile.rapyd_customer_id as string)
+      return !!c?.default_payment_method
+    } catch { return false }
+  }
+  return false
 }
 
 /** Secondes d'aperçu restantes à partir de la date de début (jamais négatif). */

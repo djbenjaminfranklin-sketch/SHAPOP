@@ -6,7 +6,10 @@ import { requireAuth, paymentLimiter } from '../middleware'
 import { calculateFees, getPaypalAccessToken } from '../utils'
 import { getActivePromotion, getValidPromoCode } from './promotions'
 import { markOrderPaid } from '../services/orderLifecycle'
-import { captureAuthorizedPayment } from '../services/cardAuthorization'
+import { captureAuthorizedPayment, captureRapydOrder } from '../services/cardAuthorization'
+import { userHasSavedCard } from '../viewerPreview'
+import { providerForCountry } from '../payments/provider'
+import { rapydConfig, createCustomer as createRapydCustomer, createSaveCardPage } from '../payments/rapyd'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -207,24 +210,8 @@ router.get('/api/stripe/check-card', requireAuth, async (req: AuthenticatedReque
   try {
     const userId = req.user!.id
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', userId)
-      .single()
-
-    if (!profile?.stripe_customer_id) {
-      res.json({ has_card: false })
-      return
-    }
-
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: profile.stripe_customer_id,
-      type: 'card',
-      limit: 1,
-    })
-
-    const hasCard = paymentMethods.data.length > 0
+    // Stripe, ou Rapyd (Israël) quand il est activé
+    const hasCard = await userHasSavedCard(userId)
 
     // Check if buyer has at least one shipping address
     const { data: addresses } = await supabase
@@ -299,6 +286,37 @@ router.delete('/api/stripe/card', requireAuth, async (req: AuthenticatedRequest,
   }
 })
 
+// =============================================
+// RAPYD (Israël) — prestataire de l'utilisateur et page d'enregistrement de carte
+// =============================================
+router.get('/api/payments/provider', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const { data: profile } = await supabase.from('profiles').select('country').eq('id', req.user!.id).maybeSingle()
+  res.json({ provider: providerForCountry((profile as { country?: string | null } | null)?.country), rapyd_enabled: rapydConfig().enabled })
+})
+
+router.post('/api/rapyd/card-page', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!rapydConfig().enabled) { res.status(503).json({ error: 'rapyd_not_enabled' }); return }
+    const userId = req.user!.id
+    const { data: profile } = await supabase.from('profiles').select('rapyd_customer_id, display_name, username, country').eq('id', userId).maybeSingle()
+    let customer = (profile as { rapyd_customer_id?: string | null } | null)?.rapyd_customer_id || null
+    if (!customer) {
+      const c = await createRapydCustomer({ name: profile?.display_name || profile?.username || 'ShaPop', email: req.user!.email, metadata: { user_id: userId } })
+      customer = c.id
+      await supabase.from('profiles').update({ rapyd_customer_id: customer }).eq('id', userId)
+    }
+    const lang = String(req.body?.lang || 'en').slice(0, 2)
+    const page = await createSaveCardPage({
+      customer, country: 'IL', currency: 'ILS', language: lang,
+      completeUrl: `${APP_BASE_URL}/payments?card=saved`, cancelUrl: `${APP_BASE_URL}/payments?card=cancel`,
+    })
+    res.json({ redirect_url: page.redirect_url })
+  } catch (err: any) {
+    console.error('[rapyd] card-page', err?.message || err)
+    res.status(500).json({ error: 'Failed to open card page' })
+  }
+})
+
 // Create a PaymentIntent when a buyer wins an auction
 router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -338,7 +356,10 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     const { data: sellerAuth } = await supabase.auth.admin.getUserById(order.seller_id)
     const isAdminSeller = isAdminUser(sellerAuth?.user?.email ?? undefined)
 
-    if (!isPaypalSeller && !isAdminSeller) {
+    // Commande Israël (Rapyd) : pas de compte Stripe du vendeur à vérifier
+    const isRapydOrder = order.payment_provider === 'rapyd'
+
+    if (!isRapydOrder && !isPaypalSeller && !isAdminSeller) {
       // Stripe seller: must have a connected Stripe account
       if (!seller?.stripe_account_id) {
         res.status(400).json({ error: 'Seller has not connected Stripe' })
@@ -423,6 +444,21 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
 
     const amountCents = Math.round(totalAmount * 100)
     const feeCents = Math.round(fees.totalFees * 100)
+
+    // Israël (Rapyd) : on prélève l'argent réservé à la fin de l'enchère (montant réel)
+    if (isRapydOrder) {
+      const paid = await captureRapydOrder(order_id, totalAmount)
+      if (!paid) { res.status(402).json({ error: 'card_declined', provider: 'rapyd' }); return }
+      await supabase.from('orders').update({
+        payout_method: 'rapyd', shipping_cost: shippingCost, total_amount: totalAmount,
+        platform_fee: fees.platformFee, processing_fee: fees.processingFee, seller_payout: fees.sellerPayout,
+        ...(promotionId ? { promotion_id: promotionId } : {}),
+        ...(promoCodeId ? { promo_code_id: promoCodeId, promo_discount: promoDiscount } : {}),
+      }).eq('id', order_id)
+      await markOrderPaid(order_id)
+      res.json({ auto_charged: true, provider: 'rapyd', shipping_cost: shippingCost, total_amount: totalAmount })
+      return
+    }
 
     // Check if buyer has a saved card — try to auto-charge
     const { data: buyerProfile } = await supabase

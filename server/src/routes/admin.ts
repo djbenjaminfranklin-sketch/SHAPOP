@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, stripe, STREAMS_SAFE_COLUMNS, PAYPAL_MODE } from '../config'
+import { refundOrderPayment } from '../payments/refunds'
 import { requireAdmin, adminLimiter } from '../middleware'
 import { logAdminAction, paramStr, penalizeBuyerScore, calculateFees } from '../utils'
 import { processPaypalPayouts } from './payments'
@@ -716,14 +717,14 @@ router.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authent
       // Fetch order to get Stripe payment intent ID and status
       const { data: order } = await supabase
         .from('orders')
-        .select('stripe_payment_intent_id, status')
+        .select('stripe_payment_intent_id, status, payment_provider')
         .eq('id', dispute.order_id)
         .single()
 
       // Process actual Stripe refund (skip if already refunded)
-      if (order?.stripe_payment_intent_id && order.status !== 'refunded') {
+      if (order && (order.stripe_payment_intent_id || order.payment_provider === 'rapyd') && order.status !== 'refunded') {
         try {
-          await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+          await refundOrderPayment(dispute.order_id)
           if (process.env.NODE_ENV !== 'production') console.log(`[refund] Admin refund processed for order ${dispute.order_id}, PI: ${order.stripe_payment_intent_id}`)
         } catch (refundErr: unknown) {
           console.error(`[refund] Admin refund failed for order ${dispute.order_id}:`, (refundErr as Error).message)
@@ -885,15 +886,15 @@ router.post('/api/admin/run-automations', requireAdmin, async (req: Authenticate
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
     const { data: noAddressOrders } = await supabase
       .from('orders')
-      .select('id, buyer_id, stripe_payment_intent_id, status')
+      .select('id, buyer_id, stripe_payment_intent_id, status, payment_provider')
       .eq('status', 'paid')
       .eq('fulfillment_method', 'post')
       .is('shipping_address', null)
       .lt('paid_at', threeDaysAgo)
 
     for (const order of (noAddressOrders || [])) {
-      if (order.stripe_payment_intent_id && order.status !== 'refunded') {
-        try { await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id }) } catch { /* ignore */ }
+      if ((order.stripe_payment_intent_id || order.payment_provider === 'rapyd') && order.status !== 'refunded') {
+        try { await refundOrderPayment(order.id) } catch { /* ignore */ }
       }
       await supabase.from('orders').update({ status: 'refunded', payout_status: 'cancelled' }).eq('id', order.id)
       await penalizeBuyerScore(order.buyer_id, 1.5, 'no_address_timeout')

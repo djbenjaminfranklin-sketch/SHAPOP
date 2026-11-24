@@ -9,6 +9,7 @@ import { localized, money, getUserCurrency } from '../i18n'
 import { notifyPriceDropSubscribers } from './users'
 import { stripe } from '../config'
 import { authorizeOrderPayment } from '../services/cardAuthorization'
+import { userHasSavedCard } from '../viewerPreview'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -824,24 +825,8 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
     }
 
     // Verify bidder has a saved payment method (card on file)
-    const { data: bidderProfile } = await supabase
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', userId)
-      .single()
-
-    if (!bidderProfile?.stripe_customer_id) {
-      res.status(403).json({ error: 'card_required' })
-      return
-    }
-
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: bidderProfile.stripe_customer_id,
-      type: 'card',
-      limit: 1,
-    })
-
-    if (paymentMethods.data.length === 0) {
+    // Carte enregistrée (Stripe, ou Rapyd pour Israël) obligatoire pour enchérir
+    if (!(await userHasSavedCard(userId))) {
       res.status(403).json({ error: 'card_required' })
       return
     }
@@ -936,24 +921,8 @@ router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, async (req: Authe
     }
 
     // Verify bidder has a saved payment method (card on file)
-    const { data: bidderProfile } = await supabase
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', userId)
-      .single()
-
-    if (!bidderProfile?.stripe_customer_id) {
-      res.status(403).json({ error: 'card_required' })
-      return
-    }
-
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: bidderProfile.stripe_customer_id,
-      type: 'card',
-      limit: 1,
-    })
-
-    if (paymentMethods.data.length === 0) {
+    // Carte enregistrée (Stripe, ou Rapyd pour Israël) obligatoire pour enchérir
+    if (!(await userHasSavedCard(userId))) {
       res.status(403).json({ error: 'card_required' })
       return
     }
@@ -1058,24 +1027,8 @@ router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: Authe
     }
 
     // Verify bidder has a saved payment method (card on file)
-    const { data: bidderProfile } = await supabase
-      .from('profiles')
-      .select('stripe_customer_id')
-      .eq('id', userId)
-      .single()
-
-    if (!bidderProfile?.stripe_customer_id) {
-      res.status(403).json({ error: 'card_required' })
-      return
-    }
-
-    const paymentMethods = await stripe.paymentMethods.list({
-      customer: bidderProfile.stripe_customer_id,
-      type: 'card',
-      limit: 1,
-    })
-
-    if (paymentMethods.data.length === 0) {
+    // Carte enregistrée (Stripe, ou Rapyd pour Israël) obligatoire pour enchérir
+    if (!(await userHasSavedCard(userId))) {
       res.status(403).json({ error: 'card_required' })
       return
     }

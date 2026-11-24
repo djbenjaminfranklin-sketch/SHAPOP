@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, stripe } from '../config'
+import { refundOrderPayment } from '../payments/refunds'
 import { requireAuth } from '../middleware'
 import { calculateFees, notifyUserT, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
 import { localized, money } from '../i18n'
@@ -357,9 +358,9 @@ router.post('/api/orders/:id/approve-return', requireAuth, async (req: Authentic
     }
 
     // Process Stripe refund (skip if already refunded)
-    if (order.stripe_payment_intent_id && order.status !== 'refunded') {
+    if ((order.stripe_payment_intent_id || order.payment_provider === 'rapyd') && order.status !== 'refunded') {
       try {
-        await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+        await refundOrderPayment(order.id)
         if (process.env.NODE_ENV !== 'production') console.log(`[refund] Return refund processed for order ${orderId}, PI: ${order.stripe_payment_intent_id}`)
       } catch (err) {
         console.error(`[refund] Failed to refund order ${orderId}:`, err)
@@ -513,7 +514,7 @@ export async function cancelOverdueOrders(): Promise<number> {
 
   const { data: overdueOrders, error } = await supabase
     .from('orders')
-    .select('id, buyer_id, seller_id, amount, total_amount, currency, stripe_payment_intent_id, handover_deadline')
+    .select('id, buyer_id, seller_id, amount, total_amount, currency, stripe_payment_intent_id, handover_deadline, payment_provider')
     .eq('status', 'paid')
     .not('handover_deadline', 'is', null)
     .lt('handover_deadline', now)
@@ -534,11 +535,8 @@ export async function cancelOverdueOrders(): Promise<number> {
         .select('id')
       if (!rows || rows.length === 0) continue
 
-      if (order.stripe_payment_intent_id) {
-        await stripe.refunds.create({
-          payment_intent: order.stripe_payment_intent_id,
-          reason: 'requested_by_customer',
-        })
+      if (order.stripe_payment_intent_id || order.payment_provider === 'rapyd') {
+        await refundOrderPayment(order.id, { reason: 'requested_by_customer' })
       }
 
       await supabase

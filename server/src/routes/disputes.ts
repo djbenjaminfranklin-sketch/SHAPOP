@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { supabase, stripe } from '../config'
+import { refundOrderPayment } from '../payments/refunds'
 import { requireAuth, disputeLimiter } from '../middleware'
 import { calculateFees } from '../utils'
 import type { AuthenticatedRequest } from '../types'
@@ -121,9 +122,9 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
     }
 
     // Process actual Stripe refund if auto-refund (skip if already refunded)
-    if (autoRefund && order.stripe_payment_intent_id && order.status !== 'refunded') {
+    if (autoRefund && (order.stripe_payment_intent_id || order.payment_provider === 'rapyd') && order.status !== 'refunded') {
       try {
-        await stripe.refunds.create({ payment_intent: order.stripe_payment_intent_id })
+        await refundOrderPayment(order_id)
         if (process.env.NODE_ENV !== 'production') console.log(`[refund] Auto-refund processed for order ${order_id}, PI: ${order.stripe_payment_intent_id}`)
       } catch (refundErr: unknown) {
         console.error(`[refund] Auto-refund failed for order ${order_id}:`, (refundErr as Error).message)

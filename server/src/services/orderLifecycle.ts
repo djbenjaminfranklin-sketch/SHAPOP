@@ -1,4 +1,5 @@
 import { supabase, resend, ADMIN_EMAILS } from '../config'
+import { transferToWallet } from '../payments/rapyd'
 import { notifyUserT, calculateFees, escapeHtml } from '../utils'
 import { HANDOVER_DELAY_DEFAULT_DAYS, generateHandoverCode, shortOrderRef } from '../fulfillment'
 
@@ -129,6 +130,20 @@ export async function releaseOrderPayout(
     .select('*')
   const row = updated && updated[0]
   if (!row) return null
+
+  // Israël (Rapyd) : la part du vendeur passe du portefeuille ShaPop au sien
+  if (row.payment_provider === 'rapyd') {
+    try {
+      const platform = (process.env.RAPYD_PLATFORM_EWALLET || '').trim()
+      const { data: seller } = await supabase.from('sellers').select('rapyd_ewallet_id').eq('id', row.seller_id).maybeSingle()
+      const dest = (seller as { rapyd_ewallet_id?: string | null } | null)?.rapyd_ewallet_id
+      if (!platform || !dest) throw new Error(`portefeuille manquant (plateforme: ${!!platform}, vendeur: ${!!dest})`)
+      await transferToWallet({ sourceEwallet: platform, destinationEwallet: dest, amount: Number(row.seller_payout), currency: String(row.currency || 'ILS').toUpperCase(), orderId })
+    } catch (err) {
+      console.error('[payout] rapyd', err)
+      await alertAdmins('Versement Rapyd à faire à la main', `Commande ${orderId} : le transfert vers le portefeuille du vendeur a échoué (${(err as Error).message}).`)
+    }
+  }
 
   if (row.payout_method === 'paypal') {
     await supabase.from('paypal_payouts').update({ status: 'ready' }).eq('order_id', orderId).eq('status', 'pending')

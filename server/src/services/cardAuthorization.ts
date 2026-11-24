@@ -9,6 +9,8 @@ import { calculateFees, notifyUserT } from '../utils'
 import { localized, money } from '../i18n'
 import { isPaidStatus } from '../fulfillment'
 import { postPriceForOrder } from '../routes/fulfillment'
+import { providerForSeller } from '../payments/provider'
+import * as rapyd from '../payments/rapyd'
 
 export type AuthorizationStatus = 'authorized' | 'paid' | 'declined' | 'no_card' | 'error'
 export type AuthorizationResult = { status: AuthorizationStatus; code?: string }
@@ -21,6 +23,7 @@ type OrderRow = {
   amount: number | string
   status: string
   auth_payment_intent_id: string | null
+  rapyd_payment_id?: string | null
 }
 
 /** Destination de l'argent : compte Stripe du vendeur, ou compte ShaPop (admin / PayPal). */
@@ -55,12 +58,15 @@ async function saveResult(orderId: string, fields: Record<string, unknown>) {
 export async function authorizeOrderPayment(orderId: string, opts: { notifyBuyer?: boolean } = {}): Promise<AuthorizationResult> {
   const { data: order } = await supabase
     .from('orders')
-    .select('id, buyer_id, seller_id, item_id, amount, status, auth_payment_intent_id')
+    .select('id, buyer_id, seller_id, item_id, amount, status, auth_payment_intent_id, rapyd_payment_id')
     .eq('id', orderId)
     .maybeSingle<OrderRow>()
   if (!order) return { status: 'error', code: 'order_not_found' }
   if (isPaidStatus(order.status)) return { status: 'paid' }
   if (order.status !== 'pending_payment') return { status: 'error', code: 'order_closed' }
+
+  // Israël → Rapyd ; autres pays → Stripe (suite de la fonction)
+  if (await providerForSeller(order.seller_id) === 'rapyd') return authorizeWithRapyd(order, opts)
 
   // Une autorisation encore valable ? On la garde. Sinon on l'annule avant d'en refaire une.
   if (order.auth_payment_intent_id) {
@@ -188,4 +194,98 @@ export async function releaseAuthorization(authPaymentIntentId: string | null | 
       await stripe.paymentIntents.cancel(pi.id)
     }
   } catch { /* déjà libérée */ }
+}
+
+// ---------------------------------------------------------------------------
+// Rapyd (Israël) : même logique — réserve sur la carte enregistrée du gagnant,
+// prélevée au choix de la remise (captureRapydOrder), versée au vendeur à la remise.
+// ---------------------------------------------------------------------------
+async function authorizeWithRapyd(order: OrderRow, opts: { notifyBuyer?: boolean }): Promise<AuthorizationResult> {
+  if (order.rapyd_payment_id) {
+    try {
+      const prev = await rapyd.getPayment(order.rapyd_payment_id)
+      if (prev.status === 'CLO') return { status: 'paid' }
+      if (prev.status === 'ACT' && !prev.captured) {
+        if (prev.next_action === 'pending_capture') return { status: 'authorized' }
+        await rapyd.cancelPayment(prev.id).catch(() => {})
+      }
+    } catch { /* introuvable : on refait */ }
+  }
+  const info = await postPriceForOrder(order)
+  const itemAmount = Number(order.amount)
+  const holdAmount = Math.round((itemAmount + (info.postPrice || 0)) * 100) / 100
+  const currency = String(info.currency || 'ILS').toUpperCase()
+  const { data: buyer } = await supabase.from('profiles').select('rapyd_customer_id').eq('id', order.buyer_id).maybeSingle()
+  const customer = (buyer as { rapyd_customer_id?: string | null } | null)?.rapyd_customer_id
+
+  let result: AuthorizationResult
+  let paymentId: string | null = null
+  if (!customer) {
+    result = { status: 'no_card' }
+  } else {
+    try {
+      const c = await rapyd.getCustomer(customer)
+      if (!c?.default_payment_method) {
+        result = { status: 'no_card' }
+      } else {
+        const p = await rapyd.authorizePayment({ amount: holdAmount, currency, customer, paymentMethod: c.default_payment_method, orderId: order.id, description: `ShaPop - Order ${order.id}` })
+        paymentId = p.id
+        result = (p.status === 'ACT' && p.next_action === 'pending_capture') ? { status: 'authorized' } : { status: 'declined', code: p.failure_code || p.next_action || p.status }
+      }
+    } catch (err: any) {
+      if (err instanceof rapyd.RapydError && err.status >= 400 && err.status < 500) {
+        result = { status: 'declined', code: err.errorCode || 'card_declined' }
+      } else {
+        console.error('[cardAuthorization] rapyd', err?.message || err)
+        result = { status: 'error', code: 'provider_error' }
+      }
+    }
+  }
+  await saveResult(order.id, {
+    payment_provider: 'rapyd',
+    rapyd_payment_id: paymentId,
+    auth_status: result.status,
+    auth_amount: result.status === 'authorized' ? holdAmount : null,
+    auth_error_code: result.code || null,
+    currency: info.currency,
+  })
+  if ((result.status === 'declined' || result.status === 'no_card') && opts.notifyBuyer !== false) {
+    const { data: item } = order.item_id
+      ? await supabase.from('items').select('title').eq('id', order.item_id).maybeSingle()
+      : { data: null as { title: string | null } | null }
+    await notifyUserT(order.buyer_id, 'card_declined', 'cardDeclined', {
+      item: item?.title || localized('fallback.item'),
+      amount: money(itemAmount, info.currency),
+    }, { order_id: order.id }).catch(() => {})
+  }
+  return result
+}
+
+/** Prélèvement Rapyd au choix de la remise. Renvoie true si la commande est payée. */
+export async function captureRapydOrder(orderId: string, totalAmount: number): Promise<boolean> {
+  const { data: order } = await supabase.from('orders').select('id, rapyd_payment_id').eq('id', orderId).maybeSingle()
+  let paymentId = (order as { rapyd_payment_id?: string | null } | null)?.rapyd_payment_id || null
+  if (!paymentId) {
+    const r = await authorizeOrderPayment(orderId, { notifyBuyer: false })
+    if (r.status !== 'authorized') return false
+    const { data: again } = await supabase.from('orders').select('rapyd_payment_id').eq('id', orderId).maybeSingle()
+    paymentId = (again as { rapyd_payment_id?: string | null } | null)?.rapyd_payment_id || null
+    if (!paymentId) return false
+  }
+  try {
+    let p = await rapyd.getPayment(paymentId)
+    if (p.status === 'CLO') return true
+    if (!(p.status === 'ACT' && p.next_action === 'pending_capture')) {
+      // Autorisation refusée ou expirée : nouvel essai avec la carte actuelle
+      const r = await authorizeOrderPayment(orderId, { notifyBuyer: false })
+      if (r.status !== 'authorized') return false
+      const { data: again } = await supabase.from('orders').select('rapyd_payment_id').eq('id', orderId).maybeSingle()
+      paymentId = (again as { rapyd_payment_id?: string | null } | null)?.rapyd_payment_id || paymentId
+    }
+    p = await rapyd.capturePayment(paymentId!, totalAmount)
+    return p.status === 'CLO'
+  } catch (err: any) {
+    console.error('[cardAuthorization] rapyd capture', err?.message || err)
+    return false
+  }
 }

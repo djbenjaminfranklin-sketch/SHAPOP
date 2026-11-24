@@ -5,6 +5,7 @@ import { recordingUrlFromEgress } from '../recording'
 import { calculateFees, notifyFollowersSellerLive, notifyUserT, getPaypalAccessToken } from '../utils'
 import { localized, money, getUserCurrency } from '../i18n'
 import { markOrderPaid } from '../services/orderLifecycle'
+import { verifyRapydWebhook } from '../payments/rapyd'
 
 // Idempotency: in-memory cache + database persistence
 // The in-memory Set acts as a fast-path to avoid DB lookups on every webhook.
@@ -486,5 +487,39 @@ export async function paypalWebhookHandler(req: Request, res: Response) {
   } catch (err) {
     console.error('[PayPal Webhook] Error:', err)
     res.status(500).json({ error: 'Webhook processing failed' })
+  }
+}
+
+// =============================================
+// RAPYD (Israël) — paiement prélevé / échoué. Signature : salt + timestamp + signature (payments/rapyd.ts).
+// Adresse à déclarer chez Rapyd : RAPYD_WEBHOOK_URL (par défaut https://shapop.onrender.com/api/webhooks/rapyd).
+// =============================================
+export async function rapydWebhookHandler(req: Request, res: Response) {
+  try {
+    const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : JSON.stringify(req.body || {})
+    const url = process.env.RAPYD_WEBHOOK_URL || 'https://shapop.onrender.com/api/webhooks/rapyd'
+    const ok = verifyRapydWebhook({
+      url, body: raw,
+      salt: String(req.headers['salt'] || ''), timestamp: String(req.headers['timestamp'] || ''), signature: String(req.headers['signature'] || ''),
+    })
+    if (!ok) { res.status(401).json({ error: 'Invalid signature' }); return }
+    const event = JSON.parse(raw) as { id?: string; type?: string; data?: { id?: string; metadata?: Record<string, string>; merchant_reference_id?: string } }
+    if (event.id && await isEventProcessed('rapyd', event.id)) { res.json({ received: true, duplicate: true }); return }
+    const orderId = event.data?.metadata?.order_id || event.data?.merchant_reference_id
+    switch (event.type) {
+      case 'PAYMENT_COMPLETED':
+      case 'PAYMENT_CAPTURED':
+        if (orderId) await markOrderPaid(orderId)
+        break
+      case 'PAYMENT_FAILED':
+        if (orderId) console.error(`[Rapyd] Order ${orderId} payment failed`)
+        break
+      default:
+        break
+    }
+    res.json({ received: true })
+  } catch (err) {
+    console.error('[Rapyd webhook]', err)
+    res.status(500).json({ error: 'Webhook error' })
   }
 }
