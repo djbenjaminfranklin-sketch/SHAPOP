@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { getDir, getLang } from '../lib/i18n'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -16,6 +17,7 @@ interface HandoverOrder {
   handover_deadline: string | null
   proof_parcel_path: string | null
   proof_slip_path: string | null
+  prepared_at?: string | null
   shipping_address?: { name?: string; street?: string; city?: string; zip?: string; country?: string; phone?: string } | null
   item?: { title: string; image_urls: string[] } | null
   buyer_profile?: { display_name: string | null; username: string | null } | null
@@ -59,6 +61,20 @@ export default function HandoverPage() {
     }
     setCopied(key); setTimeout(() => setCopied(c => (c === key ? null : c)), 2000)
   }
+  const [saving, setSaving] = useState<string | null>(null)
+  const togglePrepared = async (o: HandoverOrder) => {
+    setSaving(o.id)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const r = await apiFetch(`/api/orders/${o.id}/prepared`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}) },
+        body: JSON.stringify({ prepared: !o.prepared_at }),
+      })
+      const d = await r.json().catch(() => ({}))
+      if (r.ok) setOrders(prev => prev.map(x => x.id === o.id ? { ...x, prepared_at: d.prepared_at ?? null } : x))
+    } finally { setSaving(null) }
+  }
   const postOrders = orders.filter(o => o.fulfillment_method === 'post' && o.shipping_address)
 
   const load = useCallback(async () => {
@@ -67,7 +83,7 @@ export default function HandoverPage() {
     setError(false)
     const { data, error: err } = await supabase
       .from('orders')
-      .select('id, amount, total_amount, currency, fulfillment_method, handover_deadline, proof_parcel_path, proof_slip_path, shipping_address, item:items(title, image_urls), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username)')
+      .select('id, amount, total_amount, currency, fulfillment_method, handover_deadline, proof_parcel_path, proof_slip_path, shipping_address, prepared_at, item:items(title, image_urls), buyer_profile:profiles!orders_buyer_id_fkey(display_name, username)')
       .eq('seller_id', user.id)
       .eq('status', 'paid')
       .in('fulfillment_method', ['pickup', 'post'])
@@ -152,8 +168,30 @@ export default function HandoverPage() {
                 {formatMoney(o.total_amount ?? o.amount, o.currency, lang)}
               </div>
             </button>
+            {/* « Traitée » : le vendeur coche quand la commande est préparée (l'acheteur est prévenu) */}
+            <button
+              onClick={() => togglePrepared(o)}
+              disabled={saving === o.id}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '10px', margin: '-4px 0 0', padding: '12px',
+                borderRadius: (o.fulfillment_method === 'post' && o.shipping_address) ? '0' : '0 0 14px 14px',
+                border: '1px solid #222', borderTop: 'none', cursor: 'pointer', textAlign: 'start',
+                backgroundColor: o.prepared_at ? 'rgba(34,197,94,0.10)' : '#0f0f0f', color: '#fff', opacity: saving === o.id ? 0.6 : 1,
+              }}
+            >
+              <span style={{
+                width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                border: o.prepared_at ? 'none' : '2px solid #555', backgroundColor: o.prepared_at ? '#22C55E' : 'transparent', color: '#fff', fontWeight: 900, fontSize: '14px',
+              }}>{o.prepared_at ? '✓' : ''}</span>
+              <span style={{ flex: 1 }}>
+                <span style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: o.prepared_at ? '#22C55E' : '#fff' }}>
+                  {o.prepared_at ? `${t.processed_on} ${formatDateTime(o.prepared_at, lang)}` : t.mark_processed}
+                </span>
+                {!o.prepared_at && <span style={{ display: 'block', fontSize: '11px', color: '#888', marginTop: '2px' }}>{t.processed_hint}</span>}
+              </span>
+            </button>
             {o.fulfillment_method === 'post' && o.shipping_address && (
-              <div style={{ margin: '-4px 0 4px', padding: '12px', borderRadius: '0 0 14px 14px', backgroundColor: '#0f0f0f', border: '1px solid #222', borderTop: 'none' }}>
+              <div style={{ margin: '0 0 4px', padding: '12px', borderRadius: '0 0 14px 14px', backgroundColor: '#0f0f0f', border: '1px solid #222', borderTop: 'none' }}>
                 {/* Grande photo de l'article : le vendeur voit tout de suite quoi mettre dans ce colis */}
                 {o.item?.image_urls?.[0] && (
                   <img src={o.item.image_urls[0]} alt="" style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px', backgroundColor: '#1a1a1a' }} />

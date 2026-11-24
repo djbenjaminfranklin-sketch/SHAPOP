@@ -11,6 +11,7 @@ import { formatMoney, shortOrderRef } from '../lib/fulfillment'
 import { errorText, statusLabel } from '../lib/fulfillmentText'
 
 interface OrderDetail {
+  prepared_at?: string | null
   auth_status?: string | null
   id: string
   buyer_id: string
@@ -57,6 +58,7 @@ const pageContent = {
     sellerPayout: 'Seller payout',
     createdAt: 'Ordered on',
     paidAt: 'Paid on',
+    preparedAt: 'Processed by the seller on',
     handedOverAt: 'Handed over in person on',
     shippedAt: 'Sent on',
     deliveredAt: 'Receipt confirmed on',
@@ -99,6 +101,7 @@ const pageContent = {
     sellerPayout: 'Versement vendeur',
     createdAt: 'Commande passée le',
     paidAt: 'Payée le',
+    preparedAt: 'Traitée par le vendeur le',
     handedOverAt: 'Remise en main propre le',
     shippedAt: 'Envoyée le',
     deliveredAt: 'Réception confirmée le',
@@ -141,6 +144,7 @@ const pageContent = {
     sellerPayout: 'Pago al vendedor',
     createdAt: 'Pedido el',
     paidAt: 'Pagado el',
+    preparedAt: 'Tramitado por el vendedor el',
     handedOverAt: 'Entregado en mano el',
     shippedAt: 'Enviado el',
     deliveredAt: 'Recepción confirmada el',
@@ -183,6 +187,7 @@ const pageContent = {
     sellerPayout: 'Выплата продавцу',
     createdAt: 'Заказ оформлен',
     paidAt: 'Оплачен',
+    preparedAt: 'Обработан продавцом',
     handedOverAt: 'Передан лично',
     shippedAt: 'Отправлен',
     deliveredAt: 'Получение подтверждено',
@@ -225,6 +230,7 @@ const pageContent = {
     sellerPayout: 'תשלום למוכר',
     createdAt: 'הוזמן ב-',
     paidAt: 'שולם ב-',
+    preparedAt: 'טופלה על ידי המוכר ב-',
     handedOverAt: 'נמסר ביד ב-',
     shippedAt: 'נשלח ב-',
     deliveredAt: 'הקבלה אושרה ב-',
@@ -434,6 +440,7 @@ export default function OrderDetailPage() {
   const timelineEvents = [
     { label: ct.createdAt, date: order.created_at, color: '#666', done: true },
     { label: ct.paidAt, date: order.paid_at, color: '#3B82F6', done: !!order.paid_at },
+    { label: ct.preparedAt, date: order.prepared_at || null, color: '#F59E0B', done: !!order.prepared_at || !!order.shipped_at || !!order.handed_over_at },
     order.fulfillment_method === 'pickup'
       ? { label: ct.handedOverAt, date: order.handed_over_at, color: '#10B981', done: !!order.handed_over_at }
       : { label: ct.shippedAt, date: order.shipped_at, color: '#10B981', done: !!order.shipped_at },

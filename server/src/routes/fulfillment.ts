@@ -455,6 +455,26 @@ router.post('/api/orders/:id/handover', requireAuth, async (req: AuthenticatedRe
 //   kind = 'slip'   : bordereau d'envoi tamponné par la poste
 // Quand les DEUX sont là : commande « expédiée » + argent libéré.
 // =============================================
+// Le vendeur coche « commande traitée » (colis préparé) — ou la décoche
+router.post('/api/orders/:id/prepared', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = paramStr(req.params.id)
+    const prepared = req.body?.prepared !== false
+    const { data: order } = await supabase.from('orders').select('id, seller_id, buyer_id, status, prepared_at').eq('id', orderId).maybeSingle()
+    if (!order || order.seller_id !== req.user!.id) { res.status(404).json({ error: 'Order not found' }); return }
+    if (order.status !== 'paid') { res.status(409).json({ error: 'not_paid' }); return }
+    const prepared_at = prepared ? (order.prepared_at || new Date().toISOString()) : null
+    await supabase.from('orders').update({ prepared_at }).eq('id', orderId)
+    if (prepared && !order.prepared_at) {
+      notifyUserT(order.buyer_id, 'order_prepared', 'orderPrepared', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
+    }
+    res.json({ success: true, prepared_at })
+  } catch (err) {
+    console.error('[fulfillment] prepared', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const parsed = ProofBody.safeParse(req.body)
