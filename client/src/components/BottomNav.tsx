@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { t, getLang, tr, type Localized } from '../lib/i18n'
 import { rtlTextAlign, rtlFlip } from '../lib/rtl'
+import ActiveOrderBar from './ActiveOrderBar'
 import SellPopup from './seller/SellPopup'
 import CartoonAvatar from './CartoonAvatar'
 
@@ -262,6 +263,7 @@ export default function BottomNav() {
   return (
     <>
       <SellPopup isOpen={showSell} onClose={() => setShowSell(false)} />
+      <ActiveOrderBar userId={user.id} path={path} />
 
       {/* ── Profile menu bottom sheet ── */}
       {showProfileMenu && (
