@@ -87,6 +87,17 @@ export default function PayoutsIsraelPage() {
     } catch { /* hors ligne */ }
   }, [auth])
 
+  // On arrive depuis le bas de la page Paiements : remettre l'écran en haut
+  useEffect(() => {
+    const top = () => {
+      window.scrollTo(0, 0)
+      document.scrollingElement?.scrollTo(0, 0)
+      document.body.scrollTop = 0
+      document.getElementById('root')?.scrollTo?.(0, 0)
+    }
+    top(); const t = setTimeout(top, 80)
+    return () => clearTimeout(t)
+  }, [])
   useEffect(() => { load() }, [load, params])
   useEffect(() => {
     let l: { remove: () => void } | undefined

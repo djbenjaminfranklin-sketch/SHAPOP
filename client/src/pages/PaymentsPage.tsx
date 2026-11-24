@@ -21,6 +21,9 @@ const content = {
     title: 'Payments & handover',
     payTitle: 'Payment methods',
     securePayments: 'Connect Stripe to get paid',
+    ilPayoutsTitle: 'Get paid in Israel',
+    ilPayoutsDesc: 'Receive your sales in your Israeli bank account through Rapyd, a licensed payment company.',
+    ilPayoutsBtn: 'Set up my payments',
     secureDesc: 'Stripe handles your payments securely. Buyers pay, and the money lands in your account automatically.',
     setupPayment: 'Connect with Stripe',
     selectCountry: 'Choose your country',
@@ -92,6 +95,9 @@ const content = {
     title: 'Paiements et remise',
     payTitle: 'Moyens de paiement',
     securePayments: 'Connecte Stripe pour être payé',
+    ilPayoutsTitle: 'Être payé en Israël',
+    ilPayoutsDesc: 'Reçois tes ventes sur ton compte bancaire israélien grâce à Rapyd, une société de paiement agréée.',
+    ilPayoutsBtn: 'Configurer mes paiements',
     secureDesc: 'Stripe gère tes paiements en toute sécurité. Les acheteurs paient, et tu reçois ton argent automatiquement.',
     setupPayment: 'Se connecter avec Stripe',
     selectCountry: 'Choisis ton pays',
@@ -163,6 +169,9 @@ const content = {
     title: 'Pagos y entrega',
     payTitle: 'Métodos de pago',
     securePayments: 'Conecta Stripe para cobrar',
+    ilPayoutsTitle: 'Cobrar en Israel',
+    ilPayoutsDesc: 'Recibe tus ventas en tu cuenta bancaria israelí con Rapyd, una empresa de pagos autorizada.',
+    ilPayoutsBtn: 'Configurar mis pagos',
     secureDesc: 'Stripe gestiona tus pagos de forma segura. Los compradores pagan y tú recibes el dinero automáticamente.',
     setupPayment: 'Conectar con Stripe',
     selectCountry: 'Elige tu país',
@@ -234,6 +243,9 @@ const content = {
     title: 'Оплата и передача',
     payTitle: 'Способы оплаты',
     securePayments: 'Подключи Stripe, чтобы получать оплату',
+    ilPayoutsTitle: 'Получать оплату в Израиле',
+    ilPayoutsDesc: 'Получай деньги за продажи на израильский банковский счёт через Rapyd — лицензированную платёжную компанию.',
+    ilPayoutsBtn: 'Настроить выплаты',
     secureDesc: 'Stripe надёжно обрабатывает твои платежи. Покупатели платят, а деньги поступают тебе автоматически.',
     setupPayment: 'Подключить Stripe',
     selectCountry: 'Выбери страну',
@@ -305,6 +317,9 @@ const content = {
     title: 'תשלומים ומסירה',
     payTitle: 'אמצעי תשלום',
     securePayments: 'חבר/י את Stripe כדי לקבל תשלומים',
+    ilPayoutsTitle: 'קבלת תשלומים בישראל',
+    ilPayoutsDesc: 'קבלו את כספי המכירות לחשבון הבנק בישראל דרך Rapyd, חברת תשלומים מורשית.',
+    ilPayoutsBtn: 'הגדרת התשלומים שלי',
     secureDesc: 'Stripe מנהל את התשלומים שלך בצורה מאובטחת. הקונים משלמים, והכסף מגיע אליך אוטומטית.',
     setupPayment: 'התחברות עם Stripe',
     selectCountry: 'בחירת מדינה',
@@ -1180,10 +1195,10 @@ export default function PaymentsPage() {
                 </svg>
               </div>
               <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
-                {c.securePayments}
+                {profile?.country === 'IL' ? c.ilPayoutsTitle : c.securePayments}
               </p>
               <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px', maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
-                {c.secureDesc}
+                {profile?.country === 'IL' ? c.ilPayoutsDesc : c.secureDesc}
               </p>
               {profile?.is_seller ? (
                 <button
@@ -1197,7 +1212,7 @@ export default function PaymentsPage() {
                     boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
                   }}
                 >
-                  {connecting ? c.connecting : c.setupPayment}
+                  {connecting ? c.connecting : (profile?.country === 'IL' ? c.ilPayoutsBtn : c.setupPayment)}
                 </button>
               ) : (
                 <button
