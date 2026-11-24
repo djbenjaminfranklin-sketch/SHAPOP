@@ -144,7 +144,7 @@ export default function BottomNav() {
       labelKey: 'categories_tab' as const,
       active: path === '/explore',
       icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : '#666'} strokeWidth="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
           <circle cx="11" cy="11" r="8" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M21 21l-4.35-4.35" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -155,7 +155,7 @@ export default function BottomNav() {
       labelKey: 'map_tab' as const,
       active: path === '/map' || path === '/communities' || path.startsWith('/community/'),
       icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : '#666'} strokeWidth="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
           <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -169,10 +169,10 @@ export default function BottomNav() {
       icon: () => (
         <div style={{
           width: '48px', height: '48px', borderRadius: '50%', marginTop: '-16px',
-          backgroundColor: '#F0908A', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(240,144,138,0.3)'
+          backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 4px 14px rgba(232,52,78,0.35)', border: '3px solid #F0908A'
         }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.8">
             <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
@@ -183,7 +183,7 @@ export default function BottomNav() {
       labelKey: 'activity_tab' as const,
       active: path === '/activity',
       icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : '#666'} strokeWidth="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
           <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
@@ -394,9 +394,11 @@ export default function BottomNav() {
 
       <nav
         aria-label={nt.mainNav}
+        className="no-theme-invert"
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          backgroundColor: '#0A0A0A', borderTop: '1px solid #1A1A1A', zIndex: 50,
+          background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)', borderTop: 'none', zIndex: 50,
+          boxShadow: '0 -4px 18px rgba(232,52,78,0.18)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
       >
@@ -416,7 +418,7 @@ export default function BottomNav() {
                   {tab.icon()}
                   <span style={{
                     fontSize: '10px', fontWeight: 500,
-                    color: '#666',
+                    color: 'rgba(255,255,255,0.8)',
                     marginTop: '8px',
                   }}>
                     {t(lang, tab.labelKey)}
@@ -438,7 +440,7 @@ export default function BottomNav() {
                 {tab.icon(tab.active)}
                 <span style={{
                   fontSize: '10px', fontWeight: tab.active ? 700 : 500,
-                  color: tab.active ? '#fff' : '#666',
+                  color: tab.active ? '#fff' : 'rgba(255,255,255,0.8)',
                   marginTop: '4px',
                 }}>
                   {t(lang, tab.labelKey)}
@@ -471,7 +473,7 @@ export default function BottomNav() {
             </div>
             <span style={{
               fontSize: '10px', fontWeight: isProfileActive ? 700 : 500,
-              color: isProfileActive ? '#fff' : '#666',
+              color: isProfileActive ? '#fff' : 'rgba(255,255,255,0.8)',
               marginTop: '4px',
             }}>
               {t(lang, 'account_tab')}

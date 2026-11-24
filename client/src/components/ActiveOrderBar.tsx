@@ -100,22 +100,23 @@ export default function ActiveOrderBar({ userId, path }: { userId: string; path:
   return (
     <button
       dir={getDir()}
+      className="no-theme-invert"
       onClick={() => navigate(bar.to)}
       style={{
         position: 'fixed', left: 0, right: 0, zIndex: 49,
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 74px)', margin: '0 10px', borderRadius: '14px',
         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-        background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)', border: 'none', color: '#fff',
+        background: '#fff', border: '2px solid #F0908A', color: '#E8344E',
         textAlign: 'start', cursor: 'pointer', boxShadow: '0 -4px 18px rgba(232,52,78,0.25)',
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M18 15l-6-6-6 6" /></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M18 15l-6-6-6 6" /></svg>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: '15px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.title}</span>
-        {bar.sub && <span style={{ display: 'block', fontSize: '12px', opacity: 0.92, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.sub}</span>}
+        {bar.sub && <span style={{ display: 'block', fontSize: '12px', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.sub}</span>}
       </span>
       {bar.extra > 0 && (
-        <span style={{ flexShrink: 0, fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '999px', backgroundColor: 'rgba(255,255,255,0.22)' }}>{c.more(bar.extra)}</span>
+        <span style={{ flexShrink: 0, fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '999px', backgroundColor: 'rgba(240,144,138,0.18)' }}>{c.more(bar.extra)}</span>
       )}
     </button>
   )
