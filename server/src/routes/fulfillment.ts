@@ -84,7 +84,7 @@ async function getUserEmail(userId: string): Promise<string | null> {
 }
 
 /** Prix d'envoi par la poste pour une commande (module unique : ../fulfillment). */
-async function postPriceForOrder(order: { seller_id: string; item_id: string | null }) {
+export async function postPriceForOrder(order: { seller_id: string; item_id: string | null }) {
   const [{ data: seller }, { data: item }, sellerCountry] = await Promise.all([
     supabase.from('sellers').select('allow_pickup, pickup_area, post_price').eq('id', order.seller_id).maybeSingle(),
     order.item_id

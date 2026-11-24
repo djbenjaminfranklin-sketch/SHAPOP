@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware'
 import { calculateFees, notifyUserT, sendOrderConfirmationEmail, sendPaymentReminderEmail } from '../utils'
 import { localized, money } from '../i18n'
 import { shortOrderRef } from '../fulfillment'
+import { authorizeOrderPayment, releaseAuthorization } from '../services/cardAuthorization'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -178,6 +179,25 @@ router.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: R
 })
 
 // Cancel an order (only pending_payment, buyer or seller)
+// Nouvelle tentative d'autorisation de la carte du gagnant (bouton « Réessayer » du vendeur)
+router.post('/api/orders/:id/authorize-payment', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user!.id
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, buyer_id, seller_id')
+      .eq('id', req.params.id)
+      .maybeSingle()
+    if (!order) { res.status(404).json({ error: 'Order not found' }); return }
+    if (order.seller_id !== userId && order.buyer_id !== userId) { res.status(403).json({ error: 'Not your order' }); return }
+    const payment = await authorizeOrderPayment(order.id)
+    res.json({ success: true, order_id: order.id, payment })
+  } catch (err) {
+    console.error('[orders] authorize-payment', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
@@ -185,7 +205,7 @@ router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequ
 
     const { data: order } = await supabase
       .from('orders')
-      .select('id, status, buyer_id, seller_id, stripe_payment_intent_id')
+      .select('id, status, buyer_id, seller_id, stripe_payment_intent_id, auth_payment_intent_id')
       .eq('id', orderId)
       .single()
 
@@ -210,6 +230,8 @@ router.post('/api/orders/:id/cancel', requireAuth, async (req: AuthenticatedRequ
         await stripe.paymentIntents.cancel(order.stripe_payment_intent_id)
       } catch { /* PI may already be cancelled or expired */ }
     }
+    // Libère l'argent réservé sur la carte à la fin de l'enchère
+    await releaseAuthorization(order.auth_payment_intent_id)
 
     await supabase
       .from('orders')

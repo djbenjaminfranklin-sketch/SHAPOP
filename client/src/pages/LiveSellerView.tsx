@@ -32,6 +32,13 @@ const pageContent = {
     sendMessage: 'Message...',
     send: 'Send',
     paymentAccepted: 'Payment pending',
+    cardAuthorized: 'Card accepted',
+    cardDeclined: 'Card declined',
+    cardDeclinedHint: '{name} must add another card, then try again.',
+    retryCard: 'Try again',
+    retryingCard: 'Trying…',
+    paymentsNotReady: 'Payments are not set up for your account yet.',
+    closeBanner: 'Close',
     addressOk: 'Order created',
     waitingBids: 'Waiting for bids...',
     noBids: 'No bids',
@@ -127,6 +134,13 @@ const pageContent = {
     sendMessage: 'Message...',
     send: 'Envoyer',
     paymentAccepted: 'Paiement en attente',
+    cardAuthorized: 'Carte acceptée',
+    cardDeclined: 'Carte refusée',
+    cardDeclinedHint: '{name} doit ajouter une autre carte, puis réessaie.',
+    retryCard: 'Réessayer',
+    retryingCard: 'Nouvel essai…',
+    paymentsNotReady: 'Les paiements ne sont pas encore activés sur ton compte.',
+    closeBanner: 'Fermer',
     addressOk: 'Commande créée',
     waitingBids: 'En attente d’enchères...',
     noBids: 'Aucune enchère',
@@ -222,6 +236,13 @@ const pageContent = {
     sendMessage: 'Mensaje...',
     send: 'Enviar',
     paymentAccepted: 'Pago pendiente',
+    cardAuthorized: 'Tarjeta aceptada',
+    cardDeclined: 'Tarjeta rechazada',
+    cardDeclinedHint: '{name} debe añadir otra tarjeta; después vuelve a intentarlo.',
+    retryCard: 'Reintentar',
+    retryingCard: 'Reintentando…',
+    paymentsNotReady: 'Los pagos aún no están activados en tu cuenta.',
+    closeBanner: 'Cerrar',
     addressOk: 'Pedido creado',
     waitingBids: 'Esperando pujas...',
     noBids: 'Sin pujas',
@@ -317,6 +338,13 @@ const pageContent = {
     sendMessage: 'Сообщение...',
     send: 'Отправить',
     paymentAccepted: 'Ожидается оплата',
+    cardAuthorized: 'Карта принята',
+    cardDeclined: 'Карта отклонена',
+    cardDeclinedHint: '{name} должен добавить другую карту, затем попробуй снова.',
+    retryCard: 'Повторить',
+    retryingCard: 'Повторяем…',
+    paymentsNotReady: 'Платежи для твоего аккаунта ещё не подключены.',
+    closeBanner: 'Закрыть',
     addressOk: 'Заказ создан',
     waitingBids: 'Ждём ставок...',
     noBids: 'Ставок нет',
@@ -412,6 +440,13 @@ const pageContent = {
     sendMessage: 'הודעה...',
     send: 'שליחה',
     paymentAccepted: 'ממתין לתשלום',
+    cardAuthorized: 'הכרטיס אושר',
+    cardDeclined: 'הכרטיס נדחה',
+    cardDeclinedHint: '{name} צריך להוסיף כרטיס אחר, ואז לנסות שוב.',
+    retryCard: 'לנסות שוב',
+    retryingCard: 'מנסים שוב…',
+    paymentsNotReady: 'התשלומים עדיין לא הופעלו בחשבון שלך.',
+    closeBanner: 'סגירה',
     addressOk: 'ההזמנה נוצרה',
     waitingBids: 'ממתינים להצעות...',
     noBids: 'אין הצעות',
@@ -546,6 +581,9 @@ export default function LiveSellerView() {
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
   const [showEndConfirm, setShowEndConfirm] = useState(false)
   const [toasts, setToasts] = useState<{ id: number; text: string }[]>([])
+  // Carte du gagnant refusée à la fin de l'enchère : bandeau rouge + « Réessayer »
+  const [paymentIssue, setPaymentIssue] = useState<{ orderId: string; winnerName: string; lot: string; status: string; code?: string } | null>(null)
+  const [retryingCard, setRetryingCard] = useState(false)
   const [timeLeft, setTimeLeft] = useState(-1) // -1 = not started, 0 = finished, >0 = counting
   const [viewerCount, setViewerCount] = useState(0)
   const [buyerStats, setBuyerStats] = useState<{ returning: number; new: number } | null>(null)
@@ -698,6 +736,31 @@ export default function LiveSellerView() {
       setToasts(prev => prev.filter(t => t.id !== id))
     }, 4000)
   }, [])
+
+  const retryCardAuthorization = useCallback(async () => {
+    if (!paymentIssue || retryingCard) return
+    setRetryingCard(true)
+    try {
+      const { data: freshSession } = await supabase.auth.getSession()
+      const token = freshSession.session?.access_token
+      const resp = await apiFetch(`/api/orders/${paymentIssue.orderId}/authorize-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+      })
+      const data = await resp.json().catch(() => ({}))
+      const payment = data?.payment as { status: string; code?: string } | undefined
+      if (payment && (payment.status === 'authorized' || payment.status === 'paid')) {
+        setPaymentIssue(null)
+        showToast(`${ct.cardAuthorized} — ${paymentIssue.lot} ${paymentIssue.winnerName}`)
+      } else if (payment) {
+        setPaymentIssue(prev => prev ? { ...prev, status: payment.status, code: payment.code } : prev)
+      }
+    } catch (err) {
+      console.error('retryCardAuthorization', err)
+    } finally {
+      setRetryingCard(false)
+    }
+  }, [paymentIssue, retryingCard, showToast, ct.cardAuthorized])
 
   // Keep refs in sync for use inside setTimeout callbacks (avoids stale closures)
   useEffect(() => { itemsRef.current = items }, [items])
@@ -1112,7 +1175,16 @@ export default function LiveSellerView() {
 
           const winnerName = winnerProfile?.display_name || winnerProfile?.username || winnerId.slice(0, 8).toUpperCase()
           showSoldOverlay(formatLot(currentIndex + 1), `@${winnerName}`, finalPrice)
-          showToast(`${ct.paymentAccepted} — ${ct.addressOk}`)
+          // Résultat de l'autorisation de la carte du gagnant (faite par le serveur à la fin de l'enchère)
+          const payment = result.payment as { status: string; code?: string } | null | undefined
+          if (!payment) {
+            showToast(ct.addressOk)
+          } else if (payment.status === 'authorized' || payment.status === 'paid') {
+            showToast(`${ct.cardAuthorized} — ${ct.addressOk}`)
+            setPaymentIssue(null)
+          } else if (result.order_id) {
+            setPaymentIssue({ orderId: result.order_id, winnerName: `@${winnerName}`, lot: formatLot(currentIndex + 1), status: payment.status, code: payment.code })
+          }
 
           setItems(prev => prev.map((it, i) =>
             i === currentIndex ? { ...it, status: 'sold' as const, winner_id: winnerId, current_price: finalPrice } : it
@@ -1148,7 +1220,7 @@ export default function LiveSellerView() {
     }
 
     autoResolve()
-  }, [timeLeft, currentItem?.id, currentItem?.status, user, streamId, showSoldOverlay, showToast, ct.paymentAccepted, ct.addressOk])
+  }, [timeLeft, currentItem?.id, currentItem?.status, user, streamId, showSoldOverlay, showToast, ct])
 
   // When new messages arrive, mark them visible then auto-hide after 5s
   useEffect(() => {
@@ -1922,6 +1994,40 @@ export default function LiveSellerView() {
           </div>
         ))}
       </div>
+
+      {/* Carte du gagnant refusée : le vendeur le dit en direct et réessaie */}
+      {paymentIssue && (
+        <div role="alert" style={{
+          position: 'absolute', top: 'calc(env(safe-area-inset-top, 44px) + 76px)',
+          left: '12px', right: '12px', zIndex: 240,
+          padding: '12px 14px', borderRadius: '12px',
+          backgroundColor: 'rgba(220,38,38,0.92)', border: '1px solid rgba(255,255,255,0.25)',
+          boxShadow: '0 6px 24px rgba(0,0,0,0.35)', color: '#fff',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, flex: 1 }}>
+              {paymentIssue.code === 'seller_not_ready' ? ct.paymentsNotReady : `${ct.cardDeclined} — ${paymentIssue.lot}`}
+            </p>
+            <button onClick={() => setPaymentIssue(null)} aria-label={ct.closeBanner} style={{
+              background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', lineHeight: 1, padding: '2px 6px', cursor: 'pointer',
+            }}>×</button>
+          </div>
+          {paymentIssue.code !== 'seller_not_ready' && (
+            <>
+              <p style={{ margin: '4px 0 10px', fontSize: '13px', opacity: 0.95 }}>
+                {ct.cardDeclinedHint.replace('{name}', paymentIssue.winnerName)}
+              </p>
+              <button onClick={retryCardAuthorization} disabled={retryingCard} style={{
+                width: '100%', padding: '10px', borderRadius: '10px', border: 'none',
+                backgroundColor: '#fff', color: '#DC2626', fontSize: '15px', fontWeight: 800,
+                cursor: retryingCard ? 'default' : 'pointer', opacity: retryingCard ? 0.7 : 1,
+              }}>
+                {retryingCard ? ct.retryingCard : ct.retryCard}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ===== BOTTOM OVERLAY: chat + input + item panel ===== */}
       <div style={{

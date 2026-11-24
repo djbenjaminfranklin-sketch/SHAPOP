@@ -4,9 +4,11 @@ import { z } from 'zod'
 import { supabase, AI_MODEL } from '../config'
 import { requireAuth, createLimiter, aiLimiter, bidLimiter } from '../middleware'
 import { calculateFees, notifyUserT, paramStr } from '../utils'
+import { isPaidStatus as isPaidOrder } from '../fulfillment'
 import { localized, money, getUserCurrency } from '../i18n'
 import { notifyPriceDropSubscribers } from './users'
 import { stripe } from '../config'
+import { authorizeOrderPayment } from '../services/cardAuthorization'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -292,6 +294,8 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
       return
     }
 
+    let orderId: string | null = null
+    let payment: { status: string; code?: string } | null = null
     // Create order if sold
     if (topBid && winnerId) {
       // Idempotency check: skip if an order already exists for this item
@@ -304,7 +308,10 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
 
       if (existingOrder) {
         // Order already exists (possible duplicate request), return it
-        res.json({ success: true, status, winner_id: winnerId, order: existingOrder })
+        const payment = existingOrder.auth_status
+          ? { status: isPaidOrder(existingOrder.status) ? 'paid' : existingOrder.auth_status, code: existingOrder.auth_error_code || undefined }
+          : await authorizeOrderPayment(existingOrder.id)
+        res.json({ success: true, status, winner_id: winnerId, final_price: topBid.amount, order_id: existingOrder.id, payment, order: existingOrder })
         return
       }
 
@@ -329,7 +336,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
         }
 
         const fees = calculateFees(topBid.amount)
-        await supabase.from('orders').insert({
+        const { data: newOrder } = await supabase.from('orders').insert({
           buyer_id: winnerId,
           seller_id: item.seller_id,
           item_id: item.id,
@@ -339,13 +346,18 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
           processing_fee: fees.processingFee,
           seller_payout: fees.sellerPayout,
           purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
-        })
+        }).select('id').single()
+        // Autorisation de la carte du gagnant tout de suite : le vendeur voit « accepté » ou « refusé »
+        if (newOrder?.id) {
+          orderId = newOrder.id
+          payment = await authorizeOrderPayment(newOrder.id)
+        }
         // Notify winner
         await notifyUserT(winnerId, 'auction_won', 'auctionWon', { item: item.title || localized('fallback.item'), amount: money(topBid.amount, await getUserCurrency(item.seller_id)) }, { item_id: item.id, stream_id: item.stream_id || '' })
       }
     }
 
-    res.json({ success: true, status, winner_id: winnerId, final_price: topBid?.amount || 0 })
+    res.json({ success: true, status, winner_id: winnerId, final_price: topBid?.amount || 0, order_id: orderId, payment })
   } catch (err) {
     console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })

@@ -6,6 +6,7 @@ import { requireAuth, paymentLimiter } from '../middleware'
 import { calculateFees, getPaypalAccessToken } from '../utils'
 import { getActivePromotion, getValidPromoCode } from './promotions'
 import { markOrderPaid } from '../services/orderLifecycle'
+import { captureAuthorizedPayment } from '../services/cardAuthorization'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -479,7 +480,15 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     let paymentIntent: Stripe.PaymentIntent
     let autoCharged = false
 
-    try {
+    // Carte déjà autorisée à la fin de l'enchère : on prélève le montant réel sur l'argent réservé
+    const capturedAuth = order.auth_payment_intent_id
+      ? await captureAuthorizedPayment(order.auth_payment_intent_id, amountCents, piParams.application_fee_amount ?? null)
+      : null
+
+    if (capturedAuth) {
+      paymentIntent = capturedAuth
+      autoCharged = true
+    } else try {
       paymentIntent = await stripe.paymentIntents.create(piParams)
       autoCharged = paymentIntent.status === 'succeeded'
     } catch (stripeErr: any) {

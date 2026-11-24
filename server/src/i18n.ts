@@ -46,6 +46,8 @@ const en = {
 
   'auctionWon.title': `You won!`,
   'auctionWon.body': `{item} — {amount}. Pay now to receive your item.`,
+  'cardDeclined.title': `Card declined`,
+  'cardDeclined.body': `Your card was declined for {item} ({amount}). Add another card in ShaPop so the seller can try again.`,
   'purchaseConfirmed.title': `Purchase confirmed!`,
   'purchaseConfirmed.body': `{item} — {amount}. Pay now to receive your item.`,
   'itemSold.title': `Item sold!`,
@@ -136,6 +138,8 @@ const fr: Dict = {
 
   'auctionWon.title': `Tu as gagné !`,
   'auctionWon.body': `{item} — {amount}. Paie pour recevoir ton article.`,
+  'cardDeclined.title': `Carte refusée`,
+  'cardDeclined.body': `Ta carte a été refusée pour {item} ({amount}). Ajoute une autre carte dans ShaPop pour que le vendeur réessaie.`,
   'purchaseConfirmed.title': `Achat confirmé !`,
   'purchaseConfirmed.body': `{item} — {amount}. Paie pour recevoir ton article.`,
   'itemSold.title': `Article vendu !`,
@@ -223,6 +227,8 @@ const es: Dict = {
 
   'auctionWon.title': `¡Has ganado!`,
   'auctionWon.body': `{item} — {amount}. Paga para recibir tu artículo.`,
+  'cardDeclined.title': `Tarjeta rechazada`,
+  'cardDeclined.body': `Tu tarjeta ha sido rechazada para {item} ({amount}). Añade otra tarjeta en ShaPop para que el vendedor lo vuelva a intentar.`,
   'purchaseConfirmed.title': `¡Compra confirmada!`,
   'purchaseConfirmed.body': `{item} — {amount}. Paga para recibir tu artículo.`,
   'itemSold.title': `¡Artículo vendido!`,
@@ -310,6 +316,8 @@ const ru: Dict = {
 
   'auctionWon.title': `Победа за тобой!`,
   'auctionWon.body': `{item} — {amount}. Оплати, чтобы получить товар.`,
+  'cardDeclined.title': `Карта отклонена`,
+  'cardDeclined.body': `Твоя карта отклонена для {item} ({amount}). Добавь другую карту в ShaPop, чтобы продавец попробовал снова.`,
   'purchaseConfirmed.title': `Покупка подтверждена!`,
   'purchaseConfirmed.body': `{item} — {amount}. Оплати, чтобы получить товар.`,
   'itemSold.title': `Товар продан!`,
@@ -397,6 +405,8 @@ const he: Dict = {
 
   'auctionWon.title': `זכיתם!`,
   'auctionWon.body': `{item} — {amount}. יש לשלם כדי לקבל את הפריט.`,
+  'cardDeclined.title': `הכרטיס נדחה`,
+  'cardDeclined.body': `הכרטיס שלך נדחה עבור {item} ({amount}). הוסיפו כרטיס אחר ב-ShaPop כדי שהמוכר ינסה שוב.`,
   'purchaseConfirmed.title': `הרכישה אושרה!`,
   'purchaseConfirmed.body': `{item} — {amount}. יש לשלם כדי לקבל את הפריט.`,
   'itemSold.title': `הפריט נמכר!`,
