@@ -51,6 +51,7 @@ export default function Orders() {
       <Loading error={error} loading={loading && !data} />
       {data && (
         <>
+          <div style={{ overflowX: 'auto' }}>
           <table className="table hover">
             <thead><tr>
               <th>Réf.</th><th>Date</th><th>Article</th><th>Acheteur</th><th>Vendeur</th>
@@ -87,6 +88,7 @@ export default function Orders() {
               </tfoot>
             )}
           </table>
+          </div>
           <p className="muted" style={{ fontSize: '12px' }}>Commission, frais et versement ne s’affichent que pour les commandes réellement payées (pas en attente, annulées ni remboursées).</p>
           <Pager page={page} total={data.total} limit={50} onPage={setPage} />
         </>
