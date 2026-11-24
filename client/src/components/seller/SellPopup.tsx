@@ -38,6 +38,9 @@ const popupContent = {
     stripeRequiredDesc: 'To sell on ShaPop, first connect your Stripe account so you can get paid.',
     stripeRequiredCta: 'Connect Stripe',
     stripeRequiredLoading: 'Checking...',
+    ilBankTitle: 'Add your bank account',
+    ilBankDesc: 'To sell in Israel, add the Israeli bank account where you will receive your sales.',
+    ilBankCta: 'Add my bank account',
   },
   fr: {
     createTitle: 'Créer',
@@ -65,6 +68,9 @@ const popupContent = {
     stripeRequiredDesc: 'Pour vendre sur ShaPop, connecte d\'abord ton compte Stripe pour recevoir tes paiements.',
     stripeRequiredCta: 'Connecter Stripe',
     stripeRequiredLoading: 'Vérification...',
+    ilBankTitle: 'Ajoute ton compte bancaire',
+    ilBankDesc: 'Pour vendre en Israël, ajoute le compte bancaire israélien sur lequel tu recevras tes ventes.',
+    ilBankCta: 'Ajouter mon compte bancaire',
   },
   es: {
     createTitle: 'Crear',
@@ -92,6 +98,9 @@ const popupContent = {
     stripeRequiredDesc: 'Para vender en ShaPop, primero conecta tu cuenta de Stripe para recibir tus pagos.',
     stripeRequiredCta: 'Conectar Stripe',
     stripeRequiredLoading: 'Comprobando...',
+    ilBankTitle: 'Añade tu cuenta bancaria',
+    ilBankDesc: 'Para vender en Israel, añade la cuenta bancaria israelí donde recibirás tus ventas.',
+    ilBankCta: 'Añadir mi cuenta bancaria',
   },
   ru: {
     createTitle: 'Создать',
@@ -119,6 +128,9 @@ const popupContent = {
     stripeRequiredDesc: 'Чтобы продавать на ShaPop, сначала подключи аккаунт Stripe для получения выплат.',
     stripeRequiredCta: 'Подключить Stripe',
     stripeRequiredLoading: 'Проверяем...',
+    ilBankTitle: 'Добавь банковский счёт',
+    ilBankDesc: 'Чтобы продавать в Израиле, добавь израильский банковский счёт для получения денег за продажи.',
+    ilBankCta: 'Добавить счёт',
   },
   he: {
     createTitle: 'יצירה',
@@ -146,6 +158,9 @@ const popupContent = {
     stripeRequiredDesc: 'כדי למכור ב-ShaPop, צריך קודם לחבר חשבון Stripe כדי לקבל תשלומים.',
     stripeRequiredCta: 'חיבור Stripe',
     stripeRequiredLoading: 'בודקים...',
+    ilBankTitle: 'הוספת חשבון בנק',
+    ilBankDesc: 'כדי למכור בישראל, הוסיפו את חשבון הבנק הישראלי שאליו יועברו כספי המכירות.',
+    ilBankCta: 'הוספת חשבון הבנק שלי',
   },
 } satisfies Localized<Record<string, string>>
 
@@ -155,6 +170,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   const c = tr(popupContent)
 
   const isSeller = !!profile?.is_seller
+  const isIsraeli = profile?.country === 'IL'
   const [paymentConnected, setPaymentConnected] = useState<boolean | null>(null) // null = loading
 
   // Check payment connection status when popup opens and user is a seller
@@ -166,9 +182,23 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         // First check if seller uses PayPal (no need to call server)
         const { data: seller } = await supabase
           .from('sellers')
-          .select('bank_choice, paypal_email, stripe_account_id')
+          .select('bank_choice, paypal_email, stripe_account_id, airwallex_beneficiary_id')
           .eq('id', profile!.id)
-          .single()
+          .maybeSingle()
+
+        // Israël : compte bancaire enregistré chez Airwallex = paiement configuré
+        if (seller?.airwallex_beneficiary_id) {
+          setPaymentConnected(true)
+          return
+        }
+        if (profile?.country === 'IL') {
+          // Vendeur israélien sans compte bancaire : l'encart le renvoie vers « Être payé en Israël »
+          const { data: session } = await supabase.auth.getSession()
+          const t = session?.session?.access_token
+          const pr = t ? await apiFetch('/api/payments/provider', { headers: { 'Authorization': `Bearer ${t}` } }) : null
+          const prov = pr && pr.ok ? await pr.json() : null
+          if (prov?.provider === 'airwallex') { setPaymentConnected(false); return }
+        }
 
         if (seller?.bank_choice === 'paypal' && seller?.paypal_email) {
           setPaymentConnected(true)
@@ -272,7 +302,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
         <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: 0 }}>
-          {!isSeller ? c.becomeSellerTitle : paymentConnected === false ? c.stripeRequiredTitle : c.createTitle}
+          {!isSeller ? c.becomeSellerTitle : paymentConnected === false ? (isIsraeli ? c.ilBankTitle : c.stripeRequiredTitle) : c.createTitle}
         </h2>
         <button
           onClick={onClose}
@@ -419,10 +449,10 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               fontSize: '15px', color: '#888', textAlign: 'center',
               lineHeight: 1.6, margin: '0 0 16px',
             }}>
-              {c.stripeRequiredDesc}
+              {isIsraeli ? c.ilBankDesc : c.stripeRequiredDesc}
             </p>
             <button
-              onClick={() => { onClose(); navigate('/payments') }}
+              onClick={() => { onClose(); navigate(isIsraeli ? '/payouts-israel' : '/payments') }}
               style={{
                 width: '100%', padding: '18px', marginTop: '8px',
                 background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 50%, #0A2540 100%)',
@@ -439,7 +469,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
                 background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
               }} />
-              {c.stripeRequiredCta}
+              {isIsraeli ? c.ilBankCta : c.stripeRequiredCta}
             </button>
           </>
         ) : (
