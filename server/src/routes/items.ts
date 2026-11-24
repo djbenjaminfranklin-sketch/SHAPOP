@@ -1229,6 +1229,62 @@ Return ONLY the JSON, no other text.`
 })
 
 // =============================================
+// IA — Noms d'articles à partir des photos (« Préparer le live », plusieurs photos d'un coup)
+// Le vendeur photographie ses articles, l'IA propose un nom court pour chacun, le vendeur met les prix.
+// =============================================
+const NameItemsBody = z.object({
+  image_urls: z.array(z.string().url()).min(1).max(12),
+  lang: z.enum(['en', 'fr', 'es', 'ru', 'he']).default('en'),
+})
+const LANG_NAMES: Record<string, string> = { en: 'English', fr: 'French', es: 'Spanish', ru: 'Russian', he: 'Hebrew' }
+
+router.post('/api/ai/name-items', requireAuth, aiLimiter, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parsed = NameItemsBody.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten().fieldErrors })
+      return
+    }
+    const { image_urls, lang } = parsed.data
+    const content: unknown[] = []
+    image_urls.forEach((url, i) => {
+      content.push({ type: 'text', text: `Photo ${i + 1}:` })
+      content.push({ type: 'image', source: { type: 'url', url } })
+    })
+    content.push({
+      type: 'text',
+      text: `These are photos of second-hand items a seller will auction in a live sale. For EACH photo, in order, give a short, concrete item name a seller would use as a label (2 to 6 words, brand/model/colour if visible, no price, no emoji), written in ${LANG_NAMES[lang]}.
+Return ONLY a JSON array of ${image_urls.length} strings, one per photo, in the same order.`,
+    })
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({ model: AI_MODEL, max_tokens: 800, messages: [{ role: 'user', content }] }),
+    })
+    const aiResult = await response.json() as { content?: { text?: string }[]; error?: { message?: string } }
+    const text = aiResult.content?.[0]?.text || ''
+    const match = text.match(/\[[\s\S]*\]/)
+    if (!match) {
+      console.error('[items] name-items: no JSON', aiResult.error?.message || text.slice(0, 200))
+      res.status(502).json({ error: 'AI analysis failed' })
+      return
+    }
+    let names: unknown
+    try { names = JSON.parse(match[0]) } catch { names = null }
+    if (!Array.isArray(names)) { res.status(502).json({ error: 'AI analysis failed' }); return }
+    const clean = image_urls.map((_, i) => String(names[i] ?? '').replace(/[\[\]]/g, '').trim().slice(0, 60))
+    res.json({ names: clean })
+  } catch (err) {
+    console.error('[items] name-items:', err)
+    res.status(500).json({ error: 'AI analysis failed' })
+  }
+})
+
+// =============================================
 // IA — Generateur de banniere (auth + rate limit)
 // =============================================
 router.post('/api/ai/generate-store-banner', requireAuth, aiLimiter, async (req: AuthenticatedRequest, res: Response) => {

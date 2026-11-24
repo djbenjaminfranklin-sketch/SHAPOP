@@ -5,13 +5,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
-import { tr, getLocale, type Localized } from '../lib/i18n'
+import { tr, getLocale, getLang, type Localized } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
 
 // Compress image to max 800px and JPEG quality 0.7
+type BatchRow = { key: string; preview: string; imageUrl: string | null; title: string; price: string; status: 'uploading' | 'naming' | 'ready' | 'error' }
+
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -48,6 +50,16 @@ const pageContent = {
   en: {
     title: 'Prepare your live',
     addItem: 'Add an item',
+    photosAi: 'Photos (AI)',
+    photosAiTitle: 'Your items',
+    photosAiHint: 'Take a photo of each item: the AI names it, you just add the price.',
+    aiNaming: 'Naming…',
+    aiNamingFailed: 'The AI couldn’t name these photos: type the names.',
+    priceShort: 'Price',
+    addAllItems: 'Add {n} items',
+    addMorePhotos: 'Add photos',
+    cancelBatch: 'Cancel',
+    photoUploadFailed: 'Photo upload failed',
     photo: 'Photo',
     itemTitle: 'Item title',
     startingPrice: 'Starting price ({cur})',
@@ -118,6 +130,16 @@ const pageContent = {
   fr: {
     title: 'Préparer le live',
     addItem: 'Ajouter un article',
+    photosAi: 'Photos (IA)',
+    photosAiTitle: 'Tes articles',
+    photosAiHint: 'Prends chaque article en photo : l’IA lui donne un nom, tu n’as plus qu’à mettre le prix.',
+    aiNaming: 'L’IA cherche le nom…',
+    aiNamingFailed: 'L’IA n’a pas pu nommer ces photos : écris les noms.',
+    priceShort: 'Prix',
+    addAllItems: 'Ajouter {n} articles',
+    addMorePhotos: 'Ajouter des photos',
+    cancelBatch: 'Annuler',
+    photoUploadFailed: 'Échec de l’envoi de la photo',
     photo: 'Photo',
     itemTitle: 'Titre de l’article',
     startingPrice: 'Prix de départ ({cur})',
@@ -188,6 +210,16 @@ const pageContent = {
   es: {
     title: 'Preparar el directo',
     addItem: 'Añadir un artículo',
+    photosAi: 'Fotos (IA)',
+    photosAiTitle: 'Tus artículos',
+    photosAiHint: 'Haz una foto de cada artículo: la IA le pone nombre y tú solo añades el precio.',
+    aiNaming: 'La IA busca el nombre…',
+    aiNamingFailed: 'La IA no pudo nombrar estas fotos: escribe los nombres.',
+    priceShort: 'Precio',
+    addAllItems: 'Añadir {n} artículos',
+    addMorePhotos: 'Añadir fotos',
+    cancelBatch: 'Cancelar',
+    photoUploadFailed: 'No se pudo subir la foto',
     photo: 'Foto',
     itemTitle: 'Título del artículo',
     startingPrice: 'Precio inicial ({cur})',
@@ -258,6 +290,16 @@ const pageContent = {
   ru: {
     title: 'Подготовка эфира',
     addItem: 'Добавить товар',
+    photosAi: 'Фото (ИИ)',
+    photosAiTitle: 'Твои товары',
+    photosAiHint: 'Сфотографируй каждый товар: ИИ даст ему название, тебе останется указать цену.',
+    aiNaming: 'ИИ подбирает название…',
+    aiNamingFailed: 'ИИ не смог назвать эти фото: впиши названия.',
+    priceShort: 'Цена',
+    addAllItems: 'Добавить товары: {n}',
+    addMorePhotos: 'Добавить фото',
+    cancelBatch: 'Отмена',
+    photoUploadFailed: 'Не удалось загрузить фото',
     photo: 'Фото',
     itemTitle: 'Название товара',
     startingPrice: 'Стартовая цена ({cur})',
@@ -328,6 +370,16 @@ const pageContent = {
   he: {
     title: 'הכנת השידור',
     addItem: 'הוספת פריט',
+    photosAi: 'תמונות (AI)',
+    photosAiTitle: 'הפריטים שלך',
+    photosAiHint: 'מצלמים כל פריט: ה-AI נותן לו שם, ונשאר רק להוסיף מחיר.',
+    aiNaming: 'ה-AI מחפש שם…',
+    aiNamingFailed: 'ה-AI לא הצליח לתת שם לתמונות האלה: כתבו את השמות.',
+    priceShort: 'מחיר',
+    addAllItems: 'הוספת {n} פריטים',
+    addMorePhotos: 'הוספת תמונות',
+    cancelBatch: 'ביטול',
+    photoUploadFailed: 'העלאת התמונה נכשלה',
     photo: 'תמונה',
     itemTitle: 'שם הפריט',
     startingPrice: 'מחיר פתיחה ({cur})',
@@ -473,6 +525,11 @@ export default function PrepareLivePage() {
   const [formBuyNowPrice, setFormBuyNowPrice] = useState('')
   const [csvImporting, setCsvImporting] = useState(false)
   const csvInputRef = useRef<HTMLInputElement>(null)
+  // Photos de plusieurs articles d'un coup : l'IA propose un nom, le vendeur met le prix
+  const photosInputRef = useRef<HTMLInputElement>(null)
+  const [batch, setBatch] = useState<BatchRow[] | null>(null)
+  const [batchSaving, setBatchSaving] = useState(false)
+  const [batchAiFailed, setBatchAiFailed] = useState(false)
   // Prix d'envoi par la poste suggéré (le vendeur fixe le sien, par article ou dans ses réglages)
   const [suggestedShipping, setSuggestedShipping] = useState<SuggestedShipping | null>(null)
   const [loadingShipping, setLoadingShipping] = useState(false)
@@ -746,6 +803,104 @@ export default function PrepareLivePage() {
     setSuggestedShipping(null)
     setShowForm(false)
     setSaving(false)
+  }
+
+  const updateRow = (key: string, patch: Partial<BatchRow>) =>
+    setBatch(prev => prev ? prev.map(r => r.key === key ? { ...r, ...patch } : r) : prev)
+
+  const handlePhotosPicked = async (fileList: FileList | null) => {
+    if (!fileList || !user) return
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/')).slice(0, 30)
+    if (files.length === 0) return
+    const rows: BatchRow[] = files.map((f, i) => ({
+      key: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+      preview: URL.createObjectURL(f), imageUrl: null, title: '', price: '', status: 'uploading',
+    }))
+    setBatchAiFailed(false)
+    setBatch(prev => [...(prev || []), ...rows])
+
+    // 1) Envoi des photos (3 à la fois)
+    const uploaded: { key: string; url: string }[] = []
+    const queue = files.map((f, i) => ({ f, row: rows[i] }))
+    const worker = async () => {
+      for (let job = queue.shift(); job; job = queue.shift()) {
+        try {
+          const compressed = await compressImage(job.f)
+          const filePath = `items/${user.id}/${Date.now()}-${job.row.key}.jpg`
+          const { error } = await supabase.storage.from('avatars').upload(filePath, compressed, { contentType: 'image/jpeg', upsert: false })
+          if (error) throw error
+          const url = supabase.storage.from('avatars').getPublicUrl(filePath).data.publicUrl
+          uploaded.push({ key: job.row.key, url })
+          updateRow(job.row.key, { imageUrl: url, status: 'naming' })
+        } catch (err) {
+          console.error('batch upload', err)
+          updateRow(job.row.key, { status: 'error' })
+        }
+      }
+    }
+    await Promise.all([worker(), worker(), worker()])
+
+    // 2) Noms proposés par l'IA (12 photos par appel)
+    const { data: { session } } = await supabase.auth.getSession()
+    for (let i = 0; i < uploaded.length; i += 12) {
+      const chunk = uploaded.slice(i, i + 12)
+      try {
+        const resp = await apiFetch('/api/ai/name-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}) },
+          body: JSON.stringify({ image_urls: chunk.map(c => c.url), lang: getLang() }),
+        })
+        const data = resp.ok ? await resp.json() : null
+        const names: string[] = Array.isArray(data?.names) ? data.names : []
+        if (names.length === 0) setBatchAiFailed(true)
+        setBatch(prev => prev ? prev.map(r => {
+          const idx = chunk.findIndex(c => c.key === r.key)
+          if (idx < 0) return r
+          return { ...r, title: r.title || names[idx] || '', status: 'ready' }
+        }) : prev)
+      } catch {
+        setBatchAiFailed(true)
+        setBatch(prev => prev ? prev.map(r => chunk.some(c => c.key === r.key) ? { ...r, status: 'ready' } : r) : prev)
+      }
+    }
+  }
+
+  const closeBatch = () => {
+    batch?.forEach(r => URL.revokeObjectURL(r.preview))
+    setBatch(null)
+    setBatchAiFailed(false)
+  }
+
+  const batchReadyRows = (batch || []).filter(r => r.imageUrl && r.title.trim() && parseFloat(r.price.replace(',', '.')) > 0)
+  const batchBusy = (batch || []).some(r => r.status === 'uploading' || r.status === 'naming')
+
+  const handleAddBatch = async () => {
+    if (!user || !streamId || batchReadyRows.length === 0) return
+    setBatchSaving(true)
+    const category = stream?.category || ''
+    const newItems: DraftItem[] = []
+    for (const r of batchReadyRows) {
+      const price = parseFloat(r.price.replace(',', '.'))
+      const title = `${r.title.trim()} [${generateUniqueCode()}]`
+      const { data, error } = await supabase.from('items').insert({
+        seller_id: user.id, stream_id: streamId, title,
+        starting_price: price, current_price: price, category,
+        status: 'draft' as const, image_urls: [r.imageUrl!], duration_seconds: 60,
+      }).select().single()
+      if (error || !data) { console.error('batch insert', error); continue }
+      newItems.push({
+        id: data.id, title: data.title, starting_price: data.starting_price,
+        min_price: null, buy_now_price: null, category: data.category,
+        image_url: r.imageUrl, lot_number: items.length + newItems.length + 1,
+        duration_seconds: 60, weight_grams: null, seller_shipping_override: null,
+      })
+    }
+    if (newItems.length > 0) setItems(prev => [...prev, ...newItems])
+    const addedKeys = new Set(batchReadyRows.map(r => r.key))
+    const remaining = (batch || []).filter(r => !addedKeys.has(r.key))
+    batch?.filter(r => addedKeys.has(r.key)).forEach(r => URL.revokeObjectURL(r.preview))
+    setBatch(remaining.length > 0 ? remaining : null)
+    setBatchSaving(false)
   }
 
   const handleCsvImport = async (file: File) => {
@@ -1813,6 +1968,79 @@ export default function PrepareLivePage() {
         )}
       </div>
 
+      {/* Photos (IA) : vérifier les noms et mettre les prix */}
+      {batch && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 300, backgroundColor: '#000',
+          display: 'flex', flexDirection: 'column',
+          paddingTop: 'env(safe-area-inset-top, 44px)',
+        }}>
+          <div style={{ padding: '14px 16px 8px', borderBottom: '1px solid #1A1A1A' }}>
+            <p style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#fff' }}>{ct.photosAiTitle}</p>
+            <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#999' }}>{ct.photosAiHint}</p>
+            {batchAiFailed && (
+              <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#F59E0B' }}>{ct.aiNamingFailed}</p>
+            )}
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {batch.map(r => (
+              <div key={r.key} style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: '#111', borderRadius: '14px', padding: '8px' }}>
+                <img src={r.preview} alt="" style={{ width: '72px', height: '72px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0, opacity: r.status === 'error' ? 0.4 : 1 }} />
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {r.status === 'error' ? (
+                    <p style={{ margin: 0, fontSize: '13px', color: '#EF4444' }}>{ct.photoUploadFailed}</p>
+                  ) : (
+                    <input
+                      value={r.title}
+                      onChange={e => updateRow(r.key, { title: e.target.value })}
+                      placeholder={r.status === 'ready' ? ct.itemTitle : ct.aiNaming}
+                      maxLength={60}
+                      style={{ width: '100%', padding: '9px 10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: '15px', boxSizing: 'border-box' }}
+                    />
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      value={r.price}
+                      onChange={e => updateRow(r.key, { price: e.target.value.replace(/[^0-9.,]/g, '') })}
+                      inputMode="decimal"
+                      placeholder={ct.priceShort}
+                      style={{ width: '110px', padding: '9px 10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: '15px', fontWeight: 700, boxSizing: 'border-box' }}
+                    />
+                    <span style={{ color: '#999', fontSize: '14px' }}>{currencySymbol(sellerCurrency)}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { URL.revokeObjectURL(r.preview); setBatch(prev => { const n = (prev || []).filter(x => x.key !== r.key); return n.length > 0 ? n : null }) }}
+                  aria-label={ct.cancelBatch}
+                  style={{ background: 'transparent', border: 'none', color: '#777', fontSize: '22px', padding: '4px 8px', cursor: 'pointer' }}
+                >×</button>
+              </div>
+            ))}
+            <button
+              onClick={() => photosInputRef.current?.click()}
+              style={{ padding: '12px', borderRadius: '12px', border: '1px dashed #444', backgroundColor: 'transparent', color: '#F0908A', fontSize: '14px', fontWeight: 700, cursor: 'pointer' }}
+            >+ {ct.addMorePhotos}</button>
+          </div>
+          <div style={{ padding: '12px 16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', borderTop: '1px solid #1A1A1A', display: 'flex', gap: '8px' }}>
+            <button
+              onClick={closeBatch}
+              disabled={batchSaving}
+              style={{ padding: '15px 18px', borderRadius: '14px', border: '1px solid #333', backgroundColor: '#111', color: '#ccc', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+            >{ct.cancelBatch}</button>
+            <button
+              onClick={handleAddBatch}
+              disabled={batchSaving || batchReadyRows.length === 0}
+              style={{
+                flex: 1, padding: '15px', borderRadius: '14px', border: 'none',
+                background: batchReadyRows.length > 0 ? 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)' : '#222',
+                color: batchReadyRows.length > 0 ? '#fff' : '#666', fontSize: '16px', fontWeight: 800,
+                cursor: batchReadyRows.length > 0 ? 'pointer' : 'default', opacity: batchSaving ? 0.7 : 1,
+              }}
+            >{batchBusy && batchReadyRows.length === 0 ? ct.aiNaming : ct.addAllItems.replace('{n}', String(batchReadyRows.length))}</button>
+          </div>
+        </div>
+      )}
+
       {/* Bottom actions */}
       <div style={{
         padding: '16px',
@@ -1841,6 +2069,31 @@ export default function PrepareLivePage() {
               </svg>
               {ct.addItem}
             </button>
+            <button
+              onClick={() => photosInputRef.current?.click()}
+              style={{
+                padding: '16px',
+                background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)',
+                border: 'none', borderRadius: '14px',
+                color: '#fff', fontSize: '13px', fontWeight: 800,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+                <circle cx="12" cy="13" r="4" />
+              </svg>
+              {ct.photosAi}
+            </button>
+            <input
+              ref={photosInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={e => { handlePhotosPicked(e.target.files); e.target.value = '' }}
+            />
             <button
               onClick={() => csvInputRef.current?.click()}
               disabled={csvImporting}
