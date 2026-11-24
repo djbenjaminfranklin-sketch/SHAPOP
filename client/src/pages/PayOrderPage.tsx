@@ -132,7 +132,7 @@ export default function PayOrderPage() {
     setStep('done')
   }
 
-  const page: React.CSSProperties = { minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 32px)' }
+  const page: React.CSSProperties = { minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }
   const declined = order?.auth_status === 'declined' || order?.auth_status === 'no_card'
 
   if (loading) return <div style={page}><p style={{ color: '#888' }}>{ct.loading}</p></div>
