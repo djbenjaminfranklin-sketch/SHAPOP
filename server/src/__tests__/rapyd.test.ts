@@ -45,6 +45,7 @@ describe('vérification des webhooks Rapyd', () => {
 
 describe('aiguillage Israël → Rapyd, autres pays → Stripe', () => {
   const env = { ...process.env }
+  beforeEach(() => { delete process.env.AIRWALLEX_ENABLED }) // Airwallex passe avant Rapyd
   afterEach(() => { process.env = { ...env } })
   it('tout reste sur Stripe tant que Rapyd est éteint', () => {
     delete process.env.RAPYD_ENABLED
