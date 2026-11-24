@@ -1479,44 +1479,120 @@ for (const [path, status, action] of [['hide', 'hidden', 'hide_item'], ['unhide'
 }
 
 // --- Admin web : commandes (recherche réf / acheteur / vendeur, fournisseur, statut) ---
+type OrderFilters = { search: string; provider: string; status: string; fulfillment: string; userId: string; from: string; to: string }
+function readOrderFilters(q: Record<string, unknown>): OrderFilters {
+  return {
+    search: safeLike(String(q.search || '').replace(/^#/, '')),
+    provider: String(q.provider || ''),
+    status: String(q.status || ''),
+    fulfillment: String(q.fulfillment || ''),
+    userId: String(q.user || ''),
+    from: /^\d{4}-\d{2}-\d{2}$/.test(String(q.from || '')) ? String(q.from) : '',
+    to: /^\d{4}-\d{2}-\d{2}$/.test(String(q.to || '')) ? String(q.to) : '',
+  }
+}
+/** Applique les filtres ; renvoie null si la recherche ne peut rien trouver. */
+async function applyOrderFilters<Q extends { eq: Function; or: Function; gte: Function; lt: Function }>(query: Q, f: OrderFilters): Promise<Q | null> {
+  let q: any = query
+  if (f.provider) q = f.provider === 'stripe' ? q.or('payment_provider.eq.stripe,payment_provider.is.null') : q.eq('payment_provider', f.provider)
+  if (f.status) q = q.eq('status', f.status)
+  if (f.fulfillment) q = q.eq('fulfillment_method', f.fulfillment)
+  if (f.from) q = q.gte('created_at', `${f.from}T00:00:00Z`)
+  if (f.to) { const d = new Date(`${f.to}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 1); q = q.lt('created_at', d.toISOString()) }
+  if (/^[0-9a-f-]{36}$/i.test(f.userId)) q = q.or(`buyer_id.eq.${f.userId},seller_id.eq.${f.userId}`)
+  if (f.search) {
+    const range = /^[0-9a-f-]{4,36}$/i.test(f.search) ? uuidPrefixRange(f.search) : null
+    const { data: ppl } = await supabase.from('profiles').select('id').or(`username.ilike.%${f.search}%,display_name.ilike.%${f.search}%`).limit(50)
+    const auth = await authInfo({ search: f.search })
+    const ids = [...new Set([...(ppl || []).map((p: Row) => p.id), ...auth.keys()])]
+    const parts: string[] = []
+    if (range) parts.push(`and(id.gte.${range[0]},id.lte.${range[1]})`)
+    if (ids.length) parts.push(`buyer_id.in.(${ids.join(',')})`, `seller_id.in.(${ids.join(',')})`)
+    if (parts.length === 0) return null
+    q = q.or(parts.join(','))
+  }
+  return q
+}
+
+// Statuts où l'argent a réellement été encaissé (pour les totaux de commission)
+const MONEY_STATUSES = new Set(['paid', 'shipped', 'handed_over', 'delivered', 'disputed', 'return_requested', 'return_rejected'])
+const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
+const r2 = (n: number) => Math.round(n * 100) / 100
+
+/** Totaux par devise sur TOUTES les commandes filtrées (pas seulement la page), commandes payées uniquement. */
+function orderTotals(rows: Row[]) {
+  const by: Record<string, { currency: string; count: number; amount: number; shipping: number; total: number; commission: number; fees: number; seller: number }> = {}
+  for (const o of rows) {
+    if (!MONEY_STATUSES.has(String(o.status))) continue
+    const c = String(o.currency || 'EUR').toUpperCase()
+    const t = by[c] ||= { currency: c, count: 0, amount: 0, shipping: 0, total: 0, commission: 0, fees: 0, seller: 0 }
+    t.count++; t.amount += num(o.amount); t.shipping += num(o.shipping_cost)
+    t.total += o.total_amount != null ? num(o.total_amount) : num(o.amount) + num(o.shipping_cost)
+    t.commission += num(o.platform_fee); t.fees += num(o.processing_fee); t.seller += num(o.seller_payout)
+  }
+  return Object.values(by).map(t => ({ ...t, amount: r2(t.amount), shipping: r2(t.shipping), total: r2(t.total), commission: r2(t.commission), fees: r2(t.fees), seller: r2(t.seller) }))
+}
+
 router.get('/api/admin/orders-search', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1)
     const limit = Math.min(100, Number(req.query.limit) || 50)
-    const search = safeLike(String(req.query.search || '').replace(/^#/, ''))
-    const provider = String(req.query.provider || '')
-    const status = String(req.query.status || '')
-    const fulfillment = String(req.query.fulfillment || '')
-    const userId = String(req.query.user || '')
+    const f = readOrderFilters(req.query as Record<string, unknown>)
 
-    let query = supabase.from('orders').select('*', { count: 'exact' })
+    const pageQuery = await applyOrderFilters(supabase.from('orders').select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range((page - 1) * limit, page * limit - 1)
-    if (provider) query = query.eq('payment_provider', provider)
-    if (status) query = query.eq('status', status)
-    if (fulfillment) query = query.eq('fulfillment_method', fulfillment)
-    if (/^[0-9a-f-]{36}$/i.test(userId)) query = query.or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-    if (search) {
-      const range = /^[0-9a-f-]{4,36}$/i.test(search) ? uuidPrefixRange(search) : null
-      const { data: ppl } = await supabase.from('profiles').select('id').or(`username.ilike.%${search}%,display_name.ilike.%${search}%`).limit(50)
-      const auth = await authInfo({ search })
-      const ids = [...new Set([...(ppl || []).map((p: Row) => p.id), ...auth.keys()])]
-      const parts: string[] = []
-      if (range) parts.push(`and(id.gte.${range[0]},id.lte.${range[1]})`)
-      if (ids.length) parts.push(`buyer_id.in.(${ids.join(',')})`, `seller_id.in.(${ids.join(',')})`)
-      if (parts.length === 0) { res.json({ orders: [], total: 0, page, limit }); return }
-      query = query.or(parts.join(','))
-    }
-    const { data, count, error } = await query
+      .range((page - 1) * limit, page * limit - 1), f)
+    if (!pageQuery) { res.json({ orders: [], total: 0, page, limit, totals: [] }); return }
+    const totalsQuery = await applyOrderFilters(supabase.from('orders')
+      .select('status, currency, amount, shipping_cost, total_amount, platform_fee, processing_fee, seller_payout').limit(20000), f)
+    const [{ data, count, error }, totalsRes] = await Promise.all([pageQuery, totalsQuery!])
     if (error) throw error
     const orders = await enrichOrders((data || []) as Row[])
     const itemIds = [...new Set(orders.map(o => o.item_id).filter(Boolean))]
     const { data: items } = itemIds.length ? await supabase.from('items').select('id, title, image_urls').in('id', itemIds) : { data: [] as Row[] }
     const itemMap = new Map((items || []).map((i: Row) => [i.id, i]))
-    res.json({ orders: orders.map(o => ({ ...o, item: itemMap.get(o.item_id) || null })), total: count || 0, page, limit })
+    res.json({ orders: orders.map(o => ({ ...o, item: itemMap.get(o.item_id) || null })), total: count || 0, page, limit, totals: orderTotals((totalsRes.data || []) as Row[]) })
   } catch (err) {
     console.error('[admin] orders-search:', err)
     res.status(500).json({ error: 'Failed to fetch orders' })
+  }
+})
+
+// Export CSV (comptabilité) : toutes les commandes filtrées, une ligne par vente
+router.get('/api/admin/orders-export', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const f = readOrderFilters(req.query as Record<string, unknown>)
+    const q = await applyOrderFilters(supabase.from('orders').select('*').order('created_at', { ascending: true }).limit(20000), f)
+    const rows: Row[] = q ? (((await q).data) || []) as Row[] : []
+    const enriched = await enrichOrders(rows)
+    const itemIds = [...new Set(enriched.map(o => o.item_id).filter(Boolean))]
+    const { data: items } = itemIds.length ? await supabase.from('items').select('id, title').in('id', itemIds) : { data: [] as Row[] }
+    const itemMap = new Map((items || []).map((i: Row) => [i.id, i.title]))
+    const name = (p: Row | null | undefined) => (p?.display_name || p?.username || '') as string
+    const cell = (v: unknown) => {
+      const t = v == null ? '' : String(v)
+      return /[";\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t
+    }
+    const dec = (v: unknown) => v == null || v === '' ? '' : r2(num(v)).toFixed(2).replace('.', ',')
+    const header = ['Référence', 'Date', 'Statut', 'Article', 'Acheteur', 'Vendeur', 'Devise', 'Prix article', 'Frais de port', 'Total payé', 'Commission ShaPop', 'Frais de paiement', 'Versé au vendeur', 'Prestataire', 'Remise', 'Versement', 'Date de versement']
+    const lines = [header.join(';')]
+    for (const o of enriched) {
+      lines.push([
+        o.ref || String(o.id).slice(0, 8).toUpperCase(), String(o.created_at || '').slice(0, 19).replace('T', ' '), o.status,
+        itemMap.get(o.item_id) || '', name(o.buyer), name(o.seller_profile), String(o.currency || 'EUR').toUpperCase(),
+        dec(o.amount), dec(o.shipping_cost), dec(o.total_amount ?? (num(o.amount) + num(o.shipping_cost))),
+        dec(o.platform_fee), dec(o.processing_fee), dec(o.seller_payout),
+        o.payment_provider || 'stripe', o.fulfillment_method || '', o.payout_status || '', String(o.payout_released_at || '').slice(0, 10),
+      ].map(cell).join(';'))
+    }
+    const day = new Date().toISOString().slice(0, 10)
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+    res.setHeader('Content-Disposition', `attachment; filename="shapop-commandes-${day}.csv"`)
+    res.send('\uFEFF' + lines.join('\r\n'))
+    logAdminAction(req.user!.id, req.user!.email || '', 'orders_export', 'orders', 'export', { count: enriched.length, filters: f as unknown as Record<string, unknown> }).catch(() => {})
+  } catch (err) {
+    console.error('[admin] orders-export:', err)
+    res.status(500).json({ error: 'Failed to export orders' })
   }
 })
 

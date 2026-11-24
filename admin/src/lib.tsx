@@ -15,6 +15,17 @@ export class ApiError extends Error {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Row = Record<string, any>
 
+/** Télécharge un fichier renvoyé par l'API (avec le jeton de connexion). */
+export async function download(path: string, fallbackName: string) {
+  const { data } = await supabase.auth.getSession()
+  const r = await fetch(API + path, { headers: data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {} })
+  if (!r.ok) throw new ApiError(r.status, `HTTP ${r.status}`)
+  const blob = await r.blob()
+  const name = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '')?.[1] || fallbackName
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
+
 export async function api<T = Row>(path: string, opts: { method?: string; body?: unknown } = {}): Promise<T> {
   const { data } = await supabase.auth.getSession()
   const token = data.session?.access_token
