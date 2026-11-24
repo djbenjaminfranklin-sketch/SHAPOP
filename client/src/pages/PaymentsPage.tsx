@@ -622,6 +622,8 @@ export default function PaymentsPage() {
     setSetupLoading(false)
     setSetupClientSecret(null)
     setShowCardSetup(true)
+    // Le formulaire s'ouvre en bas de la page : on le fait défiler jusqu'à lui
+    setTimeout(() => document.getElementById('card-setup-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150)
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -1187,7 +1189,7 @@ export default function PaymentsPage() {
 
         {/* Buyer card section — only visible during card setup */}
         {showCardSetup && (
-        <div style={{
+        <div id="card-setup-section" style={{
           backgroundColor: '#111', borderRadius: '14px', padding: '20px',
           marginBottom: '16px',
         }}>
