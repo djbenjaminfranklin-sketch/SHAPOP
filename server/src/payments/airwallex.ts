@@ -144,13 +144,30 @@ export function createIsraeliBeneficiary(input: { firstName: string; lastName: s
   })
 }
 
-export function transferToBeneficiary(input: { beneficiaryId: string; amount: number; currency: string; orderId: string }) {
+/**
+ * Virement au vendeur. Part du solde dans la même devise ; si ce solde ne suffit pas et qu'une devise
+ * de secours est réglée (AIRWALLEX_PAYOUT_SOURCE_CURRENCY, ex. USD), Airwallex convertit depuis celle-ci.
+ * Le vendeur reçoit toujours le montant exact dans sa devise.
+ */
+export async function transferToBeneficiary(input: { beneficiaryId: string; amount: number; currency: string; orderId: string }) {
+  try {
+    return await createTransfer(input, input.currency, '')
+  } catch (err) {
+    const fallback = (process.env.AIRWALLEX_PAYOUT_SOURCE_CURRENCY || '').trim().toUpperCase()
+    if (err instanceof AirwallexError && err.code === 'balance_insufficient' && fallback && fallback !== input.currency) {
+      return createTransfer(input, fallback, '-fx')
+    }
+    throw err
+  }
+}
+
+function createTransfer(input: { beneficiaryId: string; amount: number; currency: string; orderId: string }, sourceCurrency: string, suffix: string) {
   return awxRequest<{ id: string; status: string }>('POST', '/api/v1/transfers/create', {
-    request_id: `payout-${input.orderId}`.slice(0, 64),
+    request_id: `payout-${input.orderId}${suffix}`.slice(0, 64),
     beneficiary_id: input.beneficiaryId,
     transfer_amount: input.amount.toFixed(2),
     transfer_currency: input.currency,
-    source_currency: input.currency,
+    source_currency: sourceCurrency,
     transfer_method: 'LOCAL',
     reason: 'marketplace_payout',
     reference: `ShaPop ${input.orderId.slice(0, 8).toUpperCase()}`,
