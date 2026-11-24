@@ -367,7 +367,7 @@ router.post('/api/rapyd/seller-wallet', paymentLimiter, requireAuth, async (req:
       email: req.user!.email, phone: b.phone, dateOfBirth: b.date_of_birth, addressLine1: b.address, city: b.city,
     })
     const contact = w.contacts?.data?.[0]?.id || null
-    await supabase.from('sellers').upsert({ id: userId, rapyd_ewallet_id: w.id, rapyd_contact_id: contact, rapyd_kyc_status: 'none' }, { onConflict: 'id' })
+    await saveSellerFields(userId, { rapyd_ewallet_id: w.id, rapyd_contact_id: contact, rapyd_kyc_status: 'none' })
     res.json({ success: true })
   } catch (err: any) {
     console.error('[rapyd] seller-wallet', err?.message || err)
@@ -393,6 +393,20 @@ router.post('/api/rapyd/seller-identity', paymentLimiter, requireAuth, async (re
     res.status(500).json({ error: 'Failed to open identity page' })
   }
 })
+
+/** Met à jour la fiche vendeur, en la créant si besoin (store_name obligatoire). Lève une erreur en cas d'échec. */
+async function saveSellerFields(userId: string, fields: Record<string, unknown>) {
+  const { data: existing } = await supabase.from('sellers').select('id').eq('id', userId).maybeSingle()
+  if (existing) {
+    const { error } = await supabase.from('sellers').update(fields).eq('id', userId)
+    if (error) throw new Error(`sellers update: ${error.message}`)
+    return
+  }
+  const { data: profile } = await supabase.from('profiles').select('display_name, username').eq('id', userId).maybeSingle()
+  const storeName = (profile?.display_name || profile?.username || 'ShaPop').slice(0, 80)
+  const { error } = await supabase.from('sellers').insert({ id: userId, store_name: storeName, ...fields })
+  if (error) throw new Error(`sellers insert: ${error.message}`)
+}
 
 // =============================================
 // AIRWALLEX (Israël) — carte de l'acheteur et compte bancaire du vendeur
@@ -454,7 +468,7 @@ router.post('/api/payouts-il/bank', paymentLimiter, requireAuth, async (req: Aut
     const ben = await awx.createIsraeliBeneficiary({ firstName: b.first_name, lastName: b.last_name, iban, city: b.city, street: b.street, postcode: b.postcode || null, nickname: `shapop_${userId}` })
     const id = ben.beneficiary_id || ben.id
     if (!id) throw new Error('no beneficiary id')
-    await supabase.from('sellers').upsert({ id: userId, airwallex_beneficiary_id: id, payout_bank_last4: iban.slice(-4) }, { onConflict: 'id' })
+    await saveSellerFields(userId, { airwallex_beneficiary_id: id, payout_bank_last4: iban.slice(-4) })
     res.json({ success: true, bank_last4: iban.slice(-4) })
   } catch (err: any) {
     console.error('[airwallex] bank', err?.message || err, err?.code, JSON.stringify(err?.details || '').slice(0, 300))
