@@ -44,3 +44,4 @@ Thumbs.db
 cles-signature/
 *.keystore
 *.jks
+.dd-archive/
