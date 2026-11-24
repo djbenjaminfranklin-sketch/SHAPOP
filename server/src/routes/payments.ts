@@ -1,3 +1,4 @@
+import { z } from 'zod'
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import Stripe from 'stripe'
@@ -9,7 +10,7 @@ import { markOrderPaid } from '../services/orderLifecycle'
 import { captureAuthorizedPayment, captureRapydOrder } from '../services/cardAuthorization'
 import { userHasSavedCard } from '../viewerPreview'
 import { providerForCountry } from '../payments/provider'
-import { rapydConfig, createCustomer as createRapydCustomer, createSaveCardPage } from '../payments/rapyd'
+import { rapydConfig, createCustomer as createRapydCustomer, createSaveCardPage, createPersonWallet, createIdentityPage } from '../payments/rapyd'
 import type { AuthenticatedRequest } from '../types'
 
 // Admin bypass: admins can sell without Stripe Connect (money stays on platform account)
@@ -314,6 +315,71 @@ router.post('/api/rapyd/card-page', paymentLimiter, requireAuth, async (req: Aut
   } catch (err: any) {
     console.error('[rapyd] card-page', err?.message || err)
     res.status(500).json({ error: 'Failed to open card page' })
+  }
+})
+
+// Vendeur israélien : portefeuille Rapyd + vérification d'identité
+const SellerWalletBody = z.object({
+  first_name: z.string().trim().min(1).max(60),
+  last_name: z.string().trim().min(1).max(60),
+  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  phone: z.string().trim().min(6).max(20),
+  address: z.string().trim().min(3).max(120),
+  city: z.string().trim().min(1).max(60),
+})
+
+router.get('/api/rapyd/seller-status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  const userId = req.user!.id
+  const [{ data: seller }, { data: profile }] = await Promise.all([
+    supabase.from('sellers').select('rapyd_ewallet_id, rapyd_kyc_status').eq('id', userId).maybeSingle(),
+    supabase.from('profiles').select('country').eq('id', userId).maybeSingle(),
+  ])
+  res.json({
+    enabled: rapydConfig().enabled,
+    country: (profile as { country?: string | null } | null)?.country || null,
+    has_wallet: !!(seller as { rapyd_ewallet_id?: string | null } | null)?.rapyd_ewallet_id,
+    kyc_status: (seller as { rapyd_kyc_status?: string | null } | null)?.rapyd_kyc_status || 'none',
+  })
+})
+
+router.post('/api/rapyd/seller-wallet', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!rapydConfig().enabled) { res.status(503).json({ error: 'rapyd_not_enabled' }); return }
+    const parsed = SellerWalletBody.safeParse(req.body)
+    if (!parsed.success) { res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors }); return }
+    const userId = req.user!.id
+    const { data: existing } = await supabase.from('sellers').select('rapyd_ewallet_id').eq('id', userId).maybeSingle()
+    if ((existing as { rapyd_ewallet_id?: string | null } | null)?.rapyd_ewallet_id) { res.json({ success: true, already: true }); return }
+    const b = parsed.data
+    const w = await createPersonWallet({
+      firstName: b.first_name, lastName: b.last_name, referenceId: `shapop_${userId}`, country: 'IL',
+      email: req.user!.email, phone: b.phone, dateOfBirth: b.date_of_birth, addressLine1: b.address, city: b.city,
+    })
+    const contact = w.contacts?.data?.[0]?.id || null
+    await supabase.from('sellers').upsert({ id: userId, rapyd_ewallet_id: w.id, rapyd_contact_id: contact, rapyd_kyc_status: 'none' }, { onConflict: 'id' })
+    res.json({ success: true })
+  } catch (err: any) {
+    console.error('[rapyd] seller-wallet', err?.message || err)
+    res.status(500).json({ error: 'Failed to create wallet' })
+  }
+})
+
+router.post('/api/rapyd/seller-identity', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!rapydConfig().enabled) { res.status(503).json({ error: 'rapyd_not_enabled' }); return }
+    const userId = req.user!.id
+    const { data: seller } = await supabase.from('sellers').select('rapyd_ewallet_id, rapyd_contact_id').eq('id', userId).maybeSingle()
+    const s = seller as { rapyd_ewallet_id?: string | null; rapyd_contact_id?: string | null } | null
+    if (!s?.rapyd_ewallet_id || !s.rapyd_contact_id) { res.status(400).json({ error: 'wallet_required' }); return }
+    const page = await createIdentityPage({
+      ewallet: s.rapyd_ewallet_id, contact: s.rapyd_contact_id, country: 'IL', referenceId: `idv_${userId}_${Date.now()}`,
+      completeUrl: `${APP_BASE_URL}/payouts-israel?idv=done`, cancelUrl: `${APP_BASE_URL}/payouts-israel?idv=cancel`,
+    })
+    await supabase.from('sellers').update({ rapyd_kyc_status: 'pending' }).eq('id', userId)
+    res.json({ redirect_url: page.redirect_url })
+  } catch (err: any) {
+    console.error('[rapyd] seller-identity', err?.message || err)
+    res.status(500).json({ error: 'Failed to open identity page' })
   }
 })
 

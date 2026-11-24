@@ -514,6 +514,15 @@ export async function rapydWebhookHandler(req: Request, res: Response) {
       case 'PAYMENT_FAILED':
         if (orderId) console.error(`[Rapyd] Order ${orderId} payment failed`)
         break
+      case 'IDENTITY_VERIFICATION': {
+        // Résultat de la vérification d'identité d'un vendeur (portefeuille → vendeur)
+        const d = (event.data || {}) as Record<string, any>
+        const ewallet = d.ewallet || d.ewallet_id
+        const raw = String(d.verification_status || d.status || '').toLowerCase()
+        const status = /approv|verif|success|clear/.test(raw) ? 'verified' : /reject|fail|declin/.test(raw) ? 'rejected' : 'pending'
+        if (ewallet) await supabase.from('sellers').update({ rapyd_kyc_status: status }).eq('rapyd_ewallet_id', ewallet)
+        break
+      }
       default:
         break
     }

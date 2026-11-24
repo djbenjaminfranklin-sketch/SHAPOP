@@ -772,7 +772,14 @@ export default function PaymentsPage() {
   const [countryPaypalSaving, setCountryPaypalSaving] = useState(false)
 
   const handleConnect = async (country?: string) => {
-    const countryToUse = country || selectedCountry
+    const countryToUse = country || selectedCountry || (profile?.country === 'IL' ? 'IL' : '')
+    // Israël : paiement des vendeurs par Rapyd (portefeuille + vérification d'identité), plus PayPal
+    if (countryToUse === 'IL') {
+      setShowCountryPicker(false)
+      setShowPaypalForm(false)
+      navigate('/payouts-israel')
+      return
+    }
     if (!countryToUse) {
       // Show country picker first
       setShowPaypalForm(false)

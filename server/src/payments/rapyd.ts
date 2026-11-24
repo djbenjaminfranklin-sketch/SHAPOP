@@ -167,8 +167,11 @@ export function createRefund(input: { payment: string; amount?: number; reason?:
 }
 
 /** Portefeuille d'un vendeur particulier (vérification d'identité ensuite). */
-export function createPersonWallet(input: { firstName: string; lastName: string; referenceId: string; email?: string | null; phone?: string | null; country: string }) {
-  return rapydRequest<{ id: string }>('POST', '/v1/ewallets', {
+export function createPersonWallet(input: {
+  firstName: string; lastName: string; referenceId: string; email?: string | null; phone?: string | null; country: string
+  dateOfBirth?: string | null; addressLine1?: string | null; city?: string | null
+}) {
+  return rapydRequest<{ id: string; contacts?: { data?: { id: string }[] } }>('POST', '/v1/ewallets', {
     type: 'person',
     first_name: input.firstName,
     last_name: input.lastName,
@@ -176,7 +179,18 @@ export function createPersonWallet(input: { firstName: string; lastName: string;
     contact: {
       contact_type: 'personal', first_name: input.firstName, last_name: input.lastName, country: input.country,
       ...(input.email ? { email: input.email } : {}), ...(input.phone ? { phone_number: input.phone } : {}),
+      ...(input.dateOfBirth ? { date_of_birth: input.dateOfBirth } : {}),
+      ...(input.addressLine1 ? { address: { name: `${input.firstName} ${input.lastName}`, line_1: input.addressLine1, ...(input.city ? { city: input.city } : {}), country: input.country } } : {}),
     },
+  })
+}
+
+/** Page hébergée de vérification d'identité (pièce d'identité + selfie, chez Rapyd). */
+export function createIdentityPage(input: { ewallet: string; contact: string; country: string; referenceId: string; completeUrl: string; cancelUrl: string }) {
+  return rapydRequest<{ id: string; redirect_url: string }>('POST', '/v1/hosted/idv', {
+    ewallet: input.ewallet, contact: input.contact, country: input.country,
+    reference_id: input.referenceId, request_type: 'verify',
+    complete_url: input.completeUrl, cancel_url: input.cancelUrl,
   })
 }
 
