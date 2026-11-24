@@ -53,6 +53,7 @@ const LiveRecapPage = lazy(() => import('./pages/LiveRecapPage'))
 const AdminPage = lazy(() => import('./pages/AdminPage'))
 const DisputePage = lazy(() => import('./pages/DisputePage'))
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
+const PayOrderPage = lazy(() => import('./pages/PayOrderPage'))
 const MessagesPage = lazy(() => import('./pages/MessagesPage'))
 const ConversationPage = lazy(() => import('./pages/ConversationPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
@@ -382,6 +383,7 @@ export default function App() {
                 <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
                 <Route path="/dispute/:orderId" element={<ProtectedRoute><DisputePage /></ProtectedRoute>} />
                 <Route path="/order/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
+                <Route path="/pay/:id" element={<ProtectedRoute><PayOrderPage /></ProtectedRoute>} />
                 <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
                 <Route path="/conversation/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />
                 <Route path="/seller/:id" element={<SellerProfilePage />} />

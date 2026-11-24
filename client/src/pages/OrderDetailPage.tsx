@@ -11,6 +11,7 @@ import { formatMoney, shortOrderRef } from '../lib/fulfillment'
 import { errorText, statusLabel } from '../lib/fulfillmentText'
 
 interface OrderDetail {
+  auth_status?: string | null
   id: string
   buyer_id: string
   seller_id: string
@@ -49,6 +50,9 @@ const pageContent = {
     itemPrice: 'Item price',
     shippingCost: 'Shipping',
     totalPaid: 'Total paid',
+    totalDue: 'Total',
+    payNowBtn: 'Pay now',
+    cardDeclinedBuyer: 'Your card was declined: pay with another card.',
     platformFee: 'Platform fee',
     sellerPayout: 'Seller payout',
     createdAt: 'Ordered on',
@@ -88,6 +92,9 @@ const pageContent = {
     itemPrice: 'Prix de l\'article',
     shippingCost: 'Frais de port',
     totalPaid: 'Total payé',
+    totalDue: 'Total',
+    payNowBtn: 'Payer maintenant',
+    cardDeclinedBuyer: 'Ta carte a été refusée : paie avec une autre carte.',
     platformFee: 'Frais de la plateforme',
     sellerPayout: 'Versement vendeur',
     createdAt: 'Commande passée le',
@@ -127,6 +134,9 @@ const pageContent = {
     itemPrice: 'Precio del artículo',
     shippingCost: 'Envío',
     totalPaid: 'Total pagado',
+    totalDue: 'Total',
+    payNowBtn: 'Pagar ahora',
+    cardDeclinedBuyer: 'Tu tarjeta ha sido rechazada: paga con otra tarjeta.',
     platformFee: 'Comisión de la plataforma',
     sellerPayout: 'Pago al vendedor',
     createdAt: 'Pedido el',
@@ -166,6 +176,9 @@ const pageContent = {
     itemPrice: 'Цена товара',
     shippingCost: 'Доставка',
     totalPaid: 'Всего оплачено',
+    totalDue: 'Итого',
+    payNowBtn: 'Оплатить',
+    cardDeclinedBuyer: 'Твоя карта отклонена: оплати другой картой.',
     platformFee: 'Комиссия платформы',
     sellerPayout: 'Выплата продавцу',
     createdAt: 'Заказ оформлен',
@@ -205,6 +218,9 @@ const pageContent = {
     itemPrice: 'מחיר הפריט',
     shippingCost: 'משלוח',
     totalPaid: 'סה"כ שולם',
+    totalDue: 'סה"כ',
+    payNowBtn: 'לתשלום',
+    cardDeclinedBuyer: 'הכרטיס שלך נדחה: שלמו בכרטיס אחר.',
     platformFee: 'עמלת פלטפורמה',
     sellerPayout: 'תשלום למוכר',
     createdAt: 'הוזמן ב-',
@@ -505,10 +521,27 @@ export default function OrderDetailPage() {
                 <Line label={ct.sellerPayout} value={money(order.seller_payout)} color="#10B981" strong />
               </>
             ) : (
-              <Line label={ct.totalPaid} value={money(total)} color="#F0908A" strong />
+              <Line label={order.status === 'pending_payment' ? ct.totalDue : ct.totalPaid} value={money(total)} color="#F0908A" strong />
             )}
           </div>
         </div>
+
+        {/* Commande gagnée mais pas encore payée : bouton « Payer » (+ carte refusée) */}
+        {isBuyer && order.status === 'pending_payment' && (
+          <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
+            {(order.auth_status === 'declined' || order.auth_status === 'no_card') && (
+              <p role="alert" style={{ margin: '0 0 10px', padding: '10px 12px', borderRadius: '10px', backgroundColor: 'rgba(232,52,78,0.12)', border: '1px solid rgba(232,52,78,0.4)', color: '#E8344E', fontSize: '14px', fontWeight: 700 }}>
+                {ct.cardDeclinedBuyer}
+              </p>
+            )}
+            <button
+              onClick={() => navigate(`/pay/${order.id}`)}
+              style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #22C55E, #16A34A)', color: '#fff', fontSize: '16px', fontWeight: 800, cursor: 'pointer' }}
+            >
+              {ct.payNowBtn} · {money(total)}
+            </button>
+          </div>
+        )}
 
         {/* Remise : code, photos, coordonnées (tout vient du serveur) */}
         {(usesNewFlow || order.fulfillment_method === 'legacy_carrier') && order.status !== 'pending_payment' && (

@@ -142,12 +142,12 @@ export async function authorizeOrderPayment(orderId: string, opts: { notifyBuyer
 
   if ((result.status === 'declined' || result.status === 'no_card') && opts.notifyBuyer !== false) {
     const { data: item } = order.item_id
-      ? await supabase.from('items').select('title, stream_id').eq('id', order.item_id).maybeSingle()
-      : { data: null as { title: string | null; stream_id: string | null } | null }
+      ? await supabase.from('items').select('title').eq('id', order.item_id).maybeSingle()
+      : { data: null as { title: string | null } | null }
     await notifyUserT(order.buyer_id, 'card_declined', 'cardDeclined', {
       item: item?.title || localized('fallback.item'),
       amount: money(itemAmount, info.currency),
-    }, { order_id: order.id, item_id: order.item_id || '', stream_id: item?.stream_id || '' }).catch(() => {})
+    }, { order_id: order.id }).catch(() => {}) // ouvre le détail de la commande (bouton « Payer »)
   }
   return result
 }

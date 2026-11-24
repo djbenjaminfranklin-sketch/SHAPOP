@@ -12,14 +12,14 @@ import SellerProfileHeader from '../components/stream/SellerProfileHeader'
 import StreamSidebar from '../components/stream/StreamSidebar'
 import ActiveItemBar from '../components/stream/ActiveItemBar'
 import { PreviewCountdown, PreviewCardWall } from '../components/stream/PreviewGate'
-import { loadStripe, type Stripe } from '@stripe/stripe-js'
-import { Elements, PaymentElement, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
 import { getStreamQualityConstraints, isWatchLimitExceeded, getAppSettings } from '../lib/settings'
 import { hapticTap } from '../lib/haptics'
 import { Share } from '@capacitor/share'
 import DeliveryChoice from '../components/checkout/DeliveryChoice'
+import { getStripePromise, PaymentFormInner } from '../components/checkout/StripePayment'
 import { formatSystemMessage } from '../lib/chatSystem'
 import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import { ft } from '../lib/fulfillmentText'
@@ -63,6 +63,8 @@ const streamContent = {
     countryPlaceholder: 'Country',
     confirm: 'Confirm',
     youWon: 'You won!',
+    winCardDeclined: 'Your card was declined',
+    winCardDeclinedHint: 'Choose the handover, then pay with another card. You can also change your saved card in Payments.',
     payToClaim: 'Pay to get your item',
     payNow: 'Pay now',
     paymentSuccess: 'Payment confirmed!',
@@ -196,6 +198,8 @@ const streamContent = {
     countryPlaceholder: 'Pays',
     confirm: 'Confirmer',
     youWon: 'Tu as gagné !',
+    winCardDeclined: 'Ta carte a été refusée',
+    winCardDeclinedHint: 'Choisis la remise, puis paie avec une autre carte. Tu peux aussi changer ta carte enregistrée dans Paiements.',
     payToClaim: 'Paie pour recevoir ton article',
     payNow: 'Payer maintenant',
     paymentSuccess: 'Paiement confirmé !',
@@ -329,6 +333,8 @@ const streamContent = {
     countryPlaceholder: 'País',
     confirm: 'Confirmar',
     youWon: '¡Ganaste!',
+    winCardDeclined: 'Tu tarjeta ha sido rechazada',
+    winCardDeclinedHint: 'Elige la entrega y paga con otra tarjeta. También puedes cambiar tu tarjeta guardada en Pagos.',
     payToClaim: 'Paga para recibir tu artículo',
     payNow: 'Pagar ahora',
     paymentSuccess: '¡Pago confirmado!',
@@ -462,6 +468,8 @@ const streamContent = {
     countryPlaceholder: 'Страна',
     confirm: 'Подтвердить',
     youWon: 'Победа за тобой!',
+    winCardDeclined: 'Твоя карта отклонена',
+    winCardDeclinedHint: 'Выбери способ передачи и оплати другой картой. Сохранённую карту можно сменить в разделе «Оплата».',
     payToClaim: 'Оплати, чтобы получить товар',
     payNow: 'Оплатить',
     paymentSuccess: 'Оплата прошла!',
@@ -595,6 +603,8 @@ const streamContent = {
     countryPlaceholder: 'מדינה',
     confirm: 'אישור',
     youWon: 'זכית!',
+    winCardDeclined: 'הכרטיס שלך נדחה',
+    winCardDeclinedHint: 'בחרו אופן מסירה ושלמו בכרטיס אחר. אפשר גם להחליף את הכרטיס השמור במסך התשלומים.',
     payToClaim: 'שלם כדי לקבל את הפריט',
     payNow: 'שלם עכשיו',
     paymentSuccess: 'התשלום אושר!',
@@ -728,70 +738,6 @@ function countLabel(n: number, key: 'viewers' | 'participants'): string {
 
 function fill(template: string, vars: Record<string, string | number>): string {
   return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? ''))
-}
-
-// Stripe Elements loader — initialized once
-let stripePromise: Promise<Stripe | null> | null = null
-function getStripePromise() {
-  if (!stripePromise) {
-    stripePromise = apiFetch('/api/stripe/config')
-      .then(r => r.json())
-      .then(({ publishable_key }) => loadStripe(publishable_key))
-      .catch(() => null)
-  }
-  return stripePromise
-}
-
-// Inner payment form rendered inside <Elements>
-function PaymentFormInner({ onSuccess, onError, loading, setLoading, payNowLabel, paymentFailedLabel }: {
-  onSuccess: (paymentIntentId: string) => void
-  onError: (msg: string) => void
-  loading: boolean
-  setLoading: (v: boolean) => void
-  payNowLabel: string
-  paymentFailedLabel: string
-}) {
-  const stripe = useStripe()
-  const elements = useElements()
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!stripe || !elements) return
-    setLoading(true)
-
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: { return_url: window.location.href },
-      redirect: 'if_required',
-    })
-
-    if (error) {
-      onError(error.message || paymentFailedLabel)
-      setLoading(false)
-    } else if (paymentIntent) {
-      onSuccess(paymentIntent.id)
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit}>
-      <PaymentElement options={{ layout: 'tabs' }} />
-      <button
-        type="submit"
-        disabled={!stripe || loading}
-        style={{
-          width: '100%', marginTop: '16px', padding: '16px',
-          background: loading ? '#555' : 'linear-gradient(135deg, #22C55E, #16A34A)',
-          borderRadius: '14px', border: 'none',
-          color: '#fff', fontSize: '16px', fontWeight: 700,
-          cursor: loading ? 'not-allowed' : 'pointer',
-          opacity: loading ? 0.7 : 1,
-        }}
-      >
-        {loading ? '...' : payNowLabel}
-      </button>
-    </form>
-  )
 }
 
 // Inner form for card setup (SetupIntent mode)
@@ -937,6 +883,23 @@ export default function StreamView() {
   const [paymentError, setPaymentError] = useState<string | null>(null)
   // Étape 1 : retrait en main propre ou envoi par la poste (DeliveryChoice), étape 2 : paiement
   const [deliveryStep, setDeliveryStep] = useState(true)
+  // Carte refusée à l'autorisation de fin d'enchère (le serveur l'écrit sur la commande)
+  const [winCardDeclined, setWinCardDeclined] = useState(false)
+  useEffect(() => {
+    setWinCardDeclined(false)
+    if (!paymentOrder?.id) return
+    let stop = false
+    const delays = [0, 1500, 3000, 5000, 8000, 12000]
+    const timers = delays.map(ms => setTimeout(async () => {
+      if (stop) return
+      const { data } = await supabase.from('orders').select('auth_status').eq('id', paymentOrder.id).maybeSingle()
+      const st = (data as { auth_status?: string | null } | null)?.auth_status
+      if (!st || stop) return
+      stop = true
+      if (isMountedRef.current) setWinCardDeclined(st === 'declined' || st === 'no_card')
+    }, ms))
+    return () => { stop = true; timers.forEach(clearTimeout) }
+  }, [paymentOrder?.id])
   const [paymentTotals, setPaymentTotals] = useState<{ amount: number; shipping: number; total: number; currency: string; method?: string } | null>(null)
 
   // Card setup modal (required before bidding)
@@ -4366,6 +4329,12 @@ export default function StreamView() {
                     )}
                   </div>
                 </div>
+                {winCardDeclined && (
+                  <div role="alert" style={{ padding: '10px 12px', marginBottom: '14px', borderRadius: '12px', backgroundColor: 'rgba(232,52,78,0.12)', border: '1px solid rgba(232,52,78,0.4)' }}>
+                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#E8344E' }}>{ct.winCardDeclined}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#ddd' }}>{ct.winCardDeclinedHint}</p>
+                  </div>
+                )}
                 <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} />
               </>
             ) : (
