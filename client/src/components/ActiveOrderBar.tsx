@@ -95,7 +95,18 @@ export default function ActiveOrderBar({ userId, path }: { userId: string; path:
     return () => clearInterval(t)
   }, [load, path])
 
-  if (!bar || HIDDEN_PREFIXES.some(p => path.startsWith(p))) return null
+  const visible = !!bar && !HIDDEN_PREFIXES.some(p => path.startsWith(p))
+
+  // Le bandeau flotte au-dessus du bas de page : on ajoute la même hauteur en bas de la page
+  // pour que les derniers boutons (Acheter, Supprimer l'annonce…) restent atteignables en défilant.
+  useEffect(() => {
+    if (!visible) return
+    const html = document.documentElement
+    html.classList.add('has-order-bar')
+    return () => html.classList.remove('has-order-bar')
+  }, [visible])
+
+  if (!visible || !bar) return null
 
   return (
     <button

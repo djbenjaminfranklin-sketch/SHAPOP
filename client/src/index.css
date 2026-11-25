@@ -96,6 +96,13 @@ body {
   height: 100%;
 }
 
+/* Bandeau de suivi de commande affiché : place en bas de page pour qu'il ne cache pas les derniers boutons */
+html.has-order-bar #root::after {
+  content: '';
+  display: block;
+  height: 100px;
+}
+
 /* Hide scrollbars on mobile */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

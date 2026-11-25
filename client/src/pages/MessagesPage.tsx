@@ -233,16 +233,6 @@ export default function MessagesPage() {
         </div>
       </div>
 
-      {/* Warning banner */}
-      <div className="bg-orange-500/10 border border-orange-500/30 flex items-start" style={{ margin: '14px 16px 6px', padding: '12px 14px', borderRadius: '12px', gap: '10px' }}>
-        <svg className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <p className="text-orange-300" style={{ fontSize: 'calc(13px * var(--fs, 1))', lineHeight: 1.4 }}>
-          {ct.offPlatformWarning}
-        </p>
-      </div>
-
       {/* Content */}
       <div style={{ padding: '4px 16px 0' }}>
         {loading ? (

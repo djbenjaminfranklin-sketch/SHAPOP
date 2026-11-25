@@ -579,24 +579,6 @@ export default function ConversationPage() {
         </div>
       </div>
 
-      {/* Warning banner */}
-      <div style={{ flexShrink: 0, padding: '8px 16px 12px 16px' }}>
-        <div style={{
-          padding: '8px 12px',
-          backgroundColor: 'rgba(249,115,22,0.08)',
-          border: '1px solid rgba(249,115,22,0.25)',
-          borderRadius: '10px',
-          display: 'flex', alignItems: 'center', gap: '8px',
-        }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" style={{ flexShrink: 0 }}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#FDBA74', margin: 0 }}>
-            {ct.warningBanner}
-          </p>
-        </div>
-      </div>
-
       {/* Messages area */}
       <div
         ref={messagesContainerRef}
