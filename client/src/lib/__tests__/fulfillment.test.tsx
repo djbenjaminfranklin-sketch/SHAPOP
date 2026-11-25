@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 vi.mock('../supabase', () => ({
   supabase: { auth: { getSession: async () => ({ data: { session: { access_token: 'tok' } } }) } },
@@ -138,10 +139,25 @@ describe('FulfillmentPanel (détail de commande)', () => {
     expect(screen.queryByText('Contacter sur WhatsApp')).toBeNull()
   })
 
-  it('vendeur, envoi par la poste : 2 photos demandées', async () => {
+  it('vendeur, envoi par la poste : 2 photos + numéro de suivi obligatoires avant « Colis envoyé »', async () => {
     vi.spyOn(fulfillmentApi, 'get').mockResolvedValue({ ...base, role: 'seller', fulfillment_method: 'post', handover: null })
+    const ship = vi.spyOn(fulfillmentApi, 'ship').mockResolvedValue({ success: true, tracking_number: 'RR123456785IL' })
     render(<FulfillmentPanel orderId="o1" />)
-    expect(await screen.findByText('Envoie les 2 photos pour être payé')).toBeTruthy()
+    expect(await screen.findByText('Envoie le colis')).toBeTruthy()
     expect(screen.getAllByText('Prendre la photo')).toHaveLength(2)
+    fireEvent.change(screen.getByLabelText('Numéro de suivi (obligatoire)'), { target: { value: 'RR123456785IL' } })
+    // Sans les 2 photos, le bouton reste grisé et rien n'est envoyé
+    const button = screen.getByText('Colis envoyé').closest('button')!
+    expect(button.disabled).toBe(true)
+    fireEvent.click(button)
+    expect(ship).not.toHaveBeenCalled()
+  })
+
+  it('acheteur, colis envoyé : « Tout est conforme » ou « Je l’ai reçu — je vérifie (24 h) »', async () => {
+    vi.spyOn(fulfillmentApi, 'get').mockResolvedValue({ ...base, role: 'buyer', fulfillment_method: 'post', status: 'shipped', payout_status: 'held', handover: null })
+    const confirm = vi.spyOn(fulfillmentApi, 'confirmReceipt').mockResolvedValue({ success: true })
+    render(<MemoryRouter><FulfillmentPanel orderId="o1" /></MemoryRouter>)
+    fireEvent.click(await screen.findByText('Je l’ai reçu — je vérifie (24 h)'))
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith('o1', false))
   })
 })
