@@ -1405,6 +1405,48 @@ export default function LiveSellerView() {
     if (nextIdx >= 0) setCurrentIndex(nextIdx)
   }
 
+  // Relance la caméra (et la diffusion) avec la même orientation : après un appel téléphonique ou un passage
+  // en arrière-plan, iOS coupe la caméra et elle ne repartait jamais toute seule.
+  const restartCamera = async (mode: 'user' | 'environment') => {
+    stopBroadcast()
+    if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop())
+    try {
+      const qualityConstraints = getStreamQualityConstraints()
+      const ms = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode, width: { ideal: qualityConstraints.width }, height: { ideal: qualityConstraints.height } },
+        audio: true,
+      })
+      mediaStreamRef.current = ms
+      if (videoRef.current) videoRef.current.srcObject = ms
+      broadcastStartedRef.current = false
+      setTimeout(() => startBroadcast(), 500)
+    } catch {
+      // caméra indisponible (encore en appel ?) : on réessaiera au prochain retour au premier plan
+    }
+  }
+  const restartCameraRef = useRef(restartCamera)
+  restartCameraRef.current = restartCamera
+  const facingModeRef = useRef(facingMode)
+  facingModeRef.current = facingMode
+
+  useEffect(() => {
+    const cameraIsDead = () => {
+      const tracks = mediaStreamRef.current?.getVideoTracks() || []
+      return tracks.length === 0 || tracks.some(t => t.readyState === 'ended' || t.muted)
+    }
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      // petit délai : iOS rend la caméra un instant après le retour au premier plan
+      setTimeout(() => { if (cameraIsDead()) restartCameraRef.current(facingModeRef.current) }, 800)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [])
+
   const handleFlipCamera = async () => {
     const newMode = facingMode === 'user' ? 'environment' : 'user'
     setFacingMode(newMode)
