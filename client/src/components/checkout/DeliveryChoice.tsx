@@ -158,6 +158,11 @@ export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: P
 
       {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
 
+      {hasSavedCard && (
+        <p style={{ margin: '0 0 10px', textAlign: 'center', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#22C55E' }}>
+          {t.amount_already_reserved}
+        </p>
+      )}
       <button
         type="button"
         onClick={submit}
