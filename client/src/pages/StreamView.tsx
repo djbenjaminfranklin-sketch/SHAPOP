@@ -2813,8 +2813,9 @@ export default function StreamView() {
                             style={{
                               position: 'absolute', zIndex: 9,
                               // Grille : en bas de la case (le haut est sous la barre d'état) ; plein écran : sous la pastille « aperçu gratuit »
+                              // En bas de la case : en haut, la barre d'état et des couches de l'écran du live captent le toucher
                               ...(expandedMultiIdx === cell.cellIdx
-                                ? { top: 'calc(env(safe-area-inset-top, 0px) + 104px)' }
+                                ? { bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }
                                 : { bottom: '52px' }),
                               left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage)
                               display: 'flex', alignItems: 'center', gap: '6px',

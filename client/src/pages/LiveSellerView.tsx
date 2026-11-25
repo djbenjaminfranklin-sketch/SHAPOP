@@ -1469,7 +1469,12 @@ export default function LiveSellerView() {
 
   // Relance la caméra (et la diffusion) avec la même orientation : après un appel téléphonique ou un passage
   // en arrière-plan, iOS coupe la caméra et elle ne repartait jamais toute seule.
+  const restartInFlightRef = useRef(false)
   const restartCamera = async (mode: 'user' | 'environment') => {
+    // Une seule relance à la fois (deux relances croisées redonnaient l'image zoomée)
+    if (restartInFlightRef.current) return
+    restartInFlightRef.current = true
+    try {
     // On attend que la caméra de la diffusion soit vraiment libérée : sinon iOS donne à l'aperçu
     // un format recadré (le vendeur se voyait zoomé après un appel, les acheteurs non)
     await stopBroadcast()
@@ -1487,6 +1492,9 @@ export default function LiveSellerView() {
       setTimeout(() => startBroadcast(), 500)
     } catch {
       // caméra indisponible (encore en appel ?) : on réessaiera au prochain retour au premier plan
+    }
+    } finally {
+      setTimeout(() => { restartInFlightRef.current = false }, 1500)
     }
   }
   const catchUpItems = async () => {
@@ -1524,7 +1532,8 @@ export default function LiveSellerView() {
     const onVisible = () => {
       if (document.visibilityState !== 'visible') return
       // petit délai : iOS rend la caméra un instant après le retour au premier plan
-      setTimeout(() => { if (cameraIsDead()) restartCameraRef.current(facingModeRef.current) }, 800)
+      // 2,5 s : après un appel, iOS rend la caméra lui-même ; on ne relance que si elle est toujours coupée
+      setTimeout(() => { if (cameraIsDead()) restartCameraRef.current(facingModeRef.current) }, 2500)
       // Pendant un appel, l'appli est en pause et rate les événements en direct :
       // on recharge les articles et on annonce une vente survenue entre-temps
       catchUpItemsRef.current().catch(() => {})
@@ -1537,7 +1546,9 @@ export default function LiveSellerView() {
     let lastRestart = 0
     const watchdog = setInterval(async () => {
       if (document.visibilityState !== 'visible' || restarting || !mediaStreamRef.current) { deadChecks = 0; return }
-      deadChecks = cameraIsDead() ? deadChecks + 1 : 0
+      const tracks = mediaStreamRef.current.getVideoTracks()
+      const ended = tracks.length === 0 || tracks.some(t => t.readyState === 'ended')
+      deadChecks = ended ? deadChecks + 1 : 0
       // 3 contrôles d'affilée (6 s) et au moins 15 s entre deux relances : jamais de relance en boucle
       if (deadChecks >= 3 && Date.now() - lastRestart > 15_000) {
         deadChecks = 0
