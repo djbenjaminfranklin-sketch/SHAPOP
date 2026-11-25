@@ -1697,7 +1697,15 @@ export default function LiveSellerView() {
     } catch (err) { console.error('Stop multicast error:', err) }
   }
 
+  const endingRef = useRef(false)
   const handleEndLive = async () => {
+    // Un seul appui suffit : on affiche tout de suite l'écran de fin, l'arrêt côté serveur suit en arrière-plan
+    if (endingRef.current) return
+    endingRef.current = true
+    unlockBody()
+    setShowEndConfirm(false)
+    setLiveEnded(true)
+
     // Stop LiveKit broadcast
     stopBroadcast()
 
@@ -1741,10 +1749,6 @@ export default function LiveSellerView() {
       }
     }
 
-    // Unlock body BEFORE showing the ended screen
-    unlockBody()
-    setShowEndConfirm(false)
-    setLiveEnded(true)
   }
   handleEndLiveRef.current = handleEndLive
 
