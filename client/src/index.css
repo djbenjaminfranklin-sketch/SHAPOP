@@ -14,9 +14,11 @@
 }
 
 /* ═══ GLOBAL RESET — kill blue tap highlight everywhere ═══ */
+/* Marges remises à zéro DANS la couche « base » : sinon elles écrasent les classes Tailwind (px-4, mt-3…). */
+@layer base {
+  *, *::before, *::after { margin: 0; padding: 0; }
+}
 *, *::before, *::after {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent !important;
   -webkit-touch-callout: none;

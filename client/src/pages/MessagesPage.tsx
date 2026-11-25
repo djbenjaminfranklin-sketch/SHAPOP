@@ -235,7 +235,7 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
       </div>}
 
       {/* Content */}
-      <div style={{ padding: embedded ? '0' : '4px 16px 0' }}>
+      <div style={{ padding: embedded ? '0 16px' : '4px 16px 0' }}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
