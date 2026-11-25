@@ -1470,8 +1470,11 @@ export default function LiveSellerView() {
   // Relance la caméra (et la diffusion) avec la même orientation : après un appel téléphonique ou un passage
   // en arrière-plan, iOS coupe la caméra et elle ne repartait jamais toute seule.
   const restartCamera = async (mode: 'user' | 'environment') => {
-    stopBroadcast()
+    // On attend que la caméra de la diffusion soit vraiment libérée : sinon iOS donne à l'aperçu
+    // un format recadré (le vendeur se voyait zoomé après un appel, les acheteurs non)
+    await stopBroadcast()
     if (mediaStreamRef.current) mediaStreamRef.current.getTracks().forEach(t => t.stop())
+    await new Promise(r => setTimeout(r, 300))
     try {
       const qualityConstraints = getStreamQualityConstraints()
       const ms = await navigator.mediaDevices.getUserMedia({
@@ -1486,6 +1489,21 @@ export default function LiveSellerView() {
       // caméra indisponible (encore en appel ?) : on réessaiera au prochain retour au premier plan
     }
   }
+  const catchUpItems = async () => {
+    if (!streamId) return
+    const { data } = await supabase.from('items').select('*').eq('stream_id', streamId).order('created_at', { ascending: true })
+    if (!data) return
+    for (const fresh of data as Item[]) {
+      const before = itemsRef.current.find(it => it.id === fresh.id)
+      if (fresh.status === 'sold' && fresh.winner_id && before && before.status !== 'sold') {
+        announceSaleRef.current(fresh.id, fresh.winner_id, Number(fresh.current_price)).catch(() => {})
+      }
+    }
+    setItems(prev => prev.map(it => (data as Item[]).find(f => f.id === it.id) || it))
+  }
+  const catchUpItemsRef = useRef(catchUpItems)
+  catchUpItemsRef.current = catchUpItems
+
   const restartCameraRef = useRef(restartCamera)
   restartCameraRef.current = restartCamera
   const facingModeRef = useRef(facingMode)
@@ -1500,6 +1518,9 @@ export default function LiveSellerView() {
       if (document.visibilityState !== 'visible') return
       // petit délai : iOS rend la caméra un instant après le retour au premier plan
       setTimeout(() => { if (cameraIsDead()) restartCameraRef.current(facingModeRef.current) }, 800)
+      // Pendant un appel, l'appli est en pause et rate les événements en direct :
+      // on recharge les articles et on annonce une vente survenue entre-temps
+      catchUpItemsRef.current().catch(() => {})
     }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', onVisible)
@@ -1513,12 +1534,13 @@ export default function LiveSellerView() {
     const newMode = facingMode === 'user' ? 'environment' : 'user'
     setFacingMode(newMode)
 
-    // Stop LiveKit broadcast and restart with new camera
-    stopBroadcast()
+    // Stop LiveKit broadcast and restart with new camera (attendre la libération de la caméra, même raison)
+    await stopBroadcast()
 
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(t => t.stop())
     }
+    await new Promise(r => setTimeout(r, 300))
     try {
       const qualityConstraints = getStreamQualityConstraints()
       const ms = await navigator.mediaDevices.getUserMedia({

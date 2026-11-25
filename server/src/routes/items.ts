@@ -441,7 +441,7 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
 
     // Create order
     const fees = calculateFees(price)
-    await supabase.from('orders').insert({
+    const { data: newOrder } = await supabase.from('orders').insert({
       buyer_id: buyerId,
       seller_id: item.seller_id,
       item_id: item.id,
@@ -451,7 +451,9 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
       processing_fee: fees.processingFee,
       seller_payout: fees.sellerPayout,
       purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
-    })
+    }).select('id').single()
+    // Comme à la fin d'une enchère : le montant est réservé tout de suite sur la carte enregistrée
+    const payment = newOrder?.id ? await authorizeOrderPayment(newOrder.id).catch(() => null) : null
 
     const saleParams = { item: item.title || localized('fallback.item'), amount: money(price, await getUserCurrency(item.seller_id)) }
     await notifyUserT(buyerId, 'auction_won', 'purchaseConfirmed', saleParams, { item_id: item.id, stream_id: item.stream_id || '' })
@@ -459,7 +461,7 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
     // Notify seller about the sale
     notifyUserT(item.seller_id, 'item_sold', 'itemSold', saleParams, { item_id: item.id }).catch(err => console.error('[items] notifyUser seller failed:', err))
 
-    res.json({ success: true, price })
+    res.json({ success: true, price, order_id: newOrder?.id || null, payment })
   } catch (err) {
     console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
@@ -491,17 +493,19 @@ router.post('/api/items/:id/buy-at-reserve', requireAuth, async (req: Authentica
     if (stream?.started_at) purchaseStreamOffsetSeconds = Math.floor((Date.now() - new Date(stream.started_at).getTime()) / 1000)
 
     const fees = calculateFees(minPrice)
-    await supabase.from('orders').insert({
+    const { data: newOrder } = await supabase.from('orders').insert({
       buyer_id: buyerId, seller_id: item.seller_id, item_id: item.id, stream_id: item.stream_id,
       amount: minPrice, platform_fee: fees.platformFee, processing_fee: fees.processingFee,
       seller_payout: fees.sellerPayout, purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
-    })
+    }).select('id').single()
+    // Réservation immédiate sur la carte enregistrée, comme pour une enchère gagnée
+    const payment = newOrder?.id ? await authorizeOrderPayment(newOrder.id).catch(() => null) : null
 
     const saleParams = { item: item.title || localized('fallback.item'), amount: money(minPrice, await getUserCurrency(item.seller_id)) }
     await notifyUserT(buyerId, 'auction_won', 'purchaseConfirmed', saleParams, { item_id: item.id, stream_id: item.stream_id || '' })
     notifyUserT(item.seller_id, 'item_sold', 'itemSold', saleParams, { item_id: item.id }).catch(err => console.error('[items] notifyUser seller failed:', err))
 
-    res.json({ success: true, price: minPrice })
+    res.json({ success: true, price: minPrice, order_id: newOrder?.id || null, payment })
   } catch (err) {
     console.error('[items] buy-at-reserve', err)
     res.status(500).json({ error: 'Internal server error' })
