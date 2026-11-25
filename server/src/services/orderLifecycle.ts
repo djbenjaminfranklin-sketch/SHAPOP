@@ -185,14 +185,17 @@ export async function releaseOrderPayout(
 export async function releaseDuePostPayouts(): Promise<number> {
   const { data: due } = await supabase
     .from('orders')
-    .select('id, seller_id')
+    .select('id, seller_id, carrier_tracker_id, carrier_delivered_at, carrier_alerted_at')
     .eq('status', 'shipped')
     .eq('fulfillment_method', 'post')
     .eq('payout_status', 'held')
     .not('proof_submitted_at', 'is', null)
     .lte('payout_scheduled_at', new Date().toISOString())
   let count = 0
+  const { carrierAllowsRelease } = await import('./parcelTracking')
   for (const o of due || []) {
+    // Avec le suivi transporteur branché : la poste doit dire « livré » (sinon l'équipe vérifie)
+    if (!(await carrierAllowsRelease(o))) continue
     const row = await releaseOrderPayout(o.id, {}, 'shipped')
     if (row) {
       count++

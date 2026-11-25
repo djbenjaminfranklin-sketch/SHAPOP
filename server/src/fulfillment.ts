@@ -16,7 +16,8 @@ export const HANDOVER_DELAY_ALLOWED_DAYS = [1, 2, 3, 4, 5, 6, 7]
 /** Nombre d'essais de code avant blocage (et alerte admin). */
 export const HANDOVER_MAX_ATTEMPTS = 5
 /** Envoi postal : le vendeur est payé 3 jours après ses 2 photos (ou dès que l'acheteur confirme la réception). */
-export const POST_PAYOUT_DELAY_DAYS = 3
+// Envoi par la poste : sans code de réception saisi par l'acheteur, versement 10 jours après l'envoi (25/11/2026)
+export const POST_PAYOUT_DELAY_DAYS = 10
 /** Poids retenu quand l'article n'a pas de poids renseigné. */
 export const DEFAULT_ITEM_WEIGHT_GRAMS = 1000
 

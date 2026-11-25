@@ -133,7 +133,6 @@ export default function HandoverPage() {
         )}
         {orders.map(o => {
           const image = o.item?.image_urls?.[0]
-          const photosSent = (o.proof_parcel_path ? 1 : 0) + (o.proof_slip_path ? 1 : 0)
           const late = o.handover_deadline ? new Date(o.handover_deadline).getTime() - Date.now() < 24 * 3600 * 1000 : false
           return (
             <div key={o.id} style={{ display: 'flex', flexDirection: 'column' }}>
@@ -156,7 +155,7 @@ export default function HandoverPage() {
                   {o.buyer_profile?.display_name || o.buyer_profile?.username ? ` · ${o.buyer_profile?.display_name || o.buyer_profile?.username}` : ''}
                 </div>
                 <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', marginTop: '2px' }}>
-                  {o.fulfillment_method === 'pickup' ? t.awaiting_code : `${t.awaiting_photos} (${photosSent}/2)`}
+                  {o.fulfillment_method === 'pickup' ? t.awaiting_code : t.awaiting_photos}
                 </div>
                 {o.handover_deadline && (
                   <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: late ? '#F87171' : '#777', marginTop: '2px' }}>

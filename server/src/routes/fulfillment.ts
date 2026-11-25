@@ -22,6 +22,8 @@ import {
   whatsappLink,
 } from '../fulfillment'
 import { alertAdmins, getUserWhatsapp, releaseOrderPayout, saveUserWhatsapp } from '../services/orderLifecycle'
+import { RECEIPT_CODE_MAX_ATTEMPTS, ensureReceiptCode, getReceiptCode, startCarrierTracking } from '../services/parcelTracking'
+import { checkTrackingNumber } from '../payments/ship24'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -306,6 +308,25 @@ router.get('/api/orders/:id/fulfillment', requireAuth, async (req: Authenticated
       handover: null,
       proofs: { parcel_url: null, slip_url: null },
       contact: null,
+      receipt_code: null,
+      receipt: null,
+      carrier: order.tracking_number ? {
+        status: order.tracking_status || null,
+        first_event_at: order.carrier_first_event_at || null,
+        delivered_at: order.carrier_delivered_at || null,
+      } : null,
+    }
+
+    // Envoi par la poste : le vendeur voit le code à glisser dans le colis (créé avant l'envoi) ;
+    // l'acheteur ne voit que s'il doit en saisir un et combien d'essais il lui reste.
+    if (order.fulfillment_method === 'post' && (order.status === 'paid' || order.status === 'shipped')) {
+      if (isSeller || admin) {
+        result.receipt_code = order.status === 'paid' ? await ensureReceiptCode(orderId) : (await getReceiptCode(orderId))?.code || null
+      }
+      if (isBuyer) {
+        const rc = await getReceiptCode(orderId)
+        result.receipt = rc ? { required: true, locked: !!rc.locked_at, attempts_left: Math.max(0, RECEIPT_CODE_MAX_ATTEMPTS - (rc.attempts || 0)) } : { required: false, locked: false, attempts_left: 0 }
+      }
     }
 
     if (order.fulfillment_method === 'pickup') {
@@ -576,6 +597,72 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
 })
 
 // =============================================
+// POST /api/orders/:id/ship — le vendeur a posté le colis : numéro de suivi OBLIGATOIRE
+// (les photos ne comptent plus comme preuve : un tampon se fabrique). Le code de réception
+// est déjà dans le colis ; l'argent reste bloqué jusqu'au code saisi par l'acheteur, sinon 10 jours.
+// =============================================
+router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const orderId = paramStr(req.params.id)
+    const check = checkTrackingNumber(String((req.body || {}).tracking_number || ''))
+    if (!check.ok) {
+      res.status(400).json({ error: check.error })
+      return
+    }
+    const { data: order } = await supabase
+      .from('orders')
+      .select('id, seller_id, buyer_id, status, fulfillment_method, shipping_address')
+      .eq('id', orderId)
+      .single()
+    if (!order || order.seller_id !== req.user!.id) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+    if (order.fulfillment_method !== 'post') {
+      res.status(400).json({ error: 'not_post' })
+      return
+    }
+    if (order.status !== 'paid') {
+      res.status(409).json({ error: 'not_paid' })
+      return
+    }
+    // Un même numéro ne peut servir qu'à une seule commande
+    const { data: dup } = await supabase.from('orders').select('id').eq('tracking_number', check.value).neq('id', orderId).limit(1)
+    if (dup && dup.length) {
+      res.status(409).json({ error: 'tracking_already_used' })
+      return
+    }
+    await ensureReceiptCode(orderId)
+    const now = Date.now()
+    const nowIso = new Date(now).toISOString()
+    const payoutAt = new Date(now + POST_PAYOUT_DELAY_DAYS * 86400000).toISOString()
+    const { data: shippedRows } = await supabase
+      .from('orders')
+      .update({
+        status: 'shipped',
+        tracking_number: check.value,
+        shipped_at: nowIso,
+        proof_submitted_at: nowIso,
+        payout_scheduled_at: payoutAt,
+        claim_deadline: new Date(now + 14 * 86400000).toISOString(),
+      })
+      .eq('id', orderId)
+      .eq('status', 'paid')
+      .select('id')
+    if (!shippedRows || shippedRows.length === 0) {
+      res.status(409).json({ error: 'not_paid' })
+      return
+    }
+    notifyUserT(order.buyer_id, 'order_shipped', 'orderShipped', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
+    startCarrierTracking(orderId, check.value, order.shipping_address as { zip?: string; country?: string } | null).catch(() => {})
+    res.json({ success: true, status: 'shipped', tracking_number: check.value, payout_status: 'held', payout_scheduled_at: payoutAt })
+  } catch (err) {
+    console.error('[fulfillment] ship', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// =============================================
 // POST /api/orders/:id/confirm-receipt — l'acheteur confirme avoir reçu son colis :
 // le vendeur est payé tout de suite (sans attendre le délai de sécurité).
 // =============================================
@@ -594,6 +681,27 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
     if (order.fulfillment_method !== 'post' || order.status !== 'shipped' || order.payout_status !== 'held') {
       res.status(409).json({ error: 'not_confirmable' })
       return
+    }
+    // Code glissé dans le colis par le vendeur : seul celui qui a le colis en main le connaît
+    const rc = await getReceiptCode(orderId)
+    if (rc) {
+      if (rc.locked_at) {
+        res.status(423).json({ error: 'receipt_locked' })
+        return
+      }
+      const given = String((req.body || {}).code || '').replace(/\D/g, '')
+      if (given !== rc.code) {
+        const attempts = (rc.attempts || 0) + 1
+        const locked = attempts >= RECEIPT_CODE_MAX_ATTEMPTS
+        await supabase.from('order_receipt_codes').update({ attempts, ...(locked ? { locked_at: new Date().toISOString() } : {}) }).eq('order_id', orderId)
+        if (locked) {
+          alertAdmins('Code de réception bloqué', `Commande #${shortOrderRef(orderId)} : ${attempts} codes faux saisis par l'acheteur.`).catch(() => {})
+          res.status(423).json({ error: 'receipt_locked' })
+        } else {
+          res.status(400).json({ error: 'wrong_receipt_code', attempts_left: RECEIPT_CODE_MAX_ATTEMPTS - attempts })
+        }
+        return
+      }
     }
     const nowIso = new Date().toISOString()
     const updated = await releaseOrderPayout(orderId, {

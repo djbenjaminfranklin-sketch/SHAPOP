@@ -35,7 +35,7 @@ import reviewRoutes from './routes/reviews'
 import offerRoutes from './routes/offers'
 
 // Webhook handlers (raw body — must be registered before express.json)
-import { stripeWebhookHandler, livekitWebhookHandler, paypalWebhookHandler, rapydWebhookHandler, airwallexWebhookHandler } from './routes/webhooks'
+import { stripeWebhookHandler, livekitWebhookHandler, paypalWebhookHandler, rapydWebhookHandler, airwallexWebhookHandler, ship24WebhookHandler } from './routes/webhooks'
 
 // =============================================
 // Express setup
@@ -92,6 +92,7 @@ app.post('/api/webhooks/stripe', webhookLimiter, express.raw({ type: 'applicatio
 app.post('/api/webhooks/livekit', webhookLimiter, express.raw({ type: 'application/json' }), livekitWebhookHandler as express.RequestHandler)
 app.post('/api/webhooks/rapyd', webhookLimiter, express.raw({ type: 'application/json' }), rapydWebhookHandler as express.RequestHandler)
 app.post('/api/webhooks/airwallex', webhookLimiter, express.raw({ type: 'application/json' }), airwallexWebhookHandler as express.RequestHandler)
+app.post('/api/webhooks/ship24', webhookLimiter, express.json({ limit: '2mb' }), ship24WebhookHandler as express.RequestHandler)
 
 // PayPal webhook uses express.json() (registered inline with its own parser)
 app.post('/api/paypal/webhook', express.json(), paypalWebhookHandler as express.RequestHandler)

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { getDir, getLang } from '../../lib/i18n'
-import { ApiError, fileToJpegDataUrl, formatDateTime, fulfillmentApi, type OrderFulfillment } from '../../lib/fulfillment'
+import { ApiError, formatDateTime, fulfillmentApi, type OrderFulfillment } from '../../lib/fulfillment'
 import { errorText, ft, statusLabel } from '../../lib/fulfillmentText'
 
 interface Props {
@@ -90,7 +90,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
 
       {/* Envoi postal : l'acheteur peut confirmer la réception pour payer le vendeur tout de suite */}
       {isBuyer && data.fulfillment_method === 'post' && data.status === 'shipped' && data.payout_status === 'held' && (
-        <ConfirmReceipt orderId={orderId} onDone={refresh} />
+        <ConfirmReceipt orderId={orderId} receipt={data.receipt || null} onDone={refresh} />
       )}
 
       {/* Code de retrait : visible par l'acheteur seulement (le serveur ne l'envoie qu'à lui) */}
@@ -118,7 +118,20 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
       )}
 
       {isSeller && data.fulfillment_method === 'post' && awaiting && (
-        <ProofForm orderId={orderId} hasParcel={!!data.proofs.parcel_url} hasSlip={!!data.proofs.slip_url} onDone={refresh} />
+        <ShipForm orderId={orderId} receiptCode={data.receipt_code || null} onDone={refresh} />
+      )}
+
+      {/* Après l'envoi : numéro de suivi + ce que dit la poste ; le vendeur garde son code sous les yeux */}
+      {data.fulfillment_method === 'post' && !awaiting && data.tracking_number && (
+        <div style={card}>
+          <p style={hint}>{t.tracking_number}{t.colon} <span dir="ltr" style={{ color: '#ddd', fontWeight: 700 }}>{data.tracking_number}</span></p>
+          {data.carrier?.status && (
+            <p style={hint}>{t.carrier_label}{t.colon} <strong style={{ color: data.carrier.status === 'delivered' ? '#22C55E' : '#ddd' }}>{(t as Record<string, string>)[`carrier_${data.carrier.status}`] || data.carrier.status}</strong></p>
+          )}
+          {isSeller && data.receipt_code && (
+            <p style={hint}>{t.ship_code_title}{t.colon} <strong dir="ltr" style={{ color: '#F0908A', letterSpacing: '3px' }}>{data.receipt_code}</strong></p>
+          )}
+        </div>
       )}
 
       {data.fulfillment_method === 'post' && (data.proofs.parcel_url || data.proofs.slip_url) && (!isSeller || !awaiting) && (
@@ -221,84 +234,78 @@ function HandoverCodeForm({ orderId, locked, attemptsLeft, onDone }: { orderId: 
   )
 }
 
-function ProofForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; hasParcel: boolean; hasSlip: boolean; onDone: () => void }) {
+function ConfirmReceipt({ orderId, receipt, onDone }: { orderId: string; receipt: { required: boolean; locked: boolean; attempts_left: number } | null; onDone: () => void }) {
   const lang = getLang()
   const t = ft(lang)
-  const [sent, setSent] = useState({ parcel: hasParcel, slip: hasSlip })
-  const [busy, setBusy] = useState<'parcel' | 'slip' | null>(null)
-  const [tracking, setTracking] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const inputs = { parcel: useRef<HTMLInputElement>(null), slip: useRef<HTMLInputElement>(null) }
-
-  const onFile = async (kind: 'parcel' | 'slip', file: File | undefined) => {
-    if (!file) return
-    setBusy(kind)
-    setError(null)
-    try {
-      const image = await fileToJpegDataUrl(file)
-      const r = await fulfillmentApi.submitProof(orderId, kind, image, kind === 'slip' ? tracking.trim() : undefined)
-      setSent(s => ({ ...s, [kind]: true }))
-      if (r.complete) onDone()
-    } catch (err) {
-      setError(err instanceof ApiError ? errorText(err.code, lang) : t.error_generic)
-    } finally {
-      setBusy(null)
-      const ref = inputs[kind].current
-      if (ref) ref.value = ''
-    }
-  }
-
-  const step = (kind: 'parcel' | 'slip', n: number, label: string) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '12px', backgroundColor: '#0D0D0D', border: '1px solid #222' }}>
-      <span style={{
-        width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        fontWeight: 800, fontSize: 'calc(13px * var(--fs, 1))', backgroundColor: sent[kind] ? '#22C55E' : '#333', color: '#fff',
-      }}>{sent[kind] ? '✓' : n}</span>
-      <span style={{ flex: 1, fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{label}{sent[kind] ? ` — ${t.photo_sent}` : ''}</span>
-      <input ref={inputs[kind]} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => onFile(kind, e.target.files?.[0])} />
-      <button
-        type="button"
-        onClick={() => inputs[kind].current?.click()}
-        disabled={busy !== null}
-        style={{ padding: '9px 12px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
-          backgroundColor: sent[kind] ? '#222' : '#F0908A', color: sent[kind] ? '#ccc' : '#fff', whiteSpace: 'nowrap' }}
-      >
-        {busy === kind ? t.sending : sent[kind] ? t.retake_photo : t.take_photo}
-      </button>
-    </div>
-  )
-
-  return (
-    <div style={card}>
-      <h3 style={title}>{t.send_proofs_title}</h3>
-      <p style={hint}>{t.send_proofs_hint}</p>
-      {step('parcel', 1, t.proof_parcel)}
-      <input
-        value={tracking}
-        onChange={e => setTracking(e.target.value)}
-        placeholder={t.tracking_optional}
-        aria-label={t.tracking_optional}
-        dir="ltr"
-        style={{ width: '100%', padding: '11px 12px', borderRadius: '10px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', boxSizing: 'border-box' }}
-      />
-      {step('slip', 2, t.proof_slip)}
-      {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
-    </div>
-  )
-}
-
-function ConfirmReceipt({ orderId, onDone }: { orderId: string; onDone: () => void }) {
-  const lang = getLang()
-  const t = ft(lang)
+  const needsCode = !!receipt?.required
+  const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [locked, setLocked] = useState(!!receipt?.locked)
+  const [error, setError] = useState<string | null>(receipt?.locked ? t.receipt_locked : null)
   const [done, setDone] = useState(false)
   const submit = async () => {
     setBusy(true)
     setError(null)
     try {
-      await fulfillmentApi.confirmReceipt(orderId)
+      await fulfillmentApi.confirmReceipt(orderId, needsCode ? code : undefined)
       setDone(true)
+      onDone()
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'wrong_receipt_code') {
+        setError(`${t.wrong_receipt_code} ${String(err.body.attempts_left ?? '')}`)
+      } else if (err instanceof ApiError && err.code === 'receipt_locked') {
+        setLocked(true)
+        setError(t.receipt_locked)
+      } else {
+        setError(errorText(err instanceof ApiError ? err.code : 'error', lang))
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+  const ok = !busy && !locked && (!needsCode || /^\d{6}$/.test(code))
+  return (
+    <div style={card}>
+      {needsCode && !done && <h3 style={title}>{t.receipt_code_title}</h3>}
+      <p style={hint}>{done ? t.receipt_confirmed : needsCode ? t.receipt_code_hint : t.confirm_receipt_hint}</p>
+      {needsCode && !done && (
+        <input
+          value={code}
+          onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          inputMode="numeric"
+          maxLength={6}
+          dir="ltr"
+          disabled={locked}
+          aria-label={t.receipt_code_title}
+          placeholder="••••••"
+          style={{
+            width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D',
+            color: '#fff', fontSize: 'calc(26px * var(--fs, 1))', letterSpacing: '10px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 800,
+          }}
+        />
+      )}
+      {!done && (
+        <button type="button" onClick={submit} disabled={!ok} style={primaryBtn(ok)}>
+          {busy ? t.sending : needsCode ? t.receipt_code_button : t.confirm_receipt}
+        </button>
+      )}
+      {error && <p role="alert" style={{ ...hint, color: '#F87171' }}>{error}</p>}
+    </div>
+  )
+}
+
+/** Vendeur, envoi par la poste : code à glisser dans le colis + numéro de suivi obligatoire. */
+function ShipForm({ orderId, receiptCode, onDone }: { orderId: string; receiptCode: string | null; onDone: () => void }) {
+  const lang = getLang()
+  const t = ft(lang)
+  const [tracking, setTracking] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const submit = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await fulfillmentApi.ship(orderId, tracking)
       onDone()
     } catch (err) {
       setError(errorText(err instanceof ApiError ? err.code : 'error', lang))
@@ -306,15 +313,30 @@ function ConfirmReceipt({ orderId, onDone }: { orderId: string; onDone: () => vo
       setBusy(false)
     }
   }
+  const ok = !busy && tracking.replace(/[\s-]/g, '').length >= 8
   return (
     <div style={card}>
-      <p style={hint}>{done ? t.receipt_confirmed : t.confirm_receipt_hint}</p>
-      {!done && (
-        <button type="button" onClick={submit} disabled={busy} style={primaryBtn(!busy)}>
-          {t.confirm_receipt}
-        </button>
+      <h3 style={title}>{t.ship_title}</h3>
+      {receiptCode && (
+        <div style={{ borderRadius: '12px', border: '1px dashed rgba(240,144,138,0.6)', padding: '12px', textAlign: 'center', backgroundColor: 'rgba(240,144,138,0.08)' }}>
+          <div style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', textTransform: 'uppercase', letterSpacing: '1px' }}>{t.ship_code_title}</div>
+          <div dir="ltr" style={{ fontSize: 'calc(34px * var(--fs, 1))', fontWeight: 900, letterSpacing: '8px', color: '#fff', fontVariantNumeric: 'tabular-nums', margin: '4px 0' }}>{receiptCode}</div>
+          <p style={hint}>{t.ship_code_hint}</p>
+        </div>
       )}
-      {error && <p style={{ ...hint, color: '#F87171' }}>{error}</p>}
+      <p style={hint}>{t.tracking_hint}</p>
+      <input
+        value={tracking}
+        onChange={e => setTracking(e.target.value.toUpperCase())}
+        placeholder={t.tracking_label}
+        aria-label={t.tracking_label}
+        autoCapitalize="characters"
+        autoCorrect="off"
+        dir="ltr"
+        style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', boxSizing: 'border-box', letterSpacing: '1px' }}
+      />
+      {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
+      <button type="button" onClick={submit} disabled={!ok} style={primaryBtn(ok)}>{busy ? t.sending : t.ship_button}</button>
     </div>
   )
 }

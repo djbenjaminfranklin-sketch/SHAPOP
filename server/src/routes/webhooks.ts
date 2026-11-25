@@ -7,6 +7,8 @@ import { localized, money, getUserCurrency } from '../i18n'
 import { markOrderPaid } from '../services/orderLifecycle'
 import { verifyRapydWebhook } from '../payments/rapyd'
 import { verifyAirwallexWebhook } from '../payments/airwallex'
+import { parseTracking, verifyShip24Webhook } from '../payments/ship24'
+import { applyCarrierTracking } from '../services/parcelTracking'
 
 // Idempotency: in-memory cache + database persistence
 // The in-memory Set acts as a fast-path to avoid DB lookups on every webhook.
@@ -566,5 +568,39 @@ export async function airwallexWebhookHandler(req: Request, res: Response) {
   } catch (err) {
     console.error('[Airwallex webhook]', err)
     res.status(500).json({ error: 'Webhook error' })
+  }
+}
+
+// =============================================
+// Ship24 : étapes du colis (déposé, en route, livré…) envoyées par le transporteur
+// =============================================
+export async function ship24WebhookHandler(req: Request, res: Response) {
+  if (!verifyShip24Webhook(req.headers.authorization)) {
+    res.status(401).json({ error: 'unauthorized' })
+    return
+  }
+  try {
+    const trackings: unknown[] = Array.isArray((req.body || {}).trackings) ? req.body.trackings : []
+    let applied = 0
+    for (const raw of trackings) {
+      const ct = parseTracking(raw)
+      let orderId: string | null = null
+      if (ct.trackerId) {
+        const { data } = await supabase.from('orders').select('id').eq('carrier_tracker_id', ct.trackerId).maybeSingle()
+        orderId = data?.id || null
+      }
+      if (!orderId && ct.shipmentReference) {
+        const { data } = await supabase.from('orders').select('id, tracking_number').eq('id', ct.shipmentReference).maybeSingle()
+        if (data && (!ct.trackingNumber || data.tracking_number === ct.trackingNumber)) orderId = data.id
+      }
+      if (orderId) {
+        await applyCarrierTracking(orderId, ct)
+        applied++
+      }
+    }
+    res.json({ received: trackings.length, applied })
+  } catch (err) {
+    console.error('[ship24] webhook', err)
+    res.status(500).json({ error: 'webhook_failed' })
   }
 }

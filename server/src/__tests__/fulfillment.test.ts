@@ -218,7 +218,7 @@ describe('Preuve d\'envoi postal', () => {
     expect(order().proof_parcel_path).toBeTruthy()
   })
 
-  it('les deux photos : commande expédiée, argent bloqué 3 jours (délai de sécurité)', async () => {
+  it('les deux photos (anciennes versions de l’appli) : commande expédiée, argent bloqué 10 jours', async () => {
     await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
     const before = Date.now()
     const r = await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'slip', image: PNG, tracking_number: 'RR123456789IL' })
@@ -227,8 +227,8 @@ describe('Preuve d\'envoi postal', () => {
     expect(order().status).toBe('shipped')
     expect(order().payout_status).toBe('held')
     const delayMs = new Date(order().payout_scheduled_at as string).getTime() - before
-    expect(delayMs).toBeGreaterThan(3 * 86400000 - 60000)
-    expect(delayMs).toBeLessThan(3 * 86400000 + 60000)
+    expect(delayMs).toBeGreaterThan(10 * 86400000 - 60000)
+    expect(delayMs).toBeLessThan(10 * 86400000 + 60000)
     expect(order().tracking_number).toBe('RR123456789IL')
     // Photos rangées dans l'espace privé
     expect(Object.keys(fakeDb.storageObjects).every(k => k.startsWith('order-proofs/'))).toBe(true)
@@ -258,7 +258,7 @@ describe('Preuve d\'envoi postal', () => {
     expect(order().payout_status).toBe('held')
   })
 
-  it('après 3 jours sans litige, l\'argent est libéré automatiquement ; pas avant', async () => {
+  it('après 10 jours sans litige, l\'argent est libéré automatiquement ; pas avant', async () => {
     await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'parcel', image: PNG })
     await call('POST', `/api/orders/${ORDER}/proof`, SELLER, { kind: 'slip', image: PNG })
     expect(await releaseDuePostPayouts()).toBe(0)
@@ -413,4 +413,67 @@ describe('Conversation liée à une commande', () => {
     expect(r.body.warning).toBe('contact_blocked')
     expect(lastMsg().is_flagged).toBe(true)
   })
+
 })
+
+describe('Envoi postal : suivi obligatoire et code de réception', () => {
+  beforeEach(() => seed({ fulfillment_method: 'post', shipping_cost: 24.5, shipping_address: { name: 'A', street: 'B', city: 'C', zip: '1' } }))
+
+  // ---------------------------------------------------------------------------
+  // Nouvelle règle (25/11/2026) : numéro de suivi obligatoire + code de réception dans le colis
+  // ---------------------------------------------------------------------------
+  it('envoi : refuse sans numéro de suivi, avec un faux numéro international, ou un numéro déjà utilisé', async () => {
+    expect((await call('POST', `/api/orders/${ORDER}/ship`, SELLER, {})).body.error).toBe('tracking_required')
+    expect((await call('POST', `/api/orders/${ORDER}/ship`, SELLER, { tracking_number: 'RR123456784IL' })).body.error).toBe('tracking_invalid')
+    expect((await call('POST', `/api/orders/${ORDER}/ship`, SELLER, { tracking_number: 'abc' })).body.error).toBe('tracking_invalid')
+    fakeDb.table('orders').push({ id: 'autre', buyer_id: BUYER, seller_id: SELLER, status: 'shipped', fulfillment_method: 'post', tracking_number: 'RR123456785IL' })
+    const dup = await call('POST', `/api/orders/${ORDER}/ship`, SELLER, { tracking_number: 'rr 123 456 785 il' })
+    expect(dup.status).toBe(409)
+    expect(dup.body.error).toBe('tracking_already_used')
+    expect(order().status).toBe('paid')
+    expect((await call('POST', `/api/orders/${ORDER}/ship`, BUYER, { tracking_number: 'RR123456785IL' })).status).toBe(404)
+  })
+
+  it('envoi avec numéro valide : expédiée, versement à 10 jours, code visible du vendeur seulement', async () => {
+    const before = await call('GET', `/api/orders/${ORDER}/fulfillment`, SELLER)
+    expect(before.body.receipt_code).toMatch(/^\d{6}$/)
+    const r = await call('POST', `/api/orders/${ORDER}/ship`, SELLER, { tracking_number: 'RR123456785IL' })
+    expect(r.status).toBe(200)
+    expect(order().status).toBe('shipped')
+    expect(order().tracking_number).toBe('RR123456785IL')
+    const delayMs = new Date(order().payout_scheduled_at as string).getTime() - Date.now()
+    expect(delayMs).toBeGreaterThan(10 * 86400000 - 60000)
+    const seller = await call('GET', `/api/orders/${ORDER}/fulfillment`, SELLER)
+    expect(seller.body.receipt_code).toBe(before.body.receipt_code)
+    const buyer = await call('GET', `/api/orders/${ORDER}/fulfillment`, BUYER)
+    expect(buyer.body.receipt_code).toBeNull()
+    expect(buyer.body.receipt).toEqual({ required: true, locked: false, attempts_left: 5 })
+  })
+
+  it('réception : sans le bon code, pas de versement ; bloqué après 5 faux codes', async () => {
+    await call('GET', `/api/orders/${ORDER}/fulfillment`, SELLER)
+    await call('POST', `/api/orders/${ORDER}/ship`, SELLER, { tracking_number: 'RR123456785IL' })
+    const code = fakeDb.table('order_receipt_codes').find(r => r.order_id === ORDER)!.code as string
+    const wrong = code === '000000' ? '111111' : '000000'
+    const none = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER, {})
+    expect(none.body.error).toBe('wrong_receipt_code')
+    for (let i = 0; i < 3; i++) await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER, { code: wrong })
+    const last = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER, { code: wrong })
+    expect(last.status).toBe(423)
+    const tooLate = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER, { code })
+    expect(tooLate.status).toBe(423)
+    expect(order().payout_status).toBe('held')
+  })
+
+  it('réception avec le bon code : vendeur payé tout de suite ; le vendeur ne peut pas le saisir lui-même', async () => {
+    await call('GET', `/api/orders/${ORDER}/fulfillment`, SELLER)
+    await call('POST', `/api/orders/${ORDER}/ship`, SELLER, { tracking_number: 'RR123456785IL' })
+    const code = fakeDb.table('order_receipt_codes').find(r => r.order_id === ORDER)!.code as string
+    expect((await call('POST', `/api/orders/${ORDER}/confirm-receipt`, SELLER, { code })).status).toBe(404)
+    const r = await call('POST', `/api/orders/${ORDER}/confirm-receipt`, BUYER, { code })
+    expect(r.status).toBe(200)
+    expect(order().status).toBe('delivered')
+    expect(order().payout_status).toBe('released')
+  })
+})
+
