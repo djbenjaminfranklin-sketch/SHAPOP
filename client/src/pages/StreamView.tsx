@@ -56,6 +56,13 @@ const streamContent = {
     liveNow: 'LIVE',
     soldBang: 'SOLD!',
     unsoldBang: 'UNSOLD',
+    reserveNotMet: 'Reserve price not reached',
+    notChargedReserve: "Your bid didn't reach the seller's minimum price: you are not charged.",
+    reserveOfferTitle: 'Buy it at the minimum price?',
+    reserveOfferBody: 'You were the top bidder. The seller accepts {price}.',
+    reserveOfferBuy: 'Buy at {price}',
+    reserveOfferDecline: 'No thanks',
+    reserveOfferFailed: 'This offer is no longer available.',
     toReceiveItem: 'To receive your item',
     fullName: 'Full name',
     cityPlaceholder: 'City',
@@ -191,6 +198,13 @@ const streamContent = {
     liveNow: 'EN DIRECT',
     soldBang: 'VENDU !',
     unsoldBang: 'INVENDU',
+    reserveNotMet: 'Prix minimum non atteint',
+    notChargedReserve: 'Ton enchère n’atteint pas le prix minimum du vendeur : tu n’es pas débité.',
+    reserveOfferTitle: 'L’acheter au prix minimum ?',
+    reserveOfferBody: 'Tu étais le meilleur enchérisseur. Le vendeur l’accepte à {price}.',
+    reserveOfferBuy: 'Acheter à {price}',
+    reserveOfferDecline: 'Non merci',
+    reserveOfferFailed: 'Cette offre n’est plus disponible.',
     toReceiveItem: 'Pour recevoir ton article',
     fullName: 'Nom complet',
     cityPlaceholder: 'Ville',
@@ -326,6 +340,13 @@ const streamContent = {
     liveNow: 'EN VIVO',
     soldBang: '¡VENDIDO!',
     unsoldBang: 'NO VENDIDO',
+    reserveNotMet: 'Precio mínimo no alcanzado',
+    notChargedReserve: 'Tu puja no alcanzó el precio mínimo del vendedor: no se te cobra nada.',
+    reserveOfferTitle: '¿Comprarlo al precio mínimo?',
+    reserveOfferBody: 'Fuiste el mejor postor. El vendedor lo acepta a {price}.',
+    reserveOfferBuy: 'Comprar a {price}',
+    reserveOfferDecline: 'No, gracias',
+    reserveOfferFailed: 'Esta oferta ya no está disponible.',
     toReceiveItem: 'Para recibir tu artículo',
     fullName: 'Nombre completo',
     cityPlaceholder: 'Ciudad',
@@ -461,6 +482,13 @@ const streamContent = {
     liveNow: 'В ЭФИРЕ',
     soldBang: 'ПРОДАНО!',
     unsoldBang: 'НЕ ПРОДАНО',
+    reserveNotMet: 'Минимальная цена не достигнута',
+    notChargedReserve: 'Твоя ставка не достигла минимальной цены продавца: деньги не списаны.',
+    reserveOfferTitle: 'Купить по минимальной цене?',
+    reserveOfferBody: 'Твоя ставка была самой высокой. Продавец согласен на {price}.',
+    reserveOfferBuy: 'Купить за {price}',
+    reserveOfferDecline: 'Нет, спасибо',
+    reserveOfferFailed: 'Это предложение больше недоступно.',
     toReceiveItem: 'Чтобы получить товар',
     fullName: 'Имя и фамилия',
     cityPlaceholder: 'Город',
@@ -596,6 +624,13 @@ const streamContent = {
     liveNow: 'שידור חי',
     soldBang: 'נמכר!',
     unsoldBang: 'לא נמכר',
+    reserveNotMet: 'מחיר המינימום לא הושג',
+    notChargedReserve: 'ההצעה שלך לא הגיעה למחיר המינימום של המוכר: לא חויבת.',
+    reserveOfferTitle: 'לקנות במחיר המינימום?',
+    reserveOfferBody: 'ההצעה שלך הייתה הגבוהה ביותר. המוכר מסכים ל-{price}.',
+    reserveOfferBuy: 'לקנות ב-{price}',
+    reserveOfferDecline: 'לא תודה',
+    reserveOfferFailed: 'ההצעה כבר לא זמינה.',
     toReceiveItem: 'כדי לקבל את הפריט שלך',
     fullName: 'שם מלא',
     cityPlaceholder: 'עיר',
@@ -880,7 +915,10 @@ export default function StreamView() {
   useEffect(() => { previewEndsAtRef.current = previewEndsAt }, [previewEndsAt])
 
   // Sold animation & payment modal
-  const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number; isUnsold?: boolean } | null>(null)
+  const [reserveOffer, setReserveOffer] = useState<{ itemId: string; title: string; price: number; expiresAt: number } | null>(null)
+  const [reserveOfferBusy, setReserveOfferBusy] = useState(false)
+  const [reserveOfferNow, setReserveOfferNow] = useState(Date.now())
+  const [soldAnimation, setSoldAnimation] = useState<{ winner: string; price: number; isUnsold?: boolean; reason?: string; detail?: string } | null>(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [paymentOrder, setPaymentOrder] = useState<Order | null>(null)
   const [paymentItem, setPaymentItem] = useState<Item | null>(null)
@@ -1847,9 +1885,23 @@ export default function StreamView() {
         }
       } else if (item.status === 'unsold') {
         setActiveAuction(null)
-        // Show unsold animation
-        setSoldAnimation({ winner: '', price: item.current_price, isUnsold: true })
-        setTimeout(() => { if (isMountedRef.current) setSoldAnimation(null) }, 3000)
+        // Invendu : on dit POURQUOI (prix minimum du vendeur non atteint) et, à celui qui a enchéri, qu'il n'est pas débité
+        const reserveNotMet = item.min_price != null && Number(item.min_price) > 0 && Number(item.current_price) < Number(item.min_price)
+        setSoldAnimation({ winner: '', price: item.current_price, isUnsold: true, reason: reserveNotMet ? ct.reserveNotMet : undefined })
+        if (reserveNotMet && user) {
+          supabase.from('bids').select('bidder_id').eq('item_id', item.id).order('amount', { ascending: false }).limit(1).maybeSingle()
+            .then(({ data: top }) => {
+              if (!top || top.bidder_id !== user.id || !isMountedRef.current) return
+              setSoldAnimation(prev => prev && prev.isUnsold ? { ...prev, detail: ct.notChargedReserve } : prev)
+              // Meilleur enchérisseur : offre d'achat au prix minimum pendant 55 s (après l'annonce « invendu »)
+              setTimeout(() => {
+                if (!isMountedRef.current) return
+                setSoldAnimation(null)
+                setReserveOffer({ itemId: item.id, title: item.title, price: Number(item.min_price), expiresAt: Date.now() + 55_000 })
+              }, 2500)
+            })
+        }
+        setTimeout(() => { if (isMountedRef.current) setSoldAnimation(null) }, reserveNotMet ? 7000 : 3000)
       }
     })
 
@@ -2180,6 +2232,36 @@ export default function StreamView() {
     } catch (err) {
       if (import.meta.env.DEV) console.error('Setup intent error:', err)
       setCardError(ct.cardSetupFailed)
+    }
+  }
+
+  // Compte à rebours de l'offre « acheter au prix minimum »
+  useEffect(() => {
+    if (!reserveOffer) return
+    const t = setInterval(() => {
+      const now = Date.now()
+      setReserveOfferNow(now)
+      if (now >= reserveOffer.expiresAt) setReserveOffer(null)
+    }, 500)
+    return () => clearInterval(t)
+  }, [reserveOffer])
+
+  const handleBuyAtReserve = async () => {
+    if (!reserveOffer || reserveOfferBusy) return
+    setReserveOfferBusy(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const resp = await apiFetch(`/api/items/${reserveOffer.itemId}/buy-at-reserve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token || ''}` },
+      })
+      if (!resp.ok) alert(ct.reserveOfferFailed)
+      // Succès : l'article passe à « vendu » → « Tu as gagné » et le paiement s'ouvrent comme pour un achat
+      setReserveOffer(null)
+    } catch {
+      alert(ct.reserveOfferFailed)
+    } finally {
+      setReserveOfferBusy(false)
     }
   }
 
@@ -4165,6 +4247,41 @@ export default function StreamView() {
       )}
 
       {/* SOLD / UNSOLD animation overlay (full screen, single-view only) */}
+      {/* Offre « acheter au prix minimum » au meilleur enchérisseur */}
+      {reserveOffer && !soldAnimation && (
+        <div className="no-theme-invert" style={{
+          position: 'fixed', left: '12px', right: '12px', zIndex: 300,
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+          backgroundColor: 'rgba(17,17,17,0.97)', border: '1.5px solid #F0908A', borderRadius: '18px',
+          padding: '18px', boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <p style={{ margin: 0, fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{ct.reserveOfferTitle}</p>
+            <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 900, color: '#F0908A', fontVariantNumeric: 'tabular-nums' }}>
+              {Math.max(0, Math.ceil((reserveOffer.expiresAt - reserveOfferNow) / 1000))}s {/* i18n-ignore */}
+            </span>
+          </div>
+          <p style={{ margin: '6px 0 4px', fontSize: 'calc(14px * var(--fs, 1))', color: 'rgba(255,255,255,0.75)' }}>{reserveOffer.title}</p>
+          <p style={{ margin: '0 0 14px', fontSize: 'calc(14px * var(--fs, 1))', color: 'rgba(255,255,255,0.85)', lineHeight: 1.35 }}>
+            {fill(ct.reserveOfferBody, { price: money(reserveOffer.price) })}
+          </p>
+          <button onClick={handleBuyAtReserve} disabled={reserveOfferBusy} style={{
+            width: '100%', height: '50px', borderRadius: '100px', border: 'none',
+            background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff',
+            fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer', opacity: reserveOfferBusy ? 0.6 : 1,
+          }}>
+            {reserveOfferBusy ? '…' : fill(ct.reserveOfferBuy, { price: money(reserveOffer.price) })}
+          </button>
+          <button onClick={() => setReserveOffer(null)} style={{
+            width: '100%', marginTop: '8px', height: '42px', borderRadius: '100px',
+            border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: 'rgba(255,255,255,0.7)',
+            fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+          }}>
+            {ct.reserveOfferDecline}
+          </button>
+        </div>
+      )}
+
       {soldAnimation && !isMultiView && (
         <div style={{
           position: 'fixed', inset: 0,
@@ -4188,6 +4305,16 @@ export default function StreamView() {
           }}>
             {soldAnimation.isUnsold ? ct.unsoldBang : ct.soldBang}
           </p>
+          {soldAnimation.isUnsold && soldAnimation.reason && (
+            <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '10px 0 0', textAlign: 'center' }}>
+              {soldAnimation.reason}
+            </p>
+          )}
+          {soldAnimation.isUnsold && soldAnimation.detail && (
+            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: 'rgba(255,255,255,0.85)', margin: '6px 24px 0', textAlign: 'center', lineHeight: 1.35 }}>
+              {soldAnimation.detail}
+            </p>
+          )}
           {!soldAnimation.isUnsold && soldAnimation.winner && (
             <p style={{
               fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '8px 0 0',

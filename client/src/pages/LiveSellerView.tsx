@@ -19,6 +19,7 @@ const pageContent = {
     viewers: 'viewers',
     nextItem: 'Next item',
     relaunch: 'Relaunch auction',
+    reserveOfferSent: 'Reserve not met — offer sent to the top bidder (60 s)',
     sold: 'Sold!',
     unsold: 'Unsold',
     noMoreItems: 'No more items',
@@ -122,6 +123,7 @@ const pageContent = {
     viewers: 'spectateurs',
     nextItem: 'Article suivant',
     relaunch: 'Relancer l’enchère',
+    reserveOfferSent: 'Prix minimum non atteint — offre envoyée au meilleur enchérisseur (60 s)',
     sold: 'Vendu !',
     unsold: 'Invendu',
     noMoreItems: 'Plus d’articles',
@@ -225,6 +227,7 @@ const pageContent = {
     viewers: 'espectadores',
     nextItem: 'Siguiente artículo',
     relaunch: 'Relanzar la subasta',
+    reserveOfferSent: 'Precio mínimo no alcanzado — oferta enviada al mejor postor (60 s)',
     sold: '¡Vendido!',
     unsold: 'No vendido',
     noMoreItems: 'No hay más artículos',
@@ -328,6 +331,7 @@ const pageContent = {
     viewers: 'зрителей',
     nextItem: 'Следующий товар',
     relaunch: 'Перезапустить аукцион',
+    reserveOfferSent: 'Мин. цена не достигнута — предложение отправлено лидеру (60 с)',
     sold: 'Продано!',
     unsold: 'Не продано',
     noMoreItems: 'Товаров больше нет',
@@ -431,6 +435,7 @@ const pageContent = {
     viewers: 'צופים',
     nextItem: 'הפריט הבא',
     relaunch: 'להפעיל שוב את המכירה',
+    reserveOfferSent: 'מחיר המינימום לא הושג — הצעה נשלחה למציע הגבוה (60 ש׳)',
     sold: 'נמכר!',
     unsold: 'לא נמכר',
     noMoreItems: 'אין עוד פריטים',
@@ -1238,6 +1243,11 @@ export default function LiveSellerView() {
         } else {
           // No bids or unsold
           showSoldOverlay(formatLot(currentIndex + 1), '', 0, true)
+          // Prix minimum non atteint alors qu'il y a eu des enchères : l'acheteur en tête reçoit une offre au prix minimum
+          if (Number(currentItem.min_price) > 0 && Number(currentItem.current_price) > Number(currentItem.starting_price)
+              && Number(currentItem.current_price) < Number(currentItem.min_price)) {
+            showToast(ct.reserveOfferSent)
+          }
 
           setItems(prev => prev.map((it, i) =>
             i === currentIndex ? { ...it, status: 'unsold' as const } : it

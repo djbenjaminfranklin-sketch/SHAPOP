@@ -34,6 +34,8 @@ type Labels = {
   maxBid: string
   maxBidActive: string
   buyNow: string
+  reserveNotMet: string
+  reserveMet: string
 }
 
 const LABELS: Localized<Labels> = {
@@ -46,6 +48,8 @@ const LABELS: Localized<Labels> = {
     maxBid: 'Max bid',
     maxBidActive: 'Auto-bid on',
     buyNow: 'Buy now',
+    reserveNotMet: 'Reserve not met',
+    reserveMet: 'Reserve met',
   },
   fr: {
     bid: 'Enchérir',
@@ -56,6 +60,8 @@ const LABELS: Localized<Labels> = {
     maxBid: 'Enchère max',
     maxBidActive: 'Enchère auto activée',
     buyNow: 'Acheter',
+    reserveNotMet: 'Prix minimum non atteint',
+    reserveMet: 'Prix minimum atteint',
   },
   es: {
     bid: 'Pujar',
@@ -66,6 +72,8 @@ const LABELS: Localized<Labels> = {
     maxBid: 'Puja máx.',
     maxBidActive: 'Puja automática activa',
     buyNow: 'Comprar',
+    reserveNotMet: 'Precio mínimo no alcanzado',
+    reserveMet: 'Precio mínimo alcanzado',
   },
   ru: {
     bid: 'Ставка',
@@ -76,6 +84,8 @@ const LABELS: Localized<Labels> = {
     maxBid: 'Макс. ставка',
     maxBidActive: 'Автоставка включена',
     buyNow: 'Купить',
+    reserveNotMet: 'Мин. цена не достигнута',
+    reserveMet: 'Мин. цена достигнута',
   },
   he: {
     bid: 'הצע',
@@ -86,6 +96,8 @@ const LABELS: Localized<Labels> = {
     maxBid: 'הצעה מקסימלית',
     maxBidActive: 'הצעה אוטומטית פעילה',
     buyNow: 'קנה עכשיו',
+    reserveNotMet: 'מחיר המינימום לא הושג',
+    reserveMet: 'מחיר המינימום הושג',
   },
 }
 
@@ -198,9 +210,20 @@ export default function ActiveItemBar({
               </span>
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-            <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: 'rgba(255,255,255,0.4)' }}>{labels.currentPrice}</span>
-            <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{money(item.current_price)}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: 'rgba(255,255,255,0.4)' }}>{labels.currentPrice}</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{money(item.current_price)}</span>
+            </div>
+            {/* Prix minimum du vendeur : on dit s'il est atteint, sans en donner le montant */}
+            {Number(item.min_price) > 0 && (
+              <span style={{
+                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, marginTop: '2px',
+                color: Number(item.current_price) >= Number(item.min_price) ? '#22C55E' : '#FF9632',
+              }}>
+                {Number(item.current_price) >= Number(item.min_price) ? labels.reserveMet : labels.reserveNotMet}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -219,14 +242,14 @@ export default function ActiveItemBar({
           {labels.addCard}
         </button>
       ) : (
-        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-          {/* Main bid button — TAP to bid */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {/* Main bid button — TAP to bid (toute la largeur : le libellé n'est plus tronqué) */}
           <button
             onClick={handleTapBid}
             disabled={disabled}
             style={{
-              flex: 1,
-              height: '42px',
+              width: '100%',
+              height: '48px',
               borderRadius: '100px',
               border: 'none',
               background: disabled
@@ -235,7 +258,7 @@ export default function ActiveItemBar({
                   ? 'linear-gradient(135deg, #FF6B6B, #E8344E)'
                   : 'linear-gradient(135deg, #F0908A, #E8344E)',
               color: '#fff',
-              fontSize: 'calc(15px * var(--fs, 1))',
+              fontSize: 'calc(17px * var(--fs, 1))',
               fontWeight: 800,
               cursor: disabled ? 'default' : 'pointer',
               opacity: disabled ? 0.4 : 1,
@@ -251,19 +274,22 @@ export default function ActiveItemBar({
             {labels.bid} · {money(currentBid)}
           </button>
 
+          <div style={{ display: 'flex', gap: '6px' }}>
+
           {/* Buy Now button — only when buy_now_price is set */}
           {item.buy_now_price && item.buy_now_price > 0 && onBuyNow && (
             <button
               onClick={() => { if (!disabled) { hapticTap(); onBuyNow() } }}
               disabled={disabled}
               style={{
-                height: '42px',
-                padding: '0 12px',
+                flex: 1,
+                height: '40px',
+                padding: '0 8px',
                 borderRadius: '100px',
                 border: '1.5px solid #10B981',
                 backgroundColor: 'rgba(16,185,129,0.15)',
                 color: '#10B981',
-                fontSize: 'calc(10px * var(--fs, 1))',
+                fontSize: 'calc(13px * var(--fs, 1))',
                 fontWeight: 800,
                 letterSpacing: '0.3px',
                 cursor: disabled ? 'default' : 'pointer',
@@ -282,13 +308,14 @@ export default function ActiveItemBar({
             onClick={() => { if (!disabled) onMaxBid?.() }}
             disabled={disabled}
             style={{
-              height: '42px',
-              padding: '0 12px',
+              flex: 1,
+              height: '40px',
+              padding: '0 8px',
               borderRadius: '100px',
               border: hasActiveMaxBid ? '1.5px solid #8B5CF6' : '1px solid rgba(139,92,246,0.4)',
               backgroundColor: hasActiveMaxBid ? 'rgba(139,92,246,0.2)' : 'rgba(139,92,246,0.1)',
               color: '#8B5CF6',
-              fontSize: 'calc(10px * var(--fs, 1))',
+              fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 800,
               letterSpacing: '0.3px',
               cursor: disabled ? 'default' : 'pointer',
@@ -306,13 +333,14 @@ export default function ActiveItemBar({
             onClick={handleMaxBid}
             disabled={disabled}
             style={{
-              height: '42px',
-              padding: '0 14px',
+              flex: 1,
+              height: '40px',
+              padding: '0 8px',
               borderRadius: '100px',
               border: '1px solid rgba(255,215,0,0.3)',
               backgroundColor: 'rgba(255,215,0,0.1)',
               color: '#FFD700',
-              fontSize: 'calc(11px * var(--fs, 1))',
+              fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 800,
               letterSpacing: '0.5px',
               cursor: disabled ? 'default' : 'pointer',
@@ -323,6 +351,7 @@ export default function ActiveItemBar({
           >
             {labels.max}
           </button>
+          </div>
         </div>
       )}
       <style>{`@keyframes timerPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }`}</style>

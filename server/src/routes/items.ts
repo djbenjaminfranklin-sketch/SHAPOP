@@ -1,3 +1,4 @@
+import { reserveOfferRefusal } from '../services/reserveOffer'
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
@@ -461,6 +462,48 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
     res.json({ success: true, price })
   } catch (err) {
     console.error('[items]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+/**
+ * Prix minimum du vendeur non atteint : le meilleur enchérisseur peut, pendant RESERVE_OFFER_SECONDS,
+ * acheter l'article AU prix minimum. Même suite qu'un achat immédiat (commande, notifications, paiement).
+ */
+router.post('/api/items/:id/buy-at-reserve', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const buyerId = req.user!.id
+    const { data: item } = await supabase.from('items').select('*').eq('id', req.params.id).single()
+    if (!item || item.moderation_status) { res.status(404).json({ error: 'Item not found' }); return }
+    const minPrice = Number(item.min_price) || 0
+    const { data: topBid } = await supabase.from('bids').select('bidder_id, amount')
+      .eq('item_id', item.id).order('amount', { ascending: false }).limit(1).maybeSingle()
+    const refusal = reserveOfferRefusal(item, topBid, buyerId, Date.now())
+    if (refusal) { res.status(refusal === 'not_top_bidder' ? 403 : 400).json({ error: refusal }); return }
+
+    const { data: updated, error: updateError } = await supabase.from('items').update({
+      status: 'sold', winner_id: buyerId, current_price: minPrice, ended_at: new Date().toISOString(),
+    }).eq('id', item.id).eq('status', 'unsold').select('id')
+    if (updateError || !updated || updated.length === 0) { res.status(409).json({ error: 'offer_unavailable' }); return }
+
+    let purchaseStreamOffsetSeconds: number | null = null
+    const { data: stream } = await supabase.from('streams').select('started_at').eq('id', item.stream_id).single()
+    if (stream?.started_at) purchaseStreamOffsetSeconds = Math.floor((Date.now() - new Date(stream.started_at).getTime()) / 1000)
+
+    const fees = calculateFees(minPrice)
+    await supabase.from('orders').insert({
+      buyer_id: buyerId, seller_id: item.seller_id, item_id: item.id, stream_id: item.stream_id,
+      amount: minPrice, platform_fee: fees.platformFee, processing_fee: fees.processingFee,
+      seller_payout: fees.sellerPayout, purchase_stream_offset_seconds: purchaseStreamOffsetSeconds,
+    })
+
+    const saleParams = { item: item.title || localized('fallback.item'), amount: money(minPrice, await getUserCurrency(item.seller_id)) }
+    await notifyUserT(buyerId, 'auction_won', 'purchaseConfirmed', saleParams, { item_id: item.id, stream_id: item.stream_id || '' })
+    notifyUserT(item.seller_id, 'item_sold', 'itemSold', saleParams, { item_id: item.id }).catch(err => console.error('[items] notifyUser seller failed:', err))
+
+    res.json({ success: true, price: minPrice })
+  } catch (err) {
+    console.error('[items] buy-at-reserve', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

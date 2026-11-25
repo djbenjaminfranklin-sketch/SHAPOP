@@ -7,7 +7,7 @@ import { userHasSavedCard, getOrStartPreview, schedulePreviewKick, cancelPreview
 import { StreamOutput, StreamProtocol } from 'livekit-server-sdk'
 import { startSellerRecording, recordingUrlFromEgress, getLivekitMaxParticipants } from '../recording'
 import { requireAuth, createLimiter } from '../middleware'
-import { computeSellerScore } from '../utils'
+import { computeSellerScore, notifyFollowersSellerLive } from '../utils'
 import { sellerHasWhatsapp } from './fulfillment'
 import type { AuthenticatedRequest } from '../types'
 
@@ -672,7 +672,7 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
 
     const { data: stream } = await supabase
       .from('streams')
-      .select('seller_id, cohost_id, livekit_room_name')
+      .select('seller_id, cohost_id, livekit_room_name, status')
       .eq('id', streamId)
       .single()
 
@@ -711,6 +711,18 @@ router.post('/api/streams/:id/livekit-token', requireAuth, async (req: Authentic
           res.status(402).json({ error: 'card_required', remaining_seconds: 0, total_seconds: FREE_PREVIEW_SECONDS })
           return
         }
+      }
+    }
+
+    // Le vendeur demande son accès pour diffuser : on prévient ses abonnés, une seule fois par live
+    // (le signal LiveKit « participant arrivé » n'est pas branché sur ce serveur, on ne peut pas compter dessus).
+    if (isSeller && stream.status !== 'ended') {
+      const { data: claimed } = await supabase.from('streams').update({ live_notified: true })
+        .eq('id', streamId).eq('live_notified', false).neq('status', 'ended')
+        .select('id, title, seller_id')
+      if (claimed && claimed.length > 0) {
+        notifyFollowersSellerLive(claimed[0].seller_id, claimed[0].title, claimed[0].id).catch(err =>
+          console.error('[streams] notification abonnés:', err?.message || err))
       }
     }
 

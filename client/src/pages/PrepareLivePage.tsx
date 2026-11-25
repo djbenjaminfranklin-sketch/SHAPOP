@@ -690,15 +690,15 @@ export default function PrepareLivePage() {
     setFormImage(URL.createObjectURL(file))
   }
 
-  const handleAddItem = async () => {
-    if (!formTitle.trim() || !formPrice || !user || !streamId) return
+  const handleAddItem = async (): Promise<boolean> => {
+    if (!formTitle.trim() || !formPrice || !user || !streamId) return false
     setSaving(true)
     setFormError('')
 
     const price = parseFloat(formPrice)
     if (isNaN(price) || price <= 0) {
       setSaving(false)
-      return
+      return false
     }
 
     const category = formCategory || stream?.category || ''
@@ -711,7 +711,11 @@ export default function PrepareLivePage() {
     let imageUrls: string[] = []
     if (formImageFile) {
       try {
-        const compressed = await compressImage(formImageFile)
+        // Compression plafonnée à 10 s : au-delà, on envoie la photo d'origine (sinon l'ajout restait bloqué sans rien dire)
+        const compressed: Blob = await Promise.race([
+          compressImage(formImageFile),
+          new Promise<Blob>(resolve => setTimeout(() => resolve(formImageFile), 10_000)),
+        ]).catch(() => formImageFile)
         const filePath = `items/${user.id}/${Date.now()}.jpg`
         const { error: uploadError } = await supabase.storage
           .from('avatars')
@@ -720,7 +724,7 @@ export default function PrepareLivePage() {
           console.error('Upload error:', uploadError.message)
           setFormError(ct.uploadFailed)
           setSaving(false)
-          return
+          return false
         }
         const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
         imageUrls = [urlData.publicUrl]
@@ -728,7 +732,7 @@ export default function PrepareLivePage() {
         console.error('Upload error:', err)
         setFormError(ct.uploadFailed)
         setSaving(false)
-        return
+        return false
       }
     }
 
@@ -765,7 +769,7 @@ export default function PrepareLivePage() {
         console.error('Insert error:', error)
         setFormError(ct.createFailed)
         setSaving(false)
-        return
+        return false
       }
       if (data) {
         newItems.push({
@@ -803,6 +807,7 @@ export default function PrepareLivePage() {
     setSuggestedShipping(null)
     setShowForm(false)
     setSaving(false)
+    return true
   }
 
   const updateRow = (key: string, patch: Partial<BatchRow>) =>
@@ -1105,8 +1110,18 @@ export default function PrepareLivePage() {
     handleGoLive()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fiche d'article remplie mais pas encore « Ajoutée » : on l'enregistre avant de passer en direct
+  // (sinon l'article était perdu et le live démarrait sans article)
+  const pendingFormRef = useRef({ formTitle, formPrice, handleAddItem })
+  pendingFormRef.current = { formTitle, formPrice, handleAddItem }
+
   const handleGoLive = async () => {
     if (!streamId) return
+    const pending = pendingFormRef.current
+    if (pending.formTitle.trim() && pending.formPrice) {
+      const saved = await pending.handleAddItem()
+      if (!saved) return
+    }
     setGoingLive(true)
 
     // Provision LiveKit room
