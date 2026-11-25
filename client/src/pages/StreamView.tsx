@@ -3808,8 +3808,8 @@ export default function StreamView() {
       <div style={{
         position: 'absolute',
         bottom: activeAuction && !isSeller && isLive
-          ? 'calc(env(safe-area-inset-bottom, 0px) + 80px)'
-          : 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
+          ? 'calc(env(safe-area-inset-bottom, 0px) + 80px + var(--kb, 0px))'
+          : 'calc(env(safe-area-inset-bottom, 0px) + 4px + var(--kb, 0px))',
         left: '10px', right: '10px',
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '6px',

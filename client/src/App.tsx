@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { usePushNotifications } from './hooks/usePushNotifications'
 import { isPushAvailable, syncAndroidSystemBars } from './lib/nativePlatform'
+import { startKeyboardInset } from './lib/keyboardInset'
 import PrePermissionModal from './components/PrePermissionModal'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 import BottomNav from './components/BottomNav'
@@ -195,6 +196,9 @@ function OfflineBanner() {
 
 /** Apply user settings (theme, text size) from localStorage */
 function useAppSettings() {
+  // Hauteur du clavier en CSS (--kb) : les champs de saisie des directs restent au-dessus du clavier
+  useEffect(() => startKeyboardInset(), [])
+
   useEffect(() => {
     const applySettings = () => {
       try {

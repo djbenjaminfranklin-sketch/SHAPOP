@@ -37,6 +37,9 @@ import { stripeWebhookHandler, livekitWebhookHandler, paypalWebhookHandler, rapy
 // Express setup
 // =============================================
 const app = express()
+// Render place un relais devant le serveur : sans ça, la limite de requêtes voit l'adresse du relais
+// au lieu de celle de chaque utilisateur (tout le monde compté ensemble).
+app.set('trust proxy', 1)
 const PORT = process.env.PORT || 4000
 
 // Security headers

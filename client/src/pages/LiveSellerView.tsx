@@ -18,6 +18,7 @@ const pageContent = {
     live: 'LIVE',
     viewers: 'viewers',
     nextItem: 'Next item',
+    relaunch: 'Relaunch auction',
     sold: 'Sold!',
     unsold: 'Unsold',
     noMoreItems: 'No more items',
@@ -120,6 +121,7 @@ const pageContent = {
     live: 'EN DIRECT',
     viewers: 'spectateurs',
     nextItem: 'Article suivant',
+    relaunch: 'Relancer l’enchère',
     sold: 'Vendu !',
     unsold: 'Invendu',
     noMoreItems: 'Plus d’articles',
@@ -222,6 +224,7 @@ const pageContent = {
     live: 'EN DIRECTO',
     viewers: 'espectadores',
     nextItem: 'Siguiente artículo',
+    relaunch: 'Relanzar la subasta',
     sold: '¡Vendido!',
     unsold: 'No vendido',
     noMoreItems: 'No hay más artículos',
@@ -324,6 +327,7 @@ const pageContent = {
     live: 'В ЭФИРЕ',
     viewers: 'зрителей',
     nextItem: 'Следующий товар',
+    relaunch: 'Перезапустить аукцион',
     sold: 'Продано!',
     unsold: 'Не продано',
     noMoreItems: 'Товаров больше нет',
@@ -426,6 +430,7 @@ const pageContent = {
     live: 'שידור חי',
     viewers: 'צופים',
     nextItem: 'הפריט הבא',
+    relaunch: 'להפעיל שוב את המכירה',
     sold: 'נמכר!',
     unsold: 'לא נמכר',
     noMoreItems: 'אין עוד פריטים',
@@ -548,6 +553,28 @@ function unlockBody() {
   document.body.style.height = ''
   document.body.style.top = ''
   document.body.style.left = ''
+}
+
+/** Prend une photo de l'image de la caméra (vidéo locale) et l'envoie au stockage ; null si impossible. */
+async function captureCameraPhoto(video: HTMLVideoElement | null, userId: string): Promise<string | null> {
+  try {
+    if (!video || !video.videoWidth || !video.videoHeight) return null
+    const scale = Math.min(1, 1080 / Math.max(video.videoWidth, video.videoHeight))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(video.videoWidth * scale)
+    canvas.height = Math.round(video.videoHeight * scale)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.82))
+    if (!blob) return null
+    const path = `thumbnails/${userId}/item-${Date.now()}.jpg`
+    const { error } = await supabase.storage.from('avatars').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+    if (error) return null
+    return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+  } catch {
+    return null
+  }
 }
 
 export default function LiveSellerView() {
@@ -1318,6 +1345,20 @@ export default function LiveSellerView() {
 
   // handleSold and handleUnsold removed — auction resolves automatically
 
+  // Lot invendu : on le remet en brouillon au prix de départ, le bouton « Lancer l'enchère » réapparaît
+  const handleRelaunchItem = async () => {
+    if (!currentItem || currentItem.status !== 'unsold') return
+    const { error } = await supabase
+      .from('items')
+      .update({ status: 'draft' as const, current_price: currentItem.starting_price, started_at: null })
+      .eq('id', currentItem.id)
+    if (error) { showToast(ct.errAddItem); return }
+    autoResolvedRef.current = null
+    setItems(prev => prev.map(it => it.id === currentItem.id
+      ? { ...it, status: 'draft' as const, current_price: currentItem.starting_price, started_at: null }
+      : it))
+  }
+
   const handleNextItem = () => {
     const nextIdx = items.findIndex((it, i) => i > currentIndex && (it.status === 'draft' || it.status === 'pending'))
     if (nextIdx >= 0) setCurrentIndex(nextIdx)
@@ -1580,6 +1621,9 @@ export default function LiveSellerView() {
     const qty = Math.max(1, Math.min(addItemQuantity, 50))
 
     setAddingItem(true)
+    // Photo de l'article : image de ce que filme la caméra au moment de l'ajout (sinon l'article n'a aucune photo
+    // dans les commandes, « À remettre », etc.)
+    const photoUrl = await captureCameraPhoto(videoRef.current, user.id)
     const newItems: Item[] = []
     for (let i = 0; i < qty; i++) {
       const title = qty > 1 ? `${addItemTitle.trim()} #${i + 1}` : addItemTitle.trim()
@@ -1596,6 +1640,7 @@ export default function LiveSellerView() {
           buy_now_price: buyNowPrice > 0 ? buyNowPrice : null,
           status: 'draft' as const,
           duration_seconds: addItemDuration,
+          ...(photoUrl ? { image_urls: [photoUrl] } : {}),
         })
         .select()
         .single()
@@ -2031,7 +2076,7 @@ export default function LiveSellerView() {
       {/* ===== BOTTOM OVERLAY: chat + input + item panel ===== */}
       <div style={{
         position: 'fixed',
-        bottom: 'calc(env(safe-area-inset-bottom, 34px) + 16px)',
+        bottom: 'calc(env(safe-area-inset-bottom, 34px) + 16px + var(--kb, 0px))',
         left: '10px', right: '10px',
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '8px',
@@ -2242,6 +2287,22 @@ export default function LiveSellerView() {
                 </button>
               )}
             </div>
+          )}
+
+          {currentItem?.status === 'unsold' && (
+            <button
+              onClick={handleRelaunchItem}
+              style={{
+                width: '100%', padding: '10px',
+                background: hasMoreItems ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                border: hasMoreItems ? '1px solid rgba(255,255,255,0.18)' : 'none',
+                borderRadius: '10px',
+                color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {ct.relaunch}
+            </button>
           )}
 
           {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && hasMoreItems && (
