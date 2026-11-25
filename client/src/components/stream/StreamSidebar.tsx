@@ -41,7 +41,7 @@ const buttonStyle: React.CSSProperties = {
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: '9px',
+  fontSize: 'calc(9px * var(--fs, 1))',
   color: '#fff',
   fontWeight: 600,
   marginTop: '3px',

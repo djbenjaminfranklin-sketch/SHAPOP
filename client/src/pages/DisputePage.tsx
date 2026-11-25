@@ -764,7 +764,7 @@ export default function DisputePage() {
   if (loadingOrder || checkingDispute) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: '#888', fontSize: '15px' }}>{ct.loading}</p>
+        <p style={{ color: '#888', fontSize: 'calc(15px * var(--fs, 1))' }}>{ct.loading}</p>
       </div>
     )
   }
@@ -773,10 +773,10 @@ export default function DisputePage() {
   if (orderError) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
-        <p style={{ color: '#f87171', fontSize: '15px', marginBottom: '16px' }}>{orderError}</p>
+        <p style={{ color: '#f87171', fontSize: 'calc(15px * var(--fs, 1))', marginBottom: '16px' }}>{orderError}</p>
         <button
           onClick={() => navigate(-1)}
-          style={{ padding: '12px 24px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}
+          style={{ padding: '12px 24px', backgroundColor: '#1A1A1A', color: '#fff', border: 'none', borderRadius: '12px', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}
         >
           {ct.back}
         </button>
@@ -795,7 +795,7 @@ export default function DisputePage() {
           <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} aria-label={ct.back} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.dispute}</h1>
+          <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{ct.dispute}</h1>
         </div>
 
         <div style={{ padding: '20px' }}>
@@ -806,8 +806,8 @@ export default function DisputePage() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>
               <div>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#4ade80' }}>{ct.dispute_submitted_success}</p>
-                <p style={{ fontSize: '13px', color: '#888', marginTop: '4px' }}>{ct.dispute_submitted_desc}</p>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#4ade80' }}>{ct.dispute_submitted_success}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginTop: '4px' }}>{ct.dispute_submitted_desc}</p>
               </div>
             </div>
           )}
@@ -815,7 +815,7 @@ export default function DisputePage() {
           {/* Order context card */}
           {order && (
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.related_order}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.related_order}</p>
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                 {order.item?.image_urls?.[0] && (
                   <img
@@ -827,8 +827,8 @@ export default function DisputePage() {
                   />
                 )}
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
-                  <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{fmtAmount(order.amount)}</p>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>{fmtAmount(order.amount)}</p>
                 </div>
               </div>
             </div>
@@ -839,7 +839,7 @@ export default function DisputePage() {
             <div style={{
               backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px',
             }}>
-              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller_return_policy}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller_return_policy}</p>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: '6px',
                 padding: '6px 14px', borderRadius: '8px',
@@ -847,7 +847,7 @@ export default function DisputePage() {
                 border: `1px solid ${sellerReturnPolicy === 'no_return' ? 'rgba(239,68,68,0.3)' : sellerReturnPolicy === 'exchange_only' ? 'rgba(249,115,22,0.3)' : 'rgba(34,197,94,0.3)'}`,
               }}>
                 <span style={{
-                  fontSize: '13px', fontWeight: 600,
+                  fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                   color: sellerReturnPolicy === 'no_return' ? '#f87171' : sellerReturnPolicy === 'exchange_only' ? '#fb923c' : '#4ade80',
                 }}>
                   {getPolicyLabel(sellerReturnPolicy)}
@@ -859,11 +859,11 @@ export default function DisputePage() {
           {/* Dispute status card */}
           <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{ct.dispute_status}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>{ct.dispute_status}</p>
               <span style={{
                 padding: '4px 12px',
                 borderRadius: '9999px',
-                fontSize: '12px',
+                fontSize: 'calc(12px * var(--fs, 1))',
                 fontWeight: 600,
                 backgroundColor: statusColor.bg,
                 color: statusColor.text,
@@ -874,33 +874,33 @@ export default function DisputePage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.reason_label}</p>
-                <p style={{ fontSize: '14px', color: '#ccc' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '4px' }}>{ct.reason_label}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc' }}>
                   {getReasonLabel(dispute.reason)}
                 </p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.description_label}</p>
-                <p style={{ fontSize: '14px', color: '#ccc', lineHeight: 1.5 }}>{dispute.description}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '4px' }}>{ct.description_label}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc', lineHeight: 1.5 }}>{dispute.description}</p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.amount_label}</p>
-                <p style={{ fontSize: '14px', color: '#ccc' }}>{fmtAmount(dispute.amount)}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '4px' }}>{ct.amount_label}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc' }}>{fmtAmount(dispute.amount)}</p>
               </div>
               <div>
-                <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.opened_at}</p>
-                <p style={{ fontSize: '14px', color: '#ccc' }}>{fmtDateTime(dispute.opened_at)}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '4px' }}>{ct.opened_at}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc' }}>{fmtDateTime(dispute.opened_at)}</p>
               </div>
               {dispute.resolved_at && (
                 <div>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.resolved_at}</p>
-                  <p style={{ fontSize: '14px', color: '#ccc' }}>{fmtDateTime(dispute.resolved_at)}</p>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '4px' }}>{ct.resolved_at}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc' }}>{fmtDateTime(dispute.resolved_at)}</p>
                 </div>
               )}
               {dispute.resolution_note && (
                 <div>
-                  <p style={{ fontSize: '12px', color: '#666', marginBottom: '4px' }}>{ct.resolution_note}</p>
-                  <p style={{ fontSize: '14px', color: '#ccc', lineHeight: 1.5 }}>{dispute.resolution_note}</p>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '4px' }}>{ct.resolution_note}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc', lineHeight: 1.5 }}>{dispute.resolution_note}</p>
                 </div>
               )}
             </div>
@@ -909,7 +909,7 @@ export default function DisputePage() {
             {dispute.auto_refund && (
               <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#1a2a1a', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                <p style={{ fontSize: '13px', color: '#4ade80', fontWeight: 500 }}>{ct.auto_refund_approved}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#4ade80', fontWeight: 500 }}>{ct.auto_refund_approved}</p>
               </div>
             )}
           </div>
@@ -917,7 +917,7 @@ export default function DisputePage() {
           {/* Buyer photo proof */}
           {dispute.photo_urls && dispute.photo_urls.length > 0 && (
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{(ct as Record<string, string>).buyer_photos}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{(ct as Record<string, string>).buyer_photos}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {dispute.photo_urls.map((url, i) => (
                   <img
@@ -937,7 +937,7 @@ export default function DisputePage() {
           {/* Legacy evidence images (for older disputes without photo_urls) */}
           {(!dispute.photo_urls || dispute.photo_urls.length === 0) && dispute.evidence_urls && dispute.evidence_urls.length > 0 && (
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{ct.evidence_provided}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{ct.evidence_provided}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {dispute.evidence_urls.map((url, i) => (
                   <img
@@ -957,7 +957,7 @@ export default function DisputePage() {
           {/* Seller photo proof */}
           {dispute.seller_photo_urls && dispute.seller_photo_urls.length > 0 && (
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-              <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{(ct as Record<string, string>).seller_photos}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', marginBottom: '12px' }}>{(ct as Record<string, string>).seller_photos}</p>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 {dispute.seller_photo_urls.map((url, i) => (
                   <img
@@ -979,7 +979,7 @@ export default function DisputePage() {
             <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px', border: '1px solid rgba(240, 144, 138, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="8.5" r="1.5" fill="#F0908A" /><polyline points="21,15 16,10 5,21" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{(ct as Record<string, string>).upload_seller_photos}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>{(ct as Record<string, string>).upload_seller_photos}</p>
               </div>
 
               {/* Seller preview thumbnails */}
@@ -1002,7 +1002,7 @@ export default function DisputePage() {
                           width: '22px', height: '22px', borderRadius: '50%',
                           backgroundColor: '#E8344E', color: '#fff', border: 'none',
                           cursor: 'pointer', display: 'flex', alignItems: 'center',
-                          justifyContent: 'center', fontSize: '12px', fontWeight: 700,
+                          justifyContent: 'center', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                         }}
                       >
                         x
@@ -1021,7 +1021,7 @@ export default function DisputePage() {
                     color: '#F0908A',
                     border: '1px dashed #F0908A',
                     borderRadius: '12px',
-                    fontSize: '14px',
+                    fontSize: 'calc(14px * var(--fs, 1))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1046,7 +1046,7 @@ export default function DisputePage() {
               />
 
               {sellerUploadError && (
-                <p style={{ fontSize: '13px', color: '#E8344E', marginBottom: '12px' }}>{sellerUploadError}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#E8344E', marginBottom: '12px' }}>{sellerUploadError}</p>
               )}
 
               {sellerFiles.length > 0 && (
@@ -1057,7 +1057,7 @@ export default function DisputePage() {
                     width: '100%', padding: '12px',
                     backgroundColor: sellerUploading ? '#333' : '#F0908A',
                     color: '#fff', border: 'none', borderRadius: '12px',
-                    fontSize: '14px', fontWeight: 600,
+                    fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                     cursor: sellerUploading ? 'default' : 'pointer',
                     opacity: sellerUploading ? 0.7 : 1,
                   }}
@@ -1072,7 +1072,7 @@ export default function DisputePage() {
           {sellerPhotosSubmitted && (
             <div style={{ backgroundColor: '#1a2a1a', border: '1px solid #2a3a2a', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              <p style={{ fontSize: '13px', color: '#4ade80', fontWeight: 500 }}>{(ct as Record<string, string>).seller_photos_submitted}</p>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#4ade80', fontWeight: 500 }}>{(ct as Record<string, string>).seller_photos_submitted}</p>
             </div>
           )}
         </div>
@@ -1135,14 +1135,14 @@ export default function DisputePage() {
         <button onClick={() => navigate('/activity', { state: { tab: 'purchases' } })} aria-label={ct.back} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{ct.open_dispute}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{ct.open_dispute}</h1>
       </div>
 
       <div style={{ padding: '20px' }}>
         {/* Order context card */}
         {order && (
           <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px' }}>
-            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.related_order}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.related_order}</p>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {order.item?.image_urls?.[0] && (
                 <img
@@ -1154,8 +1154,8 @@ export default function DisputePage() {
                 />
               )}
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
-                <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600 }}>{fmtAmount(order.amount)}</p>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>{order.item?.title || ct.article}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>{fmtAmount(order.amount)}</p>
               </div>
             </div>
           </div>
@@ -1166,7 +1166,7 @@ export default function DisputePage() {
           <div style={{
             backgroundColor: '#111', borderRadius: '12px', padding: '16px', marginBottom: '20px',
           }}>
-            <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller_return_policy}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller_return_policy}</p>
             {(() => {
               const policyColors: Record<string, { bg: string; border: string; color: string }> = {
                 no_return: { bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.3)', color: '#f87171' },
@@ -1184,10 +1184,10 @@ export default function DisputePage() {
                     padding: '6px 14px', borderRadius: '8px',
                     backgroundColor: colors.bg, border: `1px solid ${colors.border}`,
                   }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, color: colors.color }}>{label}</span>
+                    <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: colors.color }}>{label}</span>
                   </div>
                   {sellerReturnPolicy === 'no_return' && (
-                    <p style={{ fontSize: '12px', color: '#f97316', marginTop: '8px', lineHeight: 1.5 }}>
+                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f97316', marginTop: '8px', lineHeight: 1.5 }}>
                       {ct.policy_no_return_notice}
                     </p>
                   )}
@@ -1199,7 +1199,7 @@ export default function DisputePage() {
 
         {/* Reason select */}
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
+          <label style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
             {ct.dispute_reason}
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -1210,7 +1210,7 @@ export default function DisputePage() {
                 style={{
                   padding: '8px 16px',
                   borderRadius: '9999px',
-                  fontSize: '13px',
+                  fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 600,
                   cursor: 'pointer',
                   backgroundColor: reason === opt.value ? '#F0908A' : '#1A1A1A',
@@ -1226,7 +1226,7 @@ export default function DisputePage() {
 
         {/* Description textarea */}
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
+          <label style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', display: 'block', marginBottom: '8px' }}>
             {ct.description_form_label}
           </label>
           <textarea
@@ -1241,13 +1241,13 @@ export default function DisputePage() {
               border: '1px solid #222',
               borderRadius: '12px',
               color: '#fff',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               outline: 'none',
               resize: 'none',
               boxSizing: 'border-box',
             }}
           />
-          <p style={{ fontSize: '12px', color: description.trim().length >= 20 ? '#666' : '#f97316', marginTop: '4px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: description.trim().length >= 20 ? '#666' : '#f97316', marginTop: '4px' }}>
             {description.trim().length}/20 {ct.chars_minimum}
           </p>
         </div>
@@ -1256,11 +1256,11 @@ export default function DisputePage() {
         <div style={{ marginBottom: '20px', backgroundColor: '#111', borderRadius: '12px', padding: '16px', border: files.length === 0 ? '1px solid rgba(232, 52, 78, 0.4)' : '1px solid #222' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="8.5" r="1.5" fill="#F0908A" /><polyline points="21,15 16,10 5,21" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            <label style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>
+            <label style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>
               {(ct as Record<string, string>).photo_proof_title}
             </label>
           </div>
-          <p style={{ fontSize: '12px', color: files.length === 0 ? '#E8344E' : '#666', marginBottom: '12px', fontWeight: files.length === 0 ? 600 : 400 }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: files.length === 0 ? '#E8344E' : '#666', marginBottom: '12px', fontWeight: files.length === 0 ? 600 : 400 }}>
             {(ct as Record<string, string>).photo_required} (1-5)
           </p>
 
@@ -1293,7 +1293,7 @@ export default function DisputePage() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '12px',
+                      fontSize: 'calc(12px * var(--fs, 1))',
                       fontWeight: 700,
                     }}
                   >
@@ -1313,7 +1313,7 @@ export default function DisputePage() {
                 color: files.length === 0 ? '#F0908A' : '#aaa',
                 border: files.length === 0 ? '1px dashed #F0908A' : '1px dashed #333',
                 borderRadius: '12px',
-                fontSize: '14px',
+                fontSize: 'calc(14px * var(--fs, 1))',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -1339,7 +1339,7 @@ export default function DisputePage() {
 
         {/* Error message */}
         {submitError && (
-          <p style={{ fontSize: '13px', color: '#E8344E', marginBottom: '16px' }}>{submitError}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#E8344E', marginBottom: '16px' }}>{submitError}</p>
         )}
 
         {/* Submit button */}
@@ -1353,7 +1353,7 @@ export default function DisputePage() {
             color: '#fff',
             border: 'none',
             borderRadius: '12px',
-            fontSize: '15px',
+            fontSize: 'calc(15px * var(--fs, 1))',
             fontWeight: 600,
             cursor: canSubmit ? 'pointer' : 'default',
             opacity: submitting ? 0.7 : 1,

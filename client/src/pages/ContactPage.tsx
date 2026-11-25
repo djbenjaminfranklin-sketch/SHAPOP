@@ -208,11 +208,11 @@ export default function ContactPage() {
         <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
-        <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.sent}</h2>
-        <p style={{ fontSize: '14px', color: '#888', textAlign: 'center', marginBottom: '32px', maxWidth: '280px' }}>{c.sentDesc}</p>
+        <h2 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.sent}</h2>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', textAlign: 'center', marginBottom: '32px', maxWidth: '280px' }}>{c.sentDesc}</p>
         <button
           onClick={() => navigate('/profile')}
-          style={{ padding: '14px 32px', backgroundColor: '#F0908A', color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}
+          style={{ padding: '14px 32px', backgroundColor: '#F0908A', color: '#fff', border: 'none', borderRadius: '12px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}
         >
           {c.back}
         </button>
@@ -226,11 +226,11 @@ export default function ContactPage() {
         <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
       <div style={{ padding: '20px' }}>
-        <p style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>{c.subtitle}</p>
+        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#fff', marginBottom: '16px' }}>{c.subtitle}</p>
 
         {/* Topic selection */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
@@ -239,7 +239,7 @@ export default function ContactPage() {
               key={t.id}
               onClick={() => setTopic(t.id)}
               style={{
-                padding: '8px 16px', borderRadius: '9999px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                padding: '8px 16px', borderRadius: '9999px', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 backgroundColor: topic === t.id ? '#F0908A' : '#1A1A1A',
                 color: topic === t.id ? '#fff' : '#aaa',
                 border: topic === t.id ? '1px solid #F0908A' : '1px solid #333',
@@ -258,20 +258,20 @@ export default function ContactPage() {
           rows={5}
           style={{
             width: '100%', padding: '14px', backgroundColor: '#111', border: '1px solid #222',
-            borderRadius: '12px', color: '#fff', fontSize: '15px', outline: 'none', resize: 'none',
+            borderRadius: '12px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', resize: 'none',
             boxSizing: 'border-box', marginBottom: '16px',
           }}
         />
 
         {/* User info note */}
         {user && (
-          <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '16px' }}>
             {c.sentFrom} <span dir="ltr">{user.email}</span>
           </p>
         )}
 
         {sendError && (
-          <p style={{ fontSize: '13px', color: '#E8344E', marginBottom: '12px' }}>{sendError}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#E8344E', marginBottom: '12px' }}>{sendError}</p>
         )}
 
         <button
@@ -280,7 +280,7 @@ export default function ContactPage() {
           style={{
             width: '100%', padding: '14px',
             backgroundColor: (!topic || !message.trim() || sending) ? '#333' : '#F0908A',
-            color: '#fff', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: 600,
+            color: '#fff', border: 'none', borderRadius: '12px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
             cursor: (!topic || !message.trim() || sending) ? 'default' : 'pointer',
             opacity: sending ? 0.7 : 1,
           }}
@@ -290,9 +290,9 @@ export default function ContactPage() {
 
         {/* Direct email */}
         <div style={{ marginTop: '32px', padding: '16px', backgroundColor: '#111', borderRadius: '12px' }}>
-          <p style={{ fontSize: '13px', color: '#888', marginBottom: '8px' }}>{c.email}</p>
-          <a href="mailto:support@shapop.app" style={{ fontSize: '15px', color: '#F0908A', fontWeight: 600, textDecoration: 'none' }} dir="ltr">support@shapop.app</a>{/* i18n-ignore */}
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>{c.hours}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginBottom: '8px' }}>{c.email}</p>
+          <a href="mailto:support@shapop.app" style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#F0908A', fontWeight: 600, textDecoration: 'none' }} dir="ltr">support@shapop.app</a>{/* i18n-ignore */}
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '8px' }}>{c.hours}</p>
         </div>
       </div>
     </div>

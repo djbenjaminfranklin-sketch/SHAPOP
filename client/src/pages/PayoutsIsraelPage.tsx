@@ -101,19 +101,19 @@ export default function PayoutsIsraelPage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
       <PageBackButton />
-      <h1 style={{ fontSize: '24px', fontWeight: 800, margin: '48px 0 8px' }}>🇮🇱 {ct.title}</h1>
-      <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.5, margin: '0 0 16px' }}>{ct.intro}</p>
+      <h1 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, margin: '48px 0 8px' }}>🇮🇱 {ct.title}</h1>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.5, margin: '0 0 16px' }}>{ct.intro}</p>
 
       {status && !enabled && (
-        <p style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#F59E0B', fontSize: '14px', fontWeight: 600 }}>{ct.soon}</p>
+        <p style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#F59E0B', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{ct.soon}</p>
       )}
 
       <section style={{ backgroundColor: '#111', border: '1px solid #222', borderRadius: '14px', padding: '14px', marginBottom: '14px' }}>
-        <p style={{ margin: '0 0 10px', fontSize: '16px', fontWeight: 800 }}>{ct.bankTitle}</p>
+        <p style={{ margin: '0 0 10px', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800 }}>{ct.bankTitle}</p>
         {!showForm ? (
           <>
             <p style={{ margin: '0 0 6px', color: '#22C55E', fontWeight: 700 }}>✓ {ct.saved}</p>
-            {status?.bank_last4 && <p style={{ margin: '0 0 12px', color: '#aaa', fontSize: '14px' }}>{ct.ending} {status.bank_last4}</p>}
+            {status?.bank_last4 && <p style={{ margin: '0 0 12px', color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))' }}>{ct.ending} {status.bank_last4}</p>}
             <button onClick={() => setEditing(true)} style={{ ...btn(true), background: 'transparent', border: '1px solid #444', color: '#ddd' }}>{ct.change}</button>
           </>
         ) : (
@@ -123,7 +123,7 @@ export default function PayoutsIsraelPage() {
               <Field label={ct.lastName} value={form.last_name} onChange={v => setForm({ ...form, last_name: v })} autoComplete="family-name" />
             </div>
             <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder="IL62 0108 0000 0009 9999 999" dir="ltr" />
-            <p style={{ margin: '-4px 0 8px', fontSize: '12px', color: '#777' }}>{ct.ibanHint}</p>
+            <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#777' }}>{ct.ibanHint}</p>
             <Field label={ct.street} value={form.street} onChange={v => setForm({ ...form, street: v })} autoComplete="street-address" />
             <div style={{ display: 'flex', gap: '8px' }}>
               <Field label={ct.city} value={form.city} onChange={v => setForm({ ...form, city: v })} autoComplete="address-level2" />
@@ -134,7 +134,7 @@ export default function PayoutsIsraelPage() {
         )}
       </section>
 
-      {error && <p role="alert" style={{ color: '#E8344E', fontSize: '14px', fontWeight: 600 }}>{error}</p>}
+      {error && <p role="alert" style={{ color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{error}</p>}
     </div>
   )
 }
@@ -142,16 +142,16 @@ export default function PayoutsIsraelPage() {
 const btn = (on: boolean): React.CSSProperties => ({
   width: '100%', marginTop: '6px', padding: '14px', borderRadius: '12px', border: 'none',
   background: on ? 'linear-gradient(135deg, #E8344E, #F0908A)' : '#2A2A2A', color: on ? '#fff' : '#777',
-  fontSize: '15px', fontWeight: 800, cursor: on ? 'pointer' : 'default',
+  fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, cursor: on ? 'pointer' : 'default',
 })
 
 function Field({ label, value, onChange, autoComplete, placeholder, dir }: { label: string; value: string; onChange: (v: string) => void; autoComplete?: string; placeholder?: string; dir?: 'ltr' | 'rtl' }) {
   return (
     <label style={{ display: 'block', flex: 1, marginBottom: '8px' }}>
-      <span style={{ display: 'block', fontSize: '12px', color: '#888', marginBottom: '4px' }}>{label}</span>
+      <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#888', marginBottom: '4px' }}>{label}</span>
       <input
         value={value} onChange={e => onChange(e.target.value)} autoComplete={autoComplete} placeholder={placeholder} dir={dir}
-        style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: '15px' }}
+        style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))' }}
       />
     </label>
   )

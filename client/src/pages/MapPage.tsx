@@ -173,7 +173,7 @@ export default function MapPage() {
         }}>
           <span aria-hidden="true" style={{
             position: 'absolute', top: '6px', insetInlineStart: '10px',
-            fontSize: '44px', fontWeight: 800, color: 'rgba(255,255,255,0.18)', lineHeight: 1,
+            fontSize: 'calc(44px * var(--fs, 1))', fontWeight: 800, color: 'rgba(255,255,255,0.18)', lineHeight: 1,
           }}>
             {Array.from(label)[0]?.toUpperCase()}
           </span>
@@ -185,16 +185,16 @@ export default function MapPage() {
               padding: '3px 8px', borderRadius: '8px',
             }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fff', animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>
+              <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
                 {plural(ct.livesCount, data.count, lang)}
               </span>
             </div>
           )}
           <div style={{ position: 'absolute', bottom: '8px', insetInlineStart: '10px', insetInlineEnd: '10px' }}>
             {isHere && (
-              <span style={{ fontSize: '11px', fontWeight: 600, color: '#F0908A' }}>{ct.yourPosition}</span>
+              <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#F0908A' }}>{ct.yourPosition}</span>
             )}
-            <h3 dir="auto" style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
+            <h3 dir="auto" style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               {label}
             </h3>
           </div>
@@ -214,7 +214,7 @@ export default function MapPage() {
                     <div style={{
                       width: '100%', height: '100%', backgroundColor: '#F0908A',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '10px', fontWeight: 700, color: '#fff',
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                     }}>
                       {(stream.seller?.display_name || '?')[0].toUpperCase()}
                     </div>
@@ -222,12 +222,12 @@ export default function MapPage() {
                 </div>
               ))}
             </div>
-            <span style={{ fontSize: '11px', color: '#888' }}>{plural(ct.livesCount, data.count, lang)}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>{plural(ct.livesCount, data.count, lang)}</span>
           </div>
         ) : (
           <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#333' }} />
-            <span style={{ fontSize: '11px', color: '#555' }}>{ct.noLive}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>{ct.noLive}</span>
           </div>
         )}
       </button>
@@ -244,8 +244,8 @@ export default function MapPage() {
       <div style={{ padding: '16px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div>
-            <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: 0 }}>{ct.title}</h1>
-            <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
+            <h1 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>{ct.title}</h1>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>
               {detecting ? ct.detecting : ct.subtitle}
             </p>
           </div>
@@ -254,7 +254,7 @@ export default function MapPage() {
             style={{
               background: 'rgba(240,144,138,0.12)', border: '1px solid rgba(240,144,138,0.3)',
               borderRadius: '20px', padding: '8px 14px', color: '#F0908A',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >
             {ct.communities}
@@ -274,14 +274,14 @@ export default function MapPage() {
             onClick={() => { setCenter(null); setSelectedCity(null) }}
             style={{
               marginTop: '10px', background: 'transparent', border: 'none', padding: 0,
-              color: '#F0908A', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              color: '#F0908A', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
             }}
           >
             {ct.backToMyPosition}
           </button>
         )}
         {locationOff && (
-          <p style={{ fontSize: '12px', color: '#f97316', margin: '10px 0 0' }}>{ct.locationUnavailable}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f97316', margin: '10px 0 0' }}>{ct.locationUnavailable}</p>
         )}
       </div>
 
@@ -297,10 +297,10 @@ export default function MapPage() {
             width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0,
             backgroundColor: '#E8344E', animation: 'pulse-live 1.5s ease-in-out infinite',
           }} />
-          <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>
+          <span style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
             {plural(ct.liveNowCount, totalLive, lang)}
           </span>
-          <span dir="auto" style={{ fontSize: '13px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span dir="auto" style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {areaName}
           </span>
         </div>
@@ -335,7 +335,7 @@ export default function MapPage() {
           {/* Lives ailleurs (villes hors de la zone) */}
           {otherCities.length > 0 && (
             <>
-              <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '24px 20px 0' }}>{ct.elsewhere}</h2>
+              <h2 style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '24px 20px 0' }}>{ct.elsewhere}</h2>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', padding: '12px 20px 0' }}>
                 {otherCities.map(([key, data]) => renderCard(key, cityLabel(key, lang), data, false))}
               </div>
@@ -343,7 +343,7 @@ export default function MapPage() {
           )}
 
           {proposed.length === 0 && otherCities.length === 0 && !detecting && (
-            <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', padding: '48px 20px 0', margin: 0 }}>{ct.noLive}</p>
+            <p style={{ textAlign: 'center', color: '#666', fontSize: 'calc(14px * var(--fs, 1))', padding: '48px 20px 0', margin: 0 }}>{ct.noLive}</p>
           )}
         </>
       )}

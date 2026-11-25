@@ -187,7 +187,7 @@ export default function FaqPage() {
           <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
-          <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+          <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
         </div>
         <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid #1A1A1A' }}>
           {(['buyer', 'seller', 'general'] as const).map(t => (
@@ -197,7 +197,7 @@ export default function FaqPage() {
               style={{
                 flex: 1, padding: '12px 0', background: 'none', border: 'none',
                 borderBottom: tab === t ? '2px solid #F0908A' : '2px solid transparent',
-                color: tab === t ? '#fff' : '#666', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                color: tab === t ? '#fff' : '#666', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {c[t]}
@@ -207,7 +207,7 @@ export default function FaqPage() {
       </div>
 
       <div style={{ padding: '16px 20px' }}>
-        <p style={{ fontSize: '14px', color: '#888', marginBottom: '16px' }}>{c.subtitle}</p>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', marginBottom: '16px' }}>{c.subtitle}</p>
         {faqs.map((faq, i) => (
           <div key={`${tab}-${i}`} style={{ borderBottom: '1px solid #1A1A1A', marginBottom: '4px' }}>
             <button
@@ -217,14 +217,14 @@ export default function FaqPage() {
                 padding: '16px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'start',
               }}
             >
-              <span style={{ fontSize: '15px', color: '#fff', fontWeight: 500, flex: 1, paddingInlineEnd: '12px' }}>{faq.q}</span>
+              <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', fontWeight: 500, flex: 1, paddingInlineEnd: '12px' }}>{faq.q}</span>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"
                 style={{ transform: open === i ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', flexShrink: 0 }}>
                 <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
             {open === i && (
-              <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.6, padding: '0 0 16px', whiteSpace: 'pre-line' }}>{faq.a}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6, padding: '0 0 16px', whiteSpace: 'pre-line' }}>{faq.a}</p>
             )}
           </div>
         ))}

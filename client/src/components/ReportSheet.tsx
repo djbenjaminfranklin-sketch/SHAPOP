@@ -85,12 +85,12 @@ export default function ReportSheet({ reportedId, streamId, itemId, context, onC
         width: '100%', backgroundColor: '#111', borderRadius: '20px 20px 0 0', padding: '20px 16px',
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)', maxHeight: '85vh', overflowY: 'auto', color: '#fff',
       }}>
-        <h3 style={{ margin: '0 0 4px', fontSize: '19px', fontWeight: 800 }}>{c.title}</h3>
-        <p style={{ margin: '0 0 14px', fontSize: '13px', color: '#999' }}>{c.subtitle}</p>
+        <h3 style={{ margin: '0 0 4px', fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800 }}>{c.title}</h3>
+        <p style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs, 1))', color: '#999' }}>{c.subtitle}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {(Object.keys(c.reasons) as ReasonKey[]).map(k => (
             <button key={k} onClick={() => setReason(k)} style={{
-              textAlign: 'start', padding: '13px 14px', borderRadius: '12px', cursor: 'pointer', fontSize: '15px', fontWeight: 600,
+              textAlign: 'start', padding: '13px 14px', borderRadius: '12px', cursor: 'pointer', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
               border: reason === k ? '1px solid #E8344E' : '1px solid #2a2a2a',
               backgroundColor: reason === k ? 'rgba(232,52,78,0.14)' : '#161616', color: '#fff',
             }}>{c.reasons[k]}</button>
@@ -98,14 +98,14 @@ export default function ReportSheet({ reportedId, streamId, itemId, context, onC
         </div>
         <textarea
           value={details} onChange={e => setDetails(e.target.value.slice(0, 400))} placeholder={c.details} rows={3}
-          style={{ width: '100%', boxSizing: 'border-box', marginTop: '12px', padding: '12px', borderRadius: '12px', border: '1px solid #2a2a2a', backgroundColor: '#0a0a0a', color: '#fff', fontSize: '15px', resize: 'none' }}
+          style={{ width: '100%', boxSizing: 'border-box', marginTop: '12px', padding: '12px', borderRadius: '12px', border: '1px solid #2a2a2a', backgroundColor: '#0a0a0a', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', resize: 'none' }}
         />
-        {error && <p style={{ color: '#E8344E', fontSize: '13px', margin: '8px 0 0' }}>{error}</p>}
+        {error && <p style={{ color: '#E8344E', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 0 0' }}>{error}</p>}
         <button onClick={send} disabled={!reason || sending} style={{
-          width: '100%', marginTop: '12px', padding: '15px', borderRadius: '14px', border: 'none', fontSize: '16px', fontWeight: 800,
+          width: '100%', marginTop: '12px', padding: '15px', borderRadius: '14px', border: 'none', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800,
           background: reason ? 'linear-gradient(135deg, #E8344E, #F0908A)' : '#2a2a2a', color: reason ? '#fff' : '#777', cursor: reason ? 'pointer' : 'default',
         }}>{sending ? c.sending : c.send}</button>
-        <button onClick={onClose} style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: 'transparent', color: '#bbb', fontSize: '14px', cursor: 'pointer' }}>{c.cancel}</button>
+        <button onClick={onClose} style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: 'transparent', color: '#bbb', fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer' }}>{c.cancel}</button>
       </div>
     </div>
   )

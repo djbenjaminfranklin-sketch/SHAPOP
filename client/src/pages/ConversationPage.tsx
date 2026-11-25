@@ -456,7 +456,7 @@ export default function ConversationPage() {
             animation: 'spin 0.8s linear infinite',
           }}
         />
-        <p style={{ color: '#666', fontSize: '14px', marginTop: '12px' }}>{ct.loading}</p>
+        <p style={{ color: '#666', fontSize: 'calc(14px * var(--fs, 1))', marginTop: '12px' }}>{ct.loading}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
@@ -465,8 +465,8 @@ export default function ConversationPage() {
   if (error) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-        <p role="alert" style={{ color: '#EF4444', fontSize: '14px' }}>{error}</p>
-        <button onClick={() => navigate(-1)} style={{ marginTop: '12px', color: '#E8344E', fontSize: '14px', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <p role="alert" style={{ color: '#EF4444', fontSize: 'calc(14px * var(--fs, 1))' }}>{error}</p>
+        <button onClick={() => navigate(-1)} style={{ marginTop: '12px', color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
           {ct.back}
         </button>
       </div>
@@ -528,22 +528,22 @@ export default function ConversationPage() {
                 width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
                 background: 'linear-gradient(135deg, #E8344E, #F0908A)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontWeight: 700, fontSize: '14px', letterSpacing: '0.5px',
+                color: '#fff', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', letterSpacing: '0.5px',
               }}>
                 {getInitials(otherName)}
               </div>
             )}
             <div style={{ minWidth: 0, flex: 1 }}>
-              <p style={{ fontSize: '15px', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: '#fff' }}>
                 {otherName}
               </p>
               {conversation?.item?.title && (
-                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {conversation.item.title}{conversation.item.current_price ? ` — ${formatItemPrice(conversation.item.current_price, sellerCountry ?? profile?.country, lang)}` : ''}
                 </p>
               )}
               {!conversation?.item?.title && conversation?.order_id && (
-                <p style={{ fontSize: '11px', color: '#666', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {ct.order}{conversation.order_id.slice(0, 8)}
                 </p>
               )}
@@ -591,7 +591,7 @@ export default function ConversationPage() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" strokeWidth="2" style={{ flexShrink: 0 }}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p style={{ fontSize: '10px', color: '#FDBA74', margin: 0 }}>
+          <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#FDBA74', margin: 0 }}>
             {ct.warningBanner}
           </p>
         </div>
@@ -621,8 +621,8 @@ export default function ConversationPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <p style={{ fontSize: '14px', color: '#555', margin: 0 }}>{ct.noMessages}</p>
-            <p style={{ fontSize: '12px', color: '#444', margin: 0 }}>{ct.startConversation}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#555', margin: 0 }}>{ct.noMessages}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444', margin: 0 }}>{ct.startConversation}</p>
           </div>
         )}
 
@@ -644,7 +644,7 @@ export default function ConversationPage() {
             return (
               <div key={msg.id} style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
                 <p style={{
-                  fontSize: '12px', color: '#666', fontStyle: 'italic', textAlign: 'center',
+                  fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontStyle: 'italic', textAlign: 'center',
                   maxWidth: '80%', padding: '4px 12px', margin: 0,
                   backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '12px',
                 }}>
@@ -660,7 +660,7 @@ export default function ConversationPage() {
               <div key={msg.id} style={{ marginBottom: '4px' }}>
                 {showTimestamp && (
                   <div style={{ textAlign: 'center', margin: '16px 0 8px 0' }}>
-                    <span style={{ fontSize: '11px', color: '#555' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
                       {formatRelativeTime(msg.created_at, ct, locale)}
                     </span>
                   </div>
@@ -672,7 +672,7 @@ export default function ConversationPage() {
                       borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                       backgroundColor: isOwn ? '#3A2020' : '#1A1A1A',
                     }}>
-                      <p style={{ fontSize: '14px', color: '#777', fontStyle: 'italic', margin: 0 }}>{ct.messageFlagged}</p>
+                      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#777', fontStyle: 'italic', margin: 0 }}>{ct.messageFlagged}</p>
                     </div>
                   </div>
                 </div>
@@ -685,7 +685,7 @@ export default function ConversationPage() {
             <div key={msg.id} style={{ marginBottom: isSameSenderAsPrev ? '2px' : '8px' }}>
               {showTimestamp && (
                 <div style={{ textAlign: 'center', margin: '16px 0 8px 0' }}>
-                  <span style={{ fontSize: '11px', color: '#555' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
                     {formatRelativeTime(msg.created_at, ct, locale)}
                   </span>
                 </div>
@@ -715,7 +715,7 @@ export default function ConversationPage() {
                           width: '28px', height: '28px', borderRadius: '50%',
                           backgroundColor: '#2A2A2A',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#888', fontSize: '10px', fontWeight: 600,
+                          color: '#888', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600,
                         }}>
                           {getInitials(msg.sender?.display_name || otherName)}
                         </div>
@@ -727,7 +727,7 @@ export default function ConversationPage() {
                 <div style={{ maxWidth: '75%' }}>
                   {/* Sender name for received messages — only show for first message in group */}
                   {!isOwn && msg.sender && !isSameSenderAsPrev && (
-                    <p style={{ fontSize: '11px', color: '#666', margin: '0 0 2px 4px' }}>
+                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '0 0 2px 4px' }}>
                       {msg.sender.display_name}
                     </p>
                   )}
@@ -740,7 +740,7 @@ export default function ConversationPage() {
                   }}>
                     {/* Message text */}
                     {msg.message && (
-                      <p style={{ fontSize: '14px', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
+                      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
                         {msg.message}
                       </p>
                     )}
@@ -771,7 +771,7 @@ export default function ConversationPage() {
                               rel="noopener noreferrer"
                               style={{
                                 display: 'flex', alignItems: 'center', gap: '4px',
-                                fontSize: '12px', textDecoration: 'underline',
+                                fontSize: 'calc(12px * var(--fs, 1))', textDecoration: 'underline',
                                 color: isOwn ? 'rgba(255,255,255,0.85)' : '#F0908A',
                               }}
                             >
@@ -805,7 +805,7 @@ export default function ConversationPage() {
             borderTop: '1px solid rgba(239,68,68,0.25)',
           }}
         >
-          <p style={{ fontSize: '13px', color: '#EF4444', margin: 0, textAlign: 'center' }}>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#EF4444', margin: 0, textAlign: 'center' }}>
             {sendError}
           </p>
         </div>
@@ -866,7 +866,7 @@ export default function ConversationPage() {
               flex: 1,
               backgroundColor: '#1A1A1A',
               color: '#fff',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               borderRadius: '22px',
               padding: '12px 18px',
               border: '1px solid rgba(255,255,255,0.06)',

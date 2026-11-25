@@ -11,7 +11,7 @@ interface Props {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #2a2a2a',
-  backgroundColor: '#0D0D0D', color: '#fff', fontSize: '15px', boxSizing: 'border-box', outline: 'none',
+  backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
 }
 
 /**
@@ -88,17 +88,17 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
           border: selected ? '5px solid #F0908A' : '2px solid #555',
         }} />
         <span style={{ flex: 1 }}>
-          <span style={{ display: 'block', fontWeight: 700, fontSize: '15px' }}>{title}</span>
-          {subtitle && <span style={{ display: 'block', fontSize: '12px', color: '#999', marginTop: '2px' }}>{subtitle}</span>}
+          <span style={{ display: 'block', fontWeight: 700, fontSize: 'calc(15px * var(--fs, 1))' }}>{title}</span>
+          {subtitle && <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#999', marginTop: '2px' }}>{subtitle}</span>}
         </span>
-        <span style={{ fontWeight: 700, fontSize: '14px', color: selected ? '#F0908A' : '#ccc' }}>{price}</span>
+        <span style={{ fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', color: selected ? '#F0908A' : '#ccc' }}>{price}</span>
       </button>
     )
   }
 
   return (
     <div dir={getDir()} style={{ display: 'flex', flexDirection: 'column', gap: '12px', textAlign: 'start' }}>
-      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: 800, color: '#fff' }}>{t.choose_delivery}</h3>
+      <h3 style={{ margin: 0, fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{t.choose_delivery}</h3>
 
       {options.pickup.allowed && optionCard(
         'pickup', t.method_pickup,
@@ -106,11 +106,11 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
         formatMoney(0, options.currency, lang),
       )}
       {optionCard('post', t.method_post, '', formatMoney(options.post.price, options.currency, lang))}
-      {!options.pickup.allowed && <p style={{ margin: 0, fontSize: '12px', color: '#888' }}>{t.post_only}</p>}
+      {!options.pickup.allowed && <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{t.post_only}</p>}
 
       {method === 'post' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#ccc', marginTop: '4px' }}>{t.address_title}</div>
+          <div style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#ccc', marginTop: '4px' }}>{t.address_title}</div>
           <input style={inputStyle} value={address.name} onChange={e => setAddress(a => ({ ...a, name: e.target.value }))} placeholder={t.address_name} aria-label={t.address_name} autoComplete="name" />
           <input style={inputStyle} value={address.street} onChange={e => setAddress(a => ({ ...a, street: e.target.value }))} placeholder={t.address_street} aria-label={t.address_street} autoComplete="street-address" />
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -123,7 +123,7 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
 
       {needsWhatsapp && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#ccc', marginTop: '4px' }}>{t.whatsapp_label}</div>
+          <div style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#ccc', marginTop: '4px' }}>{t.whatsapp_label}</div>
           <input
             style={inputStyle}
             value={whatsapp}
@@ -135,11 +135,11 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
             autoComplete="tel"
             dir="ltr"
           />
-          <span style={{ fontSize: '12px', color: '#888' }}>{t.whatsapp_hint}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{t.whatsapp_hint}</span>
         </div>
       )}
 
-      <div style={{ borderTop: '1px solid #222', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '14px' }}>
+      <div style={{ borderTop: '1px solid #222', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: 'calc(14px * var(--fs, 1))' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
           <span>{t.item_price}</span><span>{formatMoney(options.amount, options.currency, lang)}</span>
         </div>
@@ -149,19 +149,19 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
             <span>{t.shipping_fee}</span><span>{formatMoney(shipping, options.currency, lang)}</span>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 800, fontSize: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontWeight: 800, fontSize: 'calc(16px * var(--fs, 1))' }}>
           <span>{t.total}</span><span>{formatMoney(total, options.currency, lang)}</span>
         </div>
       </div>
 
-      {error && <div role="alert" style={{ color: '#F87171', fontSize: '13px' }}>{error}</div>}
+      {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
 
       <button
         type="button"
         onClick={submit}
         disabled={!canSubmit}
         style={{
-          width: '100%', padding: '15px', borderRadius: '14px', border: 'none', fontWeight: 800, fontSize: '16px',
+          width: '100%', padding: '15px', borderRadius: '14px', border: 'none', fontWeight: 800, fontSize: 'calc(16px * var(--fs, 1))',
           background: canSubmit ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
           color: canSubmit ? '#fff' : '#777', cursor: canSubmit ? 'pointer' : 'not-allowed',
         }}

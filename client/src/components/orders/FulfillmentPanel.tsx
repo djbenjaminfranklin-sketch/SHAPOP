@@ -13,10 +13,10 @@ const card: React.CSSProperties = {
   backgroundColor: '#111', border: '1px solid #222', borderRadius: '16px', padding: '16px',
   display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'start',
 }
-const title: React.CSSProperties = { margin: 0, fontSize: '15px', fontWeight: 800, color: '#fff' }
-const hint: React.CSSProperties = { margin: 0, fontSize: '13px', color: '#999', lineHeight: 1.45 }
+const title: React.CSSProperties = { margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#fff' }
+const hint: React.CSSProperties = { margin: 0, fontSize: 'calc(13px * var(--fs, 1))', color: '#999', lineHeight: 1.45 }
 const primaryBtn = (enabled: boolean): React.CSSProperties => ({
-  width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '15px',
+  width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: 'calc(15px * var(--fs, 1))',
   background: enabled ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333', color: enabled ? '#fff' : '#777',
   cursor: enabled ? 'pointer' : 'not-allowed',
 })
@@ -61,10 +61,10 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
     <div dir={getDir()} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div style={card}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+          <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
             {data.fulfillment_method === 'pickup' ? t.method_pickup : data.fulfillment_method === 'post' ? t.method_post : data.fulfillment_method === 'legacy_carrier' ? t.method_legacy : ''}
           </span>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: awaiting ? '#F0908A' : '#22C55E' }}>{statusLabel(data.status, lang)}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: awaiting ? '#F0908A' : '#22C55E' }}>{statusLabel(data.status, lang)}</span>
         </div>
         {awaiting && data.handover_deadline && (
           <p style={hint}>
@@ -97,7 +97,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
       {isBuyer && data.fulfillment_method === 'pickup' && data.handover?.code && awaiting && (
         <div style={{ ...card, alignItems: 'center', textAlign: 'center', borderColor: 'rgba(240,144,138,0.4)' }}>
           <h3 style={title}>{t.your_code_title}</h3>
-          <div dir="ltr" aria-label={t.your_code_title} style={{ fontSize: '40px', fontWeight: 900, letterSpacing: '12px', color: '#F0908A', fontVariantNumeric: 'tabular-nums' }}>
+          <div dir="ltr" aria-label={t.your_code_title} style={{ fontSize: 'calc(40px * var(--fs, 1))', fontWeight: 900, letterSpacing: '12px', color: '#F0908A', fontVariantNumeric: 'tabular-nums' }}>
             {data.handover.code}
           </div>
           <p style={hint}>{data.handover.locked ? t.code_locked : t.your_code_hint}</p>
@@ -128,7 +128,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
             {([['parcel_url', t.proof_parcel], ['slip_url', t.proof_slip]] as const).map(([key, label]) => data.proofs[key] ? (
               <a key={key} href={data.proofs[key]!} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
                 <img src={data.proofs[key]!} alt={label} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '10px', border: '1px solid #2a2a2a' }} />
-                <span style={{ display: 'block', fontSize: '11px', color: '#999', marginTop: '4px' }}>{label}</span>
+                <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', color: '#999', marginTop: '4px' }}>{label}</span>
               </a>
             ) : null)}
           </div>
@@ -144,13 +144,13 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
               {data.contact.whatsapp_link && (
                 <a href={data.contact.whatsapp_link} target="_blank" rel="noreferrer" style={{
                   display: 'block', textAlign: 'center', padding: '13px', borderRadius: '12px', fontWeight: 800,
-                  backgroundColor: '#25D366', color: '#062b14', textDecoration: 'none', fontSize: '15px',
+                  backgroundColor: '#25D366', color: '#062b14', textDecoration: 'none', fontSize: 'calc(15px * var(--fs, 1))',
                 }}>{t.contact_whatsapp}</a>
               )}
               {data.contact.email_link && (
                 <a href={data.contact.email_link} style={{
                   display: 'block', textAlign: 'center', padding: '13px', borderRadius: '12px', fontWeight: 700,
-                  border: '1px solid #333', color: '#fff', textDecoration: 'none', fontSize: '15px',
+                  border: '1px solid #333', color: '#fff', textDecoration: 'none', fontSize: 'calc(15px * var(--fs, 1))',
                 }}>{t.contact_email}</a>
               )}
             </div>
@@ -209,13 +209,13 @@ function HandoverCodeForm({ orderId, locked, attemptsLeft, onDone }: { orderId: 
         placeholder="••••"
         style={{
           width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D',
-          color: '#fff', fontSize: '28px', letterSpacing: '14px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 800,
+          color: '#fff', fontSize: 'calc(28px * var(--fs, 1))', letterSpacing: '14px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 800,
         }}
       />
       {typeof attemptsLeft === 'number' && attemptsLeft < 5 && !error && !isLocked && (
         <p style={hint}>{t.wrong_code} {attemptsLeft}</p>
       )}
-      {error && <div role="alert" style={{ color: '#F87171', fontSize: '13px' }}>{error}</div>}
+      {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
       <button type="button" onClick={submit} disabled={!ok} style={primaryBtn(ok)}>{busy ? t.sending : t.enter_code_button}</button>
     </div>
   )
@@ -252,15 +252,15 @@ function ProofForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; h
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '12px', backgroundColor: '#0D0D0D', border: '1px solid #222' }}>
       <span style={{
         width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        fontWeight: 800, fontSize: '13px', backgroundColor: sent[kind] ? '#22C55E' : '#333', color: '#fff',
+        fontWeight: 800, fontSize: 'calc(13px * var(--fs, 1))', backgroundColor: sent[kind] ? '#22C55E' : '#333', color: '#fff',
       }}>{sent[kind] ? '✓' : n}</span>
-      <span style={{ flex: 1, fontSize: '13px', color: '#ddd' }}>{label}{sent[kind] ? ` — ${t.photo_sent}` : ''}</span>
+      <span style={{ flex: 1, fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{label}{sent[kind] ? ` — ${t.photo_sent}` : ''}</span>
       <input ref={inputs[kind]} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => onFile(kind, e.target.files?.[0])} />
       <button
         type="button"
         onClick={() => inputs[kind].current?.click()}
         disabled={busy !== null}
-        style={{ padding: '9px 12px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+        style={{ padding: '9px 12px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
           backgroundColor: sent[kind] ? '#222' : '#F0908A', color: sent[kind] ? '#ccc' : '#fff', whiteSpace: 'nowrap' }}
       >
         {busy === kind ? t.sending : sent[kind] ? t.retake_photo : t.take_photo}
@@ -279,10 +279,10 @@ function ProofForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; h
         placeholder={t.tracking_optional}
         aria-label={t.tracking_optional}
         dir="ltr"
-        style={{ width: '100%', padding: '11px 12px', borderRadius: '10px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D', color: '#fff', fontSize: '14px', boxSizing: 'border-box' }}
+        style={{ width: '100%', padding: '11px 12px', borderRadius: '10px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', boxSizing: 'border-box' }}
       />
       {step('slip', 2, t.proof_slip)}
-      {error && <div role="alert" style={{ color: '#F87171', fontSize: '13px' }}>{error}</div>}
+      {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
     </div>
   )
 }

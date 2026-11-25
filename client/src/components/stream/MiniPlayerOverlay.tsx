@@ -73,14 +73,14 @@ export default function MiniPlayerOverlay() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
           <span style={{
-            fontSize: '8px', fontWeight: 700, color: '#fff',
+            fontSize: 'calc(8px * var(--fs, 1))', fontWeight: 700, color: '#fff',
             backgroundColor: '#E8344E', padding: '1px 4px', borderRadius: '3px',
             lineHeight: '12px',
           }}>
             {tr({ en: 'LIVE', fr: 'LIVE', es: 'EN VIVO', ru: 'ЭФИР', he: 'שידור חי' })}
           </span>
           <span style={{
-            fontSize: '10px', color: '#fff', fontWeight: 600,
+            fontSize: 'calc(10px * var(--fs, 1))', color: '#fff', fontWeight: 600,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {miniPlayer.sellerName}
@@ -96,7 +96,7 @@ export default function MiniPlayerOverlay() {
           position: 'absolute', top: '4px', ...rtlPos('right', '4px'),
           width: '22px', height: '22px', borderRadius: '50%',
           backgroundColor: 'rgba(0,0,0,0.6)', border: 'none',
-          color: '#fff', fontSize: '12px', cursor: 'pointer',
+          color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 0, lineHeight: 1,
         }}

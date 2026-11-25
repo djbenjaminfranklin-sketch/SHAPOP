@@ -270,7 +270,7 @@ const content: Localized<RegisterText> = {
 const inputStyle = {
   width: '100%', padding: '16px 18px', borderRadius: '14px',
   backgroundColor: '#111', border: '1.5px solid #222',
-  fontSize: '17px', color: '#fff', outline: 'none',
+  fontSize: 'calc(17px * var(--fs, 1))', color: '#fff', outline: 'none',
   boxSizing: 'border-box' as const, fontFamily: 'inherit',
 }
 
@@ -451,14 +451,14 @@ export default function Register() {
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
           <polyline points="22,6 12,13 2,6"/>
         </svg>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: '#fff', margin: '24px 0 12px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '24px 0 12px', textAlign: 'center' }}>
           {c.checkEmail}
         </h1>
-        <p style={{ fontSize: '16px', color: '#999', textAlign: 'center', lineHeight: 1.5, maxWidth: '300px' }}>
+        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#999', textAlign: 'center', lineHeight: 1.5, maxWidth: '300px' }}>
           {c.checkEmailDesc}
         </p>
         <Link to="/login" style={{
-          marginTop: '32px', color: '#F0908A', fontWeight: 600, fontSize: '16px', textDecoration: 'none',
+          marginTop: '32px', color: '#F0908A', fontWeight: 600, fontSize: 'calc(16px * var(--fs, 1))', textDecoration: 'none',
         }}>
           {c.signIn}
         </Link>
@@ -481,10 +481,10 @@ export default function Register() {
       {/* Logo + Title */}
       <div style={{ paddingTop: '48px', marginBottom: '32px' }}>
         <img src="/logo.png" alt="ShaPop" style={{ height: '100px', marginBottom: '28px', objectFit: 'contain' }} />
-        <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>
           {c.title}
         </h1>
-        <p style={{ fontSize: '16px', color: '#666', marginTop: '8px', lineHeight: 1.4 }}>
+        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#666', marginTop: '8px', lineHeight: 1.4 }}>
           {c.subtitle}
         </p>
       </div>
@@ -494,7 +494,7 @@ export default function Register() {
         <div style={{
           backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
           color: '#F87171', padding: '14px 16px', borderRadius: '14px', marginBottom: '20px',
-          fontSize: '14px', lineHeight: 1.4,
+          fontSize: 'calc(14px * var(--fs, 1))', lineHeight: 1.4,
         }}>
           {error}
         </div>
@@ -508,7 +508,7 @@ export default function Register() {
           onChange={e => setAcceptedTerms(e.target.checked)}
           style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
         />
-        <span style={{ fontSize: '13px', color: '#999', lineHeight: 1.5 }}>
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#999', lineHeight: 1.5 }}>
           {c.acceptTerms}{' '}
           <Link to="/terms" style={{ color: '#F0908A', textDecoration: 'underline' }}>{c.termsLink}</Link>
           {c.comma}{' '}
@@ -525,7 +525,7 @@ export default function Register() {
           onChange={e => setAcceptedAge(e.target.checked)}
           style={{ width: '20px', height: '20px', accentColor: '#E8344E', marginTop: '2px', flexShrink: 0 }}
         />
-        <span style={{ fontSize: '13px', color: '#999', lineHeight: 1.5 }}>
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#999', lineHeight: 1.5 }}>
           {c.ageConfirm}
         </span>
       </label>
@@ -540,7 +540,7 @@ export default function Register() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
           width: '100%', padding: '16px', borderRadius: '14px',
           backgroundColor: '#fff', border: 'none',
-          fontSize: '17px', fontWeight: 600, color: '#000',
+          fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 600, color: '#000',
           cursor: 'pointer', marginBottom: '12px',
           opacity: (!acceptedTerms || !acceptedAge) ? 0.5 : 1,
         }}
@@ -560,7 +560,7 @@ export default function Register() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
           width: '100%', padding: '16px', borderRadius: '14px',
           backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
-          fontSize: '17px', fontWeight: 600, color: '#fff',
+          fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 600, color: '#fff',
           cursor: 'pointer', marginBottom: '24px',
           opacity: (!acceptedTerms || !acceptedAge) ? 0.5 : 1,
         }}
@@ -577,7 +577,7 @@ export default function Register() {
       {/* Divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#222' }} />
-        <span style={{ fontSize: '13px', color: '#555', fontWeight: 500 }}>{c.or}</span>
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#555', fontWeight: 500 }}>{c.or}</span>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#222' }} />
       </div>
 
@@ -609,7 +609,7 @@ export default function Register() {
                   <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="13" r="4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <div style={{ fontSize: '11px', color: '#555', marginTop: '4px' }}>{c.photoLabel}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', marginTop: '4px' }}>{c.photoLabel}</div>
               </div>
             )}
             {/* Camera badge */}
@@ -628,7 +628,7 @@ export default function Register() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
               {c.username}
             </label>
             <input
@@ -642,13 +642,13 @@ export default function Register() {
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
-                fontSize: '16px', color: '#fff', outline: 'none',
+                fontSize: 'calc(16px * var(--fs, 1))', color: '#fff', outline: 'none',
                 boxSizing: 'border-box', fontFamily: 'inherit',
               }}
             />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
               {c.displayName}
             </label>
             <input
@@ -661,7 +661,7 @@ export default function Register() {
               style={{
                 width: '100%', padding: '16px 14px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
-                fontSize: '16px', color: '#fff', outline: 'none',
+                fontSize: 'calc(16px * var(--fs, 1))', color: '#fff', outline: 'none',
                 boxSizing: 'border-box', fontFamily: 'inherit',
               }}
             />
@@ -669,7 +669,7 @@ export default function Register() {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.email}
           </label>
           <input
@@ -686,7 +686,7 @@ export default function Register() {
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.password}
           </label>
           <div style={{ position: 'relative' }}>
@@ -722,7 +722,7 @@ export default function Register() {
 
         {/* Phone field (required, no OTP) */}
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.phone}
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -733,7 +733,7 @@ export default function Register() {
               style={{
                 padding: '16px 8px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
-                fontSize: '15px', color: '#fff', outline: 'none',
+                fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', outline: 'none',
                 fontFamily: 'inherit', minWidth: '95px',
               }}
             >
@@ -757,7 +757,7 @@ export default function Register() {
 
         {/* Referral code (optional) */}
         <div style={{ marginBottom: '24px' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.referralLabel}
           </label>
           <input
@@ -776,7 +776,7 @@ export default function Register() {
           style={{
             width: '100%', padding: '17px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-            color: '#fff', fontSize: '17px', fontWeight: 700, border: 'none',
+            color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, border: 'none',
             cursor: 'pointer', opacity: (loading || !acceptedTerms || !acceptedAge) ? 0.5 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
             letterSpacing: '0.2px',
@@ -787,7 +787,7 @@ export default function Register() {
       </form>
 
       {/* Link to login */}
-      <p style={{ textAlign: 'center', fontSize: '15px', color: '#666', marginTop: '32px' }}>
+      <p style={{ textAlign: 'center', fontSize: 'calc(15px * var(--fs, 1))', color: '#666', marginTop: '32px' }}>
         {c.alreadyHaveAccount}{' '}
         <Link to="/login" style={{ color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>
           {c.signIn}

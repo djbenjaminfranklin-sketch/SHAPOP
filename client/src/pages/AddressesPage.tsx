@@ -300,7 +300,7 @@ export default function AddressesPage() {
     return null
   }
 
-  const inputStyle = { width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '10px', color: '#fff', fontSize: '15px', outline: 'none', boxSizing: 'border-box' as const, marginBottom: '12px' }
+  const inputStyle = { width: '100%', padding: '12px 14px', backgroundColor: '#111', border: '1px solid #222', borderRadius: '10px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box' as const, marginBottom: '12px' }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '80px' }}>
@@ -308,7 +308,7 @@ export default function AddressesPage() {
         <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
       <div style={{ padding: '20px' }}>
@@ -327,23 +327,23 @@ export default function AddressesPage() {
                 border: '1px solid #222',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                     {addr.name}
                   </p>
                   {addr.is_default && (
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#F0908A', backgroundColor: 'rgba(240,144,138,0.12)', padding: '2px 8px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#F0908A', backgroundColor: 'rgba(240,144,138,0.12)', padding: '2px 8px', borderRadius: '6px' }}>
                       {c.defaultLabel}
                     </span>
                   )}
                 </div>
-                <p style={{ fontSize: '13px', color: '#888', margin: '0 0 2px' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 2px' }}>
                   {addr.street}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '0 0 2px' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 2px' }}>
                   {[addr.zip, addr.city].filter(Boolean).join(' ')}
                 </p>
                 {addr.phone && (
-                  <p style={{ fontSize: '13px', color: '#888', margin: '0 0 8px' }}>
+                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 8px' }}>
                     {addr.phone}
                   </p>
                 )}
@@ -353,7 +353,7 @@ export default function AddressesPage() {
                     style={{
                       padding: '8px 16px', backgroundColor: '#1A1A1A',
                       border: 'none', borderRadius: '8px',
-                      color: '#F0908A', fontSize: '13px', fontWeight: 600,
+                      color: '#F0908A', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -366,7 +366,7 @@ export default function AddressesPage() {
                       backgroundColor: confirmDeleteIndex === i ? 'rgba(232,52,78,0.25)' : 'rgba(232,52,78,0.1)',
                       border: confirmDeleteIndex === i ? '1px solid #E8344E' : 'none',
                       borderRadius: '8px',
-                      color: '#E8344E', fontSize: '13px', fontWeight: 600,
+                      color: '#E8344E', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -378,7 +378,7 @@ export default function AddressesPage() {
                       style={{
                         padding: '8px 16px', backgroundColor: '#1A1A1A',
                         border: 'none', borderRadius: '8px',
-                        color: '#888', fontSize: '13px', fontWeight: 600,
+                        color: '#888', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                         cursor: 'pointer',
                       }}
                     >
@@ -391,7 +391,7 @@ export default function AddressesPage() {
                       style={{
                         padding: '8px 16px', backgroundColor: '#1A1A1A',
                         border: 'none', borderRadius: '8px',
-                        color: '#888', fontSize: '13px', fontWeight: 600,
+                        color: '#888', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                         cursor: 'pointer', marginInlineStart: 'auto',
                       }}
                     >
@@ -409,7 +409,7 @@ export default function AddressesPage() {
             {addresses.length === 0 && (
               <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '32px', textAlign: 'center', marginBottom: '16px' }}>
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" style={{ marginBottom: '12px' }}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>{c.noAddr}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', marginBottom: '16px' }}>{c.noAddr}</p>
               </div>
             )}
             <button
@@ -417,7 +417,7 @@ export default function AddressesPage() {
               style={{
                 width: '100%', padding: '14px',
                 backgroundColor: '#F0908A', border: 'none', borderRadius: '10px',
-                color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {c.add}
@@ -426,17 +426,17 @@ export default function AddressesPage() {
         ) : (
           <div>
             <input type="text" autoComplete="name" value={formName} onChange={e => { setFormName(e.target.value); if (fieldErrors.name) setFieldErrors(prev => ({ ...prev, name: false })) }} placeholder={c.name} style={{ ...inputStyle, borderColor: fieldErrors.name ? '#E8344E' : '#222' }} />
-            {fieldErrors.name && <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '-8px', marginBottom: '12px', marginInlineStart: '2px' }}>{c.nameRequired}</p>}
+            {fieldErrors.name && <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#E8344E', marginTop: '-8px', marginBottom: '12px', marginInlineStart: '2px' }}>{c.nameRequired}</p>}
             <input type="text" autoComplete="street-address" value={formStreet} onChange={e => { setFormStreet(e.target.value); if (fieldErrors.street) setFieldErrors(prev => ({ ...prev, street: false })) }} placeholder={c.street} style={{ ...inputStyle, borderColor: fieldErrors.street ? '#E8344E' : '#222' }} />
-            {fieldErrors.street && <p style={{ fontSize: '12px', color: '#E8344E', marginTop: '-8px', marginBottom: '12px', marginInlineStart: '2px' }}>{c.streetRequired}</p>}
+            {fieldErrors.street && <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#E8344E', marginTop: '-8px', marginBottom: '12px', marginInlineStart: '2px' }}>{c.streetRequired}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <input type="text" autoComplete="address-level2" value={formCity} onChange={e => setFormCity(e.target.value)} placeholder={c.city} style={inputStyle} />
               <input type="text" autoComplete="postal-code" autoCapitalize="characters" value={formZip} onChange={e => setFormZip(e.target.value)} placeholder={c.zip} style={inputStyle} />
             </div>
             <input type="tel" inputMode="tel" autoComplete="tel" value={formPhone} onChange={e => setFormPhone(e.target.value)} placeholder={c.phone} style={inputStyle} />
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
-              <button onClick={resetForm} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#1A1A1A', border: 'none', borderRadius: '10px', color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer' }}>{c.cancel}</button>
-              <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#F0908A', border: 'none', borderRadius: '10px', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? c.saving : c.save}</button>
+              <button onClick={resetForm} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#1A1A1A', border: 'none', borderRadius: '10px', color: '#888', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>{c.cancel}</button>
+              <button onClick={handleSave} disabled={saving} style={{ flex: 1, padding: '14px', backgroundColor: '#F0908A', border: 'none', borderRadius: '10px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>{saving ? c.saving : c.save}</button>
             </div>
           </div>
         )}

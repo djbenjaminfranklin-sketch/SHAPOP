@@ -56,7 +56,7 @@ export function PaymentFormInner({ onSuccess, onError, loading, setLoading, payN
           width: '100%', marginTop: '16px', padding: '16px',
           background: loading ? '#555' : 'linear-gradient(135deg, #22C55E, #16A34A)',
           borderRadius: '14px', border: 'none',
-          color: '#fff', fontSize: '16px', fontWeight: 700,
+          color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.7 : 1,
         }}

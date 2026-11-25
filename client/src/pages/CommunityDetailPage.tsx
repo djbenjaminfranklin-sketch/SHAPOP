@@ -355,7 +355,7 @@ export default function CommunityDetailPage() {
         {/* Community name overlay */}
         <div style={{ position: 'absolute', bottom: '20px', insetInlineStart: '20px', insetInlineEnd: '20px' }}>
           <h1 style={{
-            fontSize: '26px', fontWeight: 800, color: '#fff', margin: 0,
+            fontSize: 'calc(26px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0,
             letterSpacing: '-0.5px', lineHeight: 1.2,
             textShadow: '0 2px 8px rgba(0,0,0,0.5)',
           }}>
@@ -368,7 +368,7 @@ export default function CommunityDetailPage() {
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
               <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <span style={{ fontSize: '14px', color: '#ccc' }}>
+            <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc' }}>
               {community.city}, {countryDisplayName}
             </span>
           </div>
@@ -377,7 +377,7 @@ export default function CommunityDetailPage() {
 
       {/* Description */}
       <div style={{ padding: '20px 20px 0' }}>
-        <p style={{ fontSize: '14px', color: '#999', lineHeight: 1.5, margin: 0 }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#999', lineHeight: 1.5, margin: 0 }}>
           {getCommunityDescription(community, lang)}
         </p>
       </div>
@@ -392,24 +392,24 @@ export default function CommunityDetailPage() {
         border: '1px solid #1A1A1A',
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>
+          <div style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>
             {formatCount(community.member_count)}
           </div>
-          <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{ct.members}</div>
+          <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>{ct.members}</div>
         </div>
         <div style={{ width: '1px', backgroundColor: '#1A1A1A' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>
+          <div style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>
             {community.active_sellers}
           </div>
-          <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{ct.activeSellers}</div>
+          <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>{ct.activeSellers}</div>
         </div>
         <div style={{ width: '1px', backgroundColor: '#1A1A1A' }} />
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#fff' }}>
+          <div style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>
             {community.lives_this_week}
           </div>
-          <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{ct.livesPerWeek}</div>
+          <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>{ct.livesPerWeek}</div>
         </div>
       </div>
 
@@ -421,7 +421,7 @@ export default function CommunityDetailPage() {
             width: '100%',
             padding: '14px 0',
             borderRadius: '14px',
-            fontSize: '16px',
+            fontSize: 'calc(16px * var(--fs, 1))',
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'inherit',
@@ -453,11 +453,11 @@ export default function CommunityDetailPage() {
                 backgroundColor: '#E8344E',
                 animation: 'pulse-dot 1.5s ease-in-out infinite',
               }} />
-              <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              <h2 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {ct.livesOngoing}
               </h2>
             </div>
-            <span style={{ fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
+            <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
               {plural(ct.lives, activeStreams.length)}
             </span>
           </div>
@@ -499,7 +499,7 @@ export default function CommunityDetailPage() {
                     display: 'inline-flex', alignItems: 'center', gap: '4px',
                     backgroundColor: '#E8344E', padding: '3px 8px', borderRadius: '6px',
                   }}>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff' }}>
+                    <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
                       {ct.live}
                     </span>
                   </div>
@@ -512,18 +512,18 @@ export default function CommunityDetailPage() {
                       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round"/>
                       <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#fff' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>
                       {formatCount(stream.viewers)}
                     </span>
                   </div>
                 </div>
                 <p style={{
-                  fontSize: '13px', fontWeight: 600, color: '#fff', margin: '8px 0 0',
+                  fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '8px 0 0',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {stream.title}
                 </p>
-                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {stream.seller}
                 </p>
               </div>
@@ -535,7 +535,7 @@ export default function CommunityDetailPage() {
       {/* Membres populaires */}
       {members.length > 0 && (
         <div style={{ padding: '28px 20px 0' }}>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: '0 0 14px' }}>
+          <h2 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 14px' }}>
             {ct.popularMembers}
           </h2>
 
@@ -571,7 +571,7 @@ export default function CommunityDetailPage() {
                   />
                 </div>
                 <span style={{
-                  fontSize: '11px', color: '#ccc', marginTop: '6px',
+                  fontSize: 'calc(11px * var(--fs, 1))', color: '#ccc', marginTop: '6px',
                   fontWeight: 500,
                 }}>
                   {member.name}
@@ -584,7 +584,7 @@ export default function CommunityDetailPage() {
 
       {/* Recent activity section */}
       <div style={{ padding: '28px 20px 0' }}>
-        <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: '0 0 14px' }}>
+        <h2 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 14px' }}>
           {ct.recentActivity}
         </h2>
 
@@ -597,14 +597,14 @@ export default function CommunityDetailPage() {
               animation: 'spin 1s linear infinite',
               margin: '0 auto 8px',
             }} />
-            <p style={{ fontSize: '13px', color: '#555', margin: 0 }}>{ct.loadingActivity}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#555', margin: 0 }}>{ct.loadingActivity}</p>
           </div>
         ) : recentStreams.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" style={{ margin: '0 auto 10px', display: 'block' }}>
               <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <p style={{ fontSize: '14px', color: '#555', margin: 0 }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#555', margin: 0 }}>
               {ct.noRecentActivity}
             </p>
           </div>
@@ -639,29 +639,29 @@ export default function CommunityDetailPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
-                    fontSize: '13px', color: '#ccc', margin: 0, lineHeight: 1.4,
+                    fontSize: 'calc(13px * var(--fs, 1))', color: '#ccc', margin: 0, lineHeight: 1.4,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {stream.title}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px' }}>
-                    <span style={{ fontSize: '11px', color: '#888' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>
                       {stream.seller_name}
                     </span>
                     <span style={{
-                      fontSize: '10px', fontWeight: 700, color: statusColor,
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: statusColor,
                       padding: '1px 6px', borderRadius: '4px',
                       backgroundColor: stream.status === 'live' ? 'rgba(232,52,78,0.15)' : 'transparent',
                     }}>
                       {statusLabel}
                     </span>
                     {stream.viewer_count > 0 && (
-                      <span style={{ fontSize: '11px', color: '#555' }}>
+                      <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
                         {plural(ct.viewers, stream.viewer_count)}
                       </span>
                     )}
                   </div>
-                  <p style={{ fontSize: '11px', color: '#555', margin: '3px 0 0' }}>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', margin: '3px 0 0' }}>
                     {formatTimeAgo(stream.created_at, lang)}
                   </p>
                 </div>

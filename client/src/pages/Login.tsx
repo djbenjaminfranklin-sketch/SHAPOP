@@ -187,10 +187,10 @@ export default function Login() {
       {/* Logo + Title */}
       <div style={{ paddingTop: '48px', marginBottom: '36px' }}>
         <img src="/logo.png" alt="ShaPop" style={{ height: '100px', marginBottom: '28px', objectFit: 'contain' }} />
-        <h1 style={{ fontSize: '32px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>
+        <h1 style={{ fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.5px' }}>
           {c.title}
         </h1>
-        <p style={{ fontSize: '16px', color: '#666', marginTop: '8px', lineHeight: 1.4 }}>
+        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#666', marginTop: '8px', lineHeight: 1.4 }}>
           {c.subtitle}
         </p>
       </div>
@@ -200,7 +200,7 @@ export default function Login() {
         <div style={{
           backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
           color: '#F87171', padding: '14px 16px', borderRadius: '14px', marginBottom: '20px',
-          fontSize: '14px', lineHeight: 1.4,
+          fontSize: 'calc(14px * var(--fs, 1))', lineHeight: 1.4,
         }}>
           {error}
         </div>
@@ -213,7 +213,7 @@ export default function Login() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
           width: '100%', padding: '16px', borderRadius: '14px',
           backgroundColor: '#fff', border: 'none',
-          fontSize: '17px', fontWeight: 600, color: '#000',
+          fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 600, color: '#000',
           cursor: 'pointer', marginBottom: '12px',
         }}
       >
@@ -229,7 +229,7 @@ export default function Login() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
           width: '100%', padding: '16px', borderRadius: '14px',
           backgroundColor: '#1A1A1A', border: '1px solid #2A2A2A',
-          fontSize: '17px', fontWeight: 600, color: '#fff',
+          fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 600, color: '#fff',
           cursor: 'pointer', marginBottom: '24px',
         }}
       >
@@ -245,14 +245,14 @@ export default function Login() {
       {/* Divider */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#222' }} />
-        <span style={{ fontSize: '13px', color: '#555', fontWeight: 500 }}>{c.or}</span>
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#555', fontWeight: 500 }}>{c.or}</span>
         <div style={{ flex: 1, height: '1px', backgroundColor: '#222' }} />
       </div>
 
       {/* Email form */}
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.email}
           </label>
           <input
@@ -267,14 +267,14 @@ export default function Login() {
             style={{
               width: '100%', padding: '16px 18px', borderRadius: '14px',
               backgroundColor: '#111', border: '1.5px solid #222',
-              fontSize: '17px', color: '#fff', outline: 'none',
+              fontSize: 'calc(17px * var(--fs, 1))', color: '#fff', outline: 'none',
               boxSizing: 'border-box', fontFamily: 'inherit',
             }}
           />
         </div>
 
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
+          <label style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#999', marginBottom: '8px' }}>
             {c.password}
           </label>
           <div style={{ position: 'relative' }}>
@@ -289,7 +289,7 @@ export default function Login() {
               style={{
                 width: '100%', padding: '16px 18px', paddingInlineEnd: '48px', borderRadius: '14px',
                 backgroundColor: '#111', border: '1.5px solid #222',
-                fontSize: '17px', color: '#fff', outline: 'none',
+                fontSize: 'calc(17px * var(--fs, 1))', color: '#fff', outline: 'none',
                 boxSizing: 'border-box', fontFamily: 'inherit',
               }}
             />
@@ -313,7 +313,7 @@ export default function Login() {
         </div>
 
         <div style={{ textAlign: 'end', marginBottom: '24px' }}>
-          <Link to="/forgot-password" style={{ fontSize: '14px', color: '#F0908A', fontWeight: 500, textDecoration: 'none' }}>
+          <Link to="/forgot-password" style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 500, textDecoration: 'none' }}>
             {c.forgotPassword}
           </Link>
         </div>
@@ -324,7 +324,7 @@ export default function Login() {
           style={{
             width: '100%', padding: '17px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-            color: '#fff', fontSize: '17px', fontWeight: 700, border: 'none',
+            color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, border: 'none',
             cursor: 'pointer', opacity: loading ? 0.5 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
             letterSpacing: '0.2px',
@@ -335,7 +335,7 @@ export default function Login() {
       </form>
 
       {/* Link to register */}
-      <p style={{ textAlign: 'center', fontSize: '15px', color: '#666', marginTop: '32px' }}>
+      <p style={{ textAlign: 'center', fontSize: 'calc(15px * var(--fs, 1))', color: '#666', marginTop: '32px' }}>
         {c.noAccount}{' '}
         <Link to="/register" style={{ color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>
           {c.createAccount}
@@ -344,13 +344,13 @@ export default function Login() {
 
       {/* Legal links */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '24px', flexWrap: 'wrap' }}>
-        <Link to="/terms" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
+        <Link to="/terms" style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textDecoration: 'none' }}>
           {c.terms}
         </Link>
-        <Link to="/privacy" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
+        <Link to="/privacy" style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textDecoration: 'none' }}>
           {c.privacy}
         </Link>
-        <Link to="/eula" style={{ fontSize: '12px', color: '#555', textDecoration: 'none' }}>
+        <Link to="/eula" style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textDecoration: 'none' }}>
           {c.eula}
         </Link>
       </div>

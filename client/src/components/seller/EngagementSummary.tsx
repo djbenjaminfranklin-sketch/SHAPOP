@@ -202,9 +202,9 @@ export default function EngagementSummary() {
         gap: '8px',
         marginBottom: '16px',
       }}>
-        <span style={{ fontSize: '20px' }}>{'\u{1F4CA}'}</span>
+        <span style={{ fontSize: 'calc(20px * var(--fs, 1))' }}>{'\u{1F4CA}'}</span>
         <h2 style={{
-          fontSize: '18px',
+          fontSize: 'calc(18px * var(--fs, 1))',
           fontWeight: 800,
           color: '#fff',
           letterSpacing: '-0.3px',
@@ -229,14 +229,14 @@ export default function EngagementSummary() {
           marginBottom: '16px',
         }}>
           <span style={{
-            fontSize: '13px',
+            fontSize: 'calc(13px * var(--fs, 1))',
             fontWeight: 700,
             color: '#999',
           }}>
             {ct.engagementRate7}
           </span>
           <span style={{
-            fontSize: '12px',
+            fontSize: 'calc(12px * var(--fs, 1))',
             fontWeight: 600,
             color: '#22C55E',
             padding: '2px 8px',
@@ -268,7 +268,7 @@ export default function EngagementSummary() {
                 gap: '6px',
               }}>
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: 'calc(9px * var(--fs, 1))',
                   fontWeight: 700,
                   color: isLast ? '#F0908A' : '#555',
                   fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
@@ -288,7 +288,7 @@ export default function EngagementSummary() {
                   boxShadow: isLast ? '0 0 10px rgba(240,144,138,0.3)' : 'none',
                 }} />
                 <span style={{
-                  fontSize: '9px',
+                  fontSize: 'calc(9px * var(--fs, 1))',
                   fontWeight: 600,
                   color: '#555',
                 }}>
@@ -323,9 +323,9 @@ export default function EngagementSummary() {
               gap: '6px',
               marginBottom: '8px',
             }}>
-              <span style={{ fontSize: '14px' }}>{stat.emoji}</span>
+              <span style={{ fontSize: 'calc(14px * var(--fs, 1))' }}>{stat.emoji}</span>
               <span style={{
-                fontSize: '11px',
+                fontSize: 'calc(11px * var(--fs, 1))',
                 fontWeight: 600,
                 color: '#777',
               }}>
@@ -333,7 +333,7 @@ export default function EngagementSummary() {
               </span>
             </div>
             <span style={{
-              fontSize: '24px',
+              fontSize: 'calc(24px * var(--fs, 1))',
               fontWeight: 900,
               color: stat.color,
               fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
@@ -364,16 +364,16 @@ export default function EngagementSummary() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '18px',
+          fontSize: 'calc(18px * var(--fs, 1))',
           flexShrink: 0,
         }}>
           {'\u{1F3AF}'}
         </div>
         <div>
-          <p style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A', margin: 0 }}>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: 0 }}>
             {ct.lastLive}
           </p>
-          <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
             {ct.lastLiveDesc}
           </p>
         </div>

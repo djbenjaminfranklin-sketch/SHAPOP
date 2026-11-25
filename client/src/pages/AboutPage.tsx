@@ -153,21 +153,21 @@ export default function AboutPage() {
         <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
       <div style={{ padding: '32px 20px', textAlign: 'center' }}>
         {/* Logo */}
-        <div style={{ fontSize: '42px', fontWeight: 800, color: '#fff', letterSpacing: '-1px', fontStyle: 'italic', marginBottom: '4px' }}>
+        <div style={{ fontSize: 'calc(42px * var(--fs, 1))', fontWeight: 800, color: '#fff', letterSpacing: '-1px', fontStyle: 'italic', marginBottom: '4px' }}>
           Sha<span style={{ color: '#F0908A' }}>Pop</span>{/* i18n-ignore */}
         </div>
-        <p style={{ fontSize: '16px', color: '#aaa', fontStyle: 'italic', marginBottom: '24px' }}>{c.tagline}</p>
-        <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.7, textAlign: 'start', marginBottom: '32px' }}>{c.desc}</p>
+        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#aaa', fontStyle: 'italic', marginBottom: '24px' }}>{c.tagline}</p>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.7, textAlign: 'start', marginBottom: '32px' }}>{c.desc}</p>
 
         {/* Mission */}
         <div style={{ backgroundColor: '#111', borderRadius: '16px', padding: '20px', marginBottom: '24px', textAlign: 'start' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.missionTitle}</h2>
-          <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.6 }}>{c.mission}</p>
+          <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.missionTitle}</h2>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6 }}>{c.mission}</p>
         </div>
 
         {/* Features grid */}
@@ -175,15 +175,15 @@ export default function AboutPage() {
           {c.features.map((f) => (
             <div key={f.icon} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'start' }}>
               {iconMap[f.icon]}
-              <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginTop: '10px', marginBottom: '4px' }}>{f.title}</h3>
-              <p style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>{f.desc}</p>
+              <h3 style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginTop: '10px', marginBottom: '4px' }}>{f.title}</h3>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', lineHeight: 1.4 }}>{f.desc}</p>
             </div>
           ))}
         </div>
 
         {/* Legal links */}
         <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'start', marginBottom: '24px' }}>
-          <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.legal}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.legal}</p>
           {[
             { label: c.terms, to: '/terms' },
             { label: c.privacy, to: '/privacy' },
@@ -200,15 +200,15 @@ export default function AboutPage() {
                 cursor: 'pointer', textAlign: 'start',
               }}
             >
-              <span style={{ fontSize: '14px', color: '#aaa' }}>{link.label}</span>
+              <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa' }}>{link.label}</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2" style={{ ...rtlFlip() }}><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           ))}
         </div>
 
         {/* Version & footer */}
-        <p style={{ fontSize: '12px', color: '#444' }}>{c.version} 1.0.0</p>
-        <p style={{ fontSize: '12px', color: '#444', marginTop: '4px' }}>{c.made}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444' }}>{c.version} 1.0.0</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444', marginTop: '4px' }}>{c.made}</p>
       </div>
     </div>
   )

@@ -729,7 +729,7 @@ export default function CreateLiveWizard() {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: stepHeroes[0].gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '42px',
+                fontSize: 'calc(42px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(240, 144, 138, 0.35), 0 0 0 8px rgba(240, 144, 138, 0.08)',
               }}>
                 {stepHeroes[0].emoji}
@@ -737,12 +737,12 @@ export default function CreateLiveWizard() {
             </div>
 
             <h2 style={{
-              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '6px',
+              fontSize: 'calc(26px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '6px',
               textAlign: 'center', letterSpacing: '-0.5px',
             }}>
               {t.tipsTitle}
             </h2>
-            <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', marginBottom: '28px' }}>
+            <p style={{ textAlign: 'center', color: '#666', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '28px' }}>
               {t.learnFromPros}
             </p>
 
@@ -787,16 +787,16 @@ export default function CreateLiveWizard() {
                     display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
                     position: 'relative',
                   }}>
-                    <div style={{ fontSize: '30px' }}>{tip.emoji}</div>
+                    <div style={{ fontSize: 'calc(30px * var(--fs, 1))' }}>{tip.emoji}</div>
                   </div>
                   <h3 style={{
-                    fontSize: '20px', fontWeight: 800, color: '#fff', marginBottom: '10px',
+                    fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '10px',
                     letterSpacing: '-0.3px',
                   }}>
                     {tip.title}
                   </h3>
                   <p style={{
-                    fontSize: '15px', color: '#aaa', lineHeight: 1.7,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: '#aaa', lineHeight: 1.7,
                     letterSpacing: '0.1px',
                   }}>
                     {tip.desc}
@@ -809,7 +809,7 @@ export default function CreateLiveWizard() {
                     background: `${tip.color}15`,
                     border: `1px solid ${tip.color}30`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '12px', fontWeight: 800, color: tip.color,
+                    fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: tip.color,
                   }}>
                     {i + 1}
                   </div>
@@ -848,7 +848,7 @@ export default function CreateLiveWizard() {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: stepHeroes[1].gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '42px',
+                fontSize: 'calc(42px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(167, 139, 250, 0.35), 0 0 0 8px rgba(167, 139, 250, 0.08)',
               }}>
                 {stepHeroes[1].emoji}
@@ -856,7 +856,7 @@ export default function CreateLiveWizard() {
             </div>
 
             <h2 style={{
-              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '28px',
+              fontSize: 'calc(26px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '28px',
               textAlign: 'center', letterSpacing: '-0.5px',
             }}>
               {t.titleLabel}
@@ -885,7 +885,7 @@ export default function CreateLiveWizard() {
                   backgroundColor: '#0A0A0A',
                   border: titleFocused ? 'none' : '1px solid #1E1E1E',
                   borderRadius: '14px', color: '#fff',
-                  fontSize: '17px', fontWeight: 500, outline: 'none', boxSizing: 'border-box',
+                  fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 500, outline: 'none', boxSizing: 'border-box',
                   letterSpacing: '0.2px',
                 }}
               />
@@ -906,7 +906,7 @@ export default function CreateLiveWizard() {
                 }} />
               </div>
               <p style={{
-                fontSize: '13px', fontWeight: 600,
+                fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                 color: title.length > 120 ? '#FBBF24' : '#555',
                 flexShrink: 0,
               }}>
@@ -926,7 +926,7 @@ export default function CreateLiveWizard() {
                 borderBottom: '1px solid #141414',
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}>
-                <span style={{ fontSize: '11px', color: '#666', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
                   {t.livePreview}
                 </span>
                 <div style={{
@@ -956,7 +956,7 @@ export default function CreateLiveWizard() {
                   <div style={{
                     background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
                     borderRadius: '6px', padding: '4px 10px',
-                    fontSize: '11px', fontWeight: 800, color: '#fff',
+                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                     letterSpacing: '1px',
                     boxShadow: '0 2px 12px rgba(232, 52, 78, 0.5)',
                     display: 'flex', alignItems: 'center', gap: '4px',
@@ -971,7 +971,7 @@ export default function CreateLiveWizard() {
                 <div style={{
                   position: 'absolute', top: '12px', ...rtlPos('right', '12px'),
                   background: 'rgba(0,0,0,0.6)', borderRadius: '6px',
-                  padding: '4px 8px', fontSize: '11px', color: '#ccc',
+                  padding: '4px 8px', fontSize: 'calc(11px * var(--fs, 1))', color: '#ccc',
                   backdropFilter: 'blur(8px)',
                   display: 'flex', alignItems: 'center', gap: '4px',
                 }}>
@@ -991,13 +991,13 @@ export default function CreateLiveWizard() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
-                    fontSize: '15px', fontWeight: 700, color: title.trim() ? '#fff' : '#444',
+                    fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: title.trim() ? '#fff' : '#444',
                     transition: 'color 0.3s ease',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                     {title.trim() || t.titlePlaceholder}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>
                     {profile?.display_name || profile?.username || t.you}
                   </p>
                 </div>
@@ -1016,7 +1016,7 @@ export default function CreateLiveWizard() {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: stepHeroes[2].gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '42px',
+                fontSize: 'calc(42px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(96, 165, 250, 0.35), 0 0 0 8px rgba(96, 165, 250, 0.08)',
               }}>
                 {stepHeroes[2].emoji}
@@ -1024,7 +1024,7 @@ export default function CreateLiveWizard() {
             </div>
 
             <h2 style={{
-              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '28px',
+              fontSize: 'calc(26px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '28px',
               textAlign: 'center', letterSpacing: '-0.5px',
             }}>
               {t.dateLabel}
@@ -1032,7 +1032,7 @@ export default function CreateLiveWizard() {
 
             {/* Date picker cards - horizontal scroll */}
             <label style={{
-              display: 'block', fontSize: '12px', color: '#666', marginBottom: '10px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '10px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px',
             }}>
@@ -1062,21 +1062,21 @@ export default function CreateLiveWizard() {
                     }}
                   >
                     <span style={{
-                      fontSize: '11px', fontWeight: 600,
+                      fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
                       color: isSelected ? '#60A5FA' : '#555',
                       letterSpacing: '0.5px',
                     }}>
                       {d.isToday ? t.today : d.dayName}
                     </span>
                     <span style={{
-                      fontSize: '24px', fontWeight: 800,
+                      fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800,
                       color: isSelected ? '#fff' : '#888',
                       lineHeight: 1,
                     }}>
                       {d.dayNum}
                     </span>
                     <span style={{
-                      fontSize: '10px', fontWeight: 600,
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600,
                       color: isSelected ? '#60A5FA99' : '#444',
                     }}>
                       {d.month}
@@ -1121,7 +1121,7 @@ export default function CreateLiveWizard() {
                   <line x1="12" y1="8" x2="12" y2="16" />
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
-                <span style={{ fontSize: '10px', color: '#555', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#555', fontWeight: 600 }}>
                   {t.more}
                 </span>
               </button>
@@ -1129,7 +1129,7 @@ export default function CreateLiveWizard() {
 
             {/* Time picker */}
             <label style={{
-              display: 'block', fontSize: '12px', color: '#666', marginBottom: '10px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '10px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px', marginTop: '16px',
             }}>
@@ -1158,7 +1158,7 @@ export default function CreateLiveWizard() {
                         : '#0A0A0A',
                       border: isSelected ? '1.5px solid #60A5FA' : '1px solid #1A1A1A',
                       cursor: 'pointer',
-                      fontSize: '14px', fontWeight: 600,
+                      fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                       color: isSelected ? '#60A5FA' : '#666',
                       boxShadow: isSelected ? '0 2px 12px rgba(96, 165, 250, 0.2)' : 'none',
                     }}
@@ -1171,7 +1171,7 @@ export default function CreateLiveWizard() {
 
             {/* Repeat selection */}
             <label style={{
-              display: 'block', fontSize: '12px', color: '#666', marginBottom: '10px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '10px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px', marginTop: '16px',
             }}>
@@ -1195,12 +1195,12 @@ export default function CreateLiveWizard() {
                         : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
                       border: isSelected ? '1.5px solid #F0908A' : '1px solid #1A1A1A',
                       color: isSelected ? '#F0908A' : '#666',
-                      fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                      fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                       boxShadow: isSelected ? '0 4px 16px rgba(240, 144, 138, 0.15)' : 'none',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>{opt.icon}</span>
+                    <span style={{ fontSize: 'calc(18px * var(--fs, 1))' }}>{opt.icon}</span>
                     {opt.label}
                   </button>
                 )
@@ -1219,7 +1219,7 @@ export default function CreateLiveWizard() {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: stepHeroes[3].gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '42px',
+                fontSize: 'calc(42px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(52, 211, 153, 0.35), 0 0 0 8px rgba(52, 211, 153, 0.08)',
               }}>
                 {stepHeroes[3].emoji}
@@ -1227,12 +1227,12 @@ export default function CreateLiveWizard() {
             </div>
 
             <h2 style={{
-              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '8px',
+              fontSize: 'calc(26px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '8px',
               textAlign: 'center', letterSpacing: '-0.5px',
             }}>
               {t.categoryLabel}
             </h2>
-            <p style={{ textAlign: 'center', color: '#555', fontSize: '14px', marginBottom: '24px' }}>
+            <p style={{ textAlign: 'center', color: '#555', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '24px' }}>
               {t.categorySelect}
             </p>
 
@@ -1256,7 +1256,7 @@ export default function CreateLiveWizard() {
                       border: isSelected ? '2px solid #34D399' : '1px solid #333',
                       backgroundColor: isSelected ? 'rgba(52, 211, 153, 0.15)' : '#1A1A1A',
                       color: isSelected ? '#34D399' : '#ccc',
-                      fontSize: '14px',
+                      fontSize: 'calc(14px * var(--fs, 1))',
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -1281,7 +1281,7 @@ export default function CreateLiveWizard() {
 
             {/* Format selection */}
             <label style={{
-              display: 'block', fontSize: '12px', color: '#666', marginBottom: '12px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '12px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px',
             }}>
@@ -1302,7 +1302,7 @@ export default function CreateLiveWizard() {
                         : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
                       border: selected ? '1.5px solid #34D399' : '1px solid #1A1A1A',
                       color: selected ? '#34D399' : '#888',
-                      fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                      fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                       boxShadow: selected ? '0 2px 12px rgba(52, 211, 153, 0.2)' : 'none',
                     }}
                   >
@@ -1324,7 +1324,7 @@ export default function CreateLiveWizard() {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: stepHeroes[4].gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '42px',
+                fontSize: 'calc(42px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(251, 191, 36, 0.35), 0 0 0 8px rgba(251, 191, 36, 0.08)',
               }}>
                 {stepHeroes[4].emoji}
@@ -1332,12 +1332,12 @@ export default function CreateLiveWizard() {
             </div>
 
             <h2 style={{
-              fontSize: '26px', fontWeight: 800, color: '#fff', marginBottom: '4px',
+              fontSize: 'calc(26px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '4px',
               textAlign: 'center', letterSpacing: '-0.5px',
             }}>
               {t.thumbnailLabel}
             </h2>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '28px', textAlign: 'center' }}>{t.thumbnailDesc}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', marginBottom: '28px', textAlign: 'center' }}>{t.thumbnailDesc}</p>
 
             <input
               ref={fileInputRef}
@@ -1361,7 +1361,7 @@ export default function CreateLiveWizard() {
                   border: dragOver
                     ? '2px dashed #FBBF24'
                     : '2px dashed #1E1E1E',
-                  color: '#888', fontSize: '15px', fontWeight: 600, cursor: 'pointer',
+                  color: '#888', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
                   boxShadow: dragOver ? '0 0 40px rgba(251, 191, 36, 0.1) inset' : 'none',
                 }}
@@ -1381,13 +1381,13 @@ export default function CreateLiveWizard() {
                 </div>
                 <div style={{ textAlign: 'center' }}>
                   <p style={{
-                    fontSize: '16px', fontWeight: 700,
+                    fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     color: dragOver ? '#FBBF24' : '#888',
                     marginBottom: '4px', transition: 'color 0.3s ease',
                   }}>
                     {t.uploadBtn}
                   </p>
-                  <p style={{ fontSize: '13px', color: '#444' }}>
+                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#444' }}>
                     {t.dragDrop}
                   </p>
                 </div>
@@ -1399,7 +1399,7 @@ export default function CreateLiveWizard() {
                     <span key={fmt} style={{
                       padding: '3px 10px', borderRadius: '6px',
                       background: '#111', border: '1px solid #1A1A1A',
-                      fontSize: '10px', fontWeight: 700, color: '#444',
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#444',
                       letterSpacing: '0.5px',
                     }}>
                       {fmt}
@@ -1441,7 +1441,7 @@ export default function CreateLiveWizard() {
                       <div style={{
                         background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
                         borderRadius: '6px', padding: '4px 10px',
-                        fontSize: '11px', fontWeight: 800, color: '#fff',
+                        fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                         letterSpacing: '1px',
                         boxShadow: '0 2px 12px rgba(232, 52, 78, 0.5)',
                         display: 'flex', alignItems: 'center', gap: '4px',
@@ -1457,7 +1457,7 @@ export default function CreateLiveWizard() {
                         position: 'absolute', top: '12px', ...rtlPos('right', '12px'),
                         background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
                         borderRadius: '6px', padding: '4px 8px',
-                        fontSize: '10px', fontWeight: 700, color: '#fff',
+                        fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                         letterSpacing: '0.5px',
                         display: 'flex', alignItems: 'center', gap: '4px',
                       }}>
@@ -1477,12 +1477,12 @@ export default function CreateLiveWizard() {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{
-                        fontSize: '15px', fontWeight: 700, color: '#fff',
+                        fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
                         {title || t.titlePreview}
                       </p>
-                      <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>
                         {profile?.display_name || profile?.username || t.you}
                         {selectedCatObj && (
                           <span style={{ color: '#444' }}>{' \u00B7 '}{i18nT(lang, selectedCatObj.id as TranslationKey)}</span>
@@ -1497,7 +1497,7 @@ export default function CreateLiveWizard() {
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: 'linear-gradient(145deg, #141414 0%, #0D0D0D 100%)',
                     border: '1px solid #1E1E1E',
-                    color: '#aaa', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                    color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   }}
                 >
@@ -1515,7 +1515,7 @@ export default function CreateLiveWizard() {
               <div style={{
                 background: 'linear-gradient(135deg, rgba(232,52,78,0.12) 0%, rgba(232,52,78,0.04) 100%)',
                 color: '#E8344E',
-                padding: '14px 18px', borderRadius: '14px', marginTop: '16px', fontSize: '14px',
+                padding: '14px 18px', borderRadius: '14px', marginTop: '16px', fontSize: 'calc(14px * var(--fs, 1))',
                 fontWeight: 600,
                 border: '1px solid rgba(232,52,78,0.2)',
                 display: 'flex', alignItems: 'center', gap: '10px',
@@ -1558,11 +1558,11 @@ export default function CreateLiveWizard() {
               <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{t.trimTitle}</h2>
+          <h2 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{t.trimTitle}</h2>
           <div style={{ width: '44px' }} />
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: '14px', color: '#888', margin: '0 0 16px' }}>
+        <p style={{ textAlign: 'center', fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 16px' }}>
           {t.trimDesc}
         </p>
 
@@ -1587,13 +1587,13 @@ export default function CreateLiveWizard() {
             }}>
               <span style={{
                 background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
-                fontSize: '12px', fontWeight: 700, color: '#fff',
+                fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#fff',
               }}>
                 {secs(trimStart)} - {secs(endTime)}
               </span>
               <span style={{
                 background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
-                fontSize: '12px', fontWeight: 600, color: '#888',
+                fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888',
               }}>
                 {t.totalDuration.replace('{n}', String(Math.floor(trimDuration)))}
               </span>
@@ -1646,7 +1646,7 @@ export default function CreateLiveWizard() {
                 : 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #F0908A 100%)',
               borderRadius: '16px', border: 'none',
               color: trimming ? '#666' : '#fff',
-              fontSize: '17px', fontWeight: 800, cursor: trimming ? 'not-allowed' : 'pointer',
+              fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, cursor: trimming ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
               boxShadow: trimming ? 'none' : '0 8px 32px rgba(240,144,138,0.35)',
               paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
@@ -1715,7 +1715,7 @@ export default function CreateLiveWizard() {
               onClick={handleSkip}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: '14px', fontWeight: 700, color: '#F0908A',
+                fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
                 minWidth: '42px', ...rtlTextAlign('right'), padding: '4px 0',
                 letterSpacing: '0.2px',
               }}
@@ -1724,7 +1724,7 @@ export default function CreateLiveWizard() {
             </button>
           ) : (
             <div style={{
-              fontSize: '13px', fontWeight: 700, color: '#444',
+              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#444',
               minWidth: '42px', ...rtlTextAlign('right'),
             }}>
               {step + 1}/{TOTAL_STEPS}
@@ -1788,7 +1788,7 @@ export default function CreateLiveWizard() {
             backgroundSize: '200% 100%',
             borderRadius: '16px', border: 'none',
             color: canProceed() ? '#fff' : '#444',
-            fontSize: '17px', fontWeight: 800,
+            fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
             cursor: canProceed() ? 'pointer' : 'not-allowed',
             opacity: loading ? 0.7 : 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
@@ -1864,13 +1864,13 @@ export default function CreateLiveWizard() {
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
-            <h3 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 12px' }}>
+            <h3 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 12px' }}>
               {t.successTitle}
             </h3>
-            <p style={{ fontSize: '15px', color: '#999', margin: '0 0 8px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#999', margin: '0 0 8px', lineHeight: 1.5 }}>
               {t.successMsg}
             </p>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A', margin: '0 0 28px' }}>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: '0 0 28px' }}>
               {successDate}
             </p>
             <button
@@ -1879,7 +1879,7 @@ export default function CreateLiveWizard() {
                 width: '100%', padding: '16px',
                 borderRadius: '14px', border: 'none',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                color: '#fff', fontSize: '16px', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer', touchAction: 'manipulation',
                 boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
               }}

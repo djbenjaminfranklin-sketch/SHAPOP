@@ -18,7 +18,7 @@ export interface LegalDoc {
 }
 
 const SUPPORT_MAIL = 'support@shapop.app'
-const TEXT = { fontSize: '14px', color: '#aaa', lineHeight: 1.6 } as const
+const TEXT = { fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6 } as const
 
 function mailLink(key: string) {
   return <a key={key} href={`mailto:${SUPPORT_MAIL}`} style={{ color: '#F0908A' }}>{SUPPORT_MAIL}</a>
@@ -85,19 +85,19 @@ export default function LegalDocument({ doc }: { doc: LegalDoc }) {
         <button onClick={() => navigate(-1)} aria-label={doc.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{ ...rtlFlip() }}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{doc.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{doc.title}</h1>
       </div>
       <div style={{ padding: '20px 20px' }}>
-        <p style={{ fontSize: '12px', color: '#666', marginBottom: '16px' }}>{doc.updated}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '16px' }}>{doc.updated}</p>
         <p style={{ ...TEXT, color: '#ccc', marginBottom: '24px' }}>{withMail(doc.lede, 'lede')}</p>
         <div style={{ marginBottom: '20px' }}>
           {/* À COMPLÉTER : identité légale de l'exploitant (raison sociale, forme, numéro d'immatriculation, adresse du siège) */}
-          <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{doc.opH}</h2>
+          <h2 style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{doc.opH}</h2>
           <p style={TEXT}>{withMail(doc.opP, 'op')}</p>
         </div>
         {doc.sections.map(([h, html], i) => (
           <div key={h} style={{ marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{i + 1}. {h}</h2>
+            <h2 style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{i + 1}. {h}</h2>
             <LegalHtml html={html} />
           </div>
         ))}

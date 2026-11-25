@@ -84,7 +84,7 @@ export default function VodPlayer({ recordingUrl, title, startOffset, onClose }:
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
       }}>
         <h3 style={{
-          fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0,
+          fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0,
           flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {title}
@@ -128,7 +128,7 @@ export default function VodPlayer({ recordingUrl, title, startOffset, onClose }:
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
         textAlign: 'center',
       }}>
-        <span style={{ fontSize: '12px', color: '#666' }}>{t.replay}</span>
+        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>{t.replay}</span>
       </div>
     </div>
   )

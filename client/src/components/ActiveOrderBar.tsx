@@ -112,11 +112,11 @@ export default function ActiveOrderBar({ userId, path }: { userId: string; path:
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M18 15l-6-6-6 6" /></svg>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: '15px', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.title}</span>
-        {bar.sub && <span style={{ display: 'block', fontSize: '12px', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.sub}</span>}
+        <span style={{ display: 'block', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.title}</span>
+        {bar.sub && <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.sub}</span>}
       </span>
       {bar.extra > 0 && (
-        <span style={{ flexShrink: 0, fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '999px', backgroundColor: 'rgba(240,144,138,0.18)' }}>{c.more(bar.extra)}</span>
+        <span style={{ flexShrink: 0, fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, padding: '4px 8px', borderRadius: '999px', backgroundColor: 'rgba(240,144,138,0.18)' }}>{c.more(bar.extra)}</span>
       )}
     </button>
   )

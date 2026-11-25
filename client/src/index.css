@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Échelle du texte de toute l appli (réglée dans Paramètres > Taille du texte) */
+:root { --fs: 1.15; }
+
+
 @theme {
   --color-accent: #F0908A;
   --color-accent-hover: #E87A73;

@@ -111,11 +111,11 @@ export default function HandoverPage() {
           <button
             onClick={() => navigate(-1)}
             aria-label={t.back}
-            style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1A1A1A', border: '1px solid #333', color: '#fff', cursor: 'pointer', flexShrink: 0, fontSize: '18px' }}
+            style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1A1A1A', border: '1px solid #333', color: '#fff', cursor: 'pointer', flexShrink: 0, fontSize: 'calc(18px * var(--fs, 1))' }}
           >
             <span style={{ display: 'inline-block', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>‹</span>
           </button>
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>{t.to_hand_over}</h1>
+          <h1 style={{ margin: 0, fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800 }}>{t.to_hand_over}</h1>
         </div>
       </div>
 
@@ -128,7 +128,7 @@ export default function HandoverPage() {
         {postOrders.length > 1 && (
           <button
             onClick={() => copy('all', postOrders.map(o => `${addressBlock(o)}\n${orderLine(o)}`).join('\n\n────────\n\n'))}
-            style={{ padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#161616', color: copied === 'all' ? '#22C55E' : '#F0908A', fontWeight: 700, fontSize: '14px', cursor: 'pointer' }}
+            style={{ padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#161616', color: copied === 'all' ? '#22C55E' : '#F0908A', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer' }}
           >{copied === 'all' ? `✓ ${t.copied}` : `📋 ${t.copy_all_addresses} (${postOrders.length})`}</button>
         )}
         {orders.map(o => {
@@ -148,23 +148,23 @@ export default function HandoverPage() {
                 {image && <img src={image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {o.item?.title || `#${shortOrderRef(o.id)}`}
                 </div>
-                <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>
+                <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#aaa', marginTop: '2px' }}>
                   {o.fulfillment_method === 'pickup' ? t.method_pickup : t.method_post}
                   {o.buyer_profile?.display_name || o.buyer_profile?.username ? ` · ${o.buyer_profile?.display_name || o.buyer_profile?.username}` : ''}
                 </div>
-                <div style={{ fontSize: '12px', color: '#F0908A', marginTop: '2px' }}>
+                <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', marginTop: '2px' }}>
                   {o.fulfillment_method === 'pickup' ? t.awaiting_code : `${t.awaiting_photos} (${photosSent}/2)`}
                 </div>
                 {o.handover_deadline && (
-                  <div style={{ fontSize: '11px', color: late ? '#F87171' : '#777', marginTop: '2px' }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: late ? '#F87171' : '#777', marginTop: '2px' }}>
                     {t.deadline} {formatDateTime(o.handover_deadline, lang)}
                   </div>
                 )}
               </div>
-              <div style={{ fontWeight: 800, fontSize: '14px', whiteSpace: 'nowrap' }}>
+              <div style={{ fontWeight: 800, fontSize: 'calc(14px * var(--fs, 1))', whiteSpace: 'nowrap' }}>
                 {formatMoney(o.total_amount ?? o.amount, o.currency, lang)}
               </div>
             </button>
@@ -181,13 +181,13 @@ export default function HandoverPage() {
             >
               <span style={{
                 width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: o.prepared_at ? 'none' : '2px solid #555', backgroundColor: o.prepared_at ? '#22C55E' : 'transparent', color: '#fff', fontWeight: 900, fontSize: '14px',
+                border: o.prepared_at ? 'none' : '2px solid #555', backgroundColor: o.prepared_at ? '#22C55E' : 'transparent', color: '#fff', fontWeight: 900, fontSize: 'calc(14px * var(--fs, 1))',
               }}>{o.prepared_at ? '✓' : ''}</span>
               <span style={{ flex: 1 }}>
-                <span style={{ display: 'block', fontSize: '14px', fontWeight: 700, color: o.prepared_at ? '#22C55E' : '#fff' }}>
+                <span style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: o.prepared_at ? '#22C55E' : '#fff' }}>
                   {o.prepared_at ? `${t.processed_on} ${formatDateTime(o.prepared_at, lang)}` : t.mark_processed}
                 </span>
-                {!o.prepared_at && <span style={{ display: 'block', fontSize: '11px', color: '#888', marginTop: '2px' }}>{t.processed_hint}</span>}
+                {!o.prepared_at && <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>{t.processed_hint}</span>}
               </span>
             </button>
             {o.fulfillment_method === 'post' && o.shipping_address && (
@@ -196,12 +196,12 @@ export default function HandoverPage() {
                 {o.item?.image_urls?.[0] && (
                   <img src={o.item.image_urls[0]} alt="" style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px', backgroundColor: '#1a1a1a' }} />
                 )}
-                <div style={{ fontSize: '11px', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.ship_to}</div>
-                <div dir="auto" style={{ whiteSpace: 'pre-line', fontSize: '15px', lineHeight: 1.5, fontWeight: 600, color: '#fff', userSelect: 'text', WebkitUserSelect: 'text' }}>{addressBlock(o)}</div>
-                <div dir="auto" style={{ marginTop: '8px', fontSize: '12px', color: '#aaa', userSelect: 'text', WebkitUserSelect: 'text' }}>{orderLine(o)}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.ship_to}</div>
+                <div dir="auto" style={{ whiteSpace: 'pre-line', fontSize: 'calc(15px * var(--fs, 1))', lineHeight: 1.5, fontWeight: 600, color: '#fff', userSelect: 'text', WebkitUserSelect: 'text' }}>{addressBlock(o)}</div>
+                <div dir="auto" style={{ marginTop: '8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#aaa', userSelect: 'text', WebkitUserSelect: 'text' }}>{orderLine(o)}</div>
                 <button
                   onClick={() => copy(o.id, `${addressBlock(o)}\n${orderLine(o)}`)}
-                  style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#161616', color: copied === o.id ? '#22C55E' : '#ddd', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                  style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#161616', color: copied === o.id ? '#22C55E' : '#ddd', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer' }}
                 >{copied === o.id ? `✓ ${t.copied}` : `📋 ${t.copy_address}`}</button>
               </div>
             )}

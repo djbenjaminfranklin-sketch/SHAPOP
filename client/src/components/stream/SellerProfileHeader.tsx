@@ -90,7 +90,7 @@ export default function SellerProfileHeader({
           />
         ) : (
           <span style={{
-            fontSize: '12px',
+            fontSize: 'calc(12px * var(--fs, 1))',
             fontWeight: 700,
             color: '#fff',
             lineHeight: 1,
@@ -104,7 +104,7 @@ export default function SellerProfileHeader({
       {/* Name + meta inline */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', minWidth: 0 }}>
         <span style={{
-          fontSize: '12px',
+          fontSize: 'calc(12px * var(--fs, 1))',
           fontWeight: 700,
           color: '#fff',
           lineHeight: 1.2,
@@ -121,7 +121,7 @@ export default function SellerProfileHeader({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '2px',
-              fontSize: '9px',
+              fontSize: 'calc(9px * var(--fs, 1))',
               fontWeight: 700,
               color: '#F0908A',
               lineHeight: 1,
@@ -148,7 +148,7 @@ export default function SellerProfileHeader({
           border: 'none',
           backgroundColor: isFollowing ? 'rgba(255,255,255,0.15)' : '#E8344E',
           color: '#fff',
-          fontSize: '11px',
+          fontSize: 'calc(11px * var(--fs, 1))',
           fontWeight: 700,
           cursor: 'pointer',
           flexShrink: 0,

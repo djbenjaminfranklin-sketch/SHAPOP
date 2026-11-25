@@ -276,7 +276,7 @@ export default function VerificationPage() {
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
           {c.title}
         </h1>
       </div>
@@ -311,8 +311,8 @@ export default function VerificationPage() {
             )}
           </div>
           <div>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: sc.color, margin: 0 }}>{sc.label}</p>
-            <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: sc.color, margin: 0 }}>{sc.label}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0', lineHeight: 1.4 }}>
               {status === 'verified'
                 ? c.confirmed
                 : c.intro}
@@ -336,14 +336,14 @@ export default function VerificationPage() {
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
               ) : (
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>1</span>
+                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>1</span>
               )}
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {c.selfie}
               </p>
-              <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                 {c.selfieHint}
               </p>
             </div>
@@ -357,7 +357,7 @@ export default function VerificationPage() {
                 disabled={status === 'pending' || status === 'verified'}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', border: '1px solid #333',
-                  backgroundColor: 'transparent', color: '#888', fontSize: '13px',
+                  backgroundColor: 'transparent', color: '#888', fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 600, cursor: status === 'pending' || status === 'verified' ? 'default' : 'pointer',
                   opacity: status === 'pending' || status === 'verified' ? 0.4 : 1,
                 }}
@@ -372,7 +372,7 @@ export default function VerificationPage() {
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px',
                 border: '2px dashed #333', backgroundColor: 'transparent',
-                color: '#F0908A', fontSize: '14px', fontWeight: 600,
+                color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: '8px',
                 opacity: uploadingSelfie ? 0.5 : 1,
@@ -406,14 +406,14 @@ export default function VerificationPage() {
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
               ) : (
-                <span style={{ fontSize: '14px', fontWeight: 800, color: '#fff' }}>2</span>
+                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>2</span>
               )}
             </div>
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {c.idDoc}
               </p>
-              <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                 {c.idHint}
               </p>
             </div>
@@ -427,7 +427,7 @@ export default function VerificationPage() {
                 disabled={status === 'pending' || status === 'verified'}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', border: '1px solid #333',
-                  backgroundColor: 'transparent', color: '#888', fontSize: '13px',
+                  backgroundColor: 'transparent', color: '#888', fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 600, cursor: status === 'pending' || status === 'verified' ? 'default' : 'pointer',
                   opacity: status === 'pending' || status === 'verified' ? 0.4 : 1,
                 }}
@@ -442,7 +442,7 @@ export default function VerificationPage() {
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px',
                 border: '2px dashed #333', backgroundColor: 'transparent',
-                color: '#F0908A', fontSize: '14px', fontWeight: 600,
+                color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: '8px',
                 opacity: uploadingId ? 0.5 : 1,
@@ -470,7 +470,7 @@ export default function VerificationPage() {
               background: selfieUrl && idDocUrl
                 ? 'linear-gradient(135deg, #F0908A, #E8344E)'
                 : '#333',
-              border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
+              border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
               cursor: selfieUrl && idDocUrl && !submitting ? 'pointer' : 'default',
               opacity: submitting ? 0.5 : 1,
             }}
@@ -482,7 +482,7 @@ export default function VerificationPage() {
         )}
 
         {/* Info text */}
-        <p style={{ fontSize: '12px', color: '#555', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
           {c.privacy}
         </p>
       </div>

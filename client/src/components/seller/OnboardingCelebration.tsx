@@ -174,13 +174,13 @@ export default function OnboardingCelebration({ onDone }: Props) {
 
         {/* Title */}
         <h1 style={{
-          fontSize: '32px', fontWeight: 800, color: '#fff', textAlign: 'center',
+          fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center',
           marginBottom: '8px', letterSpacing: '-0.5px',
         }}>
           {t.title}
         </h1>
         <p style={{
-          fontSize: '15px', color: '#888', textAlign: 'center', marginBottom: '36px',
+          fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center', marginBottom: '36px',
           padding: '0 20px',
         }}>
           {t.subtitle}
@@ -207,13 +207,13 @@ export default function OnboardingCelebration({ onDone }: Props) {
                 width: '44px', height: '44px', borderRadius: '14px',
                 background: 'linear-gradient(135deg, #1A1A1A, #222)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '22px', flexShrink: 0,
+                fontSize: 'calc(22px * var(--fs, 1))', flexShrink: 0,
               }}>
                 {step.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{step.title}</p>
-                <p style={{ fontSize: '12px', color: '#666' }}>{step.desc}</p>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{step.title}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>{step.desc}</p>
               </div>
               <div style={{
                 width: '24px', height: '24px', borderRadius: '50%',
@@ -237,13 +237,13 @@ export default function OnboardingCelebration({ onDone }: Props) {
             width: '48px', height: '48px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            fontSize: '22px',
+            fontSize: 'calc(22px * var(--fs, 1))',
           }}>
             🎁
           </div>
           <div>
-            <p style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{t.bonus}</p>
-            <p style={{ fontSize: '13px', color: '#999', marginTop: '2px' }}>{t.bonusDesc}</p>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{t.bonus}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#999', marginTop: '2px' }}>{t.bonusDesc}</p>
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
             width: '100%', padding: '18px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
             borderRadius: '16px', border: 'none',
-            color: '#fff', fontSize: '18px', fontWeight: 800,
+            color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800,
             cursor: 'pointer', letterSpacing: '-0.3px',
             boxShadow: '0 8px 30px rgba(240,144,138,0.3)',
           }}

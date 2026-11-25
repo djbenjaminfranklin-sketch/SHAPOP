@@ -598,7 +598,7 @@ export default function GoLivePage() {
     border: '1px solid #222',
     borderRadius: '14px',
     color: '#fff',
-    fontSize: '16px',
+    fontSize: 'calc(16px * var(--fs, 1))',
     fontWeight: 600 as const,
     outline: 'none',
     boxSizing: 'border-box' as const,
@@ -633,7 +633,7 @@ export default function GoLivePage() {
             style={{
               background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
               borderRadius: '100px', cursor: 'pointer',
-              color: '#fff', fontSize: '14px', fontWeight: 700,
+              color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
               padding: '8px 18px',
             }}
           >
@@ -660,14 +660,14 @@ export default function GoLivePage() {
             background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
             border: '1px solid rgba(240,144,138,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '48px',
+            fontSize: 'calc(48px * var(--fs, 1))',
           }}>
             {tip.icon}
           </div>
 
           {/* Title */}
           <h2 style={{
-            fontSize: '24px', fontWeight: 800, color: '#fff',
+            fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#fff',
             textAlign: 'center', lineHeight: 1.3, margin: 0,
           }}>
             {tip.title}
@@ -675,7 +675,7 @@ export default function GoLivePage() {
 
           {/* Description */}
           <p style={{
-            fontSize: '15px', color: '#999', textAlign: 'center',
+            fontSize: 'calc(15px * var(--fs, 1))', color: '#999', textAlign: 'center',
             lineHeight: 1.7, maxWidth: '300px', margin: 0,
           }}>
             {tip.desc}
@@ -712,7 +712,7 @@ export default function GoLivePage() {
 
           {/* Page indicator + button */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
+            <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', fontWeight: 600 }}>
               {tipIndex + 1} {th.page} {langTips.length}
             </span>
             <button
@@ -730,7 +730,7 @@ export default function GoLivePage() {
                   : '#1A1A1A',
                 border: isLast ? 'none' : '1px solid #333',
                 borderRadius: '14px',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
                 boxShadow: isLast ? '0 4px 16px rgba(232,52,78,0.3)' : 'none',
               }}
@@ -762,7 +762,7 @@ export default function GoLivePage() {
             <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{manageMode ? ct.myLives : ct.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{manageMode ? ct.myLives : ct.title}</h1>
       </div>
 
       <div style={{ padding: '24px 20px' }}>
@@ -780,7 +780,7 @@ export default function GoLivePage() {
               <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, maxWidth: '320px', margin: '0 auto' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.6, maxWidth: '320px', margin: '0 auto' }}>
             {ct.subtitle}
           </p>
         </div>
@@ -794,7 +794,7 @@ export default function GoLivePage() {
             placeholder={ct.titlePlaceholder}
             style={inputStyle}
           />
-          <p style={{ fontSize: '12px', color: '#555', textAlign: 'end', marginTop: '6px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textAlign: 'end', marginTop: '6px' }}>
             {liveTitle.length}/100
           </p>
         </div>
@@ -802,7 +802,7 @@ export default function GoLivePage() {
         {/* Category */}
         <div style={{ marginBottom: '32px' }}>
           <p style={{
-            fontSize: '12px', fontWeight: 700, color: '#888',
+            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#888',
             marginBottom: '12px', letterSpacing: '1px', textTransform: 'uppercase',
           }}>
             {ct.category}
@@ -824,7 +824,7 @@ export default function GoLivePage() {
                       : '#111',
                     border: isSelected ? 'none' : '1px solid #222',
                     color: isSelected ? '#fff' : '#999',
-                    fontSize: '13px', fontWeight: 600,
+                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', whiteSpace: 'nowrap',
                     boxShadow: isSelected ? '0 4px 16px rgba(240,144,138,0.3)' : 'none',
                   }}
@@ -839,7 +839,7 @@ export default function GoLivePage() {
         {/* Thumbnail */}
         <div style={{ marginBottom: '32px' }}>
           <p style={{
-            fontSize: '12px', fontWeight: 700, color: '#888',
+            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#888',
             marginBottom: '12px', letterSpacing: '1px', textTransform: 'uppercase',
           }}>
             {ct.thumbnail}
@@ -867,7 +867,7 @@ export default function GoLivePage() {
                 style={{
                   padding: '10px 18px', borderRadius: '10px',
                   background: '#1A1A1A', border: '1px solid #333',
-                  color: '#fff', fontSize: '13px', fontWeight: 600,
+                  color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -882,7 +882,7 @@ export default function GoLivePage() {
                 borderRadius: '14px',
                 background: '#0A0A0A',
                 border: '2px dashed #222',
-                color: '#666', fontSize: '14px', fontWeight: 600,
+                color: '#666', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               }}
@@ -908,7 +908,7 @@ export default function GoLivePage() {
               : '#1A1A1A',
             borderRadius: '14px', border: 'none',
             color: canProceed ? '#fff' : '#555',
-            fontSize: '16px', fontWeight: 700,
+            fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
             cursor: canProceed ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
             boxShadow: canProceed ? '0 8px 32px rgba(232,52,78,0.3)' : 'none',
@@ -944,7 +944,7 @@ export default function GoLivePage() {
             border: '1px solid rgba(232,52,78,0.3)',
             borderRadius: '12px',
           }}>
-            <p style={{ fontSize: '14px', fontWeight: 600, color: '#E8344E', margin: 0 }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#E8344E', margin: 0 }}>
               {error}
             </p>
           </div>
@@ -956,7 +956,7 @@ export default function GoLivePage() {
             width: '100%', padding: '16px',
             background: 'transparent',
             borderRadius: '14px', border: '1px solid #222',
-            color: '#888', fontSize: '15px', fontWeight: 600,
+            color: '#888', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
             cursor: 'pointer',
           }}
         >
@@ -968,7 +968,7 @@ export default function GoLivePage() {
           <div style={{ marginTop: manageMode ? '0' : '40px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h2 style={{
-                fontSize: '16px', fontWeight: 800, color: '#fff',
+                fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                 margin: 0, letterSpacing: '0.5px',
               }}>
                 {!manageMode && ct.myLives}
@@ -981,7 +981,7 @@ export default function GoLivePage() {
                       style={{
                         padding: '6px 12px', borderRadius: '8px',
                         background: 'transparent', border: '1px solid #333',
-                        color: '#ccc', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        color: '#ccc', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       {ct.selectAll}
@@ -994,7 +994,7 @@ export default function GoLivePage() {
                       background: selectionMode ? 'rgba(232,52,78,0.1)' : 'transparent',
                       border: selectionMode ? '1px solid rgba(232,52,78,0.3)' : '1px solid #333',
                       color: selectionMode ? '#E8344E' : '#ccc',
-                      fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                      fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
                     {selectionMode ? ct.cancel : ct.select}
@@ -1013,7 +1013,7 @@ export default function GoLivePage() {
               </div>
             ) : myStreams.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <p style={{ fontSize: '14px', color: '#666' }}>{ct.noLives}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{ct.noLives}</p>
               </div>
             ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1060,7 +1060,7 @@ export default function GoLivePage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                           <span style={{
-                            fontSize: '10px', fontWeight: 800,
+                            fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800,
                             color: statusColor,
                             backgroundColor: `${statusColor}15`,
                             padding: '3px 8px',
@@ -1080,17 +1080,17 @@ export default function GoLivePage() {
                             )}
                             {statusLabel}
                           </span>
-                          <span style={{ fontSize: '11px', color: '#555' }}>
+                          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
                             {itemsLabel(stream.item_count || 0)}
                           </span>
                         </div>
                         <p style={{
-                          fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0,
+                          fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0,
                           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {stream.title}
                         </p>
-                        <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>
+                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '2px 0 0' }}>
                           {stream.category ? i18nT(lang, stream.category as TranslationKey) || stream.category : ''} — {new Date(stream.created_at).toLocaleDateString(getLocale())}
                         </p>
                       </div>
@@ -1107,7 +1107,7 @@ export default function GoLivePage() {
                             border: '1px solid #333',
                             borderRadius: '8px',
                             color: '#fff',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                             cursor: 'pointer',
                           }}
                         >
@@ -1123,7 +1123,7 @@ export default function GoLivePage() {
                             border: '1px solid rgba(232,52,78,0.3)',
                             borderRadius: '8px',
                             color: '#E8344E',
-                            fontSize: '12px', fontWeight: 600,
+                            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                             cursor: 'pointer',
                             }}
                           >
@@ -1156,7 +1156,7 @@ export default function GoLivePage() {
               width: '100%', padding: '14px',
               background: 'linear-gradient(135deg, #E8344E, #c42040)',
               borderRadius: '14px', border: 'none',
-              color: '#fff', fontSize: '15px', fontWeight: 700,
+              color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}

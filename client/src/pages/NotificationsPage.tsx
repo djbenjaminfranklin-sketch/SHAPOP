@@ -304,13 +304,13 @@ export default function NotificationsPage() {
         <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
       <div style={{ padding: '20px' }}>
         {/* Notifications feed */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>{c.feedTitle}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>{c.feedTitle}</p>
           {notifications.length > 0 && (
             <button
               onClick={async () => {
@@ -319,7 +319,7 @@ export default function NotificationsPage() {
                 await apiFetch('/api/notifications', { method: 'DELETE', headers: { Authorization: `Bearer ${s.access_token}` } })
                 setNotifications([])
               }}
-              style={{ background: 'none', border: 'none', fontSize: '12px', color: '#666', cursor: 'pointer', padding: 0 }}
+              style={{ background: 'none', border: 'none', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', cursor: 'pointer', padding: 0 }}
             >
               {c.clearAll}
             </button>
@@ -332,7 +332,7 @@ export default function NotificationsPage() {
             <style>{`@keyframes spin { to { transform: rotate(360deg) } } @keyframes pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.4 } }`}</style>
           </div>
         ) : notifications.length === 0 ? (
-          <p style={{ fontSize: '14px', color: '#555', padding: '16px 0', textAlign: 'center' }}>{c.noNotifs}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#555', padding: '16px 0', textAlign: 'center' }}>{c.noNotifs}</p>
         ) : (
           <div style={{ marginBottom: '24px' }}>
             {notifications.map((n) => (
@@ -374,11 +374,11 @@ export default function NotificationsPage() {
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '14px', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</p>
-                    <p style={{ fontSize: '13px', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</p>
+                    <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.title}</p>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{n.body}</p>
                   </div>
 
-                  <span style={{ fontSize: '12px', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
+                  <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', flexShrink: 0 }}>{timeAgo(n.created_at)}</span>
                 </div>
 
                 {/* Delete button */}
@@ -404,7 +404,7 @@ export default function NotificationsPage() {
         )}
 
         {/* Preferences section */}
-        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', marginTop: '8px' }}>{c.prefsTitle}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px', marginTop: '8px' }}>{c.prefsTitle}</p>
 
         {/* Push notification activation card (native only, not yet enabled) */}
         {isNative && !pushEnabled && !pushDenied && (
@@ -423,8 +423,8 @@ export default function NotificationsPage() {
                 </svg>
               </div>
               <div>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{c.enablePush}</p>
-                <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.4 }}>{c.enablePushDesc}</p>
+                <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{c.enablePush}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', lineHeight: 1.4 }}>{c.enablePushDesc}</p>
               </div>
             </div>
             <button
@@ -433,7 +433,7 @@ export default function NotificationsPage() {
               style={{
                 width: '100%', padding: '12px', borderRadius: '12px', border: 'none',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 opacity: loadingPush ? 0.6 : 1,
               }}
             >
@@ -449,7 +449,7 @@ export default function NotificationsPage() {
             padding: '10px 14px', backgroundColor: '#0a2a0a', borderRadius: '10px', border: '1px solid #1a3a1a',
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span style={{ fontSize: '14px', color: '#4ade80', fontWeight: 600 }}>{c.enabled}</span>
+            <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#4ade80', fontWeight: 600 }}>{c.enabled}</span>
           </div>
         )}
 
@@ -462,17 +462,17 @@ export default function NotificationsPage() {
               marginBottom: '20px',
             }}
           >
-            <p style={{ fontSize: '13px', color: '#f59e0b', lineHeight: 1.4 }}>{c.denied}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f59e0b', lineHeight: 1.4 }}>{c.denied}</p>
           </div>
         )}
 
-        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.push}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.push}</p>
 
         {c.items.map((item) => (
           <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 0', borderBottom: '1px solid #1A1A1A' }}>
             <div style={{ flex: 1, marginInlineEnd: '16px' }}>
-              <p style={{ fontSize: '15px', color: '#fff', fontWeight: 500 }}>{item.label}</p>
-              <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>{item.desc}</p>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', fontWeight: 500 }}>{item.label}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>{item.desc}</p>
             </div>
             <button
               role="switch"

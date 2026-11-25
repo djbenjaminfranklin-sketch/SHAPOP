@@ -214,12 +214,12 @@ export default function DirectSalesPage() {
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h1 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', margin: 0 }}>{tx.title}</h1>
+            <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{tx.title}</h1>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
           </div>
-          <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>{tx.subtitle}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{tx.subtitle}</p>
         </div>
       </div>
 
@@ -241,7 +241,7 @@ export default function DirectSalesPage() {
             placeholder={tx.searchPlaceholder}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
-              color: '#fff', fontSize: '14px',
+              color: '#fff', fontSize: 'calc(14px * var(--fs, 1))',
             }}
           />
           {searchQuery && (
@@ -286,7 +286,7 @@ export default function DirectSalesPage() {
             aria-label={tx.retry}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: '#E8344E', fontSize: '14px', fontWeight: 600,
+              color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
             }}
           >
@@ -308,8 +308,8 @@ export default function DirectSalesPage() {
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{tx.noResults}</h3>
-          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>{tx.noResultsSub}</p>
+          <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{tx.noResults}</h3>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>{tx.noResultsSub}</p>
         </div>
       ) : displayItems.length === 0 ? (
         // No items at all
@@ -323,8 +323,8 @@ export default function DirectSalesPage() {
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{tx.emptyTitle}</h3>
-          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>{tx.emptySubtitle}</p>
+          <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{tx.emptyTitle}</h3>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>{tx.emptySubtitle}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">
@@ -372,7 +372,7 @@ export default function DirectSalesPage() {
                       : buyingItemId === item.id
                         ? '#555'
                         : 'linear-gradient(135deg, #E8344E, #D42A42)',
-                    color: '#fff', fontSize: '12px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                     cursor: buyingItemId === item.id ? 'default' : 'pointer',
                     opacity: buyingItemId === item.id ? 0.7 : 1,
                   }}

@@ -457,7 +457,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
         <CardElement options={{
           style: {
             base: {
-              fontSize: '17px',
+              fontSize: 'calc(17px * var(--fs, 1))',
               lineHeight: '24px',
               color: '#fff',
               '::placeholder': { color: '#555' },
@@ -475,7 +475,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
           width: '100%', marginTop: '16px', padding: '16px',
           background: loading ? '#555' : 'linear-gradient(135deg, #F0908A, #E8344E)',
           borderRadius: '14px', border: 'none',
-          color: '#fff', fontSize: '16px', fontWeight: 700,
+          color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.7 : 1,
         }}
@@ -901,13 +901,13 @@ export default function PaymentsPage() {
         <button onClick={() => navigate(-1)} aria-label={c.back} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
       <div style={{ padding: '20px' }}>
         {/* ═══════ WHATNOT-STYLE OVERVIEW ═══════ */}
-        <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>{c.title}</h2>
-        <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.5, margin: '0 0 24px' }}>{c.pageDesc}</p>
+        <h2 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>{c.title}</h2>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.5, margin: '0 0 24px' }}>{c.pageDesc}</p>
 
         {/* Mode de paiement row */}
         <div
@@ -926,10 +926,10 @@ export default function PaymentsPage() {
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
               {c.paymentMethod}
             </p>
-            <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
               {cardInfo?.has_card
                 ? `${cardInfo.brand ? cardInfo.brand.toLowerCase() : c.cardFallback} - ${cardInfo.last4} - ${cardInfo.exp_month}/${cardInfo.exp_year}`
                 : c.noPaymentMethod}
@@ -956,10 +956,10 @@ export default function PaymentsPage() {
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
               {c.shippingDetails}
             </p>
-            <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0', lineHeight: 1.4 }}>
               {defaultAddress
                 ? (defaultAddress.street.toUpperCase().includes(String(defaultAddress.city || '').toUpperCase()) && defaultAddress.city ? defaultAddress.street : `${defaultAddress.street}\n${defaultAddress.zip} ${defaultAddress.city}`)
                 : c.noAddress}
@@ -975,7 +975,7 @@ export default function PaymentsPage() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
               </svg>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>{ft().settings_title}</span>
+              <span style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{ft().settings_title}</span>
             </div>
             <FulfillmentSettings />
           </div>
@@ -984,7 +984,7 @@ export default function PaymentsPage() {
         {/* ═══════ SELLER SECTIONS ═══════ */}
         {/* Payment Methods */}
         {profile?.is_seller && (
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{c.payTitle}</h2>
+          <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{c.payTitle}</h2>
         )}
 
         {/* PayPal seller section */}
@@ -1005,10 +1005,10 @@ export default function PaymentsPage() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '16px', fontWeight: 700, color: '#009CDE', margin: '0 0 2px' }}>
+                <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#009CDE', margin: '0 0 2px' }}>
                   {c.paypalConnected}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: 0 }}>
                   {c.paypalConnectedDesc}
                 </p>
               </div>
@@ -1019,7 +1019,7 @@ export default function PaymentsPage() {
               backgroundColor: '#0A0A0A', borderRadius: '10px', padding: '14px',
               marginBottom: '12px',
             }}>
-              <p style={{ fontSize: '12px', color: '#888', margin: '0 0 6px' }}>{c.paypalEmail}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 6px' }}>{c.paypalEmail}</p>
               {paypalEditing ? (
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <input
@@ -1030,7 +1030,7 @@ export default function PaymentsPage() {
                     style={{
                       flex: 1, padding: '10px 12px', borderRadius: '8px',
                       backgroundColor: '#111', border: '1px solid #333',
-                      color: '#fff', fontSize: '14px', outline: 'none',
+                      color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', outline: 'none',
                     }}
                   />
                   <button
@@ -1039,7 +1039,7 @@ export default function PaymentsPage() {
                     style={{
                       padding: '10px 16px', borderRadius: '8px',
                       background: 'linear-gradient(135deg, #003087, #009CDE)',
-                      border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600,
+                      border: 'none', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer', opacity: paypalSaving ? 0.6 : 1,
                     }}
                   >
@@ -1048,7 +1048,7 @@ export default function PaymentsPage() {
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <p style={{ fontSize: '15px', color: '#fff', fontWeight: 600, margin: 0 }}>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', fontWeight: 600, margin: 0 }}>
                     {paypalEmail || '—'}
                   </p>
                   <button
@@ -1056,7 +1056,7 @@ export default function PaymentsPage() {
                     style={{
                       padding: '6px 12px', borderRadius: '8px',
                       background: 'transparent', border: '1px solid #333',
-                      color: '#888', fontSize: '12px', cursor: 'pointer',
+                      color: '#888', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer',
                     }}
                   >
                     {c.paypalChangeEmail}
@@ -1068,7 +1068,7 @@ export default function PaymentsPage() {
             {/* Recent payouts */}
             {paypalPayouts.length > 0 && (
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: '#888', margin: '16px 0 8px' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#888', margin: '16px 0 8px' }}>
                   {c.paypalRecentPayouts}
                 </p>
                 {paypalPayouts.slice(0, 5).map(p => {
@@ -1086,15 +1086,15 @@ export default function PaymentsPage() {
                       padding: '10px 0', borderBottom: '1px solid #1A1A1A',
                     }}>
                       <div>
-                        <p style={{ fontSize: '14px', color: '#fff', margin: '0 0 2px', fontWeight: 600 }}>
+                        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '0 0 2px', fontWeight: 600 }}>
                           {formatMoney(p.amount, p.currency)}
                         </p>
-                        <p style={{ fontSize: '11px', color: '#555', margin: 0 }}>
+                        <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', margin: 0 }}>
                           {new Date(p.created_at).toLocaleDateString(getLocale(lang))}
                         </p>
                       </div>
                       <span style={{
-                        fontSize: '12px', fontWeight: 600,
+                        fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                         color: statusColors[p.status] || '#888',
                         padding: '4px 10px', borderRadius: '6px',
                         backgroundColor: `${statusColors[p.status] || '#888'}15`,
@@ -1107,7 +1107,7 @@ export default function PaymentsPage() {
               </div>
             )}
             {paypalPayouts.length === 0 && paypalEmail && (
-              <p style={{ fontSize: '13px', color: '#555', textAlign: 'center', margin: '8px 0 0' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#555', textAlign: 'center', margin: '8px 0 0' }}>
                 {c.paypalNoPayout}
               </p>
             )}
@@ -1121,7 +1121,7 @@ export default function PaymentsPage() {
           textAlign: 'center', marginBottom: '16px',
         }}>
           {loading ? (
-            <p style={{ fontSize: '14px', color: '#888' }}>{c.loading}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888' }}>{c.loading}</p>
           ) : isFullyConnected ? (
             <>
               <div style={{
@@ -1134,10 +1134,10 @@ export default function PaymentsPage() {
                   <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
                 </svg>
               </div>
-              <p style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E', marginBottom: '8px' }}>
+              <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#22C55E', marginBottom: '8px' }}>
                 {c.paymentConfigured}
               </p>
-              <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', lineHeight: 1.5, marginBottom: '20px' }}>
                 {c.configuredDesc}
               </p>
               <button
@@ -1145,7 +1145,7 @@ export default function PaymentsPage() {
                 style={{
                   padding: '12px 24px', borderRadius: '10px',
                   background: 'linear-gradient(135deg, #6772E5, #4F46E5)',
-                  border: 'none', color: '#fff', fontSize: '14px', fontWeight: 600,
+                  border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -1164,10 +1164,10 @@ export default function PaymentsPage() {
                   <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
                 </svg>
               </div>
-              <p style={{ fontSize: '16px', fontWeight: 700, color: '#F59E0B', marginBottom: '8px' }}>
+              <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F59E0B', marginBottom: '8px' }}>
                 {['Stripe', c.pending].join(' – ')}
               </p>
-              <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', lineHeight: 1.5, marginBottom: '20px' }}>
                 {c.pendingDesc}
               </p>
               <button
@@ -1176,7 +1176,7 @@ export default function PaymentsPage() {
                 style={{
                   padding: '12px 24px', borderRadius: '10px',
                   background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                  border: 'none', color: '#fff', fontSize: '14px', fontWeight: 600,
+                  border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer', opacity: connecting ? 0.6 : 1,
                 }}
               >
@@ -1195,10 +1195,10 @@ export default function PaymentsPage() {
                   <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                 </svg>
               </div>
-              <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+              <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
                 {profile?.country === 'IL' ? c.ilPayoutsTitle : c.securePayments}
               </p>
-              <p style={{ fontSize: '13px', color: '#888', lineHeight: 1.5, marginBottom: '20px', maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', lineHeight: 1.5, marginBottom: '20px', maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
                 {profile?.country === 'IL' ? c.ilPayoutsDesc : c.secureDesc}
               </p>
               {profile?.is_seller ? (
@@ -1208,7 +1208,7 @@ export default function PaymentsPage() {
                   style={{
                     padding: '14px 28px', borderRadius: '12px',
                     background: 'linear-gradient(135deg, #6772E5, #4F46E5)',
-                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                    border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer', opacity: connecting ? 0.6 : 1,
                     boxShadow: '0 4px 16px rgba(99,102,241,0.3)',
                   }}
@@ -1223,7 +1223,7 @@ export default function PaymentsPage() {
                     padding: '4px 0', marginTop: '4px',
                   }}
                 >
-                  <p style={{ fontSize: '13px', color: '#F59E0B', textDecoration: 'underline' }}>
+                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#F59E0B', textDecoration: 'underline' }}>
                     {c.notSellerMsg}
                   </p>
                 </button>
@@ -1240,7 +1240,7 @@ export default function PaymentsPage() {
           marginBottom: '16px',
         }}>
           {cardLoading ? (
-            <p style={{ fontSize: '14px', color: '#888', textAlign: 'center' }}>{c.loading}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', textAlign: 'center' }}>{c.loading}</p>
           ) : showCardSetup ? (
             <div>
               {setupSuccess ? (
@@ -1256,7 +1256,7 @@ export default function PaymentsPage() {
                       <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  <p style={{ fontSize: '16px', fontWeight: 700, color: '#22C55E', margin: '0 0 8px' }}>
+                  <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#22C55E', margin: '0 0 8px' }}>
                     {c.buyerCardSuccess}
                   </p>
                   <button
@@ -1265,7 +1265,7 @@ export default function PaymentsPage() {
                       padding: '12px 24px', marginTop: '12px',
                       background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                       borderRadius: '12px', border: 'none',
-                      color: '#fff', fontSize: '14px', fontWeight: 600,
+                      color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -1281,7 +1281,7 @@ export default function PaymentsPage() {
                       border: '1px solid rgba(232,52,78,0.3)',
                       borderRadius: '10px',
                     }}>
-                      <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{setupError}</p>
+                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#E8344E', margin: 0 }}>{setupError}</p>
                     </div>
                   )}
 
@@ -1313,7 +1313,7 @@ export default function PaymentsPage() {
                       width: '100%', marginTop: '12px', padding: '10px',
                       backgroundColor: 'transparent',
                       border: '1px solid #333', borderRadius: '10px',
-                      color: '#888', fontSize: '13px', fontWeight: 600,
+                      color: '#888', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -1337,10 +1337,10 @@ export default function PaymentsPage() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#22C55E', margin: '0 0 2px' }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#22C55E', margin: '0 0 2px' }}>
                   {c.buyerCardSaved}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: 0 }}>
                   {(cardInfo.brand || c.cardFallback).toUpperCase()} {c.buyerCardLast4} {cardInfo.last4}
                 </p>
               </div>
@@ -1349,7 +1349,7 @@ export default function PaymentsPage() {
                 style={{
                   padding: '8px 16px', borderRadius: '10px',
                   background: 'transparent', border: '1px solid #333',
-                  color: '#aaa', fontSize: '12px', fontWeight: 600,
+                  color: '#aaa', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -1369,10 +1369,10 @@ export default function PaymentsPage() {
                   <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
                 {c.buyerNoCard}
               </p>
-              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 16px', maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 16px', maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
                 {c.buyerNoCardDesc}
               </p>
               <button
@@ -1380,7 +1380,7 @@ export default function PaymentsPage() {
                 style={{
                   padding: '14px 28px', borderRadius: '12px',
                   background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                  border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                   cursor: 'pointer',
                   boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
                 }}
@@ -1402,14 +1402,14 @@ export default function PaymentsPage() {
               width: '40px', height: '40px', borderRadius: '10px',
               background: 'linear-gradient(135deg, #F59E0B, #D97706)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '18px', flexShrink: 0,
+              fontSize: 'calc(18px * var(--fs, 1))', flexShrink: 0,
             }}>
               {'\u{1F4B0}'}
             </div>
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{c.feesTitle}</p>
-              <p style={{ fontSize: '12px', color: '#888' }}>{c.feesDesc}</p>
-              <p style={{ fontSize: '12px', color: '#F59E0B', marginTop: '2px' }}>{c.feesExample.replace('{sale}', formatMoney(50, userCurrency)).replace('{net}', formatMoney(43.1, userCurrency))}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{c.feesTitle}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{c.feesDesc}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F59E0B', marginTop: '2px' }}>{c.feesExample.replace('{sale}', formatMoney(50, userCurrency)).replace('{net}', formatMoney(43.1, userCurrency))}</p>
             </div>
           </div>
         )}
@@ -1441,10 +1441,10 @@ export default function PaymentsPage() {
 
             {/* Title */}
             <div style={{ textAlign: 'center', padding: '8px 24px 4px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#000', margin: 0 }}>
+              <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#000', margin: 0 }}>
                 {c.addPaymentMethod}
               </h3>
-              <p style={{ fontSize: '13px', color: '#888', margin: '8px 0 20px', lineHeight: 1.5 }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '8px 0 20px', lineHeight: 1.5 }}>
                 {c.addPaymentMethodDesc}
               </p>
             </div>
@@ -1469,7 +1469,7 @@ export default function PaymentsPage() {
                     <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                   </svg>
                 </div>
-                <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', flex: 1 }}>
+                <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#000', flex: 1 }}>
                   {c.creditCard}
                 </span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={rtlFlip()}><path d="M9 18l6-6-6-6"/></svg>
@@ -1501,11 +1501,11 @@ export default function PaymentsPage() {
                   </svg>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: '16px', fontWeight: 600, color: '#000', display: 'block' }}>
+                  <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#000', display: 'block' }}>
                     {c.applePay}
                   </span>
                   {!applePayAvailable && (
-                    <span style={{ fontSize: '12px', color: '#999' }}>
+                    <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#999' }}>
                       {c.applePayUnavailable}
                     </span>
                   )}
@@ -1538,10 +1538,10 @@ export default function PaymentsPage() {
             }}
             onClick={e => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '8px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '8px', textAlign: 'center' }}>
               {c.selectCountry}
             </h3>
-            <p style={{ fontSize: '13px', color: '#888', textAlign: 'center', marginBottom: '20px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', textAlign: 'center', marginBottom: '20px', lineHeight: 1.5 }}>
               {c.selectCountryDesc}
             </p>
             {showPaypalForm ? (
@@ -1556,10 +1556,10 @@ export default function PaymentsPage() {
                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                   </svg>
                 </div>
-                <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#009CDE', textAlign: 'center', marginBottom: '8px' }}>
+                <h4 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#009CDE', textAlign: 'center', marginBottom: '8px' }}>
                   {c.paypalCountryTitle}
                 </h4>
-                <p style={{ fontSize: '13px', color: '#888', textAlign: 'center', marginBottom: '16px', lineHeight: 1.5 }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', textAlign: 'center', marginBottom: '16px', lineHeight: 1.5 }}>
                   {c.paypalCountryDesc}
                 </p>
                 <input
@@ -1571,7 +1571,7 @@ export default function PaymentsPage() {
                   style={{
                     width: '100%', padding: '14px 16px', borderRadius: '12px',
                     backgroundColor: '#0A0A0A', border: '1px solid #333',
-                    color: '#fff', fontSize: '15px', outline: 'none',
+                    color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none',
                     boxSizing: 'border-box', marginBottom: '12px',
                   }}
                 />
@@ -1581,7 +1581,7 @@ export default function PaymentsPage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '12px',
                     background: countryPaypalEmail.includes('@') ? 'linear-gradient(135deg, #003087, #009CDE)' : '#333',
-                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                    border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                     cursor: countryPaypalEmail.includes('@') ? 'pointer' : 'not-allowed',
                     opacity: countryPaypalSaving ? 0.6 : 1,
                     marginBottom: '8px',
@@ -1594,7 +1594,7 @@ export default function PaymentsPage() {
                   style={{
                     width: '100%', padding: '10px', borderRadius: '10px',
                     backgroundColor: 'transparent', border: '1px solid #333',
-                    color: '#888', fontSize: '13px', cursor: 'pointer',
+                    color: '#888', fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
                   }}
                 >
                   {c.cancel}
@@ -1617,12 +1617,12 @@ export default function PaymentsPage() {
                           outline: selectedCountry === ct.code ? '2px solid #6366F1' : '2px solid transparent',
                         }}
                       >
-                        <span className="no-theme-invert" style={{ fontSize: '22px' }}>{ct.flag}</span>
-                        <span style={{ fontSize: '15px', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400, flex: 1 }}>
+                        <span className="no-theme-invert" style={{ fontSize: 'calc(22px * var(--fs, 1))' }}>{ct.flag}</span>
+                        <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', fontWeight: selectedCountry === ct.code ? 700 : 400, flex: 1 }}>
                           {regionName(ct.code)}
                         </span>
                         {isPaypalOnly && (
-                          <span style={{ fontSize: '11px', color: '#009CDE', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(0,156,222,0.1)' }}>
+                          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#009CDE', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', backgroundColor: 'rgba(0,156,222,0.1)' }}>
                             PayPal
                           </span>
                         )}
@@ -1640,7 +1640,7 @@ export default function PaymentsPage() {
                         ? 'linear-gradient(135deg, #003087, #009CDE)'
                         : 'linear-gradient(135deg, #6772E5, #4F46E5)'
                       : '#333',
-                    border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+                    border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                     cursor: selectedCountry ? 'pointer' : 'not-allowed',
                     opacity: connecting ? 0.6 : 1,
                     marginBottom: '8px',
@@ -1655,7 +1655,7 @@ export default function PaymentsPage() {
               style={{
                 width: '100%', padding: '12px', borderRadius: '10px',
                 backgroundColor: 'transparent', border: '1px solid #333',
-                color: '#888', fontSize: '14px', cursor: 'pointer',
+                color: '#888', fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer',
               }}
             >
               {c.cancel}

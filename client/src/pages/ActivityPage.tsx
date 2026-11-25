@@ -771,13 +771,13 @@ export default function ActivityPage() {
         width: '80px', height: '80px', borderRadius: '50%',
         background: gradient,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '36px', marginBottom: '20px',
+        fontSize: 'calc(36px * var(--fs, 1))', marginBottom: '20px',
         boxShadow: '0 8px 32px rgba(240,144,138,0.15)',
       }}>
         {icon}
       </div>
-      <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{title}</p>
-      <p style={{ fontSize: '14px', color: '#666', maxWidth: '260px' }}>{desc}</p>
+      <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{title}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', maxWidth: '260px' }}>{desc}</p>
     </div>
   )
 
@@ -791,7 +791,7 @@ export default function ActivityPage() {
         borderTopColor: '#F0908A', borderRadius: '50%',
         animation: 'spin 0.8s linear infinite', marginBottom: '16px',
       }} />
-      <p style={{ fontSize: '14px', color: '#666' }}>{lt.loading}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{lt.loading}</p>
     </div>
   )
 
@@ -811,13 +811,13 @@ export default function ActivityPage() {
           <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-      <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.error}</p>
-      <p style={{ fontSize: '13px', color: '#666', maxWidth: '260px', marginBottom: '16px' }} title={errorMsg}>{lt.errorDesc}</p>
+      <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.error}</p>
+      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', maxWidth: '260px', marginBottom: '16px' }} title={errorMsg}>{lt.errorDesc}</p>
       <button
         onClick={onRetry}
         style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          color: '#E8344E', fontSize: '14px', fontWeight: 600,
+          color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
         }}
       >
@@ -840,13 +840,13 @@ export default function ActivityPage() {
         width: '80px', height: '80px', borderRadius: '50%',
         background: 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '36px', marginBottom: '20px',
+        fontSize: 'calc(36px * var(--fs, 1))', marginBottom: '20px',
         boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
       }}>
         {icon}
       </div>
-      <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.comingSoon}</p>
-      <p style={{ fontSize: '14px', color: '#666', maxWidth: '280px' }}>{description}</p>
+      <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.comingSoon}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', maxWidth: '280px' }}>{description}</p>
     </div>
   )
 
@@ -878,27 +878,27 @@ export default function ActivityPage() {
             <div style={{
               width: '80px', height: '80px', borderRadius: '12px',
               backgroundColor: '#111', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: '28px', flexShrink: 0,
+              justifyContent: 'center', fontSize: 'calc(28px * var(--fs, 1))', flexShrink: 0,
             }}>
               {isSale ? '\uD83D\uDCB0' : '\uD83D\uDECD\uFE0F'}
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
-              fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '3px',
+              fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '3px',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {itemTitle}
             </p>
-            <p style={{ fontSize: '14px', color: '#F0908A', fontWeight: 600, marginBottom: '3px' }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 600, marginBottom: '3px' }}>
               {formatAmount(order.amount, order.currency)}
               {!isSale && order.shipping_cost != null && order.shipping_cost > 0 && (
-                <span style={{ fontSize: '11px', color: '#888', fontWeight: 500 }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', fontWeight: 500 }}>
                   {' '}+ {formatAmount(order.shipping_cost, order.currency)} {fx.shipping_fee}
                 </span>
               )}
             </p>
-            <p style={{ fontSize: '12px', color: '#555' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555' }}>
               {isSale && saleOrder.buyer_profile
                 ? `${lt.buyer}: ${saleOrder.buyer_profile.display_name} \u00B7 `
                 : ''
@@ -908,7 +908,7 @@ export default function ActivityPage() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
             <span style={{
-              fontSize: '11px', fontWeight: 700,
+              fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
               color: statusColor,
               backgroundColor: `${statusColor}14`,
               padding: '5px 12px', borderRadius: '10px',
@@ -920,7 +920,7 @@ export default function ActivityPage() {
             {/* Dispute badge */}
             {order.status === 'disputed' && (
               <span style={{
-                fontSize: '10px', fontWeight: 700,
+                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
                 color: '#F97316',
                 backgroundColor: 'rgba(249,115,22,0.1)',
                 padding: '3px 8px', borderRadius: '8px',
@@ -936,7 +936,7 @@ export default function ActivityPage() {
         {/* Remise : le vendeur saisit le code ou envoie les 2 photos dans le détail de la commande */}
         {order.status === 'paid' && (order.fulfillment_method === 'pickup' || order.fulfillment_method === 'post') && (
           <div style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ flex: 1, fontSize: '12px', color: '#F59E0B', fontWeight: 600 }}>
+            <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs, 1))', color: '#F59E0B', fontWeight: 600 }}>
               {order.fulfillment_method === 'pickup' ? fx.method_pickup : fx.method_post}
               {isSale ? ` — ${order.fulfillment_method === 'pickup' ? fx.awaiting_code : fx.awaiting_photos}` : ''}
             </span>
@@ -944,7 +944,7 @@ export default function ActivityPage() {
               onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
               style={{
                 padding: '7px 14px', borderRadius: '8px', border: 'none', whiteSpace: 'nowrap',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
               }}
             >
               {isSale ? (order.fulfillment_method === 'pickup' ? fx.enter_code_button : fx.take_photo) : (order.fulfillment_method === 'pickup' ? fx.your_code_title : fx.contact_title)}
@@ -953,7 +953,7 @@ export default function ActivityPage() {
         )}
 
         {(order.status === 'shipped' || order.status === 'handed_over') && (order.shipped_at || order.handed_over_at) && (
-          <p style={{ fontSize: '12px', color: '#10B981', margin: '10px 0 0' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#10B981', margin: '10px 0 0' }}>
             {order.status === 'handed_over' ? fx.handed_over_on : fx.shipped_on} {formatDate((order.handed_over_at || order.shipped_at)!)}
           </p>
         )}
@@ -962,7 +962,7 @@ export default function ActivityPage() {
         {!isSale && order.status === 'delivered' && (
           <div style={{ marginTop: '8px' }}>
             {order.delivered_at && (
-              <p style={{ fontSize: '12px', color: '#10B981', margin: '0 0 10px' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#10B981', margin: '0 0 10px' }}>
                 {lt.deliveredOn} {formatDate(order.delivered_at)}
               </p>
             )}
@@ -974,14 +974,14 @@ export default function ActivityPage() {
                   style={{
                     padding: '8px 16px', borderRadius: '10px',
                     background: 'linear-gradient(135deg, #F97316, #E8344E)',
-                    border: 'none', color: '#fff', fontSize: '13px',
+                    border: 'none', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))',
                     fontWeight: 700, cursor: 'pointer',
                     marginBottom: '6px',
                   }}
                 >
                   {lt.reportProblem}
                 </button>
-                <p style={{ fontSize: '11px', color: '#F97316', margin: 0 }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F97316', margin: 0 }}>
                   {'\u23F1'} {formatTimeRemaining(order.claim_deadline)} {lt.timeRemainingPrefix}
                 </p>
               </div>
@@ -991,7 +991,7 @@ export default function ActivityPage() {
                 style={{
                   padding: '8px 16px', borderRadius: '10px',
                   background: '#333', border: 'none',
-                  color: '#666', fontSize: '13px',
+                  color: '#666', fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 700, cursor: 'not-allowed',
                 }}
               >
@@ -1016,7 +1016,7 @@ export default function ActivityPage() {
               style={{
                 padding: '7px 14px', borderRadius: '8px',
                 background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
-                color: '#8B5CF6', fontSize: '12px', fontWeight: 600,
+                color: '#8B5CF6', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
@@ -1054,7 +1054,7 @@ export default function ActivityPage() {
               style={{
                 padding: '7px 14px', borderRadius: '8px',
                 background: 'transparent', border: '1px solid #333',
-                color: '#aaa', fontSize: '12px', fontWeight: 600,
+                color: '#aaa', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
@@ -1119,16 +1119,16 @@ export default function ActivityPage() {
           </svg>
         </div>
         <div style={{ flex: 1, textAlign: 'start' }}>
-          <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
             {fx.to_hand_over}
           </p>
-          <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
             {fx.method_pickup} · {fx.method_post}
           </p>
         </div>
         {toHandOverCount > 0 && (
           <span style={{
-            fontSize: '11px', fontWeight: 700, color: '#F59E0B',
+            fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F59E0B',
             backgroundColor: 'rgba(245,158,11,0.12)', padding: '3px 10px',
             borderRadius: '10px', whiteSpace: 'nowrap',
           }}>
@@ -1204,26 +1204,26 @@ export default function ActivityPage() {
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
-                    <span style={{ fontSize: '18px', color: '#666', fontWeight: 700 }}>{displayName[0]}</span>
+                    <span style={{ fontSize: 'calc(18px * var(--fs, 1))', color: '#666', fontWeight: 700 }}>{displayName[0]}</span>
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {displayName}
                   </p>
                   {seller.store_name && seller.store_name !== displayName && (
-                    <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{seller.store_name}</p>
+                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{seller.store_name}</p>
                   )}
                   {hasLive ? (
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#E8344E', backgroundColor: 'rgba(232,52,78,0.1)', padding: '3px 8px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#E8344E', backgroundColor: 'rgba(232,52,78,0.1)', padding: '3px 8px', borderRadius: '6px' }}>
                       {lt.liveNow}
                     </span>
                   ) : nextScheduled ? (
-                    <span style={{ fontSize: '11px', color: '#8B5CF6' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#8B5CF6' }}>
                       {lt.scheduled} - {new Date(nextScheduled.scheduled_at).toLocaleDateString()}
                     </span>
                   ) : (
-                    <span style={{ fontSize: '11px', color: '#444' }}>{lt.noUpcoming}</span>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#444' }}>{lt.noUpcoming}</span>
                   )}
                 </div>
                 <button
@@ -1231,7 +1231,7 @@ export default function ActivityPage() {
                   style={{
                     padding: '6px 12px', borderRadius: '8px',
                     background: 'transparent', border: '1px solid #333',
-                    color: '#888', fontSize: '11px', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                    color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                   }}
                 >
                   {lt.unfollow}
@@ -1270,10 +1270,10 @@ export default function ActivityPage() {
               <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
             </svg>
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+          <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
             {lt.emptyFavorites}
           </h3>
-          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>
             {lt.emptyFavoritesDesc}
           </p>
         </div>
@@ -1312,10 +1312,10 @@ export default function ActivityPage() {
               <line x1="7" y1="7" x2="7.01" y2="7" />
             </svg>
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+          <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
             {lt.emptyOffers}
           </h3>
-          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>
             {lt.emptyOffersDesc}
           </p>
         </div>
@@ -1340,18 +1340,18 @@ export default function ActivityPage() {
               {imgUrl ? (
                 <img src={imgUrl} alt="" loading="lazy" style={{ width: '48px', height: '48px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
               ) : (
-                <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '10px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(20px * var(--fs, 1))', flexShrink: 0 }}>
                   {'\uD83E\uDD1D'}
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {offer.item?.title || lt.offerFallback}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A' }}>{offer.currency ? formatMoney(offer.amount, offer.currency) : formatItemPrice(offer.amount, offerSellerCountry[offer.seller_id] ?? profile?.country)}</span>
+                  <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{offer.currency ? formatMoney(offer.amount, offer.currency) : formatItemPrice(offer.amount, offerSellerCountry[offer.seller_id] ?? profile?.country)}</span>
                   <span style={{
-                    fontSize: '10px', fontWeight: 700, color: isReceived ? '#3B82F6' : '#8B5CF6',
+                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: isReceived ? '#3B82F6' : '#8B5CF6',
                     backgroundColor: isReceived ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)',
                     padding: '2px 6px', borderRadius: '6px',
                     border: isReceived ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(139,92,246,0.25)',
@@ -1359,7 +1359,7 @@ export default function ActivityPage() {
                     {isReceived ? lt.offerReceived : lt.offerSent}
                   </span>
                   <span style={{
-                    fontSize: '10px', fontWeight: 700, color: statusColor,
+                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: statusColor,
                     backgroundColor: `${statusColor}14`, padding: '2px 6px', borderRadius: '6px',
                     border: `1px solid ${statusColor}30`,
                   }}>
@@ -1375,7 +1375,7 @@ export default function ActivityPage() {
                     style={{
                       padding: '6px 10px', borderRadius: '8px', border: 'none',
                       background: 'linear-gradient(135deg, #10B981, #059669)',
-                      color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                      color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {lt.offerAccept}
@@ -1385,7 +1385,7 @@ export default function ActivityPage() {
                     style={{
                       padding: '6px 10px', borderRadius: '8px',
                       border: '1px solid #333', background: 'transparent',
-                      color: '#888', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                      color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {lt.offerDecline}
@@ -1422,7 +1422,7 @@ export default function ActivityPage() {
           transition: 'all 0.4s ease',
         }}>
           <h1 style={{
-            fontSize: '24px', fontWeight: 900, color: '#fff',
+            fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 900, color: '#fff',
             letterSpacing: '-0.5px', margin: 0,
           }}>
             {lt.title}
@@ -1454,9 +1454,9 @@ export default function ActivityPage() {
                 position: 'relative',
               }}
             >
-              <span style={{ fontSize: '14px' }}>{tab.emoji}</span>
+              <span style={{ fontSize: 'calc(14px * var(--fs, 1))' }}>{tab.emoji}</span>
               <span style={{
-                fontSize: '13px',
+                fontSize: 'calc(13px * var(--fs, 1))',
                 fontWeight: mainTab === tab.id ? 700 : 500,
                 color: mainTab === tab.id ? '#F0908A' : '#666',
               }}>
@@ -1481,7 +1481,7 @@ export default function ActivityPage() {
                   backgroundColor: subFilter === filter.id ? '#fff' : 'transparent',
                   border: subFilter === filter.id ? 'none' : '1px solid #222',
                   color: subFilter === filter.id ? '#000' : '#555',
-                  fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 }}
               >
                 {filter.label}
@@ -1492,7 +1492,7 @@ export default function ActivityPage() {
               style={{
                 marginInlineStart: 'auto', padding: '6px 10px', borderRadius: '100px', flexShrink: 0,
                 backgroundColor: 'transparent', border: '1px solid #333',
-                color: '#888', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}
             >

@@ -333,7 +333,7 @@ export default function TeamPage() {
         <button onClick={() => navigate(-1)} aria-label={ct.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
       </div>
 
       {loading ? (
@@ -353,7 +353,7 @@ export default function TeamPage() {
         {/* Received invitations */}
         {invitations.length > 0 && (
           <div style={{ marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{ct.invitations}</h2>
+            <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>{ct.invitations}</h2>
             {invitations.map(inv => (
               <div key={inv.id} style={{
                 backgroundColor: '#111', borderRadius: '14px', padding: '16px',
@@ -367,17 +367,17 @@ export default function TeamPage() {
                   {inv.seller?.avatar_url ? (
                     <img src={inv.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
-                    <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A' }}>
+                    <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                       {(inv.seller?.display_name || '?')[0].toUpperCase()}
                     </span>
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                     {inv.seller?.store_name || inv.seller?.display_name || ct.seller}
                   </p>
                   <span style={{
-                    fontSize: '10px', fontWeight: 700,
+                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
                     color: roleColors[inv.role] || '#888',
                     padding: '2px 8px', borderRadius: '6px',
                     backgroundColor: `${roleColors[inv.role] || '#888'}15`,
@@ -389,14 +389,14 @@ export default function TeamPage() {
                 <button onClick={() => handleAccept(inv.seller_id)} style={{
                   padding: '8px 14px', borderRadius: '8px',
                   backgroundColor: '#22C55E', border: 'none',
-                  color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}>
                   {ct.accept}
                 </button>
                 <button onClick={() => handleDecline(inv.seller_id)} style={{
                   padding: '8px 14px', borderRadius: '8px',
                   backgroundColor: '#1A1A1A', border: '1px solid #333',
-                  color: '#E8344E', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                  color: '#E8344E', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}>
                   {ct.decline}
                 </button>
@@ -409,7 +409,7 @@ export default function TeamPage() {
         {profile?.is_seller && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {ct.title} ({members.length}/10)
               </h2>
               <button
@@ -418,7 +418,7 @@ export default function TeamPage() {
                   padding: '8px 16px',
                   background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                   borderRadius: '8px', border: 'none',
-                  color: '#fff', fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
                 {ct.invite}
@@ -440,7 +440,7 @@ export default function TeamPage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '12px',
                     border: '1px solid #333', backgroundColor: '#0D0D0D',
-                    color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                    color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
                   }}
                 />
                 <div style={{ display: 'flex', gap: '8px' }}>
@@ -455,16 +455,16 @@ export default function TeamPage() {
                         cursor: 'pointer', textAlign: 'center',
                       }}
                     >
-                      <p style={{ fontSize: '13px', fontWeight: 700, color: roleColors[r], margin: 0 }}>
+                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: roleColors[r], margin: 0 }}>
                         {roleLabel(r)}
                       </p>
-                      <p style={{ fontSize: '10px', color: '#888', margin: '4px 0 0' }}>
+                      <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>
                         {r === 'manager' ? ct.managerDesc : r === 'moderator' ? ct.moderatorDesc : ct.shipperDesc}
                       </p>
                     </button>
                   ))}
                 </div>
-                {error && <p style={{ color: '#E8344E', fontSize: '12px', margin: 0 }}>{error}</p>}
+                {error && <p style={{ color: '#E8344E', fontSize: 'calc(12px * var(--fs, 1))', margin: 0 }}>{error}</p>}
                 <button
                   disabled={inviting || !inviteEmail.trim()}
                   onClick={handleInvite}
@@ -472,7 +472,7 @@ export default function TeamPage() {
                     width: '100%', padding: '14px',
                     background: inviting ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
                     borderRadius: '12px', border: 'none',
-                    color: '#fff', fontSize: '15px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                     cursor: inviting ? 'default' : 'pointer',
                     opacity: inviting ? 0.6 : 1,
                   }}
@@ -488,7 +488,7 @@ export default function TeamPage() {
                 backgroundColor: '#111', borderRadius: '14px', padding: '32px',
                 textAlign: 'center',
               }}>
-                <p style={{ fontSize: '14px', color: '#666' }}>{ct.noMembers}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{ct.noMembers}</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -505,18 +505,18 @@ export default function TeamPage() {
                       {member.user?.avatar_url ? (
                         <img src={member.user.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       ) : (
-                        <span style={{ fontSize: '16px', fontWeight: 700, color: '#F0908A' }}>
+                        <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                           {(member.user?.display_name || '?')[0].toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                         {member.user?.display_name || member.user_id.slice(0, 8)}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                         <span style={{
-                          fontSize: '10px', fontWeight: 700,
+                          fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
                           color: roleColors[member.role] || '#888',
                           padding: '2px 8px', borderRadius: '6px',
                           backgroundColor: `${roleColors[member.role] || '#888'}15`,
@@ -525,7 +525,7 @@ export default function TeamPage() {
                           {roleLabel(member.role)}
                         </span>
                         <span style={{
-                          fontSize: '10px', fontWeight: 600,
+                          fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600,
                           color: member.status === 'active' ? '#22C55E' : '#F59E0B',
                         }}>
                           {member.status === 'active' ? ct.active : ct.pending}
@@ -537,7 +537,7 @@ export default function TeamPage() {
                       style={{
                         padding: '6px 12px', borderRadius: '8px',
                         backgroundColor: '#1A1A1A', border: '1px solid #333',
-                        color: '#E8344E', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                        color: '#E8344E', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       {ct.remove}

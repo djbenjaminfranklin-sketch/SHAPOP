@@ -44,7 +44,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
         <div style={{
           width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#222',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '11px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0
+          fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0
         }}>
           {item.seller?.avatar_url ? (
             <img src={item.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -52,7 +52,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
             sellerName.charAt(0).toUpperCase()
           )}
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {sellerName}
         </span>
       </div>
@@ -76,7 +76,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            color: '#fff', fontSize: '11px', fontWeight: 700,
+            color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
             padding: '4px 8px', borderRadius: '8px',
             boxShadow: '0 2px 8px rgba(232, 52, 78, 0.4)',
           }}>
@@ -92,7 +92,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
           <div style={{ position: 'absolute', top: '10px', ...rtlPos('right', '10px') }}>
             <span style={{
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff',
-              fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: '8px',
+              fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, padding: '4px 8px', borderRadius: '8px',
             }}>
               {conditionLabels[item.ai_condition]?.[lang] ?? item.ai_condition}
             </span>
@@ -137,7 +137,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
           <span style={{
             display: 'inline-flex', alignItems: 'center',
             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-            color: '#fff', fontSize: '14px', fontWeight: 700,
+            color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
             padding: '5px 10px', borderRadius: '8px',
           }}>
             {formatItemPrice(price, priceCountry, lang)}
@@ -147,10 +147,10 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
 
       {/* Title & category */}
       <div style={{ marginTop: '8px' }}>
-        <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.title}
         </p>
-        <p style={{ fontSize: '12px', fontWeight: 600, color: '#F0908A', marginTop: '2px' }}>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#F0908A', marginTop: '2px' }}>
           {item.category}
         </p>
       </div>

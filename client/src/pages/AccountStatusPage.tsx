@@ -174,7 +174,7 @@ export default function AccountStatusPage() {
         <button aria-label={c.goBack} onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
 
       {loading ? (
@@ -190,28 +190,28 @@ export default function AccountStatusPage() {
       {/* Score card — Uber-style */}
       {score && (
         <div style={{ margin: '20px', padding: '20px', borderRadius: '16px', background: 'linear-gradient(135deg, #111, #1A1A1A)', border: '1px solid #222' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: '#888', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.myScore}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#888', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.myScore}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {/* Big score number */}
             <div style={{ textAlign: 'center' }}>
-              <span style={{ fontSize: '42px', fontWeight: 800, color: getScoreColor(score.score), lineHeight: 1 }}>
+              <span style={{ fontSize: 'calc(42px * var(--fs, 1))', fontWeight: 800, color: getScoreColor(score.score), lineHeight: 1 }}>
                 {score.score.toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
               </span>
-              <span style={{ fontSize: '16px', fontWeight: 600, color: '#555' }}>/10</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#555' }}>/10</span>
             </div>
             {/* Score bar + label */}
             <div style={{ flex: 1 }}>
               <div style={{ height: '6px', borderRadius: '3px', backgroundColor: '#222', overflow: 'hidden', marginBottom: '8px' }}>
                 <div style={{ height: '100%', borderRadius: '3px', backgroundColor: getScoreColor(score.score), width: `${(score.score / 10) * 100}%`, transition: 'width 0.5s ease' }} />
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: getScoreColor(score.score) }}>{getScoreLabel(score.score)}</span>
+              <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: getScoreColor(score.score) }}>{getScoreLabel(score.score)}</span>
               <div style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#666' }}>{c.orders}: {score.total_orders}</span>
-                <span style={{ fontSize: '12px', color: '#666' }}>{c.disputes}: {score.total_disputes}</span>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>{c.orders}: {score.total_orders}</span>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>{c.disputes}: {score.total_disputes}</span>
               </div>
             </div>
           </div>
-          <p style={{ fontSize: '11px', color: '#444', marginTop: '12px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#444', marginTop: '12px', lineHeight: 1.5 }}>
             {c.scoreInfo}
           </p>
         </div>
@@ -220,8 +220,8 @@ export default function AccountStatusPage() {
       <div style={{ padding: '0 20px' }}>
         {rows.map((row) => (
           <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0', borderBottom: '1px solid #1A1A1A' }}>
-            <span style={{ fontSize: '15px', color: '#888' }}>{row.label}</span>
-            <span style={{ fontSize: '15px', color: row.accent ? '#4ade80' : '#fff', fontWeight: 500 }}>{row.value}</span>
+            <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#888' }}>{row.label}</span>
+            <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: row.accent ? '#4ade80' : '#fff', fontWeight: 500 }}>{row.value}</span>
           </div>
         ))}
       </div>

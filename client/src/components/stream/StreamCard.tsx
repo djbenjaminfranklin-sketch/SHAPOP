@@ -72,7 +72,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         <div style={{
           width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#222',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '11px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
+          fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
           border: '1.5px solid #333',
         }}>
           {stream.seller?.avatar_url ? (
@@ -81,14 +81,14 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             sellerName.charAt(0).toUpperCase()
           )}
         </div>
-        <span style={{ fontSize: '13px', fontWeight: 600, color: '#E5E5E5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#E5E5E5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {sellerName}
         </span>
         {stream.seller_score != null && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '3px',
             backgroundColor: '#1A1A1A', padding: '2px 6px', borderRadius: '6px',
-            fontSize: '11px', fontWeight: 700, color: '#F0908A', flexShrink: 0,
+            fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', flexShrink: 0,
           }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -116,7 +116,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
               backgroundColor: '#E8344E', color: '#fff',
-              fontSize: '12px', fontWeight: 700, padding: '5px 10px', borderRadius: '8px',
+              fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, padding: '5px 10px', borderRadius: '8px',
               letterSpacing: '0.2px',
             }}>
               {t(lang, 'live')}{stream.viewer_count > 0 && <> · {fmtViewers(stream.viewer_count)}</>}
@@ -128,7 +128,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           <div style={{ position: 'absolute', top: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', color: '#fff',
-              fontSize: '12px', fontWeight: 600, padding: '5px 10px', borderRadius: '8px'
+              fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, padding: '5px 10px', borderRadius: '8px'
             }}>
               {t(lang, 'coming_soon')}
             </span>
@@ -141,7 +141,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-              color: '#fff', fontSize: '10px', fontWeight: 800,
+              color: '#fff', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800,
               padding: '3px 8px', borderRadius: '6px',
               letterSpacing: '0.5px',
               boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
@@ -157,7 +157,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '3px',
               background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              color: '#fff', fontSize: '11px', fontWeight: 700,
+              color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
               padding: '4px 8px', borderRadius: '8px',
               boxShadow: '0 2px 8px rgba(232, 52, 78, 0.4)',
             }}>
@@ -202,7 +202,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
               color: '#F0908A',
-              fontSize: '10px', fontWeight: 700, padding: '4px 8px', borderRadius: '6px',
+              fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, padding: '4px 8px', borderRadius: '6px',
               maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2.5">
@@ -218,14 +218,14 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
       {/* Title & category — WhatNot style with blue category link */}
       <div style={{ marginTop: '8px', ...rtlPadding('right', '4px') }}>
         <p style={{
-          fontSize: '14px', fontWeight: 700, color: '#fff', lineHeight: 1.3,
+          fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', lineHeight: 1.3,
           overflow: 'hidden', textOverflow: 'ellipsis',
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
           margin: 0,
         }}>
           {stream.title}
         </p>
-        <p style={{ fontSize: '12px', fontWeight: 600, color: '#5B9FE4', marginTop: '3px', margin: '3px 0 0' }}>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#5B9FE4', marginTop: '3px', margin: '3px 0 0' }}>
           {stream.category && stream.category in I18N_TRANSLATIONS.en ? t(getLang(), stream.category as Parameters<typeof t>[1]) : stream.category}
         </p>
       </div>

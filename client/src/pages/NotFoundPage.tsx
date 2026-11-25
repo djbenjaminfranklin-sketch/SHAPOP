@@ -34,13 +34,13 @@ export default function NotFoundPage() {
         padding: '24px',
         textAlign: 'center',
       }}>
-        <div style={{ fontSize: '64px', fontWeight: 800, color: '#E8344E', marginBottom: '8px' }}>
+        <div style={{ fontSize: 'calc(64px * var(--fs, 1))', fontWeight: 800, color: '#E8344E', marginBottom: '8px' }}>
           404
         </div>
-        <h1 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>
+        <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, marginBottom: '8px' }}>
           {t.title}
         </h1>
-        <p style={{ fontSize: '14px', color: '#888', marginBottom: '24px' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', marginBottom: '24px' }}>
           {t.desc}
         </p>
         <button
@@ -48,7 +48,7 @@ export default function NotFoundPage() {
           style={{
             padding: '12px 32px', borderRadius: '12px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            border: 'none', color: '#fff', fontSize: '15px',
+            border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))',
             fontWeight: 600, cursor: 'pointer',
           }}
         >

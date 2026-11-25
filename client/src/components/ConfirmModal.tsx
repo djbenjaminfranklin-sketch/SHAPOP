@@ -59,7 +59,7 @@ export default function ConfirmModal({
       >
         <h3 style={{
           textAlign: 'start',
-          fontSize: '17px',
+          fontSize: 'calc(17px * var(--fs, 1))',
           fontWeight: 700,
           color: '#fff',
           margin: '0 0 8px',
@@ -69,7 +69,7 @@ export default function ConfirmModal({
 
         <p style={{
           textAlign: 'start',
-          fontSize: '14px',
+          fontSize: 'calc(14px * var(--fs, 1))',
           color: '#999',
           lineHeight: 1.5,
           margin: '0 0 24px',
@@ -87,7 +87,7 @@ export default function ConfirmModal({
               backgroundColor: '#2A2A2A',
               border: 'none',
               color: '#999',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -103,7 +103,7 @@ export default function ConfirmModal({
               backgroundColor: danger ? '#E8344E' : '#F0908A',
               border: 'none',
               color: '#fff',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 700,
               cursor: 'pointer',
             }}

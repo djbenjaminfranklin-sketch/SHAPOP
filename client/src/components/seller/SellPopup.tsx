@@ -301,7 +301,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         padding: '16px 20px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
       }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', margin: 0 }}>
+        <h2 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
           {!isSeller ? c.becomeSellerTitle : paymentConnected === false ? (isIsraeli ? c.ilBankTitle : c.stripeRequiredTitle) : c.createTitle}
         </h2>
         <button
@@ -338,7 +338,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #B91C3C 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '40px',
+                fontSize: 'calc(40px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(240,144,138,0.25), 0 0 0 6px rgba(240,144,138,0.08)',
               }}>
                 {'\u{1F6CD}\u{FE0F}'}
@@ -347,7 +347,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
 
             {/* Description */}
             <p style={{
-              fontSize: '15px', color: '#888', textAlign: 'center',
+              fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
               lineHeight: 1.6, margin: '0 0 8px',
             }}>
               {c.becomeSellerDesc}
@@ -373,11 +373,11 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     border: '1px solid rgba(240,144,138,0.2)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
-                    fontSize: '13px', fontWeight: 700, color: '#F0908A',
+                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
                   }}>
                     {i + 1}
                   </div>
-                  <span style={{ fontSize: '14px', color: '#D4D4D4', fontWeight: 500, lineHeight: 1.4 }}>
+                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#D4D4D4', fontWeight: 500, lineHeight: 1.4 }}>
                     {step}
                   </span>
                 </div>
@@ -386,7 +386,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
 
             {/* Time estimate */}
             <p style={{
-              fontSize: '13px', color: '#666', textAlign: 'center',
+              fontSize: 'calc(13px * var(--fs, 1))', color: '#666', textAlign: 'center',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               margin: '4px 0 0',
             }}>
@@ -404,7 +404,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 width: '100%', padding: '18px', marginTop: '8px',
                 background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #B91C3C 100%)',
                 borderRadius: '16px', border: 'none',
-                color: '#fff', fontSize: '17px', fontWeight: 800,
+                color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
                 boxShadow: '0 6px 24px rgba(240,144,138,0.35), 0 2px 8px rgba(232,52,78,0.3)',
                 letterSpacing: '0.3px',
@@ -439,14 +439,14 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 width: '88px', height: '88px', borderRadius: '50%',
                 background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 60%, #0A2540 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '40px',
+                fontSize: 'calc(40px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(99,91,255,0.25), 0 0 0 6px rgba(99,91,255,0.08)',
               }}>
                 {'\u{1F4B3}'}
               </div>
             </div>
             <p style={{
-              fontSize: '15px', color: '#888', textAlign: 'center',
+              fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
               lineHeight: 1.6, margin: '0 0 16px',
             }}>
               {isIsraeli ? c.ilBankDesc : c.stripeRequiredDesc}
@@ -457,7 +457,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 width: '100%', padding: '18px', marginTop: '8px',
                 background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 50%, #0A2540 100%)',
                 borderRadius: '16px', border: 'none',
-                color: '#fff', fontSize: '17px', fontWeight: 800,
+                color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
                 boxShadow: '0 6px 24px rgba(99,91,255,0.35), 0 2px 8px rgba(99,91,255,0.3)',
                 letterSpacing: '0.3px',
@@ -512,14 +512,14 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{
-                    fontSize: '18px', fontWeight: 800, color: '#fff',
+                    fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                     marginBottom: '4px',
                     display: 'flex', alignItems: 'center', gap: '8px',
                   }}>
                     {action.label}
                     {'badge' in action && action.badge && (
                       <span style={{
-                        fontSize: '10px', fontWeight: 700, color: '#F0908A',
+                        fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
                         backgroundColor: 'rgba(240,144,138,0.15)',
                         padding: '3px 10px', borderRadius: '100px',
                         textTransform: 'uppercase', letterSpacing: '0.5px',
@@ -528,7 +528,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#999' }}>
+                  <div style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#999' }}>
                     {action.description}
                   </div>
                 </div>
@@ -570,10 +570,10 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     {action.icon}
                   </div>
                   <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                    <div style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
                       {action.label}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.4 }}>
+                    <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', lineHeight: 1.4 }}>
                       {action.description}
                     </div>
                   </div>

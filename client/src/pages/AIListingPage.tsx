@@ -665,7 +665,7 @@ export default function AIListingPage() {
         <div style={{
           backgroundColor: 'rgba(232,52,78,0.1)', border: '1px solid rgba(232,52,78,0.3)',
           borderRadius: '12px', padding: '12px 16px', marginBottom: '20px',
-          color: '#E8344E', fontSize: '14px', fontWeight: 500, textAlign: 'center',
+          color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 500, textAlign: 'center',
           width: '100%', maxWidth: '340px',
         }}>
           {analysisError}
@@ -682,7 +682,7 @@ export default function AIListingPage() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A" stroke="#F0908A" strokeWidth="1"/>
         </svg>
-        <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A' }}>
+        <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
           {t.iaExpress}
         </span>
       </div>
@@ -727,10 +727,10 @@ export default function AIListingPage() {
               </svg>
             </div>
             <div style={{ textAlign: 'center' }}>
-              <p style={{ fontSize: '16px', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
+              <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
                 {t.takePhoto}
               </p>
-              <p style={{ fontSize: '13px', color: '#888', lineHeight: '1.4' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', lineHeight: '1.4' }}>
                 {t.importGallery}
               </p>
             </div>
@@ -784,7 +784,7 @@ export default function AIListingPage() {
           width: '100%', maxWidth: '340px', marginTop: '16px',
           padding: '14px', borderRadius: '14px',
           background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-          border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700,
+          border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
           cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
         }}
@@ -817,14 +817,14 @@ export default function AIListingPage() {
               width: '28px', height: '28px', borderRadius: '50%', margin: '0 auto 8px',
               background: 'linear-gradient(135deg, #F0908A, #E8344E)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '13px', fontWeight: 800, color: '#fff',
+              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, color: '#fff',
             }}>
               {item.icon}
             </div>
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>
               {item.label}
             </p>
-            <p style={{ fontSize: '11px', color: '#666' }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666' }}>
               {item.desc}
             </p>
           </div>
@@ -891,7 +891,7 @@ export default function AIListingPage() {
 
         {/* Status text */}
         <p style={{
-          fontSize: '16px', fontWeight: 700, color: '#fff',
+          fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff',
           textAlign: 'center', minHeight: '24px',
         }}>
           {analysisText}
@@ -912,7 +912,7 @@ export default function AIListingPage() {
         </div>
 
         {/* Progress text */}
-        <p style={{ fontSize: '13px', color: '#666' }}>
+        <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666' }}>
           {analysisProgress}%
         </p>
 
@@ -965,11 +965,11 @@ export default function AIListingPage() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A"/>
               </svg>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#F0908A' }}>
+              <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                 {t.aiAnalysisComplete}
               </span>
             </div>
-            <p style={{ fontSize: '12px', color: '#888' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>
               {t.confidence}: <span style={{ color: '#10B981', fontWeight: 700 }}>{aiResult.confidence}%</span>
             </p>
           </div>
@@ -978,7 +978,7 @@ export default function AIListingPage() {
             backgroundColor: 'rgba(16,185,129,0.1)',
             border: '1px solid rgba(16,185,129,0.2)',
           }}>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: '#10B981' }}>
+            <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#10B981' }}>
               {aiResult.confidence}%
             </span>
           </div>
@@ -995,20 +995,20 @@ export default function AIListingPage() {
             width: '80px', height: '80px', borderRadius: '50%',
             backgroundColor: 'rgba(255,255,255,0.1)',
           }} />
-          <p style={{ fontSize: '12px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: '4px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: '4px' }}>
             {t.estimatedPrice}
           </p>
-          <p style={{ fontSize: '28px', fontWeight: 900, color: '#fff', marginBottom: '2px' }}>
+          <p style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900, color: '#fff', marginBottom: '2px' }}>
             {formatMoney(aiResult.priceLow, currency)} – {formatMoney(aiResult.priceHigh, currency)}
           </p>
-          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)' }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: 'rgba(255,255,255,0.6)' }}>
             {t.priceBasedOn}
           </p>
         </div>
 
         {/* Tags */}
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '10px', display: 'block' }}>
+          <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '10px', display: 'block' }}>
             {t.aiTags}
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -1019,7 +1019,7 @@ export default function AIListingPage() {
                 backgroundColor: 'rgba(240,144,138,0.1)',
                 border: '1px solid rgba(240,144,138,0.25)',
               }}>
-                <span style={{ fontSize: '13px', color: '#F0908A', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
                   #{tag}
                 </span>
                 <button
@@ -1044,7 +1044,7 @@ export default function AIListingPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Title */}
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
               {t.titleLabel}
             </label>
             <input
@@ -1054,7 +1054,7 @@ export default function AIListingPage() {
               style={{
                 width: '100%', padding: '14px 16px', borderRadius: '14px',
                 backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
-                color: '#fff', fontSize: '15px', fontWeight: 600,
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                 outline: 'none', boxSizing: 'border-box',
               }}
             />
@@ -1062,7 +1062,7 @@ export default function AIListingPage() {
 
           {/* Category */}
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
               {t.categoryLabel}
             </label>
             <select
@@ -1071,7 +1071,7 @@ export default function AIListingPage() {
               style={{
                 width: '100%', padding: '14px 16px', borderRadius: '14px',
                 backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
-                color: '#fff', fontSize: '15px', fontWeight: 600,
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                 outline: 'none', appearance: 'none',
                 backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'12\' height=\'8\' viewBox=\'0 0 12 8\' fill=\'none\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M1 1L6 6L11 1\' stroke=\'%23666\' stroke-width=\'2\' stroke-linecap=\'round\'/%3E%3C/svg%3E")',
                 backgroundRepeat: 'no-repeat',
@@ -1089,7 +1089,7 @@ export default function AIListingPage() {
 
           {/* Condition */}
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
               {t.conditionLabel}
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1099,7 +1099,7 @@ export default function AIListingPage() {
                   onClick={() => setEditCondition(conditionsFr[idx])}
                   style={{
                     padding: '10px 18px', borderRadius: '12px',
-                    cursor: 'pointer', fontSize: '14px', fontWeight: 600,
+                    cursor: 'pointer', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                     backgroundColor: editCondition === conditionsFr[idx] ? 'rgba(240,144,138,0.15)' : '#0D0D0D',
                     border: editCondition === conditionsFr[idx] ? '1px solid rgba(240,144,138,0.4)' : '1px solid #1A1A1A',
                     color: editCondition === conditionsFr[idx] ? '#F0908A' : '#666',
@@ -1113,7 +1113,7 @@ export default function AIListingPage() {
 
           {/* Price */}
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
               {t.startingPrice}
             </label>
             <div style={{ position: 'relative' }}>
@@ -1125,13 +1125,13 @@ export default function AIListingPage() {
                 style={{
                   width: '100%', paddingBlock: '14px', paddingInlineStart: '16px', paddingInlineEnd: '50px', borderRadius: '14px',
                   backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
-                  color: '#fff', fontSize: '15px', fontWeight: 600,
+                  color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
               <span style={{
                 position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)',
-                fontSize: '15px', fontWeight: 700, color: '#555',
+                fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#555',
               }}>
                 {currencySymbol(currency)}
               </span>
@@ -1140,10 +1140,10 @@ export default function AIListingPage() {
 
           {/* Description */}
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               {t.descriptionLabel}
               <span style={{
-                fontSize: '10px', fontWeight: 600, color: '#F0908A',
+                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#F0908A',
                 backgroundColor: 'rgba(240,144,138,0.1)',
                 padding: '2px 8px', borderRadius: '100px',
               }}>
@@ -1157,7 +1157,7 @@ export default function AIListingPage() {
               style={{
                 width: '100%', padding: '14px 16px', borderRadius: '14px',
                 backgroundColor: '#0D0D0D', border: '1px solid #1A1A1A',
-                color: '#fff', fontSize: '14px', lineHeight: '1.5',
+                color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', lineHeight: '1.5',
                 outline: 'none', resize: 'vertical', fontFamily: 'inherit',
                 boxSizing: 'border-box',
               }}
@@ -1182,7 +1182,7 @@ export default function AIListingPage() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
             <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="white"/>
           </svg>
-          <span style={{ fontSize: '16px', fontWeight: 800, color: '#fff' }}>
+          <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>
             {saving ? t.saving : t.createListing}
           </span>
         </button>
@@ -1223,7 +1223,7 @@ export default function AIListingPage() {
               <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A"/>
             </svg>
             <h1 style={{
-              fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0,
+              fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0,
             }}>
               {t.iaExpress}
             </h1>
@@ -1271,7 +1271,7 @@ export default function AIListingPage() {
             padding: '12px 16px',
             paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
           }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+            <h3 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
               {t.scanBarcode}
             </h3>
             <button
@@ -1323,7 +1323,7 @@ export default function AIListingPage() {
             paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: '14px', color: '#888' }}>{barcodeStatus}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888' }}>{barcodeStatus}</p>
             {/* Manual barcode input fallback */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px', maxWidth: '340px', margin: '12px auto 0' }}>
               <input
@@ -1333,7 +1333,7 @@ export default function AIListingPage() {
                 style={{
                   flex: 1, padding: '12px', borderRadius: '10px',
                   border: '1px solid #333', backgroundColor: '#0D0D0D',
-                  color: '#fff', fontSize: '14px', outline: 'none',
+                  color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', outline: 'none',
                 }}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
@@ -1350,7 +1350,7 @@ export default function AIListingPage() {
                 style={{
                   padding: '12px 20px', borderRadius: '10px',
                   background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)',
-                  border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                  border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
                 {t.ok}

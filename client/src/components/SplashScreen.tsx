@@ -127,7 +127,7 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
           borderRadius: '9999px',
           padding: '8px 20px',
           color: '#fff',
-          fontSize: '14px',
+          fontSize: 'calc(14px * var(--fs, 1))',
           fontWeight: 600,
           cursor: 'pointer',
           zIndex: 1,

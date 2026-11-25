@@ -107,7 +107,7 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
             position: 'absolute', bottom: '6px', insetInlineStart: '6px',
             backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
             padding: '2px 8px', borderRadius: '6px',
-            fontSize: '10px', fontWeight: 700, color: '#fff',
+            fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff',
           }}>
             {vt.participant.identity?.startsWith('seller-')
               ? tr({ en: 'Host', fr: 'Hôte', es: 'Anfitrión', ru: 'Ведущий', he: 'מנחה' })

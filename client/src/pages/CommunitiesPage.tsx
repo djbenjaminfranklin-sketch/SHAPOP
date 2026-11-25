@@ -275,7 +275,7 @@ export default function CommunitiesPage() {
           </div>
           <div>
             <h1 style={{
-              fontSize: '22px', fontWeight: 800, color: '#fff', margin: 0,
+              fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0,
               letterSpacing: '-0.3px',
             }}>
               {ct.localCommunities}
@@ -283,7 +283,7 @@ export default function CommunitiesPage() {
           </div>
         </div>
         <p style={{
-          fontSize: '14px', color: '#888', margin: '6px 0 0 0',
+          fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '6px 0 0 0',
           lineHeight: 1.4,
         }}>
           {ct.subtitle}
@@ -293,7 +293,7 @@ export default function CommunitiesPage() {
       {/* Country selector */}
       <div style={{ padding: '16px 20px 0' }}>
         <p style={{
-          fontSize: '12px', color: '#666', fontWeight: 600,
+          fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600,
           textTransform: 'uppercase', letterSpacing: '0.5px',
           marginBottom: '10px', margin: '0 0 10px 0',
         }}>
@@ -325,9 +325,9 @@ export default function CommunitiesPage() {
                 minWidth: '64px',
               }}
             >
-              <span className="no-theme-invert" style={{ fontSize: '22px', lineHeight: 1 }}>{country.flag}</span>
+              <span className="no-theme-invert" style={{ fontSize: 'calc(22px * var(--fs, 1))', lineHeight: 1 }}>{country.flag}</span>
               <span style={{
-                fontSize: '11px', fontWeight: 600,
+                fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
                 color: selectedCountry === country.code ? '#F0908A' : '#888',
                 whiteSpace: 'nowrap',
               }}>
@@ -356,7 +356,7 @@ export default function CommunitiesPage() {
             placeholder={ct.searchPlaceholder}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
-              color: '#fff', fontSize: '15px', fontFamily: 'inherit',
+              color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontFamily: 'inherit',
             }}
           />
           {search && (
@@ -388,8 +388,8 @@ export default function CommunitiesPage() {
           { value: formatCount(totalLives), label: ct.activeLives },
         ].map((stat) => (
           <div key={stat.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '20px', fontWeight: 800, color: '#F0908A' }}>{stat.value}</div>
-            <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>{stat.label}</div>
+            <div style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{stat.value}</div>
+            <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>{stat.label}</div>
           </div>
         ))}
       </div>
@@ -401,7 +401,7 @@ export default function CommunitiesPage() {
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0 }}>
+          <h2 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
             {ct.nearYou} - {countryName}
           </h2>
         </div>
@@ -432,7 +432,7 @@ export default function CommunitiesPage() {
               <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
               <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: '#fff', margin: 0 }}>
+            <h2 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
               {ct.discoverMore}
             </h2>
           </div>
@@ -459,16 +459,16 @@ export default function CommunitiesPage() {
       {/* Empty state */}
       {filtered.length === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>
+          <div style={{ fontSize: 'calc(48px * var(--fs, 1))', marginBottom: '12px' }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5" style={{ margin: '0 auto' }}>
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
             </svg>
           </div>
-          <p style={{ color: '#555', fontSize: '15px', margin: 0 }}>
+          <p style={{ color: '#555', fontSize: 'calc(15px * var(--fs, 1))', margin: 0 }}>
             {ct.noCommunityFound}
           </p>
-          <p style={{ color: '#444', fontSize: '13px', marginTop: '4px' }}>
+          <p style={{ color: '#444', fontSize: 'calc(13px * var(--fs, 1))', marginTop: '4px' }}>
             {ct.tryOtherKeyword}
           </p>
         </div>
@@ -525,7 +525,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
               backgroundColor: '#fff',
               animation: 'pulse-dot 1.5s ease-in-out infinite',
             }} />
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff' }}>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
               {plural(ct.lives, community.live_count)}
             </span>
           </div>
@@ -535,7 +535,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
       {/* Content */}
       <div style={{ padding: '12px' }}>
         <h3 style={{
-          fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0,
+          fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           lineHeight: 1.3,
         }}>
@@ -550,7 +550,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize: '12px', color: '#888' }}>{community.city}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{community.city}</span>
         </div>
 
         <div style={{
@@ -561,7 +561,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize: '12px', color: '#888' }}>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>
             {plural(ct.members, community.member_count)}
           </span>
         </div>
@@ -574,7 +574,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             marginTop: '10px',
             padding: '8px 0',
             borderRadius: '10px',
-            fontSize: '13px',
+            fontSize: 'calc(13px * var(--fs, 1))',
             fontWeight: 700,
             cursor: 'pointer',
             fontFamily: 'inherit',

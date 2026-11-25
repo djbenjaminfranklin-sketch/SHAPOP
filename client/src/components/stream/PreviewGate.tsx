@@ -68,7 +68,7 @@ export function PreviewCountdown({ endsAt }: { endsAt: number }) {
         backgroundColor: 'rgba(0,0,0,0.55)',
         backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
         border: '1px solid rgba(255,255,255,0.12)',
-        color: 'rgba(255,255,255,0.9)', fontSize: '12px', fontWeight: 600,
+        color: 'rgba(255,255,255,0.9)', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
       }}>
         {label[0]}<bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{formatClock(remaining)}</bdi>{label[1] ?? ''}
       </div>
@@ -99,14 +99,14 @@ export function PreviewCardWall({ onAddCard, onLeave }: { onAddCard: () => void;
             <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>{t.wallTitle}</h2>
-        <p style={{ fontSize: '14px', color: '#aaa', margin: '0 0 24px', lineHeight: 1.45 }}>{t.wallDesc}</p>
+        <h2 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>{t.wallTitle}</h2>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', margin: '0 0 24px', lineHeight: 1.45 }}>{t.wallDesc}</p>
         <button
           onClick={onAddCard}
           style={{
             width: '100%', padding: '16px', border: 'none', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            color: '#fff', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
           }}
         >
           {t.addCard}
@@ -116,7 +116,7 @@ export function PreviewCardWall({ onAddCard, onLeave }: { onAddCard: () => void;
           style={{
             width: '100%', marginTop: '12px', padding: '12px',
             backgroundColor: 'transparent', border: '1px solid #333', borderRadius: '12px',
-            color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+            color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
           }}
         >
           {t.leave}

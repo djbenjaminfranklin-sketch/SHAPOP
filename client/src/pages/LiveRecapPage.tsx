@@ -372,7 +372,7 @@ export default function LiveRecapPage() {
             <path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
       </div>
 
       {/* Watch VOD button */}
@@ -384,7 +384,7 @@ export default function LiveRecapPage() {
               width: '100%', padding: '14px',
               background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
               borderRadius: '14px', border: 'none',
-              color: '#fff', fontSize: '15px', fontWeight: 700,
+              color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
@@ -406,10 +406,10 @@ export default function LiveRecapPage() {
           backgroundColor: '#111', borderRadius: '14px', padding: '16px',
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: '24px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
             {money(totalRevenue)}
           </p>
-          <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.totalRevenue}
           </p>
         </div>
@@ -417,10 +417,10 @@ export default function LiveRecapPage() {
           backgroundColor: '#111', borderRadius: '14px', padding: '16px',
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: '24px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
+          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: 0 }}>
             {soldCount}
           </p>
-          <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.soldItems}
           </p>
         </div>
@@ -428,10 +428,10 @@ export default function LiveRecapPage() {
           backgroundColor: '#111', borderRadius: '14px', padding: '16px',
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: '24px', fontWeight: 800, color: '#666', margin: 0 }}>
+          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#666', margin: 0 }}>
             {unsoldCount}
           </p>
-          <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.unsoldItems}
           </p>
         </div>
@@ -447,10 +447,10 @@ export default function LiveRecapPage() {
             backgroundColor: '#111', borderRadius: '14px', padding: '16px',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#8B5CF6', margin: 0 }}>
+            <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#8B5CF6', margin: 0 }}>
               {streamInfo.peak_viewers || 0}
             </p>
-            <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
               {ct.peakViewers}
             </p>
           </div>
@@ -458,12 +458,12 @@ export default function LiveRecapPage() {
             backgroundColor: '#111', borderRadius: '14px', padding: '16px',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: '24px', fontWeight: 800, color: '#3B82F6', margin: 0 }}>
+            <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#3B82F6', margin: 0 }}>
               {streamInfo.started_at && streamInfo.ended_at
                 ? `${Math.round((new Date(streamInfo.ended_at).getTime() - new Date(streamInfo.started_at).getTime()) / 60000)} ${ct.minutes}`
                 : '-'}
             </p>
-            <p style={{ fontSize: '11px', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
               {ct.duration}
             </p>
           </div>
@@ -473,7 +473,7 @@ export default function LiveRecapPage() {
       {/* Sales list */}
       <div style={{ padding: '0 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+          <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
             {ct.sales} ({sales.length})
           </h2>
         </div>
@@ -483,7 +483,7 @@ export default function LiveRecapPage() {
             backgroundColor: '#111', borderRadius: '14px', padding: '32px',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: '14px', color: '#666' }}>{ct.noSales}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{ct.noSales}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -512,7 +512,7 @@ export default function LiveRecapPage() {
                   {sale.item.image_urls?.[0] ? (
                     <img src={sale.item.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: '#F0908A' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
                       {formatLot(sale.lotNumber)}
                     </span>
                   )}
@@ -521,11 +521,11 @@ export default function LiveRecapPage() {
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#F0908A' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                       {formatLot(sale.lotNumber)}
                     </span>
                     <span style={{
-                      fontSize: '10px', fontWeight: 700,
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
                       color: getStatusColor(sale.order),
                       backgroundColor: `${getStatusColor(sale.order)}15`,
                       padding: '2px 8px', borderRadius: '100px',
@@ -534,19 +534,19 @@ export default function LiveRecapPage() {
                     </span>
                   </div>
                   <p style={{
-                    fontSize: '14px', fontWeight: 600, color: '#fff', margin: '2px 0 0',
+                    fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '2px 0 0',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {sale.item.title}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#888', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                     {sale.buyerProfile?.display_name || sale.buyerProfile?.username || sale.item.winner_id?.slice(0, 8).toUpperCase()}
                   </p>
                 </div>
 
                 {/* Price */}
                 <div style={{ textAlign: 'end', flexShrink: 0 }}>
-                  <p style={{ fontSize: '16px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
                     {money(sale.order?.amount ?? sale.item.current_price, sale.order?.currency)}
                   </p>
                 </div>
@@ -581,7 +581,7 @@ export default function LiveRecapPage() {
           }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+              <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {ct.lot} {formatLot(selectedSale.lotNumber)} — {selectedSale.item.title}
               </h3>
               <button
@@ -605,8 +605,8 @@ export default function LiveRecapPage() {
               backgroundColor: '#0D0D0D', borderRadius: '12px',
               padding: '14px', marginBottom: '14px',
             }}>
-              <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.orderRef}</p>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#F0908A', margin: 0 }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{ct.orderRef}</p>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: 0 }}>
                 {selectedSale.order ? `#${selectedSale.order.id.slice(0, 8).toUpperCase()}` : '—'}
               </p>
             </div>
@@ -616,17 +616,17 @@ export default function LiveRecapPage() {
               <div style={{
                 flex: 1, backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '14px',
               }}>
-                <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.price}</p>
-                <p style={{ fontSize: '20px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{ct.price}</p>
+                <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
                   {money(selectedSale.order?.amount ?? selectedSale.item.current_price, selectedSale.order?.currency)}
                 </p>
               </div>
               <div style={{
                 flex: 1, backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '14px',
               }}>
-                <p style={{ fontSize: '12px', color: '#888', margin: '0 0 4px' }}>{ct.status}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{ct.status}</p>
                 <p style={{
-                  fontSize: '15px', fontWeight: 700, margin: 0,
+                  fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, margin: 0,
                   color: getStatusColor(selectedSale.order),
                 }}>
                   {getStatusLabel(selectedSale.order)}
@@ -639,27 +639,27 @@ export default function LiveRecapPage() {
               backgroundColor: '#0D0D0D', borderRadius: '12px',
               padding: '14px', marginBottom: '14px',
             }}>
-              <h4 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>
+              <h4 style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 12px' }}>
                 {ct.buyerDetails}
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>{ct.name}</p>
-                  <p style={{ fontSize: '14px', color: '#fff', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.name}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.buyerProfile?.display_name || selectedSale.item.winner_id?.slice(0, 8).toUpperCase() || '—'}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>{ct.address}</p>
-                  <p style={{ fontSize: '14px', color: '#fff', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.address}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.order?.shipping_address
                       ? `${selectedSale.order.shipping_address.street || ''}, ${selectedSale.order.shipping_address.zip || ''} ${selectedSale.order.shipping_address.city || ''}`
                       : selectedSale.order?.fulfillment_method === 'pickup' ? fx.method_pickup : '—'}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: '11px', color: '#888', margin: 0 }}>{ct.phone}</p>
-                  <p style={{ fontSize: '14px', color: '#fff', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.phone}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.order?.shipping_address?.phone || '—'}
                   </p>
                 </div>
@@ -673,7 +673,7 @@ export default function LiveRecapPage() {
                 style={{
                   width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
                   background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                  color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
                 {ct.viewOrder}
@@ -687,7 +687,7 @@ export default function LiveRecapPage() {
       {streamInfo?.recording_url && (
         <div style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: '#fff', margin: 0 }}>
+            <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
               {ct.clips} ({clips.length})
             </h2>
             <button
@@ -708,7 +708,7 @@ export default function LiveRecapPage() {
                 padding: '8px 16px',
                 background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
                 borderRadius: '8px', border: 'none',
-                color: '#fff', fontSize: '12px', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -730,12 +730,12 @@ export default function LiveRecapPage() {
                 style={{
                   width: '100%', padding: '12px', borderRadius: '10px',
                   border: '1px solid #333', backgroundColor: '#0D0D0D',
-                  color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                  color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
                 }}
               />
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipStart}</label>
+                  <label style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipStart}</label>
                   <input
                     type="number"
                     value={clipStart}
@@ -743,12 +743,12 @@ export default function LiveRecapPage() {
                     style={{
                       width: '100%', padding: '12px', borderRadius: '10px',
                       border: '1px solid #333', backgroundColor: '#0D0D0D',
-                      color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                      color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
                     }}
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '11px', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipDuration}</label>
+                  <label style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipDuration}</label>
                   <input
                     type="number"
                     value={clipDuration}
@@ -756,7 +756,7 @@ export default function LiveRecapPage() {
                     style={{
                       width: '100%', padding: '12px', borderRadius: '10px',
                       border: '1px solid #333', backgroundColor: '#0D0D0D',
-                      color: '#fff', fontSize: '14px', boxSizing: 'border-box', outline: 'none',
+                      color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
                     }}
                   />
                 </div>
@@ -770,7 +770,7 @@ export default function LiveRecapPage() {
                   }}
                   style={{
                     padding: '8px', borderRadius: '8px', border: '1px solid #333',
-                    backgroundColor: 'transparent', color: '#8B5CF6', fontSize: '12px',
+                    backgroundColor: 'transparent', color: '#8B5CF6', fontSize: 'calc(12px * var(--fs, 1))',
                     fontWeight: 600, cursor: 'pointer',
                   }}
                 >
@@ -805,7 +805,7 @@ export default function LiveRecapPage() {
                   width: '100%', padding: '14px',
                   background: clipCreating ? '#333' : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
                   borderRadius: '12px', border: 'none',
-                  color: '#fff', fontSize: '15px', fontWeight: 700,
+                  color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                   cursor: clipCreating ? 'default' : 'pointer',
                   opacity: clipCreating ? 0.6 : 1,
                 }}
@@ -821,7 +821,7 @@ export default function LiveRecapPage() {
               backgroundColor: '#111', borderRadius: '14px', padding: '24px',
               textAlign: 'center',
             }}>
-              <p style={{ fontSize: '13px', color: '#666' }}>{ct.noClips}</p>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666' }}>{ct.noClips}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -840,10 +840,10 @@ export default function LiveRecapPage() {
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '14px', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {clip.title}
                     </p>
-                    <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                       {Math.floor(clip.start_seconds / 60)}:{String(clip.start_seconds % 60).padStart(2, '0')} — {clip.duration_seconds} {ct.secondsShort}
                     </p>
                   </div>
@@ -852,7 +852,7 @@ export default function LiveRecapPage() {
                     style={{
                       padding: '6px 12px', borderRadius: '8px',
                       background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                      border: 'none', color: '#fff', fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                      border: 'none', color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {ct.playClip}
@@ -870,7 +870,7 @@ export default function LiveRecapPage() {
                     style={{
                       padding: '6px 10px', borderRadius: '8px',
                       backgroundColor: '#1A1A1A', border: '1px solid #333',
-                      color: '#E8344E', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                      color: '#E8344E', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
                     {ct.deleteClip}

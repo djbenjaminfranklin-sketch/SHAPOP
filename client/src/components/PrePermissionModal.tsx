@@ -66,7 +66,7 @@ export default function PrePermissionModal({
         </div>
 
         <h3 style={{
-          fontSize: '17px',
+          fontSize: 'calc(17px * var(--fs, 1))',
           fontWeight: 700,
           color: '#fff',
           margin: '0 0 8px',
@@ -75,7 +75,7 @@ export default function PrePermissionModal({
         </h3>
 
         <p style={{
-          fontSize: '14px',
+          fontSize: 'calc(14px * var(--fs, 1))',
           color: '#999',
           lineHeight: 1.5,
           margin: '0 0 24px',
@@ -93,7 +93,7 @@ export default function PrePermissionModal({
               backgroundColor: '#2A2A2A',
               border: 'none',
               color: '#999',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -109,7 +109,7 @@ export default function PrePermissionModal({
               backgroundColor: '#F0908A',
               border: 'none',
               color: '#fff',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 700,
               cursor: 'pointer',
             }}

@@ -155,15 +155,15 @@ export default function PayOrderPage() {
           <img src={order.item.image_urls[0]} alt="" style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }} />
         )}
         <div style={{ minWidth: 0 }}>
-          <h1 style={{ fontSize: '20px', fontWeight: 800, margin: 0 }}>{ct.heading}</h1>
-          <p style={{ fontSize: '14px', color: '#888', margin: '2px 0 0' }}>{order.item?.title || ''} · {formatMoney(order.amount, order.currency || undefined)}</p>
+          <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, margin: 0 }}>{ct.heading}</h1>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{order.item?.title || ''} · {formatMoney(order.amount, order.currency || undefined)}</p>
         </div>
       </div>
 
       {declined && step !== 'done' && (
         <div role="alert" style={{ padding: '12px 14px', borderRadius: '12px', marginBottom: '16px', backgroundColor: 'rgba(232,52,78,0.12)', border: '1px solid rgba(232,52,78,0.4)' }}>
-          <p style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#E8344E' }}>{ct.cardDeclined}</p>
-          <p style={{ margin: '4px 0 10px', fontSize: '13px', color: '#ddd' }}>{ct.cardDeclinedHint}</p>
+          <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#E8344E' }}>{ct.cardDeclined}</p>
+          <p style={{ margin: '4px 0 10px', fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{ct.cardDeclinedHint}</p>
           <button onClick={() => navigate('/payments')} style={{ ...btnGhost, marginTop: 0, padding: '10px' }}>{ct.changeCard}</button>
         </div>
       )}
@@ -179,7 +179,7 @@ export default function PayOrderPage() {
               <Row label={ft(lang).total} value={formatMoney(totals.total, totals.currency)} strong />
             </div>
           )}
-          {error && <p style={{ color: '#E8344E', fontSize: '14px', margin: '0 0 12px' }}>{error}</p>}
+          {error && <p style={{ color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', margin: '0 0 12px' }}>{error}</p>}
           {clientSecret ? (
             <Elements stripe={getStripePromise()} options={{
               clientSecret, locale: lang,
@@ -196,8 +196,8 @@ export default function PayOrderPage() {
 
       {step === 'done' && (
         <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <p style={{ fontSize: '22px', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>{ct.success}</p>
-          <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>{ct.successDesc}</p>
+          <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>{ct.success}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 24px' }}>{ct.successDesc}</p>
           <button onClick={() => navigate(`/order/${order.id}`, { replace: true })} style={{ ...btnGhost, background: 'linear-gradient(135deg, #F0908A, #E8344E)', border: 'none', color: '#fff' }}>{ct.viewOrder}</button>
         </div>
       )}
@@ -208,7 +208,7 @@ export default function PayOrderPage() {
 const btnGhost: React.CSSProperties = {
   width: '100%', marginTop: '14px', padding: '14px', borderRadius: '14px',
   backgroundColor: 'transparent', border: '1px solid #333', color: '#ddd',
-  fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+  fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
 }
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {

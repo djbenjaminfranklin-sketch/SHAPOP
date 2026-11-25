@@ -325,10 +325,10 @@ export default function BottomNav() {
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '17px', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {profile?.display_name || profile?.username || nt.user}
                 </div>
-                <div style={{ fontSize: '13px', color: '#888', marginTop: '2px' }}>
+                <div style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>
                   {nt.viewProfile}
                 </div>
               </div>
@@ -357,7 +357,7 @@ export default function BottomNav() {
                   }}>
                     {item.icon}
                   </div>
-                  <span style={{ fontSize: '15px', color: '#E5E5E5', fontWeight: 500, flex: 1 }}>
+                  <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#E5E5E5', fontWeight: 500, flex: 1 }}>
                     {item.label}
                   </span>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ ...rtlFlip() }}>
@@ -387,7 +387,7 @@ export default function BottomNav() {
                     <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
                   </svg>
                 </div>
-                <span style={{ fontSize: '15px', color: '#EF4444', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#EF4444', fontWeight: 600 }}>
                   {nt.signOut}
                 </span>
               </button>
@@ -427,7 +427,7 @@ export default function BottomNav() {
                 >
                   {tab.icon()}
                   <span style={{
-                    fontSize: '10px', fontWeight: 500,
+                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 500,
                     color: 'rgba(255,255,255,0.8)',
                     marginTop: '8px',
                   }}>
@@ -449,7 +449,7 @@ export default function BottomNav() {
               >
                 {tab.icon(tab.active)}
                 <span style={{
-                  fontSize: '10px', fontWeight: tab.active ? 700 : 500,
+                  fontSize: 'calc(10px * var(--fs, 1))', fontWeight: tab.active ? 700 : 500,
                   color: tab.active ? '#fff' : 'rgba(255,255,255,0.8)',
                   marginTop: '4px',
                 }}>
@@ -482,7 +482,7 @@ export default function BottomNav() {
               )}
             </div>
             <span style={{
-              fontSize: '10px', fontWeight: isProfileActive ? 700 : 500,
+              fontSize: 'calc(10px * var(--fs, 1))', fontWeight: isProfileActive ? 700 : 500,
               color: isProfileActive ? '#fff' : 'rgba(255,255,255,0.8)',
               marginTop: '4px',
             }}>

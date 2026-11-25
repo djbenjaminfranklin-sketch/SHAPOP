@@ -80,7 +80,7 @@ export default function ViewerReactions({ onReaction, sendReaction }: ViewerReac
                 position: 'absolute',
                 bottom: '0',
                 insetInlineStart: `${reaction.x}%`,
-                fontSize: '32px',
+                fontSize: 'calc(32px * var(--fs, 1))',
                 animation: 'floatUpReaction 2s ease-out forwards',
                 pointerEvents: 'none',
               }}
@@ -117,7 +117,7 @@ export default function ViewerReactions({ onReaction, sendReaction }: ViewerReac
               borderRadius: '50%',
               border: 'none',
               backgroundColor: 'rgba(255,255,255,0.06)',
-              fontSize: '22px',
+              fontSize: 'calc(22px * var(--fs, 1))',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',

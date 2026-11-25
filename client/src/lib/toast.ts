@@ -22,7 +22,7 @@ export function showToast(message: string, type: 'success' | 'error' = 'success'
     borderRadius: '14px',
     background: bg,
     color: '#fff',
-    fontSize: '14px',
+    fontSize: 'calc(14px * var(--fs, 1))',
     fontWeight: '600',
     textAlign: 'center',
     zIndex: '9999',

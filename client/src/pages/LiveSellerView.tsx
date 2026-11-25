@@ -1651,10 +1651,10 @@ export default function LiveSellerView() {
             <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
-        <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center' }}>
           {ct.liveEnded}
         </h2>
-        <p style={{ fontSize: '15px', color: '#888', textAlign: 'center' }}>
+        <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center' }}>
           {fill(ct.soldSummary, { sold: items.filter(it => it.status === 'sold').length, total: items.length })}
         </p>
         <button
@@ -1663,7 +1663,7 @@ export default function LiveSellerView() {
             width: '100%', maxWidth: '300px', padding: '16px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
             borderRadius: '14px', border: 'none',
-            color: '#fff', fontSize: '16px', fontWeight: 700,
+            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
             cursor: 'pointer',
           }}
         >
@@ -1675,7 +1675,7 @@ export default function LiveSellerView() {
             width: '100%', maxWidth: '300px', padding: '16px',
             backgroundColor: 'transparent',
             borderRadius: '14px', border: '1px solid #333',
-            color: '#888', fontSize: '16px', fontWeight: 600,
+            color: '#888', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600,
             cursor: 'pointer',
           }}
         >
@@ -1717,7 +1717,7 @@ export default function LiveSellerView() {
                 position: 'absolute',
                 bottom: '0',
                 left: `${r.x}%`, // i18n-ignore (position aléatoire décorative)
-                fontSize: '32px',
+                fontSize: 'calc(32px * var(--fs, 1))',
                 animation: 'floatUpReaction 2s ease-out forwards',
                 pointerEvents: 'none',
               }}
@@ -1786,7 +1786,7 @@ export default function LiveSellerView() {
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{viewerCount}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{viewerCount}</span>
         </div>
 
         {/* Buyer stats badge */}
@@ -1799,15 +1799,15 @@ export default function LiveSellerView() {
             backdropFilter: 'blur(8px)',
           }}>
             {buyerStats.returning > 0 && (
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#8B5CF6' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#8B5CF6' }}>
                 {buyerStats.returning} {ct.returningBuyers}
               </span>
             )}
             {buyerStats.returning > 0 && buyerStats.new > 0 && (
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>|</span>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: 'rgba(255,255,255,0.3)' }}>|</span>
             )}
             {buyerStats.new > 0 && (
-              <span style={{ fontSize: '10px', fontWeight: 700, color: '#10B981' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#10B981' }}>
                 {buyerStats.new} {ct.newBuyers}
               </span>
             )}
@@ -1830,7 +1830,7 @@ export default function LiveSellerView() {
             <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
             </svg>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>{ct.endLive}</span>
+            <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{ct.endLive}</span>
           </button>}
           <button
             onClick={handleFlipCamera}
@@ -1861,9 +1861,9 @@ export default function LiveSellerView() {
               position: 'relative',
             }}
           >
-            <span style={{ fontSize: '16px', lineHeight: 1 }}>🎁</span>
+            <span style={{ fontSize: 'calc(16px * var(--fs, 1))', lineHeight: 1 }}>🎁</span>
             {activeGiveaway && activeGiveaway.status === 'active' && (
-              <span style={{ position: 'absolute', top: '-4px', insetInlineEnd: '-4px', fontSize: '9px', fontWeight: 800, color: '#fff', backgroundColor: '#E8344E', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ position: 'absolute', top: '-4px', insetInlineEnd: '-4px', fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 800, color: '#fff', backgroundColor: '#E8344E', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {activeGiveaway.entry_count}
               </span>
             )}
@@ -1906,8 +1906,8 @@ export default function LiveSellerView() {
                     cursor: 'pointer', width: '100%',
                   }}
                 >
-                  <span style={{ fontSize: '14px' }}>⚡</span>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: isBoosted ? '#10B981' : '#fff' }}>
+                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))' }}>⚡</span>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: isBoosted ? '#10B981' : '#fff' }}>
                     {isBoosted ? ct.boostActive : ct.boostLive}
                   </span>
                 </button>}
@@ -1923,7 +1923,7 @@ export default function LiveSellerView() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cohost ? '#8B5CF6' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>
                   </svg>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: cohost ? '#8B5CF6' : '#fff' }}>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: cohost ? '#8B5CF6' : '#fff' }}>
                     {ct.cohostActive}{cohost ? `: ${cohost.display_name}` : ''}
                   </span>
                 </button>
@@ -1939,7 +1939,7 @@ export default function LiveSellerView() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={obsData ? '#60a5fa' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: obsData ? '#60a5fa' : '#fff' }}>OBS / RTMP</span>{/* i18n-ignore */}
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: obsData ? '#60a5fa' : '#fff' }}>OBS / RTMP</span>{/* i18n-ignore */}
                 </button>
                 <button
                   onClick={() => { setShowToolsMenu(false); setShowMulticastModal(true) }}
@@ -1953,7 +1953,7 @@ export default function LiveSellerView() {
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={multicastDestinations.length > 0 ? '#3B82F6' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M2 16.1A5 5 0 0 1 5.9 20M2 12.05A9 9 0 0 1 9.95 20M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><line x1="2" y1="20" x2="2.01" y2="20"/>
                   </svg>
-                  <span style={{ fontSize: '13px', fontWeight: 600, color: multicastDestinations.length > 0 ? '#3B82F6' : '#fff' }}>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: multicastDestinations.length > 0 ? '#3B82F6' : '#fff' }}>
                     {ct.multicast}{multicastDestinations.length > 0 ? ` (${multicastDestinations.length})` : ''}
                   </span>
                 </button>
@@ -1988,7 +1988,7 @@ export default function LiveSellerView() {
               animation: 'toastIn 0.3s ease',
             }}
           >
-            <p style={{ fontSize: '13px', fontWeight: 600, color: '#22C55E', margin: 0 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#22C55E', margin: 0 }}>
               {toast.text}
             </p>
           </div>
@@ -2005,21 +2005,21 @@ export default function LiveSellerView() {
           boxShadow: '0 6px 24px rgba(0,0,0,0.35)', color: '#fff',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <p style={{ margin: 0, fontSize: '16px', fontWeight: 800, flex: 1 }}>
+            <p style={{ margin: 0, fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, flex: 1 }}>
               {paymentIssue.code === 'seller_not_ready' ? ct.paymentsNotReady : `${ct.cardDeclined} — ${paymentIssue.lot}`}
             </p>
             <button onClick={() => setPaymentIssue(null)} aria-label={ct.closeBanner} style={{
-              background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', lineHeight: 1, padding: '2px 6px', cursor: 'pointer',
+              background: 'transparent', border: 'none', color: '#fff', fontSize: 'calc(20px * var(--fs, 1))', lineHeight: 1, padding: '2px 6px', cursor: 'pointer',
             }}>×</button>
           </div>
           {paymentIssue.code !== 'seller_not_ready' && (
             <>
-              <p style={{ margin: '4px 0 10px', fontSize: '13px', opacity: 0.95 }}>
+              <p style={{ margin: '4px 0 10px', fontSize: 'calc(13px * var(--fs, 1))', opacity: 0.95 }}>
                 {ct.cardDeclinedHint.replace('{name}', paymentIssue.winnerName)}
               </p>
               <button onClick={retryCardAuthorization} disabled={retryingCard} style={{
                 width: '100%', padding: '10px', borderRadius: '10px', border: 'none',
-                backgroundColor: '#fff', color: '#DC2626', fontSize: '15px', fontWeight: 800,
+                backgroundColor: '#fff', color: '#DC2626', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800,
                 cursor: retryingCard ? 'default' : 'pointer', opacity: retryingCard ? 0.7 : 1,
               }}>
                 {retryingCard ? ct.retryingCard : ct.retryCard}
@@ -2049,14 +2049,14 @@ export default function LiveSellerView() {
                 animation: 'chatMsgIn 0.3s ease',
               }}>
                 <span style={{
-                  fontSize: '12px', fontWeight: 800, color: '#F0908A',
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#F0908A',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   marginInlineEnd: '5px',
                 }}>
                   {sys && !sys.withAuthor ? '' : (msg.user_profile?.display_name || ct.anonymous || '?')}
                 </span>
                 <span style={{
-                  fontSize: '12px', fontWeight: 500,
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 500,
                   color: msg.is_flagged ? 'rgba(255,255,255,0.4)' : '#fff',
                   fontStyle: msg.is_flagged ? 'italic' : 'normal',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
@@ -2082,7 +2082,7 @@ export default function LiveSellerView() {
               backgroundColor: 'rgba(0,0,0,0.5)',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: '100px',
-              color: '#fff', fontSize: '11px',
+              color: '#fff', fontSize: 'calc(11px * var(--fs, 1))',
               outline: 'none',
             }}
           />
@@ -2093,7 +2093,7 @@ export default function LiveSellerView() {
               borderRadius: '100px',
               background: 'linear-gradient(135deg, #F0908A, #E8344E)',
               border: 'none', color: '#fff',
-              fontSize: '10px', fontWeight: 700,
+              fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
             }}
           >
@@ -2125,18 +2125,18 @@ export default function LiveSellerView() {
                 {currentItem.image_urls?.[0] ? (
                   <img src={currentItem.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
-                  <span style={{ fontSize: '9px', fontWeight: 800, color: '#F0908A' }}>
+                  <span style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
                     {formatLot(currentIndex + 1)}
                   </span>
                 )}
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '9px', fontWeight: 700, color: '#F0908A' }}>
+                <span style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                   {ct.lot} {formatLot(currentIndex + 1)}
                 </span>
                 <p style={{
-                  fontSize: '12px', fontWeight: 600, color: '#fff', margin: '1px 0 0',
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '1px 0 0',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {currentItem.title}
@@ -2155,14 +2155,14 @@ export default function LiveSellerView() {
                   animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
                 }}>
                   <div style={{
-                    fontSize: '18px', fontWeight: 900,
+                    fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 900,
                     color: '#fff',
                     fontVariantNumeric: 'tabular-nums',
                     lineHeight: 1,
                   }}>
                     {timeLeft}
                   </div>
-                  <div style={{ fontSize: '8px', color: timeLeft <= 10 ? '#ff8888' : '#ccc', fontWeight: 700 }}>
+                  <div style={{ fontSize: 'calc(8px * var(--fs, 1))', color: timeLeft <= 10 ? '#ff8888' : '#ccc', fontWeight: 700 }}>
                     {ct.seconds}
                   </div>
                 </div>
@@ -2175,10 +2175,10 @@ export default function LiveSellerView() {
                   padding: '4px 10px',
                   textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  <div style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                     {currentItem.duration_seconds || 60}
                   </div>
-                  <div style={{ fontSize: '8px', color: '#aaa', fontWeight: 600 }}>
+                  <div style={{ fontSize: 'calc(8px * var(--fs, 1))', color: '#aaa', fontWeight: 600 }}>
                     {ct.seconds}
                   </div>
                 </div>
@@ -2186,7 +2186,7 @@ export default function LiveSellerView() {
 
               <div style={{ flexShrink: 0, textAlign: 'end' }}>
                 <p style={{
-                  fontSize: '16px', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
                 }}>
                   {money(currentItem.current_price)}
                 </p>
@@ -2202,7 +2202,7 @@ export default function LiveSellerView() {
                 width: '100%', padding: '10px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: '14px', fontWeight: 800,
+                color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
               }}
             >
@@ -2218,11 +2218,11 @@ export default function LiveSellerView() {
                 border: '1px solid rgba(240,144,138,0.15)',
                 textAlign: 'center',
               }}>
-                <span style={{ fontSize: '11px', color: '#F0908A', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
                   {timeLeft > 0 ? ct.auctionLive : ct.resolving}
                 </span>
                 {currentItem.min_price != null && currentItem.min_price > 0 && (
-                  <span style={{ fontSize: '9px', color: '#666', marginInlineStart: '6px' }}>
+                  <span style={{ fontSize: 'calc(9px * var(--fs, 1))', color: '#666', marginInlineStart: '6px' }}>
                     {fill(ct.minPrice, { price: money(currentItem.min_price) })}
                   </span>
                 )}
@@ -2235,7 +2235,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
                     borderRadius: '8px',
-                    color: '#aaa', fontSize: '11px', fontWeight: 600,
+                    color: '#aaa', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
@@ -2252,7 +2252,7 @@ export default function LiveSellerView() {
                 width: '100%', padding: '10px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: '13px', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2263,7 +2263,7 @@ export default function LiveSellerView() {
           {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && !hasMoreItems && (
             <p style={{
               padding: '4px', textAlign: 'center',
-              fontSize: '11px', color: '#888', margin: 0,
+              fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0,
             }}>
               {ct.noMoreItems}
             </p>
@@ -2278,7 +2278,7 @@ export default function LiveSellerView() {
                 backgroundColor: 'rgba(255,255,255,0.04)',
                 border: '1px dashed rgba(255,255,255,0.15)',
                 borderRadius: '8px',
-                color: '#666', fontSize: '11px', fontWeight: 600,
+                color: '#666', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
               }}
@@ -2309,7 +2309,7 @@ export default function LiveSellerView() {
                   backgroundColor: 'rgba(255,255,255,0.08)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: '8px',
-                  color: '#fff', fontSize: '12px',
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))',
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
@@ -2326,7 +2326,7 @@ export default function LiveSellerView() {
                   backgroundColor: 'rgba(255,255,255,0.08)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   borderRadius: '8px',
-                  color: '#fff', fontSize: '12px',
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))',
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
@@ -2343,7 +2343,7 @@ export default function LiveSellerView() {
                   backgroundColor: 'rgba(255,255,255,0.08)',
                   border: '1px solid rgba(255,215,0,0.2)',
                   borderRadius: '8px',
-                  color: '#fff', fontSize: '12px',
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))',
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
@@ -2360,7 +2360,7 @@ export default function LiveSellerView() {
                   backgroundColor: 'rgba(255,255,255,0.08)',
                   border: '1px solid rgba(16,185,129,0.3)',
                   borderRadius: '8px',
-                  color: '#fff', fontSize: '12px',
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))',
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
@@ -2372,11 +2372,11 @@ export default function LiveSellerView() {
                     width: '32px', height: '32px', borderRadius: '50%',
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >−</button>
-                <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff', minWidth: '28px', textAlign: 'center' }}>
+                <span style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', minWidth: '28px', textAlign: 'center' }}>
                   {addItemQuantity}
                 </span>
                 <button
@@ -2385,7 +2385,7 @@ export default function LiveSellerView() {
                     width: '32px', height: '32px', borderRadius: '50%',
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
-                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >+</button>
@@ -2402,7 +2402,7 @@ export default function LiveSellerView() {
                       border: addItemDuration === d ? '1px solid #E8344E' : '1px solid rgba(255,255,255,0.12)',
                       borderRadius: '8px',
                       color: addItemDuration === d ? '#E8344E' : '#888',
-                      fontSize: '11px', fontWeight: 700,
+                      fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
                       cursor: 'pointer',
                     }}
                   >
@@ -2418,7 +2418,7 @@ export default function LiveSellerView() {
                     border: addItemDuration === -1 ? '1px solid #E8344E' : '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '8px',
                     color: addItemDuration === -1 ? '#E8344E' : '#888',
-                    fontSize: '11px', fontWeight: 700,
+                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -2433,7 +2433,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '8px',
-                    color: '#888', fontSize: '11px', fontWeight: 600,
+                    color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer',
                   }}
                 >
@@ -2447,7 +2447,7 @@ export default function LiveSellerView() {
                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                     border: 'none',
                     borderRadius: '8px',
-                    color: '#fff', fontSize: '11px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                     opacity: addingItem || !addItemTitle.trim() || !addItemPrice ? 0.5 : 1,
                   }}
@@ -2485,8 +2485,8 @@ export default function LiveSellerView() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '24px' }}>🎁</span>
-              <span style={{ fontSize: '17px', fontWeight: 800, color: '#FFD700' }}>
+              <span style={{ fontSize: 'calc(24px * var(--fs, 1))' }}>🎁</span>
+              <span style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, color: '#FFD700' }}>
                 {ct.giftTitle}
               </span>
             </div>
@@ -2504,7 +2504,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,215,0,0.2)',
                     borderRadius: '12px',
-                    color: '#fff', fontSize: '14px',
+                    color: '#fff', fontSize: 'calc(14px * var(--fs, 1))',
                     outline: 'none', boxSizing: 'border-box',
                   }}
                 />
@@ -2523,7 +2523,7 @@ export default function LiveSellerView() {
                     onChange={e => setGiveawayBuyersOnly(e.target.checked)}
                     style={{ accentColor: '#FFD700', width: '18px', height: '18px', flexShrink: 0 }}
                   />
-                  <span style={{ fontSize: '13px', color: giveawayBuyersOnly ? '#FFD700' : '#aaa', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: giveawayBuyersOnly ? '#FFD700' : '#aaa', fontWeight: 600 }}>
                     {ct.buyersOnly}
                   </span>
                 </label>
@@ -2535,7 +2535,7 @@ export default function LiveSellerView() {
                       backgroundColor: 'rgba(255,255,255,0.08)',
                       border: '1px solid rgba(255,255,255,0.15)',
                       borderRadius: '12px',
-                      color: '#888', fontSize: '14px', fontWeight: 600,
+                      color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -2552,7 +2552,7 @@ export default function LiveSellerView() {
                       border: 'none',
                       borderRadius: '12px',
                       color: !giveawayPrize.trim() ? '#666' : '#000',
-                      fontSize: '14px', fontWeight: 800,
+                      fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800,
                       cursor: !giveawayPrize.trim() ? 'not-allowed' : 'pointer',
                     }}
                   >
@@ -2563,7 +2563,7 @@ export default function LiveSellerView() {
             ) : (
               <>
                 <p style={{
-                  fontSize: '14px', color: '#ccc', margin: 0,
+                  fontSize: 'calc(14px * var(--fs, 1))', color: '#ccc', margin: 0,
                   backgroundColor: 'rgba(255,255,255,0.05)',
                   padding: '10px 12px', borderRadius: '10px',
                 }}>
@@ -2573,10 +2573,10 @@ export default function LiveSellerView() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   gap: '8px', padding: '8px 0',
                 }}>
-                  <span style={{ fontSize: '28px', fontWeight: 900, color: '#fff' }}>
+                  <span style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900, color: '#fff' }}>
                     {activeGiveaway.entry_count}
                   </span>
-                  <span style={{ fontSize: '14px', color: '#888' }}>
+                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888' }}>
                     {ct.giftParticipants}
                   </span>
                 </div>
@@ -2588,7 +2588,7 @@ export default function LiveSellerView() {
                       backgroundColor: 'rgba(255,255,255,0.08)',
                       border: '1px solid rgba(255,255,255,0.15)',
                       borderRadius: '12px',
-                      color: '#888', fontSize: '14px', fontWeight: 600,
+                      color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -2605,7 +2605,7 @@ export default function LiveSellerView() {
                       border: 'none',
                       borderRadius: '12px',
                       color: activeGiveaway.entry_count === 0 ? '#666' : '#000',
-                      fontSize: '14px', fontWeight: 800,
+                      fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800,
                       cursor: activeGiveaway.entry_count === 0 ? 'not-allowed' : 'pointer',
                     }}
                   >
@@ -2637,29 +2637,29 @@ export default function LiveSellerView() {
             alignItems: 'center', gap: '16px',
             animation: 'soldBounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           }}>
-            <div style={{ fontSize: '48px', animation: 'giftSpin 1s ease-out' }}>🎁</div>
+            <div style={{ fontSize: 'calc(48px * var(--fs, 1))', animation: 'giftSpin 1s ease-out' }}>🎁</div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '14px', color: 'rgba(255,215,0,0.6)',
+              fontSize: 'calc(14px * var(--fs, 1))', color: 'rgba(255,215,0,0.6)',
             }}>
               ✦ ✦ ✦
             </div>
             <p style={{
-              fontSize: '28px', fontWeight: 900, color: '#FFD700',
+              fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900, color: '#FFD700',
               textShadow: '0 2px 20px rgba(255,215,0,0.5)',
               margin: 0, textAlign: 'center',
             }}>
               {giveawayWinner.name}
             </p>
             <p style={{
-              fontSize: '16px', fontWeight: 600, color: '#fff',
+              fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#fff',
               opacity: 0.8, margin: 0,
             }}>
               {ct.giftWinner}
             </p>
             <div style={{
               display: 'flex', gap: '4px',
-              fontSize: '20px',
+              fontSize: 'calc(20px * var(--fs, 1))',
               animation: 'giftStars 1.5s ease-in-out infinite',
             }}>
               ⭐ ✨ 🌟 ✨ ⭐
@@ -2683,7 +2683,7 @@ export default function LiveSellerView() {
             padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
             width: '100%', maxHeight: '70vh',
           }}>
-            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
+            <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
               {ct.cohostInvite}
             </h3>
             <input
@@ -2695,16 +2695,16 @@ export default function LiveSellerView() {
               style={{
                 width: '100%', padding: '12px 14px', boxSizing: 'border-box',
                 backgroundColor: '#0D0D0D', border: '1px solid #333',
-                borderRadius: '12px', color: '#fff', fontSize: '15px', outline: 'none',
+                borderRadius: '12px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none',
                 marginBottom: '12px',
               }}
             />
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {cohostSearching && (
-                <p style={{ color: '#888', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>...</p>
+                <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', padding: '16px 0' }}>...</p>
               )}
               {!cohostSearching && cohostSearch.length >= 2 && cohostResults.length === 0 && (
-                <p style={{ color: '#666', fontSize: '13px', textAlign: 'center', padding: '16px 0' }}>{ct.cohostNone}</p>
+                <p style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', padding: '16px 0' }}>{ct.cohostNone}</p>
               )}
               {cohostResults.map((s) => (
                 <button
@@ -2724,12 +2724,12 @@ export default function LiveSellerView() {
                     {s.avatar_url ? (
                       <img src={s.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (
-                      <span style={{ color: '#888', fontSize: '14px', fontWeight: 700 }}>
+                      <span style={{ color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700 }}>
                         {(s.store_name || s.display_name || '?').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <span style={{ color: '#fff', fontSize: '15px', fontWeight: 600 }}>
+                  <span style={{ color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600 }}>
                     {s.store_name || s.display_name}
                   </span>
                 </button>
@@ -2754,7 +2754,7 @@ export default function LiveSellerView() {
             padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
             width: '100%',
           }}>
-            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
+            <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
               {ct.multicastTitle}
             </h3>
 
@@ -2768,7 +2768,7 @@ export default function LiveSellerView() {
                 borderRadius: '10px',
               }}>
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22C55E', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: '12px', color: '#93C5FD', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs, 1))', color: '#93C5FD', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {d.url.replace(/\/[^/]+$/, '/****')}
                 </span>
                 <button
@@ -2776,7 +2776,7 @@ export default function LiveSellerView() {
                   style={{
                     padding: '4px 10px', borderRadius: '8px', border: 'none',
                     backgroundColor: 'rgba(232,52,78,0.2)', color: '#E8344E',
-                    fontSize: '11px', fontWeight: 700, cursor: 'pointer',
+                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                   }}
                 >
                   {ct.multicastStop}
@@ -2785,7 +2785,7 @@ export default function LiveSellerView() {
             ))}
 
             {/* Add new destination */}
-            <p style={{ fontSize: '12px', color: '#888', margin: '0 0 8px' }}>{ct.multicastAdd}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 8px' }}>{ct.multicastAdd}</p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="text"
@@ -2795,7 +2795,7 @@ export default function LiveSellerView() {
                 style={{
                   flex: 1, padding: '10px 12px', boxSizing: 'border-box',
                   backgroundColor: '#0D0D0D', border: '1px solid #333',
-                  borderRadius: '10px', color: '#fff', fontSize: '13px', outline: 'none',
+                  borderRadius: '10px', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', outline: 'none',
                 }}
               />
               <button
@@ -2804,7 +2804,7 @@ export default function LiveSellerView() {
                 style={{
                   padding: '10px 16px', borderRadius: '10px', border: 'none',
                   background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                  color: '#fff', fontSize: '13px', fontWeight: 700, cursor: 'pointer',
+                  color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                   opacity: !multicastUrl.trim() || multicastLoading ? 0.5 : 1,
                   whiteSpace: 'nowrap',
                 }}
@@ -2813,7 +2813,7 @@ export default function LiveSellerView() {
               </button>
             </div>
 
-            <p style={{ fontSize: '11px', color: '#555', margin: '12px 0 0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', margin: '12px 0 0', lineHeight: 1.4 }}>
               YouTube: rtmp://a.rtmp.youtube.com/live2/KEY<br/>{/* i18n-ignore */}
               Instagram: rtmp://live-upload.instagram.com:443/rtmp/KEY<br/>{/* i18n-ignore */}
               TikTok: rtmp://push.tiktokcdn.com/live/KEY{/* i18n-ignore */}
@@ -2836,9 +2836,9 @@ export default function LiveSellerView() {
             backgroundColor: '#1A1A1A', borderRadius: '16px', padding: '24px',
             width: '90%', maxWidth: '340px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>⚡</div>
-            <h3 style={{ color: '#fff', fontSize: '18px', fontWeight: 700, margin: '0 0 12px' }}>{ct.boostTitle}</h3>
-            <p style={{ color: '#aaa', fontSize: '14px', lineHeight: 1.5, margin: '0 0 24px' }}>
+            <div style={{ fontSize: 'calc(40px * var(--fs, 1))', marginBottom: '12px' }}>⚡</div>
+            <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 12px' }}>{ct.boostTitle}</h3>
+            <p style={{ color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', lineHeight: 1.5, margin: '0 0 24px' }}>
               {fill(ct.boostConfirm, { price: boostPrice })}
             </p>
             <button
@@ -2846,7 +2846,7 @@ export default function LiveSellerView() {
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px', border: 'none',
                 background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                color: '#fff', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 marginBottom: '10px',
               }}
             >
@@ -2857,7 +2857,7 @@ export default function LiveSellerView() {
               style={{
                 width: '100%', padding: '12px', borderRadius: '12px',
                 border: '1px solid #333', backgroundColor: 'transparent',
-                color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ct.boostConfirmNo}
@@ -2893,21 +2893,21 @@ export default function LiveSellerView() {
                 <line x1="8" y1="21" x2="16" y2="21"/>
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.obsTitle}</h3>
+              <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.obsTitle}</h3>
             </div>
 
             {obsLoading ? (
               <div style={{ textAlign: 'center', padding: '30px 0' }}>
                 <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-                <p style={{ fontSize: '13px', color: '#888', marginTop: '10px' }}>{ct.obsLoading}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginTop: '10px' }}>{ct.obsLoading}</p>
               </div>
             ) : obsData ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <p style={{ fontSize: '12px', color: '#888', margin: 0 }}>{ct.obsDesc}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.obsDesc}</p>
 
                 {/* RTMP URL */}
                 <div>
-                  <p style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>{ct.obsUrl}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>{ct.obsUrl}</p>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       readOnly
@@ -2915,7 +2915,7 @@ export default function LiveSellerView() {
                       style={{
                         flex: 1, padding: '10px 12px', borderRadius: '10px',
                         backgroundColor: '#111', border: '1px solid #333',
-                        color: '#fff', fontSize: '12px', fontFamily: 'monospace',
+                        color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontFamily: 'monospace',
                       }}
                     />
                     <button
@@ -2923,7 +2923,7 @@ export default function LiveSellerView() {
                       style={{
                         padding: '0 14px', borderRadius: '10px',
                         backgroundColor: obsCopied === 'url' ? '#10B981' : '#333',
-                        border: 'none', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        border: 'none', color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       {obsCopied === 'url' ? ct.obsCopied : ct.copy}
@@ -2933,7 +2933,7 @@ export default function LiveSellerView() {
 
                 {/* Stream Key */}
                 <div>
-                  <p style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>{ct.obsKey}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#60a5fa', fontWeight: 700, marginBottom: '4px' }}>{ct.obsKey}</p>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       readOnly
@@ -2941,7 +2941,7 @@ export default function LiveSellerView() {
                       style={{
                         flex: 1, padding: '10px 12px', borderRadius: '10px',
                         backgroundColor: '#111', border: '1px solid #333',
-                        color: '#fff', fontSize: '12px', fontFamily: 'monospace',
+                        color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontFamily: 'monospace',
                       }}
                     />
                     <button
@@ -2949,7 +2949,7 @@ export default function LiveSellerView() {
                       style={{
                         padding: '0 14px', borderRadius: '10px',
                         backgroundColor: obsCopied === 'key' ? '#10B981' : '#333',
-                        border: 'none', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                        border: 'none', color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       {obsCopied === 'key' ? ct.obsCopied : ct.copy}
@@ -2958,7 +2958,7 @@ export default function LiveSellerView() {
                 </div>
               </div>
             ) : (
-              <p style={{ fontSize: '13px', color: '#f87171', textAlign: 'center' }}>{ct.errorShort}</p>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f87171', textAlign: 'center' }}>{ct.errorShort}</p>
             )}
 
             <button
@@ -2966,7 +2966,7 @@ export default function LiveSellerView() {
               style={{
                 width: '100%', padding: '14px', marginTop: '16px',
                 borderRadius: '12px', background: '#222', border: 'none',
-                color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ct.close}
@@ -2997,7 +2997,7 @@ export default function LiveSellerView() {
               <rect x="4" y="4" width="16" height="16" rx="2"/>
             </svg>
           </div>
-          <p style={{ fontSize: '18px', fontWeight: 700, color: '#fff', textAlign: 'center' }}>
+          <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', textAlign: 'center' }}>
             {ct.endConfirm}
           </p>
           <div style={{ display: 'flex', gap: '12px', width: '100%', maxWidth: '300px' }}>
@@ -3007,7 +3007,7 @@ export default function LiveSellerView() {
                 flex: 1, padding: '14px', borderRadius: '14px',
                 backgroundColor: 'rgba(255,255,255,0.1)',
                 border: '1px solid rgba(255,255,255,0.15)',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -3019,7 +3019,7 @@ export default function LiveSellerView() {
                 flex: 1, padding: '14px', borderRadius: '14px',
                 background: 'linear-gradient(135deg, #E8344E, #DC2626)',
                 border: 'none',
-                color: '#fff', fontSize: '15px', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -3080,7 +3080,7 @@ export default function LiveSellerView() {
 
             {/* Status text */}
             <p style={{
-              fontSize: '32px', fontWeight: 900,
+              fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 900,
               color: soldOverlay.isUnsold ? '#FF9632' : '#22C55E',
               textTransform: 'uppercase',
               letterSpacing: '2px',
@@ -3094,7 +3094,7 @@ export default function LiveSellerView() {
 
             {/* Lot number */}
             <p style={{
-              fontSize: '16px', fontWeight: 700, color: '#fff',
+              fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff',
               opacity: 0.8, margin: 0,
             }}>
               {ct.lot} {soldOverlay.lotNumber}
@@ -3113,7 +3113,7 @@ export default function LiveSellerView() {
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span style={{ fontSize: '18px', fontWeight: 800, color: '#22C55E' }}>
+                <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#22C55E' }}>
                   {soldOverlay.winnerName}
                 </span>
               </div>
@@ -3122,7 +3122,7 @@ export default function LiveSellerView() {
             {/* Price */}
             {!soldOverlay.isUnsold && soldOverlay.price > 0 && (
               <p style={{
-                fontSize: '28px', fontWeight: 900, color: '#fff',
+                fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900, color: '#fff',
                 margin: 0,
                 textShadow: '0 2px 12px rgba(0,0,0,0.5)',
               }}>

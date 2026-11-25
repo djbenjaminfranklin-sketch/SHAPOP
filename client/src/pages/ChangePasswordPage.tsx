@@ -279,7 +279,7 @@ export default function ChangePasswordPage() {
     border: '1px solid #1A1A1A',
     borderRadius: '12px',
     color: '#fff',
-    fontSize: '15px',
+    fontSize: 'calc(15px * var(--fs, 1))',
     outline: 'none',
     boxSizing: 'border-box',
   }
@@ -310,7 +310,7 @@ export default function ChangePasswordPage() {
         <button onClick={() => navigate(isRecoveryMode ? '/login' : -1 as any)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
           {isRecoveryMode
             ? c.newPassword
             : c.changePassword
@@ -321,7 +321,7 @@ export default function ChangePasswordPage() {
       {/* Form */}
       <div style={{ padding: '24px 20px' }}>
         {isRecoveryMode && (
-          <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
             {c.chooseNew}
           </p>
         )}
@@ -329,7 +329,7 @@ export default function ChangePasswordPage() {
         {/* Current password — only shown when NOT in recovery mode */}
         {!isRecoveryMode && (
           <>
-            <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
               {c.currentPassword}
             </label>
             <div style={{ position: 'relative', marginBottom: '20px' }}>
@@ -364,7 +364,7 @@ export default function ChangePasswordPage() {
         )}
 
         {/* New password */}
-        <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.newPassword}
         </label>
         <div style={{ position: 'relative', marginBottom: '8px' }}>
@@ -411,14 +411,14 @@ export default function ChangePasswordPage() {
                 />
               ))}
             </div>
-            <span style={{ fontSize: '12px', color: strengthColor, fontWeight: 500 }}>
+            <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: strengthColor, fontWeight: 500 }}>
               {strengthLabel}
             </span>
           </div>
         )}
 
         {/* Confirm new password */}
-        <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.confirmPassword}
         </label>
         <div style={{ position: 'relative', marginBottom: '32px' }}>
@@ -457,7 +457,7 @@ export default function ChangePasswordPage() {
           style={{
             width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
             background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-            color: '#fff', fontSize: '16px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.6 : 1,
             boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
           }}
@@ -477,7 +477,7 @@ export default function ChangePasswordPage() {
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : '#3a1a1a',
           border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#E8344E'}`,
           color: toast.type === 'success' ? '#4ADE80' : '#E8344E',
-          fontSize: '14px', fontWeight: 600, zIndex: 100,
+          fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>
           {toast.message}

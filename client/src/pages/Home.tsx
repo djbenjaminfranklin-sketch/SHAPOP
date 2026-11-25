@@ -514,14 +514,14 @@ export default function Home() {
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ width: '60%', maxWidth: '260px', marginBottom: '40px', objectFit: 'contain' }} />
         <h1 style={{
-          fontSize: '32px', fontWeight: 900, color: '#fff',
+          fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 900, color: '#fff',
           textAlign: 'center', lineHeight: 1.2, margin: '0 0 16px',
           whiteSpace: 'pre-line',
         }}>
           {ht.tagline}
         </h1>
         <p style={{
-          fontSize: '15px', color: '#888', textAlign: 'center',
+          fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
           lineHeight: 1.5, maxWidth: '320px', margin: '0 0 40px',
         }}>
           {ht.subtitle}
@@ -530,7 +530,7 @@ export default function Home() {
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
           borderRadius: '14px', textDecoration: 'none',
           background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-          color: '#fff', fontSize: '16px', fontWeight: 700, textAlign: 'center',
+          color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, textAlign: 'center',
           boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
         }}>
           {ht.signIn}
@@ -539,7 +539,7 @@ export default function Home() {
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
           borderRadius: '14px', textDecoration: 'none',
           backgroundColor: 'transparent', border: '1.5px solid #333',
-          color: '#ccc', fontSize: '16px', fontWeight: 700, textAlign: 'center',
+          color: '#ccc', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, textAlign: 'center',
         }}>
           {ht.createAccount}
         </Link>
@@ -575,7 +575,7 @@ export default function Home() {
               onKeyDown={e => { if (e.key === 'Enter') { saveSearchHistory(searchQuery); setSearchFocused(false); (e.target as HTMLInputElement).blur() } }}
               placeholder={t(lang, 'search_placeholder')}
               aria-label={t(lang, 'search_placeholder')}
-              style={{ background: 'transparent', fontSize: '15px', color: '#fff', outline: 'none', border: 'none', flex: 1, minWidth: 0 }}
+              style={{ background: 'transparent', fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', outline: 'none', border: 'none', flex: 1, minWidth: 0 }}
             />
             {searchQuery && (
               <button onClick={() => setSearchQuery('')} aria-label={ht.clearSearch} style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer' }}>
@@ -627,7 +627,7 @@ export default function Home() {
                 width: '32px', height: '32px', borderRadius: '50%',
                 backgroundColor: '#1C1C1E', border: '1px solid #2A2A2A',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', fontSize: '16px', lineHeight: 1, padding: 0,
+                cursor: 'pointer', fontSize: 'calc(16px * var(--fs, 1))', lineHeight: 1, padding: 0,
               }}
             >
               <span aria-hidden="true" className="no-theme-invert">{LANG_META[lang].flag}</span>
@@ -652,11 +652,11 @@ export default function Home() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
                       padding: '11px 16px', background: 'transparent', border: 'none',
-                      color: lang === code ? '#F0908A' : '#ccc', fontSize: '14px',
+                      color: lang === code ? '#F0908A' : '#ccc', fontSize: 'calc(14px * var(--fs, 1))',
                       fontWeight: lang === code ? 700 : 400, cursor: 'pointer', textAlign: 'start',
                     }}
                   >
-                    <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '18px' }}>{LANG_META[code].flag}</span>
+                    <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: 'calc(18px * var(--fs, 1))' }}>{LANG_META[code].flag}</span>
                     <span style={{ flex: 1 }}>{LANG_META[code].name}</span>
                     {lang === code && <span aria-hidden="true">✓</span>}
                   </button>
@@ -670,12 +670,12 @@ export default function Home() {
         {searchFocused && !searchQuery && searchHistory.length > 0 && (
           <div style={{ padding: '4px 16px 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '12px', color: '#888', fontWeight: 600 }}>
+              <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', fontWeight: 600 }}>
                 {ht.recentSearches}
               </span>
               <button
                 onClick={() => { setSearchHistory([]); localStorage.removeItem('shapop_search_history') }}
-                style={{ background: 'none', border: 'none', color: '#F0908A', fontSize: '12px', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer' }}
               >
                 {ht.clear}
               </button>
@@ -685,7 +685,7 @@ export default function Home() {
                 <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#1C1C1E', borderRadius: '16px', padding: '6px 10px' }}>
                   <button
                     onClick={() => { setSearchQuery(item); setSearchFocused(false) }}
-                    style={{ background: 'none', border: 'none', color: '#ccc', fontSize: '13px', cursor: 'pointer', padding: 0 }}
+                    style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer', padding: 0 }}
                   >{item}</button>
                   <button
                     onClick={() => removeSearchHistoryItem(item)}
@@ -707,7 +707,7 @@ export default function Home() {
             aria-label={ht.city}
             style={{
               background: 'transparent', border: 'none',
-              padding: '2px 0', color: '#888', fontSize: '13px',
+              padding: '2px 0', color: '#888', fontSize: 'calc(13px * var(--fs, 1))',
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               cursor: 'pointer',
             }}
@@ -772,7 +772,7 @@ export default function Home() {
         }}>
           {/* City filter */}
           <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
               {ht.city}
             </label>
             <input
@@ -783,13 +783,13 @@ export default function Home() {
               style={{
                 width: '100%', padding: '10px 12px', boxSizing: 'border-box',
                 backgroundColor: '#0D0D0D', border: '1px solid #333',
-                borderRadius: '10px', color: '#fff', fontSize: '14px', outline: 'none',
+                borderRadius: '10px', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', outline: 'none',
               }}
             />
           </div>
           {/* Seller rating filter */}
           <div>
-            <label style={{ fontSize: '12px', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
               {ht.minSellerRating}
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -803,7 +803,7 @@ export default function Home() {
                     border: filterMinRating === r ? '1px solid #F0908A' : '1px solid #333',
                     borderRadius: '8px',
                     color: filterMinRating === r ? '#F0908A' : '#888',
-                    fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                   }}
                 >
                   {r === 0 ? ht.all : `${r.toLocaleString(LANG_META[lang].locale)}+`}
@@ -818,7 +818,7 @@ export default function Home() {
               style={{
                 padding: '8px', backgroundColor: 'transparent',
                 border: '1px solid #444', borderRadius: '8px',
-                color: '#888', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                color: '#888', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ht.reset}
@@ -861,17 +861,17 @@ export default function Home() {
                 width: '40px', height: '40px', borderRadius: '10px',
                 background: 'rgba(255,255,255,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0, fontSize: '20px',
+                flexShrink: 0, fontSize: 'calc(20px * var(--fs, 1))',
               }}>
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" stroke="none">
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ color: '#fff', fontSize: '15px', fontWeight: 800, margin: '0 0 2px', paddingInlineEnd: '20px' }}>
+                <p style={{ color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, margin: '0 0 2px', paddingInlineEnd: '20px' }}>
                   {activePromotion.title}
                 </p>
-                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '12px', margin: '0 0 4px' }}>
+                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 4px' }}>
                   {activePromotion.description || `${promoLabel} -${activePromotion.discount_percent}%`}
                 </p>
                 <span style={{
@@ -880,7 +880,7 @@ export default function Home() {
                   borderRadius: '8px',
                   background: 'rgba(255,255,255,0.2)',
                   color: '#fff',
-                  fontSize: '11px',
+                  fontSize: 'calc(11px * var(--fs, 1))',
                   fontWeight: 700,
                 }}>
                   {ht.promoCta}
@@ -913,7 +913,7 @@ export default function Home() {
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
-            <p style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: 0 }}>
+            <p style={{ color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, margin: 0 }}>
               {ht.directSales}
             </p>
           </div>
@@ -951,10 +951,10 @@ export default function Home() {
               </svg>
             </div>
             <div>
-              <p style={{ color: '#fff', fontSize: '13px', fontWeight: 700, margin: 0 }}>
+              <p style={{ color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, margin: 0 }}>
                 {ht.sortedByRelevance}
               </p>
-              <p style={{ color: '#888', fontSize: '11px', margin: '2px 0 0 0' }}>
+              <p style={{ color: '#888', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0 0' }}>
                 {ht.basedOnPrefs}
               </p>
             </div>
@@ -967,7 +967,7 @@ export default function Home() {
               borderRadius: '10px',
               padding: '6px 12px',
               color: '#F0908A',
-              fontSize: '12px',
+              fontSize: 'calc(12px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -991,7 +991,7 @@ export default function Home() {
             borderTopColor: '#F0908A', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
-          <span style={{ fontSize: '11px', color: '#555', fontWeight: 500 }}>
+          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', fontWeight: 500 }}>
             {ht.refreshing}
           </span>
         </div>
@@ -1014,7 +1014,7 @@ export default function Home() {
             onClick={() => fetchStreams()}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: '#E8344E', fontSize: '14px', fontWeight: 600,
+              color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
             }}
           >
@@ -1032,10 +1032,10 @@ export default function Home() {
               <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+          <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
             {ht.emptyTitle}
           </h3>
-          <p style={{ fontSize: '14px', color: '#666', margin: 0, maxWidth: '260px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>
             {ht.emptySubtitle}
           </p>
         </div>
@@ -1067,7 +1067,7 @@ function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSel
   const itemStyle = (active: boolean, bold = false) => ({
     display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start' as const,
     padding: '11px 16px', color: active ? '#F0908A' : '#ccc',
-    fontSize: '14px', background: 'transparent', border: 'none', cursor: 'pointer',
+    fontSize: 'calc(14px * var(--fs, 1))', background: 'transparent', border: 'none', cursor: 'pointer',
     fontWeight: bold ? 700 : 400,
   })
   return (
@@ -1088,7 +1088,7 @@ function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSel
         <CitySearchField onPick={onSelect} near={coords} background="#111" />
       </div>
       {status === 'locating' && suggestions.length === 0 && (
-        <p style={{ color: '#666', fontSize: '13px', margin: 0, padding: '6px 16px' }}>{t(lang, 'detecting_location')}</p>
+        <p style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, padding: '6px 16px' }}>{t(lang, 'detecting_location')}</p>
       )}
       {suggestions.map(c => {
         const isHere = !!detected && sameCity(detected.key, c.key)
@@ -1099,7 +1099,7 @@ function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSel
               <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span dir="auto">{c.label}</span>
-            {isHere && <span style={{ fontSize: '11px', color: '#777' }}>{tr(homeCityText, lang).here}</span>}
+            {isHere && <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#777' }}>{tr(homeCityText, lang).here}</span>}
           </button>
         )
       })}

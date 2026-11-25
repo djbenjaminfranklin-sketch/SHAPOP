@@ -51,7 +51,7 @@ export default function PageBackButton({ title, fallback = '/', style }: { title
       ...style,
     }}>
       <BackArrowButton fallback={fallback} />
-      {title ? <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>{title}</h1> : null}
+      {title ? <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{title}</h1> : null}
     </div>
   )
 }

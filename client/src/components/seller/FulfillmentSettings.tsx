@@ -5,10 +5,10 @@ import { errorText, ft } from '../../lib/fulfillmentText'
 
 const input: React.CSSProperties = {
   width: '100%', padding: '12px 14px', borderRadius: '12px', border: '1px solid #2a2a2a',
-  backgroundColor: '#0D0D0D', color: '#fff', fontSize: '15px', boxSizing: 'border-box', outline: 'none',
+  backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
 }
-const label: React.CSSProperties = { fontSize: '13px', fontWeight: 700, color: '#ccc' }
-const hint: React.CSSProperties = { fontSize: '12px', color: '#888', margin: 0 }
+const label: React.CSSProperties = { fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#ccc' }
+const hint: React.CSSProperties = { fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }
 
 /**
  * Réglages vendeur « Remise des commandes » : retrait en main propre (+ lieu indicatif),
@@ -73,7 +73,7 @@ export default function FulfillmentSettings() {
 
       <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
         <input type="checkbox" checked={allowPickup} onChange={e => setAllowPickup(e.target.checked)} style={{ width: '20px', height: '20px', accentColor: '#F0908A' }} />
-        <span style={{ fontSize: '14px', color: '#fff', fontWeight: 600 }}>{t.allow_pickup}</span>
+        <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', fontWeight: 600 }}>{t.allow_pickup}</span>
       </label>
       {allowPickup && (
         <input style={input} value={pickupArea} onChange={e => setPickupArea(e.target.value)} placeholder={t.pickup_area_placeholder} aria-label={t.pickup_area_placeholder} maxLength={120} />
@@ -86,7 +86,7 @@ export default function FulfillmentSettings() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <p style={hint}>{t.post_price_suggested} {formatMoney(settings.suggested_post_price, settings.currency, lang)}</p>
           <button type="button" onClick={() => setPostPrice(String(settings.suggested_post_price))}
-            style={{ padding: '4px 10px', borderRadius: '8px', border: '1px solid #333', backgroundColor: 'transparent', color: '#F0908A', fontSize: '12px', cursor: 'pointer' }}>
+            style={{ padding: '4px 10px', borderRadius: '8px', border: '1px solid #333', backgroundColor: 'transparent', color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer' }}>
             {t.use_suggested}
           </button>
         </div>
@@ -98,7 +98,7 @@ export default function FulfillmentSettings() {
           {settings.handover_delay_allowed.map(d => (
             <button key={d} type="button" onClick={() => setDelay(d)} aria-pressed={delay === d}
               style={{
-                minWidth: '44px', padding: '8px 10px', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: '13px',
+                minWidth: '44px', padding: '8px 10px', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))',
                 background: delay === d ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#0D0D0D',
                 border: delay === d ? 'none' : '1px solid #222', color: delay === d ? '#fff' : '#888',
               }}>
@@ -109,9 +109,9 @@ export default function FulfillmentSettings() {
         <p style={hint}>{t.handover_delay_hint}</p>
       </div>
 
-      {message && <div role="status" style={{ fontSize: '13px', color: message.ok ? '#22C55E' : '#F87171' }}>{message.text}</div>}
+      {message && <div role="status" style={{ fontSize: 'calc(13px * var(--fs, 1))', color: message.ok ? '#22C55E' : '#F87171' }}>{message.text}</div>}
       <button type="button" onClick={save} disabled={saving}
-        style={{ width: '100%', padding: '13px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: '15px', cursor: 'pointer',
+        style={{ width: '100%', padding: '13px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: 'calc(15px * var(--fs, 1))', cursor: 'pointer',
           background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', opacity: saving ? 0.6 : 1 }}>
         {saving ? t.saving : t.save}
       </button>

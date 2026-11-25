@@ -321,7 +321,7 @@ export default function ItemDetailPage() {
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item?.title || t.back}
         </h1>
       </div>
@@ -337,13 +337,13 @@ export default function ItemDetailPage() {
         </div>
       ) : fetchError || !item ? (
         <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', textAlign: 'center' }}>
-          <p style={{ fontSize: '16px', color: '#888', marginBottom: '16px' }}>{t.notFound}</p>
+          <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#888', marginBottom: '16px' }}>{t.notFound}</p>
           {fetchError && (
             <button
               onClick={() => fetchItem()}
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: '#E8344E', fontSize: '14px', fontWeight: 600,
+                color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
               }}
             >
@@ -382,7 +382,7 @@ export default function ItemDetailPage() {
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  color: '#fff', fontSize: '12px', fontWeight: 700,
+                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                   padding: '5px 10px', borderRadius: '8px',
                   boxShadow: '0 2px 8px rgba(232, 52, 78, 0.4)',
                 }}>
@@ -420,11 +420,11 @@ export default function ItemDetailPage() {
           <div style={{ padding: '16px' }}>
             {/* Price */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <span style={{ fontSize: '28px', fontWeight: 800, color: '#fff' }}>{priceLabel}</span>
+              <span style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{priceLabel}</span>
               {item.ai_condition && (
                 <span style={{
                   backgroundColor: 'rgba(240,144,138,0.15)', color: '#F0908A',
-                  fontSize: '13px', fontWeight: 600, padding: '6px 12px', borderRadius: '10px',
+                  fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, padding: '6px 12px', borderRadius: '10px',
                 }}>
                   {conditionLabels[item.ai_condition]?.[lang] ?? item.ai_condition}
                 </span>
@@ -432,13 +432,13 @@ export default function ItemDetailPage() {
             </div>
 
             {/* Title */}
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', margin: '0 0 8px', lineHeight: 1.3 }}>
+            <h2 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px', lineHeight: 1.3 }}>
               {item.title}
             </h2>
 
             {/* Category */}
             <span style={{
-              display: 'inline-block', fontSize: '13px', fontWeight: 600,
+              display: 'inline-block', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
               color: '#F0908A', backgroundColor: 'rgba(240,144,138,0.1)',
               padding: '4px 10px', borderRadius: '8px', marginBottom: '20px',
             }}>
@@ -461,7 +461,7 @@ export default function ItemDetailPage() {
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '16px', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
                 }}>
                   {item.seller?.avatar_url ? (
                     <img src={item.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -470,15 +470,15 @@ export default function ItemDetailPage() {
                   )}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>{sellerName}</p>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '2px 0 0' }}>{t.seller}</p>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{sellerName}</p>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '2px 0 0' }}>{t.seller}</p>
                 </div>
               </div>
               {user && item.seller_id !== user.id && (
                 <button
                   onClick={toggleFollow}
                   style={{
-                    padding: '6px 14px', borderRadius: '10px', fontSize: '12px', fontWeight: 700,
+                    padding: '6px 14px', borderRadius: '10px', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                     border: isFollowing ? '1px solid #333' : 'none',
                     background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #F0908A, #E8344E)',
                     color: isFollowing ? '#888' : '#fff',
@@ -493,8 +493,8 @@ export default function ItemDetailPage() {
             {/* Description */}
             {item.description && (
               <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{t.description}</h3>
-                <p style={{ fontSize: '14px', color: '#aaa', lineHeight: 1.6, margin: 0 }}>{item.description}</p>
+                <h3 style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{t.description}</h3>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6, margin: 0 }}>{item.description}</p>
               </div>
             )}
 
@@ -503,7 +503,7 @@ export default function ItemDetailPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px' }}>
                 {item.ai_tags.map((tag) => (
                   <span key={tag} style={{
-                    fontSize: '12px', color: '#888', backgroundColor: '#1a1a1a',
+                    fontSize: 'calc(12px * var(--fs, 1))', color: '#888', backgroundColor: '#1a1a1a',
                     padding: '4px 10px', borderRadius: '8px', border: '1px solid #222',
                   }}>
                     #{tag}
@@ -542,7 +542,7 @@ export default function ItemDetailPage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: 'none', border: '1px solid #E8344E',
-                    color: '#E8344E', fontSize: '16px', fontWeight: 700,
+                    color: '#E8344E', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -595,7 +595,7 @@ export default function ItemDetailPage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                    border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
+                    border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -629,7 +629,7 @@ export default function ItemDetailPage() {
                     background: bought
                       ? 'linear-gradient(135deg, #22C55E, #16A34A)'
                       : buyLoading ? '#555' : 'linear-gradient(135deg, #E8344E, #D42A42)',
-                    border: 'none', color: '#fff', fontSize: '16px', fontWeight: 700,
+                    border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: buyLoading ? 'default' : 'pointer',
                     opacity: buyLoading ? 0.7 : 1,
                   }}

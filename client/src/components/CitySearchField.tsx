@@ -82,19 +82,19 @@ export default function CitySearchField({ onPick, near, autoFocus, background = 
           enterKeyHint="search"
           style={{
             flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none',
-            color: '#fff', fontSize: '16px', padding: '11px 0', textAlign: 'start',
+            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', padding: '11px 0', textAlign: 'start',
           }}
         />
       </div>
 
       {state === 'searching' && (
-        <p style={{ color: '#888', fontSize: '13px', margin: '8px 4px 0' }}>{ct.searching}</p>
+        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.searching}</p>
       )}
       {state === 'error' && (
-        <p style={{ color: '#f97316', fontSize: '13px', margin: '8px 4px 0' }}>{ct.error}</p>
+        <p style={{ color: '#f97316', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.error}</p>
       )}
       {state === 'done' && results.length === 0 && (
-        <p style={{ color: '#888', fontSize: '13px', margin: '8px 4px 0' }}>{ct.none}</p>
+        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.none}</p>
       )}
       {results.length > 0 && (
         <div role="listbox" aria-label={ct.label} style={{ marginTop: '6px', display: 'flex', flexDirection: 'column' }}>
@@ -117,9 +117,9 @@ export default function CitySearchField({ onPick, near, autoFocus, background = 
                 <circle cx="12" cy="10" r="3" />
               </svg>
               <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <span dir="auto" style={{ color: '#eee', fontSize: '14px', fontWeight: 600 }}>{r.label}</span>
+                <span dir="auto" style={{ color: '#eee', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{r.label}</span>
                 {r.region && (
-                  <span dir="auto" style={{ color: '#777', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.region}</span>
+                  <span dir="auto" style={{ color: '#777', fontSize: 'calc(12px * var(--fs, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.region}</span>
                 )}
               </span>
             </button>

@@ -53,11 +53,11 @@ export default function LanguageSelector({ variant = 'compact', onChange }: Prop
           background: active && inList ? 'rgba(240,144,138,0.12)' : 'transparent',
           border: inList ? `1px solid ${active ? '#F0908A' : '#2A2A2A'}` : 'none',
           borderRadius: inList ? '12px' : 0,
-          color: active ? '#F0908A' : '#E5E5E5', fontSize: '15px',
+          color: active ? '#F0908A' : '#E5E5E5', fontSize: 'calc(15px * var(--fs, 1))',
           fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'start',
         }}
       >
-        <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '20px', lineHeight: 1 }}>{LANG_META[code].flag}</span>
+        <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: 'calc(20px * var(--fs, 1))', lineHeight: 1 }}>{LANG_META[code].flag}</span>
         <span style={{ flex: 1 }}>{LANG_META[code].name}</span>
         {active && <span aria-hidden="true">✓</span>}
       </button>
@@ -85,13 +85,13 @@ export default function LanguageSelector({ variant = 'compact', onChange }: Prop
           display: 'flex', alignItems: 'center', gap: '6px',
           height: '34px', padding: '0 12px', borderRadius: '17px',
           backgroundColor: '#1C1C1E', border: '1px solid #2A2A2A',
-          color: '#E5E5E5', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+          color: '#E5E5E5', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
           whiteSpace: 'nowrap',
         }}
       >
-        <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: '16px', lineHeight: 1 }}>{LANG_META[lang].flag}</span>
+        <span aria-hidden="true" className="no-theme-invert" style={{ fontSize: 'calc(16px * var(--fs, 1))', lineHeight: 1 }}>{LANG_META[lang].flag}</span>
         <span>{LANG_META[lang].name}</span>
-        <span aria-hidden="true" style={{ fontSize: '10px', opacity: 0.7 }}>▾</span>
+        <span aria-hidden="true" style={{ fontSize: 'calc(10px * var(--fs, 1))', opacity: 0.7 }}>▾</span>
       </button>
       {open && (
         <div

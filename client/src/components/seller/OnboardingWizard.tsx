@@ -461,13 +461,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    fontSize: '40px',
+    fontSize: 'calc(40px * var(--fs, 1))',
     boxShadow: '0 8px 32px rgba(240,144,138,0.25), 0 0 0 6px rgba(240,144,138,0.08)',
     margin: '0 auto 24px',
   })
 
   const sectionTitle = {
-    fontSize: '28px',
+    fontSize: 'calc(28px * var(--fs, 1))',
     fontWeight: 800 as const,
     color: '#fff',
     marginBottom: '6px',
@@ -477,7 +477,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   }
 
   const sectionDesc = {
-    fontSize: '15px',
+    fontSize: 'calc(15px * var(--fs, 1))',
     color: '#888',
     marginBottom: '28px',
     textAlign: 'center' as const,
@@ -569,7 +569,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   }}>
                     {rule.icon}
                   </div>
-                  <span style={{ fontSize: '15px', color: '#D4D4D4', lineHeight: 1.5, fontWeight: 500 }}>{rule.text}</span>
+                  <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#D4D4D4', lineHeight: 1.5, fontWeight: 500 }}>{rule.text}</span>
                 </div>
               ))}
             </div>
@@ -593,7 +593,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               <div style={checkboxSquare(rulesAccepted)}>
                 {rulesAccepted && checkIcon}
               </div>
-              <span style={{ fontSize: '16px', color: '#fff', fontWeight: 700 }}>{t.accept}</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#fff', fontWeight: 700 }}>{t.accept}</span>
             </button>
 
             {/* Fee schedule card */}
@@ -610,11 +610,11 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   width: '36px', height: '36px', borderRadius: '10px',
                   background: 'linear-gradient(135deg, #F59E0B, #D97706)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '18px', flexShrink: 0,
+                  fontSize: 'calc(18px * var(--fs, 1))', flexShrink: 0,
                 }}>
                   {'\u{1F4B0}'}
                 </div>
-                <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#fff' }}>{t.feesTitle}</h3>
+                <h3 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{t.feesTitle}</h3>
               </div>
               {feeLines.map((fee, i) => (
                 <div key={fee} style={{
@@ -622,10 +622,10 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   padding: '10px 0',
                   borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 }}>
-                  <span style={{ color: '#F59E0B', fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>
+                  <span style={{ color: '#F59E0B', fontSize: 'calc(14px * var(--fs, 1))', flexShrink: 0, marginTop: '1px' }}>
                     {i < 2 ? '\u{2022}' : i === 2 ? '\u{1F4CA}' : '\u{1F4C5}'}
                   </span>
-                  <span style={{ fontSize: '14px', color: '#D4D4D4', lineHeight: 1.5 }}>{fee}</span>
+                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#D4D4D4', lineHeight: 1.5 }}>{fee}</span>
                 </div>
               ))}
             </div>
@@ -653,7 +653,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               }}>
                 {feesAccepted && checkIcon}
               </div>
-              <span style={{ fontSize: '16px', color: '#fff', fontWeight: 700 }}>{t.acceptFees}</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#fff', fontWeight: 700 }}>{t.acceptFees}</span>
             </button>
           </div>
         )
@@ -719,14 +719,14 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                         width: '56px', height: '56px', borderRadius: '14px',
                         background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '20px', fontWeight: 800, color: '#fff',
+                        fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                         boxShadow: '0 4px 12px rgba(232,52,78,0.3)',
                       }}>
                         {cat.label.charAt(0)}
                       </div>
                     )}
                     <span style={{
-                      fontSize: '11px', fontWeight: selected ? 700 : 600,
+                      fontSize: 'calc(11px * var(--fs, 1))', fontWeight: selected ? 700 : 600,
                       color: selected ? '#F0908A' : '#AAA',
                       textAlign: 'center', lineHeight: 1.2,
                     }}>
@@ -761,7 +761,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                         : 'linear-gradient(135deg, #151515 0%, #0E0E0E 100%)',
                       border: selected ? '1.5px solid rgba(240,144,138,0.6)' : '1px solid #222',
                       color: selected ? '#F0908A' : '#BBB',
-                      fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                      fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       boxShadow: selected
                         ? '0 2px 12px rgba(240,144,138,0.2)'
                         : '0 1px 4px rgba(0,0,0,0.3)',
@@ -804,15 +804,15 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     width: '56px', height: '56px', borderRadius: '16px',
                     background: selected ? opt.gradient : 'linear-gradient(135deg, #1A1A1A, #141414)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                    fontSize: '26px',
+                    fontSize: 'calc(26px * var(--fs, 1))',
                     boxShadow: selected ? '0 4px 16px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.2)',
                     border: '1px solid rgba(255,255,255,0.06)',
                   }}>
                     {opt.emoji}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '17px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{opt.title}</p>
-                    <p style={{ fontSize: '13px', color: '#777', lineHeight: 1.4 }}>{opt.desc}</p>
+                    <p style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{opt.title}</p>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#777', lineHeight: 1.4 }}>{opt.desc}</p>
                   </div>
                   <div style={radioCircle(selected)}>
                     {selected && innerDot}
@@ -847,7 +847,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && checkIcon}
                   </div>
                   <span style={{
-                    fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -878,7 +878,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       {selected && checkIcon}
                     </div>
                     <span style={{
-                      fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                      fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
                     }}>{plat.localized ? tr(plat.localized) : plat.label}</span>
                   </button>
                   {plat.hasUrl && selected && (
@@ -891,7 +891,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                         width: '100%', padding: '14px 18px', marginBottom: '10px',
                         background: 'linear-gradient(135deg, #141414, #0C0C0C)',
                         border: '1px solid #2A2A2A', borderRadius: '14px',
-                        color: '#fff', fontSize: '14px', outline: 'none', boxSizing: 'border-box',
+                        color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                         transition: 'border-color 0.2s ease',
                       }}
                       onFocus={e => { e.target.style.borderColor = 'rgba(240,144,138,0.5)' }}
@@ -928,7 +928,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -960,7 +960,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -992,7 +992,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -1029,7 +1029,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: '15px', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
                   }}>{opt.label}</span>
                 </button>
               )
@@ -1081,7 +1081,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     )}
                   </div>
                   <span style={{
-                    fontSize: '16px', color: selected ? '#fff' : '#BBB', fontWeight: 700,
+                    fontSize: 'calc(16px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 700,
                     flex: 1,
                   }}>{label}</span>
                   <div style={radioCircle(selected)}>
@@ -1133,7 +1133,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
           {/* Step counter */}
           <span style={{
-            fontSize: '13px', fontWeight: 700, color: '#555',
+            fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#555',
             letterSpacing: '1px',
           }}>
             {step + 1} / {TOTAL_STEPS}
@@ -1190,7 +1190,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         background: 'linear-gradient(to top, #000 60%, transparent)',
       }}>
         {error && (
-          <p style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '8px' }}>{error}</p>
+          <p style={{ color: '#EF4444', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', marginBottom: '8px' }}>{error}</p>
         )}
         <button
           onClick={() => { setError(''); handleNext() }}
@@ -1202,7 +1202,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               : 'linear-gradient(135deg, #2A2A2A, #1A1A1A)',
             borderRadius: '16px', border: 'none',
             color: able ? '#fff' : '#555',
-            fontSize: '17px', fontWeight: 800,
+            fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
             cursor: able ? 'pointer' : 'not-allowed',
             opacity: saving ? 0.7 : 1,
             boxShadow: able

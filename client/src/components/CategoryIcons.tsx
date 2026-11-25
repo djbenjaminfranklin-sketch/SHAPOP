@@ -98,7 +98,7 @@ export function CategoryScroll({ selected, onSelect, lang: langProp }: CategoryS
                 <FollowingIcon size={72} />
               ) : imageFailed ? (
                 <span style={{
-                  fontSize: '30px', fontWeight: 800, color: '#fff',
+                  fontSize: 'calc(30px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                   fontStyle: 'italic', textShadow: '0 2px 4px rgba(0,0,0,0.3)',
                   fontFamily: 'Georgia, serif',
                 }}>
@@ -122,7 +122,7 @@ export function CategoryScroll({ selected, onSelect, lang: langProp }: CategoryS
                   display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
                 }}>
                   <span style={{
-                    fontSize: '13px', fontWeight: 700, color: '#fff',
+                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                     textAlign: 'center', lineHeight: 1.1,
                     textShadow: '0 1px 3px rgba(0,0,0,0.5)',
                   }}>
@@ -134,7 +134,7 @@ export function CategoryScroll({ selected, onSelect, lang: langProp }: CategoryS
             {/* Label below only for special tabs (Pour toi, Suivis) */}
             {(cat.id === 'for_you' || cat.id === 'following') && (
               <span style={{
-                fontSize: '12px', fontWeight: isActive ? 700 : 600,
+                fontSize: 'calc(12px * var(--fs, 1))', fontWeight: isActive ? 700 : 600,
                 color: isActive ? '#fff' : '#999',
                 marginTop: '6px', textAlign: 'center', lineHeight: 1.2,
                 maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis',

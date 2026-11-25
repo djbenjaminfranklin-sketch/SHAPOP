@@ -133,7 +133,7 @@ export default function ForgotPasswordPage() {
     border: '1px solid #1A1A1A',
     borderRadius: '12px',
     color: '#fff',
-    fontSize: '15px',
+    fontSize: 'calc(15px * var(--fs, 1))',
     outline: 'none',
     boxSizing: 'border-box',
   }
@@ -150,7 +150,7 @@ export default function ForgotPasswordPage() {
         <button onClick={() => navigate(-1)} aria-label={c.goBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{...rtlFlip()}}><path d="M19 12H5M12 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
           {c.title}
         </h1>
       </div>
@@ -168,10 +168,10 @@ export default function ForgotPasswordPage() {
                 <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
               </svg>
             </div>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
+            <h2 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '12px' }}>
               {c.sentTitle}
             </h2>
-            <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, maxWidth: '300px', margin: '0 auto 32px' }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.6, maxWidth: '300px', margin: '0 auto 32px' }}>
               {c.sentText}
             </p>
             <Link
@@ -179,7 +179,7 @@ export default function ForgotPasswordPage() {
               style={{
                 display: 'inline-block', padding: '14px 32px', borderRadius: '12px',
                 background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-                color: '#fff', fontSize: '15px', fontWeight: 700, textDecoration: 'none',
+                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, textDecoration: 'none',
                 boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
               }}
             >
@@ -188,11 +188,11 @@ export default function ForgotPasswordPage() {
           </div>
         ) : (
           <>
-            <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
               {c.intro}
             </p>
 
-            <label style={{ fontSize: '12px', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
               {c.emailLabel}
             </label>
             <input
@@ -213,7 +213,7 @@ export default function ForgotPasswordPage() {
               style={{
                 width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
                 background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-                color: '#fff', fontSize: '16px', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
                 opacity: loading ? 0.6 : 1,
                 boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
               }}
@@ -224,7 +224,7 @@ export default function ForgotPasswordPage() {
               }
             </button>
 
-            <p style={{ textAlign: 'center', fontSize: '14px', color: '#666', marginTop: '24px' }}>
+            <p style={{ textAlign: 'center', fontSize: 'calc(14px * var(--fs, 1))', color: '#666', marginTop: '24px' }}>
               <Link to="/login" style={{ color: '#F0908A', fontWeight: 600, textDecoration: 'none' }}>
                 {c.backToLogin}
               </Link>
@@ -241,7 +241,7 @@ export default function ForgotPasswordPage() {
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : '#3a1a1a',
           border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#E8344E'}`,
           color: toast.type === 'success' ? '#4ADE80' : '#E8344E',
-          fontSize: '14px', fontWeight: 600, zIndex: 100,
+          fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>
           {toast.message}

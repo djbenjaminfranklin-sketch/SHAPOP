@@ -186,7 +186,7 @@ function OfflineBanner() {
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999,
         backgroundColor: '#1A1A1A', color: '#f59e0b',
         textAlign: 'center', padding: '8px 16px',
-        fontSize: '14px', fontWeight: 600,
+        fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
       }}
     >
       {t(getLang(), 'offline')}
@@ -237,8 +237,11 @@ function useAppSettings() {
         }
 
         // Text size
+        // Toutes les tailles de texte de l'appli sont multipliées par --fs (Normal = 15 % plus grand qu'avant)
         const sizes: Record<string, string> = { small: '14px', normal: '16px', large: '18px' }
+        const scales: Record<string, string> = { small: '1', normal: '1.15', large: '1.3' }
         html.style.fontSize = sizes[s.textSize] || '16px'
+        html.style.setProperty('--fs', scales[s.textSize] || '1.15')
       } catch { /* ignore */ }
     }
 

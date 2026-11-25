@@ -206,10 +206,10 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
         {/* Header with logo */}
         <div style={{ padding: '16px 24px 8px 24px', textAlign: 'center' }}>
           <img src="/logo.png" alt="ShaPop" style={{ height: '36px', objectFit: 'contain', marginBottom: '12px' }} />
-          <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: 800, margin: '0 0 4px 0' }}>
+          <h2 style={{ color: '#fff', fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, margin: '0 0 4px 0' }}>
             {ct.personalizeYourFeed}
           </h2>
-          <p style={{ color: '#888', fontSize: '13px', margin: 0, lineHeight: 1.3 }}>
+          <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, lineHeight: 1.3 }}>
             {step === 'categories'
               ? ct.chooseCategories
               : ct.selectCities}
@@ -260,7 +260,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                       border: isSelected ? '2px solid #F0908A' : '1px solid #333',
                       backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
                       color: isSelected ? '#F0908A' : '#ccc',
-                      fontSize: '13px',
+                      fontSize: 'calc(13px * var(--fs, 1))',
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer',
                       display: 'flex',
@@ -301,7 +301,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
               border: '1px solid #333',
               backgroundColor: '#1A1A1A',
               color: '#888',
-              fontSize: '15px',
+              fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
               touchAction: 'manipulation',
@@ -321,7 +321,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                   ? 'linear-gradient(135deg, #F0908A, #E8344E)'
                   : '#333',
                 color: '#fff',
-                fontSize: '15px',
+                fontSize: 'calc(15px * var(--fs, 1))',
                 fontWeight: 700,
                 cursor: 'pointer',
                 touchAction: 'manipulation',
@@ -339,7 +339,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                 border: 'none',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 color: '#fff',
-                fontSize: '15px',
+                fontSize: 'calc(15px * var(--fs, 1))',
                 fontWeight: 700,
                 cursor: 'pointer',
                 touchAction: 'manipulation',
@@ -361,7 +361,7 @@ const chipStyle = (isSelected: boolean) => ({
   border: isSelected ? '2px solid #F0908A' : '1px solid #333',
   backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
   color: isSelected ? '#F0908A' : '#ccc',
-  fontSize: '14px',
+  fontSize: 'calc(14px * var(--fs, 1))',
   fontWeight: isSelected ? 700 : 500,
   cursor: 'pointer',
   display: 'flex',
@@ -406,10 +406,10 @@ function CitiesStep({ selected, onChange }: { selected: string[]; onChange: (cit
       <CitySearchField onPick={addFromSearch} near={coords} />
 
       {status === 'locating' && (
-        <p style={{ color: '#888', fontSize: '13px', margin: 0, textAlign: 'center' }}>{ct.locating}</p>
+        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, textAlign: 'center' }}>{ct.locating}</p>
       )}
       {(status === 'denied' || status === 'unavailable') && (
-        <p style={{ color: '#888', fontSize: '13px', margin: 0, textAlign: 'center' }}>{ct.locationOff}</p>
+        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, textAlign: 'center' }}>{ct.locationOff}</p>
       )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
@@ -436,7 +436,7 @@ function CitiesStep({ selected, onChange }: { selected: string[]; onChange: (cit
               <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
                 <span dir="auto">{city.label}</span>
                 {(isHere || isNear) && (
-                  <span style={{ fontSize: '11px', fontWeight: 500, color: on ? '#F0908A' : '#777' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 500, color: on ? '#F0908A' : '#777' }}>
                     {isHere ? ct.yourPosition : ct.nearby}
                   </span>
                 )}

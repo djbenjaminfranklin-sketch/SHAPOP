@@ -378,9 +378,9 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
         borderBottom: '1px solid rgba(255,255,255,0.08)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '18px' }}>{'\u{1F4CA}'}</span>
+          <span style={{ fontSize: 'calc(18px * var(--fs, 1))' }}>{'\u{1F4CA}'}</span>
           <span style={{
-            fontSize: '15px',
+            fontSize: 'calc(15px * var(--fs, 1))',
             fontWeight: 700,
             color: '#fff',
             letterSpacing: '-0.3px',
@@ -395,7 +395,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             backgroundColor: 'rgba(255,255,255,0.08)',
             border: 'none',
             color: '#999',
-            fontSize: '18px',
+            fontSize: 'calc(18px * var(--fs, 1))',
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -429,11 +429,11 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             justifyContent: 'space-between',
             marginBottom: '16px',
           }}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>
               {ct.energyLevel}
             </span>
             <span style={{
-              fontSize: '13px',
+              fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 800,
               color: energyColors.color,
               padding: '3px 10px',
@@ -480,7 +480,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
           }}>
             {(['low', 'medium', 'high', 'peak'] as const).map(level => (
               <span key={level} style={{
-                fontSize: '9px',
+                fontSize: 'calc(9px * var(--fs, 1))',
                 fontWeight: 600,
                 color: metrics.energy_level === level ? ENERGY_COLORS[level].color : '#444',
                 transition: 'color 0.4s ease',
@@ -550,7 +550,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             marginBottom: '10px',
           }}>
             <span style={{
-              fontSize: '10px',
+              fontSize: 'calc(10px * var(--fs, 1))',
               fontWeight: 700,
               color: '#F0908A',
               textTransform: 'uppercase',
@@ -567,7 +567,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             }} />
           </div>
           <p style={{
-            fontSize: '13px',
+            fontSize: 'calc(13px * var(--fs, 1))',
             fontWeight: 600,
             color: '#ddd',
             lineHeight: 1.5,
@@ -591,7 +591,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
         }}>
           <div>
             <span style={{
-              fontSize: '11px',
+              fontSize: 'calc(11px * var(--fs, 1))',
               fontWeight: 600,
               color: '#888',
               textTransform: 'uppercase',
@@ -605,9 +605,9 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             alignItems: 'center',
             gap: '8px',
           }}>
-            <span style={{ fontSize: '22px', transition: 'all 0.3s ease' }}>{sentiment.emoji}</span>
+            <span style={{ fontSize: 'calc(22px * var(--fs, 1))', transition: 'all 0.3s ease' }}>{sentiment.emoji}</span>
             <span style={{
-              fontSize: '13px',
+              fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 700,
               color: sentiment.key === 'positive' ? '#22C55E' : sentiment.key === 'neutral' ? '#F59E0B' : '#EF4444',
               transition: 'color 0.3s ease',
@@ -663,9 +663,9 @@ function MetricCard({
         gap: '6px',
         marginBottom: '8px',
       }}>
-        <span style={{ fontSize: '14px' }}>{emoji}</span>
+        <span style={{ fontSize: 'calc(14px * var(--fs, 1))' }}>{emoji}</span>
         <span style={{
-          fontSize: '10px',
+          fontSize: 'calc(10px * var(--fs, 1))',
           fontWeight: 600,
           color: '#777',
           textTransform: 'uppercase',
@@ -676,7 +676,7 @@ function MetricCard({
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         <span style={{
-          fontSize: '22px',
+          fontSize: 'calc(22px * var(--fs, 1))',
           fontWeight: 800,
           color: accentColor || '#fff',
           fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
@@ -687,7 +687,7 @@ function MetricCard({
         </span>
         {trend && (
           <span style={{
-            fontSize: '14px',
+            fontSize: 'calc(14px * var(--fs, 1))',
             color: trend === 'up' ? '#22C55E' : '#EF4444',
             fontWeight: 700,
             transition: 'color 0.3s ease',

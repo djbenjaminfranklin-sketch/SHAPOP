@@ -781,7 +781,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
         <CardElement options={{
           style: {
             base: {
-              fontSize: '16px',
+              fontSize: 'calc(16px * var(--fs, 1))',
               color: '#fff',
               '::placeholder': { color: '#555' },
               iconColor: '#F0908A',
@@ -797,7 +797,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
           width: '100%', marginTop: '16px', padding: '16px',
           background: loading ? '#555' : 'linear-gradient(135deg, #F0908A, #E8344E)',
           borderRadius: '14px', border: 'none',
-          color: '#fff', fontSize: '16px', fontWeight: 700,
+          color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',
           opacity: loading ? 0.7 : 1,
         }}
@@ -2602,12 +2602,12 @@ export default function StreamView() {
   if (!stream) {
     return (
       <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000', padding: '20px' }}>
-        <p style={{ fontSize: '18px', color: '#666' }}>{ct.streamNotFound}</p>
+        <p style={{ fontSize: 'calc(18px * var(--fs, 1))', color: '#666' }}>{ct.streamNotFound}</p>
         <button
           onClick={retryFetchStream}
           style={{
             marginTop: '16px', background: 'transparent', border: 'none', cursor: 'pointer',
-            color: '#E8344E', fontSize: '14px', fontWeight: 600,
+            color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
             display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
           }}
         >
@@ -2621,7 +2621,7 @@ export default function StreamView() {
           style={{
             marginTop: '8px', padding: '12px 24px', borderRadius: '100px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+            border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
           }}
         >
           {ct.close}
@@ -2743,18 +2743,18 @@ export default function StreamView() {
                                   animation: cellEntered ? 'none' : 'giftBadgePulse 2s ease-in-out infinite',
                                 }}
                               >
-                                <span style={{ fontSize: '16px', flexShrink: 0 }}>🎁</span>
+                                <span style={{ fontSize: 'calc(16px * var(--fs, 1))', flexShrink: 0 }}>🎁</span>
                                 <div style={{ flex: 1, minWidth: 0 }}>
-                                  <p style={{ fontSize: '10px', fontWeight: 800, color: '#FFD700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <p style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800, color: '#FFD700', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {cellEntered ? ct.giftEntered : ct.giftTitle}
                                   </p>
-                                  <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                                  <p style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
                                     {countLabel(cellGw.entry_count, 'participants')}
                                   </p>
                                 </div>
                                 {!cellEntered && user && (
                                   <span style={{
-                                    fontSize: '10px', fontWeight: 800, color: '#000',
+                                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800, color: '#000',
                                     padding: '4px 10px', borderRadius: '6px',
                                     background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
                                     whiteSpace: 'nowrap', flexShrink: 0,
@@ -2777,7 +2777,7 @@ export default function StreamView() {
                               animation: 'soldFadeIn 0.3s ease',
                             }}>
                               <p style={{
-                                fontSize: '28px', fontWeight: 900,
+                                fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900,
                                 color: (cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold) ? '#FF9632' : '#22C55E',
                                 textShadow: (cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold)
                                   ? '0 0 20px rgba(255,150,50,0.6)'
@@ -2789,7 +2789,7 @@ export default function StreamView() {
                               </p>
                               {!(cell.isMain ? soldAnimation?.isUnsold : multiStreamSold[cell.streamId]?.isUnsold) && (cell.isMain ? soldAnimation?.winner : multiStreamSold[cell.streamId]?.winner) && (
                                 <p style={{
-                                  fontSize: '12px', fontWeight: 700, color: '#fff', margin: '4px 0 0',
+                                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '4px 0 0',
                                   animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
                                 }}>
                                   @{(cell.isMain ? soldAnimation?.winner : multiStreamSold[cell.streamId]?.winner)} — {money(cell.isMain ? soldAnimation?.price : multiStreamSold[cell.streamId]?.price, cell.currency)}
@@ -2818,16 +2818,16 @@ export default function StreamView() {
                                   animation: 'soldFadeIn 0.4s ease',
                                 }}
                               >
-                                <div style={{ fontSize: '32px', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
+                                <div style={{ fontSize: 'calc(32px * var(--fs, 1))', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
                                 <p style={{
-                                  fontSize: '18px', fontWeight: 900, color: '#FFD700',
+                                  fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 900, color: '#FFD700',
                                   textShadow: '0 2px 12px rgba(255,215,0,0.5)',
                                   margin: '8px 0 0', textAlign: 'center',
                                 }}>
                                   {cellWinner.name}
                                 </p>
                                 <p style={{
-                                  fontSize: '10px', fontWeight: 600, color: '#fff',
+                                  fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#fff',
                                   opacity: 0.8, margin: '4px 0 0',
                                 }}>
                                   {ct.giftWinner}
@@ -2856,17 +2856,17 @@ export default function StreamView() {
                                 border: '1px solid rgba(255,255,255,0.3)',
                               }}
                             >
-                              <span style={{ fontSize: '18px' }}>🏆</span>
+                              <span style={{ fontSize: 'calc(18px * var(--fs, 1))' }}>🏆</span>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontSize: '11px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                                   {ct.youWon}
                                 </p>
-                                <p style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <p style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {pendingWonItem.title} — {money(pendingWonItem.price)}
                                 </p>
                               </div>
                               <span style={{
-                                fontSize: '10px', fontWeight: 800, color: '#fff',
+                                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                                 padding: '4px 10px', borderRadius: '8px',
                                 backgroundColor: 'rgba(255,255,255,0.25)',
                                 whiteSpace: 'nowrap', flexShrink: 0,
@@ -2979,7 +2979,7 @@ export default function StreamView() {
                                   <path d="M19.07 4.93a10 10 0 010 14.14" fill="none" stroke="#E8344E" strokeWidth="2"/>
                                 </svg>
                               )}
-                              <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.name}</span>
+                              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.name}</span>
                             </div>
                             {cell.item ? (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -2988,8 +2988,8 @@ export default function StreamView() {
                                   {cell.item.image_url && (
                                     <img src={cell.item.image_url} alt="" loading="lazy" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                                   )}
-                                  <span style={{ fontSize: '10px', fontWeight: 600, color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</span>
-                                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>{money(cell.item.current_price, cell.currency)}</span>
+                                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</span>
+                                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>{money(cell.item.current_price, cell.currency)}</span>
                                 </div>
                                 {/* Bid button — full width */}
                                 <button
@@ -3002,7 +3002,7 @@ export default function StreamView() {
                                   style={{
                                     width: '100%', padding: '7px 0', borderRadius: '100px', border: 'none',
                                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                                    color: '#fff', fontSize: '12px', fontWeight: 800, cursor: 'pointer',
+                                    color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer',
                                   }}
                                 >
                                   {(!cell.isMain && multiBidLoading === cell.streamId) ? '...' : `${ct.bid} ${money(cell.item.current_price + 1, cell.currency)}`}
@@ -3039,7 +3039,7 @@ export default function StreamView() {
                                       flex: 1, padding: '5px 0', borderRadius: '100px',
                                       border: '1px solid rgba(139,92,246,0.4)',
                                       backgroundColor: 'rgba(139,92,246,0.15)',
-                                      color: '#8B5CF6', fontSize: '10px', fontWeight: 800, cursor: 'pointer',
+                                      color: '#8B5CF6', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer',
                                     }}
                                   >
                                     {ct.maxBidTitle}
@@ -3074,7 +3074,7 @@ export default function StreamView() {
                                       padding: '5px 12px', borderRadius: '100px',
                                       border: '1px solid rgba(255,215,0,0.3)',
                                       backgroundColor: 'rgba(255,215,0,0.15)',
-                                      color: '#FFD700', fontSize: '10px', fontWeight: 800, cursor: 'pointer', flexShrink: 0,
+                                      color: '#FFD700', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer', flexShrink: 0,
                                     }}
                                   >
                                     {ct.maxShort}
@@ -3099,10 +3099,10 @@ export default function StreamView() {
                                     cursor: 'pointer',
                                   }}
                                 >
-                                  <p style={{ fontSize: '10px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                     {nextItem.title} — {money(nextItem.starting_price)}
                                   </p>
-                                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', padding: '4px 10px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff', padding: '4px 10px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                     {ct.preBid}
                                   </span>
                                 </div>
@@ -3110,7 +3110,7 @@ export default function StreamView() {
                               return (
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '6px 0' }}>
                                   <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite' }} />
-                                  <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{ct.waitingNextItem}</span>
+                                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>{ct.waitingNextItem}</span>
                                 </div>
                               )
                             })()}
@@ -3137,7 +3137,7 @@ export default function StreamView() {
                             left: '50%', transform: 'translateX(-50%)', zIndex: 30, // i18n-ignore (centrage)
                             padding: '10px 20px', borderRadius: '12px', border: 'none',
                             background: 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-                            color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                            color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                             boxShadow: '0 4px 16px rgba(139,92,246,0.4)',
                           }}
                         >
@@ -3158,7 +3158,7 @@ export default function StreamView() {
                             backdropFilter: 'blur(8px)',
                             WebkitBackdropFilter: 'blur(8px)',
                             border: '1px solid rgba(255,255,255,0.2)',
-                            color: '#fff', fontSize: '13px', fontWeight: 600,
+                            color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                             cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '6px',
                             zIndex: 15,
@@ -3220,7 +3220,7 @@ export default function StreamView() {
                           animation: 'liveDot 1.5s ease-in-out infinite',
                           boxShadow: '0 0 12px rgba(232,52,78,0.8)',
                         }} />
-                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#E8344E', letterSpacing: '2px' }}>
+                        <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, color: '#E8344E', letterSpacing: '2px' }}>
                           {ct.liveNow}
                         </span>
                       </div>
@@ -3238,13 +3238,13 @@ export default function StreamView() {
                         ))}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', fontWeight: 500, margin: 0 }}>
+                        <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: 'rgba(255,255,255,0.7)', fontWeight: 500, margin: 0 }}>
                           {ct.connectedTo} <span style={{ color: '#F0908A', fontWeight: 700 }}>{sellerName}</span>
                         {sellerScore != null && (
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: '3px', marginInlineStart: '6px',
                             backgroundColor: 'rgba(240,144,138,0.15)', padding: '2px 6px', borderRadius: '6px',
-                            fontSize: '12px', fontWeight: 700, color: '#F0908A',
+                            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
                           }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
                               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -3269,7 +3269,7 @@ export default function StreamView() {
                               } catch { /* ignore */ }
                             }}
                             style={{
-                              padding: '4px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                              padding: '4px 12px', borderRadius: '8px', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                               border: isFollowing ? '1px solid #333' : 'none',
                               background: isFollowing ? 'transparent' : 'rgba(240,144,138,0.2)',
                               color: isFollowing ? '#666' : '#F0908A',
@@ -3317,7 +3317,7 @@ export default function StreamView() {
                       style={{
                         marginTop: '24px', padding: '12px 32px', borderRadius: '100px',
                         background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                        border: 'none', color: '#fff', fontSize: '14px', fontWeight: 700,
+                        border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
                         cursor: 'pointer',
                       }}
                     >
@@ -3334,7 +3334,7 @@ export default function StreamView() {
                 <span style={{
                   background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
                   padding: '5px 14px', borderRadius: '8px',
-                  fontSize: '12px', fontWeight: 800, color: '#fff',
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                   letterSpacing: '1px',
                   boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
                   display: 'flex', alignItems: 'center', gap: '6px',
@@ -3351,7 +3351,7 @@ export default function StreamView() {
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
                   padding: '5px 12px', borderRadius: '8px',
-                  fontSize: '12px', fontWeight: 600, color: '#fff',
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#fff',
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2">
@@ -3420,7 +3420,7 @@ export default function StreamView() {
                     style={{
                       backgroundColor: 'rgba(0,0,0,0.45)',
                       padding: '4px 10px', borderRadius: '100px',
-                      fontSize: '12px', fontWeight: 700, color: '#fff',
+                      fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                       display: 'flex', alignItems: 'center', gap: '5px',
                     }}
                   >
@@ -3481,7 +3481,7 @@ export default function StreamView() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{
                     backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: '100px',
-                    fontSize: '11px', fontWeight: 700, color: '#fff',
+                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                     display: 'flex', alignItems: 'center', gap: '4px',
                   }}>
                     <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#E8344E', animation: 'liveDot 1.5s ease-in-out infinite' }} />
@@ -3592,7 +3592,7 @@ export default function StreamView() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
                     <rect x="4" y="4" width="16" height="16" rx="2"/>
                   </svg>
-                  <span style={{ color: '#fff', fontSize: '14px', fontWeight: 700 }}>
+                  <span style={{ color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700 }}>
                     {ct.endStream}
                   </span>
                 </button>
@@ -3628,7 +3628,7 @@ export default function StreamView() {
                   </svg>
                 </div>
                 <p style={{
-                  fontSize: '18px', fontWeight: 700, color: '#fff',
+                  fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                   textAlign: 'center',
                 }}>
                   {ct.endStreamConfirm}
@@ -3641,7 +3641,7 @@ export default function StreamView() {
                       borderRadius: '14px',
                       backgroundColor: 'rgba(255,255,255,0.1)',
                       border: '1px solid rgba(255,255,255,0.15)',
-                      color: '#fff', fontSize: '15px', fontWeight: 700,
+                      color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                       cursor: 'pointer',
                     }}
                   >
@@ -3654,7 +3654,7 @@ export default function StreamView() {
                       borderRadius: '14px',
                       background: 'linear-gradient(135deg, #E8344E, #DC2626)',
                       border: 'none',
-                      color: '#fff', fontSize: '15px', fontWeight: 700,
+                      color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                       cursor: 'pointer',
                       boxShadow: '0 4px 16px rgba(232,52,78,0.4)',
                     }}
@@ -3686,7 +3686,7 @@ export default function StreamView() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '20px',
+                  fontSize: 'calc(20px * var(--fs, 1))',
                   zIndex: 60,
                   transform: engageBtnPulse ? 'scale(1.15)' : 'scale(1)',
                   boxShadow: engageBtnPulse
@@ -3826,7 +3826,7 @@ export default function StreamView() {
                   animation: 'chatMsgIn 0.3s ease',
                 }}>
                   <span style={{
-                    fontSize: '12px', color: '#fff', fontWeight: 500,
+                    fontSize: 'calc(12px * var(--fs, 1))', color: '#fff', fontWeight: 500,
                     textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   }}>
                     {sys.withAuthor ? `${msg.user_profile?.display_name || ct.anonymous} ` : ''}{sys.text}
@@ -3845,16 +3845,16 @@ export default function StreamView() {
                 onContextMenu={canModerate ? (e) => { e.preventDefault(); setModMenuMsg(msg) } : undefined}
                 onClick={canModerate ? () => setModMenuMsg(msg) : undefined}
               >
-                {isMod && <span style={{ fontSize: '10px', color: '#60a5fa', marginInlineEnd: '4px', fontWeight: 700 }}>{ct.modBadge}</span>}
+                {isMod && <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#60a5fa', marginInlineEnd: '4px', fontWeight: 700 }}>{ct.modBadge}</span>}
                 <span style={{
-                  fontSize: '13px', fontWeight: 800, color: '#F0908A',
+                  fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, color: '#F0908A',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   marginInlineEnd: '6px',
                 }}>
                   {msg.user_profile?.display_name || ct.anonymous}
                 </span>
                 <span style={{
-                  fontSize: '13px',
+                  fontSize: 'calc(13px * var(--fs, 1))',
                   color: msg.is_flagged ? 'rgba(255,255,255,0.4)' : '#fff',
                   fontStyle: msg.is_flagged ? 'italic' : 'normal',
                   fontWeight: 500,
@@ -3883,7 +3883,7 @@ export default function StreamView() {
                 backgroundColor: 'rgba(0,0,0,0.5)',
                 border: '1px solid rgba(255,255,255,0.15)',
                 borderRadius: '100px',
-                color: '#fff', fontSize: '13px',
+                color: '#fff', fontSize: 'calc(13px * var(--fs, 1))',
                 outline: 'none',
               }}
             />
@@ -3894,7 +3894,7 @@ export default function StreamView() {
                 borderRadius: '100px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 border: 'none', color: '#fff',
-                fontSize: '12px', fontWeight: 700,
+                fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -3902,7 +3902,7 @@ export default function StreamView() {
             </button>
           </div>
         ) : (
-          <p style={{ fontSize: '12px', color: '#666', margin: 0, textAlign: 'center' }}>{ct.loginToChat}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: 0, textAlign: 'center' }}>{ct.loginToChat}</p>
         )}
 
         {/* Viewer reaction buttons — show when live OR when LiveKit viewer is connected */}
@@ -3929,13 +3929,13 @@ export default function StreamView() {
                     style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
                   />
                 )}
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
+                <h3 style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
               </div>
               <div
                 aria-live="polite"
                 aria-label={`${ct.timeLeft}: ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}`}
                 style={{
-                  fontSize: '20px', fontWeight: 800,
+                  fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800,
                   color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
                   animation: timeLeft <= 10 ? 'pulse 1s ease-in-out infinite' : 'none',
                 }}
@@ -3946,8 +3946,8 @@ export default function StreamView() {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '11px', color: '#888', margin: '0 0 2px' }}>{ct.currentPrice}</p>
-                <p style={{ fontSize: '24px', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '0 0 2px' }}>{ct.currentPrice}</p>
+                <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
                   {money(activeAuction.current_price)}
                 </p>
               </div>
@@ -3960,7 +3960,7 @@ export default function StreamView() {
           backgroundColor: 'rgba(0,0,0,0.4)',
           borderRadius: '10px',
         }}>
-          <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {stream.title}
           </p>
         </div>
@@ -4012,7 +4012,7 @@ export default function StreamView() {
             width: '6px', height: '6px', borderRadius: '50%',
             backgroundColor: '#F0908A', animation: 'waitingPulse 1.5s ease-in-out infinite',
           }} />
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.3px' }}>
+          <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.3px' }}>
             {ct.waitingNextItem}
           </span>
         </div>
@@ -4040,11 +4040,11 @@ export default function StreamView() {
               cursor: 'pointer',
             }}
           >
-            <p style={{ fontSize: '12px', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {nextItem.title} — {money(nextItem.starting_price)}
             </p>
             <span style={{
-              fontSize: '11px', fontWeight: 700, color: '#fff',
+              fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#fff',
               padding: '5px 12px', borderRadius: '8px',
               background: 'linear-gradient(135deg, #3B82F6, #2563EB)',
               whiteSpace: 'nowrap', flexShrink: 0,
@@ -4076,9 +4076,9 @@ export default function StreamView() {
               borderRadius: '100px',
               whiteSpace: 'nowrap',
             }}>
-              <span style={{ fontSize: '14px' }}>🎁</span>
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#FFD700' }}>{ct.giftEntered}</span>
-              <span style={{ fontSize: '11px', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
+              <span style={{ fontSize: 'calc(14px * var(--fs, 1))' }}>🎁</span>
+              <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#FFD700' }}>{ct.giftEntered}</span>
+              <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: 'rgba(255,255,255,0.5)' }}>
                 · {activeGiveaway.entry_count} 👥
               </span>
             </div>
@@ -4104,12 +4104,12 @@ export default function StreamView() {
               animation: 'giftBadgePulse 2s ease-in-out infinite',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-                <span style={{ fontSize: '36px', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
+                <span style={{ fontSize: 'calc(36px * var(--fs, 1))', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}>🎁</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: '18px', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
+                  <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 900, color: '#FFD700', margin: 0, textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}>
                     {ct.giftTitle}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '3px 0 0', fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,0.6)' }}>
                     {activeGiveaway.prize_description}
                   </p>
                 </div>
@@ -4122,11 +4122,11 @@ export default function StreamView() {
                 borderRadius: '100px',
                 border: '1px solid rgba(255,215,0,0.2)',
               }}>
-                <span style={{ fontSize: '20px' }}>👥</span>
-                <span style={{ fontSize: '22px', fontWeight: 900, color: '#FFD700' }}>
+                <span style={{ fontSize: 'calc(20px * var(--fs, 1))' }}>👥</span>
+                <span style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#FFD700' }}>
                   {activeGiveaway.entry_count}
                 </span>
-                <span style={{ fontSize: '12px', color: '#ccc', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#ccc', fontWeight: 600 }}>
                   {countLabel(activeGiveaway.entry_count, 'participants').replace(/^\S+\s/, '')}
                 </span>
               </div>
@@ -4142,7 +4142,7 @@ export default function StreamView() {
                     border: 'none',
                     borderRadius: '100px',
                     color: '#000',
-                    fontSize: '16px', fontWeight: 900,
+                    fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 900,
                     cursor: 'pointer',
                     WebkitTapHighlightColor: 'transparent',
                     touchAction: 'manipulation',
@@ -4172,7 +4172,7 @@ export default function StreamView() {
           animation: 'soldFadeIn 0.3s ease',
         }}>
           <p style={{
-            fontSize: '48px', fontWeight: 900,
+            fontSize: 'calc(48px * var(--fs, 1))', fontWeight: 900,
             color: soldAnimation.isUnsold ? '#FF9632' : '#22C55E',
             textShadow: soldAnimation.isUnsold
               ? '0 0 40px rgba(255,150,50,0.6)'
@@ -4184,7 +4184,7 @@ export default function StreamView() {
           </p>
           {!soldAnimation.isUnsold && soldAnimation.winner && (
             <p style={{
-              fontSize: '18px', fontWeight: 700, color: '#fff', margin: '8px 0 0',
+              fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '8px 0 0',
               animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
             }}>
               @{soldAnimation.winner} — {money(soldAnimation.price)}
@@ -4192,7 +4192,7 @@ export default function StreamView() {
           )}
           {soldAnimation.isUnsold && soldAnimation.price > 0 && (
             <p style={{
-              fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: '8px 0 0',
+              fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.6)', margin: '8px 0 0',
               animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.15s both',
             }}>
               {money(soldAnimation.price)}
@@ -4237,10 +4237,10 @@ export default function StreamView() {
                     <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>
+                <h3 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>
                   {ct.paymentSuccess}
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 24px' }}>
                   {ct.paymentSuccessDesc}
                 </p>
                 {paymentOrder && (
@@ -4249,7 +4249,7 @@ export default function StreamView() {
                     style={{
                       width: '100%', padding: '14px', marginBottom: '10px',
                       backgroundColor: 'transparent', border: '1px solid #333', borderRadius: '14px',
-                      color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+                      color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {ft(lang).view_order}
@@ -4261,7 +4261,7 @@ export default function StreamView() {
                     width: '100%', padding: '16px',
                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                     borderRadius: '14px', border: 'none',
-                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -4276,10 +4276,10 @@ export default function StreamView() {
                   border: '3px solid #333', borderTopColor: '#F0908A',
                   borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                 }} />
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
+                <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
                   {ct.youWon}
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: 0 }}>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: 0 }}>
                   {ct.creatingOrder}
                 </p>
               </div>
@@ -4292,7 +4292,7 @@ export default function StreamView() {
                   border: '1px solid rgba(232,52,78,0.3)',
                   borderRadius: '12px',
                 }}>
-                  <p style={{ fontSize: '14px', color: '#E8344E', margin: 0 }}>{paymentError}</p>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#E8344E', margin: 0 }}>{paymentError}</p>
                 </div>
                 <button
                   onClick={handleClosePayment}
@@ -4300,7 +4300,7 @@ export default function StreamView() {
                     width: '100%', padding: '16px',
                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                     borderRadius: '14px', border: 'none',
-                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -4323,18 +4323,18 @@ export default function StreamView() {
                     </svg>
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                    <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                       {ct.youWon}
                     </h3>
                     {paymentItem && (
-                      <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>{paymentItem.title}</p>
+                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{paymentItem.title}</p>
                     )}
                   </div>
                 </div>
                 {winCardDeclined && (
                   <div role="alert" style={{ padding: '10px 12px', marginBottom: '14px', borderRadius: '12px', backgroundColor: 'rgba(232,52,78,0.12)', border: '1px solid rgba(232,52,78,0.4)' }}>
-                    <p style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#E8344E' }}>{ct.winCardDeclined}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#ddd' }}>{ct.winCardDeclinedHint}</p>
+                    <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#E8344E' }}>{ct.winCardDeclined}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{ct.winCardDeclinedHint}</p>
                   </div>
                 )}
                 <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} />
@@ -4345,11 +4345,11 @@ export default function StreamView() {
                 <div style={{ marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <div>
-                      <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>
+                      <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 2px' }}>
                         {ct.payToClaim}
                       </h3>
                       {paymentItem && (
-                        <p style={{ fontSize: '13px', color: '#888', margin: 0 }}>{paymentItem.title}</p>
+                        <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: 0 }}>{paymentItem.title}</p>
                       )}
                     </div>
                     <div style={{
@@ -4357,7 +4357,7 @@ export default function StreamView() {
                       backgroundColor: 'rgba(34,197,94,0.1)',
                       border: '1px solid rgba(34,197,94,0.2)',
                     }}>
-                      <p style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: 0 }}>
+                      <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: 0 }}>
                         {paymentTotals ? formatMoney(paymentTotals.total, paymentTotals.currency) : ''}
                       </p>
                     </div>
@@ -4371,19 +4371,19 @@ export default function StreamView() {
                       border: '1px solid rgba(255,255,255,0.08)',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).item_price}</span>
-                        <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{formatMoney(paymentTotals.amount, paymentTotals.currency)}</span>
+                        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{ft(lang).item_price}</span>
+                        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#fff', fontWeight: 600 }}>{formatMoney(paymentTotals.amount, paymentTotals.currency)}</span>
                       </div>
                       {/* Frais de port : masqués en main propre */}
                       {paymentTotals.method !== 'pickup' && (
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ fontSize: '12px', color: '#888' }}>{ft(lang).shipping_fee}</span>
-                          <span style={{ fontSize: '12px', color: '#F0908A', fontWeight: 600 }}>{formatMoney(paymentTotals.shipping, paymentTotals.currency)}</span>
+                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{ft(lang).shipping_fee}</span>
+                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>{formatMoney(paymentTotals.shipping, paymentTotals.currency)}</span>
                         </div>
                       )}
                       <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '4px' }}>
-                        <span style={{ fontSize: '13px', color: '#fff', fontWeight: 700 }}>{ft(lang).total}</span>
-                        <span style={{ fontSize: '13px', color: '#22C55E', fontWeight: 700 }}>{formatMoney(paymentTotals.total, paymentTotals.currency)}</span>
+                        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#fff', fontWeight: 700 }}>{ft(lang).total}</span>
+                        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#22C55E', fontWeight: 700 }}>{formatMoney(paymentTotals.total, paymentTotals.currency)}</span>
                       </div>
                     </div>
                   )}
@@ -4396,7 +4396,7 @@ export default function StreamView() {
                     border: '1px solid rgba(232,52,78,0.3)',
                     borderRadius: '10px',
                   }}>
-                    <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{paymentError}</p>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#E8344E', margin: 0 }}>{paymentError}</p>
                   </div>
                 )}
 
@@ -4443,7 +4443,7 @@ export default function StreamView() {
                     width: '100%', marginTop: '12px', padding: '12px',
                     backgroundColor: 'transparent',
                     border: '1px solid #333', borderRadius: '12px',
-                    color: '#888', fontSize: '13px', fontWeight: 600,
+                    color: '#888', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer',
                   }}
                 >
@@ -4497,10 +4497,10 @@ export default function StreamView() {
                     <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>
+                <h3 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>
                   {ct.cardSaved}
                 </h3>
-                <p style={{ fontSize: '14px', color: '#888', margin: '0 0 24px' }}>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 24px' }}>
                   {ct.cardSavedDesc}
                 </p>
                 <button
@@ -4509,7 +4509,7 @@ export default function StreamView() {
                     width: '100%', padding: '16px',
                     background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                     borderRadius: '14px', border: 'none',
-                    color: '#fff', fontSize: '16px', fontWeight: 700,
+                    color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -4532,10 +4532,10 @@ export default function StreamView() {
                     </svg>
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                    <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                       {ct.addCardTitle}
                     </h3>
-                    <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                       {ct.addCardDesc}
                     </p>
                   </div>
@@ -4548,7 +4548,7 @@ export default function StreamView() {
                     border: '1px solid rgba(232,52,78,0.3)',
                     borderRadius: '10px',
                   }}>
-                    <p style={{ fontSize: '13px', color: '#E8344E', margin: 0 }}>{cardError}</p>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#E8344E', margin: 0 }}>{cardError}</p>
                   </div>
                 )}
 
@@ -4589,7 +4589,7 @@ export default function StreamView() {
                     width: '100%', marginTop: '12px', padding: '12px',
                     backgroundColor: 'transparent',
                     border: '1px solid #333', borderRadius: '12px',
-                    color: '#888', fontSize: '13px', fontWeight: 600,
+                    color: '#888', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer',
                   }}
                 >
@@ -4626,7 +4626,7 @@ export default function StreamView() {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
               <div style={{ width: '36px', height: '4px', borderRadius: '2px', backgroundColor: '#333' }} />
             </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 0 20px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 20px', textAlign: 'center' }}>
               {ct.walletTitle}
             </h3>
 
@@ -4647,8 +4647,8 @@ export default function StreamView() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletAddress}</p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletAddress}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {walletAddress ? `${walletAddress.street}, ${walletAddress.zip} ${walletAddress.city}` : ct.walletNoAddress}
                 </p>
               </div>
@@ -4672,8 +4672,8 @@ export default function StreamView() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletPayment}</p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>{ct.walletPayment}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {walletCard ? `${(walletCard.brand || ct.card).toUpperCase()} **** ${walletCard.last4}` : ct.walletNoCard}
                 </p>
               </div>
@@ -4682,7 +4682,7 @@ export default function StreamView() {
 
             {/* Code promo */}
             <div style={{ padding: '14px 0' }}>
-              <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: '0 0 10px' }}>{ct.walletPromo}</p>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '0 0 10px' }}>{ct.walletPromo}</p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
@@ -4693,7 +4693,7 @@ export default function StreamView() {
                     flex: 1, padding: '12px 14px', borderRadius: '10px',
                     backgroundColor: '#0A0A0A',
                     border: `1px solid ${promoStatus === 'valid' ? '#22C55E' : promoStatus === 'invalid' ? '#EF4444' : '#333'}`,
-                    color: '#fff', fontSize: '14px', outline: 'none',
+                    color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', outline: 'none',
                   }}
                 />
                 <button
@@ -4726,7 +4726,7 @@ export default function StreamView() {
                   style={{
                     padding: '12px 20px', borderRadius: '10px',
                     background: promoCode.trim() && promoStatus !== 'validating' ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
-                    border: 'none', color: '#fff', fontSize: '14px', fontWeight: 600,
+                    border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                     cursor: promoCode.trim() && promoStatus !== 'validating' ? 'pointer' : 'not-allowed',
                   }}
                 >
@@ -4734,13 +4734,13 @@ export default function StreamView() {
                 </button>
               </div>
               {promoStatus === 'valid' && promoDiscount && (
-                <p style={{ fontSize: '13px', color: '#22C55E', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#22C55E', margin: '6px 0 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2"><path d="M20 6L9 17l-5-5"/></svg>
                   -{promoDiscount.percent}% {promoDiscount.type === 'item' ? ct.promoOnPrice : promoDiscount.type === 'commission' ? ct.promoOnCommission : ''}
                 </p>
               )}
               {promoStatus === 'invalid' && (
-                <p style={{ fontSize: '13px', color: '#EF4444', margin: '6px 0 0' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#EF4444', margin: '6px 0 0' }}>
                   {ct.promoInvalid}
                 </p>
               )}
@@ -4769,7 +4769,7 @@ export default function StreamView() {
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
             }}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 16px' }}>
+            <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 16px' }}>
               {ct.tipTitle}
             </h3>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
@@ -4785,7 +4785,7 @@ export default function StreamView() {
                     border: '2px solid rgba(255,215,0,0.4)',
                     background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,165,0,0.15))',
                     color: '#FFD700',
-                    fontSize: '18px',
+                    fontSize: 'calc(18px * var(--fs, 1))',
                     fontWeight: 800,
                     cursor: tipSending ? 'default' : 'pointer',
                     opacity: tipSending ? 0.5 : 1,
@@ -4821,10 +4821,10 @@ export default function StreamView() {
           >
             {/* Message preview */}
             <div style={{ padding: '10px 14px', backgroundColor: '#111', borderRadius: '12px', marginBottom: '14px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#F0908A' }}>
+              <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                 {modMenuMsg.user_profile?.display_name || ct.anonymous}
               </span>
-              <p style={{ fontSize: '13px', color: '#ccc', margin: '4px 0 0', wordBreak: 'break-word' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#ccc', margin: '4px 0 0', wordBreak: 'break-word' }}>
                 {modMenuMsg.message}
               </p>
             </div>
@@ -4837,7 +4837,7 @@ export default function StreamView() {
                   display: 'flex', alignItems: 'center', gap: '12px',
                   width: '100%', padding: '14px 16px', borderRadius: '12px',
                   background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-                  color: '#f87171', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                  color: '#f87171', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
@@ -4852,7 +4852,7 @@ export default function StreamView() {
                       display: 'flex', alignItems: 'center', gap: '12px',
                       width: '100%', padding: '14px 16px', borderRadius: '12px',
                       background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.2)',
-                      color: '#fbbf24', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                      color: '#fbbf24', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
@@ -4866,7 +4866,7 @@ export default function StreamView() {
                         display: 'flex', alignItems: 'center', gap: '12px',
                         width: '100%', padding: '14px 16px', borderRadius: '12px',
                         background: 'rgba(96,165,250,0.1)', border: '1px solid rgba(96,165,250,0.2)',
-                        color: '#60a5fa', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                        color: '#60a5fa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
@@ -4882,7 +4882,7 @@ export default function StreamView() {
               style={{
                 width: '100%', padding: '14px', marginTop: '10px',
                 borderRadius: '12px', background: '#222', border: 'none',
-                color: '#888', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ct.close}
@@ -4944,7 +4944,7 @@ export default function StreamView() {
                 <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                 <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              <span style={{ fontSize: '16px', fontWeight: 600, color: '#fff' }}>{ct.moreReport}</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>{ct.moreReport}</span>
             </button>
 
             {/* Block */}
@@ -4981,7 +4981,7 @@ export default function StreamView() {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
               </svg>
-              <span style={{ fontSize: '16px', fontWeight: 600, color: '#E8344E' }}>{ct.moreBlock}</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#E8344E' }}>{ct.moreBlock}</span>
             </button>
           </div>
         </div>
@@ -5009,29 +5009,29 @@ export default function StreamView() {
             alignItems: 'center', gap: '16px',
             animation: 'soldPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           }}>
-            <div style={{ fontSize: '52px', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
+            <div style={{ fontSize: 'calc(52px * var(--fs, 1))', animation: 'giftSpinViewer 1s ease-out' }}>🎁</div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '6px',
-              fontSize: '16px', color: 'rgba(255,215,0,0.6)',
+              fontSize: 'calc(16px * var(--fs, 1))', color: 'rgba(255,215,0,0.6)',
             }}>
               ✦ ✦ ✦
             </div>
             <p style={{
-              fontSize: '32px', fontWeight: 900, color: '#FFD700',
+              fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 900, color: '#FFD700',
               textShadow: '0 2px 24px rgba(255,215,0,0.5)',
               margin: 0, textAlign: 'center',
             }}>
               {giveawayWinner.name}
             </p>
             <p style={{
-              fontSize: '16px', fontWeight: 600, color: '#fff',
+              fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#fff',
               opacity: 0.8, margin: 0,
             }}>
               {ct.giftWinner}
             </p>
             <div style={{
               display: 'flex', gap: '4px',
-              fontSize: '22px',
+              fontSize: 'calc(22px * var(--fs, 1))',
               animation: 'giftStarsViewer 1.5s ease-in-out infinite',
             }}>
               ⭐ ✨ 🌟 ✨ ⭐
@@ -5055,7 +5055,7 @@ export default function StreamView() {
           zIndex: 500,
           animation: 'toastIn 0.25s ease',
         }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#fff' }}>
+          <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#fff' }}>
             {toastMessage}
           </span>
         </div>
@@ -5135,10 +5135,10 @@ export default function StreamView() {
               padding: '24px', border: '1px solid rgba(139,92,246,0.3)',
             }}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 4px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 4px', textAlign: 'center' }}>
               {ct.maxBidTitle}
             </h3>
-            <p style={{ fontSize: '13px', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 20px', textAlign: 'center' }}>
               {activeAuction ? `${ct.currentPrice}: ${money(activeAuction.current_price)}` : ''}
             </p>
             <form onSubmit={e => { e.preventDefault(); handleMaxBidSubmit() }}>
@@ -5152,7 +5152,7 @@ export default function StreamView() {
                 style={{
                   width: '100%', padding: '14px', borderRadius: '12px',
                   backgroundColor: '#111', border: '1px solid #333',
-                  color: '#fff', fontSize: '18px', fontWeight: 700,
+                  color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700,
                   textAlign: 'center', outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -5164,7 +5164,7 @@ export default function StreamView() {
                   width: '100%', marginTop: '14px', padding: '14px',
                   borderRadius: '100px', border: 'none',
                   background: maxBidLoading ? '#555' : 'linear-gradient(135deg, #8B5CF6, #7C3AED)',
-                  color: '#fff', fontSize: '15px', fontWeight: 700,
+                  color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                   cursor: maxBidLoading ? 'default' : 'pointer',
                   opacity: maxBidLoading ? 0.7 : 1,
                 }}
@@ -5192,7 +5192,7 @@ export default function StreamView() {
                   width: '100%', marginTop: '8px', padding: '12px',
                   borderRadius: '100px', border: '1px solid #333',
                   background: 'transparent',
-                  color: '#888', fontSize: '13px', fontWeight: 600,
+                  color: '#888', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -5224,26 +5224,26 @@ export default function StreamView() {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: 0 }}>
+              <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                 {ct.addLive}
               </h3>
               <button
                 onClick={() => setShowMultiPicker(false)}
                 aria-label={ct.close}
-                style={{ background: 'none', border: 'none', color: '#888', fontSize: '24px', cursor: 'pointer', padding: '4px' }}
+                style={{ background: 'none', border: 'none', color: '#888', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px' }}
               >
                 ×
               </button>
             </div>
             {isMultiView && (
               <div style={{ marginBottom: '12px', padding: '8px 12px', borderRadius: '10px', backgroundColor: 'rgba(232,52,78,0.1)', border: '1px solid rgba(232,52,78,0.2)' }}>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#E8344E' }}>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#E8344E' }}>
                   {fill(ct.screensActive, { n: multiViewStreams.length + 1 })}
                 </span>
               </div>
             )}
             {availableLives.length === 0 ? (
-              <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', padding: '20px 0' }}>
+              <p style={{ textAlign: 'center', color: '#666', fontSize: 'calc(14px * var(--fs, 1))', padding: '20px 0' }}>
                 {ct.noOtherLives}
               </p>
             ) : (
@@ -5283,15 +5283,15 @@ export default function StreamView() {
                         </div>
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {live.title}
                         </p>
-                        <p style={{ fontSize: '12px', fontWeight: 500, color: '#888', margin: 0 }}>
+                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 500, color: '#888', margin: 0 }}>
                           {live.seller_name}
                         </p>
                       </div>
                       {alreadyAdded ? (
-                        <span style={{ fontSize: '11px', fontWeight: 600, color: '#E8344E', flexShrink: 0 }}>
+                        <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#E8344E', flexShrink: 0 }}>
                           {ct.added}
                         </span>
                       ) : (
@@ -5333,7 +5333,7 @@ export default function StreamView() {
               padding: '24px', border: '1px solid rgba(59,130,246,0.3)',
             }}
           >
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'center' }}>
+            <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 16px', textAlign: 'center' }}>
               {ct.preBid}
             </h3>
             <form onSubmit={e => { e.preventDefault(); handlePreBidSubmit() }}>
@@ -5347,7 +5347,7 @@ export default function StreamView() {
                 style={{
                   width: '100%', padding: '14px', borderRadius: '12px',
                   backgroundColor: '#111', border: '1px solid #333',
-                  color: '#fff', fontSize: '18px', fontWeight: 700,
+                  color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700,
                   textAlign: 'center', outline: 'none',
                   boxSizing: 'border-box',
                 }}
@@ -5359,7 +5359,7 @@ export default function StreamView() {
                   width: '100%', marginTop: '14px', padding: '14px',
                   borderRadius: '100px', border: 'none',
                   background: preBidLoading ? '#555' : 'linear-gradient(135deg, #3B82F6, #2563EB)',
-                  color: '#fff', fontSize: '15px', fontWeight: 700,
+                  color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                   cursor: preBidLoading ? 'default' : 'pointer',
                   opacity: preBidLoading ? 0.7 : 1,
                 }}

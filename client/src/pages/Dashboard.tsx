@@ -456,7 +456,7 @@ export default function Dashboard() {
               padding: '6px 16px', borderRadius: '100px',
               background: 'rgba(240,144,138,0.12)',
               border: '1px solid rgba(240,144,138,0.25)',
-              fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px',
+              fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, letterSpacing: '1.5px',
               color: '#F0908A',
             }}>
               <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#F0908A', animation: 'pulse 2s ease infinite' }} />
@@ -466,7 +466,7 @@ export default function Dashboard() {
 
           {/* Title */}
           <h1 style={{
-            fontSize: '38px', fontWeight: 900, color: '#fff',
+            fontSize: 'calc(38px * var(--fs, 1))', fontWeight: 900, color: '#fff',
             textAlign: 'center', lineHeight: 1.1, letterSpacing: '-1px',
             padding: '0 24px', whiteSpace: 'pre-line',
             opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(20px)',
@@ -477,7 +477,7 @@ export default function Dashboard() {
 
           {/* Subtitle */}
           <p style={{
-            fontSize: '15px', color: '#888', textAlign: 'center',
+            fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
             lineHeight: 1.6, padding: '16px 32px 0', maxWidth: '380px', margin: '0 auto',
             opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(15px)',
             transition: 'all 0.7s ease 0.2s',
@@ -510,7 +510,7 @@ export default function Dashboard() {
               backdropFilter: 'blur(8px)',
             }}>
               <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#fff', animation: 'pulse 1.5s ease infinite' }} />
-              <span style={{ fontSize: '12px', fontWeight: 800, color: '#fff', letterSpacing: '0.5px' }}>{t.liveBadge}</span>
+              <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#fff', letterSpacing: '0.5px' }}>{t.liveBadge}</span>
             </div>
 
             {/* Viewers count */}
@@ -519,7 +519,7 @@ export default function Dashboard() {
               padding: '5px 10px', borderRadius: '8px',
               background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)',
             }}>
-              <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{t.liveBadge}</span>
+              <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#fff', fontWeight: 600 }}>{t.liveBadge}</span>
             </div>
 
             {/* Center play icon */}
@@ -547,13 +547,13 @@ export default function Dashboard() {
                 width: '36px', height: '36px', borderRadius: '50%',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '16px',
+                fontSize: 'calc(16px * var(--fs, 1))',
               }}>
                 {'\u{1F3AC}'}
               </div>
               <div>
-                <p style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{t.previewName}</p>
-                <p style={{ fontSize: '11px', color: '#999' }}>{t.previewHandle}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{t.previewName}</p>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#999' }}>{t.previewHandle}</p>
               </div>
             </div>
           </div>
@@ -570,8 +570,8 @@ export default function Dashboard() {
             <div key={stat.label} style={{
               flex: 1, textAlign: 'center', position: 'relative',
             }}>
-              <p style={{ fontSize: '24px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{stat.value}</p>
-              <p style={{ fontSize: '11px', color: '#666', marginTop: '2px', fontWeight: 500 }}>{stat.label}</p>
+              <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>{stat.value}</p>
+              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', marginTop: '2px', fontWeight: 500 }}>{stat.label}</p>
               {i < stats.length - 1 && (
                 <div style={{
                   position: 'absolute', insetInlineEnd: 0, top: '10%', height: '80%',
@@ -601,13 +601,13 @@ export default function Dashboard() {
                   width: '42px', height: '42px', borderRadius: '14px',
                   background: feat.gradient,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '20px', marginBottom: '12px',
+                  fontSize: 'calc(20px * var(--fs, 1))', marginBottom: '12px',
                   boxShadow: `0 4px 16px ${feat.gradient.includes('#F0908A') ? 'rgba(240,144,138,0.2)' : feat.gradient.includes('#F59E0B') ? 'rgba(245,158,11,0.2)' : feat.gradient.includes('#8B5CF6') ? 'rgba(139,92,246,0.2)' : 'rgba(16,185,129,0.2)'}`,
                 }}>
                   {feat.emoji}
                 </div>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{feat.title}</p>
-                <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>{feat.desc}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{feat.title}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', lineHeight: 1.5 }}>{feat.desc}</p>
               </div>
             ))}
           </div>
@@ -616,7 +616,7 @@ export default function Dashboard() {
         {/* ─── Selling Formats ─── */}
         <div style={{ padding: '0 16px', marginBottom: '28px' }}>
           <p style={{
-            fontSize: '18px', fontWeight: 800, color: '#fff', marginBottom: '14px',
+            fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff', marginBottom: '14px',
             letterSpacing: '-0.3px',
           }}>
             {t.formatsTitle}
@@ -643,13 +643,13 @@ export default function Dashboard() {
                   width: '42px', height: '42px', borderRadius: '14px',
                   background: fmt.gradient,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '20px', marginBottom: '12px',
+                  fontSize: 'calc(20px * var(--fs, 1))', marginBottom: '12px',
                   boxShadow: `0 4px 16px ${fmt.shadow}`,
                 }}>
                   {fmt.emoji}
                 </div>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{fmt.title}</p>
-                <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>{fmt.desc}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{fmt.title}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', lineHeight: 1.5 }}>{fmt.desc}</p>
               </div>
             ))}
           </div>
@@ -668,13 +668,13 @@ export default function Dashboard() {
             width: '48px', height: '48px', borderRadius: '14px',
             background: 'linear-gradient(135deg, #F0908A, #E8344E)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '22px', flexShrink: 0,
+            fontSize: 'calc(22px * var(--fs, 1))', flexShrink: 0,
           }}>
             {'\u{1F381}'}
           </div>
           <div>
-            <p style={{ fontSize: '15px', fontWeight: 800, color: '#F0908A' }}>{t.free}</p>
-            <p style={{ fontSize: '12px', color: '#888', marginTop: '2px' }}>{t.freeDesc}</p>
+            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{t.free}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>{t.freeDesc}</p>
           </div>
         </div>
 
@@ -689,7 +689,7 @@ export default function Dashboard() {
               cursor: 'pointer', marginBottom: showFaq ? '8px' : '0',
             }}
           >
-            <span style={{ fontSize: '16px', fontWeight: 700, color: '#fff' }}>{t.faq}</span>
+            <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{t.faq}</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"
               style={{ transform: showFaq ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.3s' }}>
               <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -709,7 +709,7 @@ export default function Dashboard() {
                       border: 'none', cursor: 'pointer', textAlign: 'start',
                     }}
                   >
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#ccc', paddingInlineEnd: '12px' }}>
+                    <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#ccc', paddingInlineEnd: '12px' }}>
                       {tr(item.q)}
                     </span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2"
@@ -719,7 +719,7 @@ export default function Dashboard() {
                   </button>
                   {openFaq === i && (
                     <div style={{ padding: '0 18px 16px', backgroundColor: '#0D0D0D' }}>
-                      <p style={{ fontSize: '13px', color: '#777', lineHeight: 1.6 }}>
+                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#777', lineHeight: 1.6 }}>
                         {tr(item.a)}
                       </p>
                     </div>
@@ -750,7 +750,7 @@ export default function Dashboard() {
               width: '100%', padding: '18px',
               background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
               borderRadius: '16px', border: 'none',
-              color: '#fff', fontSize: '18px', fontWeight: 800,
+              color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800,
               cursor: 'pointer', letterSpacing: '-0.3px',
               boxShadow: '0 8px 32px rgba(240,144,138,0.35)',
               pointerEvents: 'auto',
@@ -851,7 +851,7 @@ export default function Dashboard() {
       {/* ─── Analytics Dashboard ─── */}
       <div style={{ padding: '0 16px 24px' }}>
         <h2 style={{
-          fontSize: '20px', fontWeight: 800, color: '#fff',
+          fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff',
           marginBottom: '16px', letterSpacing: '-0.3px',
         }}>
           {tr({ en: 'Dashboard', fr: 'Tableau de bord', es: 'Panel de control', ru: 'Панель продавца', he: 'לוח בקרה' })}
@@ -873,52 +873,52 @@ export default function Dashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
               {/* Revenue Card */}
               <div style={cardStyle}>
-                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                   {tr({ en: 'Revenue', fr: 'Revenus', es: 'Ingresos', ru: 'Выручка', he: 'הכנסות' })}
                 </p>
-                <p style={{ fontSize: '22px', fontWeight: 900, color: '#4ade80', letterSpacing: '-0.5px' }}>
+                <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#4ade80', letterSpacing: '-0.5px' }}>
                   {formatCurrency(dashboardData.total_revenue)}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '4px' }}>
                   {tr({ en: 'This month', fr: 'Ce mois-ci', es: 'Este mes', ru: 'В этом месяце', he: 'החודש' })}: <span style={{ color: '#F0908A', fontWeight: 700 }}>{formatCurrency(dashboardData.monthly_revenue)}</span>
                 </p>
               </div>
 
               {/* Sales Card */}
               <div style={cardStyle}>
-                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                   {tr({ en: 'Sales', fr: 'Ventes', es: 'Ventas', ru: 'Продажи', he: 'מכירות' })}
                 </p>
-                <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.total_sales}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '4px' }}>
                   {tr({ en: 'Paid orders', fr: 'Commandes payées', es: 'Pedidos pagados', ru: 'Оплаченные заказы', he: 'הזמנות ששולמו' })}
                 </p>
               </div>
 
               {/* Followers Card */}
               <div style={cardStyle}>
-                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                   {tr({ en: 'Followers', fr: 'Abonnés', es: 'Seguidores', ru: 'Подписчики', he: 'עוקבים' })}
                 </p>
-                <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.total_followers}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '4px' }}>
                   {tr({ en: 'Total followers', fr: 'Abonnés au total', es: 'Seguidores en total', ru: 'Всего подписчиков', he: 'סה״כ עוקבים' })}
                 </p>
               </div>
 
               {/* Avg Viewers Card */}
               <div style={cardStyle}>
-                <p style={{ fontSize: '11px', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>
                   {tr({ en: 'Avg viewers', fr: 'Spectateurs moy.', es: 'Espectadores prom.', ru: 'Ср. число зрителей', he: 'ממוצע צופים' })}
                 </p>
-                <p style={{ fontSize: '22px', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
+                <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#fff', letterSpacing: '-0.5px' }}>
                   {dashboardData.avg_viewers}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '4px' }}>
                   {plural(dashboardData.total_streams, {
                     en: ['{n} live', '{n} lives'],
                     fr: ['{n} live', '{n} lives'],
@@ -954,10 +954,10 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div style={{ flex: 1, textAlign: 'start' }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {tr({ en: 'My team', fr: 'Mon équipe', es: 'Mi equipo', ru: 'Моя команда', he: 'הצוות שלי' })}
                 </p>
-                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {tr({ en: 'Invite team members', fr: 'Invite des collaborateurs', es: 'Invita a tu equipo', ru: 'Пригласи помощников', he: 'הזמנת חברי צוות' })}
                 </p>
               </div>
@@ -987,10 +987,10 @@ export default function Dashboard() {
                 </svg>
               </div>
               <div style={{ flex: 1, textAlign: 'start' }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {ft().to_hand_over}
                 </p>
-                <p style={{ fontSize: '11px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {tr({ en: 'In person · By post', fr: 'Main propre · Poste', es: 'En mano · Correo', ru: 'Лично · Почтой', he: 'מסירה ביד · דואר' })}
                 </p>
               </div>
@@ -1041,11 +1041,11 @@ export default function Dashboard() {
               return (
                 <div style={{ ...cardStyle, marginTop: '4px', marginBottom: '12px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>
+                    <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
                       {tr({ en: 'Account health', fr: 'Santé du compte', es: 'Salud de la cuenta', ru: 'Состояние аккаунта', he: 'מצב החשבון' })}
                     </p>
                     <span style={{
-                      fontSize: '10px', fontWeight: 700, color: overallColor,
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: overallColor,
                       padding: '3px 10px', borderRadius: '8px',
                       backgroundColor: `${overallColor}15`,
                       textTransform: 'uppercase', letterSpacing: '0.3px',
@@ -1060,15 +1060,15 @@ export default function Dashboard() {
                         padding: '10px 12px', borderRadius: '12px',
                         backgroundColor: '#111', border: `1px solid ${item.color}20`,
                       }}>
-                        <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                        <span style={{ fontSize: 'calc(16px * var(--fs, 1))' }}>{item.icon}</span>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '10px', color: '#888', fontWeight: 600 }}>{item.label}</p>
-                          <p style={{ fontSize: '16px', fontWeight: 800, color: item.color, letterSpacing: '-0.3px' }}>{item.value}</p>
+                          <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#888', fontWeight: 600 }}>{item.label}</p>
+                          <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: item.color, letterSpacing: '-0.3px' }}>{item.value}</p>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <p style={{ fontSize: '10px', color: '#555', marginTop: '10px', textAlign: 'center' }}>
+                  <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#555', marginTop: '10px', textAlign: 'center' }}>
                     {plural(h.total_orders, {
                       en: ['Based on {n} order', 'Based on {n} orders'],
                       fr: ['Sur la base de {n} commande', 'Sur la base de {n} commandes'],
@@ -1089,7 +1089,7 @@ export default function Dashboard() {
                 padding: '16px',
               }}>
                 <p style={{
-                  fontSize: '14px', fontWeight: 700, color: '#fff',
+                  fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff',
                   marginBottom: '14px',
                 }}>
                   {tr({ en: 'Recent orders', fr: 'Dernières commandes', es: 'Pedidos recientes', ru: 'Последние заказы', he: 'הזמנות אחרונות' })}
@@ -1105,26 +1105,26 @@ export default function Dashboard() {
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{
-                        fontSize: '13px', fontWeight: 600, color: '#fff',
+                        fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#fff',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
                         {order.item_title}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                         <span style={{
-                          fontSize: '10px', fontWeight: 700, color: statusColor(order.status),
+                          fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: statusColor(order.status),
                           padding: '2px 8px', borderRadius: '6px',
                           backgroundColor: `${statusColor(order.status)}15`,
                           textTransform: 'uppercase', letterSpacing: '0.3px',
                         }}>
                           {statusLabel(order.status)}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#555' }}>
+                        <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
                           {formatDate(order.created_at)}
                         </span>
                       </div>
                     </div>
-                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#F0908A', marginInlineStart: '12px', flexShrink: 0 }}>
+                    <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', marginInlineStart: '12px', flexShrink: 0 }}>
                       {formatCurrency(order.amount)}
                     </p>
                   </div>

@@ -224,7 +224,7 @@ export default function Explore() {
             placeholder={ct.searchPlaceholder}
             style={{
               flex: 1, background: 'none', border: 'none', outline: 'none',
-              color: '#fff', fontSize: '16px', fontFamily: 'inherit',
+              color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontFamily: 'inherit',
             }}
           />
           {search && (
@@ -254,7 +254,7 @@ export default function Explore() {
                   display: 'flex', alignItems: 'center', gap: '12px',
                   width: '100%', padding: '12px 16px',
                   background: 'none', border: 'none', borderTop: i > 0 ? '1px solid #222' : 'none',
-                  color: '#ddd', fontSize: '15px', fontFamily: 'inherit',
+                  color: '#ddd', fontSize: 'calc(15px * var(--fs, 1))', fontFamily: 'inherit',
                   cursor: 'pointer', textAlign: 'start',
                 }}
               >
@@ -272,7 +272,7 @@ export default function Explore() {
       {/* Trending searches */}
       {!search && (
         <div style={{ padding: '16px 16px 0' }}>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: '#666', margin: '0 0 10px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#666', margin: '0 0 10px' }}>
             {ct.trending}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -283,7 +283,7 @@ export default function Explore() {
                 style={{
                   backgroundColor: '#111', border: '1px solid #222',
                   borderRadius: '20px', padding: '8px 16px',
-                  color: '#ccc', fontSize: '14px', fontWeight: 500,
+                  color: '#ccc', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 500,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
@@ -296,7 +296,7 @@ export default function Explore() {
 
       {/* Categories grid */}
       <div style={{ padding: '24px 16px 0' }} onClick={() => setShowSuggestions(false)}>
-        <p style={{ fontSize: '14px', fontWeight: 600, color: '#666', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#666', margin: '0 0 14px' }}>
           {ct.categoriesLabel}
         </p>
         <div style={{
@@ -333,7 +333,7 @@ export default function Explore() {
                 }} />
               </div>
               <span style={{
-                fontSize: '13px', fontWeight: 600, color: '#ccc',
+                fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#ccc',
                 padding: '10px 4px',
               }}>
                 {cat.name}
@@ -343,7 +343,7 @@ export default function Explore() {
         </div>
         {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <p style={{ color: '#555', fontSize: '15px' }}>{ct.noCategoryFound}</p>
+            <p style={{ color: '#555', fontSize: 'calc(15px * var(--fs, 1))' }}>{ct.noCategoryFound}</p>
           </div>
         )}
       </div>

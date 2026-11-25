@@ -340,7 +340,7 @@ export default function AccountControlsPage() {
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
         </button>
-        <h1 style={{ fontSize: '18px', fontWeight: 700, color: '#fff', margin: 0 }}>
+        <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
           {tr({ en: 'Account controls', fr: 'Contrôles du compte', es: 'Controles de la cuenta', ru: 'Управление аккаунтом', he: 'בקרת חשבון' })}
         </h1>
       </div>
@@ -358,7 +358,7 @@ export default function AccountControlsPage() {
             style={{
               padding: '14px 16px', border: 'none', background: 'none',
               color: activeTab === tab.key ? '#F0908A' : '#666',
-              fontSize: '14px', fontWeight: activeTab === tab.key ? 700 : 500,
+              fontSize: 'calc(14px * var(--fs, 1))', fontWeight: activeTab === tab.key ? 700 : 500,
               borderBottom: activeTab === tab.key ? '2px solid #F0908A' : '2px solid transparent',
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}
@@ -374,11 +374,11 @@ export default function AccountControlsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Watch time counter */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '20px' }}>
-              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 4px' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>
                 {tr({ en: 'Watch time', fr: 'Temps de visionnage', es: 'Tiempo de visualización', ru: 'Время просмотра', he: 'זמן צפייה' })}
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                <p style={{ fontSize: '36px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(36px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                   {minutesLabel(watchTimeMin)}
                 </p>
                 <button
@@ -386,7 +386,7 @@ export default function AccountControlsPage() {
                   style={{
                     padding: '8px 16px', borderRadius: '20px',
                     backgroundColor: '#222', border: 'none',
-                    color: '#fff', fontSize: '13px', fontWeight: 600,
+                    color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                   }}
                 >
@@ -396,7 +396,7 @@ export default function AccountControlsPage() {
                   </svg>
                 </button>
               </div>
-              <p style={{ fontSize: '12px', color: '#666', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '4px 0 0' }}>
                 {periodRange(settings.watchLimitPeriod)}
               </p>
             </div>
@@ -418,10 +418,10 @@ export default function AccountControlsPage() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Watch time alert', fr: 'Alerte de temps de visionnage', es: 'Alerta de tiempo de visualización', ru: 'Напоминание о времени просмотра', he: 'התראת זמן צפייה' })}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {tr({ en: 'Set a limit and get a notification.', fr: 'Fixe une limite et reçois une notification.', es: 'Fija un límite y recibe una notificación.', ru: 'Установи лимит и получай уведомление.', he: 'הגדירו מגבלה וקבלו התראה.' })}
                 </p>
               </div>
@@ -447,10 +447,10 @@ export default function AccountControlsPage() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Watch time limit', fr: 'Limite de visionnage', es: 'Límite de visualización', ru: 'Лимит просмотра', he: 'מגבלת זמן צפייה' })}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {tr({ en: 'Watching stops when you reach the limit.', fr: 'Le visionnage s\'arrête quand la limite est atteinte.', es: 'La reproducción se detiene al alcanzar el límite.', ru: 'Просмотр останавливается, когда лимит исчерпан.', he: 'הצפייה נעצרת כשמגיעים למגבלה.' })}
                 </p>
               </div>
@@ -461,12 +461,12 @@ export default function AccountControlsPage() {
 
             {settings.watchLimitEnabled && (
               <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
-                <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 12px' }}>
                   {tr({ en: 'Set the limit', fr: 'Fixe la limite', es: 'Fija el límite', ru: 'Установи лимит', he: 'הגדרת מגבלה' })}
                 </p>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', display: 'block', marginBottom: '6px' }}>
                       {tr({ en: 'Hours', fr: 'Heures', es: 'Horas', ru: 'Часы', he: 'שעות' })}
                     </label>
                     <input
@@ -478,12 +478,12 @@ export default function AccountControlsPage() {
                       style={{
                         width: '100%', padding: '10px 12px', borderRadius: '10px',
                         backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                        fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                        fontSize: 'calc(16px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                       }}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', display: 'block', marginBottom: '6px' }}>
                       {tr({ en: 'Minutes', fr: 'Minutes', es: 'Minutos', ru: 'Минуты', he: 'דקות' })}
                     </label>
                     <input
@@ -495,7 +495,7 @@ export default function AccountControlsPage() {
                       style={{
                         width: '100%', padding: '10px 12px', borderRadius: '10px',
                         backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                        fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                        fontSize: 'calc(16px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -503,7 +503,7 @@ export default function AccountControlsPage() {
               </div>
             )}
 
-            <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', lineHeight: 1.5, margin: 0 }}>
               {tr({ en: 'Take back control of your screen time and watch lives at your own pace by setting limits or alerts.', fr: 'Reprends le contrôle de ton temps d\'écran et regarde les lives à ton rythme grâce à des limites ou des alertes.', es: 'Recupera el control de tu tiempo de pantalla y mira los directos a tu ritmo con límites o alertas.', ru: 'Контролируй экранное время и смотри эфиры в своём темпе — с лимитами или напоминаниями.', he: 'קחו שליטה על זמן המסך וצפו בשידורים בקצב שלכם בעזרת מגבלות או התראות.' })}
             </p>
           </div>
@@ -514,11 +514,11 @@ export default function AccountControlsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             {/* Spending counter */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '20px' }}>
-              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 4px' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>
                 {tr({ en: 'Spending', fr: 'Dépenses', es: 'Gastos', ru: 'Расходы', he: 'הוצאות' })}
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                <p style={{ fontSize: '36px', fontWeight: 800, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(36px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                   {money(spendingAmount)}
                 </p>
                 <button
@@ -526,7 +526,7 @@ export default function AccountControlsPage() {
                   style={{
                     padding: '8px 16px', borderRadius: '20px',
                     backgroundColor: '#222', border: 'none',
-                    color: '#fff', fontSize: '13px', fontWeight: 600,
+                    color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
                   }}
                 >
@@ -555,10 +555,10 @@ export default function AccountControlsPage() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Spending reminder', fr: 'Rappel de dépenses', es: 'Recordatorio de gastos', ru: 'Напоминание о расходах', he: 'תזכורת הוצאות' })}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {tr({ en: 'Set a limit and get a notification.', fr: 'Fixe une limite et reçois une notification.', es: 'Fija un límite y recibe una notificación.', ru: 'Установи лимит и получай уведомление.', he: 'הגדירו מגבלה וקבלו התראה.' })}
                 </p>
               </div>
@@ -584,10 +584,10 @@ export default function AccountControlsPage() {
                 </svg>
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Spending limit', fr: 'Limite de dépenses', es: 'Límite de gastos', ru: 'Лимит расходов', he: 'מגבלת הוצאות' })}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '2px 0 0' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
                   {tr({ en: 'Purchases stop at your limit.', fr: 'Tes achats s\'arrêtent à ta limite.', es: 'Tus compras se detienen al llegar a tu límite.', ru: 'Покупки блокируются при достижении лимита.', he: 'הרכישות נעצרות כשמגיעים למגבלה.' })}
                 </p>
               </div>
@@ -599,7 +599,7 @@ export default function AccountControlsPage() {
             {settings.spendingLimitEnabled && (
               <>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
-                  <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px' }}>
+                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 12px' }}>
                     {tr({ en: 'Maximum amount', fr: 'Montant maximum', es: 'Importe máximo', ru: 'Максимальная сумма', he: 'סכום מקסימלי' })}
                   </p>
                   <div style={{ position: 'relative' }}>
@@ -614,10 +614,10 @@ export default function AccountControlsPage() {
                       style={{
                         width: '100%', padding: '10px 12px', paddingInlineEnd: '36px', borderRadius: '10px',
                         backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                        fontSize: '16px', outline: 'none', boxSizing: 'border-box',
+                        fontSize: 'calc(16px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                       }}
                     />
-                    <span style={{ position: 'absolute', insetInlineEnd: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: '16px', fontWeight: 600 }}>{currencySymbol(currency)}</span>
+                    <span style={{ position: 'absolute', insetInlineEnd: '12px', top: '50%', transform: 'translateY(-50%)', color: '#888', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600 }}>{currencySymbol(currency)}</span>
                   </div>
                   <button
                     onClick={saveSpendLimits}
@@ -626,7 +626,7 @@ export default function AccountControlsPage() {
                       width: '100%', marginTop: '12px', padding: '14px',
                       borderRadius: '10px', border: 'none', cursor: savingLimits ? 'not-allowed' : 'pointer',
                       background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-                      color: '#fff', fontSize: '15px', fontWeight: 700,
+                      color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                       opacity: savingLimits ? 0.6 : 1,
                     }}
                   >
@@ -646,10 +646,10 @@ export default function AccountControlsPage() {
                   return (
                     <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
-                        <p style={{ fontSize: '14px', fontWeight: 600, color: exceeded ? '#EF4444' : '#fff', margin: 0 }}>
+                        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: exceeded ? '#EF4444' : '#fff', margin: 0 }}>
                           {money(spendingAmount)} / {money(limit)}
                         </p>
-                        <p style={{ fontSize: '12px', color: exceeded ? '#EF4444' : '#888', margin: 0 }}>
+                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: exceeded ? '#EF4444' : '#888', margin: 0 }}>
                           {Math.round(pct)}%
                         </p>
                       </div>
@@ -664,11 +664,11 @@ export default function AccountControlsPage() {
                         }} />
                       </div>
                       {exceeded ? (
-                        <p style={{ fontSize: '12px', color: '#EF4444', margin: '8px 0 0', fontWeight: 600 }}>
+                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#EF4444', margin: '8px 0 0', fontWeight: 600 }}>
                           {tr({ en: 'Limit exceeded!', fr: 'Limite dépassée !', es: '¡Límite superado!', ru: 'Лимит превышен!', he: 'חרגת מהמגבלה!' })}
                         </p>
                       ) : ratio > 0.75 && (
-                        <p style={{ fontSize: '12px', color: '#F59E0B', margin: '8px 0 0', fontWeight: 600 }}>
+                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F59E0B', margin: '8px 0 0', fontWeight: 600 }}>
                           {tr({ en: 'Heads up: almost at your limit!', fr: 'Attention : limite presque atteinte !', es: '¡Ojo: casi llegas a tu límite!', ru: 'Внимание: лимит почти исчерпан!', he: 'שימו לב: כמעט הגעתם למגבלה!' })}
                         </p>
                       )}
@@ -678,7 +678,7 @@ export default function AccountControlsPage() {
               </>
             )}
 
-            <p style={{ fontSize: '13px', color: '#666', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', lineHeight: 1.5, margin: 0 }}>
               {tr({ en: 'Manage your spending and shop on your own terms by setting limits or reminders.', fr: 'Gère tes dépenses et achète à ta façon grâce à des limites ou des rappels.', es: 'Gestiona tus gastos y compra a tu manera con límites o recordatorios.', ru: 'Управляй расходами и покупай на своих условиях — с лимитами или напоминаниями.', he: 'נהלו את ההוצאות וקנו בתנאים שלכם בעזרת מגבלות או תזכורות.' })}
             </p>
           </div>
@@ -689,16 +689,16 @@ export default function AccountControlsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
 
             {/* ─── SECTION: GÉNÉRAL ─── */}
-            <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', paddingInlineStart: '2px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', paddingInlineStart: '2px' }}>
               {tr({ en: 'General', fr: 'Général', es: 'General', ru: 'Общие', he: 'כללי' })}
             </p>
 
             {/* Appearance */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', marginBottom: '10px' }}>
-              <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 4px' }}>
                 {tr({ en: 'Appearance', fr: 'Apparence', es: 'Apariencia', ru: 'Оформление', he: 'מראה' })}
               </p>
-              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
                 {tr({ en: 'Choose the app theme.', fr: 'Choisis le thème de l\'application.', es: 'Elige el tema de la aplicación.', ru: 'Выбери тему приложения.', he: 'בחרו את ערכת הנושא של האפליקציה.' })}
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -716,8 +716,8 @@ export default function AccountControlsPage() {
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>{opt.ico}</span>
-                    <span style={{ fontSize: '12px', color: '#fff', fontWeight: 600 }}>{opt.l}</span>
+                    <span style={{ fontSize: 'calc(18px * var(--fs, 1))' }}>{opt.ico}</span>
+                    <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#fff', fontWeight: 600 }}>{opt.l}</span>
                   </button>
                 ))}
               </div>
@@ -726,12 +726,12 @@ export default function AccountControlsPage() {
             {/* Stream Quality — INNOVATION */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Stream quality', fr: 'Qualité du live', es: 'Calidad del directo', ru: 'Качество эфира', he: 'איכות השידור' })}
                 </p>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
               </div>
-              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
                 {tr({ en: 'Lower the quality to save mobile data.', fr: 'Baisse la qualité pour économiser tes données mobiles.', es: 'Baja la calidad para ahorrar datos móviles.', ru: 'Снизь качество, чтобы экономить мобильный трафик.', he: 'הורידו את האיכות כדי לחסוך בגלישה.' })}
               </p>
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -747,7 +747,7 @@ export default function AccountControlsPage() {
                     style={{
                       flex: 1, padding: '10px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
                       backgroundColor: settings.streamQuality === opt.v ? '#F0908A' : '#222',
-                      color: '#fff', fontSize: '13px', fontWeight: 600,
+                      color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     }}
                   >
                     {opt.l}
@@ -759,12 +759,12 @@ export default function AccountControlsPage() {
             {/* Text Size — INNOVATION */}
             <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', marginBottom: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Text size', fr: 'Taille du texte', es: 'Tamaño del texto', ru: 'Размер текста', he: 'גודל טקסט' })}
                 </p>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
+                <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
               </div>
-              <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 12px', lineHeight: 1.4 }}>
                 {tr({ en: 'Adjust the text size to suit you.', fr: 'Ajuste la taille du texte pour plus de confort.', es: 'Ajusta el tamaño del texto a tu gusto.', ru: 'Настрой размер текста под себя.', he: 'התאימו את גודל הטקסט לנוחותכם.' })}
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -783,7 +783,7 @@ export default function AccountControlsPage() {
                     }}
                   >
                     <span style={{ fontSize: opt.sz, color: '#fff', fontWeight: 600 }}>Aa</span>
-                    <span style={{ fontSize: '11px', color: '#fff', fontWeight: 500 }}>{opt.l}</span>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#fff', fontWeight: 500 }}>{opt.l}</span>
                   </button>
                 ))}
               </div>
@@ -798,10 +798,10 @@ export default function AccountControlsPage() {
               }}
             >
               <div>
-                <p style={{ fontSize: '15px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Language', fr: 'Langue', es: 'Idioma', ru: 'Язык', he: 'שפה' })}
                 </p>
-                <p style={{ fontSize: '13px', color: '#888', margin: '4px 0 0' }}>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>
                   <span className="no-theme-invert">{LANG_META[lang].flag}</span> {LANG_META[lang].name}
                 </p>
               </div>
@@ -809,7 +809,7 @@ export default function AccountControlsPage() {
             </div>
 
             {/* ─── SECTION: NOTIFICATIONS & COMMUNICATION ─── */}
-            <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
               {tr({ en: 'Notifications & communication', fr: 'Notifications et communication', es: 'Notificaciones y comunicación', ru: 'Уведомления и общение', he: 'התראות ותקשורת' })}
             </p>
 
@@ -819,10 +819,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', borderRadius: '14px 14px 0 0', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Direct messages', fr: 'Messages privés', es: 'Mensajes directos', ru: 'Личные сообщения', he: 'הודעות ישירות' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Receive messages from other users.', fr: 'Reçois des messages d\'autres utilisateurs.', es: 'Recibe mensajes de otros usuarios.', ru: 'Получай сообщения от других пользователей.', he: 'קבלת הודעות ממשתמשים אחרים.' })}
                 </p>
               </div>
@@ -835,10 +835,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Private participation', fr: 'Participation privée', es: 'Participación privada', ru: 'Скрытое участие', he: 'השתתפות פרטית' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Join lives without being announced.', fr: 'Rejoins les lives sans être annoncé.', es: 'Únete a los directos sin que se anuncie tu llegada.', ru: 'Заходи в эфиры без объявления.', he: 'הצטרפות לשידורים בלי הכרזה.' })}
                 </p>
               </div>
@@ -851,10 +851,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Activity status', fr: 'Statut d\'activité', es: 'Estado de actividad', ru: 'Статус активности', he: 'סטטוס פעילות' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Share your activity with friends.', fr: 'Partage ton activité avec tes amis.', es: 'Comparte tu actividad con tus amigos.', ru: 'Показывай друзьям свою активность.', he: 'שיתוף הפעילות שלכם עם חברים.' })}
                 </p>
               </div>
@@ -867,10 +867,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Contact sync', fr: 'Synchroniser les contacts', es: 'Sincronizar contactos', ru: 'Синхронизация контактов', he: 'סנכרון אנשי קשר' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Find friends who use ShaPop.', fr: 'Retrouve tes amis qui utilisent ShaPop.', es: 'Encuentra a tus amigos que usan ShaPop.', ru: 'Найди друзей, которые пользуются ShaPop.', he: 'מצאו חברים שמשתמשים ב-ShaPop.' })}
                 </p>
               </div>
@@ -883,10 +883,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Account suggestions', fr: 'Suggestion du compte', es: 'Sugerencia de cuenta', ru: 'Рекомендация аккаунта', he: 'המלצה על החשבון' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Let ShaPop suggest your profile to others.', fr: 'Autorise ShaPop à suggérer ton profil.', es: 'Permite que ShaPop sugiera tu perfil.', ru: 'Разреши ShaPop рекомендовать твой профиль.', he: 'אפשרו ל-ShaPop להמליץ על הפרופיל שלכם.' })}
                 </p>
               </div>
@@ -900,12 +900,12 @@ export default function AccountControlsPage() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                     {tr({ en: 'Price drop alerts', fr: 'Alertes de baisse de prix', es: 'Alertas de bajada de precio', ru: 'Уведомления о снижении цен', he: 'התראות על ירידת מחיר' })}
                   </p>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
                 </div>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Get notified when a seller you follow lowers prices.', fr: 'Sois prévenu quand un vendeur que tu suis baisse ses prix.', es: 'Recibe un aviso cuando un vendedor que sigues baje sus precios.', ru: 'Узнавай, когда продавец, на которого ты подписан, снижает цены.', he: 'קבלו התראה כשמוכר שאתם עוקבים אחריו מוריד מחירים.' })}
                 </p>
               </div>
@@ -919,12 +919,12 @@ export default function AccountControlsPage() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                     {tr({ en: 'Smart notifications', fr: 'Notifications intelligentes', es: 'Notificaciones inteligentes', ru: 'Умные уведомления', he: 'התראות חכמות' })}
                   </p>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
                 </div>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'AI filters notifications based on your interests.', fr: 'L\'IA filtre les notifications selon tes centres d\'intérêt.', es: 'La IA filtra las notificaciones según tus intereses.', ru: 'ИИ отбирает уведомления по твоим интересам.', he: 'בינה מלאכותית מסננת התראות לפי תחומי העניין שלכם.' })}
                 </p>
               </div>
@@ -932,7 +932,7 @@ export default function AccountControlsPage() {
             </div>
 
             {/* ─── SECTION: EXPÉRIENCE ─── */}
-            <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
               {tr({ en: 'Experience', fr: 'Expérience', es: 'Experiencia', ru: 'Удобство', he: 'חוויה' })}
             </p>
 
@@ -942,10 +942,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', borderRadius: '14px 14px 0 0', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Auction haptics', fr: 'Vibrations pendant les enchères', es: 'Vibración en subastas', ru: 'Вибрация на аукционах', he: 'רטט במכירות פומביות' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Vibrate on bids and purchases.', fr: 'Vibration lors des enchères et des achats.', es: 'Vibración al pujar y comprar.', ru: 'Вибрация при ставках и покупках.', he: 'רטט בהצעות וברכישות.' })}
                 </p>
               </div>
@@ -959,12 +959,12 @@ export default function AccountControlsPage() {
             >
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                     {tr({ en: 'Eco mode', fr: 'Mode éco', es: 'Modo ahorro', ru: 'Режим экономии', he: 'מצב חיסכון' })}
                   </p>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#22C55E', borderRadius: '4px', padding: '2px 6px' }}>ECO</span>
+                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#000', backgroundColor: '#22C55E', borderRadius: '4px', padding: '2px 6px' }}>ECO</span>
                 </div>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Uses less data and battery.', fr: 'Réduit la consommation de données et de batterie.', es: 'Reduce el consumo de datos y batería.', ru: 'Снижает расход трафика и батареи.', he: 'מפחית שימוש בנתונים ובסוללה.' })}
                 </p>
               </div>
@@ -979,12 +979,12 @@ export default function AccountControlsPage() {
               >
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                    <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                       {tr({ en: 'Scheduled night mode', fr: 'Mode nuit programmé', es: 'Modo noche programado', ru: 'Ночной режим по расписанию', he: 'מצב לילה מתוזמן' })}
                     </p>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
+                    <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#000', backgroundColor: '#F0908A', borderRadius: '4px', padding: '2px 6px' }}>{newBadge}</span>
                   </div>
-                  <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                     {tr({ en: 'Automatically mutes notifications at night.', fr: 'Coupe automatiquement les notifications la nuit.', es: 'Silencia automáticamente las notificaciones por la noche.', ru: 'Автоматически отключает уведомления ночью.', he: 'משתיק התראות אוטומטית בלילה.' })}
                   </p>
                 </div>
@@ -993,7 +993,7 @@ export default function AccountControlsPage() {
               {settings.nightModeEnabled && (
                 <div style={{ display: 'flex', gap: '12px', marginTop: '14px', paddingTop: '14px', borderTop: '1px solid #222' }}>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', display: 'block', marginBottom: '6px' }}>
                       {tr({ en: 'Start', fr: 'Début', es: 'Inicio', ru: 'Начало', he: 'התחלה' })}
                     </label>
                     <input
@@ -1003,12 +1003,12 @@ export default function AccountControlsPage() {
                       style={{
                         width: '100%', padding: '10px 12px', borderRadius: '10px',
                         backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                        fontSize: '15px', outline: 'none', boxSizing: 'border-box',
+                        fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                       }}
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '6px' }}>
+                    <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', display: 'block', marginBottom: '6px' }}>
                       {tr({ en: 'End', fr: 'Fin', es: 'Fin', ru: 'Конец', he: 'סיום' })}
                     </label>
                     <input
@@ -1018,7 +1018,7 @@ export default function AccountControlsPage() {
                       style={{
                         width: '100%', padding: '10px 12px', borderRadius: '10px',
                         backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                        fontSize: '15px', outline: 'none', boxSizing: 'border-box',
+                        fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                       }}
                     />
                   </div>
@@ -1027,7 +1027,7 @@ export default function AccountControlsPage() {
             </div>
 
             {/* ─── SECTION: CONTENU ─── */}
-            <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
               {tr({ en: 'Content', fr: 'Contenu', es: 'Contenido', ru: 'Контент', he: 'תוכן' })}
             </p>
 
@@ -1037,10 +1037,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', borderRadius: '14px 14px 0 0', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', borderBottom: '1px solid #222' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Live clips', fr: 'Clips des lives', es: 'Clips de directos', ru: 'Клипы из эфиров', he: 'קליפים מהשידורים' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Allow clips to be made from your lives.', fr: 'Autorise la création de clips à partir de tes lives.', es: 'Permite crear clips a partir de tus directos.', ru: 'Разреши создавать клипы из твоих эфиров.', he: 'אפשרו יצירת קליפים מהשידורים שלכם.' })}
                 </p>
               </div>
@@ -1053,10 +1053,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', borderRadius: '0 0 14px 14px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', marginBottom: '10px' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Past lives visibility', fr: 'Visibilité des anciens lives', es: 'Visibilidad de directos anteriores', ru: 'Видимость прошлых эфиров', he: 'הצגת שידורים קודמים' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Show past lives on your public profile.', fr: 'Affiche tes anciens lives sur ton profil public.', es: 'Muestra tus directos anteriores en tu perfil público.', ru: 'Показывай прошлые эфиры в публичном профиле.', he: 'הצגת שידורים קודמים בפרופיל הציבורי שלכם.' })}
                 </p>
               </div>
@@ -1064,7 +1064,7 @@ export default function AccountControlsPage() {
             </div>
 
             {/* ─── SECTION: PROMOTIONS ─── */}
-            <p style={{ fontSize: '12px', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
               {tr({ en: 'Promotions', fr: 'Promotions', es: 'Promociones', ru: 'Акции', he: 'מבצעים' })}
             </p>
 
@@ -1074,10 +1074,10 @@ export default function AccountControlsPage() {
               style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', marginBottom: '10px' }}
             >
               <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Real-time promo feedback', fr: 'Retours promos en temps réel', es: 'Respuesta a promociones en tiempo real', ru: 'Отклик на акции в реальном времени', he: 'משוב מבצעים בזמן אמת' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0', lineHeight: 1.4 }}>
                   {tr({ en: 'Get instant feedback on promotional offers.', fr: 'Reçois un retour instantané sur les offres promotionnelles.', es: 'Recibe respuesta al instante sobre las ofertas promocionales.', ru: 'Мгновенная обратная связь по акциям.', he: 'קבלו משוב מיידי על מבצעים.' })}
                 </p>
               </div>
@@ -1085,7 +1085,7 @@ export default function AccountControlsPage() {
             </div>
 
             {/* ─── SECTION: COMPTE ─── */}
-            <p style={{ fontSize: '12px', color: '#E8344E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#E8344E', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', margin: '20px 0 10px', paddingInlineStart: '2px' }}>
               {tr({ en: 'Account management', fr: 'Gestion du compte', es: 'Gestión de la cuenta', ru: 'Управление аккаунтом', he: 'ניהול חשבון' })}
             </p>
 
@@ -1099,10 +1099,10 @@ export default function AccountControlsPage() {
               }}
             >
               <div>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Edit profile', fr: 'Modifier le profil', es: 'Editar perfil', ru: 'Редактировать профиль', he: 'עריכת פרופיל' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0' }}>
                   {tr({ en: 'Name, bio, profile photo', fr: 'Nom, bio, photo de profil', es: 'Nombre, bio, foto de perfil', ru: 'Имя, описание, фото профиля', he: 'שם, ביו, תמונת פרופיל' })}
                 </p>
               </div>
@@ -1119,10 +1119,10 @@ export default function AccountControlsPage() {
               }}
             >
               <div>
-                <p style={{ fontSize: '15px', fontWeight: 600, color: '#fff', margin: 0 }}>
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0 }}>
                   {tr({ en: 'Identity verification', fr: 'Vérification d\'identité', es: 'Verificación de identidad', ru: 'Подтверждение личности', he: 'אימות זהות' })}
                 </p>
-                <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0' }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0' }}>
                   {tr({ en: 'Selfie + ID', fr: 'Selfie + pièce d\'identité', es: 'Selfie + documento de identidad', ru: 'Селфи + документ', he: 'סלפי + תעודה מזהה' })}
                 </p>
               </div>
@@ -1137,10 +1137,10 @@ export default function AccountControlsPage() {
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
                 >
                   <div>
-                    <p style={{ fontSize: '15px', fontWeight: 600, color: '#E8344E', margin: 0 }}>
+                    <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#E8344E', margin: 0 }}>
                       {tr({ en: 'Delete my account', fr: 'Supprimer mon compte', es: 'Eliminar mi cuenta', ru: 'Удалить аккаунт', he: 'מחיקת החשבון שלי' })}
                     </p>
-                    <p style={{ fontSize: '12px', color: '#666', margin: '3px 0 0' }}>
+                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '3px 0 0' }}>
                       {tr({ en: 'This can\'t be undone', fr: 'Action irréversible', es: 'Acción irreversible', ru: 'Это действие необратимо', he: 'פעולה בלתי הפיכה' })}
                     </p>
                   </div>
@@ -1148,10 +1148,10 @@ export default function AccountControlsPage() {
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: '14px', color: '#E8344E', fontWeight: 700, margin: '0 0 8px' }}>
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#E8344E', fontWeight: 700, margin: '0 0 8px' }}>
                     {tr({ en: 'Are you sure?', fr: 'Tu es sûr ?', es: '¿Estás seguro?', ru: 'Ты уверен?', he: 'בטוחים?' })}
                   </p>
-                  <p style={{ fontSize: '13px', color: '#888', margin: '0 0 12px', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '0 0 12px', lineHeight: 1.5 }}>
                     {tr({ en: `This can't be undone. All your data will be deleted. Type ${deleteWord} to confirm.`, fr: `Cette action est irréversible. Toutes tes données seront supprimées. Tape ${deleteWord} pour confirmer.`, es: `Esta acción es irreversible. Se eliminarán todos tus datos. Escribe ${deleteWord} para confirmar.`, ru: `Это действие необратимо. Все твои данные будут удалены. Введи ${deleteWord} для подтверждения.`, he: `פעולה זו בלתי הפיכה. כל הנתונים שלכם יימחקו. הקלידו ${deleteWord} לאישור.` })}
                   </p>
                   <input
@@ -1162,7 +1162,7 @@ export default function AccountControlsPage() {
                     style={{
                       width: '100%', padding: '12px', borderRadius: '10px',
                       backgroundColor: '#222', border: '1px solid #333', color: '#fff',
-                      fontSize: '15px', outline: 'none', boxSizing: 'border-box',
+                      fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                       marginBottom: '12px',
                     }}
                   />
@@ -1172,7 +1172,7 @@ export default function AccountControlsPage() {
                       style={{
                         flex: 1, padding: '12px', borderRadius: '10px',
                         backgroundColor: '#333', border: 'none', color: '#fff',
-                        fontSize: '14px', fontWeight: 600, cursor: 'pointer',
+                        fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       {tr({ en: 'Cancel', fr: 'Annuler', es: 'Cancelar', ru: 'Отмена', he: 'ביטול' })}
@@ -1183,7 +1183,7 @@ export default function AccountControlsPage() {
                       style={{
                         flex: 1, padding: '12px', borderRadius: '10px',
                         backgroundColor: '#E8344E', border: 'none', color: '#fff',
-                        fontSize: '14px', fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer',
+                        fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer',
                         opacity: (deleting || deleteConfirmText.toUpperCase() !== deleteWord) ? 0.5 : 1,
                       }}
                     >
