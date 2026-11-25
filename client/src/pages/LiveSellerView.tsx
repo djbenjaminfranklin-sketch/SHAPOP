@@ -20,6 +20,13 @@ const pageContent = {
     nextItem: 'Next item',
     relaunch: 'Relaunch auction',
     myItems: 'My items',
+    editItemBtn: 'Edit',
+    editTitle: 'Title',
+    editStart: 'Start',
+    editMin: 'Minimum',
+    editBuyNow: 'Buy now',
+    editSave: 'Save',
+    editError: 'Could not save',
     itemToSell: 'To sell',
     itemLive: 'Live',
     itemSold: 'Sold',
@@ -130,6 +137,13 @@ const pageContent = {
     nextItem: 'Article suivant',
     relaunch: 'Relancer l’enchère',
     myItems: 'Mes articles',
+    editItemBtn: 'Modifier',
+    editTitle: 'Nom',
+    editStart: 'Départ',
+    editMin: 'Minimum',
+    editBuyNow: 'Achat immédiat',
+    editSave: 'Enregistrer',
+    editError: 'Impossible d’enregistrer',
     itemToSell: 'À vendre',
     itemLive: 'En cours',
     itemSold: 'Vendu',
@@ -240,6 +254,13 @@ const pageContent = {
     nextItem: 'Siguiente artículo',
     relaunch: 'Relanzar la subasta',
     myItems: 'Mis artículos',
+    editItemBtn: 'Editar',
+    editTitle: 'Nombre',
+    editStart: 'Salida',
+    editMin: 'Mínimo',
+    editBuyNow: 'Compra inmediata',
+    editSave: 'Guardar',
+    editError: 'No se pudo guardar',
     itemToSell: 'Por vender',
     itemLive: 'En curso',
     itemSold: 'Vendido',
@@ -350,6 +371,13 @@ const pageContent = {
     nextItem: 'Следующий товар',
     relaunch: 'Перезапустить аукцион',
     myItems: 'Мои товары',
+    editItemBtn: 'Изменить',
+    editTitle: 'Название',
+    editStart: 'Старт',
+    editMin: 'Минимум',
+    editBuyNow: 'Купить сразу',
+    editSave: 'Сохранить',
+    editError: 'Не удалось сохранить',
     itemToSell: 'К продаже',
     itemLive: 'Идёт',
     itemSold: 'Продано',
@@ -460,6 +488,13 @@ const pageContent = {
     nextItem: 'הפריט הבא',
     relaunch: 'להפעיל שוב את המכירה',
     myItems: 'הפריטים שלי',
+    editItemBtn: 'עריכה',
+    editTitle: 'שם',
+    editStart: 'התחלה',
+    editMin: 'מינימום',
+    editBuyNow: 'קנייה מיידית',
+    editSave: 'שמירה',
+    editError: 'השמירה נכשלה',
     itemToSell: 'למכירה',
     itemLive: 'פעיל',
     itemSold: 'נמכר',
@@ -664,6 +699,9 @@ export default function LiveSellerView() {
   // Add item during live
   const [showAddItem, setShowAddItem] = useState(false)
   const [showItemsList, setShowItemsList] = useState(false)
+  // Modification d'un article depuis « Mes articles » (pas encore vendu)
+  const [editItem, setEditItem] = useState<{ id: string; title: string; code: string; start: string; min: string; buyNow: string } | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
   const [addItemTitle, setAddItemTitle] = useState('')
   const [addItemPrice, setAddItemPrice] = useState('')
   const [addItemMinPrice, setAddItemMinPrice] = useState('')
@@ -1402,6 +1440,25 @@ export default function LiveSellerView() {
     setItems(prev => prev.map(it => it.id === currentItem.id
       ? { ...it, status: 'draft' as const, current_price: currentItem.starting_price, started_at: null }
       : it))
+  }
+
+  const handleSaveEditItem = async () => {
+    if (!editItem) return
+    const start = parseFloat(editItem.start.replace(',', '.'))
+    const min = parseFloat(editItem.min.replace(',', '.'))
+    const buyNow = parseFloat(editItem.buyNow.replace(',', '.'))
+    if (!editItem.title.trim() || !(start > 0)) return
+    setEditSaving(true)
+    const patch = {
+      title: `${editItem.title.trim()}${editItem.code}`,
+      starting_price: start, current_price: start,
+      min_price: min > 0 ? min : null, buy_now_price: buyNow > 0 ? buyNow : null,
+    }
+    const { error } = await supabase.from('items').update(patch).eq('id', editItem.id).in('status', ['draft', 'pending', 'unsold'])
+    setEditSaving(false)
+    if (error) { showToast(ct.editError); return }
+    setItems(prev => prev.map(it => it.id === editItem.id ? { ...it, ...patch } : it))
+    setEditItem(null)
   }
 
   const handleNextItem = () => {
@@ -2170,14 +2227,37 @@ export default function LiveSellerView() {
               <p style={{ margin: 0, fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{ct.myItems} ({items.length})</p>
               <button onClick={() => setShowItemsList(false)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>{ct.closeList}</button>
             </div>
+            {editItem && (
+              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '12px', marginBottom: '12px', border: '1px solid #F0908A' }}>
+                <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#aaa', marginBottom: '4px' }}>{ct.editTitle}</label>
+                <input value={editItem.title} maxLength={60} onChange={e => setEditItem({ ...editItem, title: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', marginBottom: '8px' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                  {([['start', ct.editStart], ['min', ct.editMin], ['buyNow', ct.editBuyNow]] as const).map(([f, l]) => (
+                    <label key={f} style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                      <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: f === 'start' ? '#F0908A' : '#aaa', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
+                      <input value={editItem[f]} inputMode="decimal" placeholder="—"
+                        onChange={e => setEditItem({ ...editItem, [f]: e.target.value.replace(/[^0-9.,]/g, '') })}
+                        style={{ width: '100%', padding: '10px 8px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', minWidth: 0 }} />
+                    </label>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                  <button onClick={() => setEditItem(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: 'transparent', color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{ct.addItemCancel}</button>
+                  <button onClick={handleSaveEditItem} disabled={editSaving} style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, opacity: editSaving ? 0.6 : 1 }}>{editSaving ? '…' : ct.editSave}</button>
+                </div>
+              </div>
+            )}
             {items.map((it, i) => {
               const label = it.status === 'sold' ? ct.itemSold : it.status === 'unsold' ? ct.itemUnsold : it.status === 'active' ? ct.itemLive : ct.itemToSell
               const color = it.status === 'sold' ? '#22C55E' : it.status === 'unsold' ? '#FF9632' : it.status === 'active' ? '#E8344E' : '#F0908A'
               const selectable = (it.status === 'draft' || it.status === 'pending' || it.status === 'unsold') && currentItem?.status !== 'active'
               return (
-                <button key={it.id} disabled={!selectable} onClick={() => { setCurrentIndex(i); setShowItemsList(false) }} style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px',
-                  marginBottom: '8px', borderRadius: '14px', textAlign: 'start',
+                <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <button disabled={!selectable} onClick={() => { setCurrentIndex(i); setShowItemsList(false) }} style={{
+                  flex: 1, minWidth: 0,
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '10px',
+                  borderRadius: '14px', textAlign: 'start',
                   backgroundColor: i === currentIndex ? 'rgba(240,144,138,0.15)' : '#1A1A1A',
                   border: i === currentIndex ? '1px solid #F0908A' : '1px solid transparent',
                   cursor: selectable ? 'pointer' : 'default', opacity: selectable || i === currentIndex ? 1 : 0.6,
@@ -2193,6 +2273,17 @@ export default function LiveSellerView() {
                   </div>
                   <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color, flexShrink: 0 }}>{label}</span>
                 </button>
+                {(it.status === 'draft' || it.status === 'pending' || it.status === 'unsold') && (
+                  <button onClick={() => setEditItem({
+                    id: it.id, title: it.title.replace(/\s*\[[A-Z0-9]{3,8}\]\s*$/, ''),
+                    code: it.title.match(/\s*\[[A-Z0-9]{3,8}\]\s*$/)?.[0] || '',
+                    start: String(it.starting_price), min: it.min_price ? String(it.min_price) : '', buyNow: it.buy_now_price ? String(it.buy_now_price) : '',
+                  })} style={{
+                    padding: '10px 12px', borderRadius: '12px', border: '1px solid rgba(240,144,138,0.5)',
+                    backgroundColor: 'rgba(240,144,138,0.12)', color: '#F0908A', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                  }}>{ct.editItemBtn}</button>
+                )}
+                </div>
               )
             })}
           </div>
@@ -2295,18 +2386,18 @@ export default function LiveSellerView() {
                 {currentItem.image_urls?.[0] ? (
                   <img src={currentItem.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
-                  <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
                     {formatLot(currentIndex + 1)}
                   </span>
                 )}
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                   {ct.lot} {formatLot(currentIndex + 1)}
                 </span>
                 <p style={{
-                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '1px 0 0',
+                  fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '1px 0 0',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {currentItem.title}
@@ -2325,7 +2416,7 @@ export default function LiveSellerView() {
                   animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
                 }}>
                   <div style={{
-                    fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 900,
+                    fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900,
                     color: '#fff',
                     fontVariantNumeric: 'tabular-nums',
                     lineHeight: 1,
@@ -2345,7 +2436,7 @@ export default function LiveSellerView() {
                   padding: '4px 10px',
                   textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  <div style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                     {currentItem.duration_seconds || 60}
                   </div>
                   <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#aaa', fontWeight: 600 }}>
@@ -2356,7 +2447,7 @@ export default function LiveSellerView() {
 
               <div style={{ flexShrink: 0, textAlign: 'end' }}>
                 <p style={{
-                  fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
+                  fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
                 }}>
                   {money(currentItem.current_price)}
                 </p>
@@ -2369,10 +2460,10 @@ export default function LiveSellerView() {
             <button
               onClick={handleActivateItem}
               style={{
-                width: '100%', padding: '14px',
+                width: '100%', padding: '12px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800,
+                color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
               }}
             >
@@ -2388,11 +2479,11 @@ export default function LiveSellerView() {
                 border: '1px solid rgba(240,144,138,0.15)',
                 textAlign: 'center',
               }}>
-                <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
                   {timeLeft > 0 ? ct.auctionLive : ct.resolving}
                 </span>
                 {currentItem.min_price != null && currentItem.min_price > 0 && (
-                  <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginInlineStart: '6px' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', marginInlineStart: '6px' }}>
                     {fill(ct.minPrice, { price: money(currentItem.min_price) })}
                   </span>
                 )}
@@ -2405,7 +2496,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
                     borderRadius: '8px',
-                    color: '#aaa', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
+                    color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
@@ -2419,11 +2510,11 @@ export default function LiveSellerView() {
             <button
               onClick={handleRelaunchItem}
               style={{
-                width: '100%', padding: '14px',
+                width: '100%', padding: '12px',
                 background: hasMoreItems ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #F0908A, #E8344E)',
                 border: hasMoreItems ? '1px solid rgba(255,255,255,0.18)' : 'none',
                 borderRadius: '10px',
-                color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2435,10 +2526,10 @@ export default function LiveSellerView() {
             <button
               onClick={handleNextItem}
               style={{
-                width: '100%', padding: '14px',
+                width: '100%', padding: '12px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2449,7 +2540,7 @@ export default function LiveSellerView() {
           {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && !hasMoreItems && (
             <p style={{
               padding: '4px', textAlign: 'center',
-              fontSize: 'calc(15px * var(--fs, 1))', color: '#888', margin: 0,
+              fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: 0,
             }}>
               {ct.noMoreItems}
             </p>
