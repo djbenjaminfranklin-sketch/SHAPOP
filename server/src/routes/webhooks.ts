@@ -219,11 +219,20 @@ export async function livekitWebhookHandler(req: Request, res: Response) {
       // Publisher (seller) joined -> mark stream as live + push notifs
       const roomName = event.room?.name
       if (roomName) {
-        const { data: streams } = await supabase
+        await supabase
           .from('streams')
           .update({ status: 'live', started_at: new Date().toISOString() })
           .eq('livekit_room_name', roomName)
           .eq('status', 'scheduled')
+
+        // Abonnés prévenus UNE fois par live. L'appli passe souvent le live « en direct » avant ce signal :
+        // on ne dépend donc plus de l'état « programmé », mais du drapeau live_notified.
+        const { data: streams } = await supabase
+          .from('streams')
+          .update({ live_notified: true })
+          .eq('livekit_room_name', roomName)
+          .neq('status', 'ended')
+          .eq('live_notified', false)
           .select('id, title, seller_id')
 
         if (streams && streams.length > 0) {

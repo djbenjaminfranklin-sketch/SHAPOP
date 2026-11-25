@@ -725,8 +725,21 @@ export default function LiveSellerView() {
 
   const showSoldOverlay = useCallback((lotNumber: string, winnerName: string, price: number, isUnsold = false) => {
     setSoldOverlay({ lotNumber, winnerName, price, isUnsold })
-    setTimeout(() => setSoldOverlay(null), 3500)
+    setTimeout(() => setSoldOverlay(null), 6000)
   }, [])
+
+  // Vente annoncée au vendeur quelle qu'en soit la cause (fin d'enchère OU « Acheter » en cours d'enchère)
+  const announcedSoldRef = useRef<Set<string>>(new Set())
+  const announceSale = useCallback(async (itemId: string, winnerId: string, price: number) => {
+    if (announcedSoldRef.current.has(itemId)) return
+    announcedSoldRef.current.add(itemId)
+    const idx = itemsRef.current.findIndex(it => it.id === itemId)
+    const { data: winnerProfile } = await supabase.from('profiles').select('display_name, username').eq('id', winnerId).single()
+    const winnerName = winnerProfile?.display_name || winnerProfile?.username || winnerId.slice(0, 8).toUpperCase()
+    showSoldOverlay(formatLot((idx >= 0 ? idx : 0) + 1), `@${winnerName}`, price)
+  }, [showSoldOverlay])
+  const announceSaleRef = useRef(announceSale)
+  announceSaleRef.current = announceSale
 
   const showToast = useCallback((text: string) => {
     const id = Date.now()
@@ -923,6 +936,10 @@ export default function LiveSellerView() {
     }, (payload) => {
       const updated = payload.new as Item
       const old = payload.old as Partial<Item>
+      const before = itemsRef.current.find(it => it.id === updated.id)
+      if (updated.status === 'sold' && updated.winner_id && before && before.status !== 'sold') {
+        announceSaleRef.current(updated.id, updated.winner_id, Number(updated.current_price)).catch(() => {})
+      }
       setItems(prev => prev.map(it => it.id === updated.id ? updated : it))
       // Sudden Death: reset timer to 10s on new bid (price changed while active)
       if (updated.status === 'active' && updated.duration_seconds === -1 && old.current_price !== undefined && updated.current_price > old.current_price) {
@@ -1173,7 +1190,10 @@ export default function LiveSellerView() {
             .single()
 
           const winnerName = winnerProfile?.display_name || winnerProfile?.username || winnerId.slice(0, 8).toUpperCase()
-          showSoldOverlay(formatLot(currentIndex + 1), `@${winnerName}`, finalPrice)
+          if (!announcedSoldRef.current.has(currentItem.id)) {
+            announcedSoldRef.current.add(currentItem.id)
+            showSoldOverlay(formatLot(currentIndex + 1), `@${winnerName}`, finalPrice)
+          }
           // Résultat de l'autorisation de la carte du gagnant (faite par le serveur à la fin de l'enchère)
           const payment = result.payment as { status: string; code?: string } | null | undefined
           if (!payment) {
