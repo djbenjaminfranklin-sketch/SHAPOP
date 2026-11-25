@@ -140,6 +140,16 @@ export default function BottomNav() {
 
   const tabs = [
     {
+      to: '/',
+      labelKey: 'home_tab' as const,
+      active: path === '/',
+      icon: (active: boolean) => (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
+          <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9.5z" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      ),
+    },
+    {
       to: '/explore',
       labelKey: 'categories_tab' as const,
       active: path === '/explore',
@@ -402,7 +412,7 @@ export default function BottomNav() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>
           {tabs.map(tab => {
             if (tab.special) {
               return (
