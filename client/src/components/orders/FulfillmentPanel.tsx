@@ -127,9 +127,11 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
       )}
 
       {/* Après l'envoi : numéro de suivi + ce que dit la poste ; le vendeur garde son code sous les yeux */}
-      {data.fulfillment_method === 'post' && !awaiting && data.tracking_number && (
+      {data.fulfillment_method === 'post' && !awaiting && data.tracking_number && (data.carrier?.status || (isSeller && data.receipt_code) || !(data.proofs.parcel_url || data.proofs.slip_url)) && (
         <div style={card}>
-          <p style={hint}>{t.tracking_number}{t.colon} <span dir="ltr" style={{ color: '#ddd', fontWeight: 700 }}>{data.tracking_number}</span></p>
+          {!(data.proofs.parcel_url || data.proofs.slip_url) && (
+            <p style={hint}>{t.tracking_number}{t.colon} <span dir="ltr" style={{ color: '#ddd', fontWeight: 700 }}>{data.tracking_number}</span></p>
+          )}
           {data.carrier?.status && (
             <p style={hint}>{t.carrier_label}{t.colon} <strong style={{ color: data.carrier.status === 'delivered' ? '#22C55E' : '#ddd' }}>{(t as Record<string, string>)[`carrier_${data.carrier.status}`] || data.carrier.status}</strong></p>
           )}

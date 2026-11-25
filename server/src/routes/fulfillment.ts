@@ -314,7 +314,8 @@ router.get('/api/orders/:id/fulfillment', requireAuth, async (req: Authenticated
       receipt: null,
       claim_deadline: order.claim_deadline || null,
       buyer_confirmed_at: order.buyer_confirmed_at || null,
-      carrier: order.tracking_number ? {
+      // Seulement si le suivi transporteur (Ship24) suit vraiment ce colis
+      carrier: order.tracking_number && order.carrier_tracker_id ? {
         status: order.tracking_status || null,
         first_event_at: order.carrier_first_event_at || null,
         delivered_at: order.carrier_delivered_at || null,
