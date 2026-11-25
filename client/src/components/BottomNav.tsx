@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { t, getLang, tr, type Localized } from '../lib/i18n'
 import { rtlTextAlign, rtlFlip } from '../lib/rtl'
 import ActiveOrderBar from './ActiveOrderBar'
+import LiveReturnBar, { useMyActiveLive } from './LiveReturnBar'
 import SellPopup from './seller/SellPopup'
 import CartoonAvatar from './CartoonAvatar'
 
@@ -122,6 +123,7 @@ export default function BottomNav() {
   const nt = tr(navText, lang)
   const [showSell, setShowSell] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
+  const myLive = useMyActiveLive(user?.id || '', path)
 
   if (path.startsWith('/stream/')) return null
   if (path.startsWith('/live-seller/')) return null
@@ -273,7 +275,8 @@ export default function BottomNav() {
   return (
     <>
       <SellPopup isOpen={showSell} onClose={() => setShowSell(false)} />
-      <ActiveOrderBar userId={user.id} path={path} />
+      {/* Live en cours : priorité sur le bandeau de commande */}
+      {myLive ? <LiveReturnBar live={myLive} /> : <ActiveOrderBar userId={user.id} path={path} />}
 
       {/* ── Profile menu bottom sheet ── */}
       {showProfileMenu && (
