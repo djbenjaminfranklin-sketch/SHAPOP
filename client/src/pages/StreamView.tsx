@@ -2796,8 +2796,8 @@ export default function StreamView() {
                             visibility: expandedMultiIdx !== null ? 'hidden' : 'visible',
                           }}
                         >
-                          {/* Plein écran / retour à la grille */}
-                          <button
+                          {/* Plein écran (le retour à la grille est dans la barre du haut) */}
+                          {expandedMultiIdx === null && <button
                             onClick={(e) => {
                               e.stopPropagation()
                               hapticTap()
@@ -2813,11 +2813,8 @@ export default function StreamView() {
                             style={{
                               position: 'absolute', zIndex: 9,
                               // Grille : en bas de la case (le haut est sous la barre d'état) ; plein écran : sous la pastille « aperçu gratuit »
-                              // En bas de la case : en haut, la barre d'état et des couches de l'écran du live captent le toucher
-                              ...(expandedMultiIdx === cell.cellIdx
-                                ? { bottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)' }
-                                : { bottom: '52px' }),
-                              left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage)
+                              // Au centre de la case : en haut la barre d'état, en bas la zone vendeur/enchère captent le toucher
+                              top: '50%', left: '50%', transform: 'translate(-50%, -50%)', // i18n-ignore (centrage)
                               display: 'flex', alignItems: 'center', gap: '6px',
                               padding: '6px 12px', borderRadius: '100px', border: 'none',
                               backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff',
@@ -2830,7 +2827,7 @@ export default function StreamView() {
                                 : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}
                             </svg>
                             {expandedMultiIdx === cell.cellIdx ? ct.backToGrid : ct.expandCell}
-                          </button>
+                          </button>}
                           <LiveKitViewer
                             livekitUrl={cell.lkUrl}
                             livekitToken={cell.lkToken}
@@ -3628,6 +3625,21 @@ export default function StreamView() {
                   </svg>
                 </button>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Live agrandi : retour à la grille depuis la barre du haut (toujours touchable) */}
+                  {expandedMultiIdx !== null && (
+                    <button
+                      onClick={() => { hapticTap(); setExpandedMultiIdx(null) }}
+                      aria-label={ct.backToGrid}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 12px',
+                        borderRadius: '100px', border: 'none', backgroundColor: 'rgba(232,52,78,0.85)', color: '#fff',
+                        fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>
+                      {ct.backToGrid}
+                    </button>
+                  )}
                   <span style={{
                     backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: '100px',
                     fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#fff',
