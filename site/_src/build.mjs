@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ctx = { window: { SP_T: {} } };
-for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'i18n-delete.js', 'legal-en-fr.js', 'legal-es-ru-he.js']) {
+for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'i18n-delete.js', 'legal-en-fr.js', 'legal-es-ru-he.js', 'i18n-legal-rules.js']) {
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'assets', f), 'utf8'), ctx);
 }
 const EN = ctx.window.SP_T.en;
@@ -16,7 +16,8 @@ const SITE = 'https://shapop.app';
 const MAIL = '<a class="email" href="mailto:support@shapop.app">support@shapop.app</a>';
 
 const get = (k) => k.split('.').reduce((o, p) => (o == null ? o : o[p]), EN);
-const fill = (s) => String(s).replace(/\{mail\}/g, MAIL);
+const OP = '<bdi dir="ltr">Benjamin Franklin Charles TAIEB, entrepreneur individuel (SIRET 528 074 370 00032, 11 rue Jacques Duchesne, 75019 Paris, France)</bdi>';
+const fill = (s) => String(s).replace(/\{mail\}/g, MAIL).replace(/\{op\}/g, OP);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const strip = (s) => String(s).replace(/<[^>]+>/g, '');
 // élément traduit
@@ -105,21 +106,25 @@ function footer(legal = false) {
       <div>
         ${t('h4', 'foot.help')}
         <ul>
+          <li><a href="/rules" data-i18n="foot.rules">${get('foot.rules')}</a></li>
           <li><a href="/support" data-i18n="foot.support">${get('foot.support')}</a></li>
           <li><a href="/privacy" data-i18n="foot.privacy">${get('foot.privacy')}</a></li>
           <li><a href="/terms" data-i18n="foot.terms">${get('foot.terms')}</a></li>
           <li><a href="/delete-account" data-i18n="foot.del">${get('foot.del')}</a></li>
+          <li><a href="/legal" data-i18n="foot.mentions">${get('foot.mentions')}</a></li>
           <li><a class="email" href="mailto:support@shapop.app">support@shapop.app</a></li>
         </ul>
       </div>
     </div>
     <div class="bottom"><span>© <span data-year>2026</span> ShaPop. <span data-i18n="foot.rights">${get('foot.rights')}</span></span><span class="email">shapop.app</span></div>
+    <p class="legal-line" data-i18n="foot.legalLine" style="margin:14px 0 0;font-size:13px;opacity:.75;line-height:1.5">${fill(get('foot.legalLine'))}</p>
   </div>
 </footer>
 <script src="/assets/i18n-en-fr.js?v=7"></script>
 <script src="/assets/i18n-es-ru-he.js?v=7"></script>
 <script src="/assets/i18n-delete.js?v=7"></script>
-${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=7"></script>
+<script src="/assets/i18n-legal-rules.js?v=8"></script>
+${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=8"></script>
 </body>
 </html>
 `;
@@ -371,7 +376,6 @@ function legal(kind) {
         ${t('span', 'legal.updated', 'class="updated"')}
         ${t('p', kind + '.lede', 'class="lede"')}
         <section class="legal-operator">
-          <!-- À COMPLÉTER : identité légale de l'exploitant (raison sociale, forme, numéro d'immatriculation, adresse du siège) -->
           ${t('h2', kind + '.opH')}
           ${t('p', kind + '.opP')}
         </section>
@@ -411,6 +415,53 @@ function deleteAccount() {
 </main>` + footer();
 }
 
+/* ------------------------- RÈGLES D'ACHAT ET DE VENTE ------------------------- */
+function rulesPage() {
+  return head('rules', { title: get('rules.metaTitle'), desc: get('rules.metaDesc'), pathName: '/rules' }) + header('rules') + `
+<main id="main">
+  <section class="page-hero">
+    <div class="wrap">
+      ${t('span', 'rules.kicker', 'class="kicker"')}
+      ${t('h1', 'rules.title')}
+      ${t('p', 'rules.intro')}
+    </div>
+  </section>
+  <section class="legal">
+    <div class="wrap">
+      <article class="legal-box">
+        ${t('h2', 'rules.buyerH')}
+        ${t('ol', 'rules.buyer')}
+        ${t('h2', 'rules.sellerH')}
+        ${t('ol', 'rules.seller')}
+        ${t('h2', 'rules.pickupH')}
+        ${t('ol', 'rules.pickup')}
+      </article>
+    </div>
+  </section>
+</main>` + footer();
+}
+
+/* ------------------------------ MENTIONS LÉGALES ------------------------------ */
+function mentionsPage() {
+  const block = (k) => `${t('h2', 'mentions.' + k + 'H')}${t('div', 'mentions.' + k)}`;
+  return head('legal', { title: get('mentions.metaTitle'), desc: get('mentions.metaDesc'), pathName: '/legal' }) + header('legal') + `
+<main id="main">
+  <section class="page-hero">
+    <div class="wrap">
+      ${t('span', 'mentions.kicker', 'class="kicker"')}
+      ${t('h1', 'mentions.title')}
+    </div>
+  </section>
+  <section class="legal">
+    <div class="wrap">
+      <article class="legal-box">
+        ${block('pub')}${block('dir')}${block('host')}${block('pay')}${block('more')}
+      </article>
+    </div>
+  </section>
+</main>` + footer();
+}
+
 const write = (rel, html) => {
   const p = path.join(ROOT, rel);
   fs.mkdirSync(path.dirname(p), { recursive: true });
@@ -422,3 +473,5 @@ write('support/index.html', support());
 write('privacy/index.html', legal('privacy'));
 write('terms/index.html', legal('terms'));
 write('delete-account/index.html', deleteAccount());
+write('rules/index.html', rulesPage());
+write('legal/index.html', mentionsPage());
