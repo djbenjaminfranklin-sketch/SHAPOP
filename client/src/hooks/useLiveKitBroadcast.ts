@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Room, RoomEvent, type LocalTrackPublication } from 'livekit-client'
+import { Room, RoomEvent, Track, type LocalTrackPublication } from 'livekit-client'
 import { tr, type Localized } from '../lib/i18n'
 
 const broadcastError: Localized<string> = {
@@ -19,7 +19,8 @@ interface UseLiveKitBroadcastReturn {
   isConnected: boolean
   isBroadcasting: boolean
   error: string | null
-  startBroadcast: () => void
+  /** stream : la caméra déjà ouverte pour l'aperçu (on la diffuse telle quelle au lieu d'en ouvrir une 2e). */
+  startBroadcast: (stream?: MediaStream | null) => void
   stopBroadcast: () => void
 }
 
@@ -55,7 +56,7 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
     }
   }, [])
 
-  const startBroadcast = useCallback(async () => {
+  const startBroadcast = useCallback(async (stream?: MediaStream | null) => {
     if (!livekitUrl || !livekitToken) return
     stoppedRef.current = false
     setError(null)
@@ -101,6 +102,17 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
         return
       }
 
+      // Diffuser la caméra de l'aperçu : une 2e capture iOS donnait un autre cadrage (zoom après un appel)
+      // et ignorait le retournement avant/arrière.
+      const videoTrack = stream?.getVideoTracks().find(t => t.readyState === 'live')
+      const audioTrack = stream?.getAudioTracks().find(t => t.readyState === 'live')
+      if (videoTrack) {
+        await room.localParticipant.publishTrack(videoTrack, { source: Track.Source.Camera, simulcast: true })
+        if (audioTrack) await room.localParticipant.publishTrack(audioTrack, { source: Track.Source.Microphone })
+        else await room.localParticipant.setMicrophoneEnabled(true)
+        setIsBroadcasting(true)
+        return
+      }
       // Publish camera and microphone with HD quality
       await room.localParticipant.enableCameraAndMicrophone()
       // Upgrade video encoding to higher resolution if possible
