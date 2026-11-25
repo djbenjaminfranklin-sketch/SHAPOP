@@ -164,6 +164,8 @@ const streamContent = {
     back: 'Back',
     multiView: 'Multi-view',
     exitMultiView: 'Exit multi-view',
+    expandCell: 'Full screen',
+    backToGrid: 'Back to grid',
     livesCount: '{n} lives',
     engagementDashboard: 'Engagement dashboard',
     joined: 'joined',
@@ -307,6 +309,8 @@ const streamContent = {
     back: 'Retour',
     multiView: 'Multi-vue',
     exitMultiView: 'Quitter la multi-vue',
+    expandCell: 'Plein écran',
+    backToGrid: 'Revenir à la grille',
     livesCount: '{n} lives',
     engagementDashboard: 'Tableau d\'engagement',
     joined: 'a rejoint',
@@ -450,6 +454,8 @@ const streamContent = {
     back: 'Volver',
     multiView: 'Multivista',
     exitMultiView: 'Salir de la multivista',
+    expandCell: 'Pantalla completa',
+    backToGrid: 'Volver a la cuadrícula',
     livesCount: '{n} directos',
     engagementDashboard: 'Panel de interacción',
     joined: 'se unió',
@@ -593,6 +599,8 @@ const streamContent = {
     back: 'Назад',
     multiView: 'Мультиэкран',
     exitMultiView: 'Выйти из мультиэкрана',
+    expandCell: 'Во весь экран',
+    backToGrid: 'Вернуться к сетке',
     livesCount: 'Эфиров: {n}',
     engagementDashboard: 'Панель вовлечённости',
     joined: 'заходит',
@@ -736,6 +744,8 @@ const streamContent = {
     back: 'חזרה',
     multiView: 'תצוגה מרובה',
     exitMultiView: 'יציאה מתצוגה מרובה',
+    expandCell: 'מסך מלא',
+    backToGrid: 'חזרה לרשת',
     livesCount: '{n} שידורים',
     engagementDashboard: 'לוח מעורבות',
     joined: 'הצטרף/ה',
@@ -982,6 +992,8 @@ export default function StreamView() {
   const [hasEnteredGiveaway, setHasEnteredGiveaway] = useState(false)
   // Cadeau auquel on ne peut pas participer (réservé aux acheteurs) : on retire la grande case
   const [giveawayDismissedId, setGiveawayDismissedId] = useState<string | null>(null)
+  // Multi-vue : une case agrandie en plein écran (les autres restent connectées en arrière-plan)
+  const [expandedMultiIdx, setExpandedMultiIdx] = useState<number | null>(null)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
   const [enteringGiveaway, setEnteringGiveaway] = useState(false)
   const giveawayWinnerShownRef = useRef<string | null>(null) // track which giveaway winner was already shown
@@ -2760,7 +2772,7 @@ export default function StreamView() {
                   isMultiView ? (
                     /* ═══ MULTI-VIEW GRID ═══ */
                     <div style={{
-                      width: '100%', height: '100%',
+                      width: '100%', height: '100%', position: 'relative',
                       display: 'grid',
                       gridTemplateColumns: multiViewStreams.length >= 2 ? '1fr 1fr' : '1fr',
                       gridTemplateRows: multiViewStreams.length >= 2 ? '1fr 1fr' : '1fr 1fr',
@@ -2775,12 +2787,49 @@ export default function StreamView() {
                         <div
                           key={cell.streamId}
                           onClick={() => { setActiveMultiIdx(cell.cellIdx); setViewerMuted(false) }}
-                          style={{
+                          style={expandedMultiIdx === cell.cellIdx ? {
+                            position: 'absolute', inset: 0, zIndex: 6, overflow: 'hidden', backgroundColor: '#000',
+                          } : {
                             position: 'relative', overflow: 'hidden',
                             border: activeMultiIdx === cell.cellIdx ? '2px solid #E8344E' : '2px solid transparent',
                             borderRadius: '4px',
+                            visibility: expandedMultiIdx !== null ? 'hidden' : 'visible',
                           }}
                         >
+                          {/* Plein écran / retour à la grille */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              hapticTap()
+                              if (expandedMultiIdx === cell.cellIdx) {
+                                setExpandedMultiIdx(null)
+                              } else {
+                                setExpandedMultiIdx(cell.cellIdx)
+                                setActiveMultiIdx(cell.cellIdx)
+                                setViewerMuted(false)
+                              }
+                            }}
+                            aria-label={expandedMultiIdx === cell.cellIdx ? ct.backToGrid : ct.expandCell}
+                            style={{
+                              position: 'absolute', zIndex: 9,
+                              // Grille : en bas de la case (le haut est sous la barre d'état) ; plein écran : sous la pastille « aperçu gratuit »
+                              ...(expandedMultiIdx === cell.cellIdx
+                                ? { top: 'calc(env(safe-area-inset-top, 0px) + 104px)' }
+                                : { bottom: '52px' }),
+                              left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage)
+                              display: 'flex', alignItems: 'center', gap: '6px',
+                              padding: '6px 12px', borderRadius: '100px', border: 'none',
+                              backgroundColor: 'rgba(0,0,0,0.6)', color: '#fff',
+                              fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                            }}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              {expandedMultiIdx === cell.cellIdx
+                                ? <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></>
+                                : <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />}
+                            </svg>
+                            {expandedMultiIdx === cell.cellIdx ? ct.backToGrid : ct.expandCell}
+                          </button>
                           <LiveKitViewer
                             livekitUrl={cell.lkUrl}
                             livekitToken={cell.lkToken}
@@ -2794,9 +2843,9 @@ export default function StreamView() {
                             onClick={(e) => {
                               e.stopPropagation()
                               if (cell.isMain) {
-                                setMultiViewStreams([]); setActiveMultiIdx(0)
+                                setMultiViewStreams([]); setActiveMultiIdx(0); setExpandedMultiIdx(null)
                               } else {
-                                removeMultiStream(cell.cellIdx - 1)
+                                removeMultiStream(cell.cellIdx - 1); setExpandedMultiIdx(null)
                               }
                             }}
                             style={{
@@ -3564,7 +3613,7 @@ export default function StreamView() {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               }}>
                 <button
-                  onClick={() => { setMultiViewStreams([]); setActiveMultiIdx(0) }}
+                  onClick={() => { setMultiViewStreams([]); setActiveMultiIdx(0); setExpandedMultiIdx(null) }}
                   aria-label={ct.exitMultiView}
                   style={{
                     width: '32px', height: '32px', borderRadius: '50%',

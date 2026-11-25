@@ -1509,6 +1509,13 @@ export default function LiveSellerView() {
   const facingModeRef = useRef(facingMode)
   facingModeRef.current = facingMode
 
+  // En entrant dans le live : page remise tout en haut (le défilement de l'écran précédent décalait la vidéo)
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    const root = document.getElementById('root')
+    if (root) root.scrollTop = 0
+  }, [])
+
   useEffect(() => {
     const cameraIsDead = () => {
       const tracks = mediaStreamRef.current?.getVideoTracks() || []
@@ -1524,9 +1531,25 @@ export default function LiveSellerView() {
     }
     document.addEventListener('visibilitychange', onVisible)
     window.addEventListener('focus', onVisible)
+    // Caméra coupée sans quitter l'appli (notification, son d'un autre appli…) : relance après 2 contrôles de suite
+    let deadChecks = 0
+    let restarting = false
+    let lastRestart = 0
+    const watchdog = setInterval(async () => {
+      if (document.visibilityState !== 'visible' || restarting || !mediaStreamRef.current) { deadChecks = 0; return }
+      deadChecks = cameraIsDead() ? deadChecks + 1 : 0
+      // 3 contrôles d'affilée (6 s) et au moins 15 s entre deux relances : jamais de relance en boucle
+      if (deadChecks >= 3 && Date.now() - lastRestart > 15_000) {
+        deadChecks = 0
+        restarting = true
+        lastRestart = Date.now()
+        try { await restartCameraRef.current(facingModeRef.current) } finally { restarting = false }
+      }
+    }, 2000)
     return () => {
       document.removeEventListener('visibilitychange', onVisible)
       window.removeEventListener('focus', onVisible)
+      clearInterval(watchdog)
     }
   }, [])
 
@@ -1947,7 +1970,8 @@ export default function LiveSellerView() {
       {/* Miroir appliqué au conteneur, pas à la vidéo : sur iPhone, une vidéo transformée
           ignore object-fit et reste dans un cadre au milieu de l'écran. */}
       <div style={{
-        position: 'absolute', inset: 0, overflow: 'hidden',
+        // fixé à l'écran (et non à la page) : sinon la vidéo héritait du défilement de l'écran précédent (bande noire en haut)
+        position: 'fixed', inset: 0, overflow: 'hidden',
         transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
       }}>
         <video
