@@ -8,6 +8,7 @@ import helmet from 'helmet'
 import { createServer } from 'http'
 import { PAYPAL_MODE, supabase } from './config'
 import { notifyFollowersSellerLive } from './utils'
+import { endAbandonedLives } from './services/abandonedLives'
 import { globalLimiter, webhookLimiter } from './middleware'
 
 // Route modules
@@ -175,6 +176,16 @@ server.listen(PORT, () => {
       console.error('[Handover-Deadline] Error:', err)
     }
   }, 60 * 60 * 1000) // 1 hour
+
+  // Lives fantômes (vendeur parti sans « Terminer ») : contrôle de la salle vidéo toutes les 2 min
+  setInterval(async () => {
+    try {
+      const ended = await endAbandonedLives()
+      if (ended > 0) console.log(`[Lives] ${ended} live(s) abandonné(s) terminé(s)`)
+    } catch (err) {
+      console.error('[Lives] Contrôle des lives abandonnés:', err)
+    }
+  }, 2 * 60 * 1000)
 
   // Remind buyers about pending payments every 6 hours
   console.log('[Payments] Payment reminder enabled (every 6h)')
