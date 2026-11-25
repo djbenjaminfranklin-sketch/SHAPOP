@@ -163,17 +163,6 @@ export default function BottomNav() {
       ),
     },
     {
-      to: '/map',
-      labelKey: 'map_tab' as const,
-      active: path === '/map' || path === '/communities' || path.startsWith('/community/'),
-      icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
-          <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-      ),
-    },
-    {
       to: '#sell',
       labelKey: 'sell_tab' as const,
       active: false,
@@ -415,7 +404,7 @@ export default function BottomNav() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>
           {tabs.map(tab => {
             if (tab.special) {
               return (

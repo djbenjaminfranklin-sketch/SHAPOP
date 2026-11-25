@@ -63,6 +63,7 @@ const streamContent = {
     reserveOfferBuy: 'Buy at {price}',
     reserveOfferDecline: 'No thanks',
     reserveOfferFailed: 'This offer is no longer available.',
+    giveawayBuyersOnly: 'This gift is for buyers of this live: buy an item to take part.',
     toReceiveItem: 'To receive your item',
     fullName: 'Full name',
     cityPlaceholder: 'City',
@@ -205,6 +206,7 @@ const streamContent = {
     reserveOfferBuy: 'Acheter à {price}',
     reserveOfferDecline: 'Non merci',
     reserveOfferFailed: 'Cette offre n’est plus disponible.',
+    giveawayBuyersOnly: 'Ce cadeau est réservé aux acheteurs de ce live : achète un article pour participer.',
     toReceiveItem: 'Pour recevoir ton article',
     fullName: 'Nom complet',
     cityPlaceholder: 'Ville',
@@ -347,6 +349,7 @@ const streamContent = {
     reserveOfferBuy: 'Comprar a {price}',
     reserveOfferDecline: 'No, gracias',
     reserveOfferFailed: 'Esta oferta ya no está disponible.',
+    giveawayBuyersOnly: 'Este regalo es solo para quienes compran en este directo: compra un artículo para participar.',
     toReceiveItem: 'Para recibir tu artículo',
     fullName: 'Nombre completo',
     cityPlaceholder: 'Ciudad',
@@ -489,6 +492,7 @@ const streamContent = {
     reserveOfferBuy: 'Купить за {price}',
     reserveOfferDecline: 'Нет, спасибо',
     reserveOfferFailed: 'Это предложение больше недоступно.',
+    giveawayBuyersOnly: 'Подарок только для покупателей этого эфира: купи товар, чтобы участвовать.',
     toReceiveItem: 'Чтобы получить товар',
     fullName: 'Имя и фамилия',
     cityPlaceholder: 'Город',
@@ -631,6 +635,7 @@ const streamContent = {
     reserveOfferBuy: 'לקנות ב-{price}',
     reserveOfferDecline: 'לא תודה',
     reserveOfferFailed: 'ההצעה כבר לא זמינה.',
+    giveawayBuyersOnly: 'המתנה מיועדת לקונים בשידור הזה: קנה פריט כדי להשתתף.',
     toReceiveItem: 'כדי לקבל את הפריט שלך',
     fullName: 'שם מלא',
     cityPlaceholder: 'עיר',
@@ -1634,6 +1639,7 @@ export default function StreamView() {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
+      if (resp.status === 403) { alert(ct.giveawayBuyersOnly); return }
       if (resp.ok) {
         setMultiStreamGiveawayEntered(prev => ({ ...prev, [streamId]: true }))
         setMultiStreamGiveaways(prev => prev[streamId] ? { ...prev, [streamId]: { ...prev[streamId], entry_count: prev[streamId].entry_count + 1 } } : prev)
@@ -2045,6 +2051,8 @@ export default function StreamView() {
       if (resp.ok || resp.status === 409) {
         setHasEnteredGiveaway(true)
         hapticTap()
+      } else if (resp.status === 403) {
+        alert(ct.giveawayBuyersOnly)
       }
     } catch { /* ignore */ }
     setEnteringGiveaway(false)

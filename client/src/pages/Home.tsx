@@ -45,6 +45,7 @@ type HomeText = {
   clear: string
   clearSearch: string
   city: string
+  nearbyLives: string
   cityPlaceholder: string
   minSellerRating: string
   all: string
@@ -78,6 +79,7 @@ const homeContent: Localized<HomeText> = {
     clear: 'Clear',
     clearSearch: 'Clear search',
     city: 'City',
+    nearbyLives: 'Lives near me',
     cityPlaceholder: 'London, New York...',
     minSellerRating: 'Minimum seller rating',
     all: 'All',
@@ -109,6 +111,7 @@ const homeContent: Localized<HomeText> = {
     clear: 'Effacer',
     clearSearch: 'Effacer la recherche',
     city: 'Ville',
+    nearbyLives: 'Lives autour de moi',
     cityPlaceholder: 'Londres, New York...',
     minSellerRating: 'Note minimale du vendeur',
     all: 'Tous',
@@ -140,6 +143,7 @@ const homeContent: Localized<HomeText> = {
     clear: 'Borrar',
     clearSearch: 'Borrar búsqueda',
     city: 'Ciudad',
+    nearbyLives: 'Directos cerca de mí',
     cityPlaceholder: 'Londres, Nueva York...',
     minSellerRating: 'Valoración mínima del vendedor',
     all: 'Todos',
@@ -171,6 +175,7 @@ const homeContent: Localized<HomeText> = {
     clear: 'Очистить',
     clearSearch: 'Очистить поиск',
     city: 'Город',
+    nearbyLives: 'Эфиры рядом',
     cityPlaceholder: 'Лондон, Нью-Йорк...',
     minSellerRating: 'Минимальный рейтинг продавца',
     all: 'Все',
@@ -202,6 +207,7 @@ const homeContent: Localized<HomeText> = {
     clear: 'ניקוי',
     clearSearch: 'ניקוי החיפוש',
     city: 'עיר',
+    nearbyLives: 'שידורים קרוב אליי',
     cityPlaceholder: 'לונדון, ניו יורק...',
     minSellerRating: 'דירוג מוכר מינימלי',
     all: 'הכל',
@@ -736,6 +742,16 @@ export default function Home() {
                 </svg>
               </>
             )}
+          </button>
+          {/* « Local » n'est plus dans la barre du bas : accès aux lives autour de soi ici */}
+          <button
+            onClick={() => navigate('/map')}
+            style={{
+              marginInlineStart: 'auto', background: 'transparent', border: 'none', padding: '2px 0',
+              color: '#E8344E', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            {ht.nearbyLives} ›
           </button>
 
           {/* City picker dropdown : toutes les villes, champ « Ta ville », villes autour de toi */}

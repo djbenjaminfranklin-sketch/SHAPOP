@@ -1020,7 +1020,7 @@ router.post('/api/giveaways/:id/enter', requireAuth, async (req: AuthenticatedRe
     // Verify giveaway is active
     const { data: giveaway } = await supabase
       .from('giveaways')
-      .select('id, status')
+      .select('id, status, buyers_only, stream_id')
       .eq('id', giveawayId)
       .single()
 
@@ -1031,6 +1031,15 @@ router.post('/api/giveaways/:id/enter', requireAuth, async (req: AuthenticatedRe
     if (giveaway.status !== 'active') {
       res.status(400).json({ error: 'Giveaway is no longer active' })
       return
+    }
+    // Cadeau réservé aux acheteurs du live : on refuse l'inscription plutôt que de laisser croire qu'il participe
+    if (giveaway.buyers_only) {
+      const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true })
+        .eq('stream_id', giveaway.stream_id).eq('buyer_id', userId).neq('status', 'cancelled')
+      if (!count) {
+        res.status(403).json({ error: 'buyers_only' })
+        return
+      }
     }
 
     // Get user display name
