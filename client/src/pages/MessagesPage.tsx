@@ -234,17 +234,17 @@ export default function MessagesPage() {
       </div>
 
       {/* Warning banner */}
-      <div className="mx-4 mt-3 p-3 bg-orange-500/10 border border-orange-500/30 rounded-[0.5rem] flex items-start gap-2">
+      <div className="bg-orange-500/10 border border-orange-500/30 flex items-start" style={{ margin: '14px 16px 6px', padding: '12px 14px', borderRadius: '12px', gap: '10px' }}>
         <svg className="w-5 h-5 text-orange-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <p className="text-xs text-orange-300">
+        <p className="text-orange-300" style={{ fontSize: 'calc(13px * var(--fs, 1))', lineHeight: 1.4 }}>
           {ct.offPlatformWarning}
         </p>
       </div>
 
       {/* Content */}
-      <div className="mt-3 px-4">
+      <div style={{ padding: '4px 16px 0' }}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
@@ -266,7 +266,7 @@ export default function MessagesPage() {
             <p className="text-gray-600 text-sm mt-1">{ct.messagesWillAppear}</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-white/10">
             {conversations.map((conv) => {
               const other = conv.other_participant
               const displayName = other?.display_name || ct.defaultUser
@@ -286,7 +286,8 @@ export default function MessagesPage() {
                 <button
                   key={conv.id}
                   onClick={() => navigate(`/conversation/${conv.id}`)}
-                  className="w-full flex items-center gap-3 py-3 text-start hover:bg-white/5 rounded-[0.5rem] transition-colors"
+                  className="w-full flex items-center text-start hover:bg-white/5 transition-colors"
+                  style={{ gap: '14px', padding: '16px 4px', minHeight: '84px' }}
                 >
                   {/* Avatar with item thumbnail overlay */}
                   <div className="flex-shrink-0 relative">
@@ -294,12 +295,12 @@ export default function MessagesPage() {
                       <img
                         src={avatarUrl}
                         alt={displayName}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="rounded-full object-cover" style={{ width: '54px', height: '54px' }}
                         loading="lazy"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-semibold text-sm">
+                      <div className="rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-semibold" style={{ width: '54px', height: '54px', fontSize: 'calc(16px * var(--fs, 1))' }}>
                         {getInitials(displayName)}
                       </div>
                     )}
@@ -307,7 +308,7 @@ export default function MessagesPage() {
                       <img
                         src={itemImage}
                         alt=""
-                        className="absolute -bottom-1 -end-1 w-6 h-6 rounded-md object-cover border-2 border-black"
+                        className="absolute -bottom-1 -end-1 rounded-md object-cover border-2 border-black" style={{ width: '24px', height: '24px' }}
                         loading="lazy"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
@@ -316,14 +317,14 @@ export default function MessagesPage() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-sm truncate">{displayName}</span>
-                      <span className="text-xs text-gray-500 flex-shrink-0">{timeAgo(lastTime)}</span>
+                    <div className="flex items-center justify-between" style={{ gap: '8px' }}>
+                      <span className="font-semibold truncate" style={{ fontSize: 'calc(16px * var(--fs, 1))' }}>{displayName}</span>
+                      <span className="text-gray-500 flex-shrink-0" style={{ fontSize: 'calc(12px * var(--fs, 1))' }}>{timeAgo(lastTime)}</span>
                     </div>
                     {itemTitle && (
-                      <p className="text-[11px] text-gray-500 truncate">{itemTitle}</p>
+                      <p className="text-gray-500 truncate" style={{ fontSize: 'calc(13px * var(--fs, 1))', marginTop: '4px' }}>{itemTitle}</p>
                     )}
-                    <p className="text-xs text-gray-400 truncate mt-0.5">{preview}</p>
+                    <p className="text-gray-400 truncate" style={{ fontSize: 'calc(14px * var(--fs, 1))', marginTop: '4px' }}>{preview}</p>
                   </div>
 
                   {/* Chevron */}
