@@ -9,6 +9,7 @@ import { createServer } from 'http'
 import { PAYPAL_MODE, supabase } from './config'
 import { notifyFollowersSellerLive } from './utils'
 import { endAbandonedLives } from './services/abandonedLives'
+import { closeGiveawaysOfEndedLives } from './services/giveawayClose'
 import { globalLimiter, webhookLimiter } from './middleware'
 
 // Route modules
@@ -182,6 +183,9 @@ server.listen(PORT, () => {
     try {
       const ended = await endAbandonedLives()
       if (ended > 0) console.log(`[Lives] ${ended} live(s) abandonné(s) terminé(s)`)
+      // Cadeaux restés ouverts sur un live terminé : tirage automatique
+      const gifts = await closeGiveawaysOfEndedLives()
+      if (gifts > 0) console.log(`[Lives] ${gifts} cadeau(x) clôturé(s) après la fin du live`)
     } catch (err) {
       console.error('[Lives] Contrôle des lives abandonnés:', err)
     }

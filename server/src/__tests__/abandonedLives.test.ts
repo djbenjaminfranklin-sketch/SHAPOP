@@ -9,11 +9,12 @@ describe('lives abandonnés', () => {
   it('co-hôte présent : le live continue', () => {
     expect(shouldEndLive(['cohost-abc'], 1)).toEqual({ end: false, misses: 0 })
   })
-  it('vendeur absent une fois : on attend le contrôle suivant', () => {
+  it('vendeur absent moins de 10 min (4 contrôles) : le live continue', () => {
     expect(shouldEndLive(['viewer-x'], 0)).toEqual({ end: false, misses: 1 })
+    expect(shouldEndLive(['viewer-x'], 3)).toEqual({ end: false, misses: 4 })
   })
-  it('vendeur absent deux fois de suite (ou salle supprimée) : on termine', () => {
-    expect(shouldEndLive(['viewer-x'], 1)).toEqual({ end: true, misses: 2 })
-    expect(shouldEndLive(null, 1)).toEqual({ end: true, misses: 2 })
+  it('vendeur absent 5 contrôles de suite (10 min, ou salle supprimée) : on termine', () => {
+    expect(shouldEndLive(['viewer-x'], 4)).toEqual({ end: true, misses: 5 })
+    expect(shouldEndLive(null, 4)).toEqual({ end: true, misses: 5 })
   })
 })

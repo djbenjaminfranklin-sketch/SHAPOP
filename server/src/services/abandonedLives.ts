@@ -1,7 +1,7 @@
 import { supabase, livekitRoomService } from '../config'
 
 /** Nombre de contrôles consécutifs sans vendeur dans la salle avant de terminer le live. */
-export const MISSES_BEFORE_END = 2
+export const MISSES_BEFORE_END = 5 // contrôles toutes les 2 min → 10 min sans vendeur
 
 /**
  * Décide si un live doit être terminé : le vendeur (ou le co-hôte) n'est plus dans la salle vidéo
