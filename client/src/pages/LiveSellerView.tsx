@@ -19,6 +19,7 @@ const pageContent = {
     viewers: 'viewers',
     nextItem: 'Next item',
     relaunch: 'Relaunch auction',
+    goHome: 'Home',
     myItems: 'My items',
     editItemBtn: 'Edit',
     editTitle: 'Title',
@@ -136,6 +137,7 @@ const pageContent = {
     viewers: 'spectateurs',
     nextItem: 'Article suivant',
     relaunch: 'Relancer l’enchère',
+    goHome: 'Accueil',
     myItems: 'Mes articles',
     editItemBtn: 'Modifier',
     editTitle: 'Nom',
@@ -253,6 +255,7 @@ const pageContent = {
     viewers: 'espectadores',
     nextItem: 'Siguiente artículo',
     relaunch: 'Relanzar la subasta',
+    goHome: 'Inicio',
     myItems: 'Mis artículos',
     editItemBtn: 'Editar',
     editTitle: 'Nombre',
@@ -370,6 +373,7 @@ const pageContent = {
     viewers: 'зрителей',
     nextItem: 'Следующий товар',
     relaunch: 'Перезапустить аукцион',
+    goHome: 'Главная',
     myItems: 'Мои товары',
     editItemBtn: 'Изменить',
     editTitle: 'Название',
@@ -487,6 +491,7 @@ const pageContent = {
     viewers: 'צופים',
     nextItem: 'הפריט הבא',
     relaunch: 'להפעיל שוב את המכירה',
+    goHome: 'דף הבית',
     myItems: 'הפריטים שלי',
     editItemBtn: 'עריכה',
     editTitle: 'שם',
@@ -1951,7 +1956,21 @@ export default function LiveSellerView() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         zIndex: 20,
       }}>
-        {/* Left: LIVE dot + viewer count */}
+        {/* Left: accueil (sans terminer le live) + LIVE dot + viewer count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <button
+          onClick={() => navigate('/')}
+          aria-label={ct.goHome}
+          style={{
+            width: '34px', height: '34px', borderRadius: '50%', border: 'none',
+            backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0,
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9.5z" />
+          </svg>
+        </button>
         <div style={{
           display: 'flex', alignItems: 'center', gap: '0',
           backgroundColor: 'rgba(0,0,0,0.6)',
@@ -1971,6 +1990,7 @@ export default function LiveSellerView() {
             <circle cx="12" cy="12" r="3"/>
           </svg>
           <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{viewerCount}</span>
+        </div>
         </div>
 
         {/* Buyer stats badge */}
