@@ -21,7 +21,7 @@ import { Share } from '@capacitor/share'
 import DeliveryChoice from '../components/checkout/DeliveryChoice'
 import { getStripePromise, PaymentFormInner } from '../components/checkout/StripePayment'
 import { formatSystemMessage } from '../lib/chatSystem'
-import { formatMoney, currencyForCountry } from '../lib/fulfillment'
+import { formatMoney, currencyForCountry, displayItemTitle } from '../lib/fulfillment'
 import { ft } from '../lib/fulfillmentText'
 import { useMiniPlayer } from '../contexts/MiniPlayerContext'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -2950,7 +2950,7 @@ export default function StreamView() {
                                   {ct.youWon}
                                 </p>
                                 <p style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.8)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  {pendingWonItem.title} — {money(pendingWonItem.price)}
+                                  {displayItemTitle(pendingWonItem.title)} — {money(pendingWonItem.price)}
                                 </p>
                               </div>
                               <span style={{
@@ -3076,7 +3076,7 @@ export default function StreamView() {
                                   {cell.item.image_url && (
                                     <img src={cell.item.image_url} alt="" loading="lazy" style={{ width: '22px', height: '22px', borderRadius: '4px', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                                   )}
-                                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cell.item.title}</span>
+                                  <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#fff', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayItemTitle(cell.item.title)}</span>
                                   <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>{money(cell.item.current_price, cell.currency)}</span>
                                 </div>
                                 {/* Bid button — full width */}
@@ -3188,7 +3188,7 @@ export default function StreamView() {
                                   }}
                                 >
                                   <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                    {nextItem.title} — {money(nextItem.starting_price)}
+                                    {displayItemTitle(nextItem.title)} — {money(nextItem.starting_price)}
                                   </p>
                                   <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff', padding: '4px 10px', borderRadius: '6px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                                     {ct.preBid}
@@ -4017,7 +4017,7 @@ export default function StreamView() {
                     style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
                   />
                 )}
-                <h3 style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activeAuction.title}</h3>
+                <h3 style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayItemTitle(activeAuction.title)}</h3>
               </div>
               <div
                 aria-live="polite"
@@ -4129,7 +4129,7 @@ export default function StreamView() {
             }}
           >
             <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#fff', margin: 0, fontWeight: 600, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {nextItem.title} — {money(nextItem.starting_price)}
+              {displayItemTitle(nextItem.title)} — {money(nextItem.starting_price)}
             </p>
             <span style={{
               fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#fff',
@@ -4261,7 +4261,7 @@ export default function StreamView() {
               {Math.max(0, Math.ceil((reserveOffer.expiresAt - reserveOfferNow) / 1000))}s {/* i18n-ignore */}
             </span>
           </div>
-          <p style={{ margin: '6px 0 4px', fontSize: 'calc(14px * var(--fs, 1))', color: 'rgba(255,255,255,0.75)' }}>{reserveOffer.title}</p>
+          <p style={{ margin: '6px 0 4px', fontSize: 'calc(14px * var(--fs, 1))', color: 'rgba(255,255,255,0.75)' }}>{displayItemTitle(reserveOffer.title)}</p>
           <p style={{ margin: '0 0 14px', fontSize: 'calc(14px * var(--fs, 1))', color: 'rgba(255,255,255,0.85)', lineHeight: 1.35 }}>
             {fill(ct.reserveOfferBody, { price: money(reserveOffer.price) })}
           </p>
@@ -4460,7 +4460,7 @@ export default function StreamView() {
                       {ct.youWon}
                     </h3>
                     {paymentItem && (
-                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{paymentItem.title}</p>
+                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{displayItemTitle(paymentItem.title)}</p>
                     )}
                   </div>
                 </div>
@@ -4482,7 +4482,7 @@ export default function StreamView() {
                         {ct.payToClaim}
                       </h3>
                       {paymentItem && (
-                        <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: 0 }}>{paymentItem.title}</p>
+                        <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: 0 }}>{displayItemTitle(paymentItem.title)}</p>
                       )}
                     </div>
                     <div style={{

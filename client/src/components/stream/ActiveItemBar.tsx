@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import type { Item } from '../../types/database'
 import { hapticTap } from '../../lib/haptics'
 import { getLang, type Lang, type Localized } from '../../lib/i18n'
-import { formatMoney, currencyForCountry } from '../../lib/fulfillment'
+import { formatMoney, currencyForCountry, displayItemTitle } from '../../lib/fulfillment'
 
 interface ActiveItemBarProps {
   item: Item | null
@@ -178,7 +178,7 @@ export default function ActiveItemBar({
             <img src={item.image_urls[0]} alt="" loading="lazy" style={{ width: '24px', height: '24px', borderRadius: '5px', objectFit: 'cover', flexShrink: 0 }} />
           )}
           <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {item.title}
+            {displayItemTitle(item.title)}
           </span>
           {hasActiveMaxBid && (
             <span style={{

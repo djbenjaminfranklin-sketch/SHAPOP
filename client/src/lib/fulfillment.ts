@@ -215,3 +215,8 @@ export async function fileToJpegDataUrl(file: File, maxSide = 1600, quality = 0.
     return dataUrl
   }
 }
+
+/** Titre d'article sans le code interne « [ABCD] » ajouté à la création (utile aux commandes, pas aux acheteurs du live). */
+export function displayItemTitle(title: string | null | undefined): string {
+  return (title || '').replace(/\s*\[[A-Z0-9]{3,8}\]\s*$/, '')
+}

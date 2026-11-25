@@ -23,3 +23,11 @@ describe('champs Stripe', () => {
     expect(bad).toEqual([])
   })
 })
+
+import { displayItemTitle } from '../fulfillment'
+describe('titre affiché aux acheteurs', () => {
+  it('retire le code interne [ABCD]', () => {
+    expect(displayItemTitle('Ordinateur portable noir [KDRZ]')).toBe('Ordinateur portable noir')
+    expect(displayItemTitle('Veste en jean')).toBe('Veste en jean')
+  })
+})
