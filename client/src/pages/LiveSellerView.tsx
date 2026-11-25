@@ -1728,6 +1728,13 @@ export default function LiveSellerView() {
     unlockBody()
     setShowEndConfirm(false)
     setLiveEnded(true)
+    // Le live est terminé tout de suite pour tout le monde (accueil, bandeau « Revenir au live ») ;
+    // l'arrêt de la vidéo côté serveur suit
+    if (streamId) {
+      try { sessionStorage.setItem('shapop_ended_live', streamId) } catch { /* ignore */ }
+      supabase.from('streams').update({ status: 'ended' as const, ended_at: new Date().toISOString() })
+        .eq('id', streamId).eq('status', 'live').then(() => {}, () => {})
+    }
 
     // Stop LiveKit broadcast
     stopBroadcast()

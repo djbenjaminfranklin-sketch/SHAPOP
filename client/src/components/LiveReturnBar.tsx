@@ -22,7 +22,10 @@ export function useMyActiveLive(userId: string, path: string): { id: string; tit
       const { data } = await supabase.from('streams').select('id, title')
         .eq('seller_id', userId).eq('status', 'live')
         .order('started_at', { ascending: false }).limit(1).maybeSingle()
-      if (alive) setLive(data ? { id: data.id, title: data.title } : null)
+      // Live que le vendeur vient de terminer : jamais proposé (le serveur peut mettre quelques secondes à le clore)
+      let justEnded: string | null = null
+      try { justEnded = sessionStorage.getItem('shapop_ended_live') } catch { /* ignore */ }
+      if (alive) setLive(data && data.id !== justEnded ? { id: data.id, title: data.title } : null)
     }
     load().catch(() => {})
     const t = setInterval(() => { load().catch(() => {}) }, 30_000)
