@@ -74,6 +74,8 @@ const streamContent = {
     youWon: 'You won!',
     winCardDeclined: 'Your card was declined',
     winCardDeclinedHint: 'Choose the handover, then pay with another card. You can also change your saved card in Payments.',
+    winNoCard: 'Payment to complete',
+    winNoCardHint: 'Choose the handover, then add the card you will use to pay this seller.',
     payToClaim: 'Pay to get your item',
     payNow: 'Pay now',
     paymentSuccess: 'Payment confirmed!',
@@ -219,6 +221,8 @@ const streamContent = {
     youWon: 'Tu as gagné !',
     winCardDeclined: 'Ta carte a été refusée',
     winCardDeclinedHint: 'Choisis la remise, puis paie avec une autre carte. Tu peux aussi changer ta carte enregistrée dans Paiements.',
+    winNoCard: 'Paiement à finaliser',
+    winNoCardHint: 'Choisis la remise, puis ajoute la carte qui servira à payer ce vendeur.',
     payToClaim: 'Paie pour recevoir ton article',
     payNow: 'Payer maintenant',
     paymentSuccess: 'Paiement confirmé !',
@@ -364,6 +368,8 @@ const streamContent = {
     youWon: '¡Ganaste!',
     winCardDeclined: 'Tu tarjeta ha sido rechazada',
     winCardDeclinedHint: 'Elige la entrega y paga con otra tarjeta. También puedes cambiar tu tarjeta guardada en Pagos.',
+    winNoCard: 'Pago por completar',
+    winNoCardHint: 'Elige la entrega y añade la tarjeta con la que pagarás a este vendedor.',
     payToClaim: 'Paga para recibir tu artículo',
     payNow: 'Pagar ahora',
     paymentSuccess: '¡Pago confirmado!',
@@ -509,6 +515,8 @@ const streamContent = {
     youWon: 'Победа за тобой!',
     winCardDeclined: 'Твоя карта отклонена',
     winCardDeclinedHint: 'Выбери способ передачи и оплати другой картой. Сохранённую карту можно сменить в разделе «Оплата».',
+    winNoCard: 'Оплату нужно завершить',
+    winNoCardHint: 'Выбери способ передачи и добавь карту для оплаты этому продавцу.',
     payToClaim: 'Оплати, чтобы получить товар',
     payNow: 'Оплатить',
     paymentSuccess: 'Оплата прошла!',
@@ -654,6 +662,8 @@ const streamContent = {
     youWon: 'זכית!',
     winCardDeclined: 'הכרטיס שלך נדחה',
     winCardDeclinedHint: 'בחרו אופן מסירה ושלמו בכרטיס אחר. אפשר גם להחליף את הכרטיס השמור במסך התשלומים.',
+    winNoCard: 'יש להשלים את התשלום',
+    winNoCardHint: 'בחרו אופן מסירה והוסיפו את הכרטיס שישמש לתשלום למוכר הזה.',
     payToClaim: 'שלם כדי לקבל את הפריט',
     payNow: 'שלם עכשיו',
     paymentSuccess: 'התשלום אושר!',
@@ -945,8 +955,11 @@ export default function StreamView() {
   const [deliveryStep, setDeliveryStep] = useState(true)
   // Carte refusée à l'autorisation de fin d'enchère (le serveur l'écrit sur la commande)
   const [winCardDeclined, setWinCardDeclined] = useState(false)
+  // Résultat de la réservation sur la carte : 'authorized' | 'declined' | 'no_card' | null (pas encore connu)
+  const [winAuthStatus, setWinAuthStatus] = useState<string | null>(null)
   useEffect(() => {
     setWinCardDeclined(false)
+    setWinAuthStatus(null)
     if (!paymentOrder?.id) return
     let stop = false
     const delays = [0, 1500, 3000, 5000, 8000, 12000]
@@ -956,7 +969,7 @@ export default function StreamView() {
       const st = (data as { auth_status?: string | null } | null)?.auth_status
       if (!st || stop) return
       stop = true
-      if (isMountedRef.current) setWinCardDeclined(st === 'declined' || st === 'no_card')
+      if (isMountedRef.current) { setWinCardDeclined(st === 'declined' || st === 'no_card'); setWinAuthStatus(st) }
     }, ms))
     return () => { stop = true; timers.forEach(clearTimeout) }
   }, [paymentOrder?.id])
@@ -1917,6 +1930,7 @@ export default function StreamView() {
               setTimeout(() => {
                 if (!isMountedRef.current) return
                 setSoldAnimation(null)
+                setReserveOfferNow(Date.now())
                 setReserveOffer({ itemId: item.id, title: item.title, price: Number(item.min_price), expiresAt: Date.now() + 55_000 })
               }, 2500)
             })
@@ -4539,11 +4553,11 @@ export default function StreamView() {
                 </div>
                 {winCardDeclined && (
                   <div role="alert" style={{ padding: '10px 12px', marginBottom: '14px', borderRadius: '12px', backgroundColor: 'rgba(232,52,78,0.12)', border: '1px solid rgba(232,52,78,0.4)' }}>
-                    <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#E8344E' }}>{ct.winCardDeclined}</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{ct.winCardDeclinedHint}</p>
+                    <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#E8344E' }}>{winAuthStatus === 'no_card' ? ct.winNoCard : ct.winCardDeclined}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{winAuthStatus === 'no_card' ? ct.winNoCardHint : ct.winCardDeclinedHint}</p>
                   </div>
                 )}
-                <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} hasSavedCard={hasCard === true} />
+                <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} hasSavedCard={winAuthStatus === 'authorized'} />
               </>
             ) : (
               /* Step 2: Payment */
