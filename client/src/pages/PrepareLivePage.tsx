@@ -12,7 +12,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
 
 // Compress image to max 800px and JPEG quality 0.7
-type BatchRow = { key: string; preview: string; imageUrl: string | null; title: string; price: string; status: 'uploading' | 'naming' | 'ready' | 'error' }
+type BatchRow = { key: string; preview: string; imageUrl: string | null; title: string; price: string; minPrice: string; buyNow: string; status: 'uploading' | 'naming' | 'ready' | 'error' }
 
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -56,6 +56,12 @@ const pageContent = {
     aiNaming: 'Naming…',
     aiNamingFailed: 'The AI couldn’t name these photos: type the names.',
     priceShort: 'Price',
+    startShort: 'Start',
+    minPriceShort: 'Minimum',
+    buyNowShort: 'Buy now',
+    editItem: 'Edit',
+    saveChanges: 'Save changes',
+    editFailed: 'Changes could not be saved',
     addAllItems: 'Add {n} items',
     addMorePhotos: 'Add photos',
     cancelBatch: 'Cancel',
@@ -136,6 +142,12 @@ const pageContent = {
     aiNaming: 'L’IA cherche le nom…',
     aiNamingFailed: 'L’IA n’a pas pu nommer ces photos : écris les noms.',
     priceShort: 'Prix',
+    startShort: 'Départ',
+    minPriceShort: 'Minimum',
+    buyNowShort: 'Achat immédiat',
+    editItem: 'Modifier',
+    saveChanges: 'Enregistrer les modifications',
+    editFailed: 'Impossible d’enregistrer les modifications',
     addAllItems: 'Ajouter {n} articles',
     addMorePhotos: 'Ajouter des photos',
     cancelBatch: 'Annuler',
@@ -216,6 +228,12 @@ const pageContent = {
     aiNaming: 'La IA busca el nombre…',
     aiNamingFailed: 'La IA no pudo nombrar estas fotos: escribe los nombres.',
     priceShort: 'Precio',
+    startShort: 'Salida',
+    minPriceShort: 'Mínimo',
+    buyNowShort: 'Compra inmediata',
+    editItem: 'Editar',
+    saveChanges: 'Guardar cambios',
+    editFailed: 'No se pudieron guardar los cambios',
     addAllItems: 'Añadir {n} artículos',
     addMorePhotos: 'Añadir fotos',
     cancelBatch: 'Cancelar',
@@ -296,6 +314,12 @@ const pageContent = {
     aiNaming: 'ИИ подбирает название…',
     aiNamingFailed: 'ИИ не смог назвать эти фото: впиши названия.',
     priceShort: 'Цена',
+    startShort: 'Старт',
+    minPriceShort: 'Минимум',
+    buyNowShort: 'Купить сразу',
+    editItem: 'Изменить',
+    saveChanges: 'Сохранить изменения',
+    editFailed: 'Не удалось сохранить изменения',
     addAllItems: 'Добавить товары: {n}',
     addMorePhotos: 'Добавить фото',
     cancelBatch: 'Отмена',
@@ -376,6 +400,12 @@ const pageContent = {
     aiNaming: 'ה-AI מחפש שם…',
     aiNamingFailed: 'ה-AI לא הצליח לתת שם לתמונות האלה: כתבו את השמות.',
     priceShort: 'מחיר',
+    startShort: 'התחלה',
+    minPriceShort: 'מינימום',
+    buyNowShort: 'קנייה מיידית',
+    editItem: 'עריכה',
+    saveChanges: 'שמירת השינויים',
+    editFailed: 'לא ניתן לשמור את השינויים',
     addAllItems: 'הוספת {n} פריטים',
     addMorePhotos: 'הוספת תמונות',
     cancelBatch: 'ביטול',
@@ -534,6 +564,8 @@ export default function PrepareLivePage() {
   const [suggestedShipping, setSuggestedShipping] = useState<SuggestedShipping | null>(null)
   const [loadingShipping, setLoadingShipping] = useState(false)
   const [formError, setFormError] = useState('')
+  // Article en cours de modification (null = ajout d'un nouvel article)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [editingDate, setEditingDate] = useState(false)
   const [scheduledDate, setScheduledDate] = useState('')
   const [deleteError, setDeleteError] = useState('')
@@ -702,6 +734,52 @@ export default function PrepareLivePage() {
     }
 
     const category = formCategory || stream?.category || ''
+
+    if (editingItemId) {
+      const original = items.find(it => it.id === editingItemId)
+      // On garde le code unique de l'article « [XXXX] » à la fin du nom
+      const code = original?.title.match(/\s\[[A-Z0-9]+\]$/)?.[0] || ''
+      let imageUrl = original?.image_url || null
+      if (formImageFile) {
+        try {
+          const compressed: Blob = await Promise.race([
+            compressImage(formImageFile),
+            new Promise<Blob>(resolve => setTimeout(() => resolve(formImageFile), 10_000)),
+          ]).catch(() => formImageFile)
+          const filePath = `items/${user.id}/${Date.now()}.jpg`
+          const { error: upErr } = await supabase.storage.from('avatars').upload(filePath, compressed, { contentType: 'image/jpeg', upsert: false })
+          if (upErr) { setFormError(ct.uploadFailed); setSaving(false); return false }
+          imageUrl = supabase.storage.from('avatars').getPublicUrl(filePath).data.publicUrl
+        } catch {
+          setFormError(ct.uploadFailed); setSaving(false); return false
+        }
+      }
+      const minP = formMinPrice ? parseFloat(formMinPrice) : 0
+      const buyP = formBuyNowPrice ? parseFloat(formBuyNowPrice) : 0
+      const weightG = formWeight ? parseInt(formWeight, 10) : 0
+      const shipO = formShippingOverride ? parseFloat(formShippingOverride) : 0
+      const patch = {
+        title: `${formTitle.trim()}${code}`,
+        starting_price: price, current_price: price, category,
+        min_price: minP > 0 ? minP : null, buy_now_price: buyP > 0 ? buyP : null,
+        image_urls: imageUrl ? [imageUrl] : [],
+        duration_seconds: formDuration,
+        weight_grams: weightG > 0 ? weightG : null,
+        seller_shipping_override: shipO > 0 ? shipO : null,
+      }
+      const { error: updErr } = await supabase.from('items').update(patch).eq('id', editingItemId).eq('status', 'draft')
+      if (updErr) { setFormError(ct.editFailed); setSaving(false); return false }
+      setItems(prev => prev.map(it => it.id === editingItemId ? {
+        ...it, title: patch.title, starting_price: price, min_price: patch.min_price, buy_now_price: patch.buy_now_price,
+        category, image_url: imageUrl, duration_seconds: formDuration, weight_grams: patch.weight_grams,
+        seller_shipping_override: patch.seller_shipping_override,
+      } : it))
+      setEditingItemId(null)
+      setFormTitle(''); setFormPrice(''); setFormCategory(''); setFormMinPrice(''); setFormBuyNowPrice('')
+      setFormWeight(''); setFormShippingOverride(''); setFormDuration(60); setFormQuantity(1)
+      setFormImage(null); setFormImageFile(null); setShowForm(false); setSaving(false)
+      return true
+    }
     const qty = Math.max(1, Math.min(formQuantity, 99))
     const baseTitle = formTitle.trim()
 
@@ -819,7 +897,7 @@ export default function PrepareLivePage() {
     if (files.length === 0) return
     const rows: BatchRow[] = files.map((f, i) => ({
       key: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
-      preview: URL.createObjectURL(f), imageUrl: null, title: '', price: '', status: 'uploading',
+      preview: URL.createObjectURL(f), imageUrl: null, title: '', price: '', minPrice: '', buyNow: '', status: 'uploading',
     }))
     setBatchAiFailed(false)
     setBatch(prev => [...(prev || []), ...rows])
@@ -891,16 +969,19 @@ export default function PrepareLivePage() {
     const newItems: DraftItem[] = []
     for (const r of batchReadyRows) {
       const price = parseFloat(r.price.replace(',', '.'))
+      const minP = parseFloat(r.minPrice.replace(',', '.'))
+      const buyP = parseFloat(r.buyNow.replace(',', '.'))
       const title = `${r.title.trim()} [${generateUniqueCode()}]`
       const { data, error } = await supabase.from('items').insert({
         seller_id: user.id, stream_id: streamId, title,
         starting_price: price, current_price: price, category,
+        min_price: minP > 0 ? minP : null, buy_now_price: buyP > 0 ? buyP : null,
         status: 'draft' as const, image_urls: [r.imageUrl!], duration_seconds: 60,
       }).select().single()
       if (error || !data) { console.error('batch insert', error); continue }
       newItems.push({
         id: data.id, title: data.title, starting_price: data.starting_price,
-        min_price: null, buy_now_price: null, category: data.category,
+        min_price: data.min_price ?? null, buy_now_price: data.buy_now_price ?? null, category: data.category,
         image_url: r.imageUrl, lot_number: items.length + newItems.length + 1,
         duration_seconds: 60, weight_grams: null, seller_shipping_override: null,
       })
@@ -1046,6 +1127,25 @@ export default function PrepareLivePage() {
     })
   }
 
+  const startEditItem = (index: number) => {
+    const it = items[index]
+    if (!it?.id) return
+    setEditingItemId(it.id)
+    setFormTitle(it.title.replace(/\s\[[A-Z0-9]+\]$/, ''))
+    setFormPrice(String(it.starting_price))
+    setFormMinPrice(it.min_price ? String(it.min_price) : '')
+    setFormBuyNowPrice(it.buy_now_price ? String(it.buy_now_price) : '')
+    setFormCategory(it.category || '')
+    setFormDuration(it.duration_seconds || 60)
+    setFormWeight(it.weight_grams ? String(it.weight_grams) : '')
+    setFormShippingOverride(it.seller_shipping_override ? String(it.seller_shipping_override) : '')
+    setFormQuantity(1)
+    setFormImageFile(null)
+    setFormImage(it.image_url)
+    setFormError('')
+    setShowForm(true)
+  }
+
   const handleDeleteItem = async (index: number) => {
     const item = items[index]
     if (item.id) {
@@ -1173,10 +1273,12 @@ export default function PrepareLivePage() {
     <div style={{
       position: 'fixed', inset: 0, backgroundColor: '#000', zIndex: 200,
       display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',
+      // Toute la page défile d'un bloc (articles puis boutons), plus de petite zone coincée
+      overflowY: 'auto', overflowX: 'hidden', WebkitOverflowScrolling: 'touch',
     }}>
       {/* Header */}
       <div style={{
+        position: 'sticky', top: 0, zIndex: 5, backgroundColor: '#000',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '12px 16px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)',
@@ -1324,7 +1426,7 @@ export default function PrepareLivePage() {
 
       {/* Items list */}
       <div style={{
-        flex: 1, overflowY: 'auto', padding: '16px',
+        flex: 'none', padding: '16px',
         display: 'flex', flexDirection: 'column', gap: '12px',
       }}>
         {items.length === 0 && !showForm && (
@@ -1462,6 +1564,19 @@ export default function PrepareLivePage() {
                 </svg>
               </button>
             </div>
+
+            {/* Modifier */}
+            <button
+              onClick={() => startEditItem(index)}
+              aria-label={ct.editItem}
+              style={{
+                padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(240,144,138,0.5)',
+                backgroundColor: 'rgba(240,144,138,0.12)', color: '#F0908A',
+                fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+              }}
+            >
+              {ct.editItem}
+            </button>
 
             {/* Delete */}
             <button
@@ -1942,6 +2057,7 @@ export default function PrepareLivePage() {
               <button
                 onClick={() => {
                   setShowForm(false)
+                  setEditingItemId(null)
                   setFormTitle('')
                   setFormPrice('')
                   setFormCategory('')
@@ -1980,7 +2096,7 @@ export default function PrepareLivePage() {
               >
                 {saving
                   ? (formQuantity > 1 ? ct.generating.replace('{n}', String(formQuantity)) : ct.saving)
-                  : (formQuantity > 1 ? `${ct.add} (x${formQuantity})` : ct.add)
+                  : editingItemId ? ct.saveChanges : (formQuantity > 1 ? `${ct.add} (x${formQuantity})` : ct.add)
                 }
               </button>
             </div>
@@ -2018,15 +2134,22 @@ export default function PrepareLivePage() {
                       style={{ width: '100%', padding: '9px 10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', boxSizing: 'border-box' }}
                     />
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <input
-                      value={r.price}
-                      onChange={e => updateRow(r.key, { price: e.target.value.replace(/[^0-9.,]/g, '') })}
-                      inputMode="decimal"
-                      placeholder={ct.priceShort}
-                      style={{ width: '110px', padding: '9px 10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, boxSizing: 'border-box' }}
-                    />
-                    <span style={{ color: '#999', fontSize: 'calc(14px * var(--fs, 1))' }}>{currencySymbol(sellerCurrency)}</span>
+                  {/* 3 prix : départ (obligatoire), minimum et achat immédiat (facultatifs) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
+                    {([['price', ct.startShort], ['minPrice', ct.minPriceShort], ['buyNow', ct.buyNowShort]] as const).map(([field, label]) => (
+                      <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
+                        <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: field === 'price' ? '#F0908A' : '#999', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {label} ({currencySymbol(sellerCurrency)})
+                        </span>
+                        <input
+                          value={r[field]}
+                          onChange={e => updateRow(r.key, { [field]: e.target.value.replace(/[^0-9.,]/g, '') })}
+                          inputMode="decimal"
+                          placeholder="—"
+                          style={{ width: '100%', padding: '9px 8px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', minWidth: 0 }}
+                        />
+                      </label>
+                    ))}
                   </div>
                 </div>
                 <button

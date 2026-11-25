@@ -19,6 +19,12 @@ const pageContent = {
     viewers: 'viewers',
     nextItem: 'Next item',
     relaunch: 'Relaunch auction',
+    myItems: 'My items',
+    itemToSell: 'To sell',
+    itemLive: 'Live',
+    itemSold: 'Sold',
+    itemUnsold: 'Unsold',
+    closeList: 'Close',
     reserveOfferSent: 'Reserve not met — offer sent to the top bidder (60 s)',
     sold: 'Sold!',
     unsold: 'Unsold',
@@ -123,6 +129,12 @@ const pageContent = {
     viewers: 'spectateurs',
     nextItem: 'Article suivant',
     relaunch: 'Relancer l’enchère',
+    myItems: 'Mes articles',
+    itemToSell: 'À vendre',
+    itemLive: 'En cours',
+    itemSold: 'Vendu',
+    itemUnsold: 'Invendu',
+    closeList: 'Fermer',
     reserveOfferSent: 'Prix minimum non atteint — offre envoyée au meilleur enchérisseur (60 s)',
     sold: 'Vendu !',
     unsold: 'Invendu',
@@ -227,6 +239,12 @@ const pageContent = {
     viewers: 'espectadores',
     nextItem: 'Siguiente artículo',
     relaunch: 'Relanzar la subasta',
+    myItems: 'Mis artículos',
+    itemToSell: 'Por vender',
+    itemLive: 'En curso',
+    itemSold: 'Vendido',
+    itemUnsold: 'No vendido',
+    closeList: 'Cerrar',
     reserveOfferSent: 'Precio mínimo no alcanzado — oferta enviada al mejor postor (60 s)',
     sold: '¡Vendido!',
     unsold: 'No vendido',
@@ -331,6 +349,12 @@ const pageContent = {
     viewers: 'зрителей',
     nextItem: 'Следующий товар',
     relaunch: 'Перезапустить аукцион',
+    myItems: 'Мои товары',
+    itemToSell: 'К продаже',
+    itemLive: 'Идёт',
+    itemSold: 'Продано',
+    itemUnsold: 'Не продано',
+    closeList: 'Закрыть',
     reserveOfferSent: 'Мин. цена не достигнута — предложение отправлено лидеру (60 с)',
     sold: 'Продано!',
     unsold: 'Не продано',
@@ -435,6 +459,12 @@ const pageContent = {
     viewers: 'צופים',
     nextItem: 'הפריט הבא',
     relaunch: 'להפעיל שוב את המכירה',
+    myItems: 'הפריטים שלי',
+    itemToSell: 'למכירה',
+    itemLive: 'פעיל',
+    itemSold: 'נמכר',
+    itemUnsold: 'לא נמכר',
+    closeList: 'סגירה',
     reserveOfferSent: 'מחיר המינימום לא הושג — הצעה נשלחה למציע הגבוה (60 ש׳)',
     sold: 'נמכר!',
     unsold: 'לא נמכר',
@@ -633,6 +663,7 @@ export default function LiveSellerView() {
 
   // Add item during live
   const [showAddItem, setShowAddItem] = useState(false)
+  const [showItemsList, setShowItemsList] = useState(false)
   const [addItemTitle, setAddItemTitle] = useState('')
   const [addItemPrice, setAddItemPrice] = useState('')
   const [addItemMinPrice, setAddItemMinPrice] = useState('')
@@ -2083,6 +2114,45 @@ export default function LiveSellerView() {
         </div>
       )}
 
+      {showItemsList && (
+        <div onClick={() => setShowItemsList(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            width: '100%', maxHeight: '75vh', overflowY: 'auto', backgroundColor: '#111',
+            borderRadius: '20px 20px 0 0', padding: '16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <p style={{ margin: 0, fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{ct.myItems} ({items.length})</p>
+              <button onClick={() => setShowItemsList(false)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>{ct.closeList}</button>
+            </div>
+            {items.map((it, i) => {
+              const label = it.status === 'sold' ? ct.itemSold : it.status === 'unsold' ? ct.itemUnsold : it.status === 'active' ? ct.itemLive : ct.itemToSell
+              const color = it.status === 'sold' ? '#22C55E' : it.status === 'unsold' ? '#FF9632' : it.status === 'active' ? '#E8344E' : '#F0908A'
+              const selectable = (it.status === 'draft' || it.status === 'pending' || it.status === 'unsold') && currentItem?.status !== 'active'
+              return (
+                <button key={it.id} disabled={!selectable} onClick={() => { setCurrentIndex(i); setShowItemsList(false) }} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px',
+                  marginBottom: '8px', borderRadius: '14px', textAlign: 'start',
+                  backgroundColor: i === currentIndex ? 'rgba(240,144,138,0.15)' : '#1A1A1A',
+                  border: i === currentIndex ? '1px solid #F0908A' : '1px solid transparent',
+                  cursor: selectable ? 'pointer' : 'default', opacity: selectable || i === currentIndex ? 1 : 0.6,
+                }}>
+                  {it.image_urls?.[0]
+                    ? <img src={it.image_urls[0]} alt="" style={{ width: '56px', height: '56px', borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
+                    : <div style={{ width: '56px', height: '56px', borderRadius: '10px', backgroundColor: '#222', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {formatLot(i + 1)} · {it.title}
+                    </p>
+                    <p style={{ margin: '4px 0 0', fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 700 }}>{money(it.current_price)}</p>
+                  </div>
+                  <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color, flexShrink: 0 }}>{label}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {/* ===== BOTTOM OVERLAY: chat + input + item panel ===== */}
       <div style={{
         position: 'fixed',
@@ -2103,14 +2173,14 @@ export default function LiveSellerView() {
                 animation: 'chatMsgIn 0.3s ease',
               }}>
                 <span style={{
-                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#F0908A',
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   marginInlineEnd: '5px',
                 }}>
                   {sys && !sys.withAuthor ? '' : (msg.user_profile?.display_name || ct.anonymous || '?')}
                 </span>
                 <span style={{
-                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 500,
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 500,
                   color: msg.is_flagged ? 'rgba(255,255,255,0.4)' : '#fff',
                   fontStyle: msg.is_flagged ? 'italic' : 'normal',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
@@ -2132,22 +2202,22 @@ export default function LiveSellerView() {
             onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
             placeholder={ct.sendMessage}
             style={{
-              flex: 1, padding: '6px 10px',
+              flex: 1, padding: '12px 16px',
               backgroundColor: 'rgba(0,0,0,0.5)',
               border: '1px solid rgba(255,255,255,0.15)',
               borderRadius: '100px',
-              color: '#fff', fontSize: 'calc(11px * var(--fs, 1))',
+              color: '#fff', fontSize: 'calc(15px * var(--fs, 1))',
               outline: 'none',
             }}
           />
           <button
             onClick={handleSendMessage}
             style={{
-              padding: '6px 10px',
+              padding: '12px 18px',
               borderRadius: '100px',
               background: 'linear-gradient(135deg, #F0908A, #E8344E)',
               border: 'none', color: '#fff',
-              fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
+              fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
             }}
           >
@@ -2179,18 +2249,18 @@ export default function LiveSellerView() {
                 {currentItem.image_urls?.[0] ? (
                   <img src={currentItem.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
-                  <span style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
+                  <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
                     {formatLot(currentIndex + 1)}
                   </span>
                 )}
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
                   {ct.lot} {formatLot(currentIndex + 1)}
                 </span>
                 <p style={{
-                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '1px 0 0',
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '1px 0 0',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {currentItem.title}
@@ -2209,14 +2279,14 @@ export default function LiveSellerView() {
                   animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
                 }}>
                   <div style={{
-                    fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 900,
+                    fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 900,
                     color: '#fff',
                     fontVariantNumeric: 'tabular-nums',
                     lineHeight: 1,
                   }}>
                     {timeLeft}
                   </div>
-                  <div style={{ fontSize: 'calc(8px * var(--fs, 1))', color: timeLeft <= 10 ? '#ff8888' : '#ccc', fontWeight: 700 }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: timeLeft <= 10 ? '#ff8888' : '#ccc', fontWeight: 700 }}>
                     {ct.seconds}
                   </div>
                 </div>
@@ -2229,10 +2299,10 @@ export default function LiveSellerView() {
                   padding: '4px 10px',
                   textAlign: 'center',
                 }}>
-                  <div style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+                  <div style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                     {currentItem.duration_seconds || 60}
                   </div>
-                  <div style={{ fontSize: 'calc(8px * var(--fs, 1))', color: '#aaa', fontWeight: 600 }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#aaa', fontWeight: 600 }}>
                     {ct.seconds}
                   </div>
                 </div>
@@ -2240,7 +2310,7 @@ export default function LiveSellerView() {
 
               <div style={{ flexShrink: 0, textAlign: 'end' }}>
                 <p style={{
-                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
+                  fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1,
                 }}>
                   {money(currentItem.current_price)}
                 </p>
@@ -2253,10 +2323,10 @@ export default function LiveSellerView() {
             <button
               onClick={handleActivateItem}
               style={{
-                width: '100%', padding: '10px',
+                width: '100%', padding: '14px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800,
+                color: '#fff', fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
               }}
             >
@@ -2272,11 +2342,11 @@ export default function LiveSellerView() {
                 border: '1px solid rgba(240,144,138,0.15)',
                 textAlign: 'center',
               }}>
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
                   {timeLeft > 0 ? ct.auctionLive : ct.resolving}
                 </span>
                 {currentItem.min_price != null && currentItem.min_price > 0 && (
-                  <span style={{ fontSize: 'calc(9px * var(--fs, 1))', color: '#666', marginInlineStart: '6px' }}>
+                  <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginInlineStart: '6px' }}>
                     {fill(ct.minPrice, { price: money(currentItem.min_price) })}
                   </span>
                 )}
@@ -2289,7 +2359,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
                     borderRadius: '8px',
-                    color: '#aaa', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
+                    color: '#aaa', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
@@ -2303,11 +2373,11 @@ export default function LiveSellerView() {
             <button
               onClick={handleRelaunchItem}
               style={{
-                width: '100%', padding: '10px',
+                width: '100%', padding: '14px',
                 background: hasMoreItems ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #F0908A, #E8344E)',
                 border: hasMoreItems ? '1px solid rgba(255,255,255,0.18)' : 'none',
                 borderRadius: '10px',
-                color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2319,10 +2389,10 @@ export default function LiveSellerView() {
             <button
               onClick={handleNextItem}
               style={{
-                width: '100%', padding: '10px',
+                width: '100%', padding: '14px',
                 background: 'linear-gradient(135deg, #F0908A, #E8344E)',
                 borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700,
+                color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2333,13 +2403,30 @@ export default function LiveSellerView() {
           {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && !hasMoreItems && (
             <p style={{
               padding: '4px', textAlign: 'center',
-              fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0,
+              fontSize: 'calc(15px * var(--fs, 1))', color: '#888', margin: 0,
             }}>
               {ct.noMoreItems}
             </p>
           )}
 
           {/* Add item button — compact */}
+          {/* Liste de tous les articles du live : on choisit celui à mettre en vente */}
+          {!showAddItem && items.length > 0 && (
+            <button
+              onClick={() => setShowItemsList(true)}
+              style={{
+                width: '100%', padding: '10px',
+                backgroundColor: 'rgba(240,144,138,0.12)',
+                border: '1px solid rgba(240,144,138,0.4)',
+                borderRadius: '10px',
+                color: '#F0908A', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {ct.myItems} ({items.length})
+            </button>
+          )}
+
           {!showAddItem && (
             <button
               onClick={() => setShowAddItem(true)}
@@ -2348,7 +2435,7 @@ export default function LiveSellerView() {
                 backgroundColor: 'rgba(255,255,255,0.04)',
                 border: '1px dashed rgba(255,255,255,0.15)',
                 borderRadius: '8px',
-                color: '#666', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
+                color: '#666', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
               }}
