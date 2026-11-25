@@ -182,12 +182,12 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
         // First check if seller uses PayPal (no need to call server)
         const { data: seller } = await supabase
           .from('sellers')
-          .select('bank_choice, paypal_email, stripe_account_id, airwallex_beneficiary_id')
+          .select('bank_choice, paypal_email, stripe_account_id, airwallex_beneficiary_id, payout_iban')
           .eq('id', profile!.id)
           .maybeSingle()
 
         // Israël : compte bancaire enregistré chez Airwallex = paiement configuré
-        if (seller?.airwallex_beneficiary_id) {
+        if (seller?.airwallex_beneficiary_id || (profile?.country === 'IL' && seller?.payout_iban)) {
           setPaymentConnected(true)
           return
         }

@@ -1,6 +1,7 @@
 import { supabase, resend, ADMIN_EMAILS } from '../config'
 import { transferToWallet } from '../payments/rapyd'
 import { transferToBeneficiary } from '../payments/airwallex'
+import { isWiseSeller } from '../payments/provider'
 import { notifyUserT, calculateFees, escapeHtml } from '../utils'
 import { HANDOVER_DELAY_DEFAULT_DAYS, generateHandoverCode, shortOrderRef } from '../fulfillment'
 
@@ -41,7 +42,7 @@ export async function markOrderPaid(orderId: string): Promise<{ updated: boolean
     .select('bank_choice, paypal_email, shipping_delay_days')
     .eq('id', order.seller_id)
     .maybeSingle()
-  const payoutMethod = seller?.bank_choice === 'paypal' && seller?.paypal_email ? 'paypal' : 'stripe'
+  const payoutMethod = (await isWiseSeller(order.seller_id)) ? 'wise' : seller?.bank_choice === 'paypal' && seller?.paypal_email ? 'paypal' : 'stripe'
   const delayDays = seller?.shipping_delay_days ?? HANDOVER_DELAY_DEFAULT_DAYS
   const now = new Date()
   const handoverDeadline = new Date(now.getTime() + delayDays * 86400000).toISOString()
@@ -158,6 +159,11 @@ export async function releaseOrderPayout(
       console.error('[payout] rapyd', err)
       await alertAdmins('Versement Rapyd à faire à la main', `Commande ${orderId} : le transfert vers le portefeuille du vendeur a échoué (${(err as Error).message}).`)
     }
+  }
+
+  // Israël (Wise) : la vente part dans le lot de virements du jour (vérifié, puis validé par Benjamin)
+  if (row.payout_method === 'wise') {
+    await supabase.from('orders').update({ wise_status: 'queued' }).eq('id', orderId).is('wise_transfer_id', null)
   }
 
   if (row.payout_method === 'paypal') {

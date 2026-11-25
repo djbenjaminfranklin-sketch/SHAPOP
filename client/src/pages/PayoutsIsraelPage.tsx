@@ -1,5 +1,6 @@
 // « Être payé en Israël » : le vendeur israélien enregistre son compte bancaire (IBAN IL…) ;
-// ShaPop lui vire sa part en shekels par Airwallex (virement local Masav) quand la remise est confirmée.
+// ShaPop lui vire sa part en shekels : par Wise (lot quotidien validé par Benjamin, nom + IBAN seulement),
+// ou par Airwallex tant que Wise n'est pas allumé.
 // Tant que le paiement en Israël n'est pas activé côté serveur, l'écran l'annonce et le bouton reste grisé.
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
@@ -10,6 +11,7 @@ import PageBackButton from '../components/PageBackButton'
 
 const pageContent = {
   en: {
+    introWise: "Your sales are paid in shekels into your Israeli bank account, by bank transfer (Wise), once the sale is accepted.", holder: "Account holder’s full name", badHolder: "Enter the first and last name of the account holder.",
     title: 'Get paid in Israel', intro: 'Your sales are paid in shekels into your Israeli bank account, 1 to 2 business days after the handover. ShaPop uses Airwallex, a licensed payment company.',
     soon: 'Payments in Israel are opening soon. You will be able to add your bank account as soon as it opens.',
     bankTitle: 'Your bank account', firstName: 'First name', lastName: 'Last name (as on the bank account)', iban: 'IBAN (starts with IL, 23 characters)', street: 'Address (street and number)', city: 'City', postcode: 'Postcode (optional)',
@@ -18,6 +20,7 @@ const pageContent = {
     error: 'Something went wrong. Try again.', missing: 'Fill in all the required fields.',
   },
   fr: {
+    introWise: "Tes ventes te sont versées en shekels sur ton compte bancaire israélien, par virement (Wise), une fois la vente acceptée.", holder: "Nom et prénom du titulaire du compte", badHolder: "Indique le prénom et le nom du titulaire du compte.",
     title: 'Être payé en Israël', intro: 'Tes ventes te sont versées en shekels sur ton compte bancaire israélien, 1 à 2 jours ouvrés après la remise. ShaPop passe par Airwallex, une société de paiement agréée.',
     soon: 'Le paiement en Israël ouvre bientôt. Tu pourras ajouter ton compte bancaire dès son ouverture.',
     bankTitle: 'Ton compte bancaire', firstName: 'Prénom', lastName: 'Nom (comme sur le compte bancaire)', iban: 'IBAN (commence par IL, 23 caractères)', street: 'Adresse (rue et numéro)', city: 'Ville', postcode: 'Code postal (facultatif)',
@@ -26,6 +29,7 @@ const pageContent = {
     error: 'Un problème est survenu. Réessaie.', missing: 'Remplis tous les champs obligatoires.',
   },
   es: {
+    introWise: "Tus ventas se pagan en shékels en tu cuenta bancaria israelí, por transferencia (Wise), una vez aceptada la venta.", holder: "Nombre y apellidos del titular de la cuenta", badHolder: "Indica el nombre y los apellidos del titular de la cuenta.",
     title: 'Cobrar en Israel', intro: 'Tus ventas se pagan en shékels en tu cuenta bancaria israelí, 1 o 2 días hábiles después de la entrega. ShaPop usa Airwallex, una empresa de pagos autorizada.',
     soon: 'Los pagos en Israel abren pronto. Podrás añadir tu cuenta bancaria en cuanto abran.',
     bankTitle: 'Tu cuenta bancaria', firstName: 'Nombre', lastName: 'Apellidos (como en la cuenta)', iban: 'IBAN (empieza por IL, 23 caracteres)', street: 'Dirección (calle y número)', city: 'Ciudad', postcode: 'Código postal (opcional)',
@@ -34,6 +38,7 @@ const pageContent = {
     error: 'Algo ha fallado. Inténtalo de nuevo.', missing: 'Rellena todos los campos obligatorios.',
   },
   ru: {
+    introWise: "Деньги за продажи приходят в шекелях на твой израильский банковский счёт переводом (Wise), когда продажа принята.", holder: "Имя и фамилия владельца счёта", badHolder: "Укажи имя и фамилию владельца счёта.",
     title: 'Получать оплату в Израиле', intro: 'Деньги за продажи приходят в шекелях на твой израильский банковский счёт через 1–2 рабочих дня после передачи товара. ShaPop работает с Airwallex — лицензированной платёжной компанией.',
     soon: 'Оплата в Израиле скоро откроется. Ты сможешь добавить банковский счёт сразу после открытия.',
     bankTitle: 'Твой банковский счёт', firstName: 'Имя', lastName: 'Фамилия (как в банке)', iban: 'IBAN (начинается с IL, 23 символа)', street: 'Адрес (улица и номер дома)', city: 'Город', postcode: 'Индекс (необязательно)',
@@ -42,6 +47,7 @@ const pageContent = {
     error: 'Что-то пошло не так. Попробуй снова.', missing: 'Заполни все обязательные поля.',
   },
   he: {
+    introWise: "כספי המכירות מועברים בשקלים לחשבון הבנק שלך בישראל, בהעברה בנקאית (Wise), אחרי שהמכירה אושרה.", holder: "שם מלא של בעל החשבון", badHolder: "כתבו שם פרטי ושם משפחה של בעל החשבון.",
     title: 'קבלת תשלומים בישראל', intro: 'כספי המכירות מועברים בשקלים לחשבון הבנק שלך בישראל, יום-יומיים עסקים אחרי המסירה. ShaPop עובדת עם Airwallex, חברת תשלומים מורשית.',
     soon: 'התשלומים בישראל ייפתחו בקרוב. אפשר יהיה להוסיף חשבון בנק מיד עם הפתיחה.',
     bankTitle: 'חשבון הבנק שלך', firstName: 'שם פרטי', lastName: 'שם משפחה (כמו בחשבון הבנק)', iban: 'IBAN (מתחיל ב-IL, 23 תווים)', street: 'כתובת (רחוב ומספר)', city: 'עיר', postcode: 'מיקוד (לא חובה)',
@@ -51,7 +57,7 @@ const pageContent = {
   },
 }
 
-type Status = { enabled: boolean; country: string | null; has_bank: boolean; bank_last4: string | null }
+type Status = { enabled: boolean; provider?: 'wise' | 'airwallex'; country: string | null; has_bank: boolean; bank_last4: string | null; holder_name?: string | null }
 
 /** Exemple de format d'IBAN israélien (identique dans toutes les langues). */
 const IBAN_EXAMPLE = 'IL62 0108 0000 0009 9999 999'
@@ -61,7 +67,7 @@ export default function PayoutsIsraelPage() {
   usePageTitle(ct.title)
   const [status, setStatus] = useState<Status | null>(null)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({ first_name: '', last_name: '', iban: '', street: '', city: '', postcode: '' })
+  const [form, setForm] = useState({ first_name: '', last_name: '', iban: '', street: '', city: '', postcode: '', holder_name: '' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -87,12 +93,13 @@ export default function PayoutsIsraelPage() {
 
   const save = async () => {
     setError(null)
-    if ([form.first_name, form.last_name, form.iban, form.street, form.city].some(v => !v.trim())) { setError(ct.missing); return }
+    const isWise = status?.provider === 'wise'
+    if (isWise ? [form.holder_name, form.iban].some(v => !v.trim()) : [form.first_name, form.last_name, form.iban, form.street, form.city].some(v => !v.trim())) { setError(ct.missing); return }
     setBusy(true)
     try {
-      const r = await apiFetch('/api/payouts-il/bank', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await auth()) }, body: JSON.stringify(form) })
+      const r = await apiFetch('/api/payouts-il/bank', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(await auth()) }, body: JSON.stringify(isWise ? { holder_name: form.holder_name, iban: form.iban } : form) })
       const d = await r.json().catch(() => ({}))
-      if (!r.ok) { setError(d?.error === 'invalid_iban' ? ct.badIban : d?.error === 'bank_rejected' ? ct.rejected : ct.error); return }
+      if (!r.ok) { setError(d?.error === 'invalid_iban' ? ct.badIban : d?.error === 'invalid_holder_name' ? ct.badHolder : d?.error === 'bank_rejected' ? ct.rejected : ct.error); return }
       setEditing(false)
       await load()
     } catch { setError(ct.error) } finally { setBusy(false) }
@@ -105,7 +112,7 @@ export default function PayoutsIsraelPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
       <PageBackButton />
       <h1 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, margin: '48px 0 8px' }}>🇮🇱 {ct.title}</h1>
-      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.5, margin: '0 0 16px' }}>{ct.intro}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.5, margin: '0 0 16px' }}>{status?.provider === 'wise' ? ct.introWise : ct.intro}</p>
 
       {status && !enabled && (
         <p style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#F59E0B', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{ct.soon}</p>
@@ -120,6 +127,14 @@ export default function PayoutsIsraelPage() {
             <button onClick={() => setEditing(true)} style={{ ...btn(true), background: 'transparent', border: '1px solid #444', color: '#ddd' }}>{ct.change}</button>
           </>
         ) : (
+          status?.provider === 'wise' ? (
+          <>
+            <Field label={ct.holder} value={form.holder_name} onChange={v => setForm({ ...form, holder_name: v })} autoComplete="name" />
+            <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder={IBAN_EXAMPLE} dir="ltr" />
+            <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#777' }}>{ct.ibanHint}</p>
+            <button onClick={save} disabled={!enabled || busy} style={btn(enabled && !busy)}>{busy ? ct.saving : ct.save}</button>
+          </>
+          ) : (
           <>
             <div style={{ display: 'flex', gap: '8px' }}>
               <Field label={ct.firstName} value={form.first_name} onChange={v => setForm({ ...form, first_name: v })} autoComplete="given-name" />
@@ -134,6 +149,7 @@ export default function PayoutsIsraelPage() {
             </div>
             <button onClick={save} disabled={!enabled || busy} style={btn(enabled && !busy)}>{busy ? ct.saving : ct.save}</button>
           </>
+          )
         )}
       </section>
 

@@ -1,3 +1,5 @@
+import { isWiseSeller } from '../payments/provider'
+import { wiseConfig } from '../payments/wise'
 import { z } from 'zod'
 import { Router } from 'express'
 import type { Request, Response } from 'express'
@@ -444,11 +446,21 @@ const IsraeliBankBody = z.object({
 router.get('/api/payouts-il/status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id
   const [{ data: seller }, { data: profile }] = await Promise.all([
-    supabase.from('sellers').select('airwallex_beneficiary_id, payout_bank_last4').eq('id', userId).maybeSingle(),
+    supabase.from('sellers').select('airwallex_beneficiary_id, payout_bank_last4, payout_iban, payout_holder_name').eq('id', userId).maybeSingle(),
     supabase.from('profiles').select('country').eq('id', userId).maybeSingle(),
   ])
-  const sel = seller as { airwallex_beneficiary_id?: string | null; payout_bank_last4?: string | null } | null
+  const sel = seller as { airwallex_beneficiary_id?: string | null; payout_bank_last4?: string | null; payout_iban?: string | null; payout_holder_name?: string | null } | null
+  if (wiseConfig().enabled) {
+    res.json({
+      enabled: true, provider: 'wise',
+      country: (profile as { country?: string | null } | null)?.country || null,
+      has_bank: !!sel?.payout_iban, bank_last4: sel?.payout_iban ? sel.payout_iban.slice(-4) : null,
+      holder_name: sel?.payout_holder_name || null,
+    })
+    return
+  }
   res.json({
+    provider: 'airwallex',
     enabled: awx.airwallexConfig().enabled,
     country: (profile as { country?: string | null } | null)?.country || null,
     has_bank: !!sel?.airwallex_beneficiary_id,
@@ -458,6 +470,21 @@ router.get('/api/payouts-il/status', requireAuth, async (req: AuthenticatedReque
 
 router.post('/api/payouts-il/bank', paymentLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    // Wise : seulement le nom du titulaire et l'IBAN israélien (23 caractères)
+    if (wiseConfig().enabled) {
+      const holder = String((req.body || {}).holder_name || '').trim().replace(/\s+/g, ' ')
+      const iban = awx.normalizeIsraeliIban(String((req.body || {}).iban || ''))
+      if (holder.length < 3 || holder.length > 140 || !/\s/.test(holder)) { res.status(400).json({ error: 'invalid_holder_name' }); return }
+      if (!iban) { res.status(400).json({ error: 'invalid_iban' }); return }
+      const userId = req.user!.id
+      const { data: cur } = await supabase.from('sellers').select('payout_iban, payout_holder_name').eq('id', userId).maybeSingle()
+      const c = cur as { payout_iban?: string | null; payout_holder_name?: string | null } | null
+      const changed = c?.payout_iban !== iban || c?.payout_holder_name !== holder
+      // Un IBAN modifié attend 24 h avant le prochain virement (contrôle du lot quotidien)
+      if (changed) await saveSellerFields(userId, { payout_iban: iban, payout_holder_name: holder, payout_iban_updated_at: new Date().toISOString(), wise_recipient_id: null, payout_bank_last4: iban.slice(-4) })
+      res.json({ success: true, bank_last4: iban.slice(-4), provider: 'wise' })
+      return
+    }
     if (!awx.airwallexConfig().enabled) { res.status(503).json({ error: 'airwallex_not_enabled' }); return }
     const parsed = IsraeliBankBody.safeParse(req.body)
     if (!parsed.success) { res.status(400).json({ error: 'invalid_input', details: parsed.error.flatten().fieldErrors }); return }
@@ -714,7 +741,7 @@ router.post('/api/stripe/create-payment-intent', paymentLimiter, requireAuth, as
     // Update order with PaymentIntent ID, shipping cost, and total amount (+ mark paid if auto-charged)
     const updateData: Record<string, unknown> = {
       stripe_payment_intent_id: paymentIntent.id,
-      payout_method: isPaypalSeller ? 'paypal' : 'stripe',
+      payout_method: (await isWiseSeller(order.seller_id)) ? 'wise' : isPaypalSeller ? 'paypal' : 'stripe',
       shipping_cost: shippingCost,
       total_amount: totalAmount,
       platform_fee: fees.platformFee,

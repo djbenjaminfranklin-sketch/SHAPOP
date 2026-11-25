@@ -22,6 +22,7 @@ import orderRoutes from './routes/orders'
 import { cancelOverdueOrders, remindHandoverDeadline, remindPendingPayments } from './routes/orders'
 import { releaseDuePostPayouts } from './services/orderLifecycle'
 import { sendOrderReminders } from './services/reminders'
+import { prepareWiseBatch } from './services/wisePayouts'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
 import messageRoutes from './routes/messages'
@@ -177,6 +178,11 @@ server.listen(PORT, () => {
       if (reminded > 0) console.log(`[Handover-Deadline] Reminded ${reminded} seller(s)`)
       const released = await releaseDuePostPayouts()
       if (released > 0) console.log(`[Payout] Released ${released} post order payout(s) after the safety delay`)
+      // Lot quotidien de virements Wise aux vendeurs israéliens (vers 9 h en Israël)
+      if (new Date().getUTCHours() === 7) {
+        const batch = await prepareWiseBatch().catch(err => { console.error('[wise] batch', err); return null })
+        if (batch) console.log(`[Wise] Lot préparé : ${batch.count} virement(s), ${batch.total} ILS`)
+      }
       const reminders = await sendOrderReminders()
       if (reminders > 0) console.log(`[Reminders] Sent ${reminders} order reminder(s)`)
     } catch (err) {

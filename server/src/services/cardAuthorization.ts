@@ -3,6 +3,7 @@
 // a choisi la remise (main propre ou poste), pour le montant réel. Si la carte est refusée,
 // l'écran du vendeur l'affiche et le vendeur peut réessayer.
 // Tout ce qui parle à Stripe est ici : c'est ce module qu'il faudra adapter pour Rapyd.
+import { isWiseSeller } from '../payments/provider'
 import type Stripe from 'stripe'
 import { supabase, stripe, ADMIN_EMAILS } from '../config'
 import { calculateFees, notifyUserT } from '../utils'
@@ -36,6 +37,8 @@ export async function sellerDestination(sellerId: string): Promise<{ ok: true; a
     .eq('id', sellerId)
     .maybeSingle()
   if (seller?.bank_choice === 'paypal' && seller?.paypal_email) return { ok: true, account: null }
+  // Vendeur israélien payé par Wise : encaissement sur le compte ShaPop, virement quotidien ensuite
+  if (await isWiseSeller(sellerId)) return { ok: true, account: null }
   const { data: sellerAuth } = await supabase.auth.admin.getUserById(sellerId)
   const email = sellerAuth?.user?.email
   if (email && ADMIN_EMAILS.includes(email)) return { ok: true, account: null }
