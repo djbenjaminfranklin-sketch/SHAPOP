@@ -53,6 +53,9 @@ const pageContent = {
 
 type Status = { enabled: boolean; country: string | null; has_bank: boolean; bank_last4: string | null }
 
+/** Exemple de format d'IBAN israélien (identique dans toutes les langues). */
+const IBAN_EXAMPLE = 'IL62 0108 0000 0009 9999 999'
+
 export default function PayoutsIsraelPage() {
   const ct = tr(pageContent, getLang())
   usePageTitle(ct.title)
@@ -122,7 +125,7 @@ export default function PayoutsIsraelPage() {
               <Field label={ct.firstName} value={form.first_name} onChange={v => setForm({ ...form, first_name: v })} autoComplete="given-name" />
               <Field label={ct.lastName} value={form.last_name} onChange={v => setForm({ ...form, last_name: v })} autoComplete="family-name" />
             </div>
-            <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder="IL62 0108 0000 0009 9999 999" dir="ltr" />
+            <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder={IBAN_EXAMPLE} dir="ltr" />
             <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#777' }}>{ct.ibanHint}</p>
             <Field label={ct.street} value={form.street} onChange={v => setForm({ ...form, street: v })} autoComplete="street-address" />
             <div style={{ display: 'flex', gap: '8px' }}>

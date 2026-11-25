@@ -1,3 +1,4 @@
+import MessagesPage from './MessagesPage'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
@@ -394,10 +395,14 @@ export default function ActivityPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const rawInitialTab = (location.state as { tab?: MainTab })?.tab || 'purchases'
-  // Messages tab is a real page now — redirect if someone navigates here with tab=messages
-  const initialTab = rawInitialTab === 'messages' ? 'purchases' : rawInitialTab
+  const initialTab = rawInitialTab
 
   const [mainTab, setMainTab] = useState<MainTab>(initialTab)
+  // Lien vers un onglet alors que la page Activité est déjà ouverte (ex. /messages → onglet Messages)
+  const requestedTab = (location.state as { tab?: MainTab } | null)?.tab
+  useEffect(() => {
+    if (requestedTab) setMainTab(requestedTab)
+  }, [requestedTab, location.key])
   const [subFilter, setSubFilter] = useState<SubFilter>('all')
   const [mounted, setMounted] = useState(false)
 
@@ -659,7 +664,7 @@ export default function ActivityPage() {
     swipeStartX.current = null
     swipeStartY.current = null
     if (Math.abs(dx) < 50 || dy > Math.abs(dx)) return
-    const tabIds: MainTab[] = mainTabs.map(t => t.id).filter(id => id !== 'messages') as MainTab[]
+    const tabIds: MainTab[] = mainTabs.map(t => t.id) as MainTab[]
     const idx = tabIds.indexOf(mainTab)
     if (idx === -1) return
     if (dx < 0 && idx < tabIds.length - 1) { setMainTab(tabIds[idx + 1]); setSubFilter('all') }
@@ -826,27 +831,6 @@ export default function ActivityPage() {
         </svg>
         {lt.retry}
       </button>
-    </div>
-  )
-
-  const renderComingSoon = (icon: string, description: string) => (
-    <div style={{
-      display: 'flex', flexDirection: 'column', alignItems: 'center',
-      justifyContent: 'center', padding: '60px 20px', textAlign: 'center',
-      opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(15px)',
-      transition: 'all 0.5s ease 0.2s',
-    }}>
-      <div style={{
-        width: '80px', height: '80px', borderRadius: '50%',
-        background: 'linear-gradient(135deg, #374151 0%, #1F2937 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 'calc(36px * var(--fs, 1))', marginBottom: '20px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
-      }}>
-        {icon}
-      </div>
-      <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.comingSoon}</p>
-      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', maxWidth: '280px' }}>{description}</p>
     </div>
   )
 
@@ -1244,7 +1228,7 @@ export default function ActivityPage() {
     )
   }
 
-  const renderMessages = () => renderComingSoon('\uD83D\uDCAC', lt.comingSoonMessages)
+  const renderMessages = () => <MessagesPage embedded />
   const renderFavorites = () => {
     if (loadingFavorites) {
       return (
@@ -1438,7 +1422,6 @@ export default function ActivityPage() {
             <button
               key={tab.id}
               onClick={() => {
-                if (tab.id === 'messages') { navigate('/messages'); return }
                 setMainTab(tab.id); setSubFilter('all')
               }}
               style={{

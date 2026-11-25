@@ -140,7 +140,8 @@ function getInitials(name: string): string {
     .slice(0, 2)
 }
 
-export default function MessagesPage() {
+/** embedded : affichée dans l'onglet Messages de la page Activité (sans en-tête ni fond pleine page). */
+export default function MessagesPage({ embedded = false }: { embedded?: boolean } = {}) {
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -214,9 +215,9 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className={`min-h-screen bg-black text-white pb-24 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={embedded ? 'text-white' : `min-h-screen bg-black text-white pb-24 transition-opacity duration-500 ${mounted ? 'opacity-100' : 'opacity-0'}`}>
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
+      {!embedded && <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
           <button onClick={() => navigate('/')} aria-label={ct.back} className="text-gray-400 hover:text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ ...rtlFlip() }}>
@@ -231,10 +232,10 @@ export default function MessagesPage() {
             </svg>
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Content */}
-      <div style={{ padding: '4px 16px 0' }}>
+      <div style={{ padding: embedded ? '0' : '4px 16px 0' }}>
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
