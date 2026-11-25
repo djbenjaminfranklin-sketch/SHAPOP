@@ -140,9 +140,16 @@ describe('syncAndroidSystemBars — icônes des barres système', () => {
     expect(setStyleMock).toHaveBeenNthCalledWith(2, { style: 'DARK' })
   })
 
-  it('ne touche à rien sur iPhone ni sur le web', async () => {
+  it('iPhone : même règle (sinon heure et batterie invisibles en thème sombre)', async () => {
     platform.value = 'ios'
-    ;(await load()).syncAndroidSystemBars(true)
+    const m = await load()
+    m.syncAndroidSystemBars(true)
+    m.syncAndroidSystemBars(false)
+    expect(setStyleMock).toHaveBeenNthCalledWith(1, { style: 'LIGHT' })
+    expect(setStyleMock).toHaveBeenNthCalledWith(2, { style: 'DARK' })
+  })
+
+  it('ne touche à rien sur le web', async () => {
     platform.value = 'web'
     ;(await load()).syncAndroidSystemBars(true)
     expect(setStyleMock).not.toHaveBeenCalled()

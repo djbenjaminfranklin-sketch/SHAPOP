@@ -75,7 +75,8 @@ export function usePushAvailable(): boolean {
  * contraster avec la page. Thème clair (par défaut) → icônes foncées ; thème sombre → icônes claires.
  */
 export function syncAndroidSystemBars(isLight: boolean) {
-  if (!isAndroidApp()) return
+  // Aussi sur iPhone : sans ça, en thème sombre, l'heure et la batterie restent noires sur fond noir.
+  if (!isAndroidApp() && !isIOSApp()) return
   SystemBars.setStyle({ style: isLight ? SystemBarsStyle.Light : SystemBarsStyle.Dark }).catch(() => {})
 }
 
