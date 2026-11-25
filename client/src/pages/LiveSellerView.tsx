@@ -574,7 +574,6 @@ export default function LiveSellerView() {
   const [items, setItems] = useState<Item[]>([])
   const [currentIndex, setCurrentIndex] = useState(-1)
   const [messages, setMessages] = useState<(ChatMessage & { user_profile?: { display_name: string } })[]>([])
-  const [visibleMsgIds, setVisibleMsgIds] = useState<Set<string>>(new Set())
   const [floatingReactions, setFloatingReactions] = useState<{ id: number; emoji: string; x: number; startTime: number }[]>([])
   const reactionIdRef = useRef(0)
   const [newMessage, setNewMessage] = useState('')
@@ -1221,26 +1220,6 @@ export default function LiveSellerView() {
 
     autoResolve()
   }, [timeLeft, currentItem?.id, currentItem?.status, user, streamId, showSoldOverlay, showToast, ct])
-
-  // When new messages arrive, mark them visible then auto-hide after 5s
-  useEffect(() => {
-    if (messages.length === 0) return
-    const latest = messages[messages.length - 1]
-    if (!latest?.id) return
-    setVisibleMsgIds(prev => {
-      const next = new Set(prev)
-      next.add(latest.id)
-      return next
-    })
-    const timerId = setTimeout(() => {
-      setVisibleMsgIds(prev => {
-        const next = new Set(prev)
-        next.delete(latest.id)
-        return next
-      })
-    }, 3000)
-    return () => clearTimeout(timerId)
-  }, [messages.length])
 
   // Reset auto-resolve ref when moving to a different item
   useEffect(() => {
@@ -2037,9 +2016,9 @@ export default function LiveSellerView() {
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '8px',
       }}>
-        {/* Chat messages — max 4, transparent WhatNot style */}
+        {/* Chat : les 5 derniers messages restent affichés (le vendeur doit pouvoir lire les questions) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', maxWidth: '70%' }}>
-          {messages.filter(m => visibleMsgIds.has(m.id)).slice(-4).map((msg, i, arr) => {
+          {messages.slice(-5).map((msg, i, arr) => {
             const opacity = i < arr.length - 2 ? 0.5 : i < arr.length - 1 ? 0.75 : 1
             const sys = formatSystemMessage(msg.message)
             return (

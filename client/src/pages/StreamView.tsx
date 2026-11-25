@@ -742,6 +742,12 @@ function fill(template: string, vars: Record<string, string | number>): string {
 }
 
 // Inner form for card setup (SetupIntent mode)
+/** Stripe n'accepte que des pixels (ni calc ni var) : taille réelle selon le réglage « Taille du texte ». */
+function stripeFontSize(px: number) {
+  const fs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs')) || 1
+  return `${Math.round(px * fs)}px`
+}
+
 function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoading, saveLabel }: {
   clientSecret: string
   onSuccess: () => void
@@ -781,7 +787,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
         <CardElement options={{
           style: {
             base: {
-              fontSize: 'calc(16px * var(--fs, 1))',
+              fontSize: stripeFontSize(16),
               color: '#fff',
               '::placeholder': { color: '#555' },
               iconColor: '#F0908A',

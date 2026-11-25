@@ -416,6 +416,12 @@ function getStripePromise() {
   return stripePromise
 }
 
+/** Stripe n'accepte que des pixels (ni calc ni var) : taille réelle selon le réglage « Taille du texte ». */
+function stripeFontSize(px: number) {
+  const fs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--fs')) || 1
+  return `${Math.round(px * fs)}px`
+}
+
 function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoading, saveLabel, errorLabel }: {
   clientSecret: string
   onSuccess: () => void
@@ -457,7 +463,7 @@ function SetupCardFormInner({ clientSecret, onSuccess, onError, loading, setLoad
         <CardElement options={{
           style: {
             base: {
-              fontSize: 'calc(17px * var(--fs, 1))',
+              fontSize: stripeFontSize(17),
               lineHeight: '24px',
               color: '#fff',
               '::placeholder': { color: '#555' },
