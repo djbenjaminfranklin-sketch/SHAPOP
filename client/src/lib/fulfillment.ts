@@ -61,6 +61,9 @@ export interface OrderFulfillment {
   receipt?: { required: boolean; locked: boolean; attempts_left: number } | null
   /** Ce que dit la poste (suivi Ship24), si branché. */
   carrier?: { status: string | null; first_event_at: string | null; delivered_at: string | null } | null
+  /** Fin du délai pour signaler un problème (24 h après le code tapé ou le « livré » de la poste). */
+  claim_deadline?: string | null
+  buyer_confirmed_at?: string | null
 }
 
 export interface SellerFulfillmentSettings {
@@ -180,14 +183,14 @@ export const fulfillmentApi = {
   get: (orderId: string) => api<OrderFulfillment>(`/api/orders/${orderId}/fulfillment`),
   submitCode: (orderId: string, code: string) =>
     api<{ success: boolean }>(`/api/orders/${orderId}/handover`, { method: 'POST', body: { code } }),
-  submitProof: (orderId: string, kind: 'parcel' | 'slip', image: string, trackingNumber?: string) =>
-    api<{ success: boolean; complete: boolean; missing?: 'parcel' | 'slip' }>(`/api/orders/${orderId}/proof`, {
-      method: 'POST', body: { kind, image, tracking_number: trackingNumber || undefined },
+  submitProof: (orderId: string, kind: 'parcel' | 'slip', image: string, trackingNumber?: string, deferShip = false) =>
+    api<{ success: boolean; complete: boolean; missing?: 'parcel' | 'slip' | null }>(`/api/orders/${orderId}/proof`, {
+      method: 'POST', body: { kind, image, tracking_number: trackingNumber || undefined, ...(deferShip ? { defer_ship: true } : {}) },
     }),
   ship: (orderId: string, trackingNumber: string) =>
     api<{ success: boolean; tracking_number: string }>(`/api/orders/${orderId}/ship`, { method: 'POST', body: { tracking_number: trackingNumber } }),
-  confirmReceipt: (orderId: string, code?: string) =>
-    api<{ success: boolean }>(`/api/orders/${orderId}/confirm-receipt`, { method: 'POST', body: code ? { code } : {} }),
+  confirmReceipt: (orderId: string, code?: string, conform = false) =>
+    api<{ success: boolean; claim_deadline?: string }>(`/api/orders/${orderId}/confirm-receipt`, { method: 'POST', body: { ...(code ? { code } : {}), ...(conform ? { conform: true } : {}) } }),
   sellerSettings: () => api<SellerFulfillmentSettings>('/api/seller/fulfillment-settings'),
   saveSellerSettings: (body: { allow_pickup: boolean; pickup_area: string | null; post_price: number | null; handover_delay_days: number; whatsapp: string }) =>
     api<Record<string, unknown>>('/api/seller/fulfillment-settings', { method: 'PUT', body }),

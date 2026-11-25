@@ -22,7 +22,7 @@ import {
   whatsappLink,
 } from '../fulfillment'
 import { alertAdmins, getUserWhatsapp, releaseOrderPayout, saveUserWhatsapp } from '../services/orderLifecycle'
-import { RECEIPT_CODE_MAX_ATTEMPTS, ensureReceiptCode, getReceiptCode, startCarrierTracking } from '../services/parcelTracking'
+import { RECEIPT_CLAIM_HOURS, RECEIPT_CODE_MAX_ATTEMPTS, ensureReceiptCode, getReceiptCode, startCarrierTracking } from '../services/parcelTracking'
 import { checkTrackingNumber } from '../payments/ship24'
 import type { AuthenticatedRequest } from '../types'
 
@@ -57,6 +57,8 @@ const ProofBody = z.object({
   image: z.string().min(20),
   content_type: z.string().optional(),
   tracking_number: z.string().trim().max(60).optional(),
+  // Nouvelle appli : les 2 photos sont gardées comme preuves de litige, l'envoi se valide ensuite avec le numéro de suivi
+  defer_ship: z.boolean().optional(),
 })
 
 const SellerSettingsBody = z.object({
@@ -310,6 +312,8 @@ router.get('/api/orders/:id/fulfillment', requireAuth, async (req: Authenticated
       contact: null,
       receipt_code: null,
       receipt: null,
+      claim_deadline: order.claim_deadline || null,
+      buyer_confirmed_at: order.buyer_confirmed_at || null,
       carrier: order.tracking_number ? {
         status: order.tracking_status || null,
         first_event_at: order.carrier_first_event_at || null,
@@ -503,7 +507,7 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
       res.status(400).json({ error: 'invalid_input' })
       return
     }
-    const { kind, image, tracking_number } = parsed.data
+    const { kind, image, tracking_number, defer_ship } = parsed.data
     const orderId = paramStr(req.params.id)
     const { data: order } = await supabase
       .from('orders')
@@ -554,13 +558,13 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
     const parcelPath = kind === 'parcel' ? path : order.proof_parcel_path
     const slipPath = kind === 'slip' ? path : order.proof_slip_path
 
-    if (!parcelPath || !slipPath) {
+    if (!parcelPath || !slipPath || defer_ship) {
       await supabase.from('orders').update(patch).eq('id', orderId)
       res.json({
         success: true,
         status: 'paid',
         complete: false,
-        missing: !parcelPath ? 'parcel' : 'slip',
+        missing: !parcelPath ? 'parcel' : !slipPath ? 'slip' : null,
         payout_status: 'held',
       })
       return
@@ -611,7 +615,7 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
     }
     const { data: order } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, fulfillment_method, shipping_address')
+      .select('id, seller_id, buyer_id, status, fulfillment_method, shipping_address, proof_parcel_path, proof_slip_path')
       .eq('id', orderId)
       .single()
     if (!order || order.seller_id !== req.user!.id) {
@@ -624,6 +628,11 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
     }
     if (order.status !== 'paid') {
       res.status(409).json({ error: 'not_paid' })
+      return
+    }
+    // Les 2 photos (intérieur du colis, bordereau) restent obligatoires : preuves en cas de litige
+    if (!order.proof_parcel_path || !order.proof_slip_path) {
+      res.status(400).json({ error: 'photos_required', missing: !order.proof_parcel_path ? 'parcel' : 'slip' })
       return
     }
     // Un même numéro ne peut servir qu'à une seule commande
@@ -644,7 +653,8 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
         shipped_at: nowIso,
         proof_submitted_at: nowIso,
         payout_scheduled_at: payoutAt,
-        claim_deadline: new Date(now + 14 * 86400000).toISOString(),
+        // Sans code ni « livré » de la poste : la vente est acceptée 10 jours après l'envoi
+        claim_deadline: payoutAt,
       })
       .eq('id', orderId)
       .eq('status', 'paid')
@@ -653,7 +663,7 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
       res.status(409).json({ error: 'not_paid' })
       return
     }
-    notifyUserT(order.buyer_id, 'order_shipped', 'orderShipped', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
+    notifyUserT(order.buyer_id, 'order_shipped', 'orderShippedCode', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
     startCarrierTracking(orderId, check.value, order.shipping_address as { zip?: string; country?: string } | null).catch(() => {})
     res.json({ success: true, status: 'shipped', tracking_number: check.value, payout_status: 'held', payout_scheduled_at: payoutAt })
   } catch (err) {
@@ -704,6 +714,23 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
       }
     }
     const nowIso = new Date().toISOString()
+    // Code tapé (règle du 25/11/2026) : réception datée maintenant ; l'acheteur a 24 h pour signaler
+    // un article non conforme, sauf s'il déclare tout de suite que tout est conforme.
+    if (rc && (req.body || {}).conform !== true) {
+      const deadline = new Date(Date.now() + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
+      const { data: rows } = await supabase
+        .from('orders')
+        .update({ status: 'delivered', delivered_at: nowIso, buyer_confirmed_at: nowIso, claim_deadline: deadline, payout_scheduled_at: deadline })
+        .eq('id', orderId).eq('status', 'shipped').eq('payout_status', 'held')
+        .select('id')
+      if (!rows || rows.length === 0) {
+        res.status(409).json({ error: 'not_confirmable' })
+        return
+      }
+      notifyUserT(order.seller_id, 'order_received', 'orderReceived', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
+      res.json({ success: true, status: 'delivered', payout_status: 'held', claim_deadline: deadline })
+      return
+    }
     const updated = await releaseOrderPayout(orderId, {
       status: 'delivered',
       delivered_at: nowIso,

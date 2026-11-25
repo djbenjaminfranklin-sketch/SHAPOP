@@ -115,7 +115,7 @@ const en = {
   tracking_invalid: "This tracking number is not valid. Check it on the post office receipt.",
   tracking_already_used: "This tracking number is already used for another order.",
   receipt_code_title: "Code found in the parcel",
-  receipt_code_hint: "The seller put a 6-digit code in your parcel. Type it to confirm you received it: the seller is paid right away. Without a code, the seller is paid 10 days after shipping, unless you report a problem.",
+  receipt_code_hint: "As soon as you receive your parcel, type the 6-digit code the seller put inside. You then have 24 h to check the item and report a problem with photos; after that, the sale is accepted and the seller is paid. If you don’t type the code, the 24 h start when the post office marks it delivered.",
   receipt_code_button: "Confirm receipt",
   wrong_receipt_code: "Wrong code. Attempts left:",
   receipt_locked: "Too many wrong codes: our team will check.",
@@ -128,6 +128,13 @@ const en = {
   carrier_failed_attempt: "Delivery attempt failed",
   carrier_delivered: "Delivered",
   carrier_exception: "Problem reported by the post office",
+  conform_button: "Everything is fine — pay the seller",
+  check_button: "Confirm receipt (24 h to check)",
+  claim_window_title: "Check your item",
+  claim_window_hint: "You can report a problem, with photos, until",
+  report_problem: "Report a problem",
+  photos_required: "Take the 2 photos first (inside of the parcel and receipt).",
+  ship_photos_hint: "These 2 photos protect you if there is a dispute.",
 }
 
 type FulfillmentTexts = typeof en
@@ -216,7 +223,7 @@ const fr: FulfillmentTexts = {
   mark_processed: 'Marquer comme traitée',
   processed: 'Traitée',
   processed_on: 'Traitée le',
-  processed_hint: "L’acheteur est prévenu que sa commande est prête. Une fois postée, tape le numéro de suivi.",
+  processed_hint: "L’acheteur est prévenu que sa commande est prête. Une fois postée, prends les 2 photos et tape le numéro de suivi.",
   copy_all_addresses: 'Copier toutes les adresses',
   copied: 'Copié',
   order_label: 'Commande',
@@ -253,7 +260,7 @@ const fr: FulfillmentTexts = {
   tracking_invalid: "Ce numéro de suivi n’est pas valide. Vérifie-le sur le reçu de la poste.",
   tracking_already_used: "Ce numéro de suivi est déjà utilisé pour une autre commande.",
   receipt_code_title: "Code trouvé dans le colis",
-  receipt_code_hint: "Le vendeur a glissé un code à 6 chiffres dans ton colis. Tape-le pour confirmer la réception : il est payé tout de suite. Sans code, il est payé 10 jours après l’envoi, sauf si tu signales un problème.",
+  receipt_code_hint: "Dès que tu reçois ton colis, tape le code à 6 chiffres que le vendeur a glissé dedans. Tu as alors 24 h pour vérifier l’article et signaler un problème, photos à l’appui ; passé ce délai, la vente est acceptée et le vendeur payé. Si tu ne tapes pas le code, les 24 h partent de la livraison indiquée par la poste.",
   receipt_code_button: "Confirmer la réception",
   wrong_receipt_code: "Code incorrect. Essais restants :",
   receipt_locked: "Trop de codes faux : notre équipe va vérifier.",
@@ -266,6 +273,13 @@ const fr: FulfillmentTexts = {
   carrier_failed_attempt: "Livraison manquée",
   carrier_delivered: "Livré",
   carrier_exception: "Problème signalé par la poste",
+  conform_button: "Tout est conforme — payer le vendeur",
+  check_button: "Confirmer la réception (24 h pour vérifier)",
+  claim_window_title: "Vérifie ton article",
+  claim_window_hint: "Tu peux signaler un problème, photos à l’appui, jusqu’au",
+  report_problem: "Signaler un problème",
+  photos_required: "Prends d’abord les 2 photos (intérieur du colis et bordereau).",
+  ship_photos_hint: "Ces 2 photos te protègent en cas de litige.",
 }
 
 const es: FulfillmentTexts = {
@@ -381,7 +395,7 @@ const es: FulfillmentTexts = {
   tracking_invalid: "Este número de seguimiento no es válido. Revísalo en el recibo de correos.",
   tracking_already_used: "Este número de seguimiento ya se usa en otro pedido.",
   receipt_code_title: "Código encontrado en el paquete",
-  receipt_code_hint: "El vendedor metió un código de 6 cifras en tu paquete. Escríbelo para confirmar la recepción: cobra enseguida. Sin código, cobra 10 días después del envío, salvo que avises de un problema.",
+  receipt_code_hint: "En cuanto recibas el paquete, escribe el código de 6 cifras que el vendedor metió dentro. Tendrás 24 h para revisar el artículo y avisar de un problema con fotos; pasado ese plazo, la venta se da por aceptada y el vendedor cobra. Si no escribes el código, las 24 h cuentan desde la entrega indicada por correos.",
   receipt_code_button: "Confirmar la recepción",
   wrong_receipt_code: "Código incorrecto. Intentos restantes:",
   receipt_locked: "Demasiados códigos incorrectos: nuestro equipo lo revisará.",
@@ -394,6 +408,13 @@ const es: FulfillmentTexts = {
   carrier_failed_attempt: "Entrega fallida",
   carrier_delivered: "Entregado",
   carrier_exception: "Problema indicado por correos",
+  conform_button: "Todo está bien — pagar al vendedor",
+  check_button: "Confirmar la recepción (24 h para revisar)",
+  claim_window_title: "Revisa tu artículo",
+  claim_window_hint: "Puedes avisar de un problema, con fotos, hasta el",
+  report_problem: "Avisar de un problema",
+  photos_required: "Haz primero las 2 fotos (interior del paquete y resguardo).",
+  ship_photos_hint: "Estas 2 fotos te protegen en caso de disputa.",
 }
 
 const ru: FulfillmentTexts = {
@@ -509,7 +530,7 @@ const ru: FulfillmentTexts = {
   tracking_invalid: "Неверный номер отслеживания. Проверь его на почтовой квитанции.",
   tracking_already_used: "Этот номер отслеживания уже используется в другом заказе.",
   receipt_code_title: "Код из посылки",
-  receipt_code_hint: "Продавец положил в посылку 6-значный код. Введи его, чтобы подтвердить получение: продавец получит деньги сразу. Без кода — через 10 дней после отправки, если ты не сообщишь о проблеме.",
+  receipt_code_hint: "Как только получишь посылку, введи 6-значный код, который продавец положил внутрь. После этого у тебя 24 часа, чтобы проверить товар и сообщить о проблеме с фото; потом продажа считается принятой и продавец получает деньги. Если не введёшь код, 24 часа отсчитываются от доставки по данным почты.",
   receipt_code_button: "Подтвердить получение",
   wrong_receipt_code: "Неверный код. Осталось попыток:",
   receipt_locked: "Слишком много неверных кодов: наша команда проверит.",
@@ -522,6 +543,13 @@ const ru: FulfillmentTexts = {
   carrier_failed_attempt: "Неудачная попытка доставки",
   carrier_delivered: "Доставлено",
   carrier_exception: "Почта сообщила о проблеме",
+  conform_button: "Всё в порядке — заплатить продавцу",
+  check_button: "Подтвердить получение (24 часа на проверку)",
+  claim_window_title: "Проверь товар",
+  claim_window_hint: "Сообщить о проблеме с фото можно до",
+  report_problem: "Сообщить о проблеме",
+  photos_required: "Сначала сделай 2 фото (содержимое посылки и квитанция).",
+  ship_photos_hint: "Эти 2 фото защитят тебя в случае спора.",
 }
 
 const he: FulfillmentTexts = {
@@ -637,7 +665,7 @@ const he: FulfillmentTexts = {
   tracking_invalid: "מספר המעקב לא תקין. בדקו אותו בקבלה של הדואר.",
   tracking_already_used: "מספר המעקב הזה כבר בשימוש בהזמנה אחרת.",
   receipt_code_title: "הקוד שנמצא בחבילה",
-  receipt_code_hint: "המוכר הכניס לחבילה קוד בן 6 ספרות. הקלידו אותו כדי לאשר את הקבלה — והמוכר יקבל את התשלום מיד. בלי קוד, התשלום יועבר 10 ימים אחרי המשלוח, אלא אם תדווחו על בעיה.",
+  receipt_code_hint: "ברגע שתקבלו את החבילה, הקלידו את הקוד בן 6 הספרות שהמוכר הכניס לתוכה. מאותו רגע יש לכם 24 שעות לבדוק את הפריט ולדווח על בעיה עם תמונות; אחרי זה המכירה נחשבת מאושרת והמוכר מקבל את התשלום. אם לא תקלידו את הקוד, 24 השעות נספרות מהמסירה לפי הדואר.",
   receipt_code_button: "אישור קבלה",
   wrong_receipt_code: "קוד שגוי. ניסיונות שנותרו:",
   receipt_locked: "יותר מדי קודים שגויים: הצוות שלנו יבדוק.",
@@ -650,6 +678,13 @@ const he: FulfillmentTexts = {
   carrier_failed_attempt: "ניסיון מסירה נכשל",
   carrier_delivered: "נמסר",
   carrier_exception: "הדואר דיווח על בעיה",
+  conform_button: "הכול תקין — לשלם למוכר",
+  check_button: "אישור קבלה (24 שעות לבדיקה)",
+  claim_window_title: "בדקו את הפריט",
+  claim_window_hint: "אפשר לדווח על בעיה, עם תמונות, עד",
+  report_problem: "דיווח על בעיה",
+  photos_required: "צלמו קודם את 2 התמונות (תוך החבילה והקבלה).",
+  ship_photos_hint: "2 התמונות האלה מגינות עליכם במקרה של מחלוקת.",
 }
 
 export const FULFILLMENT_TEXTS: Record<'en' | 'fr' | 'es' | 'ru' | 'he', FulfillmentTexts> = { en, fr, es, ru, he }

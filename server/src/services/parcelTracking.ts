@@ -6,6 +6,8 @@ import { ship24Enabled, trackShipment, trackerResults, type CarrierTracking } fr
 import { alertAdmins } from './orderLifecycle'
 
 export const RECEIPT_CODE_MAX_ATTEMPTS = 5
+/** Délai pour signaler un article non conforme après la réception (code tapé ou « livré » de la poste). */
+export const RECEIPT_CLAIM_HOURS = 24
 
 /** Code à 6 chiffres que le vendeur glisse dans le colis ; créé une seule fois par commande. */
 export async function ensureReceiptCode(orderId: string): Promise<string | null> {
@@ -28,13 +30,21 @@ export async function getReceiptCode(orderId: string) {
 
 /** Enregistre ce que dit le transporteur ; alerte l'équipe si le dépôt date d'avant la vente. */
 export async function applyCarrierTracking(orderId: string, ct: CarrierTracking): Promise<void> {
-  const { data: order } = await supabase.from('orders').select('id, created_at, carrier_alerted_at, carrier_delivered_at').eq('id', orderId).maybeSingle()
+  const { data: order } = await supabase.from('orders').select('id, status, created_at, carrier_alerted_at, carrier_delivered_at, buyer_confirmed_at, payout_status').eq('id', orderId).maybeSingle()
   if (!order) return
   const patch: Record<string, unknown> = { carrier_checked_at: new Date().toISOString() }
   if (ct.trackerId) patch.carrier_tracker_id = ct.trackerId
   if (ct.milestone) patch.tracking_status = ct.milestone
   if (ct.firstEventAt) patch.carrier_first_event_at = ct.firstEventAt
-  if (ct.deliveredAt && !order.carrier_delivered_at) patch.carrier_delivered_at = ct.deliveredAt
+  if (ct.deliveredAt && !order.carrier_delivered_at) {
+    patch.carrier_delivered_at = ct.deliveredAt
+    // L'acheteur n'a pas tapé le code alors que la poste dit « livré » : les 24 h partent de la livraison
+    if (order.status === 'shipped' && !order.buyer_confirmed_at && order.payout_status === 'held') {
+      const deadline = new Date(Date.parse(ct.deliveredAt) + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
+      patch.claim_deadline = deadline
+      patch.payout_scheduled_at = deadline
+    }
+  }
   const depositedBeforeSale = ct.firstEventAt && Date.parse(ct.firstEventAt) < Date.parse(order.created_at) - 24 * 3600_000
   if (depositedBeforeSale && !order.carrier_alerted_at) {
     patch.carrier_alerted_at = new Date().toISOString()
@@ -64,25 +74,28 @@ export async function startCarrierTracking(orderId: string, trackingNumber: stri
  * Sans Ship24 : oui. Avec Ship24 : seulement si le transporteur dit « livré » et que le dépôt n'est pas suspect ;
  * sinon l'argent reste bloqué et l'équipe est prévenue une fois.
  */
-export async function carrierAllowsRelease(order: { id: string; carrier_tracker_id?: string | null; carrier_delivered_at?: string | null; carrier_alerted_at?: string | null }): Promise<boolean> {
+export async function carrierAllowsRelease(order: { id: string; status?: string; buyer_confirmed_at?: string | null; carrier_tracker_id?: string | null; carrier_delivered_at?: string | null; carrier_alerted_at?: string | null }): Promise<boolean> {
+  // Réception confirmée par le code : les 24 h sont passées sans litige, la vente est acceptée
+  if (order.buyer_confirmed_at) return true
   if (!ship24Enabled() || !order.carrier_tracker_id) return true
-  let deliveredAt = order.carrier_delivered_at
-  if (!deliveredAt) {
+  if (!order.carrier_delivered_at) {
     try {
       const ct = await trackerResults(order.carrier_tracker_id)
-      if (ct) {
-        await applyCarrierTracking(order.id, ct)
-        deliveredAt = ct.deliveredAt
-      }
+      if (ct) await applyCarrierTracking(order.id, ct)
     } catch (err) {
       console.error('[ship24] results', order.id, err instanceof Error ? err.message : err)
     }
   }
-  const { data: fresh } = await supabase.from('orders').select('carrier_alerted_at, carrier_delivered_at').eq('id', order.id).maybeSingle()
-  if (fresh?.carrier_alerted_at) return false
-  if (deliveredAt || fresh?.carrier_delivered_at) return true
-  await supabase.from('orders').update({ carrier_alerted_at: new Date().toISOString() }).eq('id', order.id).is('carrier_alerted_at', null)
-  alertAdmins('Colis non livré selon la poste',
-    `Commande #${shortOrderRef(order.id)} : 10 jours après l'envoi, la poste n'indique pas « livré ». Le vendeur n'est pas payé automatiquement : vérifier dans l'admin.`).catch(() => {})
+  const { data: fresh } = await supabase.from('orders').select('created_at, carrier_first_event_at, carrier_delivered_at, carrier_alerted_at, payout_scheduled_at').eq('id', order.id).maybeSingle()
+  if (!fresh) return false
+  const suspicious = fresh.carrier_first_event_at && Date.parse(fresh.carrier_first_event_at) < Date.parse(fresh.created_at) - 24 * 3600_000
+  if (suspicious) return false
+  // « Livré » selon la poste : versement 24 h après la livraison (la date vient d'être recalculée si besoin)
+  if (fresh.carrier_delivered_at) return !fresh.payout_scheduled_at || Date.parse(fresh.payout_scheduled_at) <= Date.now()
+  if (!fresh.carrier_alerted_at) {
+    await supabase.from('orders').update({ carrier_alerted_at: new Date().toISOString() }).eq('id', order.id)
+    alertAdmins('Colis non livré selon la poste',
+      `Commande #${shortOrderRef(order.id)} : 10 jours après l'envoi, la poste n'indique pas « livré ». Le vendeur n'est pas payé automatiquement : vérifier dans l'admin.`).catch(() => {})
+  }
   return false
 }

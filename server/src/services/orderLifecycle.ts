@@ -185,8 +185,8 @@ export async function releaseOrderPayout(
 export async function releaseDuePostPayouts(): Promise<number> {
   const { data: due } = await supabase
     .from('orders')
-    .select('id, seller_id, carrier_tracker_id, carrier_delivered_at, carrier_alerted_at')
-    .eq('status', 'shipped')
+    .select('id, seller_id, status, buyer_confirmed_at, carrier_tracker_id, carrier_delivered_at, carrier_alerted_at')
+    .in('status', ['shipped', 'delivered'])
     .eq('fulfillment_method', 'post')
     .eq('payout_status', 'held')
     .not('proof_submitted_at', 'is', null)
@@ -196,7 +196,7 @@ export async function releaseDuePostPayouts(): Promise<number> {
   for (const o of due || []) {
     // Avec le suivi transporteur branché : la poste doit dire « livré » (sinon l'équipe vérifie)
     if (!(await carrierAllowsRelease(o))) continue
-    const row = await releaseOrderPayout(o.id, {}, 'shipped')
+    const row = await releaseOrderPayout(o.id, {}, o.status)
     if (row) {
       count++
       notifyUserT(o.seller_id, 'payout_released', 'payoutReleased', { ref: shortOrderRef(o.id) }, { order_id: o.id }).catch(() => {})

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getDir, getLang } from '../../lib/i18n'
-import { ApiError, formatDateTime, fulfillmentApi, type OrderFulfillment } from '../../lib/fulfillment'
+import { ApiError, fileToJpegDataUrl, formatDateTime, fulfillmentApi, type OrderFulfillment } from '../../lib/fulfillment'
 import { errorText, ft, statusLabel } from '../../lib/fulfillmentText'
 
 interface Props {
@@ -93,6 +94,10 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
         <ConfirmReceipt orderId={orderId} receipt={data.receipt || null} onDone={refresh} />
       )}
 
+      {isBuyer && data.fulfillment_method === 'post' && data.status === 'delivered' && data.payout_status === 'held' && data.claim_deadline && new Date(data.claim_deadline) > new Date() && (
+        <ClaimWindow orderId={orderId} deadline={data.claim_deadline} />
+      )}
+
       {/* Code de retrait : visible par l'acheteur seulement (le serveur ne l'envoie qu'à lui) */}
       {isBuyer && data.fulfillment_method === 'pickup' && data.handover?.code && awaiting && (
         <div style={{ ...card, alignItems: 'center', textAlign: 'center', borderColor: 'rgba(240,144,138,0.4)' }}>
@@ -118,7 +123,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
       )}
 
       {isSeller && data.fulfillment_method === 'post' && awaiting && (
-        <ShipForm orderId={orderId} receiptCode={data.receipt_code || null} onDone={refresh} />
+        <ShipForm orderId={orderId} receiptCode={data.receipt_code || null} hasParcel={!!data.proofs.parcel_url} hasSlip={!!data.proofs.slip_url} onDone={refresh} />
       )}
 
       {/* Après l'envoi : numéro de suivi + ce que dit la poste ; le vendeur garde son code sous les yeux */}
@@ -243,11 +248,11 @@ function ConfirmReceipt({ orderId, receipt, onDone }: { orderId: string; receipt
   const [locked, setLocked] = useState(!!receipt?.locked)
   const [error, setError] = useState<string | null>(receipt?.locked ? t.receipt_locked : null)
   const [done, setDone] = useState(false)
-  const submit = async () => {
+  const submit = async (conform: boolean) => {
     setBusy(true)
     setError(null)
     try {
-      await fulfillmentApi.confirmReceipt(orderId, needsCode ? code : undefined)
+      await fulfillmentApi.confirmReceipt(orderId, needsCode ? code : undefined, needsCode && conform)
       setDone(true)
       onDone()
     } catch (err) {
@@ -284,9 +289,15 @@ function ConfirmReceipt({ orderId, receipt, onDone }: { orderId: string; receipt
           }}
         />
       )}
-      {!done && (
-        <button type="button" onClick={submit} disabled={!ok} style={primaryBtn(ok)}>
-          {busy ? t.sending : needsCode ? t.receipt_code_button : t.confirm_receipt}
+      {!done && needsCode && (
+        <>
+          <button type="button" onClick={() => submit(true)} disabled={!ok} style={primaryBtn(ok)}>{busy ? t.sending : t.conform_button}</button>
+          <button type="button" onClick={() => submit(false)} disabled={!ok} style={{ ...primaryBtn(ok), background: ok ? 'transparent' : '#333', border: ok ? '1px solid #F0908A' : 'none', color: ok ? '#F0908A' : '#777' }}>{t.check_button}</button>
+        </>
+      )}
+      {!done && !needsCode && (
+        <button type="button" onClick={() => submit(true)} disabled={!ok} style={primaryBtn(ok)}>
+          {busy ? t.sending : t.confirm_receipt}
         </button>
       )}
       {error && <p role="alert" style={{ ...hint, color: '#F87171' }}>{error}</p>}
@@ -294,13 +305,67 @@ function ConfirmReceipt({ orderId, receipt, onDone }: { orderId: string; receipt
   )
 }
 
-/** Vendeur, envoi par la poste : code à glisser dans le colis + numéro de suivi obligatoire. */
-function ShipForm({ orderId, receiptCode, onDone }: { orderId: string; receiptCode: string | null; onDone: () => void }) {
+function ClaimWindow({ orderId, deadline }: { orderId: string; deadline: string }) {
+  const lang = getLang()
+  const t = ft(lang)
+  const navigate = useNavigate()
+  return (
+    <div style={{ ...card, borderColor: 'rgba(240,144,138,0.4)' }}>
+      <h3 style={title}>{t.claim_window_title}</h3>
+      <p style={hint}>{t.claim_window_hint} <strong style={{ color: '#ddd' }}>{formatDateTime(deadline, lang)}</strong></p>
+      <button type="button" onClick={() => navigate(`/dispute/${orderId}`)} style={{ ...primaryBtn(true), background: 'linear-gradient(135deg, #F97316, #E8344E)' }}>{t.report_problem}</button>
+    </div>
+  )
+}
+
+/** Vendeur, envoi par la poste : 2 photos (preuves de litige) + code à glisser dans le colis + numéro de suivi obligatoire. */
+function ShipForm({ orderId, receiptCode, hasParcel, hasSlip, onDone }: { orderId: string; receiptCode: string | null; hasParcel: boolean; hasSlip: boolean; onDone: () => void }) {
   const lang = getLang()
   const t = ft(lang)
   const [tracking, setTracking] = useState('')
+  const [sent, setSent] = useState({ parcel: hasParcel, slip: hasSlip })
+  const [photoBusy, setPhotoBusy] = useState<'parcel' | 'slip' | null>(null)
+  const inputs = { parcel: useRef<HTMLInputElement>(null), slip: useRef<HTMLInputElement>(null) }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const onFile = async (kind: 'parcel' | 'slip', file: File | undefined) => {
+    if (!file) return
+    setPhotoBusy(kind)
+    setError(null)
+    try {
+      const image = await fileToJpegDataUrl(file)
+      await fulfillmentApi.submitProof(orderId, kind, image, undefined, true)
+      setSent(s => ({ ...s, [kind]: true }))
+    } catch (err) {
+      setError(err instanceof ApiError ? errorText(err.code, lang) : t.error_generic)
+    } finally {
+      setPhotoBusy(null)
+      const ref = inputs[kind].current
+      if (ref) ref.value = ''
+    }
+  }
+
+  const step = (kind: 'parcel' | 'slip', n: number, label: string) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', borderRadius: '12px', backgroundColor: '#0D0D0D', border: '1px solid #222' }}>
+      <span style={{
+        width: '26px', height: '26px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+        fontWeight: 800, fontSize: 'calc(13px * var(--fs, 1))', backgroundColor: sent[kind] ? '#22C55E' : '#333', color: '#fff',
+      }}>{sent[kind] ? '✓' : n}</span>
+      <span style={{ flex: 1, fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{label}{sent[kind] ? ` — ${t.photo_sent}` : ''}</span>
+      <input ref={inputs[kind]} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => onFile(kind, e.target.files?.[0])} />
+      <button
+        type="button"
+        onClick={() => inputs[kind].current?.click()}
+        disabled={photoBusy !== null}
+        style={{ padding: '9px 12px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
+          backgroundColor: sent[kind] ? '#222' : '#F0908A', color: sent[kind] ? '#ccc' : '#fff', whiteSpace: 'nowrap' }}
+      >
+        {photoBusy === kind ? t.sending : sent[kind] ? t.retake_photo : t.take_photo}
+      </button>
+    </div>
+  )
+
   const submit = async () => {
     setBusy(true)
     setError(null)
@@ -313,7 +378,8 @@ function ShipForm({ orderId, receiptCode, onDone }: { orderId: string; receiptCo
       setBusy(false)
     }
   }
-  const ok = !busy && tracking.replace(/[\s-]/g, '').length >= 8
+  const photosOk = sent.parcel && sent.slip
+  const ok = !busy && photosOk && tracking.replace(/[\s-]/g, '').length >= 8
   return (
     <div style={card}>
       <h3 style={title}>{t.ship_title}</h3>
@@ -324,6 +390,9 @@ function ShipForm({ orderId, receiptCode, onDone }: { orderId: string; receiptCo
           <p style={hint}>{t.ship_code_hint}</p>
         </div>
       )}
+      <p style={hint}>{t.ship_photos_hint}</p>
+      {step('parcel', 1, t.proof_parcel)}
+      {step('slip', 2, t.proof_slip)}
       <p style={hint}>{t.tracking_hint}</p>
       <input
         value={tracking}
@@ -335,6 +404,7 @@ function ShipForm({ orderId, receiptCode, onDone }: { orderId: string; receiptCo
         dir="ltr"
         style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', boxSizing: 'border-box', letterSpacing: '1px' }}
       />
+      {!photosOk && tracking.trim().length > 0 && <p style={{ ...hint, color: '#F0908A' }}>{t.photos_required}</p>}
       {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
       <button type="button" onClick={submit} disabled={!ok} style={primaryBtn(ok)}>{busy ? t.sending : t.ship_button}</button>
     </div>
