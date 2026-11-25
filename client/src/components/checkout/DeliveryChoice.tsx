@@ -7,6 +7,8 @@ interface Props {
   orderId: string
   /** Appelé quand le choix est enregistré côté serveur (le total à payer inclut le port). */
   onConfirmed: (result: { method: FulfillmentMethod; shippingCost: number; totalAmount: number; currency: string }) => void
+  /** L'acheteur a une carte enregistrée : le paiement se fait tout seul après ce choix */
+  hasSavedCard?: boolean
 }
 
 const inputStyle: React.CSSProperties = {
@@ -19,7 +21,7 @@ const inputStyle: React.CSSProperties = {
  * ou envoi par la poste (adresse demandée uniquement dans ce cas). Demande aussi le
  * numéro WhatsApp de l'acheteur s'il n'en a pas encore. Tout est enregistré par le serveur.
  */
-export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
+export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: Props) {
   const lang = getLang()
   const t = ft(lang)
   const [options, setOptions] = useState<CheckoutOptions | null>(null)
@@ -166,7 +168,7 @@ export default function DeliveryChoice({ orderId, onConfirmed }: Props) {
           color: canSubmit ? '#fff' : '#777', cursor: canSubmit ? 'pointer' : 'not-allowed',
         }}
       >
-        {saving ? t.saving : t.continue_to_payment}
+        {saving ? t.saving : (hasSavedCard ? t.confirm_with_saved_card : t.continue_to_payment)}
       </button>
     </div>
   )

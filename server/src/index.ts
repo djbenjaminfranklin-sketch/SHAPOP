@@ -9,6 +9,8 @@ import { createServer } from 'http'
 import { PAYPAL_MODE, supabase } from './config'
 import { notifyFollowersSellerLive } from './utils'
 import { endAbandonedLives } from './services/abandonedLives'
+import { isAuctionExpired } from './services/auctionExpiry'
+import { closeAuction } from './routes/items'
 import { closeGiveawaysOfEndedLives } from './services/giveawayClose'
 import { globalLimiter, webhookLimiter } from './middleware'
 
@@ -177,6 +179,25 @@ server.listen(PORT, () => {
       console.error('[Handover-Deadline] Error:', err)
     }
   }, 60 * 60 * 1000) // 1 hour
+
+  // Enchères échues clôturées par le serveur (l'appli du vendeur peut être en pause : appel, arrière-plan)
+  let closingAuctions = false
+  setInterval(async () => {
+    if (closingAuctions) return
+    closingAuctions = true
+    try {
+      const { data: active } = await supabase.from('items').select('id, started_at, duration_seconds').eq('status', 'active').gt('duration_seconds', 0)
+      const now = Date.now()
+      for (const it of active || []) {
+        if (!isAuctionExpired(it.started_at, it.duration_seconds, now)) continue
+        await closeAuction(it.id).catch(err => console.error('[Auctions] clôture', it.id, err?.message || err))
+      }
+    } catch (err) {
+      console.error('[Auctions] Contrôle des enchères échues:', err)
+    } finally {
+      closingAuctions = false
+    }
+  }, 3000)
 
   // Lives fantômes (vendeur parti sans « Terminer ») : contrôle de la salle vidéo toutes les 2 min
   setInterval(async () => {

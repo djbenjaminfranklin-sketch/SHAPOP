@@ -980,6 +980,8 @@ export default function StreamView() {
   const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
 
   const [hasEnteredGiveaway, setHasEnteredGiveaway] = useState(false)
+  // Cadeau auquel on ne peut pas participer (réservé aux acheteurs) : on retire la grande case
+  const [giveawayDismissedId, setGiveawayDismissedId] = useState<string | null>(null)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
   const [enteringGiveaway, setEnteringGiveaway] = useState(false)
   const giveawayWinnerShownRef = useRef<string | null>(null) // track which giveaway winner was already shown
@@ -2053,6 +2055,7 @@ export default function StreamView() {
         hapticTap()
       } else if (resp.status === 403) {
         alert(ct.giveawayBuyersOnly)
+        setGiveawayDismissedId(activeGiveaway.id)
       }
     } catch { /* ignore */ }
     setEnteringGiveaway(false)
@@ -4152,7 +4155,7 @@ export default function StreamView() {
       })()}
 
       {/* ═══ GIVEAWAY BANNER (viewer, single-view only — multi-view has in-cell giveaway) ═══ */}
-      {!isSeller && !isMultiView && activeGiveaway && activeGiveaway.status === 'active' && (
+      {!isSeller && !isMultiView && activeGiveaway && activeGiveaway.status === 'active' && giveawayDismissedId !== activeGiveaway.id && (
         hasEnteredGiveaway ? (
           /* Collapsed pill after entry */
           <div style={{
@@ -4478,7 +4481,7 @@ export default function StreamView() {
                     <p style={{ margin: '4px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#ddd' }}>{ct.winCardDeclinedHint}</p>
                   </div>
                 )}
-                <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} />
+                <DeliveryChoice orderId={paymentOrder.id} onConfirmed={handleDeliveryConfirmed} hasSavedCard={hasCard === true} />
               </>
             ) : (
               /* Step 2: Payment */

@@ -268,25 +268,24 @@ router.post('/api/items/:id/start-auction', requireAuth, async (req: Authenticat
   }
 })
 
-router.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    // Verify ownership
-    const { data: itemCheck } = await supabase
-      .from('items')
-      .select('seller_id')
-      .eq('id', req.params.id)
-      .single()
-
-    if (!itemCheck || itemCheck.seller_id !== req.user!.id) {
-      res.status(403).json({ error: 'You can only end auctions for your own items' })
-      return
+/**
+ * Clôture d'une enchère (vendu si le prix minimum est atteint, sinon invendu) : commande, réservation de la carte,
+ * notification. Appelée par le vendeur à la fin du compte à rebours ET par le serveur (enchères échues), pour qu'une
+ * enchère se termine à l'heure même si l'appli du vendeur est en pause (appel, arrière-plan).
+ */
+export async function closeAuction(itemId: string): Promise<{ status: string; winner_id: string | null; final_price: number; order_id: string | null; payment: unknown; order?: unknown }> {
+    // Déjà clôturée (par le serveur, par le vendeur, ou vendue entre-temps au prix minimum) : on ne réécrit rien
+    const { data: current } = await supabase.from('items').select('status, winner_id, current_price').eq('id', itemId).single()
+    if (current && current.status !== 'active') {
+      const { data: existing } = await supabase.from('orders').select('id').eq('item_id', itemId).limit(1).maybeSingle()
+      return { status: current.status, winner_id: current.winner_id || null, final_price: Number(current.current_price) || 0, order_id: existing?.id || null, payment: null }
     }
 
     // Get full item for min_price check
     const { data: fullItem } = await supabase
       .from('items')
       .select('min_price')
-      .eq('id', req.params.id)
+      .eq('id', itemId)
       .single()
 
     const minPrice = fullItem?.min_price || 0
@@ -294,7 +293,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
     const { data: topBid } = await supabase
       .from('bids')
       .select('*')
-      .eq('item_id', req.params.id)
+      .eq('item_id', itemId)
       .order('amount', { ascending: false })
       .limit(1)
       .maybeSingle()
@@ -312,11 +311,10 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
         current_price: topBid?.amount || undefined,
         ended_at: new Date().toISOString(),
       })
-      .eq('id', req.params.id)
+      .eq('id', itemId)
 
     if (error) {
-      res.status(500).json({ error: 'Failed to end auction' })
-      return
+      throw new Error('Failed to end auction')
     }
 
     let orderId: string | null = null
@@ -327,7 +325,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
       const { data: existingOrder } = await supabase
         .from('orders')
         .select('*')
-        .eq('item_id', req.params.id)
+        .eq('item_id', itemId)
         .limit(1)
         .maybeSingle()
 
@@ -336,14 +334,13 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
         const payment = existingOrder.auth_status
           ? { status: isPaidOrder(existingOrder.status) ? 'paid' : existingOrder.auth_status, code: existingOrder.auth_error_code || undefined }
           : await authorizeOrderPayment(existingOrder.id)
-        res.json({ success: true, status, winner_id: winnerId, final_price: topBid.amount, order_id: existingOrder.id, payment, order: existingOrder })
-        return
+        return { status, winner_id: winnerId, final_price: topBid.amount, order_id: existingOrder.id, payment, order: existingOrder }
       }
 
       const { data: item } = await supabase
         .from('items')
         .select('*')
-        .eq('id', req.params.id)
+        .eq('id', itemId)
         .single()
 
       if (item) {
@@ -382,7 +379,25 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
       }
     }
 
-    res.json({ success: true, status, winner_id: winnerId, final_price: topBid?.amount || 0, order_id: orderId, payment })
+    return { status, winner_id: winnerId, final_price: topBid?.amount || 0, order_id: orderId, payment }
+}
+
+router.post('/api/items/:id/end-auction', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Verify ownership
+    const { data: itemCheck } = await supabase
+      .from('items')
+      .select('seller_id')
+      .eq('id', req.params.id)
+      .single()
+
+    if (!itemCheck || itemCheck.seller_id !== req.user!.id) {
+      res.status(403).json({ error: 'You can only end auctions for your own items' })
+      return
+    }
+
+    const result = await closeAuction(String(req.params.id))
+    res.json({ success: true, ...result })
   } catch (err) {
     console.error('[items]', err)
     res.status(500).json({ error: 'Internal server error' })
