@@ -794,14 +794,12 @@ export default function LiveSellerView() {
 
   // Start broadcast once LiveKit token is ready
   const broadcastStartedRef = useRef(false)
-  // On attend la caméra de l'aperçu : c'est elle qui est diffusée
-  const [cameraReady, setCameraReady] = useState(false)
   useEffect(() => {
-    if (livekitUrl && livekitToken && cameraReady && !broadcastStartedRef.current) {
+    if (livekitUrl && livekitToken && !broadcastStartedRef.current) {
       broadcastStartedRef.current = true
-      startBroadcast(mediaStreamRef.current)
+      startBroadcast()
     }
-  }, [livekitUrl, livekitToken, cameraReady, startBroadcast])
+  }, [livekitUrl, livekitToken, startBroadcast])
 
   // Mark stream as 'live' when broadcasting starts (fallback if webhook doesn't fire)
   const markedLiveRef = useRef(false)
@@ -921,10 +919,8 @@ export default function LiveSellerView() {
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream
         }
-        setCameraReady(true)
       } catch {
-        // Camera access failed : la diffusion ouvrira sa propre caméra
-        setCameraReady(true)
+        // Camera access failed
       }
     }
     startCamera()
@@ -1480,7 +1476,7 @@ export default function LiveSellerView() {
       mediaStreamRef.current = ms
       if (videoRef.current) videoRef.current.srcObject = ms
       broadcastStartedRef.current = false
-      setTimeout(() => startBroadcast(mediaStreamRef.current), 500)
+      setTimeout(() => startBroadcast(), 500)
     } catch {
       // caméra indisponible (encore en appel ?) : on réessaiera au prochain retour au premier plan
     }
@@ -1529,7 +1525,7 @@ export default function LiveSellerView() {
 
       // Restart LiveKit broadcast after a small delay
       broadcastStartedRef.current = false
-      setTimeout(() => startBroadcast(mediaStreamRef.current), 500)
+      setTimeout(() => startBroadcast(), 500)
     } catch {
       // Camera flip failed
     }
