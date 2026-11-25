@@ -1,3 +1,4 @@
+import { applyBuyerSanction, applySellerSanction } from '../services/sanctions'
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, stripe, STREAMS_SAFE_COLUMNS, PAYPAL_MODE } from '../config'
@@ -791,8 +792,13 @@ router.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authent
       }
     }
 
+    // Sanctions automatiques (25/11/2026) : vendeur qui perd, acheteur de mauvaise foi
+    const sanction = resolution === 'buyer'
+      ? { seller_level: await applySellerSanction(dispute.seller_id).catch(() => null) }
+      : { buyer_blocked: await applyBuyerSanction(dispute.buyer_id).catch(() => null) }
+
     // Audit log
-    await logAdminAction(req.user!.id, req.user!.email || '', `resolve_dispute_${resolution}`, 'dispute', disputeId, { note, order_id: dispute.order_id })
+    await logAdminAction(req.user!.id, req.user!.email || '', `resolve_dispute_${resolution}`, 'dispute', disputeId, { note, order_id: dispute.order_id, ...sanction })
 
     res.json({ success: true, status: newStatus })
   } catch (err) {

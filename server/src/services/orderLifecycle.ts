@@ -193,9 +193,12 @@ export async function releaseDuePostPayouts(): Promise<number> {
     .lte('payout_scheduled_at', new Date().toISOString())
   let count = 0
   const { carrierAllowsRelease } = await import('./parcelTracking')
+  const { sellerRestricted } = await import('./sanctions')
   for (const o of due || []) {
     // Avec le suivi transporteur branché : la poste doit dire « livré » (sinon l'équipe vérifie)
     if (!(await carrierAllowsRelease(o))) continue
+    // Vendeur sanctionné (2e litige perdu) : jamais de versement sans réception (confirmée ou « livré » de la poste)
+    if (!o.buyer_confirmed_at && !o.carrier_delivered_at && (await sellerRestricted(o.seller_id))) continue
     const row = await releaseOrderPayout(o.id, {}, o.status)
     if (row) {
       count++

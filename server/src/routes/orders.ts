@@ -1,3 +1,4 @@
+import { buyerBlocked } from '../services/sanctions'
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { supabase, stripe } from '../config'
@@ -285,6 +286,16 @@ router.post('/api/orders/:id/request-return', requireAuth, async (req: Authentic
 
     if (!['delivered', 'handed_over', 'shipped'].includes(order.status)) {
       res.status(400).json({ error: 'Returns can only be requested for received orders' })
+      return
+    }
+    // Règle du 25/11/2026 : retour seulement pour un colis reçu (confirmé ou « livré » par la poste),
+    // pendant les 24 h pour signaler un problème ; acheteur de mauvaise foi bloqué.
+    if (order.status === 'shipped' && !order.carrier_delivered_at) {
+      res.status(400).json({ error: 'not_received_yet' })
+      return
+    }
+    if (await buyerBlocked(req.user!.id)) {
+      res.status(403).json({ error: 'buyer_blocked' })
       return
     }
 

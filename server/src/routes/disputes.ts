@@ -1,3 +1,4 @@
+import { buyerBlocked } from '../services/sanctions'
 import { Router } from 'express'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
@@ -33,6 +34,10 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
 
     const { order_id, reason, description, evidence_urls, photo_urls } = parsed.data
     const buyerId = req.user!.id
+    if (await buyerBlocked(buyerId)) {
+      res.status(403).json({ error: 'buyer_blocked' })
+      return
+    }
 
     if (reason !== 'not_received' && (!photo_urls || photo_urls.length === 0)) {
       res.status(400).json({ error: 'At least one photo is required to open a dispute' })

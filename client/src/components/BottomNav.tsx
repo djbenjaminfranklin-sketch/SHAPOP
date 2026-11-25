@@ -20,6 +20,7 @@ type NavText = {
   security: string
   messages: string
   referrals: string
+  rules: string
   viewProfile: string
   signOut: string
   user: string
@@ -39,6 +40,7 @@ const navText: Localized<NavText> = {
     security: 'Security',
     messages: 'Messages',
     referrals: 'Referrals',
+    rules: 'Buying and selling rules',
     viewProfile: 'View my profile',
     signOut: 'Sign out',
     user: 'User',
@@ -56,6 +58,7 @@ const navText: Localized<NavText> = {
     security: 'Sécurité',
     messages: 'Messages',
     referrals: 'Parrainages',
+    rules: 'Règles d’achat et de vente',
     viewProfile: 'Voir mon profil',
     signOut: 'Déconnexion',
     user: 'Utilisateur',
@@ -73,6 +76,7 @@ const navText: Localized<NavText> = {
     security: 'Seguridad',
     messages: 'Mensajes',
     referrals: 'Invitaciones',
+    rules: 'Reglas de compra y venta',
     viewProfile: 'Ver mi perfil',
     signOut: 'Cerrar sesión',
     user: 'Usuario',
@@ -90,6 +94,7 @@ const navText: Localized<NavText> = {
     security: 'Безопасность',
     messages: 'Сообщения',
     referrals: 'Приглашения',
+    rules: 'Правила покупки и продажи',
     viewProfile: 'Открыть мой профиль',
     signOut: 'Выйти',
     user: 'Пользователь',
@@ -107,6 +112,7 @@ const navText: Localized<NavText> = {
     security: 'אבטחה',
     messages: 'הודעות',
     referrals: 'הזמנת חברים',
+    rules: 'כללי קנייה ומכירה',
     viewProfile: 'לצפייה בפרופיל שלי',
     signOut: 'התנתקות',
     user: 'משתמש',
@@ -193,6 +199,11 @@ export default function BottomNav() {
 
   // ── Profile menu items ──
   const menuItems: { icon: React.JSX.Element; label: string; to: string; color?: string }[] = [
+    {
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h7M9 11h7"/></svg>,
+      label: nt.rules,
+      to: '/rules',
+    },
     {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
       label: nt.myProfile,

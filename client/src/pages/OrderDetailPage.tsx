@@ -452,7 +452,9 @@ export default function OrderDetailPage() {
   // Litige : « non reçu » possible dès le paiement
   const canReport = isBuyer && ['paid', 'shipped', 'handed_over', 'delivered'].includes(order.status)
     && (!order.claim_deadline || new Date(order.claim_deadline) > new Date())
-  const canRequestReturn = isBuyer && ['delivered', 'shipped', 'handed_over'].includes(order.status)
+  // Retour seulement pour un colis reçu, pendant les 24 h pour signaler un problème (règle du 25/11/2026)
+  const canRequestReturn = isBuyer && ['delivered', 'handed_over'].includes(order.status)
+    && !!order.claim_deadline && new Date(order.claim_deadline) > new Date()
 
   return (
     <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>

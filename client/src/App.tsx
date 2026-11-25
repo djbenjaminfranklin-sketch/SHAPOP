@@ -56,6 +56,7 @@ const DisputePage = lazy(() => import('./pages/DisputePage'))
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'))
 const PayOrderPage = lazy(() => import('./pages/PayOrderPage'))
 const PayoutsIsraelPage = lazy(() => import('./pages/PayoutsIsraelPage'))
+const RulesPage = lazy(() => import('./pages/RulesPage'))
 const ConversationPage = lazy(() => import('./pages/ConversationPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const SellerProfilePage = lazy(() => import('./pages/SellerProfilePage'))
@@ -392,6 +393,7 @@ export default function App() {
                 <Route path="/order/:id" element={<ProtectedRoute><OrderDetailPage /></ProtectedRoute>} />
                 <Route path="/pay/:id" element={<ProtectedRoute><PayOrderPage /></ProtectedRoute>} />
                 <Route path="/payouts-israel" element={<ProtectedRoute><PayoutsIsraelPage /></ProtectedRoute>} />
+                <Route path="/rules" element={<RulesPage />} />
                 {/* Les messages vivent dans l'onglet Messages de la page Activité (le menu des onglets reste affiché) */}
                 <Route path="/messages" element={<Navigate to="/activity" state={{ tab: 'messages' }} replace />} />
                 <Route path="/conversation/:id" element={<ProtectedRoute><ConversationPage /></ProtectedRoute>} />

@@ -22,7 +22,7 @@ import {
   whatsappLink,
 } from '../fulfillment'
 import { alertAdmins, getUserWhatsapp, releaseOrderPayout, saveUserWhatsapp } from '../services/orderLifecycle'
-import { RECEIPT_CLAIM_HOURS, RECEIPT_CODE_MAX_ATTEMPTS, ensureReceiptCode, getReceiptCode, startCarrierTracking } from '../services/parcelTracking'
+import { RECEIPT_CLAIM_HOURS, startCarrierTracking } from '../services/parcelTracking'
 import { checkTrackingNumber } from '../payments/ship24'
 import type { AuthenticatedRequest } from '../types'
 
@@ -310,8 +310,6 @@ router.get('/api/orders/:id/fulfillment', requireAuth, async (req: Authenticated
       handover: null,
       proofs: { parcel_url: null, slip_url: null },
       contact: null,
-      receipt_code: null,
-      receipt: null,
       claim_deadline: order.claim_deadline || null,
       buyer_confirmed_at: order.buyer_confirmed_at || null,
       // Seulement si le suivi transporteur (Ship24) suit vraiment ce colis
@@ -320,18 +318,6 @@ router.get('/api/orders/:id/fulfillment', requireAuth, async (req: Authenticated
         first_event_at: order.carrier_first_event_at || null,
         delivered_at: order.carrier_delivered_at || null,
       } : null,
-    }
-
-    // Envoi par la poste : le vendeur voit le code à glisser dans le colis (créé avant l'envoi) ;
-    // l'acheteur ne voit que s'il doit en saisir un et combien d'essais il lui reste.
-    if (order.fulfillment_method === 'post' && (order.status === 'paid' || order.status === 'shipped')) {
-      if (isSeller || admin) {
-        result.receipt_code = order.status === 'paid' ? await ensureReceiptCode(orderId) : (await getReceiptCode(orderId))?.code || null
-      }
-      if (isBuyer) {
-        const rc = await getReceiptCode(orderId)
-        result.receipt = rc ? { required: true, locked: !!rc.locked_at, attempts_left: Math.max(0, RECEIPT_CODE_MAX_ATTEMPTS - (rc.attempts || 0)) } : { required: false, locked: false, attempts_left: 0 }
-      }
     }
 
     if (order.fulfillment_method === 'pickup') {
@@ -603,8 +589,8 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
 
 // =============================================
 // POST /api/orders/:id/ship — le vendeur a posté le colis : numéro de suivi OBLIGATOIRE
-// (les photos ne comptent plus comme preuve : un tampon se fabrique). Le code de réception
-// est déjà dans le colis ; l'argent reste bloqué jusqu'au code saisi par l'acheteur, sinon 10 jours.
+// (les 2 photos restent obligatoires, comme preuves de litige). L'argent reste bloqué jusqu'à la
+// réception confirmée par l'acheteur (+ 24 h, ou tout de suite si « conforme »), sinon 10 jours.
 // =============================================
 router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -642,7 +628,6 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
       res.status(409).json({ error: 'tracking_already_used' })
       return
     }
-    await ensureReceiptCode(orderId)
     const now = Date.now()
     const nowIso = new Date(now).toISOString()
     const payoutAt = new Date(now + POST_PAYOUT_DELAY_DAYS * 86400000).toISOString()
@@ -682,7 +667,7 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
     const orderId = paramStr(req.params.id)
     const { data: order } = await supabase
       .from('orders')
-      .select('id, buyer_id, seller_id, status, fulfillment_method, payout_status')
+      .select('id, buyer_id, seller_id, status, fulfillment_method, payout_status, carrier_delivered_at')
       .eq('id', orderId)
       .single()
     if (!order || order.buyer_id !== req.user!.id) {
@@ -693,32 +678,14 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
       res.status(409).json({ error: 'not_confirmable' })
       return
     }
-    // Code glissé dans le colis par le vendeur : seul celui qui a le colis en main le connaît
-    const rc = await getReceiptCode(orderId)
-    if (rc) {
-      if (rc.locked_at) {
-        res.status(423).json({ error: 'receipt_locked' })
-        return
-      }
-      const given = String((req.body || {}).code || '').replace(/\D/g, '')
-      if (given !== rc.code) {
-        const attempts = (rc.attempts || 0) + 1
-        const locked = attempts >= RECEIPT_CODE_MAX_ATTEMPTS
-        await supabase.from('order_receipt_codes').update({ attempts, ...(locked ? { locked_at: new Date().toISOString() } : {}) }).eq('order_id', orderId)
-        if (locked) {
-          alertAdmins('Code de réception bloqué', `Commande #${shortOrderRef(orderId)} : ${attempts} codes faux saisis par l'acheteur.`).catch(() => {})
-          res.status(423).json({ error: 'receipt_locked' })
-        } else {
-          res.status(400).json({ error: 'wrong_receipt_code', attempts_left: RECEIPT_CODE_MAX_ATTEMPTS - attempts })
-        }
-        return
-      }
-    }
     const nowIso = new Date().toISOString()
-    // Code tapé (règle du 25/11/2026) : réception datée maintenant ; l'acheteur a 24 h pour signaler
-    // un article non conforme, sauf s'il déclare tout de suite que tout est conforme.
-    if (rc && (req.body || {}).conform !== true) {
-      const deadline = new Date(Date.now() + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
+    // Règle du 25/11/2026 : l'acheteur confirme la réception dans l'appli (sans code).
+    // « Tout est conforme » → vendeur payé tout de suite ; sinon 24 h pour signaler un problème.
+    // (Les anciennes versions de l'appli n'envoient pas « conform » : leur bouton voulait dire « tout est OK ».)
+    if ((req.body || {}).conform === false) {
+      // Si la poste a déjà dit « livré », les 24 h comptent depuis la livraison (pas de rallonge en confirmant tard)
+      const from = order.carrier_delivered_at ? Math.min(Date.parse(order.carrier_delivered_at), Date.now()) : Date.now()
+      const deadline = new Date(from + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
       const { data: rows } = await supabase
         .from('orders')
         .update({ status: 'delivered', delivered_at: nowIso, buyer_confirmed_at: nowIso, claim_deadline: deadline, payout_scheduled_at: deadline })

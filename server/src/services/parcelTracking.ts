@@ -1,32 +1,11 @@
-// Suivi des colis envoyés par la poste : code de réception glissé dans le colis + suivi transporteur (Ship24).
-import crypto from 'crypto'
+// Suivi des colis envoyés par la poste : réception confirmée par l'acheteur + suivi transporteur (Ship24).
 import { supabase } from '../config'
 import { shortOrderRef } from '../fulfillment'
 import { ship24Enabled, trackShipment, trackerResults, type CarrierTracking } from '../payments/ship24'
 import { alertAdmins } from './orderLifecycle'
 
-export const RECEIPT_CODE_MAX_ATTEMPTS = 5
-/** Délai pour signaler un article non conforme après la réception (code tapé ou « livré » de la poste). */
+/** Délai pour signaler un article non conforme après la réception (confirmée par l'acheteur ou « livré » de la poste). */
 export const RECEIPT_CLAIM_HOURS = 24
-
-/** Code à 6 chiffres que le vendeur glisse dans le colis ; créé une seule fois par commande. */
-export async function ensureReceiptCode(orderId: string): Promise<string | null> {
-  const { data: existing } = await supabase.from('order_receipt_codes').select('code').eq('order_id', orderId).maybeSingle()
-  if (existing?.code) return existing.code
-  const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0')
-  const { error } = await supabase.from('order_receipt_codes').insert({ order_id: orderId, code, attempts: 0 })
-  if (error) {
-    // Course entre deux appels : on relit celui qui a gagné
-    const { data: again } = await supabase.from('order_receipt_codes').select('code').eq('order_id', orderId).maybeSingle()
-    return again?.code || null
-  }
-  return code
-}
-
-export async function getReceiptCode(orderId: string) {
-  const { data } = await supabase.from('order_receipt_codes').select('code, attempts, locked_at').eq('order_id', orderId).maybeSingle()
-  return data as { code: string; attempts: number; locked_at: string | null } | null
-}
 
 /** Enregistre ce que dit le transporteur ; alerte l'équipe si le dépôt date d'avant la vente. */
 export async function applyCarrierTracking(orderId: string, ct: CarrierTracking): Promise<void> {
@@ -38,7 +17,7 @@ export async function applyCarrierTracking(orderId: string, ct: CarrierTracking)
   if (ct.firstEventAt) patch.carrier_first_event_at = ct.firstEventAt
   if (ct.deliveredAt && !order.carrier_delivered_at) {
     patch.carrier_delivered_at = ct.deliveredAt
-    // L'acheteur n'a pas tapé le code alors que la poste dit « livré » : les 24 h partent de la livraison
+    // L'acheteur n'a pas confirmé alors que la poste dit « livré » : les 24 h partent de la livraison
     if (order.status === 'shipped' && !order.buyer_confirmed_at && order.payout_status === 'held') {
       const deadline = new Date(Date.parse(ct.deliveredAt) + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
       patch.claim_deadline = deadline
@@ -75,7 +54,7 @@ export async function startCarrierTracking(orderId: string, trackingNumber: stri
  * sinon l'argent reste bloqué et l'équipe est prévenue une fois.
  */
 export async function carrierAllowsRelease(order: { id: string; status?: string; buyer_confirmed_at?: string | null; carrier_tracker_id?: string | null; carrier_delivered_at?: string | null; carrier_alerted_at?: string | null }): Promise<boolean> {
-  // Réception confirmée par le code : les 24 h sont passées sans litige, la vente est acceptée
+  // Réception confirmée par l'acheteur : les 24 h sont passées sans litige, la vente est acceptée
   if (order.buyer_confirmed_at) return true
   if (!ship24Enabled() || !order.carrier_tracker_id) return true
   if (!order.carrier_delivered_at) {

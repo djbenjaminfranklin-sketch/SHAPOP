@@ -55,10 +55,6 @@ export interface OrderFulfillment {
   handover: { code?: string; attempts_left?: number; locked: boolean } | null
   proofs: { parcel_url: string | null; slip_url: string | null }
   contact: OrderContact | null
-  /** Vendeur seulement : code à glisser dans le colis (envoi par la poste). */
-  receipt_code?: string | null
-  /** Acheteur seulement : faut-il saisir le code trouvé dans le colis ? */
-  receipt?: { required: boolean; locked: boolean; attempts_left: number } | null
   /** Ce que dit la poste (suivi Ship24), si branché. */
   carrier?: { status: string | null; first_event_at: string | null; delivered_at: string | null } | null
   /** Fin du délai pour signaler un problème (24 h après le code tapé ou le « livré » de la poste). */
@@ -189,8 +185,8 @@ export const fulfillmentApi = {
     }),
   ship: (orderId: string, trackingNumber: string) =>
     api<{ success: boolean; tracking_number: string }>(`/api/orders/${orderId}/ship`, { method: 'POST', body: { tracking_number: trackingNumber } }),
-  confirmReceipt: (orderId: string, code?: string, conform = false) =>
-    api<{ success: boolean; claim_deadline?: string }>(`/api/orders/${orderId}/confirm-receipt`, { method: 'POST', body: { ...(code ? { code } : {}), ...(conform ? { conform: true } : {}) } }),
+  confirmReceipt: (orderId: string, conform: boolean) =>
+    api<{ success: boolean; claim_deadline?: string }>(`/api/orders/${orderId}/confirm-receipt`, { method: 'POST', body: { conform } }),
   sellerSettings: () => api<SellerFulfillmentSettings>('/api/seller/fulfillment-settings'),
   saveSellerSettings: (body: { allow_pickup: boolean; pickup_area: string | null; post_price: number | null; handover_delay_days: number; whatsapp: string }) =>
     api<Record<string, unknown>>('/api/seller/fulfillment-settings', { method: 'PUT', body }),

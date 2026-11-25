@@ -91,7 +91,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
 
       {/* Envoi postal : l'acheteur peut confirmer la réception pour payer le vendeur tout de suite */}
       {isBuyer && data.fulfillment_method === 'post' && data.status === 'shipped' && data.payout_status === 'held' && (
-        <ConfirmReceipt orderId={orderId} receipt={data.receipt || null} onDone={refresh} />
+        <ConfirmReceipt orderId={orderId} onDone={refresh} />
       )}
 
       {isBuyer && data.fulfillment_method === 'post' && data.status === 'delivered' && data.payout_status === 'held' && data.claim_deadline && new Date(data.claim_deadline) > new Date() && (
@@ -123,20 +123,17 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
       )}
 
       {isSeller && data.fulfillment_method === 'post' && awaiting && (
-        <ShipForm orderId={orderId} receiptCode={data.receipt_code || null} hasParcel={!!data.proofs.parcel_url} hasSlip={!!data.proofs.slip_url} onDone={refresh} />
+        <ShipForm orderId={orderId} hasParcel={!!data.proofs.parcel_url} hasSlip={!!data.proofs.slip_url} onDone={refresh} />
       )}
 
       {/* Après l'envoi : numéro de suivi + ce que dit la poste ; le vendeur garde son code sous les yeux */}
-      {data.fulfillment_method === 'post' && !awaiting && data.tracking_number && (data.carrier?.status || (isSeller && data.receipt_code) || !(data.proofs.parcel_url || data.proofs.slip_url)) && (
+      {data.fulfillment_method === 'post' && !awaiting && data.tracking_number && (data.carrier?.status || !(data.proofs.parcel_url || data.proofs.slip_url)) && (
         <div style={card}>
           {!(data.proofs.parcel_url || data.proofs.slip_url) && (
             <p style={hint}>{t.tracking_number}{t.colon} <span dir="ltr" style={{ color: '#ddd', fontWeight: 700 }}>{data.tracking_number}</span></p>
           )}
           {data.carrier?.status && (
             <p style={hint}>{t.carrier_label}{t.colon} <strong style={{ color: data.carrier.status === 'delivered' ? '#22C55E' : '#ddd' }}>{(t as Record<string, string>)[`carrier_${data.carrier.status}`] || data.carrier.status}</strong></p>
-          )}
-          {isSeller && data.receipt_code && (
-            <p style={hint}>{t.ship_code_title}{t.colon} <strong dir="ltr" style={{ color: '#F0908A', letterSpacing: '3px' }}>{data.receipt_code}</strong></p>
           )}
         </div>
       )}
@@ -241,66 +238,36 @@ function HandoverCodeForm({ orderId, locked, attemptsLeft, onDone }: { orderId: 
   )
 }
 
-function ConfirmReceipt({ orderId, receipt, onDone }: { orderId: string; receipt: { required: boolean; locked: boolean; attempts_left: number } | null; onDone: () => void }) {
+function ConfirmReceipt({ orderId, onDone }: { orderId: string; onDone: () => void }) {
   const lang = getLang()
   const t = ft(lang)
-  const needsCode = !!receipt?.required
-  const [code, setCode] = useState('')
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
-  const [locked, setLocked] = useState(!!receipt?.locked)
-  const [error, setError] = useState<string | null>(receipt?.locked ? t.receipt_locked : null)
+  const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const submit = async (conform: boolean) => {
     setBusy(true)
     setError(null)
     try {
-      await fulfillmentApi.confirmReceipt(orderId, needsCode ? code : undefined, needsCode && conform)
+      await fulfillmentApi.confirmReceipt(orderId, conform)
       setDone(true)
       onDone()
     } catch (err) {
-      if (err instanceof ApiError && err.code === 'wrong_receipt_code') {
-        setError(`${t.wrong_receipt_code} ${String(err.body.attempts_left ?? '')}`)
-      } else if (err instanceof ApiError && err.code === 'receipt_locked') {
-        setLocked(true)
-        setError(t.receipt_locked)
-      } else {
-        setError(errorText(err instanceof ApiError ? err.code : 'error', lang))
-      }
+      setError(errorText(err instanceof ApiError ? err.code : 'error', lang))
     } finally {
       setBusy(false)
     }
   }
-  const ok = !busy && !locked && (!needsCode || /^\d{6}$/.test(code))
   return (
-    <div style={card}>
-      {needsCode && !done && <h3 style={title}>{t.receipt_code_title}</h3>}
-      <p style={hint}>{done ? t.receipt_confirmed : needsCode ? t.receipt_code_hint : t.confirm_receipt_hint}</p>
-      {needsCode && !done && (
-        <input
-          value={code}
-          onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          inputMode="numeric"
-          maxLength={6}
-          dir="ltr"
-          disabled={locked}
-          aria-label={t.receipt_code_title}
-          placeholder="••••••"
-          style={{
-            width: '100%', padding: '14px', borderRadius: '12px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D',
-            color: '#fff', fontSize: 'calc(26px * var(--fs, 1))', letterSpacing: '10px', textAlign: 'center', boxSizing: 'border-box', fontWeight: 800,
-          }}
-        />
-      )}
-      {!done && needsCode && (
+    <div style={{ ...card, borderColor: 'rgba(240,144,138,0.4)' }}>
+      {!done && <h3 style={title}>{t.receipt_title}</h3>}
+      <p style={hint}>{done ? t.receipt_confirmed : t.receipt_hint}</p>
+      {!done && (
         <>
-          <button type="button" onClick={() => submit(true)} disabled={!ok} style={primaryBtn(ok)}>{busy ? t.sending : t.conform_button}</button>
-          <button type="button" onClick={() => submit(false)} disabled={!ok} style={{ ...primaryBtn(ok), background: ok ? 'transparent' : '#333', border: ok ? '1px solid #F0908A' : 'none', color: ok ? '#F0908A' : '#777' }}>{t.check_button}</button>
+          <button type="button" onClick={() => submit(true)} disabled={busy} style={primaryBtn(!busy)}>{busy ? t.sending : t.conform_button}</button>
+          <button type="button" onClick={() => submit(false)} disabled={busy} style={{ ...primaryBtn(!busy), background: 'transparent', border: '1px solid #F0908A', color: '#F0908A' }}>{t.check_button}</button>
+          <button type="button" onClick={() => navigate('/rules')} style={{ background: 'none', border: 'none', color: '#999', textDecoration: 'underline', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer', padding: 0 }}>{t.rules_link}</button>
         </>
-      )}
-      {!done && !needsCode && (
-        <button type="button" onClick={() => submit(true)} disabled={!ok} style={primaryBtn(ok)}>
-          {busy ? t.sending : t.confirm_receipt}
-        </button>
       )}
       {error && <p role="alert" style={{ ...hint, color: '#F87171' }}>{error}</p>}
     </div>
@@ -314,14 +281,14 @@ function ClaimWindow({ orderId, deadline }: { orderId: string; deadline: string 
   return (
     <div style={{ ...card, borderColor: 'rgba(240,144,138,0.4)' }}>
       <h3 style={title}>{t.claim_window_title}</h3>
-      <p style={hint}>{t.claim_window_hint} <strong style={{ color: '#ddd' }}>{formatDateTime(deadline, lang)}</strong></p>
+      <p style={hint}>{t.claim_window_hint} <strong style={{ color: '#ddd' }}>{formatDateTime(deadline, lang)}</strong>{t.claim_window_after}</p>
       <button type="button" onClick={() => navigate(`/dispute/${orderId}`)} style={{ ...primaryBtn(true), background: 'linear-gradient(135deg, #F97316, #E8344E)' }}>{t.report_problem}</button>
     </div>
   )
 }
 
-/** Vendeur, envoi par la poste : 2 photos (preuves de litige) + code à glisser dans le colis + numéro de suivi obligatoire. */
-function ShipForm({ orderId, receiptCode, hasParcel, hasSlip, onDone }: { orderId: string; receiptCode: string | null; hasParcel: boolean; hasSlip: boolean; onDone: () => void }) {
+/** Vendeur, envoi par la poste : 2 photos (preuves de litige) + numéro de suivi obligatoire. */
+function ShipForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; hasParcel: boolean; hasSlip: boolean; onDone: () => void }) {
   const lang = getLang()
   const t = ft(lang)
   const [tracking, setTracking] = useState('')
@@ -385,13 +352,6 @@ function ShipForm({ orderId, receiptCode, hasParcel, hasSlip, onDone }: { orderI
   return (
     <div style={card}>
       <h3 style={title}>{t.ship_title}</h3>
-      {receiptCode && (
-        <div style={{ borderRadius: '12px', border: '1px dashed rgba(240,144,138,0.6)', padding: '12px', textAlign: 'center', backgroundColor: 'rgba(240,144,138,0.08)' }}>
-          <div style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', textTransform: 'uppercase', letterSpacing: '1px' }}>{t.ship_code_title}</div>
-          <div dir="ltr" style={{ fontSize: 'calc(34px * var(--fs, 1))', fontWeight: 900, letterSpacing: '8px', color: '#fff', fontVariantNumeric: 'tabular-nums', margin: '4px 0' }}>{receiptCode}</div>
-          <p style={hint}>{t.ship_code_hint}</p>
-        </div>
-      )}
       <p style={hint}>{t.ship_photos_hint}</p>
       {step('parcel', 1, t.proof_parcel)}
       {step('slip', 2, t.proof_slip)}
