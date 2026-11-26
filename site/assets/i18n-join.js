@@ -8,7 +8,7 @@
   add('en', {
     cta2: { sell: 'Become a seller', buy: 'Start buying', sellShort: 'Sell', buyShort: 'Buy', gpSmall: 'Get it on', gpAria: 'Get ShaPop on Google Play' },
     how2: {
-      kicker: 'Inside the app', title: 'This is what ShaPop looks like', intro: 'Real screens from the app. Dark, fast and simple — the live is the star.',
+      kicker: 'Inside the app', title: 'This is what ShaPop looks like', intro: 'Real screens from the app. Clean, fast and simple — the live is the star.',
       s1h: 'Lives near you', s1p: 'Your feed shows the lives starting around you and from the sellers you follow.',
       s2h: 'Direct sales', s2p: 'Not live right now? Browse items on sale any time and buy in one tap.',
       s3h: 'A clear listing', s3p: 'Photos, price, condition and the seller. AI writes the listing from the photos.',
@@ -120,7 +120,7 @@
   add('fr', {
     cta2: { sell: 'Devenir vendeur', buy: 'Commencer à acheter', sellShort: 'Vendre', buyShort: 'Acheter', gpSmall: 'Disponible sur', gpAria: 'Télécharger ShaPop sur Google Play' },
     how2: {
-      kicker: 'Dans l’appli', title: 'Voilà à quoi ressemble ShaPop', intro: 'De vrais écrans de l’appli. Sombre, rapide et simple : la vedette, c’est le live.',
+      kicker: 'Dans l’appli', title: 'Voilà à quoi ressemble ShaPop', intro: 'De vrais écrans de l’appli. Clair, rapide et simple : la vedette, c’est le live.',
       s1h: 'Les lives près de toi', s1p: 'Ton fil montre les lives qui démarrent autour de toi et ceux des vendeurs que tu suis.',
       s2h: 'Les ventes directes', s2p: 'Pas de live en ce moment ? Parcours les articles en vente à toute heure et achète en un geste.',
       s3h: 'Une fiche claire', s3p: 'Photos, prix, état et vendeur. L’IA rédige la fiche à partir des photos.',
@@ -232,7 +232,7 @@
   add('es', {
     cta2: { sell: 'Hazte vendedor', buy: 'Empieza a comprar', sellShort: 'Vender', buyShort: 'Comprar', gpSmall: 'Disponible en', gpAria: 'Descarga ShaPop en Google Play' },
     how2: {
-      kicker: 'Dentro de la app', title: 'Así es ShaPop', intro: 'Pantallas reales de la app. Oscura, rápida y sencilla: la estrella es el directo.',
+      kicker: 'Dentro de la app', title: 'Así es ShaPop', intro: 'Pantallas reales de la app. Clara, rápida y sencilla: la estrella es el directo.',
       s1h: 'Directos cerca de ti', s1p: 'Tu inicio muestra los directos que empiezan a tu alrededor y los de los vendedores que sigues.',
       s2h: 'Ventas directas', s2p: '¿Ningún directo ahora? Mira los artículos en venta a cualquier hora y compra con un toque.',
       s3h: 'Una ficha clara', s3p: 'Fotos, precio, estado y vendedor. La IA redacta la ficha a partir de las fotos.',
@@ -344,7 +344,7 @@
   add('ru', {
     cta2: { sell: 'Стать продавцом', buy: 'Начать покупать', sellShort: 'Продать', buyShort: 'Купить', gpSmall: 'Доступно в', gpAria: 'Скачать ShaPop в Google Play' },
     how2: {
-      kicker: 'В приложении', title: 'Так выглядит ShaPop', intro: 'Настоящие экраны приложения. Тёмное, быстрое и простое — главное здесь эфир.',
+      kicker: 'В приложении', title: 'Так выглядит ShaPop', intro: 'Настоящие экраны приложения. Светлое, быстрое и простое — главное здесь эфир.',
       s1h: 'Эфиры рядом с тобой', s1p: 'В ленте — эфиры, которые начинаются рядом, и эфиры продавцов, на которых ты подписан.',
       s2h: 'Прямые продажи', s2p: 'Сейчас нет эфира? Смотри товары в продаже в любое время и покупай в одно касание.',
       s3h: 'Понятная карточка', s3p: 'Фото, цена, состояние и продавец. ИИ пишет карточку по фотографиям.',
@@ -456,7 +456,7 @@
   add('he', {
     cta2: { sell: 'להיות מוכר/ת', buy: 'להתחיל לקנות', sellShort: 'למכור', buyShort: 'לקנות', gpSmall: 'זמין ב־', gpAria: 'הורידו את ShaPop מ־Google Play' },
     how2: {
-      kicker: 'בתוך האפליקציה', title: 'ככה נראית ShaPop', intro: 'מסכים אמיתיים מהאפליקציה. כהה, מהירה ופשוטה — הלייב הוא הכוכב.',
+      kicker: 'בתוך האפליקציה', title: 'ככה נראית ShaPop', intro: 'מסכים אמיתיים מהאפליקציה. בהירה, מהירה ופשוטה — הלייב הוא הכוכב.',
       s1h: 'לייבים לידכם', s1p: 'הפיד מציג את הלייבים שמתחילים סביבכם ואת אלה של המוכרים שאתם עוקבים אחריהם.',
       s2h: 'מכירות ישירות', s2p: 'אין לייב עכשיו? עברו על הפריטים למכירה בכל שעה וקנו בנגיעה אחת.',
       s3h: 'עמוד פריט ברור', s3p: 'תמונות, מחיר, מצב והמוכר. הבינה המלאכותית כותבת את המודעה מהתמונות.',

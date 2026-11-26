@@ -559,3 +559,9 @@ em { font-style: normal; color: var(--c); text-shadow: var(--tglow); }
 .legal-box .legal-toc li { font-size: 14px; }
 .method .code-box p { color: #fff; font-size: 12px; }
 .method .order .s { color: var(--muted); }
+
+/* ---------- Fond blanc, comme l'appli (26/11/2026) ----------
+   Même principe que l'appli : on inverse tout le site (noir → blanc, cyan → cyan foncé lisible),
+   puis on ré-inverse les vraies images (captures, vidéo du S, emojis) pour qu'elles gardent leurs couleurs. */
+html { filter: invert(1) hue-rotate(180deg); }
+.shot-img[src*="06-intro"], .s-video, .stage video, .thumb, .shot > span:not(.ai-badge), .pic span, .no-invert { filter: invert(1) hue-rotate(180deg); }
