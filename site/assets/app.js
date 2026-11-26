@@ -84,6 +84,9 @@
     document.querySelectorAll('[data-i18n-aria]').forEach(function (el) {
       var v = get(el.getAttribute('data-i18n-aria')); if (v) el.setAttribute('aria-label', v.replace(/<[^>]+>/g, ''));
     });
+    document.querySelectorAll('[data-i18n-ph]').forEach(function (el) {
+      var v = get(el.getAttribute('data-i18n-ph')); if (typeof v === 'string') el.setAttribute('placeholder', v);
+    });
     document.querySelectorAll('[data-faq]').forEach(function (el) { renderFaq(el, get(el.getAttribute('data-faq'))); });
     document.querySelectorAll('[data-legal]').forEach(function (el) { renderLegal(el, get(el.getAttribute('data-legal'))); });
     document.querySelectorAll('[data-list]').forEach(function (el) {
@@ -115,6 +118,7 @@
       b.setAttribute('aria-checked', b.getAttribute('data-lang') === lang ? 'true' : 'false');
     });
     resetMock();
+    try { document.dispatchEvent(new CustomEvent('sp:lang', { detail: lang })); } catch (e) {}
   }
 
   /* ---------- sélecteur de langue ---------- */
@@ -230,5 +234,6 @@
   startLive();
   reveal();
   var y = document.querySelector('[data-year]'); if (y) y.textContent = new Date().getFullYear();
-  window.SP = { setLang: function (l) { if (BY[l]) { lang = l; store(l); apply(); } } };
+  window.SP = { setLang: function (l) { if (BY[l]) { lang = l; store(l); apply(); } }, t: function (k) { return get(k); }, lang: function () { return lang; } };
+  try { document.dispatchEvent(new CustomEvent('sp:ready')); } catch (e) {}
 })();
