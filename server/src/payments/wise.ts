@@ -37,6 +37,16 @@ async function wiseRequest<T = any>(method: 'GET' | 'POST' | 'PATCH', path: stri
   return j as T
 }
 
+/** Vérification au démarrage : le serveur atteint-il le profil Wise configuré ? (journal seulement) */
+export async function checkWiseConnection(): Promise<string> {
+  const { enabled, profileId } = wiseConfig()
+  if (!enabled) return 'éteint'
+  const profiles = await wiseRequest<{ id: number; type: string }[]>('GET', '/v2/profiles')
+  const p = profiles.find(x => String(x.id) === profileId)
+  if (!p) throw new WiseError(`profil ${profileId} introuvable pour cette clé`, 404)
+  return `connecté au profil ${p.type} ${p.id}`
+}
+
 /** Destinataire : compte bancaire israélien (IBAN IL…, 23 caractères) au nom du vendeur. */
 export async function createIlsRecipient(input: { holderName: string; iban: string }): Promise<string> {
   const { profileId } = wiseConfig()

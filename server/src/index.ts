@@ -23,6 +23,7 @@ import { cancelOverdueOrders, remindHandoverDeadline, remindPendingPayments } fr
 import { releaseDuePostPayouts } from './services/orderLifecycle'
 import { sendOrderReminders } from './services/reminders'
 import { prepareWiseBatch } from './services/wisePayouts'
+import { checkWiseConnection } from './payments/wise'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
 import messageRoutes from './routes/messages'
@@ -150,6 +151,7 @@ app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
 const server = createServer(app)
 
 server.listen(PORT, () => {
+  checkWiseConnection().then(r => console.log(`[Wise] ${r}`)).catch(err => console.error('[Wise] connexion impossible :', err?.message || err))
   console.log(`ShaPop API running on http://localhost:${PORT}`)
 
   // Process PayPal payouts every 4 hours
