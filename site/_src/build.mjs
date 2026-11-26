@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ctx = { window: { SP_T: {} } };
-for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'i18n-delete.js', 'legal-en-fr.js', 'legal-es-ru-he.js', 'i18n-legal-rules.js', 'i18n-join.js']) {
+for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'i18n-delete.js', 'legal-en-fr.js', 'legal-es-ru-he.js', 'i18n-legal-rules.js', 'i18n-join.js', 'i18n-home-rules.js']) {
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'assets', f), 'utf8'), ctx);
 }
 const EN = ctx.window.SP_T.en;
@@ -134,6 +134,7 @@ function footer(legal = false, extra = '') {
 <script src="/assets/i18n-delete.js?v=7"></script>
 <script src="/assets/i18n-legal-rules.js?v=8"></script>
 <script src="/assets/i18n-join.js?v=1"></script>
+<script src="/assets/i18n-home-rules.js?v=1"></script>
 ${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
 </body>
 </html>
@@ -145,7 +146,7 @@ const faqHtml = (items) => items.map(([q, a]) => `<details><summary>${q}</summar
 /* ------------------------------ ACCUEIL ------------------------------ */
 function home() {
   const step = (n, icon, extra = '', d = '') => `<li class="step reveal${d}"><div class="tile">${ico(icon)}</div>${t('h3', `buy.s${n}h`)}${t('p', `buy.s${n}p`)}${extra}</li>`;
-  const pay = `<div class="pay-logos">${t('span', 'pay.card')}<span>Apple Pay</span>${t('span', 'pay.bit')}</div>`;
+  const pay = `<div class="pay-logos">${t('span', 'pay.card')}<span>Apple Pay</span></div>`;
   const sitem = (n, icon) => `<li class="seller-item reveal">${'<div class="tile">' + ico(icon) + '</div>'}<div>${t('h3', `sell.s${n}h`)}${t('p', `sell.s${n}p`)}</div></li>`;
   const flow = (n, icon) => `<li class="reveal d${n - 1 || ''}"><div class="tile">${ico(icon)}</div><div>${t('b', `prot.f${n}b`)}${t('small', `prot.f${n}s`)}</div></li>`;
   const check = (k) => `<li>${ico('check')}${t('span', k)}</li>`;
