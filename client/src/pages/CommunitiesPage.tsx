@@ -264,7 +264,7 @@ export default function CommunitiesPage() {
           <BackArrowButton />
           <div style={{
             width: '36px', height: '36px', borderRadius: '10px',
-            background: 'linear-gradient(135deg, #00E5FF, #E06860)',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -503,7 +503,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
         <CommunityCover city={community.city || community.name} country={community.country || ''} size="card" />
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
+          background: 'transparent',
         }} />
 
         {/* Live indicator */}
@@ -536,7 +536,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
           {community.name}
         </h3>
 
-        <div style={{
+        {community.city && community.city !== community.name && <div style={{
           display: 'flex', alignItems: 'center', gap: '4px',
           marginTop: '4px',
         }}>
@@ -545,7 +545,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
           <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{community.city}</span>
-        </div>
+        </div>}
 
         <div style={{
           display: 'flex', alignItems: 'center', gap: '4px',
