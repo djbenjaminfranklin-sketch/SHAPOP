@@ -339,7 +339,7 @@ export default function CreateLiveWizard() {
   const stepHeroes = [
     { emoji: '\uD83C\uDFA5', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
     { emoji: '\u270D\uFE0F', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
-    { emoji: '\uD83D\uDCC5', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
+    { emoji: '\u23F0', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
     { emoji: '\uD83C\uDFF7\uFE0F', gradient: 'linear-gradient(135deg, #00E5FF, #00E5FF)' },
     { emoji: '\uD83D\uDDBC\uFE0F', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
   ]

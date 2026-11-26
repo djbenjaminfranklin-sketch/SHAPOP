@@ -55,6 +55,7 @@ const pageContent = {
     payNowBtn: 'Pay now',
     cardDeclinedBuyer: 'Your card was declined: pay with another card.',
     platformFee: 'Platform fee',
+    processingFee: 'Card payment fee',
     sellerPayout: 'Seller payout',
     createdAt: 'Ordered',
     paidAt: 'Paid',
@@ -98,6 +99,7 @@ const pageContent = {
     payNowBtn: 'Payer maintenant',
     cardDeclinedBuyer: 'Ta carte a été refusée : paie avec une autre carte.',
     platformFee: 'Frais de la plateforme',
+    processingFee: 'Frais de paiement par carte',
     sellerPayout: 'Versement vendeur',
     createdAt: 'Commande passée',
     paidAt: 'Payée',
@@ -141,6 +143,7 @@ const pageContent = {
     payNowBtn: 'Pagar ahora',
     cardDeclinedBuyer: 'Tu tarjeta ha sido rechazada: paga con otra tarjeta.',
     platformFee: 'Comisión de la plataforma',
+    processingFee: 'Comisión de pago con tarjeta',
     sellerPayout: 'Pago al vendedor',
     createdAt: 'Pedido',
     paidAt: 'Pagado',
@@ -184,6 +187,7 @@ const pageContent = {
     payNowBtn: 'Оплатить',
     cardDeclinedBuyer: 'Твоя карта отклонена: оплати другой картой.',
     platformFee: 'Комиссия платформы',
+    processingFee: 'Комиссия за оплату картой',
     sellerPayout: 'Выплата продавцу',
     createdAt: 'Заказ оформлен',
     paidAt: 'Оплачен',
@@ -227,6 +231,7 @@ const pageContent = {
     payNowBtn: 'לתשלום',
     cardDeclinedBuyer: 'הכרטיס שלך נדחה: שלמו בכרטיס אחר.',
     platformFee: 'עמלת פלטפורמה',
+    processingFee: 'עמלת תשלום בכרטיס',
     sellerPayout: 'תשלום למוכר',
     createdAt: 'הוזמן',
     paidAt: 'שולם',
@@ -527,6 +532,7 @@ export default function OrderDetailPage() {
             {isSeller ? (
               <>
                 <Line label={ct.platformFee} value={`-${money(order.platform_fee)}`} color="#00E5FF" />
+                {Number(order.processing_fee) > 0 && <Line label={ct.processingFee} value={`-${money(order.processing_fee)}`} color="#00E5FF" />}
                 <Line label={ct.sellerPayout} value={money(order.seller_payout)} color="#00E5FF" strong />
               </>
             ) : (
