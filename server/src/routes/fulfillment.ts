@@ -24,6 +24,7 @@ import {
 import { alertAdmins, getUserWhatsapp, releaseOrderPayout, saveUserWhatsapp } from '../services/orderLifecycle'
 import { RECEIPT_CLAIM_HOURS, startCarrierTracking } from '../services/parcelTracking'
 import { checkTrackingNumber } from '../payments/ship24'
+import { LUXURY_PAYOUT_DELAY_DAYS, luxuryPayoutAt } from '../luxury'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -388,7 +389,7 @@ router.post('/api/orders/:id/handover', requireAuth, async (req: AuthenticatedRe
     const orderId = paramStr(req.params.id)
     const { data: order } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, fulfillment_method, amount, currency')
+      .select('id, seller_id, buyer_id, status, fulfillment_method, amount, currency, is_luxury')
       .eq('id', orderId)
       .single()
     if (!order) {
@@ -443,6 +444,28 @@ router.post('/api/orders/:id/handover', requireAuth, async (req: AuthenticatedRe
     }
 
     const now = new Date()
+    // Article de luxe remis en main propre : versement 30 jours après la remise (releaseDuePostPayouts)
+    if (order.is_luxury) {
+      const payoutAt = luxuryPayoutAt(now.getTime())
+      const { data: rows } = await supabase
+        .from('orders')
+        .update({
+          status: 'handed_over',
+          handed_over_at: now.toISOString(),
+          delivered_at: now.toISOString(),
+          claim_deadline: new Date(now.getTime() + 48 * 3600000).toISOString(),
+          payout_scheduled_at: payoutAt,
+        })
+        .eq('id', orderId).eq('status', 'paid').eq('payout_status', 'held')
+        .select('id')
+      if (!rows || rows.length === 0) {
+        res.status(409).json({ error: 'not_paid' })
+        return
+      }
+      notifyUserT(order.buyer_id, 'order_handed_over', 'orderHandedOver', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
+      res.json({ success: true, status: 'handed_over', payout_status: 'held', payout_scheduled_at: payoutAt, amount: formatMoney(order.amount, order.currency) })
+      return
+    }
     const updated = await releaseOrderPayout(orderId, {
       status: 'handed_over',
       handed_over_at: now.toISOString(),
@@ -498,7 +521,7 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
     const orderId = paramStr(req.params.id)
     const { data: order } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, fulfillment_method, proof_parcel_path, proof_slip_path, tracking_number')
+      .select('id, seller_id, buyer_id, status, fulfillment_method, proof_parcel_path, proof_slip_path, tracking_number, is_luxury')
       .eq('id', orderId)
       .single()
     if (!order) {
@@ -561,7 +584,8 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
     // (le temps pour l'acheteur de signaler un problème), ou jusqu'à ce qu'il confirme la réception.
     const now = Date.now()
     const nowIso = new Date(now).toISOString()
-    const payoutAt = new Date(now + POST_PAYOUT_DELAY_DAYS * 86400000).toISOString()
+    // Article de luxe : 30 jours au lieu de 10 sans réception confirmée
+    const payoutAt = new Date(now + (order.is_luxury ? LUXURY_PAYOUT_DELAY_DAYS : POST_PAYOUT_DELAY_DAYS) * 86400000).toISOString()
     const { data: shippedRows } = await supabase
       .from('orders')
       .update({
@@ -570,7 +594,7 @@ router.post('/api/orders/:id/proof', requireAuth, async (req: AuthenticatedReque
         shipped_at: nowIso,
         proof_submitted_at: nowIso,
         payout_scheduled_at: payoutAt,
-        claim_deadline: new Date(now + 14 * 86400000).toISOString(),
+        claim_deadline: order.is_luxury ? payoutAt : new Date(now + 14 * 86400000).toISOString(),
       })
       .eq('id', orderId)
       .eq('status', 'paid')
@@ -602,7 +626,7 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
     }
     const { data: order } = await supabase
       .from('orders')
-      .select('id, seller_id, buyer_id, status, fulfillment_method, shipping_address, proof_parcel_path, proof_slip_path')
+      .select('id, seller_id, buyer_id, status, fulfillment_method, shipping_address, proof_parcel_path, proof_slip_path, is_luxury')
       .eq('id', orderId)
       .single()
     if (!order || order.seller_id !== req.user!.id) {
@@ -630,7 +654,8 @@ router.post('/api/orders/:id/ship', requireAuth, async (req: AuthenticatedReques
     }
     const now = Date.now()
     const nowIso = new Date(now).toISOString()
-    const payoutAt = new Date(now + POST_PAYOUT_DELAY_DAYS * 86400000).toISOString()
+    // Article de luxe : sans réception confirmée, 30 jours au lieu de 10
+    const payoutAt = new Date(now + (order.is_luxury ? LUXURY_PAYOUT_DELAY_DAYS : POST_PAYOUT_DELAY_DAYS) * 86400000).toISOString()
     const { data: shippedRows } = await supabase
       .from('orders')
       .update({
@@ -667,7 +692,7 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
     const orderId = paramStr(req.params.id)
     const { data: order } = await supabase
       .from('orders')
-      .select('id, buyer_id, seller_id, status, fulfillment_method, payout_status, carrier_delivered_at')
+      .select('id, buyer_id, seller_id, status, fulfillment_method, payout_status, carrier_delivered_at, is_luxury')
       .eq('id', orderId)
       .single()
     if (!order || order.buyer_id !== req.user!.id) {
@@ -682,13 +707,16 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
     // Règle du 25/11/2026 : l'acheteur confirme la réception dans l'appli (sans code).
     // « Tout est conforme » → vendeur payé tout de suite ; sinon 24 h pour signaler un problème.
     // (Les anciennes versions de l'appli n'envoient pas « conform » : leur bouton voulait dire « tout est OK ».)
-    if ((req.body || {}).conform === false) {
-      // Si la poste a déjà dit « livré », les 24 h comptent depuis la livraison (pas de rallonge en confirmant tard)
+    // Article de luxe : jamais de versement immédiat, le vendeur est payé 30 jours après la réception
+    // (le temps de faire authentifier l'article), même si l'acheteur dit « Tout est conforme ».
+    if ((req.body || {}).conform === false || order.is_luxury) {
+      // Si la poste a déjà dit « livré », les délais comptent depuis la livraison (pas de rallonge en confirmant tard)
       const from = order.carrier_delivered_at ? Math.min(Date.parse(order.carrier_delivered_at), Date.now()) : Date.now()
       const deadline = new Date(from + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
+      const payoutAt = order.is_luxury ? luxuryPayoutAt(from) : deadline
       const { data: rows } = await supabase
         .from('orders')
-        .update({ status: 'delivered', delivered_at: nowIso, buyer_confirmed_at: nowIso, claim_deadline: deadline, payout_scheduled_at: deadline })
+        .update({ status: 'delivered', delivered_at: nowIso, buyer_confirmed_at: nowIso, claim_deadline: deadline, payout_scheduled_at: payoutAt })
         .eq('id', orderId).eq('status', 'shipped').eq('payout_status', 'held')
         .select('id')
       if (!rows || rows.length === 0) {
@@ -696,7 +724,7 @@ router.post('/api/orders/:id/confirm-receipt', requireAuth, async (req: Authenti
         return
       }
       notifyUserT(order.seller_id, 'order_received', 'orderReceived', { ref: shortOrderRef(orderId) }, { order_id: orderId }).catch(() => {})
-      res.json({ success: true, status: 'delivered', payout_status: 'held', claim_deadline: deadline })
+      res.json({ success: true, status: 'delivered', payout_status: 'held', claim_deadline: deadline, payout_scheduled_at: payoutAt })
       return
     }
     const updated = await releaseOrderPayout(orderId, {

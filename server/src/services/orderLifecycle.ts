@@ -4,6 +4,7 @@ import { transferToBeneficiary } from '../payments/airwallex'
 import { isWiseSeller } from '../payments/provider'
 import { notifyUserT, calculateFees, escapeHtml } from '../utils'
 import { HANDOVER_DELAY_DEFAULT_DAYS, generateHandoverCode, shortOrderRef } from '../fulfillment'
+import { isLuxuryItem, penaltyDeduction } from '../luxury'
 
 // =====================================================================
 // Cycle de vie d'une commande : payée → (code ou 2 photos) → argent libéré.
@@ -20,10 +21,13 @@ import { HANDOVER_DELAY_DEFAULT_DAYS, generateHandoverCode, shortOrderRef } from
 export async function markOrderPaid(orderId: string): Promise<{ updated: boolean }> {
   const { data: order } = await supabase
     .from('orders')
-    .select('id, status, buyer_id, seller_id, amount, seller_payout, fulfillment_method, currency')
+    .select('id, status, buyer_id, seller_id, item_id, amount, seller_payout, fulfillment_method, currency')
     .eq('id', orderId)
     .single()
   if (!order || order.status !== 'pending_payment') return { updated: false }
+
+  // Article de luxe (prix ≥ 500 € ou l'équivalent, grande marque, case cochée) : versement 30 jours après la réception
+  const isLuxury = await orderIsLuxury(order)
 
   let holdbackPercent = 0
   let payoutScheduledAt: string | null = null
@@ -58,6 +62,7 @@ export async function markOrderPaid(orderId: string): Promise<{ updated: boolean
       payout_method: payoutMethod,
       payout_status: 'held',
       handover_deadline: handoverDeadline,
+      is_luxury: isLuxury,
     })
     .eq('id', orderId)
     .eq('status', 'pending_payment')
@@ -114,6 +119,53 @@ export async function markOrderPaid(orderId: string): Promise<{ updated: boolean
 }
 
 /**
+ * La commande porte-t-elle sur un article de luxe ?
+ * Le seuil de 500 € s'applique au prix d'UN SEUL article (départ, achat immédiat ou prix final de cet
+ * article), jamais au total de la commande ni à un panier : plusieurs articles bon marché ne font pas du luxe.
+ */
+export async function orderIsLuxury(order: { item_id?: string | null; currency?: string | null; is_luxury?: boolean | null }): Promise<boolean> {
+  if (order.is_luxury) return true
+  if (!order.item_id) return false
+  const { data: item } = await supabase.from('items').select('title, description, brand, is_luxury, starting_price, buy_now_price, current_price').eq('id', order.item_id).maybeSingle()
+  if (!item) return false
+  return isLuxuryItem({
+    prices: [item.starting_price, item.buy_now_price, item.current_price],
+    currency: order.currency,
+    title: item.title, brand: item.brand, description: item.description, declared: item.is_luxury,
+  })
+}
+
+/**
+ * Pénalité pour contrefaçon en attente : prélevée sur ce versement (même devise seulement).
+ * Renvoie le montant retenu (0 sinon). Le versement net = seller_payout - penalty_deducted.
+ */
+async function deductPendingPenalty(row: Record<string, unknown>): Promise<number> {
+  const { data: seller } = await supabase.from('sellers').select('penalty_due, penalty_currency').eq('id', row.seller_id as string).maybeSingle()
+  const s = seller as { penalty_due?: number | string | null; penalty_currency?: string | null } | null
+  if (!s || !(Number(s.penalty_due) > 0)) return 0
+  if (s.penalty_currency && String(s.penalty_currency).toUpperCase() !== String(row.currency || '').toUpperCase()) return 0
+  const cut = penaltyDeduction(row.seller_payout as number, s.penalty_due)
+  if (cut <= 0) return 0
+  const left = Math.round((Number(s.penalty_due) - cut) * 100) / 100
+  await supabase.from('sellers').update({ penalty_due: left }).eq('id', row.seller_id as string)
+  await supabase.from('orders').update({ penalty_deducted: cut }).eq('id', row.id as string)
+  row.penalty_deducted = cut
+  if (row.payout_method === 'paypal') {
+    await supabase.from('paypal_payouts').update({ amount: Math.round((Number(row.seller_payout) - cut) * 100) / 100 }).eq('order_id', row.id as string)
+  }
+  // Stripe Connect : la part du vendeur lui a déjà été transférée au paiement, l'équipe la récupère à la main
+  if (row.payout_method === 'stripe' && !['airwallex', 'rapyd'].includes(String(row.payment_provider || ''))) {
+    alertAdmins('Pénalité contrefaçon à récupérer', `Commande ${row.id} : ${cut} ${row.currency} de pénalité à reprendre sur le compte Stripe du vendeur ${row.seller_id}.`).catch(() => {})
+  }
+  return cut
+}
+
+/** Montant réellement versé au vendeur (part du vendeur moins la pénalité retenue). */
+export function netSellerPayout(row: { seller_payout?: number | string | null; penalty_deducted?: number | string | null }): number {
+  return Math.round((Number(row.seller_payout || 0) - Number(row.penalty_deducted || 0)) * 100) / 100
+}
+
+/**
  * Libère l'argent du vendeur (état en base) en même temps que la preuve.
  * Ne fait rien si la commande n'est plus « payée » (double appel, annulation…).
  */
@@ -133,13 +185,16 @@ export async function releaseOrderPayout(
   const row = updated && updated[0]
   if (!row) return null
 
+  // Contrefaçon confirmée sur une vente précédente : la pénalité est retenue sur ce versement
+  await deductPendingPenalty(row).catch(err => console.error('[payout] penalty', err))
+
   // Israël (Airwallex) : virement en shekels sur le compte bancaire israélien du vendeur
   if (row.payment_provider === 'airwallex') {
     try {
       const { data: seller } = await supabase.from('sellers').select('airwallex_beneficiary_id').eq('id', row.seller_id).maybeSingle()
       const ben = (seller as { airwallex_beneficiary_id?: string | null } | null)?.airwallex_beneficiary_id
       if (!ben) throw new Error('compte bancaire du vendeur manquant')
-      const t = await transferToBeneficiary({ beneficiaryId: ben, amount: Number(row.seller_payout), currency: String(row.currency || 'ILS').toUpperCase(), orderId })
+      const t = await transferToBeneficiary({ beneficiaryId: ben, amount: netSellerPayout(row), currency: String(row.currency || 'ILS').toUpperCase(), orderId })
       await supabase.from('orders').update({ payout_transfer_id: t.id }).eq('id', orderId)
     } catch (err) {
       console.error('[payout] airwallex', err)
@@ -154,7 +209,7 @@ export async function releaseOrderPayout(
       const { data: seller } = await supabase.from('sellers').select('rapyd_ewallet_id').eq('id', row.seller_id).maybeSingle()
       const dest = (seller as { rapyd_ewallet_id?: string | null } | null)?.rapyd_ewallet_id
       if (!platform || !dest) throw new Error(`portefeuille manquant (plateforme: ${!!platform}, vendeur: ${!!dest})`)
-      await transferToWallet({ sourceEwallet: platform, destinationEwallet: dest, amount: Number(row.seller_payout), currency: String(row.currency || 'ILS').toUpperCase(), orderId })
+      await transferToWallet({ sourceEwallet: platform, destinationEwallet: dest, amount: netSellerPayout(row), currency: String(row.currency || 'ILS').toUpperCase(), orderId })
     } catch (err) {
       console.error('[payout] rapyd', err)
       await alertAdmins('Versement Rapyd à faire à la main', `Commande ${orderId} : le transfert vers le portefeuille du vendeur a échoué (${(err as Error).message}).`)
@@ -206,6 +261,23 @@ export async function releaseDuePostPayouts(): Promise<number> {
     // Vendeur sanctionné (2e litige perdu) : jamais de versement sans réception (confirmée ou « livré » de la poste)
     if (!o.buyer_confirmed_at && !o.carrier_delivered_at && (await sellerRestricted(o.seller_id))) continue
     const row = await releaseOrderPayout(o.id, {}, o.status)
+    if (row) {
+      count++
+      notifyUserT(o.seller_id, 'payout_released', 'payoutReleased', { ref: shortOrderRef(o.id) }, { order_id: o.id }).catch(() => {})
+    }
+  }
+
+  // Luxe remis en main propre : versement 30 jours après la remise (code saisi)
+  const { data: luxPickups } = await supabase
+    .from('orders')
+    .select('id, seller_id, status')
+    .eq('status', 'handed_over')
+    .eq('fulfillment_method', 'pickup')
+    .eq('payout_status', 'held')
+    .eq('is_luxury', true)
+    .lte('payout_scheduled_at', new Date().toISOString())
+  for (const o of luxPickups || []) {
+    const row = await releaseOrderPayout(o.id, {}, 'handed_over')
     if (row) {
       count++
       notifyUserT(o.seller_id, 'payout_released', 'payoutReleased', { ref: shortOrderRef(o.id) }, { order_id: o.id }).catch(() => {})

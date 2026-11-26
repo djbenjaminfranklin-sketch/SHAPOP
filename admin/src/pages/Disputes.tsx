@@ -13,6 +13,16 @@ export default function Disputes() {
     if (note === null) return
     run('Litige tranché', () => api(`/api/admin/disputes/${d.id}/resolve`, { method: 'POST', body: { resolution, note } }), reload)
   }
+  // Règle « articles de luxe » : faux confirmé = remboursement complet, pénalité 50 %, compte fermé, preuves gardées
+  const counterfeit = async (d: Row) => {
+    const note = await confirmAction({
+      title: 'Contrefaçon confirmée ?',
+      message: `L’acheteur sera REMBOURSÉ en entier, port compris (${money(d.amount, d.order?.currency)}). Le vendeur paiera une pénalité de 50 % du prix (${money(Number(d.amount || 0) / 2, d.order?.currency)}), prélevée sur ses prochains versements, et son compte sera FERMÉ définitivement. Les preuves sont conservées. Irréversible.`,
+      confirmLabel: 'Confirmer la contrefaçon',
+    })
+    if (note === null) return
+    run('Contrefaçon confirmée', () => api(`/api/admin/disputes/${d.id}/counterfeit-confirmed`, { method: 'POST', body: { note } }), reload)
+  }
   if (!data) return <Loading error={error} loading={loading} />
   const closed = (d: Row) => ['resolved_buyer', 'resolved_seller'].includes(d.status)
   const list = data.filter(d => filter === 'all' || (filter === 'open' ? !closed(d) : closed(d)))
@@ -29,7 +39,7 @@ export default function Disputes() {
               <span>Vendeur <UserLink p={d.seller_profile && { ...d.seller_profile, id: d.seller_id }} id={d.seller_id} /></span>
               <Link to={`/commandes/${d.order_id}`}>Commande #{String(d.order_id).slice(0, 8).toUpperCase()}</Link>
               <b>{money(d.amount, d.order?.currency)}</b></div>
-            <div className="reason">{d.reason}</div>
+            <div className="reason">{d.reason === 'counterfeit' ? 'Contrefaçon' : d.reason}{d.order?.is_luxury ? ' · article de luxe' : ''}{d.counterfeit_confirmed_at ? ' · faux confirmé, preuves conservées' : ''}</div>
             {d.description && <p>{d.description}</p>}
             <div className="row gap top">
               <div><div className="muted small">Article</div><Photos urls={d.order?.item?.image_urls} size={60} /></div>
@@ -42,6 +52,7 @@ export default function Disputes() {
             <div className="actions">
               <button className="btn sm danger" onClick={() => resolve(d, 'buyer')}>Rembourser l’acheteur</button>
               <button className="btn sm" onClick={() => resolve(d, 'seller')}>Donner raison au vendeur</button>
+              <button className="btn sm danger" onClick={() => counterfeit(d)}>Contrefaçon confirmée</button>
             </div>
           )}
         </div>

@@ -1,0 +1,58 @@
+// i18n-ignore-file : motifs de marques (pas des textes affichés)
+// Copie de server/src/luxury.ts (LUXURY_BRANDS, EUR_RATES) : garder les deux listes alignées.
+// Le serveur et la base refusent de toute façon la mise en vente sans certification.
+
+export const LUXURY_BRAND_PATTERNS: string[] = [
+  "louis ?vuitton|לואי ויטון|луи виттон",
+  "chanel|שאנל|шанель",
+  "hermes|הרמס|эрмес|гермес",
+  "gucci|גוצ['׳]?י|гуччи",
+  "dior|דיור|диор",
+  "prada|פראדה|прада",
+  "miu ?miu",
+  "balenciaga|בלנסיאגה|баленсиага",
+  "saint ?-?laurent|ysl|סן לורן|сен-?лоран",
+  "celine",
+  "fendi|פנדי|фенди",
+  "bottega ?veneta",
+  "givenchy|живанши",
+  "valentino",
+  "versace|ורסאצ['׳]?ה|версаче",
+  "burberry|ברברי|барберри",
+  "loewe",
+  "moncler|монклер",
+  "off-white|offwhite",
+  "dolce ?(&|and|e) ?gabbana|d&g",
+  "mc ?queen",
+  "louboutin|לובוטן|лубутен",
+  "goyard",
+  "balmain",
+  "chrome ?hearts",
+  "rolex|רולקס|ролекс",
+  "cartier|קרטייה|картье",
+  "audemars ?piguet",
+  "patek ?philippe|patek",
+  "richard ?mille",
+  "vacheron",
+  "jaeger ?-?le ?coultre",
+  "hublot",
+  "omega(?! ?-?3)",
+  "breitling",
+  "tag ?heuer",
+  "iwc",
+  "panerai",
+  "chopard",
+  "piaget",
+  "van ?cleef",
+  "bulgari|bvlgari|булгари",
+  "tiffany",
+  "boucheron",
+  "harry ?winston",
+  "messika",
+  "montblanc",
+]
+
+/** Nombre d'unités de la devise pour 1 euro (conversion simple et fixe). */
+export const EUR_RATES: Record<string, number> = {
+  EUR: 1, ILS: 4, USD: 1.1, GBP: 0.85, CHF: 0.95, CAD: 1.5, AUD: 1.7, RUB: 100, UAH: 45, JPY: 165, CNY: 8, INR: 95, BRL: 6, MXN: 20, AED: 4, MAD: 11, TRY: 40, PLN: 4.3, SEK: 11.5, NOK: 12, DKK: 7.5, CZK: 25, HUF: 400, RON: 5, ZAR: 20,
+}

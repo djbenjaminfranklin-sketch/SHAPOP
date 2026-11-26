@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { tr, type Localized } from '../lib/i18n'
 import { formatMoney, currencyForCountry, currencySymbol, displayItemTitle } from '../lib/fulfillment'
+import { luxuryText } from '../lib/luxury'
 import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage, Giveaway } from '../types/database'
@@ -1399,6 +1400,11 @@ export default function LiveSellerView() {
 
       if (activateResp.ok && activateBody.success) {
         activated = true
+      } else if (activateBody?.error === 'authenticity_certification_required') {
+        // Article de luxe sans certification d'authenticité : jamais mis en vente (pas de solution de repli)
+        showToast(luxuryText().required)
+        setTimeLeft(0)
+        return
       } else {
         console.error('[ACTIVATE] API returned error:', activateResp.status, activateBody)
       }
@@ -1457,7 +1463,7 @@ export default function LiveSellerView() {
     }
     const { error } = await supabase.from('items').update(patch).eq('id', editItem.id).in('status', ['draft', 'pending', 'unsold'])
     setEditSaving(false)
-    if (error) { showToast(ct.editError); return }
+    if (error) { showToast(error.message?.includes('authenticity_certification_required') ? luxuryText().required : ct.editError); return }
     setItems(prev => prev.map(it => it.id === editItem.id ? { ...it, ...patch } : it))
     setEditItem(null)
   }

@@ -1,9 +1,10 @@
-// Page « Règles » : ce que l'acheteur et le vendeur doivent savoir (décisions du 25/11/2026).
+// Page « Règles » : ce que l'acheteur et le vendeur doivent savoir (décisions du 25/11/2026,
+// articles de luxe contre les contrefaçons le 26/11/2026).
 import { useNavigate } from 'react-router-dom'
 import { getDir, tr } from '../lib/i18n'
 
 type Section = { title: string; items: string[] }
-type Content = { title: string; intro: string; back: string; buyer: Section; seller: Section; pickup: Section }
+type Content = { title: string; intro: string; back: string; buyer: Section; seller: Section; pickup: Section; luxury: Section }
 
 const content: Record<'en' | 'fr' | 'es' | 'ru' | 'he', Content> = {
   en: {
@@ -28,6 +29,13 @@ const content: Record<'en' | 'fr' | 'es' | 'ru' | 'he', Content> = {
     pickup: { title: 'Pickup in person', items: [
       'The buyer checks the item on the spot, then gives their 4-digit code. Once the code is given, the sale is accepted.',
     ] },
+    luxury: { title: 'Luxury items (500 € or more, or a major brand)', items: [ // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'An item is a luxury item if it costs 500 € or more (or the equivalent in your currency, for example 2,000 ₪) or if it is from a major luxury brand (Louis Vuitton, Chanel, Hermès, Gucci, Dior, Rolex, Cartier…). The seller can also tick “luxury brand item” themselves. The 500 € threshold applies to the price of one single item, never to the order total: several cheap items bought together are not a luxury item.', // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'To list it, the seller must tick: “I certify that this item is authentic. I know that selling a counterfeit is a crime and that if it is fake I will have to refund the buyer, pay a penalty of 50% of the price, and that my account will be closed.” Without this box, the listing is refused.',
+      'The seller is paid 30 days after receipt, even if the buyer says “Everything is fine”. Without confirmed receipt, the 10 days without news become 30 days.',
+      'The buyer has 30 days after receipt to report a counterfeit, with proof (photos, expert opinion, the brand’s opinion). The 24 hours still apply to other problems.',
+      'If our team confirms a fake: the buyer is fully refunded, shipping included; a penalty of 50% of the price is taken from the seller’s next payouts; the seller’s account is closed for good; the evidence is kept. The buyer can file a police complaint.',
+    ] },
   },
   fr: {
     title: 'Règles d’achat et de vente', back: 'Retour',
@@ -50,6 +58,13 @@ const content: Record<'en' | 'fr' | 'es' | 'ru' | 'he', Content> = {
     ] },
     pickup: { title: 'Remise en main propre', items: [
       'L’acheteur vérifie l’article sur place, puis donne son code à 4 chiffres. Une fois le code donné, la vente est acceptée.',
+    ] },
+    luxury: { title: 'Articles de luxe (500 € ou plus, ou grande marque)', items: [ // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'Un article est « de luxe » s’il coûte 500 € ou plus (ou l’équivalent dans ta devise, par exemple 2 000 ₪) ou s’il est d’une grande marque de luxe (Louis Vuitton, Chanel, Hermès, Gucci, Dior, Rolex, Cartier…). Le vendeur peut aussi cocher lui-même « article de marque de luxe ». Le seuil de 500 € s’applique au prix d’un seul article, jamais au total de la commande : plusieurs articles bon marché achetés ensemble ne font pas un article de luxe.', // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'Pour le mettre en vente, le vendeur doit cocher : « Je certifie que cet article est authentique. Je sais que vendre une contrefaçon est un délit et qu’en cas de faux je devrai rembourser l’acheteur, payer une pénalité de 50 % du prix, et que mon compte sera fermé. » Sans cette case, la mise en vente est refusée.',
+      'Le vendeur est payé 30 jours après la réception, même si l’acheteur dit « Tout est conforme ». Sans réception confirmée, les 10 jours sans nouvelles deviennent 30 jours.',
+      'L’acheteur a 30 jours après la réception pour signaler une contrefaçon, avec une preuve (photos, expertise, avis de la marque). Le délai de 24 h reste valable pour les autres problèmes.',
+      'Si notre équipe confirme le faux : l’acheteur est remboursé en entier, frais de port compris ; une pénalité de 50 % du prix est prélevée sur les prochains versements du vendeur ; son compte est fermé définitivement ; les preuves sont conservées. L’acheteur peut porter plainte.',
     ] },
   },
   es: {
@@ -74,6 +89,13 @@ const content: Record<'en' | 'fr' | 'es' | 'ru' | 'he', Content> = {
     pickup: { title: 'Entrega en mano', items: [
       'El comprador revisa el artículo en el momento y luego da su código de 4 cifras. Una vez dado el código, la venta se acepta.',
     ] },
+    luxury: { title: 'Artículos de lujo (500 € o más, o gran marca)', items: [ // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'Un artículo es «de lujo» si cuesta 500 € o más (o su equivalente en tu moneda, por ejemplo 2000 ₪) o si es de una gran marca de lujo (Louis Vuitton, Chanel, Hermès, Gucci, Dior, Rolex, Cartier…). El vendedor también puede marcar él mismo «artículo de marca de lujo». El umbral de 500 € se aplica al precio de un solo artículo, nunca al total del pedido: varios artículos baratos comprados juntos no son un artículo de lujo.', // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'Para ponerlo a la venta, el vendedor debe marcar: «Certifico que este artículo es auténtico. Sé que vender una falsificación es un delito y que, si es falso, tendré que reembolsar al comprador, pagar una penalización del 50 % del precio, y que mi cuenta se cerrará.» Sin esta casilla, la puesta a la venta se rechaza.',
+      'El vendedor cobra 30 días después de la recepción, aunque el comprador diga «Todo está bien». Sin recepción confirmada, los 10 días sin noticias pasan a 30 días.',
+      'El comprador tiene 30 días desde la recepción para denunciar una falsificación, con una prueba (fotos, peritaje, opinión de la marca). El plazo de 24 horas sigue valiendo para los demás problemas.',
+      'Si nuestro equipo confirma la falsificación: se reembolsa todo al comprador, envío incluido; se descuenta una penalización del 50 % del precio de los próximos pagos del vendedor; su cuenta se cierra definitivamente; se conservan las pruebas. El comprador puede presentar una denuncia.',
+    ] },
   },
   ru: {
     title: 'Правила покупки и продажи', back: 'Назад',
@@ -97,6 +119,13 @@ const content: Record<'en' | 'fr' | 'es' | 'ru' | 'he', Content> = {
     pickup: { title: 'Личная передача', items: [
       'Покупатель проверяет товар на месте и затем называет свой 4-значный код. После этого продажа считается принятой.',
     ] },
+    luxury: { title: 'Товары класса люкс (от 500 € или известный бренд)', items: [ // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'Товар относится к классу люкс, если он стоит от 500 € (или эквивалент в твоей валюте, например 2000 ₪) или если это известный люксовый бренд (Louis Vuitton, Chanel, Hermès, Gucci, Dior, Rolex, Cartier…). Продавец также может сам отметить «товар люксового бренда». Порог 500 € относится к цене одного товара, а не к сумме заказа: несколько недорогих товаров, купленных вместе, не становятся товаром класса люкс.', // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'Чтобы выставить его на продажу, продавец должен отметить: «Я подтверждаю, что этот товар подлинный. Я знаю, что продажа подделки — правонарушение и что, если товар окажется поддельным, мне придётся вернуть деньги покупателю, заплатить штраф 50 % от цены, а мой аккаунт будет закрыт.» Без этой отметки товар не выставляется.',
+      'Продавец получает оплату через 30 дней после получения, даже если покупатель ответил «Всё в порядке». Если получение не подтверждено, 10 дней без новостей становятся 30 днями.',
+      'У покупателя есть 30 дней после получения, чтобы сообщить о подделке, с доказательством (фото, экспертиза, заключение бренда). Для других проблем по-прежнему действует срок 24 часа.',
+      'Если наша команда подтверждает подделку: покупателю возвращают всю сумму, включая доставку; штраф 50 % от цены удерживается из следующих выплат продавцу; его аккаунт закрывается навсегда; доказательства сохраняются. Покупатель может подать заявление в полицию.',
+    ] },
   },
   he: {
     title: 'כללי קנייה ומכירה', back: 'חזרה',
@@ -119,6 +148,13 @@ const content: Record<'en' | 'fr' | 'es' | 'ru' | 'he', Content> = {
     ] },
     pickup: { title: 'מסירה ביד', items: [
       'הקונה בודק את הפריט במקום ואז מוסר את הקוד בן 4 הספרות. ברגע שהקוד נמסר, המכירה מאושרת.',
+    ] },
+    luxury: { title: 'פריטי יוקרה (500 € ומעלה, או מותג גדול)', items: [ // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'פריט נחשב ״פריט יוקרה״ אם הוא עולה 500 € ומעלה (או הסכום המקביל במטבע שלכם, למשל 2,000 ₪) או אם הוא של מותג יוקרה גדול (Louis Vuitton, Chanel, Hermès, Gucci, Dior, Rolex, Cartier…). המוכר יכול גם לסמן בעצמו ״פריט של מותג יוקרה״. סף 500 € חל על המחיר של פריט אחד בלבד, אף פעם לא על סכום ההזמנה: כמה פריטים זולים שנקנים יחד אינם פריט יוקרה.', // i18n-ignore : seuil « luxe » défini en euros (règle du 26/11/2026)
+      'כדי להעלות אותו למכירה, המוכר חייב לסמן: ״אני מאשר/ת שהפריט הזה מקורי. ידוע לי שמכירת זיוף היא עבירה, ושאם יתברר שהוא מזויף אצטרך להחזיר לקונה את הכסף, לשלם קנס של 50% מהמחיר, ושהחשבון שלי ייסגר.״ בלי הסימון הזה, ההעלאה למכירה נדחית.',
+      'המוכר מקבל את התשלום 30 ימים אחרי הקבלה, גם אם הקונה אישר ״הכול תקין״. בלי קבלה מאושרת, 10 הימים בלי חדשות הופכים ל-30 ימים.',
+      'לקונה יש 30 ימים מהקבלה לדווח על זיוף, עם הוכחה (תמונות, חוות דעת מומחה, תשובה מהמותג). 24 השעות עדיין חלות על בעיות אחרות.',
+      'אם הצוות שלנו מאשר שמדובר בזיוף: הקונה מקבל החזר מלא, כולל משלוח; קנס של 50% מהמחיר מנוכה מהתשלומים הבאים של המוכר; החשבון שלו נסגר לצמיתות; ההוכחות נשמרות. הקונה יכול להגיש תלונה במשטרה.',
     ] },
   },
 }
@@ -145,6 +181,7 @@ export default function RulesPage() {
         {section(c.buyer)}
         {section(c.seller)}
         {section(c.pickup)}
+        {section(c.luxury)}
       </div>
     </div>
   )

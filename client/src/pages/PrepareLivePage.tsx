@@ -10,6 +10,8 @@ import type { Item, Stream } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { formatMoney, currencyForCountry, currencySymbol, displayItemTitle } from '../lib/fulfillment'
+import { isLuxuryListing, luxuryText } from '../lib/luxury'
+import LuxuryCertification from '../components/seller/LuxuryCertification'
 
 // Compress image to max 800px and JPEG quality 0.7
 type BatchRow = { key: string; preview: string; imageUrl: string | null; title: string; price: string; minPrice: string; buyNow: string; status: 'uploading' | 'naming' | 'ready' | 'error' }
@@ -553,6 +555,9 @@ export default function PrepareLivePage() {
   const [formWeight, setFormWeight] = useState('')
   const [formShippingOverride, setFormShippingOverride] = useState('')
   const [formBuyNowPrice, setFormBuyNowPrice] = useState('')
+  // Articles de luxe : case « marque de luxe » + certification d'authenticité obligatoire
+  const [formLuxDeclared, setFormLuxDeclared] = useState(false)
+  const [formLuxCertified, setFormLuxCertified] = useState(false)
   const [csvImporting, setCsvImporting] = useState(false)
   const csvInputRef = useRef<HTMLInputElement>(null)
   // Photos de plusieurs articles d'un coup : l'IA propose un nom, le vendeur met le prix
@@ -735,6 +740,17 @@ export default function PrepareLivePage() {
 
     const category = formCategory || stream?.category || ''
 
+    // Article de luxe (prix de CET article ≥ 500 € ou l'équivalent, grande marque, case cochée) : certification obligatoire
+    const formLuxury = isLuxuryListing({ prices: [formPrice, formBuyNowPrice], currency: sellerCurrency, title: formTitle, declared: formLuxDeclared })
+    if (formLuxury && !formLuxCertified) {
+      setFormError(luxuryText().required)
+      setSaving(false)
+      return false
+    }
+    const luxuryFields = formLuxury
+      ? { is_luxury: true, ...(formLuxCertified ? { authenticity_certified_at: new Date().toISOString() } : {}) }
+      : {}
+
     if (editingItemId) {
       const original = items.find(it => it.id === editingItemId)
       // On garde le code unique de l'article « [XXXX] » à la fin du nom
@@ -766,9 +782,13 @@ export default function PrepareLivePage() {
         duration_seconds: formDuration,
         weight_grams: weightG > 0 ? weightG : null,
         seller_shipping_override: shipO > 0 ? shipO : null,
+        ...luxuryFields,
       }
       const { error: updErr } = await supabase.from('items').update(patch).eq('id', editingItemId).eq('status', 'draft')
-      if (updErr) { setFormError(ct.editFailed); setSaving(false); return false }
+      if (updErr) {
+        setFormError(updErr.message?.includes('authenticity_certification_required') ? luxuryText().required : ct.editFailed)
+        setSaving(false); return false
+      }
       setItems(prev => prev.map(it => it.id === editingItemId ? {
         ...it, title: patch.title, starting_price: price, min_price: patch.min_price, buy_now_price: patch.buy_now_price,
         category, image_url: imageUrl, duration_seconds: formDuration, weight_grams: patch.weight_grams,
@@ -776,6 +796,7 @@ export default function PrepareLivePage() {
       } : it))
       setEditingItemId(null)
       setFormTitle(''); setFormPrice(''); setFormCategory(''); setFormMinPrice(''); setFormBuyNowPrice('')
+      setFormLuxDeclared(false); setFormLuxCertified(false)
       setFormWeight(''); setFormShippingOverride(''); setFormDuration(60); setFormQuantity(1)
       setFormImage(null); setFormImageFile(null); setShowForm(false); setSaving(false)
       return true
@@ -839,13 +860,14 @@ export default function PrepareLivePage() {
           duration_seconds: formDuration,
           weight_grams: (weightGrams && weightGrams > 0) ? weightGrams : null,
           seller_shipping_override: (shippingOverride && shippingOverride > 0) ? shippingOverride : null,
+          ...luxuryFields,
         })
         .select()
         .single()
 
       if (error) {
         console.error('Insert error:', error)
-        setFormError(ct.createFailed)
+        setFormError(error.message?.includes('authenticity_certification_required') ? luxuryText().required : ct.createFailed)
         setSaving(false)
         return false
       }
@@ -880,6 +902,8 @@ export default function PrepareLivePage() {
     setFormDuration(60)
     setFormMinPrice('')
     setFormBuyNowPrice('')
+    setFormLuxDeclared(false)
+    setFormLuxCertified(false)
     setFormWeight('')
     setFormShippingOverride('')
     setSuggestedShipping(null)
@@ -967,10 +991,13 @@ export default function PrepareLivePage() {
     setBatchSaving(true)
     const category = stream?.category || ''
     const newItems: DraftItem[] = []
+    const luxurySkipped = new Set<string>()
     for (const r of batchReadyRows) {
       const price = parseFloat(r.price.replace(',', '.'))
       const minP = parseFloat(r.minPrice.replace(',', '.'))
       const buyP = parseFloat(r.buyNow.replace(',', '.'))
+      // Article de luxe : à ajouter un par un (certification d'authenticité obligatoire)
+      if (isLuxuryListing({ prices: [price, buyP], currency: sellerCurrency, title: r.title })) { luxurySkipped.add(r.key); continue }
       const title = `${r.title.trim()} [${generateUniqueCode()}]`
       const { data, error } = await supabase.from('items').insert({
         seller_id: user.id, stream_id: streamId, title,
@@ -987,11 +1014,12 @@ export default function PrepareLivePage() {
       })
     }
     if (newItems.length > 0) setItems(prev => [...prev, ...newItems])
-    const addedKeys = new Set(batchReadyRows.map(r => r.key))
+    const addedKeys = new Set(batchReadyRows.filter(r => !luxurySkipped.has(r.key)).map(r => r.key))
     const remaining = (batch || []).filter(r => !addedKeys.has(r.key))
     batch?.filter(r => addedKeys.has(r.key)).forEach(r => URL.revokeObjectURL(r.preview))
     setBatch(remaining.length > 0 ? remaining : null)
     setBatchSaving(false)
+    if (luxurySkipped.size > 0) alert(luxuryText().required)
   }
 
   const handleCsvImport = async (file: File) => {
@@ -1019,11 +1047,14 @@ export default function PrepareLivePage() {
       const qtyIdx = header.findIndex(h => h === 'qty' || h === 'quantity' || h === 'quantite')
 
       const newItems: DraftItem[] = []
+      let csvLuxurySkipped = 0
       for (let i = 1; i < lines.length; i++) {
         const cols = lines[i].split(/[;,]/).map(c => c.trim())
         const title = cols[titleIdx]
         const price = parseFloat(cols[priceIdx])
         if (!title || isNaN(price) || price <= 0) continue
+        // Article de luxe : à ajouter un par un avec la certification d'authenticité
+        if (isLuxuryListing({ prices: [price, buyNowIdx >= 0 ? cols[buyNowIdx] : null], currency: sellerCurrency, title })) { csvLuxurySkipped++; continue }
 
         const minPrice = minPriceIdx >= 0 ? parseFloat(cols[minPriceIdx]) || null : null
         const buyNowPrice = buyNowIdx >= 0 ? parseFloat(cols[buyNowIdx]) || null : null
@@ -1079,6 +1110,7 @@ export default function PrepareLivePage() {
       } else {
         alert(`${ct.csvError} : ${ct.csvNoValid}`)
       }
+      if (csvLuxurySkipped > 0) alert(luxuryText().required)
     } catch (err) {
       console.error('CSV import error:', err)
       alert(ct.csvError)
@@ -1135,6 +1167,8 @@ export default function PrepareLivePage() {
     setFormPrice(String(it.starting_price))
     setFormMinPrice(it.min_price ? String(it.min_price) : '')
     setFormBuyNowPrice(it.buy_now_price ? String(it.buy_now_price) : '')
+    setFormLuxDeclared(false)
+    setFormLuxCertified(false)
     setFormCategory(it.category || '')
     setFormDuration(it.duration_seconds || 60)
     setFormWeight(it.weight_grams ? String(it.weight_grams) : '')
@@ -2038,6 +2072,13 @@ export default function PrepareLivePage() {
                 </div>
               )}
             </div>
+
+            {/* Article de luxe : certification d'authenticité */}
+            <LuxuryCertification
+              luxury={isLuxuryListing({ prices: [formPrice, formBuyNowPrice], currency: sellerCurrency, title: formTitle, declared: formLuxDeclared })}
+              declared={formLuxDeclared} onDeclared={setFormLuxDeclared}
+              certified={formLuxCertified} onCertified={setFormLuxCertified}
+            />
 
             {/* Error message */}
             {formError && (

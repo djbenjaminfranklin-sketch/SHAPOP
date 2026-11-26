@@ -7,6 +7,7 @@ import { requireAuth, createLimiter, aiLimiter, bidLimiter } from '../middleware
 import { calculateFees, notifyUserT, paramStr } from '../utils'
 import { isPaidStatus as isPaidOrder } from '../fulfillment'
 import { localized, money, getUserCurrency } from '../i18n'
+import { luxuryReason } from '../luxury'
 import { notifyPriceDropSubscribers } from './users'
 import { stripe } from '../config'
 import { authorizeOrderPayment } from '../services/cardAuthorization'
@@ -591,11 +592,68 @@ router.post('/api/streams/:streamId/tip', requireAuth, async (req: Authenticated
   }
 })
 
+// =============================================
+// Articles de luxe (26/11/2026) : prix ≥ 500 € (ou l'équivalent), grande marque, ou case cochée.
+// Sans la case « Je certifie que cet article est authentique… », la mise en vente est refusée.
+// (Le même garde-fou existe en base : trigger items_luxury_guard.)
+// =============================================
+function wantsCertification(body: Record<string, unknown> | undefined): boolean {
+  const v = (body || {}).authenticity_certified
+  return v === true || v === 'true'
+}
+
+async function checkLuxury(sellerId: string, item: {
+  title?: string | null; description?: string | null; brand?: string | null
+  starting_price?: number | string | null; buy_now_price?: number | string | null
+  is_luxury?: boolean | null; authenticity_certified_at?: string | null
+}, body?: Record<string, unknown>): Promise<{ luxury: boolean; brand?: string; refused: boolean; certify: boolean }> {
+  const declared = item.is_luxury === true || (body || {}).luxury_declared === true || (body || {}).is_luxury === true
+  const currency = await getUserCurrency(sellerId)
+  const r = luxuryReason({
+    prices: [item.starting_price, item.buy_now_price], currency,
+    title: item.title, brand: item.brand, description: item.description, declared,
+  })
+  if (!r) return { luxury: false, refused: false, certify: false }
+  const certify = !item.authenticity_certified_at && wantsCertification(body)
+  return { luxury: true, brand: r.brand, certify, refused: !item.authenticity_certified_at && !certify }
+}
+
+function refuseUncertified(res: Response, brand?: string) {
+  res.status(400).json({ error: 'authenticity_certification_required', luxury: true, brand: brand || null })
+}
+
+// Le vendeur certifie l'authenticité d'un de ses articles (date et vendeur enregistrés par la base)
+router.post('/api/items/:id/certify-authenticity', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!wantsCertification(req.body)) {
+      res.status(400).json({ error: 'authenticity_certification_required' })
+      return
+    }
+    const itemId = paramStr(req.params.id)
+    const { data: item } = await supabase.from('items').select('id, seller_id, authenticity_certified_at').eq('id', itemId).maybeSingle()
+    if (!item || item.seller_id !== req.user!.id) {
+      res.status(404).json({ error: 'Item not found' })
+      return
+    }
+    const nowIso = new Date().toISOString()
+    if (!item.authenticity_certified_at) {
+      const patch: Record<string, unknown> = { authenticity_certified_at: nowIso, authenticity_certified_by: req.user!.id }
+      if ((req.body || {}).luxury_declared === true) patch.is_luxury = true
+      const { error } = await supabase.from('items').update(patch).eq('id', itemId)
+      if (error) throw error
+    }
+    res.json({ success: true, authenticity_certified_at: item.authenticity_certified_at || nowIso })
+  } catch (err) {
+    console.error('[items] certify-authenticity', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
 // Create AI Express listing (bypasses RLS)
 router.post('/api/items/create-listing', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
-    const { title, description, category, starting_price, image_urls, ai_generated, ai_tags, ai_condition, ai_confidence, weight_grams, seller_shipping_override } = req.body
+    const { title, description, category, starting_price, image_urls, ai_generated, ai_tags, ai_condition, ai_confidence, weight_grams, seller_shipping_override, brand } = req.body
 
     if (!title || !category) {
       res.status(400).json({ error: 'Missing required fields (title, category)' })
@@ -616,8 +674,18 @@ router.post('/api/items/create-listing', createLimiter, requireAuth, async (req:
       ? (ai_confidence > 1 ? ai_confidence / 100 : ai_confidence)
       : null
 
+    const brandText = typeof brand === 'string' && brand.trim() ? brand.trim().slice(0, 80) : null
+    const lux = await checkLuxury(userId, { title, description, brand: brandText, starting_price: price }, req.body)
+    if (lux.refused) {
+      refuseUncertified(res, lux.brand)
+      return
+    }
+
     const { data, error } = await supabase.from('items').insert({
       seller_id: userId,
+      brand: brandText,
+      is_luxury: lux.luxury,
+      ...(lux.certify ? { authenticity_certified_at: new Date().toISOString(), authenticity_certified_by: userId } : {}),
       title,
       description: description || '',
       category,
@@ -634,7 +702,7 @@ router.post('/api/items/create-listing', createLimiter, requireAuth, async (req:
     }).select('id').single()
 
     if (error) throw error
-    res.json({ success: true, item_id: data.id })
+    res.json({ success: true, item_id: data.id, is_luxury: lux.luxury })
   } catch (err: any) {
     console.error('Create listing error:', err?.message || err)
     res.status(500).json({ error: err?.message || 'Failed to create listing' })
@@ -650,7 +718,7 @@ router.put('/api/items/:id', createLimiter, requireAuth, async (req: Authenticat
     // Fetch current item
     const { data: item } = await supabase
       .from('items')
-      .select('id, seller_id, status, starting_price, current_price, buy_now_price, title')
+      .select('id, seller_id, status, starting_price, current_price, buy_now_price, title, description, brand, is_luxury, authenticity_certified_at')
       .eq('id', itemId)
       .single()
 
@@ -677,6 +745,19 @@ router.put('/api/items/:id', createLimiter, requireAuth, async (req: Authenticat
     }
     if (buy_now_price !== undefined) {
       updates.buy_now_price = buy_now_price ? parseFloat(buy_now_price) : null
+    }
+    if (typeof req.body.brand === 'string') updates.brand = req.body.brand.trim().slice(0, 80) || null
+
+    // Article de luxe après modification : certification obligatoire (une seule fois)
+    const lux = await checkLuxury(userId, { ...item, ...updates } as Parameters<typeof checkLuxury>[1], req.body)
+    if (lux.refused && item.status !== 'unsold') {
+      refuseUncertified(res, lux.brand)
+      return
+    }
+    if (lux.luxury) updates.is_luxury = true
+    if (lux.certify) {
+      updates.authenticity_certified_at = new Date().toISOString()
+      updates.authenticity_certified_by = userId
     }
 
     const { error } = await supabase.from('items').update(updates).eq('id', itemId)
@@ -726,7 +807,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
 
     const { data: item, error: itemErr } = await supabase
       .from('items')
-      .select('seller_id, starting_price, current_price, status, moderation_status')
+      .select('seller_id, title, description, brand, buy_now_price, is_luxury, authenticity_certified_at, starting_price, current_price, status, moderation_status')
       .eq('id', itemId)
       .single()
 
@@ -751,12 +832,22 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
       res.status(403).json({ error: 'Item removed by moderation' })
       return
     }
+    // Article de luxe : pas de mise en vente sans la certification d'authenticité
+    const lux = await checkLuxury(item.seller_id, item, req.body)
+    if (lux.refused) {
+      refuseUncertified(res, lux.brand)
+      return
+    }
 
     // Activate the item in DB (skip if already active — idempotent)
     if (item.status !== 'active') {
       const { error } = await supabase
         .from('items')
-        .update({ status: 'active', started_at: new Date().toISOString() })
+        .update({
+          status: 'active', started_at: new Date().toISOString(),
+          ...(lux.luxury ? { is_luxury: true } : {}),
+          ...(lux.certify ? { authenticity_certified_at: new Date().toISOString(), authenticity_certified_by: item.seller_id } : {}),
+        })
         .eq('id', itemId)
 
       if (error) throw error
@@ -1240,8 +1331,16 @@ Return ONLY the JSON, no other text.`
       ? (Number(listing.confidence) > 1 ? Number(listing.confidence) / 100 : Number(listing.confidence))
       : null
 
+    const lux = await checkLuxury(seller_id, { title: String(listing.title || ''), description: String(listing.description || ''), starting_price: Number(listing.estimated_price_low) || 0 }, req.body)
+    if (lux.refused) {
+      res.status(400).json({ error: 'authenticity_certification_required', luxury: true, brand: lux.brand || null, ai_analysis: listing })
+      return
+    }
+
     const { data: item, error } = await supabase.from('items').insert({
       seller_id,
+      is_luxury: lux.luxury,
+      ...(lux.certify ? { authenticity_certified_at: new Date().toISOString(), authenticity_certified_by: seller_id } : {}),
       title: listing.title,
       description: listing.description,
       category: listing.category,

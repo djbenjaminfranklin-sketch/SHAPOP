@@ -3,13 +3,14 @@ import { supabase } from '../config'
 import { shortOrderRef } from '../fulfillment'
 import { ship24Enabled, trackShipment, trackerResults, type CarrierTracking } from '../payments/ship24'
 import { alertAdmins } from './orderLifecycle'
+import { luxuryPayoutAt } from '../luxury'
 
 /** Délai pour signaler un article non conforme après la réception (confirmée par l'acheteur ou « livré » de la poste). */
 export const RECEIPT_CLAIM_HOURS = 24
 
 /** Enregistre ce que dit le transporteur ; alerte l'équipe si le dépôt date d'avant la vente. */
 export async function applyCarrierTracking(orderId: string, ct: CarrierTracking): Promise<void> {
-  const { data: order } = await supabase.from('orders').select('id, status, created_at, carrier_alerted_at, carrier_delivered_at, buyer_confirmed_at, payout_status').eq('id', orderId).maybeSingle()
+  const { data: order } = await supabase.from('orders').select('id, status, created_at, carrier_alerted_at, carrier_delivered_at, buyer_confirmed_at, payout_status, is_luxury').eq('id', orderId).maybeSingle()
   if (!order) return
   const patch: Record<string, unknown> = { carrier_checked_at: new Date().toISOString() }
   if (ct.trackerId) patch.carrier_tracker_id = ct.trackerId
@@ -21,7 +22,8 @@ export async function applyCarrierTracking(orderId: string, ct: CarrierTracking)
     if (order.status === 'shipped' && !order.buyer_confirmed_at && order.payout_status === 'held') {
       const deadline = new Date(Date.parse(ct.deliveredAt) + RECEIPT_CLAIM_HOURS * 3600_000).toISOString()
       patch.claim_deadline = deadline
-      patch.payout_scheduled_at = deadline
+      // Article de luxe : versement 30 jours après la livraison (pas 24 h)
+      patch.payout_scheduled_at = order.is_luxury ? luxuryPayoutAt(Date.parse(ct.deliveredAt)) : deadline
     }
   }
   const depositedBeforeSale = ct.firstEventAt && Date.parse(ct.firstEventAt) < Date.parse(order.created_at) - 24 * 3600_000

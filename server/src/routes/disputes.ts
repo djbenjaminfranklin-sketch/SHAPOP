@@ -6,6 +6,7 @@ import { supabase, stripe } from '../config'
 import { refundOrderPayment } from '../payments/refunds'
 import { requireAuth, disputeLimiter } from '../middleware'
 import { calculateFees } from '../utils'
+import { counterfeitDeadline } from '../luxury'
 import type { AuthenticatedRequest } from '../types'
 
 const router = Router()
@@ -72,8 +73,16 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       return
     }
 
-    // Check claim deadline (48h window)
-    if (order.claim_deadline && new Date(order.claim_deadline) < new Date()) {
+    // Article de luxe : 30 jours après la réception pour signaler une contrefaçon (preuve obligatoire :
+    // photos, expertise, avis de la marque). Les autres problèmes gardent le délai habituel (24 h).
+    const luxuryCounterfeit = reason === 'counterfeit' && !!order.is_luxury
+    if (luxuryCounterfeit) {
+      const deadline = counterfeitDeadline(order)
+      if (deadline && new Date(deadline) < new Date()) {
+        res.status(400).json({ error: 'Le délai de réclamation est dépassé' })
+        return
+      }
+    } else if (order.claim_deadline && new Date(order.claim_deadline) < new Date()) {
       res.status(400).json({ error: 'Le délai de réclamation est dépassé' })
       return
     }
@@ -98,7 +107,8 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       .maybeSingle()
 
     const score = buyerScore?.score ?? 10
-    const autoRefund = order.amount < 30 && score > 7
+    // Contrefaçon d'un article de luxe : toujours examinée par l'équipe (pénalité + fermeture du compte)
+    const autoRefund = !luxuryCounterfeit && order.amount < 30 && score > 7
 
     const disputeData = {
       order_id,

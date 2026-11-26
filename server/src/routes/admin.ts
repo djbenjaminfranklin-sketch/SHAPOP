@@ -4,7 +4,9 @@ import type { Request, Response } from 'express'
 import { supabase, stripe, STREAMS_SAFE_COLUMNS, PAYPAL_MODE } from '../config'
 import { refundOrderPayment } from '../payments/refunds'
 import { requireAdmin, adminLimiter } from '../middleware'
-import { logAdminAction, paramStr, penalizeBuyerScore, calculateFees } from '../utils'
+import { logAdminAction, paramStr, penalizeBuyerScore, calculateFees, notifyUserT } from '../utils'
+import { counterfeitPenalty } from '../luxury'
+import { alertAdmins, netSellerPayout } from '../services/orderLifecycle'
 import { processPaypalPayouts } from './payments'
 import type { AuthenticatedRequest } from '../types'
 
@@ -272,35 +274,40 @@ router.post('/api/admin/users/:id/unsuspend', requireAdmin, async (req: Authenti
   }
 })
 
+// Fermeture définitive d'un compte (bannissement + e-mail et téléphone interdits de réinscription)
+async function banAccount(userId: string, adminId: string, reason: string): Promise<void> {
+  const { error } = await supabase.from('profiles').update({
+    is_banned: true,
+    is_suspended: true,
+    suspension_reason: reason,
+    banned_at: new Date().toISOString(),
+  }).eq('id', userId)
+
+  if (error) throw error
+
+  // Add email + phone to banned_identifiers
+  const { data: authUser } = await supabase.auth.admin.getUserById(userId)
+  const { data: profile } = await supabase.from('profiles').select('phone_number').eq('id', userId).single()
+
+  const identifiers: { type: string; value: string; banned_user_id: string; banned_by: string; reason: string }[] = []
+  if (authUser?.user?.email) {
+    identifiers.push({ type: 'email', value: authUser.user.email.toLowerCase().trim(), banned_user_id: userId, banned_by: adminId, reason })
+  }
+  if (profile?.phone_number) {
+    identifiers.push({ type: 'phone', value: profile.phone_number, banned_user_id: userId, banned_by: adminId, reason })
+  }
+  if (identifiers.length > 0) {
+    await supabase.from('banned_identifiers').upsert(identifiers, { onConflict: 'type,value' })
+  }
+}
+
 // --- Admin: Ban user ---
 router.post('/api/admin/users/:id/ban', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = paramStr(req.params.id)
     const { reason } = req.body || {}
 
-    const { error } = await supabase.from('profiles').update({
-      is_banned: true,
-      is_suspended: true,
-      suspension_reason: reason || 'Banned by admin',
-      banned_at: new Date().toISOString(),
-    }).eq('id', userId)
-
-    if (error) throw error
-
-    // Add email + phone to banned_identifiers
-    const { data: authUser } = await supabase.auth.admin.getUserById(userId)
-    const { data: profile } = await supabase.from('profiles').select('phone_number').eq('id', userId).single()
-
-    const identifiers: { type: string; value: string; banned_user_id: string; banned_by: string; reason: string }[] = []
-    if (authUser?.user?.email) {
-      identifiers.push({ type: 'email', value: authUser.user.email.toLowerCase().trim(), banned_user_id: userId, banned_by: req.user!.id, reason: reason || 'Banned by admin' })
-    }
-    if (profile?.phone_number) {
-      identifiers.push({ type: 'phone', value: profile.phone_number, banned_user_id: userId, banned_by: req.user!.id, reason: reason || 'Banned by admin' })
-    }
-    if (identifiers.length > 0) {
-      await supabase.from('banned_identifiers').upsert(identifiers, { onConflict: 'type,value' })
-    }
+    await banAccount(userId, req.user!.id, reason || 'Banned by admin')
 
     await logAdminAction(req.user!.id, req.user!.email || '', 'ban_user', 'user', userId, { reason })
     res.json({ success: true })
@@ -803,6 +810,108 @@ router.post('/api/admin/disputes/:id/resolve', requireAdmin, async (req: Authent
     res.json({ success: true, status: newStatus })
   } catch (err) {
     console.error('[admin]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// --- Admin : contrefaçon confirmée (règle « articles de luxe » du 26/11/2026) ---
+// Remboursement complet de l'acheteur (frais de port compris), pénalité de 50 % du prix prélevée sur les
+// prochains versements du vendeur, fermeture définitive du compte, preuves conservées.
+router.post('/api/admin/disputes/:id/counterfeit-confirmed', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const disputeId = paramStr(req.params.id)
+    const note = typeof (req.body || {}).note === 'string' ? String(req.body.note).slice(0, 2000) : null
+    const { data: dispute } = await supabase.from('disputes').select('*').eq('id', disputeId).single()
+    if (!dispute) {
+      res.status(404).json({ error: 'Dispute not found' })
+      return
+    }
+    if (dispute.counterfeit_confirmed_at) {
+      res.status(400).json({ error: 'already_confirmed' })
+      return
+    }
+    const { data: order } = await supabase.from('orders').select('*').eq('id', dispute.order_id).single()
+    if (!order) {
+      res.status(404).json({ error: 'Order not found' })
+      return
+    }
+    const now = new Date().toISOString()
+
+    // 1. Remboursement complet de l'acheteur (le paiement couvre l'article ET le port)
+    let refunded = order.status === 'refunded'
+    if (!refunded) {
+      try {
+        refunded = await refundOrderPayment(order.id)
+      } catch (err) {
+        console.error('[admin] counterfeit refund', order.id, (err as Error).message)
+      }
+      // Ancien paiement séparé des frais de port (commandes d'avant l'envoi simplifié)
+      if (order.shipping_payment_intent_id) {
+        try { await stripe.refunds.create({ payment_intent: order.shipping_payment_intent_id }) } catch (err) {
+          console.error('[admin] counterfeit shipping refund', order.id, (err as Error).message)
+        }
+      }
+      if (!refunded) alertAdmins('Remboursement contrefaçon à faire à la main', `Commande ${order.id} : le remboursement automatique de l'acheteur a échoué.`).catch(() => {})
+    }
+
+    // 2. Pénalité de 50 % du prix (+ ce qui aurait déjà été versé au vendeur pour cette vente)
+    const penalty = counterfeitPenalty(order.amount)
+    const alreadyPaid = order.payout_status === 'released' ? netSellerPayout(order) : 0
+    const { data: seller } = await supabase.from('sellers').select('penalty_due, penalty_currency').eq('id', order.seller_id).maybeSingle()
+    const due = Math.round((Number(seller?.penalty_due || 0) + penalty + alreadyPaid) * 100) / 100
+    if (seller) {
+      await supabase.from('sellers').update({ penalty_due: due, penalty_currency: seller.penalty_currency || order.currency || null, sanction_level: 3 }).eq('id', order.seller_id)
+    }
+    if (alreadyPaid > 0) {
+      alertAdmins('Contrefaçon : vendeur déjà payé', `Commande ${order.id} : ${alreadyPaid} ${order.currency} déjà versés au vendeur ${order.seller_id}, ajoutés à sa dette (${due} ${order.currency}).`).catch(() => {})
+    }
+
+    await supabase.from('orders').update({ status: 'refunded', payout_status: 'cancelled', counterfeit_penalty: penalty }).eq('id', order.id)
+
+    // 3. Litige tranché pour l'acheteur, preuves conservées
+    await supabase.from('disputes').update({
+      status: 'resolved_buyer',
+      resolution_note: note || 'Contrefaçon confirmée',
+      resolved_at: now,
+      counterfeit_confirmed_at: now,
+      evidence_retained: true,
+    }).eq('id', disputeId)
+
+    // 4. Fermeture définitive du compte du vendeur + annonces retirées de la vente
+    await banAccount(order.seller_id, req.user!.id, `Contrefaçon confirmée (commande ${order.id})`)
+    await supabase.from('items')
+      .update({ moderation_status: 'removed', moderated_at: now, moderated_by: req.user!.id, moderation_reason: 'counterfeit_seller_banned' })
+      .eq('seller_id', order.seller_id)
+      .in('status', ['draft', 'pending', 'active'])
+
+    // 5. Statistiques (comme un litige gagné par l'acheteur)
+    const { data: st } = await supabase.from('seller_trust').select('disputes_lost').eq('seller_id', order.seller_id).maybeSingle()
+    if (st) await supabase.from('seller_trust').update({ disputes_lost: (st.disputes_lost || 0) + 1, updated_at: now }).eq('seller_id', order.seller_id)
+    const { data: bs } = await supabase.from('buyer_scores').select('disputes_won, total_refunds, refund_amount').eq('user_id', order.buyer_id).maybeSingle()
+    if (bs) {
+      await supabase.from('buyer_scores').update({
+        disputes_won: (bs.disputes_won || 0) + 1,
+        total_refunds: (bs.total_refunds || 0) + 1,
+        refund_amount: Number(bs.refund_amount || 0) + Number(order.amount || 0),
+        updated_at: now,
+      }).eq('user_id', order.buyer_id)
+    }
+
+    const ref = String(order.id).slice(0, 8).toUpperCase()
+    notifyUserT(order.buyer_id, 'counterfeit_confirmed', 'counterfeitBuyer', { ref }, { order_id: order.id }).catch(() => {})
+    notifyUserT(order.seller_id, 'account_closed', 'counterfeitSeller', { ref }, { order_id: order.id }).catch(() => {})
+
+    // Trace complète (preuves comprises) dans le journal de l'équipe
+    await logAdminAction(req.user!.id, req.user!.email || '', 'counterfeit_confirmed', 'dispute', disputeId, {
+      note, order_id: order.id, seller_id: order.seller_id, buyer_id: order.buyer_id,
+      refunded, penalty, already_paid: alreadyPaid, penalty_due: due, currency: order.currency,
+      evidence: { photo_urls: dispute.photo_urls || [], evidence_urls: dispute.evidence_urls || [], seller_photo_urls: dispute.seller_photo_urls || [],
+        proof_parcel_path: order.proof_parcel_path || null, proof_slip_path: order.proof_slip_path || null, tracking_number: order.tracking_number || null },
+    })
+
+    res.json({ success: true, refunded, penalty, penalty_due: due, currency: order.currency })
+  } catch (err) {
+    console.error('[admin] counterfeit-confirmed', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

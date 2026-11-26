@@ -132,10 +132,10 @@ function footer(legal = false, extra = '') {
 <script src="/assets/i18n-en-fr.js?v=7"></script>
 <script src="/assets/i18n-es-ru-he.js?v=7"></script>
 <script src="/assets/i18n-delete.js?v=7"></script>
-<script src="/assets/i18n-legal-rules.js?v=8"></script>
+<script src="/assets/i18n-legal-rules.js?v=9"></script>
 <script src="/assets/i18n-join.js?v=2"></script>
 <script src="/assets/i18n-home-rules.js?v=1"></script>
-${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
+${legal ? '<script src="/assets/legal-en-fr.js?v=8"></script>\n<script src="/assets/legal-es-ru-he.js?v=8"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
 </body>
 </html>
 `;
@@ -452,6 +452,8 @@ function rulesPage() {
         ${t('ol', 'rules.seller')}
         ${t('h2', 'rules.pickupH')}
         ${t('ol', 'rules.pickup')}
+        ${t('h2', 'rules.luxuryH')}
+        ${t('ol', 'rules.luxury')}
       </article>
     </div>
   </section>

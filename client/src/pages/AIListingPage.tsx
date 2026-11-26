@@ -8,6 +8,8 @@ import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import { isLuxuryListing, luxuryText } from '../lib/luxury'
+import LuxuryCertification from '../components/seller/LuxuryCertification'
 
 type Step = 'upload' | 'analyzing' | 'results' | 'success'
 
@@ -291,6 +293,9 @@ export default function AIListingPage() {
   const [editCondition, setEditCondition] = useState('')
   const [editPrice, setEditPrice] = useState('')
   const [editDescription, setEditDescription] = useState('')
+  // Articles de luxe : case « marque de luxe » + certification d'authenticité obligatoire
+  const [luxDeclared, setLuxDeclared] = useState(false)
+  const [luxCertified, setLuxCertified] = useState(false)
   const [editTags, setEditTags] = useState<string[]>([])
 
   // Save state
@@ -424,6 +429,11 @@ export default function AIListingPage() {
 
   const handleSubmit = async () => {
     if (!user || !aiResult) return
+    const luxury = isLuxuryListing({ prices: [editPrice], currency, title: editTitle, description: editDescription, declared: luxDeclared })
+    if (luxury && !luxCertified) {
+      showToast(luxuryText().required, 'error')
+      return
+    }
     setSaving(true)
 
     try {
@@ -469,6 +479,8 @@ export default function AIListingPage() {
           ai_tags: editTags,
           ai_condition: editCondition,
           ai_confidence: aiResult.confidence > 1 ? aiResult.confidence / 100 : aiResult.confidence,
+          luxury_declared: luxDeclared,
+          authenticity_certified: luxury && luxCertified,
         }),
       })
 
@@ -476,7 +488,8 @@ export default function AIListingPage() {
         const err = await resp.json().catch(() => ({}))
         console.error('Create listing error:', err)
         const code = String(err?.error || '')
-        showToast(code.startsWith('Missing required fields') ? t.missingFields
+        showToast(code === 'authenticity_certification_required' ? luxuryText().required
+          : code.startsWith('Missing required fields') ? t.missingFields
           : code.startsWith('Price ') ? t.invalidPrice
           : t.listingError, 'error')
         setSaving(false)
@@ -1164,6 +1177,13 @@ export default function AIListingPage() {
             />
           </div>
         </div>
+
+        {/* Article de luxe : certification d'authenticité */}
+        <LuxuryCertification
+          luxury={isLuxuryListing({ prices: [editPrice], currency, title: editTitle, description: editDescription, declared: luxDeclared })}
+          declared={luxDeclared} onDeclared={setLuxDeclared}
+          certified={luxCertified} onCertified={setLuxCertified}
+        />
 
         {/* Submit button */}
         <button

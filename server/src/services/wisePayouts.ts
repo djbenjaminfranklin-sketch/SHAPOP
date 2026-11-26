@@ -20,6 +20,8 @@ export type WiseOrder = {
   wise_status: string | null; wise_transfer_id: string | null; currency: string | null
   total_amount: number | null; platform_fee: number | null; processing_fee: number | null; seller_payout: number | null
   promotion_id?: string | null; promo_code_id?: string | null
+  /** Pénalité pour contrefaçon retenue sur cette vente (versement net = seller_payout - penalty_deducted) */
+  penalty_deducted?: number | null
 }
 export type WiseSeller = {
   id: string; payout_iban: string | null; payout_holder_name: string | null; payout_iban_updated_at: string | null
@@ -42,6 +44,7 @@ export function checkWisePayout(o: WiseOrder, s: WiseSeller | null, ctx: { openD
   if (!(payout > 0) || !(total > 0) || payout > total) return { verdict: 'exclude', reason: `Montant incohérent (${payout} ₪ sur ${total} ₪)` }
   const expected = Math.round((total - Number(o.platform_fee || 0) - Number(o.processing_fee || 0)) * 100) / 100
   if (!o.promotion_id && !o.promo_code_id && Math.abs(expected - payout) > 0.02) return { verdict: 'exclude', reason: `Montant faux : ${payout} ₪ au lieu de ${expected} ₪ (commission déduite)` }
+  if (!(payout - Number(o.penalty_deducted || 0) > 0)) return { verdict: 'exclude', reason: 'Versement entièrement retenu (pénalité pour contrefaçon)' }
   if (!s?.payout_iban || !normalizeIsraeliIban(s.payout_iban)) return { verdict: 'wait', reason: 'IBAN du vendeur manquant ou invalide' }
   if (!s.payout_holder_name) return { verdict: 'wait', reason: 'Nom du titulaire du compte manquant' }
   if (!s.payout_iban_updated_at || now - Date.parse(s.payout_iban_updated_at) < IBAN_COOLDOWN_HOURS * 3600000) return { verdict: 'wait', reason: 'IBAN modifié il y a moins de 24 h' }
@@ -74,7 +77,7 @@ export async function prepareWiseBatch(): Promise<{ count: number; total: number
   await syncPaidTransfers().catch(err => console.error('[wise] sync', err))
 
   const { data: queued } = await supabase.from('orders')
-    .select('id, seller_id, status, payout_status, payout_method, wise_status, wise_transfer_id, currency, total_amount, platform_fee, processing_fee, seller_payout, promotion_id, promo_code_id')
+    .select('id, seller_id, status, payout_status, payout_method, wise_status, wise_transfer_id, currency, total_amount, platform_fee, processing_fee, seller_payout, penalty_deducted, promotion_id, promo_code_id')
     .eq('payout_method', 'wise').eq('wise_status', 'queued')
   const orders = (queued || []) as WiseOrder[]
   if (!orders.length) return null
@@ -112,7 +115,8 @@ export async function prepareWiseBatch(): Promise<{ count: number; total: number
             recipientId = await wise.createIlsRecipient({ holderName: s.payout_holder_name!, iban: normalizeIsraeliIban(s.payout_iban!)! })
             await supabase.from('sellers').update({ wise_recipient_id: recipientId }).eq('id', s.id)
           }
-          const amount = Number(o.seller_payout)
+          // Pénalité pour contrefaçon éventuelle déjà retenue sur cette vente
+          const amount = Math.round((Number(o.seller_payout) - Number(o.penalty_deducted || 0)) * 100) / 100
           const quoteId = await wise.createQuote(amount, recipientId)
           const transferId = await wise.addBatchTransfer(group.id, { recipientId, quoteId, orderId: o.id, reference: `ShaPop ${shortOrderRef(o.id)}` })
           await supabase.from('orders').update({ wise_status: 'in_batch', wise_batch_id: batchRowId, wise_transfer_id: transferId, wise_excluded_reason: null }).eq('id', o.id).eq('wise_status', 'queued')
