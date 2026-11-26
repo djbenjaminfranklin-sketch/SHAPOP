@@ -564,4 +564,12 @@ em { font-style: normal; color: var(--c); text-shadow: var(--tglow); }
    Même principe que l'appli : on inverse tout le site (noir → blanc, cyan → cyan foncé lisible),
    puis on ré-inverse les vraies images (captures, vidéo du S, emojis) pour qu'elles gardent leurs couleurs. */
 html { filter: invert(1) hue-rotate(180deg); }
-.shot-img[src*="06-intro"], .s-video, .stage video, .thumb, .shot > span:not(.ai-badge), .pic span, .no-invert { filter: invert(1) hue-rotate(180deg); }
+.shot-img[src*="06-intro"], .thumb, .shot > span:not(.ai-badge), .pic span, .no-invert { filter: invert(1) hue-rotate(180deg); }
+/* Sur fond blanc, les halos néon « bavent » : on les retire, on garde des contours nets. */
+html *, html *::before, html *::after { text-shadow: none !important; box-shadow: none !important; }
+.brand img, .hero-logo, .product { filter: none !important; }
+.hero, .protect { background: var(--bg) !important; }
+.hero-visual::before, .hero::after, .section.alt::before { display: none !important; }
+.phone { outline: 2px solid var(--c); }
+.lang-menu { border: 1px solid var(--line-2); }
+.ai-card .shot { background: var(--tint) !important; }
