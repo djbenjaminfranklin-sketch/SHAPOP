@@ -948,7 +948,7 @@ export default function SellerProfilePage() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>
+            <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3, whiteSpace: 'nowrap' }}>
               {t.handoverWithin.replace('{n}', String(shippingDelay))}
             </span>
           </div>
@@ -1012,7 +1012,7 @@ export default function SellerProfilePage() {
                   flex: 1, maxWidth: '160px', padding: '12px 16px', borderRadius: '12px',
                   background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
                   border: isFollowing ? '1px solid #333' : 'none',
-                  color: isFollowing ? '#888' : '#fff',
+                  color: isFollowing ? '#888' : '#001014',
                   fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
@@ -1076,7 +1076,7 @@ export default function SellerProfilePage() {
          ============================================= */}
       <div style={{
         display: 'flex', borderBottom: '1px solid #222',
-        position: 'sticky', top: 0, zIndex: 10, backgroundColor: '#000',
+        position: 'sticky', top: 'env(safe-area-inset-top, 0px)', zIndex: 10, backgroundColor: '#000',
         overflowX: 'auto', WebkitOverflowScrolling: 'touch',
         scrollbarWidth: 'none',
       }}>
@@ -1096,10 +1096,11 @@ export default function SellerProfilePage() {
               onClick={() => setActiveTab(tab)}
               style={{
                 // Les 5 onglets du propriétaire tiennent dans la largeur (plus de « Finances » coupé)
-                flex: 1, minWidth: 0,
-                padding: isOwnProfile ? '14px 8px' : '14px 16px', border: 'none', background: 'none',
+                // Propriétaire : 5 onglets à leur largeur naturelle, bien séparés (la barre défile si besoin)
+                flex: isOwnProfile ? 'none' : 1, minWidth: 0,
+                padding: isOwnProfile ? '14px 12px' : '14px 16px', border: 'none', background: 'none',
                 color: isActive ? '#00E5FF' : '#f0f0f0',
-                fontSize: isOwnProfile ? 'calc(12.5px * var(--fs, 1))' : 'calc(14px * var(--fs, 1))', fontWeight: isActive ? 700 : 500,
+                fontSize: isOwnProfile ? 'calc(13px * var(--fs, 1))' : 'calc(14px * var(--fs, 1))', fontWeight: isActive ? 700 : 500,
                 borderBottom: isActive ? '2px solid #00E5FF' : '2px solid transparent',
                 cursor: 'pointer', transition: 'color 0.2s',
                 whiteSpace: 'nowrap',
@@ -1443,7 +1444,7 @@ export default function SellerProfilePage() {
             const orders = dashboardData.recent_orders
             const statusColor: Record<string, string> = {
               paid: '#22C55E', shipped: '#3B82F6', delivered: '#00E5FF',
-              pending_payment: '#F59E0B', pending: '#F59E0B', preparing: '#F59E0B',
+              pending_payment: '#0091EA', pending: '#0091EA', preparing: '#F59E0B',
             }
             const statusLabel = (s: string) => {
               const labels: Record<string, string> = {

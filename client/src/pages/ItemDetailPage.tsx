@@ -7,8 +7,8 @@ import { rtlFlip } from '../lib/rtl'
 import { apiFetch } from '../lib/api'
 import { track } from '../lib/analytics'
 import { showToast } from '../lib/toast'
-import { getLang, type Localized } from '../lib/i18n'
-import { formatItemPrice } from '../lib/fulfillment'
+import { getLang, tr, I18N_TRANSLATIONS, type Localized } from '../lib/i18n'
+import { displayItemTitle, formatItemPrice } from '../lib/fulfillment'
 import { usePageTitle } from '../hooks/usePageTitle'
 import type { Item } from '../types/database'
 
@@ -366,7 +366,7 @@ export default function ItemDetailPage() {
             {item.image_urls?.length > 0 ? (
               <img
                 src={item.image_urls[selectedImage]}
-                alt={item.title}
+                alt={displayItemTitle(item.title)}
                 loading="lazy"
                 style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
                 onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }}
@@ -438,8 +438,14 @@ export default function ItemDetailPage() {
 
             {/* Title */}
             <h2 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px', lineHeight: 1.3 }}>
-              {item.title}
+              {displayItemTitle(item.title)}
             </h2>
+            {item.status === 'sold' && (
+              <span style={{
+                display: 'inline-block', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#fff',
+                backgroundColor: '#E8344E', padding: '3px 10px', borderRadius: '8px', marginBottom: '8px', marginInlineEnd: '8px',
+              }}>{tr({ en: 'Sold', fr: 'Vendu', es: 'Vendido', ru: 'Продано', he: 'נמכר' })}</span>
+            )}
 
             {/* Category */}
             <span style={{
@@ -447,7 +453,7 @@ export default function ItemDetailPage() {
               color: '#00E5FF', backgroundColor: 'rgba(0, 229, 255,0.1)',
               padding: '4px 10px', borderRadius: '8px', marginBottom: '20px',
             }}>
-              {item.category}
+              {item.category && (I18N_TRANSLATIONS[getLang()] as Record<string, string>)[item.category] || item.category}
             </span>
 
             {/* Seller */}
@@ -486,7 +492,7 @@ export default function ItemDetailPage() {
                     padding: '6px 14px', borderRadius: '10px', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                     border: isFollowing ? '1px solid #333' : 'none',
                     background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
-                    color: isFollowing ? '#888' : '#fff',
+                    color: isFollowing ? '#888' : '#001014',
                     cursor: 'pointer', flexShrink: 0,
                   }}
                 >
@@ -633,8 +639,8 @@ export default function ItemDetailPage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: bought
-                      ? 'linear-gradient(135deg, #00E5FF, #16A34A)'
-                      : buyLoading ? '#555' : 'linear-gradient(135deg, #0091EA, #D42A42)',
+                      ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
+                      : buyLoading ? '#555' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
                     border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: buyLoading ? 'default' : 'pointer',
                     opacity: buyLoading ? 0.7 : 1,

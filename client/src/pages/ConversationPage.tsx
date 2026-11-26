@@ -170,6 +170,9 @@ function formatRelativeTime(
   return `${day} ${time}`
 }
 
+// Certains messages ont été enregistrés avec les caractères échappés (« &amp;amp; ») : on les rétablit à l'affichage
+const decodeEntities = (t: string) => t.replace(/&(amp;)+/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+
 export default function ConversationPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -723,7 +726,7 @@ export default function ConversationPage() {
                     {/* Message text */}
                     {msg.message && (
                       <p style={{ fontSize: 'calc(14px * var(--fs, 1))', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
-                        {msg.message}
+                        {decodeEntities(msg.message)}
                       </p>
                     )}
 

@@ -219,7 +219,7 @@ interface EngagementDashboardProps {
 const ENERGY_COLORS = {
   low: { color: '#EF4444', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)', percent: 25 },
   medium: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #00E5FF)', percent: 50 },
-  high: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #16A34A)', percent: 75 },
+  high: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)', percent: 75 },
   peak: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #00E5FF)', percent: 100 },
 }
 

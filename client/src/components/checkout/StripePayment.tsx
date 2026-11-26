@@ -54,7 +54,7 @@ export function PaymentFormInner({ onSuccess, onError, loading, setLoading, payN
         disabled={!stripe || loading}
         style={{
           width: '100%', marginTop: '16px', padding: '16px',
-          background: loading ? '#555' : 'linear-gradient(135deg, #00E5FF, #16A34A)',
+          background: loading ? '#555' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
           borderRadius: '14px', border: 'none',
           color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
           cursor: loading ? 'not-allowed' : 'pointer',

@@ -328,7 +328,7 @@ function ShipForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; ha
         onClick={() => inputs[kind].current?.click()}
         disabled={photoBusy !== null}
         style={{ padding: '9px 12px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
-          backgroundColor: sent[kind] ? '#222' : '#00E5FF', color: sent[kind] ? '#ccc' : '#fff', whiteSpace: 'nowrap' }}
+          backgroundColor: sent[kind] ? '#222' : '#00E5FF', color: sent[kind] ? '#ccc' : '#001014', whiteSpace: 'nowrap' }}
       >
         {photoBusy === kind ? t.sending : sent[kind] ? t.retake_photo : t.take_photo}
       </button>

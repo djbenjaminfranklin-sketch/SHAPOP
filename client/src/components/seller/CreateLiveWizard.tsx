@@ -330,9 +330,9 @@ export default function CreateLiveWizard() {
   const tipColors = ['#FFD700', '#00D4FF', '#00E5FF']
 
   const tips = [
-    { title: t.tip1Title, desc: t.tip1Desc, emoji: '\u2600\uFE0F', color: '#FFD700', bg: 'linear-gradient(135deg, #332800 0%, #1A1500 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
-    { title: t.tip2Title, desc: t.tip2Desc, emoji: '\uD83D\uDC65', color: '#00D4FF', bg: 'linear-gradient(135deg, #001A33 0%, #000D1A 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-    { title: t.tip3Title, desc: t.tip3Desc, emoji: '\uD83D\uDCE6', color: '#00E5FF', bg: 'linear-gradient(135deg, #001A12 0%, #000D09 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> },
+    { title: t.tip1Title, desc: t.tip1Desc, emoji: '\u2600\uFE0F', color: '#00E5FF', bg: 'linear-gradient(135deg, #06161c 0%, #03090c 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
+    { title: t.tip2Title, desc: t.tip2Desc, emoji: '\uD83D\uDC65', color: '#00E5FF', bg: 'linear-gradient(135deg, #06161c 0%, #03090c 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
+    { title: t.tip3Title, desc: t.tip3Desc, emoji: '\uD83D\uDCE6', color: '#00E5FF', bg: 'linear-gradient(135deg, #06161c 0%, #03090c 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> },
   ]
 
   // Step hero data
@@ -900,7 +900,7 @@ export default function CreateLiveWizard() {
                   height: '100%', borderRadius: '2px',
                   width: `${(title.length / 150) * 100}%`,
                   background: title.length > 120
-                    ? 'linear-gradient(90deg, #00E5FF, #EF4444)'
+                    ? 'linear-gradient(90deg, #00E5FF, #0091EA)'
                     : 'linear-gradient(90deg, #00E5FF, #00E5FF)',
                   transition: 'width 0.3s ease, background 0.3s ease',
                 }} />
@@ -954,11 +954,11 @@ export default function CreateLiveWizard() {
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #0091EA, #FF6B6B)',
+                    background: '#E8344E', // en direct = rouge
                     borderRadius: '6px', padding: '4px 10px',
-                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#001014',
+                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                     letterSpacing: '1px',
-                    boxShadow: '0 2px 12px rgba(0,229,255, 0.5)',
+                    boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
                     display: 'flex', alignItems: 'center', gap: '4px',
                   }}>
                     <div style={{
@@ -1438,11 +1438,11 @@ export default function CreateLiveWizard() {
                       display: 'flex', alignItems: 'center', gap: '6px',
                     }}>
                       <div style={{
-                        background: 'linear-gradient(135deg, #0091EA, #FF6B6B)',
+                        background: '#E8344E', // en direct = rouge
                         borderRadius: '6px', padding: '4px 10px',
-                        fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#001014',
+                        fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                         letterSpacing: '1px',
-                        boxShadow: '0 2px 12px rgba(0,229,255, 0.5)',
+                        boxShadow: '0 2px 12px rgba(232,52,78,0.5)',
                         display: 'flex', alignItems: 'center', gap: '4px',
                       }}>
                         <div style={{
@@ -1644,7 +1644,7 @@ export default function CreateLiveWizard() {
                 ? 'linear-gradient(135deg, #1A1A1A, #111)'
                 : 'linear-gradient(135deg, #00E5FF 0%, #0091EA 50%, #00E5FF 100%)',
               borderRadius: '16px', border: 'none',
-              color: trimming ? '#666' : '#fff',
+              color: trimming ? '#666' : '#001014',
               fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, cursor: trimming ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
               boxShadow: trimming ? 'none' : '0 8px 32px rgba(0, 229, 255,0.35)',
@@ -1787,7 +1787,7 @@ export default function CreateLiveWizard() {
               : 'linear-gradient(135deg, #1A1A1A, #111)',
             backgroundSize: '200% 100%',
             borderRadius: '16px', border: 'none',
-            color: canProceed() ? '#fff' : '#f0f0f0',
+            color: canProceed() ? '#001014' : '#f0f0f0',
             fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
             cursor: canProceed() ? 'pointer' : 'not-allowed',
             opacity: loading ? 0.7 : 1,

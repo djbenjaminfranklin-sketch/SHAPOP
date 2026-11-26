@@ -1197,7 +1197,7 @@ export default function PaymentsPage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px',
               }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                 </svg>
               </div>
@@ -1620,7 +1620,7 @@ export default function PaymentsPage() {
                           padding: '12px 14px', marginBottom: '4px',
                           borderRadius: '10px', border: 'none', cursor: 'pointer',
                           backgroundColor: selectedCountry === ct.code ? 'rgba(99,102,241,0.15)' : 'transparent',
-                          outline: selectedCountry === ct.code ? '2px solid #6366F1' : '2px solid transparent',
+                          outline: selectedCountry === ct.code ? '2px solid #00E5FF' : '2px solid transparent',
                         }}
                       >
                         <span className="no-theme-invert" style={{ fontSize: 'calc(22px * var(--fs, 1))' }}>{ct.flag}</span>

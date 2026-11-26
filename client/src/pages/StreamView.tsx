@@ -3497,9 +3497,9 @@ export default function StreamView() {
             {stream.status === 'live' && isSeller && (
               <div className="absolute flex items-center gap-2" style={{ top: '16px', insetInlineStart: '16px', zIndex: 20 }}>
                 <span style={{
-                  background: 'linear-gradient(135deg, #0091EA, #FF6B6B)',
+                  background: '#E8344E', // en direct = rouge
                   padding: '5px 14px', borderRadius: '8px',
-                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#001014',
+                  fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#fff',
                   letterSpacing: '1px',
                   boxShadow: '0 2px 12px rgba(0,229,255,0.5)',
                   display: 'flex', alignItems: 'center', gap: '6px',

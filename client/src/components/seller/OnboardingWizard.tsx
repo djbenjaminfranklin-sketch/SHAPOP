@@ -29,12 +29,12 @@ const TOTAL_STEPS = 11
 const stepHeroes: { emoji: string; gradient: string }[] = [
   { emoji: '\u{1F4DC}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #B91C3C 100%)' },  // 0 rules
   { emoji: '\u{1F6CD}\u{FE0F}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #00E5FF 100%)' },  // 1 category
-  { emoji: '\u{1F3AF}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #6D28D9 60%, #4C1D95 100%)' },  // 2 sub
+  { emoji: '\u{1F3AF}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #0091EA 100%)' },  // 2 sub
   { emoji: '\u{1F464}', gradient: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 60%, #1D4ED8 100%)' },  // 3 type
   { emoji: '\u{1F30D}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #047857 100%)' },  // 4 where
-  { emoji: '\u{1F4F1}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #BE185D 100%)' },  // 5 platforms
+  { emoji: '\u{1F4F1}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #006F80 100%)' },  // 5 platforms
   { emoji: '\u{1F4B0}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #B45309 100%)' },  // 6 revenue
-  { emoji: '\u{1F465}', gradient: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 60%, #4338CA 100%)' },  // 7 team
+  { emoji: '\u{1F465}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #4338CA 100%)' },  // 7 team
   { emoji: '\u{1F3A5}', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 60%, #B91C1C 100%)' },  // 8 hours
   { emoji: '\u{1F504}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0D9488 60%, #0F766E 100%)' },  // 9 return policy
   { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #9F1239 100%)' },  // 10 bank
@@ -787,7 +787,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             </p>
             {[
               { id: 'individual', title: t.individual, desc: t.individualDesc, emoji: '\u{1F9D1}\u{200D}\u{1F4BB}', gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' },
-              { id: 'business', title: t.business, desc: t.businessDesc, emoji: '\u{1F3E2}', gradient: 'linear-gradient(135deg, #00E5FF, #6D28D9)' },
+              { id: 'business', title: t.business, desc: t.businessDesc, emoji: '\u{1F3E2}', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
             ].map(opt => {
               const selected = sellerType === opt.id
               return (
@@ -1052,7 +1052,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 later: '#888',
               }
               const iconGradients: Record<string, string> = {
-                stripe: 'linear-gradient(135deg, #6772E5, #4F46E5)',
+                stripe: 'linear-gradient(135deg, #6772E5, #0091EA)',
                 later: 'linear-gradient(135deg, #555, #333)',
               }
               return (

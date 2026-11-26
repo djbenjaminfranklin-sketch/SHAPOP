@@ -695,7 +695,7 @@ export default function ActivityPage() {
 
   const getOrderStatusColor = (status: OrderStatusExt) => {
     switch (status) {
-      case 'pending_payment': return '#00E5FF'
+      case 'pending_payment': return '#0091EA'
       case 'paid': return '#00E5FF'
       case 'shipped':
       case 'handed_over':
@@ -1176,7 +1176,7 @@ export default function ActivityPage() {
         '\uD83D\uDC65',
         lt.emptyFollowing,
         lt.emptyFollowingDesc,
-        'linear-gradient(135deg, #00E5FF 0%, #6D28D9 100%)',
+        'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
       )
     }
 

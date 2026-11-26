@@ -1350,7 +1350,7 @@ export default function DisputePage() {
             width: '100%',
             padding: '14px',
             backgroundColor: canSubmit ? '#00E5FF' : '#333',
-            color: '#001014',
+            color: (canSubmit) ? '#001014' : '#fff',
             border: 'none',
             borderRadius: '12px',
             fontSize: 'calc(15px * var(--fs, 1))',

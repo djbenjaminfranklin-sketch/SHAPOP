@@ -266,8 +266,8 @@ function formatDate(dateStr: string, lang: Lang) {
 
 function getStatusColor(status: string) {
   switch (status) {
-    case 'pending_payment': return '#F59E0B'
-    case 'paid': return '#3B82F6'
+    case 'pending_payment': return '#0091EA'
+    case 'paid': return '#00E5FF'
     case 'shipped':
     case 'handed_over':
     case 'delivered': return '#10B981'
@@ -438,7 +438,7 @@ export default function OrderDetailPage() {
   const other = isSeller ? order.buyer_profile : order.seller_profile
 
   const timelineEvents = [
-    { label: ct.createdAt, date: order.created_at, color: '#f0f0f0', done: true },
+    { label: ct.createdAt, date: order.created_at, color: '#00E5FF', done: true },
     { label: ct.paidAt, date: order.paid_at, color: '#00E5FF', done: !!order.paid_at },
     { label: ct.preparedAt, date: order.prepared_at || null, color: '#00E5FF', done: !!order.prepared_at || !!order.shipped_at || !!order.handed_over_at },
     order.fulfillment_method === 'pickup'
@@ -462,7 +462,7 @@ export default function OrderDetailPage() {
         {/* En-tête */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid #111',
-          backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 10,
+          backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', position: 'sticky', top: 'env(safe-area-inset-top, 0px)', zIndex: 10,
         }}>
           <button onClick={() => navigate(-1)} aria-label={ct.back} style={{ background: 'none', border: 'none', color: '#f0f0f0', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>
             &#8249;
@@ -545,7 +545,7 @@ export default function OrderDetailPage() {
             )}
             <button
               onClick={() => navigate(`/pay/${order.id}`)}
-              style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #00E5FF, #16A34A)', color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer' }}
+              style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #00E5FF, #0091EA)', color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer' }}
             >
               {ct.payNowBtn} · {money(total)}
             </button>

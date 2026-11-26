@@ -285,10 +285,11 @@ export default function AccountControlsPage() {
       ? tr({ en: 'This week', fr: 'Cette semaine', es: 'Esta semana', ru: 'На этой неделе', he: 'השבוע' })
       : tr({ en: 'This month', fr: 'Ce mois-ci', es: 'Este mes', ru: 'В этом месяце', he: 'החודש' })
 
+  // « Réglages » en premier : c'est l'onglet ouvert par défaut (apparence, texte, langue)
   const tabs: { key: Tab; label: string }[] = [
+    { key: 'settings', label: tr({ en: 'Settings', fr: 'Réglages', es: 'Ajustes', ru: 'Настройки', he: 'הגדרות' }) },
     { key: 'watch', label: tr({ en: 'Watch time', fr: 'Temps de visionnage', es: 'Tiempo de visualización', ru: 'Время просмотра', he: 'זמן צפייה' }) },
     { key: 'spending', label: tr({ en: 'Spending controls', fr: 'Contrôle des dépenses', es: 'Control de gastos', ru: 'Контроль расходов', he: 'בקרת הוצאות' }) },
-    { key: 'settings', label: tr({ en: 'Settings', fr: 'Réglages', es: 'Ajustes', ru: 'Настройки', he: 'הגדרות' }) },
   ]
 
   // Swipe between tabs
@@ -747,7 +748,7 @@ export default function AccountControlsPage() {
                     style={{
                       flex: 1, padding: '10px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
                       backgroundColor: settings.streamQuality === opt.v ? '#00E5FF' : '#222',
-                      color: '#001014', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
+                      color: (settings.streamQuality === opt.v) ? '#001014' : '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     }}
                   >
                     {opt.l}

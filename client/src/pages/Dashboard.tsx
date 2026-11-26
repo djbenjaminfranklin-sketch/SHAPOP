@@ -401,7 +401,7 @@ export default function Dashboard() {
       },
       {
         emoji: '\u{1F525}',
-        gradient: 'linear-gradient(135deg, #00E5FF 0%, #6D28D9 100%)',
+        gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
         title: t.bestBuyers,
         desc: t.bestBuyersDesc,
       },
@@ -946,7 +946,7 @@ export default function Dashboard() {
             >
               <div style={{
                 width: '36px', height: '36px', borderRadius: '10px',
-                background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
+                background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#001014" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1024,7 +1024,7 @@ export default function Dashboard() {
                 },
                 {
                   label: tr({ en: 'Average handover time', fr: 'Délai de remise moyen', es: 'Plazo de entrega medio', ru: 'Средний срок передачи', he: 'זמן מסירה ממוצע' }),
-                  value: (() => { try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'day', unitDisplay: 'short' }).format(h.avg_shipping_days) } catch { return String(h.avg_shipping_days) } })(),
+                  value: (() => { try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'day', unitDisplay: 'long' }).format(h.avg_shipping_days) } catch { return String(h.avg_shipping_days) } })(),
                   // Comparé au délai de remise choisi par le vendeur (et non plus à 2 jours fixes)
                   color: h.avg_shipping_days <= handoverDelay ? '#00E5FF' : h.avg_shipping_days <= handoverDelay + 2 ? '#facc15' : '#f87171',
                   icon: '📦',

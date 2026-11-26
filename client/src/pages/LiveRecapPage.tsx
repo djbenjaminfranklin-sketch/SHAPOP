@@ -382,7 +382,7 @@ export default function LiveRecapPage() {
             onClick={() => setShowVod(true)}
             style={{
               width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #0091EA, #5B21B6)',
+              background: 'linear-gradient(135deg, #0091EA, #0091EA)',
               borderRadius: '14px', border: 'none',
               color: '#001014', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
@@ -706,7 +706,7 @@ export default function LiveRecapPage() {
               }}
               style={{
                 padding: '8px 16px',
-                background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
+                background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
                 borderRadius: '8px', border: 'none',
                 color: '#001014', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
@@ -803,7 +803,7 @@ export default function LiveRecapPage() {
                 }}
                 style={{
                   width: '100%', padding: '14px',
-                  background: clipCreating ? '#333' : 'linear-gradient(135deg, #00E5FF, #6D28D9)',
+                  background: clipCreating ? '#333' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
                   borderRadius: '12px', border: 'none',
                   color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                   cursor: clipCreating ? 'default' : 'pointer',
@@ -832,7 +832,7 @@ export default function LiveRecapPage() {
                 }}>
                   <div style={{
                     width: '40px', height: '40px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
+                    background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="#001014">
@@ -851,7 +851,7 @@ export default function LiveRecapPage() {
                     onClick={() => setClipPlaying({ recording_url: clip.recording_url, start_seconds: clip.start_seconds, title: clip.title })}
                     style={{
                       padding: '6px 12px', borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
+                      background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
                       border: 'none', color: '#001014', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >

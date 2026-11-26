@@ -368,11 +368,11 @@ export default function DirectSalesPage() {
                     width: '100%', marginTop: '6px', padding: '8px',
                     borderRadius: '10px', border: 'none',
                     background: boughtItemId === item.id
-                      ? 'linear-gradient(135deg, #00E5FF, #16A34A)'
+                      ? '#22C55E'
                       : buyingItemId === item.id
                         ? '#555'
-                        : 'linear-gradient(135deg, #0091EA, #D42A42)',
-                    color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
+                        : 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                    color: boughtItemId === item.id || buyingItemId === item.id ? '#fff' : '#001014', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                     cursor: buyingItemId === item.id ? 'default' : 'pointer',
                     opacity: buyingItemId === item.id ? 0.7 : 1,
                   }}

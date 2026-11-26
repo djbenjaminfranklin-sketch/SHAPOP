@@ -245,7 +245,7 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
         ) : error ? (
           <div className="text-center py-20">
             <p className="text-red-400 text-sm">{error}</p>
-            <button onClick={fetchConversations} className="mt-3 text-indigo-400 text-sm underline">
+            <button onClick={fetchConversations} className="mt-3 text-cyan-400 text-sm underline">
               {ct.retry}
             </button>
           </div>
@@ -292,7 +292,7 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                       />
                     ) : (
-                      <div className="rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-semibold" style={{ width: '54px', height: '54px', fontSize: 'calc(16px * var(--fs, 1))' }}>
+                      <div className="rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400 font-semibold" style={{ width: '54px', height: '54px', fontSize: 'calc(16px * var(--fs, 1))' }}>
                         {getInitials(displayName)}
                       </div>
                     )}

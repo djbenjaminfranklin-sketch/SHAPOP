@@ -307,7 +307,7 @@ export default function BottomNav() {
             style={{
               position: 'absolute', bottom: 0, left: 0, right: 0,
               backgroundColor: '#111', borderRadius: '20px 20px 0 0',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 64px)',
               animation: 'profileSheetUp 0.3s ease',
               maxHeight: '80vh', overflowY: 'auto',
             }}
