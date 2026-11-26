@@ -165,4 +165,12 @@
     'support.q1.0.1': 'כרטיס אשראי או Apple Pay. התשלום תמיד מתבצע באפליקציה: לעולם אל תשלם למוכר מחוץ ל־ShaPop, אחרת תאבד את ההגנה.',
     'support.q3.0.1': 'בדואר: שלח עם מעקב, צלם את 2 התמונות (תוכן החבילה וקבלת הדואר) והזן את מספר המעקב. אתה מקבל תשלום ברגע שהקונה מאשר שהכול תקין, או 24 שעות אחרי המסירה בלי דיווח, או 10 ימים אחרי המשלוח בלי חדשות. במסירה ידנית: הקוד בן 4 הספרות של הקונה משלם לך מיד. העמלה של ShaPop מנוכה.'
   });
+
+  // Boutons des stores : l'appli n'est pas encore publiée (26/11/2026)
+  var soon = { en: ['Coming soon on the', 'Coming soon on', 'ShaPop coming soon on the App Store', 'ShaPop coming soon on Google Play'],
+    fr: ['Bientôt sur l\u2019', 'Bientôt sur', 'ShaPop bientôt sur l\u2019App Store', 'ShaPop bientôt sur Google Play'],
+    es: ['Próximamente en la', 'Próximamente en', 'ShaPop próximamente en la App Store', 'ShaPop próximamente en Google Play'],
+    ru: ['Скоро в', 'Скоро в', 'ShaPop скоро в App Store', 'ShaPop скоро в Google Play'],
+    he: ['בקרוב ב-', 'בקרוב ב-', 'ShaPop בקרוב ב-App Store', 'ShaPop בקרוב ב-Google Play'] };
+  for (var l in soon) add(l, { 'store.small': soon[l][0], 'cta2.gpSmall': soon[l][1], 'store.aria': soon[l][2], 'cta2.gpAria': soon[l][3] });
 })();

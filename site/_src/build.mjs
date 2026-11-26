@@ -25,9 +25,9 @@ const strip = (s) => String(s).replace(/<[^>]+>/g, '');
 const t = (tag, key, attrs = '') => `<${tag} data-i18n="${key}"${attrs ? ' ' + attrs : ''}>${fill(get(key))}</${tag}>`;
 const ico = (id, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use href="/assets/icons.svg#${id}"/></svg>`;
 
-const playstore = () => `<a class="playstore" href="${PLAY_URL}" target="_blank" rel="noopener" data-i18n-aria="cta2.gpAria" aria-label="${esc(get('cta2.gpAria'))}">${ico('play')}<span>${t('small', 'cta2.gpSmall')}<b>Google Play</b></span></a>`;
+const playstore = () => `<span class="playstore soon" role="img" data-i18n-aria="cta2.gpAria" aria-label="${esc(get('cta2.gpAria'))}">${ico('play')}<span>${t('small', 'cta2.gpSmall')}<b>Google Play</b></span></span>`; // appli pas encore en ligne : pas de lien
 const stores = () => `<div class="stores">${appstore()}${playstore()}</div>`;
-const appstore = (extra = '') => `<a class="appstore${extra}" href="${STORE_URL}" target="_blank" rel="noopener" data-i18n-aria="store.aria" aria-label="${esc(get('store.aria'))}">${ico('apple')}<span>${t('small', 'store.small')}<b>App Store</b></span></a>`;
+const appstore = (extra = '') => `<span class="appstore soon${extra}" role="img" data-i18n-aria="store.aria" aria-label="${esc(get('store.aria'))}">${ico('apple')}<span>${t('small', 'store.small')}<b>App Store</b></span></span>`
 
 const sVideo = () => `<video class="s-video" src="/assets/hero-s.mp4" poster="/assets/hero-poster.webp" autoplay muted loop playsinline preload="auto" aria-hidden="true" tabindex="-1"></video>`;
 
@@ -62,7 +62,7 @@ function head(page, { title, desc, pathName }) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Heebo:wght@400;500;700;800;900&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=13">
+<link rel="stylesheet" href="/assets/style.css?v=14">
 </head>
 <body data-page="${page}">
 <a class="skip" href="#main">Skip to content</a>`;
@@ -134,7 +134,7 @@ function footer(legal = false, extra = '') {
 <script src="/assets/i18n-delete.js?v=7"></script>
 <script src="/assets/i18n-legal-rules.js?v=9"></script>
 <script src="/assets/i18n-join.js?v=2"></script>
-<script src="/assets/i18n-home-rules.js?v=1"></script>
+<script src="/assets/i18n-home-rules.js?v=2"></script>
 ${legal ? '<script src="/assets/legal-en-fr.js?v=8"></script>\n<script src="/assets/legal-es-ru-he.js?v=8"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
 </body>
 </html>

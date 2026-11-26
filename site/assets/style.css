@@ -573,3 +573,5 @@ html *, html *::before, html *::after { text-shadow: none !important; box-shadow
 .phone { outline: 2px solid var(--c); }
 .lang-menu { border: 1px solid var(--line-2); }
 .ai-card .shot { background: var(--tint) !important; }
+
+.soon { cursor: default; }
