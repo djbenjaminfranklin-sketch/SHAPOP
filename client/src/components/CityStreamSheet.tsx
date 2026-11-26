@@ -90,7 +90,7 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
             <h2 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
               {city}
             </h2>
-            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
               {liveCount(data.count, lang)}
             </p>
           </div>

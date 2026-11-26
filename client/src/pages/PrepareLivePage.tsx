@@ -9,7 +9,7 @@ import { tr, getLocale, getLang, type Localized } from '../lib/i18n'
 import type { Item, Stream } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
+import { formatMoney, currencyForCountry, currencySymbol, displayItemTitle } from '../lib/fulfillment'
 
 // Compress image to max 800px and JPEG quality 0.7
 type BatchRow = { key: string; preview: string; imageUrl: string | null; title: string; price: string; minPrice: string; buyNow: string; status: 'uploading' | 'naming' | 'ready' | 'error' }
@@ -1302,7 +1302,7 @@ export default function PrepareLivePage() {
               {ct.title}
             </h1>
             {stream && (
-              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                 {stream.title} — {items.length} {plural(items.length, ct.itemOne, ct.itemFew, ct.items)}
               </p>
             )}
@@ -1319,7 +1319,7 @@ export default function PrepareLivePage() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: editingDate ? '10px' : 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
                   <line x1="16" y1="2" x2="16" y2="6" strokeLinecap="round"/><line x1="8" y1="2" x2="8" y2="6" strokeLinecap="round"/>
                   <line x1="3" y1="10" x2="21" y2="10" strokeLinecap="round"/>
@@ -1331,7 +1331,7 @@ export default function PrepareLivePage() {
               {!editingDate && (
                 <button onClick={() => setEditingDate(true)} style={{
                   background: 'none', border: '1px solid #333', borderRadius: '8px',
-                  padding: '4px 10px', color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                  padding: '4px 10px', color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 }}>
                   {ct.changeDate}
                 </button>
@@ -1350,14 +1350,14 @@ export default function PrepareLivePage() {
                   }}
                 />
                 <button onClick={handleSaveDate} style={{
-                  padding: '10px 16px', background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  border: 'none', borderRadius: '8px', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                  padding: '10px 16px', background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                  border: 'none', borderRadius: '8px', color: '#001014', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}>
                   {ct.saveDate}
                 </button>
                 <button onClick={() => setEditingDate(false)} aria-label={ct.cancelEdit} style={{
                   padding: '10px 12px', background: '#222', border: 'none', borderRadius: '8px',
-                  color: '#888', fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
+                  color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
                 }}>
                   ✕
                 </button>
@@ -1370,7 +1370,7 @@ export default function PrepareLivePage() {
             backgroundColor: '#111', border: '1px solid #222', borderRadius: '12px', padding: '12px 14px',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10" />
                 <polyline points="12 6 12 12 16 14" />
               </svg>
@@ -1388,10 +1388,10 @@ export default function PrepareLivePage() {
                     padding: '8px 0',
                     borderRadius: '8px',
                     background: shippingDelay === d
-                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                      ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                       : '#0D0D0D',
                     border: shippingDelay === d ? 'none' : '1px solid #222',
-                    color: shippingDelay === d ? '#fff' : '#888',
+                    color: shippingDelay === d ? '#fff' : '#f0f0f0',
                     fontSize: 'calc(12px * var(--fs, 1))',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1401,7 +1401,7 @@ export default function PrepareLivePage() {
                 </button>
               ))}
             </div>
-            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '6px 0 0 2px' }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '6px 0 0 2px' }}>
               {ct.shippingDelayHint}
             </p>
           </div>
@@ -1437,16 +1437,16 @@ export default function PrepareLivePage() {
           }}>
             <div style={{
               width: '80px', height: '80px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
-              border: '1px solid rgba(240,144,138,0.2)',
+              background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.08))',
+              border: '1px solid rgba(0, 229, 255,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
                 <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" strokeLinecap="round" strokeLinejoin="round"/>
                 <line x1="7" y1="7" x2="7.01" y2="7" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
-            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center' }}>
+            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center' }}>
               {ct.noItems}
             </p>
           </div>
@@ -1468,7 +1468,7 @@ export default function PrepareLivePage() {
             {/* Lot number */}
             <div style={{
               width: '44px', height: '44px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, rgba(240,144,138,0.2), rgba(232,52,78,0.1))',
+              background: 'linear-gradient(135deg, rgba(0, 229, 255,0.2), rgba(0,229,255,0.1))',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>
@@ -1480,7 +1480,7 @@ export default function PrepareLivePage() {
                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '10px' }}
                 />
               ) : (
-                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>
                   {formatLot(item.lot_number)}
                 </span>
               )}
@@ -1489,7 +1489,7 @@ export default function PrepareLivePage() {
             {/* Item info */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', opacity: 0.7 }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', opacity: 0.7 }}>
                   {formatLot(item.lot_number)}
                 </span>
               </div>
@@ -1497,33 +1497,33 @@ export default function PrepareLivePage() {
                 fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '2px 0 0',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {item.title}
+                {displayItemTitle(item.title)}
               </p>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
-                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                   {money(item.starting_price)}
                 </span>
                 {item.min_price != null && item.min_price > 0 && (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F59E0B' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF' }}>
                     {ct.minShort} {money(item.min_price)}
                   </span>
                 )}
                 {item.buy_now_price != null && item.buy_now_price > 0 && (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#10B981', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>
                     ⚡ {money(item.buy_now_price)}
                   </span>
                 )}
                 {item.weight_grams != null && item.weight_grams > 0 && (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                     {formatWeight(item.weight_grams)}
                   </span>
                 )}
                 {item.seller_shipping_override != null && item.seller_shipping_override > 0 && (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>
                     {money(item.seller_shipping_override)}
                   </span>
                 )}
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                   {item.duration_seconds}{ct.secShort}
                 </span>
               </div>
@@ -1570,8 +1570,8 @@ export default function PrepareLivePage() {
               onClick={() => startEditItem(index)}
               aria-label={ct.editItem}
               style={{
-                padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(240,144,138,0.5)',
-                backgroundColor: 'rgba(240,144,138,0.12)', color: '#F0908A',
+                padding: '8px 12px', borderRadius: '10px', border: '1px solid rgba(0, 229, 255,0.5)',
+                backgroundColor: 'rgba(0, 229, 255,0.12)', color: '#00E5FF',
                 fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
               }}
             >
@@ -1584,13 +1584,13 @@ export default function PrepareLivePage() {
               aria-label={ct.deleteItem}
               style={{
                 width: '28px', height: '28px', borderRadius: '6px',
-                backgroundColor: 'rgba(232,52,78,0.15)',
+                backgroundColor: 'rgba(0,229,255,0.15)',
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </button>
@@ -1601,7 +1601,7 @@ export default function PrepareLivePage() {
         {showForm && (
           <div style={{
             backgroundColor: '#111',
-            border: '1px solid rgba(240,144,138,0.3)',
+            border: '1px solid rgba(0, 229, 255,0.3)',
             borderRadius: '14px',
             padding: '16px',
           }}>
@@ -1644,7 +1644,7 @@ export default function PrepareLivePage() {
                     <circle cx="8.5" cy="8.5" r="1.5"/>
                     <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666' }}>{ct.photo}</span>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.photo}</span>
                 </>
               )}
             </button>
@@ -1705,7 +1705,7 @@ export default function PrepareLivePage() {
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
-              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '4px 0 0 4px' }}>
+              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0 4px' }}>
                 {ct.minPriceHint}
               </p>
             </div>
@@ -1729,7 +1729,7 @@ export default function PrepareLivePage() {
                   outline: 'none', boxSizing: 'border-box',
                 }}
               />
-              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '4px 0 0 4px' }}>
+              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0 4px' }}>
                 {ct.buyNowHint}
               </p>
             </div>
@@ -1744,7 +1744,7 @@ export default function PrepareLivePage() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 3v18M3 12h18" />
                     <circle cx="12" cy="12" r="9" />
                   </svg>
@@ -1753,7 +1753,7 @@ export default function PrepareLivePage() {
                   </p>
                 </div>
                 {formWeight && (
-                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                     {formatWeight(parseInt(formWeight, 10) || 0)}
                   </span>
                 )}
@@ -1793,10 +1793,10 @@ export default function PrepareLivePage() {
                       padding: '7px 0',
                       borderRadius: '8px',
                       background: formWeight === String(preset.value)
-                        ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                        ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                         : '#111',
                       border: formWeight === String(preset.value) ? 'none' : '1px solid #222',
-                      color: formWeight === String(preset.value) ? '#fff' : '#888',
+                      color: formWeight === String(preset.value) ? '#fff' : '#f0f0f0',
                       fontSize: 'calc(12px * var(--fs, 1))',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -1806,7 +1806,7 @@ export default function PrepareLivePage() {
                   </button>
                 ))}
               </div>
-              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '6px 0 0 2px' }}>
+              <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '6px 0 0 2px' }}>
                 {ct.weightHint}
               </p>
             </div>
@@ -1821,7 +1821,7 @@ export default function PrepareLivePage() {
                 marginBottom: '10px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="1" y="3" width="15" height="13" rx="1" />
                     <path d="M16 8h4l3 3v5h-7V8z" />
                     <circle cx="5.5" cy="18.5" r="2.5" />
@@ -1834,16 +1834,16 @@ export default function PrepareLivePage() {
 
                 {/* Suggested shipping price range */}
                 {loadingShipping ? (
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 8px 0' }}>...</p>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 8px 0' }}>...</p>
                 ) : suggestedShipping && (
                   <div style={{
-                    backgroundColor: 'rgba(240,144,138,0.08)',
-                    border: '1px solid rgba(240,144,138,0.2)',
+                    backgroundColor: 'rgba(0, 229, 255,0.08)',
+                    border: '1px solid rgba(0, 229, 255,0.2)',
                     borderRadius: '8px',
                     padding: '8px 12px',
                     marginBottom: '10px',
                   }}>
-                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', margin: 0, fontWeight: 600 }}>
+                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', margin: 0, fontWeight: 600 }}>
                       {ct.suggestedShipping}: {formatMoney(suggestedShipping.price, suggestedShipping.currency)}
                     </p>
                   </div>
@@ -1868,7 +1868,7 @@ export default function PrepareLivePage() {
                     marginBottom: '6px',
                   }}
                 />
-                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '0 0 0 2px' }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 0 2px' }}>
                   {ct.shippingOverrideHint}
                 </p>
 
@@ -1905,10 +1905,10 @@ export default function PrepareLivePage() {
                   {ct.duration}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '3px' }}>
-                  <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
+                  <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>
                     {formDuration}
                   </span>
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>{ct.seconds}</span>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.seconds}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
@@ -1921,10 +1921,10 @@ export default function PrepareLivePage() {
                       padding: '8px 0',
                       borderRadius: '8px',
                       background: formDuration === sec
-                        ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                        ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                         : '#111',
                       border: formDuration === sec ? 'none' : '1px solid #222',
-                      color: formDuration === sec ? '#fff' : '#888',
+                      color: formDuration === sec ? '#fff' : '#f0f0f0',
                       fontSize: 'calc(12px * var(--fs, 1))',
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -1940,10 +1940,10 @@ export default function PrepareLivePage() {
                     padding: '8px 0',
                     borderRadius: '8px',
                     background: formDuration === -1
-                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                      ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                       : '#111',
                     border: formDuration === -1 ? 'none' : '1px solid #222',
-                    color: formDuration === -1 ? '#fff' : '#888',
+                    color: formDuration === -1 ? '#fff' : '#f0f0f0',
                     fontSize: 'calc(12px * var(--fs, 1))',
                     fontWeight: 700,
                     cursor: 'pointer',
@@ -1968,7 +1968,7 @@ export default function PrepareLivePage() {
                     {ct.quantity}
                   </p>
                   {formQuantity > 1 && (
-                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F0908A', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF', margin: '2px 0 0' }}>
                       {ct.quantityHint}
                     </p>
                   )}
@@ -2024,10 +2024,10 @@ export default function PrepareLivePage() {
                         padding: '6px 14px',
                         borderRadius: '8px',
                         background: formQuantity === n
-                          ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                          ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                           : '#1A1A1A',
                         border: formQuantity === n ? 'none' : '1px solid #333',
-                        color: formQuantity === n ? '#fff' : '#888',
+                        color: formQuantity === n ? '#fff' : '#f0f0f0',
                         fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                         cursor: 'pointer',
                       }}
@@ -2043,8 +2043,8 @@ export default function PrepareLivePage() {
             {formError && (
               <div style={{
                 padding: '10px 14px',
-                backgroundColor: 'rgba(232,52,78,0.15)',
-                border: '1px solid rgba(232,52,78,0.3)',
+                backgroundColor: 'rgba(0,229,255,0.15)',
+                border: '1px solid rgba(0,229,255,0.3)',
                 borderRadius: '10px',
                 marginBottom: '10px',
               }}>
@@ -2074,7 +2074,7 @@ export default function PrepareLivePage() {
                   flex: 1, padding: '14px',
                   backgroundColor: '#1A1A1A',
                   border: 'none', borderRadius: '10px',
-                  color: '#888', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
+                  color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -2086,7 +2086,7 @@ export default function PrepareLivePage() {
                 style={{
                   flex: 1, padding: '14px',
                   background: formTitle.trim() && formPrice
-                    ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                    ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                     : 'rgba(255,255,255,0.06)',
                   border: 'none', borderRadius: '10px',
                   color: formTitle.trim() && formPrice ? '#fff' : 'rgba(255,255,255,0.25)',
@@ -2113,9 +2113,9 @@ export default function PrepareLivePage() {
         }}>
           <div style={{ padding: '14px 16px 8px', borderBottom: '1px solid #1A1A1A' }}>
             <p style={{ margin: 0, fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{ct.photosAiTitle}</p>
-            <p style={{ margin: '4px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#999' }}>{ct.photosAiHint}</p>
+            <p style={{ margin: '4px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.photosAiHint}</p>
             {batchAiFailed && (
-              <p style={{ margin: '8px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#F59E0B' }}>{ct.aiNamingFailed}</p>
+              <p style={{ margin: '8px 0 0', fontSize: 'calc(13px * var(--fs, 1))', color: '#00E5FF' }}>{ct.aiNamingFailed}</p>
             )}
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2138,7 +2138,7 @@ export default function PrepareLivePage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                     {([['price', ct.startShort], ['minPrice', ct.minPriceShort], ['buyNow', ct.buyNowShort]] as const).map(([field, label]) => (
                       <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: '3px', minWidth: 0 }}>
-                        <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: field === 'price' ? '#F0908A' : '#999', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: field === 'price' ? '#00E5FF' : '#f0f0f0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {label} ({currencySymbol(sellerCurrency)})
                         </span>
                         <input
@@ -2155,13 +2155,13 @@ export default function PrepareLivePage() {
                 <button
                   onClick={() => { URL.revokeObjectURL(r.preview); setBatch(prev => { const n = (prev || []).filter(x => x.key !== r.key); return n.length > 0 ? n : null }) }}
                   aria-label={ct.cancelBatch}
-                  style={{ background: 'transparent', border: 'none', color: '#777', fontSize: 'calc(22px * var(--fs, 1))', padding: '4px 8px', cursor: 'pointer' }}
+                  style={{ background: 'transparent', border: 'none', color: '#f0f0f0', fontSize: 'calc(22px * var(--fs, 1))', padding: '4px 8px', cursor: 'pointer' }}
                 >×</button>
               </div>
             ))}
             <button
               onClick={() => photosInputRef.current?.click()}
-              style={{ padding: '12px', borderRadius: '12px', border: '1px dashed #444', backgroundColor: 'transparent', color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer' }}
+              style={{ padding: '12px', borderRadius: '12px', border: '1px dashed #444', backgroundColor: 'transparent', color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer' }}
             >+ {ct.addMorePhotos}</button>
           </div>
           <div style={{ padding: '12px 16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', borderTop: '1px solid #1A1A1A', display: 'flex', gap: '8px' }}>
@@ -2175,8 +2175,8 @@ export default function PrepareLivePage() {
               disabled={batchSaving || batchReadyRows.length === 0}
               style={{
                 flex: 1, padding: '15px', borderRadius: '14px', border: 'none',
-                background: batchReadyRows.length > 0 ? 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)' : '#222',
-                color: batchReadyRows.length > 0 ? '#fff' : '#666', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800,
+                background: batchReadyRows.length > 0 ? 'linear-gradient(135deg, #0091EA 0%, #00E5FF 100%)' : '#222',
+                color: batchReadyRows.length > 0 ? '#fff' : '#f0f0f0', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800,
                 cursor: batchReadyRows.length > 0 ? 'pointer' : 'default', opacity: batchSaving ? 0.7 : 1,
               }}
             >{batchBusy && batchReadyRows.length === 0 ? ct.aiNaming : ct.addAllItems.replace('{n}', String(batchReadyRows.length))}</button>
@@ -2198,14 +2198,14 @@ export default function PrepareLivePage() {
             onClick={() => photosInputRef.current?.click()}
             style={{
               width: '100%', padding: '16px',
-              background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)',
+              background: 'linear-gradient(135deg, #0091EA 0%, #00E5FF 100%)',
               border: 'none', borderRadius: '14px',
-              color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800,
+              color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800,
               cursor: 'pointer', whiteSpace: 'nowrap',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#001014" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
               <circle cx="12" cy="13" r="4" />
             </svg>
@@ -2232,7 +2232,7 @@ export default function PrepareLivePage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2.5">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2.5">
                 <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round"/>
                 <line x1="5" y1="12" x2="19" y2="12" strokeLinecap="round"/>
               </svg>
@@ -2244,16 +2244,16 @@ export default function PrepareLivePage() {
               style={{
                 padding: '16px',
                 backgroundColor: '#111',
-                border: '1px solid rgba(139,92,246,0.4)',
+                border: '1px solid rgba(0,229,255,0.4)',
                 borderRadius: '14px',
-                color: '#8B5CF6', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
+                color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                 cursor: csvImporting ? 'default' : 'pointer',
                 opacity: csvImporting ? 0.5 : 1,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 whiteSpace: 'nowrap',
               }}
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
@@ -2280,7 +2280,7 @@ export default function PrepareLivePage() {
           style={{
             width: '100%', padding: '18px',
             background: canGoLive
-              ? 'linear-gradient(135deg, #E8344E 0%, #F0908A 50%, #E8344E 100%)'
+              ? 'linear-gradient(135deg, #0091EA 0%, #00E5FF 50%, #0091EA 100%)'
               : 'rgba(255,255,255,0.06)',
             backgroundSize: '200% 100%',
             borderRadius: '16px', border: 'none',
@@ -2288,7 +2288,7 @@ export default function PrepareLivePage() {
             fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800,
             cursor: canGoLive ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            boxShadow: canGoLive ? '0 8px 32px rgba(232,52,78,0.4)' : 'none',
+            boxShadow: canGoLive ? '0 8px 32px rgba(0,229,255,0.4)' : 'none',
           }}
         >
           {goingLive ? (

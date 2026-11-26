@@ -18,10 +18,10 @@ export interface LegalDoc {
 }
 
 const SUPPORT_MAIL = 'support@shapop.app'
-const TEXT = { fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6 } as const
+const TEXT = { fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6 } as const
 
 function mailLink(key: string) {
-  return <a key={key} href={`mailto:${SUPPORT_MAIL}`} style={{ color: '#F0908A' }}>{SUPPORT_MAIL}</a>
+  return <a key={key} href={`mailto:${SUPPORT_MAIL}`} style={{ color: '#00E5FF' }}>{SUPPORT_MAIL}</a>
 }
 
 /** Remplace {mail} par un lien vers le support. */
@@ -60,8 +60,8 @@ function render(n: Node | string, key: string): ReactNode {
     case 'li': return <li key={key} style={{ marginBottom: '4px' }}>{kids}</li>
     case 'b': return <b key={key} style={{ color: '#ddd' }}>{kids}</b>
     case 'a': return n.href?.startsWith('/')
-      ? <Link key={key} to={n.href} style={{ color: '#F0908A' }}>{kids}</Link>
-      : <a key={key} href={n.href} style={{ color: '#F0908A' }}>{kids}</a>
+      ? <Link key={key} to={n.href} style={{ color: '#00E5FF' }}>{kids}</Link>
+      : <a key={key} href={n.href} style={{ color: '#00E5FF' }}>{kids}</a>
     default: return kids
   }
 }
@@ -88,7 +88,7 @@ export default function LegalDocument({ doc }: { doc: LegalDoc }) {
         <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{doc.title}</h1>
       </div>
       <div style={{ padding: '20px 20px' }}>
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '16px' }}>{doc.updated}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '16px' }}>{doc.updated}</p>
         <p style={{ ...TEXT, color: '#ccc', marginBottom: '24px' }}>{withMail(doc.lede, 'lede')}</p>
         <div style={{ marginBottom: '20px' }}>
           {/* À COMPLÉTER : identité légale de l'exploitant (raison sociale, forme, numéro d'immatriculation, adresse du siège) */}

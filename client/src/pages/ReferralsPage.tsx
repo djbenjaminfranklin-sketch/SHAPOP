@@ -176,7 +176,7 @@ export default function ReferralsPage() {
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
           <div style={{
             width: '32px', height: '32px', border: '3px solid #333',
-            borderTopColor: '#F0908A', borderRadius: '50%',
+            borderTopColor: '#00E5FF', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -186,12 +186,12 @@ export default function ReferralsPage() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px' }}>
           <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '20px', textAlign: 'center' }}>
-            <p style={{ fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>{stats?.total_referrals ?? 0}</p>
-            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>{c.totalReferrals}</p>
+            <p style={{ fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>{stats?.total_referrals ?? 0}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0' }}>{c.totalReferrals}</p>
           </div>
           <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '20px', textAlign: 'center' }}>
-            <p style={{ fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: 0 }}>{stats?.rewards_earned ?? 0}</p>
-            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>{c.rewardsEarned}</p>
+            <p style={{ fontSize: 'calc(32px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>{stats?.rewards_earned ?? 0}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0' }}>{c.rewardsEarned}</p>
           </div>
         </div>
 
@@ -202,16 +202,16 @@ export default function ReferralsPage() {
             {stats.my_welcome_code && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#0A0A0A', borderRadius: '10px', marginBottom: '8px' }}>
                 <div>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{c.welcomeCode}</p>
-                  <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#22C55E', margin: '2px 0 0', letterSpacing: '2px' }}>{stats.my_welcome_code}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{c.welcomeCode}</p>
+                  <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', margin: '2px 0 0', letterSpacing: '2px' }}>{stats.my_welcome_code}</p>
                 </div>
-                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#22C55E', fontWeight: 600 }}>−{pct(0.05)}</span>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>−{pct(0.05)}</span>
               </div>
             )}
             {stats.reward_codes.map((code, i) => (
               <div key={code} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', backgroundColor: '#0A0A0A', borderRadius: '10px', marginBottom: i < stats.reward_codes.length - 1 ? '8px' : 0 }}>
-                <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: 0, letterSpacing: '2px' }}>{code}</p>
-                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>−{pct(0.05)}</span>
+                <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', margin: 0, letterSpacing: '2px' }}>{code}</p>
+                <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>−{pct(0.05)}</span>
               </div>
             ))}
           </div>
@@ -219,7 +219,7 @@ export default function ReferralsPage() {
 
         {stats && stats.reward_codes.length === 0 && !stats.my_welcome_code && (
           <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '20px', textAlign: 'center', marginBottom: '24px' }}>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888' }}>{c.noRewardsYet}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{c.noRewardsYet}</p>
           </div>
         )}
 
@@ -228,19 +228,19 @@ export default function ReferralsPage() {
           <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>{c.howTitle}</h2>
           {[c.step1, c.step2, c.step3].map((step, i) => (
             <div key={`step-${i}`} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: i < 2 ? '14px' : 0 }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#F0908A', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
-              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.5, paddingTop: '3px' }}>{step}</p>
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#00E5FF', color: '#001014', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, flexShrink: 0 }}>{i + 1}</div>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.5, paddingTop: '3px' }}>{step}</p>
             </div>
           ))}
         </div>
 
         {/* Code */}
         <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '20px', textAlign: 'center', marginBottom: '16px' }}>
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', marginBottom: '8px' }}>{c.yourCode}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '8px' }}>{c.yourCode}</p>
           <p style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 800, color: '#fff', letterSpacing: '4px' }}>{code}</p>
         </div>
 
-        <button onClick={handleShare} style={{ width: '100%', padding: '14px', backgroundColor: '#F0908A', border: 'none', borderRadius: '12px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>
+        <button onClick={handleShare} style={{ width: '100%', padding: '14px', backgroundColor: '#00E5FF', border: 'none', borderRadius: '12px', color: '#001014', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>
           {copied ? c.copied : c.share}
         </button>
       </div>

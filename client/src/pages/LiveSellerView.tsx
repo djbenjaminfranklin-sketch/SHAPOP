@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { tr, type Localized } from '../lib/i18n'
-import { formatMoney, currencyForCountry, currencySymbol } from '../lib/fulfillment'
+import { formatMoney, currencyForCountry, currencySymbol, displayItemTitle } from '../lib/fulfillment'
 import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
 import { apiFetch } from '../lib/api'
 import type { Item, ChatMessage, Giveaway } from '../types/database'
@@ -1522,6 +1522,7 @@ export default function LiveSellerView() {
     window.scrollTo(0, 0)
     const root = document.getElementById('root')
     if (root) root.scrollTop = 0
+    document.querySelector('.app-scroll')?.scrollTo(0, 0)
   }, [])
 
   useEffect(() => {
@@ -1899,27 +1900,28 @@ export default function LiveSellerView() {
       }}>
         <div style={{
           width: '80px', height: '80px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05))',
-          border: '1px solid rgba(34,197,94,0.3)',
+          background: 'linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0,229,255,0.05))',
+          border: '1px solid rgba(0,229,255,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
             <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
         <h2 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center' }}>
           {ct.liveEnded}
         </h2>
-        <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center' }}>
+        <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center' }}>
           {fill(ct.soldSummary, { sold: items.filter(it => it.status === 'sold').length, total: items.length })}
         </p>
         <button
           onClick={() => { unlockBody(); navigate(`/live-recap/${streamId}`) }}
           style={{
             width: '100%', maxWidth: '300px', padding: '16px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            borderRadius: '14px', border: 'none',
-            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+            background: 'rgba(0,10,14,0.35)', // néon transparent : la vidéo se voit derrière
+            boxShadow: '0 0 14px rgba(0,229,255,0.55), inset 0 0 8px rgba(0,229,255,0.15)',
+            borderRadius: '14px', border: '2px solid #00E5FF',
+            color: '#00E5FF', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
             cursor: 'pointer',
           }}
         >
@@ -1931,7 +1933,7 @@ export default function LiveSellerView() {
             width: '100%', maxWidth: '300px', padding: '16px',
             backgroundColor: 'transparent',
             borderRadius: '14px', border: '1px solid #333',
-            color: '#888', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600,
+            color: '#f0f0f0', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600,
             cursor: 'pointer',
           }}
         >
@@ -2048,10 +2050,10 @@ export default function LiveSellerView() {
         }}>
           <div style={{
             width: '7px', height: '7px', borderRadius: '50%',
-            backgroundColor: lkConnected ? '#E8344E' : '#888',
+            backgroundColor: lkConnected ? '#00E5FF' : '#888',
             marginInlineEnd: '6px',
             animation: lkConnected ? 'liveDot 1.5s ease-in-out infinite' : 'none',
-            boxShadow: lkConnected ? '0 0 6px rgba(232,52,78,0.6)' : 'none',
+            boxShadow: lkConnected ? '0 0 6px rgba(0,229,255,0.6)' : 'none',
           }} />
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" style={{ marginInlineEnd: '3px' }}>
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -2071,15 +2073,15 @@ export default function LiveSellerView() {
             backdropFilter: 'blur(8px)',
           }}>
             {buyerStats.returning > 0 && (
-              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#8B5CF6' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                 {buyerStats.returning} {ct.returningBuyers}
               </span>
             )}
             {buyerStats.returning > 0 && buyerStats.new > 0 && (
-              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: 'rgba(255,255,255,0.3)' }}>|</span>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#f0f0f0' }}>|</span>
             )}
             {buyerStats.new > 0 && (
-              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#10B981' }}>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                 {buyerStats.new} {ct.newBuyers}
               </span>
             )}
@@ -2093,8 +2095,9 @@ export default function LiveSellerView() {
             style={{
               height: '36px', padding: '0 12px',
               borderRadius: '100px',
-              backgroundColor: '#E8344E',
-              border: 'none',
+              // Transparent avec contour rouge : arrêter le direct
+              backgroundColor: 'rgba(232,52,78,0.15)',
+              border: '1.5px solid rgba(232,52,78,0.8)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               cursor: 'pointer',
             }}
@@ -2135,7 +2138,7 @@ export default function LiveSellerView() {
           >
             <span style={{ fontSize: 'calc(16px * var(--fs, 1))', lineHeight: 1 }}>🎁</span>
             {activeGiveaway && activeGiveaway.status === 'active' && (
-              <span style={{ position: 'absolute', top: '-4px', insetInlineEnd: '-4px', fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 800, color: '#fff', backgroundColor: '#E8344E', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ position: 'absolute', top: '-4px', insetInlineEnd: '-4px', fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 800, color: '#001014', backgroundColor: '#00E5FF', borderRadius: '100px', padding: '1px 5px' }}>
                 {activeGiveaway.entry_count}
               </span>
             )}
@@ -2192,10 +2195,10 @@ export default function LiveSellerView() {
                     cursor: 'pointer', width: '100%',
                   }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cohost ? '#8B5CF6' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={cohost ? '#00E5FF' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>
                   </svg>
-                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: cohost ? '#8B5CF6' : '#fff' }}>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: cohost ? '#00E5FF' : '#fff' }}>
                     {ct.cohostActive}{cohost ? `: ${cohost.display_name}` : ''}
                   </span>
                 </button>
@@ -2255,7 +2258,7 @@ export default function LiveSellerView() {
             style={{
               padding: '10px 14px',
               backgroundColor: 'rgba(34,197,94,0.15)',
-              border: '1px solid rgba(34,197,94,0.3)',
+              border: '1px solid rgba(0,229,255,0.3)',
               borderRadius: '10px',
               animation: 'toastIn 0.3s ease',
             }}
@@ -2309,17 +2312,17 @@ export default function LiveSellerView() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <p style={{ margin: 0, fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{ct.myItems} ({items.length})</p>
-              <button onClick={() => setShowItemsList(false)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>{ct.closeList}</button>
+              <button onClick={() => setShowItemsList(false)} style={{ background: 'none', border: 'none', color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}>{ct.closeList}</button>
             </div>
             {editItem && (
-              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '12px', marginBottom: '12px', border: '1px solid #F0908A' }}>
-                <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#aaa', marginBottom: '4px' }}>{ct.editTitle}</label>
+              <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '12px', marginBottom: '12px', border: '1px solid #00E5FF' }}>
+                <label style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '4px' }}>{ct.editTitle}</label>
                 <input value={editItem.title} maxLength={60} onChange={e => setEditItem({ ...editItem, title: e.target.value })}
                   style={{ width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', marginBottom: '8px' }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
                   {([['start', ct.editStart], ['min', ct.editMin], ['buyNow', ct.editBuyNow]] as const).map(([f, l]) => (
                     <label key={f} style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                      <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: f === 'start' ? '#F0908A' : '#aaa', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
+                      <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: f === 'start' ? '#00E5FF' : '#f0f0f0', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l}</span>
                       <input value={editItem[f]} inputMode="decimal" placeholder="—"
                         onChange={e => setEditItem({ ...editItem, [f]: e.target.value.replace(/[^0-9.,]/g, '') })}
                         style={{ width: '100%', padding: '10px 8px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', minWidth: 0 }} />
@@ -2327,14 +2330,14 @@ export default function LiveSellerView() {
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-                  <button onClick={() => setEditItem(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: 'transparent', color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{ct.addItemCancel}</button>
-                  <button onClick={handleSaveEditItem} disabled={editSaving} style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, opacity: editSaving ? 0.6 : 1 }}>{editSaving ? '…' : ct.editSave}</button>
+                  <button onClick={() => setEditItem(null)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: 'transparent', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{ct.addItemCancel}</button>
+                  <button onClick={handleSaveEditItem} disabled={editSaving} style={{ flex: 2, padding: '12px', borderRadius: '10px', border: 'none', background: 'linear-gradient(135deg, #00E5FF, #0091EA)', color: '#001014', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, opacity: editSaving ? 0.6 : 1 }}>{editSaving ? '…' : ct.editSave}</button>
                 </div>
               </div>
             )}
             {items.map((it, i) => {
               const label = it.status === 'sold' ? ct.itemSold : it.status === 'unsold' ? ct.itemUnsold : it.status === 'active' ? ct.itemLive : ct.itemToSell
-              const color = it.status === 'sold' ? '#22C55E' : it.status === 'unsold' ? '#FF9632' : it.status === 'active' ? '#E8344E' : '#F0908A'
+              const color = it.status === 'sold' ? '#22C55E' : it.status === 'unsold' ? '#FF9632' : it.status === 'active' ? '#00E5FF' : '#00E5FF'
               const selectable = (it.status === 'draft' || it.status === 'pending' || it.status === 'unsold') && currentItem?.status !== 'active'
               return (
                 <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -2342,8 +2345,8 @@ export default function LiveSellerView() {
                   flex: 1, minWidth: 0,
                   display: 'flex', alignItems: 'center', gap: '12px', padding: '10px',
                   borderRadius: '14px', textAlign: 'start',
-                  backgroundColor: i === currentIndex ? 'rgba(240,144,138,0.15)' : '#1A1A1A',
-                  border: i === currentIndex ? '1px solid #F0908A' : '1px solid transparent',
+                  backgroundColor: i === currentIndex ? 'rgba(0, 229, 255,0.15)' : '#1A1A1A',
+                  border: i === currentIndex ? '1px solid #00E5FF' : '1px solid transparent',
                   cursor: selectable ? 'pointer' : 'default', opacity: selectable || i === currentIndex ? 1 : 0.6,
                 }}>
                   {it.image_urls?.[0]
@@ -2353,7 +2356,7 @@ export default function LiveSellerView() {
                     <p style={{ margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {formatLot(i + 1)} · {it.title}
                     </p>
-                    <p style={{ margin: '4px 0 0', fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 700 }}>{money(it.current_price)}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 'calc(14px * var(--fs, 1))', color: '#00E5FF', fontWeight: 700 }}>{money(it.current_price)}</p>
                   </div>
                   <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color, flexShrink: 0 }}>{label}</span>
                 </button>
@@ -2363,8 +2366,8 @@ export default function LiveSellerView() {
                     code: it.title.match(/\s*\[[A-Z0-9]{3,8}\]\s*$/)?.[0] || '',
                     start: String(it.starting_price), min: it.min_price ? String(it.min_price) : '', buyNow: it.buy_now_price ? String(it.buy_now_price) : '',
                   })} style={{
-                    padding: '10px 12px', borderRadius: '12px', border: '1px solid rgba(240,144,138,0.5)',
-                    backgroundColor: 'rgba(240,144,138,0.12)', color: '#F0908A', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                    padding: '10px 12px', borderRadius: '12px', border: '1px solid rgba(0, 229, 255,0.5)',
+                    backgroundColor: 'rgba(0, 229, 255,0.12)', color: '#00E5FF', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                   }}>{ct.editItemBtn}</button>
                 )}
                 </div>
@@ -2394,7 +2397,7 @@ export default function LiveSellerView() {
                 animation: 'chatMsgIn 0.3s ease',
               }}>
                 <span style={{
-                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A',
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF',
                   textShadow: '0 1px 3px rgba(0,0,0,0.8)',
                   marginInlineEnd: '5px',
                 }}>
@@ -2436,8 +2439,9 @@ export default function LiveSellerView() {
             style={{
               padding: '12px 18px',
               borderRadius: '100px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              border: 'none', color: '#fff',
+              background: 'rgba(0,10,14,0.35)', // néon transparent : la vidéo se voit derrière
+              boxShadow: '0 0 14px rgba(0,229,255,0.55), inset 0 0 8px rgba(0,229,255,0.15)',
+              border: '2px solid #00E5FF', color: '#00E5FF',
               fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
             }}
@@ -2446,14 +2450,15 @@ export default function LiveSellerView() {
           </button>
         </div>
 
-        {/* Item + controls panel with solid background (hidden for co-host) */}
+        {/* Panneau article + commandes : voile léger, la caméra reste visible derrière (façon Whatnot) */}
         {isStreamOwner && <div style={{
-          backgroundColor: 'rgba(0,0,0,0.88)',
-          backdropFilter: 'blur(16px)',
+          backgroundColor: 'rgba(0,0,0,0.38)',
+          backdropFilter: 'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
           borderRadius: '14px',
           padding: '8px',
           display: 'flex', flexDirection: 'column', gap: '6px',
-          border: '1px solid rgba(255,255,255,0.08)',
+          border: '1px solid rgba(0,229,255,0.25)',
         }}>
           {/* Item info row */}
           {currentItem && (
@@ -2470,21 +2475,21 @@ export default function LiveSellerView() {
                 {currentItem.image_urls?.[0] ? (
                   <img src={currentItem.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { const img = e.target as HTMLImageElement; img.src = ''; img.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'; img.alt = '' }} />
                 ) : (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>
                     {formatLot(currentIndex + 1)}
                   </span>
                 )}
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                   {ct.lot} {formatLot(currentIndex + 1)}
                 </span>
                 <p style={{
                   fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '1px 0 0',
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
-                  {currentItem.title}
+                  {displayItemTitle(currentItem.title)}
                 </p>
               </div>
 
@@ -2492,8 +2497,8 @@ export default function LiveSellerView() {
               {currentItem.status === 'active' && timeLeft > 0 ? (
                 <div style={{
                   flexShrink: 0,
-                  backgroundColor: timeLeft <= 10 ? 'rgba(232,52,78,0.4)' : 'rgba(240,144,138,0.25)',
-                  border: timeLeft <= 10 ? '2px solid #E8344E' : '1px solid #F0908A',
+                  backgroundColor: timeLeft <= 10 ? 'rgba(0,229,255,0.4)' : 'rgba(0, 229, 255,0.25)',
+                  border: timeLeft <= 10 ? '2px solid #00E5FF' : '1px solid #00E5FF',
                   borderRadius: '10px',
                   padding: '4px 10px',
                   textAlign: 'center',
@@ -2523,7 +2528,7 @@ export default function LiveSellerView() {
                   <div style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
                     {currentItem.duration_seconds || 60}
                   </div>
-                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#aaa', fontWeight: 600 }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600 }}>
                     {ct.seconds}
                   </div>
                 </div>
@@ -2545,9 +2550,10 @@ export default function LiveSellerView() {
               onClick={handleActivateItem}
               style={{
                 width: '100%', padding: '12px',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
+                background: 'rgba(0,10,14,0.35)', // néon transparent : la vidéo se voit derrière
+                boxShadow: '0 0 14px rgba(0,229,255,0.55), inset 0 0 8px rgba(0,229,255,0.15)',
+                borderRadius: '10px', border: '2px solid #00E5FF',
+                color: '#00E5FF', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
               }}
             >
@@ -2559,15 +2565,15 @@ export default function LiveSellerView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <div style={{
                 flex: 1, padding: '6px 10px', borderRadius: '8px',
-                backgroundColor: 'rgba(240,144,138,0.1)',
-                border: '1px solid rgba(240,144,138,0.15)',
+                backgroundColor: 'rgba(0, 229, 255,0.1)',
+                border: '1px solid rgba(0, 229, 255,0.15)',
                 textAlign: 'center',
               }}>
-                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>
                   {timeLeft > 0 ? ct.auctionLive : ct.resolving}
                 </span>
                 {currentItem.min_price != null && currentItem.min_price > 0 && (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', marginInlineStart: '6px' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', marginInlineStart: '6px' }}>
                     {fill(ct.minPrice, { price: money(currentItem.min_price) })}
                   </span>
                 )}
@@ -2580,7 +2586,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.15)',
                     borderRadius: '8px',
-                    color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                    color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
                 >
@@ -2595,10 +2601,11 @@ export default function LiveSellerView() {
               onClick={handleRelaunchItem}
               style={{
                 width: '100%', padding: '12px',
-                background: hasMoreItems ? 'rgba(255,255,255,0.08)' : 'linear-gradient(135deg, #F0908A, #E8344E)',
-                border: hasMoreItems ? '1px solid rgba(255,255,255,0.18)' : 'none',
+                // Transparent comme « Mes articles »
+                backgroundColor: 'rgba(0, 229, 255,0.12)',
+                border: '1px solid rgba(0, 229, 255,0.4)',
                 borderRadius: '10px',
-                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+                color: '#00E5FF', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2611,9 +2618,10 @@ export default function LiveSellerView() {
               onClick={handleNextItem}
               style={{
                 width: '100%', padding: '12px',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                borderRadius: '10px', border: 'none',
-                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+                background: 'rgba(0,10,14,0.35)', // néon transparent : la vidéo se voit derrière
+                boxShadow: '0 0 14px rgba(0,229,255,0.55), inset 0 0 8px rgba(0,229,255,0.15)',
+                borderRadius: '10px', border: '2px solid #00E5FF',
+                color: '#00E5FF', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2624,7 +2632,7 @@ export default function LiveSellerView() {
           {(currentItem?.status === 'sold' || currentItem?.status === 'unsold') && !hasMoreItems && (
             <p style={{
               padding: '4px', textAlign: 'center',
-              fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: 0,
+              fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0,
             }}>
               {ct.noMoreItems}
             </p>
@@ -2637,10 +2645,10 @@ export default function LiveSellerView() {
               onClick={() => setShowItemsList(true)}
               style={{
                 width: '100%', padding: '10px',
-                backgroundColor: 'rgba(240,144,138,0.12)',
-                border: '1px solid rgba(240,144,138,0.4)',
+                backgroundColor: 'rgba(0, 229, 255,0.12)',
+                border: '1px solid rgba(0, 229, 255,0.4)',
                 borderRadius: '10px',
-                color: '#F0908A', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
+                color: '#00E5FF', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -2656,7 +2664,7 @@ export default function LiveSellerView() {
                 backgroundColor: 'rgba(255,255,255,0.04)',
                 border: '1px dashed rgba(255,255,255,0.15)',
                 borderRadius: '8px',
-                color: '#666', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
+                color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
               }}
@@ -2736,7 +2744,7 @@ export default function LiveSellerView() {
                 style={{
                   width: '100%', padding: '8px 10px',
                   backgroundColor: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(16,185,129,0.3)',
+                  border: '1px solid rgba(0,229,255,0.3)',
                   borderRadius: '8px',
                   color: '#fff', fontSize: 'calc(12px * var(--fs, 1))',
                   outline: 'none', boxSizing: 'border-box',
@@ -2776,10 +2784,10 @@ export default function LiveSellerView() {
                     onClick={() => setAddItemDuration(d)}
                     style={{
                       flex: 1, padding: '7px 0',
-                      backgroundColor: addItemDuration === d ? 'rgba(232,52,78,0.2)' : 'rgba(255,255,255,0.06)',
-                      border: addItemDuration === d ? '1px solid #E8344E' : '1px solid rgba(255,255,255,0.12)',
+                      backgroundColor: addItemDuration === d ? 'rgba(0,229,255,0.2)' : 'rgba(255,255,255,0.06)',
+                      border: addItemDuration === d ? '1px solid #00E5FF' : '1px solid rgba(255,255,255,0.12)',
                       borderRadius: '8px',
-                      color: addItemDuration === d ? '#E8344E' : '#888',
+                      color: addItemDuration === d ? '#00E5FF' : '#f0f0f0',
                       fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
                       cursor: 'pointer',
                     }}
@@ -2792,10 +2800,10 @@ export default function LiveSellerView() {
                   title={ct.sdTitle}
                   style={{
                     flex: 1, padding: '7px 0',
-                    backgroundColor: addItemDuration === -1 ? 'rgba(232,52,78,0.2)' : 'rgba(255,255,255,0.06)',
-                    border: addItemDuration === -1 ? '1px solid #E8344E' : '1px solid rgba(255,255,255,0.12)',
+                    backgroundColor: addItemDuration === -1 ? 'rgba(0,229,255,0.2)' : 'rgba(255,255,255,0.06)',
+                    border: addItemDuration === -1 ? '1px solid #00E5FF' : '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '8px',
-                    color: addItemDuration === -1 ? '#E8344E' : '#888',
+                    color: addItemDuration === -1 ? '#00E5FF' : '#f0f0f0',
                     fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
@@ -2811,7 +2819,7 @@ export default function LiveSellerView() {
                     backgroundColor: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.12)',
                     borderRadius: '8px',
-                    color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
+                    color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer',
                   }}
                 >
@@ -2822,10 +2830,11 @@ export default function LiveSellerView() {
                   disabled={addingItem || !addItemTitle.trim() || !addItemPrice}
                   style={{
                     flex: 1, padding: '8px',
-                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                    border: 'none',
+                    background: 'rgba(0,10,14,0.35)', // néon transparent : la vidéo se voit derrière
+                    boxShadow: '0 0 14px rgba(0,229,255,0.55), inset 0 0 8px rgba(0,229,255,0.15)',
+                    border: '2px solid #00E5FF',
                     borderRadius: '8px',
-                    color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
+                    color: '#00E5FF', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                     opacity: addingItem || !addItemTitle.trim() || !addItemPrice ? 0.5 : 1,
                   }}
@@ -2901,7 +2910,7 @@ export default function LiveSellerView() {
                     onChange={e => setGiveawayBuyersOnly(e.target.checked)}
                     style={{ accentColor: '#FFD700', width: '18px', height: '18px', flexShrink: 0 }}
                   />
-                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: giveawayBuyersOnly ? '#FFD700' : '#aaa', fontWeight: 600 }}>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: giveawayBuyersOnly ? '#FFD700' : '#f0f0f0', fontWeight: 600 }}>
                     {ct.buyersOnly}
                   </span>
                 </label>
@@ -2913,7 +2922,7 @@ export default function LiveSellerView() {
                       backgroundColor: 'rgba(255,255,255,0.08)',
                       border: '1px solid rgba(255,255,255,0.15)',
                       borderRadius: '12px',
-                      color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                      color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -2954,7 +2963,7 @@ export default function LiveSellerView() {
                   <span style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900, color: '#fff' }}>
                     {activeGiveaway.entry_count}
                   </span>
-                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888' }}>
+                  <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>
                     {ct.giftParticipants}
                   </span>
                 </div>
@@ -2966,7 +2975,7 @@ export default function LiveSellerView() {
                       backgroundColor: 'rgba(255,255,255,0.08)',
                       border: '1px solid rgba(255,255,255,0.15)',
                       borderRadius: '12px',
-                      color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                      color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                       cursor: 'pointer',
                     }}
                   >
@@ -3079,10 +3088,10 @@ export default function LiveSellerView() {
             />
             <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
               {cohostSearching && (
-                <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', padding: '16px 0' }}>...</p>
+                <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', padding: '16px 0' }}>...</p>
               )}
               {!cohostSearching && cohostSearch.length >= 2 && cohostResults.length === 0 && (
-                <p style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', padding: '16px 0' }}>{ct.cohostNone}</p>
+                <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', textAlign: 'center', padding: '16px 0' }}>{ct.cohostNone}</p>
               )}
               {cohostResults.map((s) => (
                 <button
@@ -3102,7 +3111,7 @@ export default function LiveSellerView() {
                     {s.avatar_url ? (
                       <img src={s.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                     ) : (
-                      <span style={{ color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700 }}>
+                      <span style={{ color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700 }}>
                         {(s.store_name || s.display_name || '?').charAt(0).toUpperCase()}
                       </span>
                     )}
@@ -3145,7 +3154,7 @@ export default function LiveSellerView() {
                 border: '1px solid rgba(59,130,246,0.3)',
                 borderRadius: '10px',
               }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22C55E', flexShrink: 0 }} />
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00E5FF', flexShrink: 0 }} />
                 <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs, 1))', color: '#93C5FD', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {d.url.replace(/\/[^/]+$/, '/****')}
                 </span>
@@ -3153,7 +3162,7 @@ export default function LiveSellerView() {
                   onClick={() => handleStopMulticast(d.egressId)}
                   style={{
                     padding: '4px 10px', borderRadius: '8px', border: 'none',
-                    backgroundColor: 'rgba(232,52,78,0.2)', color: '#E8344E',
+                    backgroundColor: 'rgba(0,229,255,0.2)', color: '#00E5FF',
                     fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                   }}
                 >
@@ -3163,7 +3172,7 @@ export default function LiveSellerView() {
             ))}
 
             {/* Add new destination */}
-            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 8px' }}>{ct.multicastAdd}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 8px' }}>{ct.multicastAdd}</p>
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 type="text"
@@ -3191,7 +3200,7 @@ export default function LiveSellerView() {
               </button>
             </div>
 
-            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', margin: '12px 0 0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '12px 0 0', lineHeight: 1.4 }}>
               YouTube: rtmp://a.rtmp.youtube.com/live2/KEY<br/>{/* i18n-ignore */}
               Instagram: rtmp://live-upload.instagram.com:443/rtmp/KEY<br/>{/* i18n-ignore */}
               TikTok: rtmp://push.tiktokcdn.com/live/KEY{/* i18n-ignore */}
@@ -3216,7 +3225,7 @@ export default function LiveSellerView() {
           }}>
             <div style={{ fontSize: 'calc(40px * var(--fs, 1))', marginBottom: '12px' }}>⚡</div>
             <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 12px' }}>{ct.boostTitle}</h3>
-            <p style={{ color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', lineHeight: 1.5, margin: '0 0 24px' }}>
+            <p style={{ color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', lineHeight: 1.5, margin: '0 0 24px' }}>
               {fill(ct.boostConfirm, { price: boostPrice })}
             </p>
             <button
@@ -3235,7 +3244,7 @@ export default function LiveSellerView() {
               style={{
                 width: '100%', padding: '12px', borderRadius: '12px',
                 border: '1px solid #333', backgroundColor: 'transparent',
-                color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ct.boostConfirmNo}
@@ -3277,11 +3286,11 @@ export default function LiveSellerView() {
             {obsLoading ? (
               <div style={{ textAlign: 'center', padding: '30px 0' }}>
                 <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#60a5fa', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
-                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginTop: '10px' }}>{ct.obsLoading}</p>
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginTop: '10px' }}>{ct.obsLoading}</p>
               </div>
             ) : obsData ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.obsDesc}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{ct.obsDesc}</p>
 
                 {/* RTMP URL */}
                 <div>
@@ -3300,7 +3309,7 @@ export default function LiveSellerView() {
                       onClick={() => copyToClipboard(obsData.rtmp_url, 'url')}
                       style={{
                         padding: '0 14px', borderRadius: '10px',
-                        backgroundColor: obsCopied === 'url' ? '#10B981' : '#333',
+                        backgroundColor: obsCopied === 'url' ? '#00E5FF' : '#333',
                         border: 'none', color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
@@ -3326,7 +3335,7 @@ export default function LiveSellerView() {
                       onClick={() => copyToClipboard(obsData.stream_key, 'key')}
                       style={{
                         padding: '0 14px', borderRadius: '10px',
-                        backgroundColor: obsCopied === 'key' ? '#10B981' : '#333',
+                        backgroundColor: obsCopied === 'key' ? '#00E5FF' : '#333',
                         border: 'none', color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
@@ -3344,7 +3353,7 @@ export default function LiveSellerView() {
               style={{
                 width: '100%', padding: '14px', marginTop: '16px',
                 borderRadius: '12px', background: '#222', border: 'none',
-                color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ct.close}
@@ -3367,11 +3376,11 @@ export default function LiveSellerView() {
         >
           <div style={{
             width: '64px', height: '64px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(232,52,78,0.2), rgba(220,38,38,0.1))',
-            border: '1px solid rgba(232,52,78,0.3)',
+            background: 'linear-gradient(135deg, rgba(0,229,255,0.2), rgba(220,38,38,0.1))',
+            border: '1px solid rgba(0,229,255,0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
               <rect x="4" y="4" width="16" height="16" rx="2"/>
             </svg>
           </div>
@@ -3436,21 +3445,21 @@ export default function LiveSellerView() {
               width: '80px', height: '80px', borderRadius: '50%',
               background: soldOverlay.isUnsold
                 ? 'linear-gradient(135deg, rgba(255,150,50,0.25), rgba(255,150,50,0.1))'
-                : 'linear-gradient(135deg, rgba(34,197,94,0.3), rgba(34,197,94,0.1))',
+                : 'linear-gradient(135deg, rgba(0,229,255,0.3), rgba(0,229,255,0.1))',
               border: soldOverlay.isUnsold
                 ? '2px solid rgba(255,150,50,0.4)'
-                : '2px solid rgba(34,197,94,0.4)',
+                : '2px solid rgba(0,229,255,0.4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: soldOverlay.isUnsold
                 ? '0 0 40px rgba(255,150,50,0.3)'
-                : '0 0 40px rgba(34,197,94,0.3)',
+                : '0 0 40px rgba(0,229,255,0.3)',
             }}>
               {soldOverlay.isUnsold ? (
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#FF9632" strokeWidth="2.5">
                   <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               ) : (
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2.5">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2.5">
                   <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               )}
@@ -3464,7 +3473,7 @@ export default function LiveSellerView() {
               letterSpacing: '2px',
               textShadow: soldOverlay.isUnsold
                 ? '0 2px 20px rgba(255,150,50,0.5)'
-                : '0 2px 20px rgba(34,197,94,0.5)',
+                : '0 2px 20px rgba(0,229,255,0.5)',
               margin: 0,
             }}>
               {soldOverlay.isUnsold ? ct.unsold : ct.sold}
@@ -3481,17 +3490,17 @@ export default function LiveSellerView() {
             {/* Winner name */}
             {!soldOverlay.isUnsold && soldOverlay.winnerName && (
               <div style={{
-                backgroundColor: 'rgba(34,197,94,0.15)',
-                border: '1px solid rgba(34,197,94,0.3)',
+                backgroundColor: 'rgba(0,229,255,0.15)',
+                border: '1px solid rgba(0,229,255,0.3)',
                 borderRadius: '12px',
                 padding: '10px 24px',
                 display: 'flex', alignItems: 'center', gap: '8px',
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
                   <circle cx="12" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#22C55E' }}>
+                <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>
                   {soldOverlay.winnerName}
                 </span>
               </div>

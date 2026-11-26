@@ -59,8 +59,8 @@ function InnerViewer({ muted, style }: { muted?: boolean; style?: CSSProperties 
       }}>
         <div style={{
           width: '40px', height: '40px',
-          border: '3px solid rgba(240,144,138,0.3)',
-          borderTopColor: '#F0908A',
+          border: '3px solid rgba(0, 229, 255,0.3)',
+          borderTopColor: '#00E5FF',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />

@@ -193,9 +193,9 @@ function teamError(raw: unknown, ct: TeamText): string {
 }
 
 const roleColors: Record<string, string> = {
-  manager: '#8B5CF6',
+  manager: '#00E5FF',
   moderator: '#3B82F6',
-  shipper: '#F59E0B',
+  shipper: '#00E5FF',
 }
 
 export default function TeamPage() {
@@ -342,7 +342,7 @@ export default function TeamPage() {
             role="status"
             style={{
               width: '32px', height: '32px', border: '3px solid #333',
-              borderTopColor: '#F0908A', borderRadius: '50%',
+              borderTopColor: '#00E5FF', borderRadius: '50%',
               animation: 'spin 0.8s linear infinite',
             }}
           />
@@ -367,7 +367,7 @@ export default function TeamPage() {
                   {inv.seller?.avatar_url ? (
                     <img src={inv.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
-                    <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                    <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                       {(inv.seller?.display_name || '?')[0].toUpperCase()}
                     </span>
                   )}
@@ -396,7 +396,7 @@ export default function TeamPage() {
                 <button onClick={() => handleDecline(inv.seller_id)} style={{
                   padding: '8px 14px', borderRadius: '8px',
                   backgroundColor: '#1A1A1A', border: '1px solid #333',
-                  color: '#E8344E', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                  color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}>
                   {ct.decline}
                 </button>
@@ -416,9 +416,9 @@ export default function TeamPage() {
                 onClick={() => setShowInvite(!showInvite)}
                 style={{
                   padding: '8px 16px',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
                   borderRadius: '8px', border: 'none',
-                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                  color: '#001014', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
                 {ct.invite}
@@ -458,7 +458,7 @@ export default function TeamPage() {
                       <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: roleColors[r], margin: 0 }}>
                         {roleLabel(r)}
                       </p>
-                      <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>
+                      <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0' }}>
                         {r === 'manager' ? ct.managerDesc : r === 'moderator' ? ct.moderatorDesc : ct.shipperDesc}
                       </p>
                     </button>
@@ -470,7 +470,7 @@ export default function TeamPage() {
                   onClick={handleInvite}
                   style={{
                     width: '100%', padding: '14px',
-                    background: inviting ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    background: inviting ? '#333' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
                     borderRadius: '12px', border: 'none',
                     color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                     cursor: inviting ? 'default' : 'pointer',
@@ -488,7 +488,7 @@ export default function TeamPage() {
                 backgroundColor: '#111', borderRadius: '14px', padding: '32px',
                 textAlign: 'center',
               }}>
-                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{ct.noMembers}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.noMembers}</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -505,7 +505,7 @@ export default function TeamPage() {
                       {member.user?.avatar_url ? (
                         <img src={member.user.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                       ) : (
-                        <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                        <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                           {(member.user?.display_name || '?')[0].toUpperCase()}
                         </span>
                       )}
@@ -537,7 +537,7 @@ export default function TeamPage() {
                       style={{
                         padding: '6px 12px', borderRadius: '8px',
                         backgroundColor: '#1A1A1A', border: '1px solid #333',
-                        color: '#E8344E', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                        color: '#00E5FF', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       }}
                     >
                       {ct.remove}

@@ -3,7 +3,7 @@
 
 const SKIN_COLORS = ['#FFDBB4', '#EDB98A', '#D08B5B', '#AE5D29', '#694D3D', '#F8D5C2']
 const HAIR_COLORS = ['#2C1B18', '#4A3728', '#8D5524', '#D6B370', '#B55239', '#E8E1E1', '#5C3A6E', '#2D6B9F']
-const BG_COLORS = ['#F0908A', '#A78BFA', '#34D399', '#FBBF24', '#60A5FA', '#F472B6', '#FB923C', '#818CF8']
+const BG_COLORS = ['#00E5FF', '#00E5FF', '#00E5FF', '#00E5FF', '#60A5FA', '#00E5FF', '#00E5FF', '#818CF8']
 const HAIR_STYLES = ['short', 'long', 'curly', 'spiky', 'bun', 'none'] as const
 const EYE_STYLES = ['round', 'happy', 'cool'] as const
 

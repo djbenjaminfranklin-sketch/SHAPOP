@@ -663,9 +663,9 @@ export default function AIListingPage() {
     }}>
       {analysisError && (
         <div style={{
-          backgroundColor: 'rgba(232,52,78,0.1)', border: '1px solid rgba(232,52,78,0.3)',
+          backgroundColor: 'rgba(0,229,255,0.1)', border: '1px solid rgba(0,229,255,0.3)',
           borderRadius: '12px', padding: '12px 16px', marginBottom: '20px',
-          color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 500, textAlign: 'center',
+          color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 500, textAlign: 'center',
           width: '100%', maxWidth: '340px',
         }}>
           {analysisError}
@@ -675,14 +675,14 @@ export default function AIListingPage() {
       <div style={{
         display: 'flex', alignItems: 'center', gap: '8px',
         padding: '8px 18px', borderRadius: '100px',
-        background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.1))',
-        border: '1px solid rgba(240,144,138,0.25)',
+        background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.1))',
+        border: '1px solid rgba(0, 229, 255,0.25)',
         marginBottom: '28px',
       }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A" stroke="#F0908A" strokeWidth="1"/>
+          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#00E5FF" stroke="#00E5FF" strokeWidth="1"/>
         </svg>
-        <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+        <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
           {t.iaExpress}
         </span>
       </div>
@@ -693,8 +693,8 @@ export default function AIListingPage() {
         style={{
           width: '100%', maxWidth: '340px', aspectRatio: '1',
           borderRadius: '24px',
-          border: '2px dashed rgba(240,144,138,0.4)',
-          background: 'linear-gradient(180deg, rgba(240,144,138,0.06) 0%, rgba(232,52,78,0.03) 100%)',
+          border: '2px dashed rgba(0, 229, 255,0.4)',
+          background: 'linear-gradient(180deg, rgba(0, 229, 255,0.06) 0%, rgba(0,229,255,0.03) 100%)',
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           cursor: 'pointer', gap: '16px',
@@ -717,9 +717,9 @@ export default function AIListingPage() {
             {/* Camera icon */}
             <div style={{
               width: '80px', height: '80px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+              background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 8px 32px rgba(240,144,138,0.25)',
+              boxShadow: '0 8px 32px rgba(0, 229, 255,0.25)',
             }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
@@ -730,7 +730,7 @@ export default function AIListingPage() {
               <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>
                 {t.takePhoto}
               </p>
-              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', lineHeight: '1.4' }}>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', lineHeight: '1.4' }}>
                 {t.importGallery}
               </p>
             </div>
@@ -739,29 +739,29 @@ export default function AIListingPage() {
             <div style={{
               position: 'absolute', top: '20px', left: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
-              borderTop: '2px solid rgba(240,144,138,0.5)',
-              borderLeft: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
+              borderTop: '2px solid rgba(0, 229, 255,0.5)',
+              borderLeft: '2px solid rgba(0, 229, 255,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '4px 0 0 0',
             }} />
             <div style={{
               position: 'absolute', top: '20px', right: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
-              borderTop: '2px solid rgba(240,144,138,0.5)',
-              borderRight: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
+              borderTop: '2px solid rgba(0, 229, 255,0.5)',
+              borderRight: '2px solid rgba(0, 229, 255,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '0 4px 0 0',
             }} />
             <div style={{
               position: 'absolute', bottom: '20px', left: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
-              borderBottom: '2px solid rgba(240,144,138,0.5)',
-              borderLeft: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
+              borderBottom: '2px solid rgba(0, 229, 255,0.5)',
+              borderLeft: '2px solid rgba(0, 229, 255,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '0 0 0 4px',
             }} />
             <div style={{
               position: 'absolute', bottom: '20px', right: '20px', // i18n-ignore (coin du cadre de visée, symétrique)
               width: '30px', height: '30px',
-              borderBottom: '2px solid rgba(240,144,138,0.5)',
-              borderRight: '2px solid rgba(240,144,138,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
+              borderBottom: '2px solid rgba(0, 229, 255,0.5)',
+              borderRight: '2px solid rgba(0, 229, 255,0.5)', // i18n-ignore (coin du cadre de visée, symétrique)
               borderRadius: '0 0 4px 0',
             }} />
           </>
@@ -815,16 +815,16 @@ export default function AIListingPage() {
           }}>
             <div style={{
               width: '28px', height: '28px', borderRadius: '50%', margin: '0 auto 8px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+              background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, color: '#fff',
+              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, color: '#001014',
             }}>
               {item.icon}
             </div>
             <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>
               {item.label}
             </p>
-            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666' }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
               {item.desc}
             </p>
           </div>
@@ -856,18 +856,18 @@ export default function AIListingPage() {
         {/* Scanning overlay */}
         <div style={{
           position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, transparent 0%, rgba(240,144,138,0.15) 50%, transparent 100%)',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(0, 229, 255,0.15) 50%, transparent 100%)',
           animation: 'scanMove 1.5s ease-in-out infinite',
         }} />
         {/* Corner markers */}
-        <div style={{ position: 'absolute', top: '10px', left: '10px', width: '24px', height: '24px', borderTop: '3px solid #F0908A', borderLeft: '3px solid #F0908A', borderRadius: '4px 0 0 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
-        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '24px', height: '24px', borderTop: '3px solid #F0908A', borderRight: '3px solid #F0908A', borderRadius: '0 4px 0 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
-        <div style={{ position: 'absolute', bottom: '10px', left: '10px', width: '24px', height: '24px', borderBottom: '3px solid #F0908A', borderLeft: '3px solid #F0908A', borderRadius: '0 0 0 4px' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
-        <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '24px', height: '24px', borderBottom: '3px solid #F0908A', borderRight: '3px solid #F0908A', borderRadius: '0 0 4px 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', top: '10px', left: '10px', width: '24px', height: '24px', borderTop: '3px solid #00E5FF', borderLeft: '3px solid #00E5FF', borderRadius: '4px 0 0 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '24px', height: '24px', borderTop: '3px solid #00E5FF', borderRight: '3px solid #00E5FF', borderRadius: '0 4px 0 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', bottom: '10px', left: '10px', width: '24px', height: '24px', borderBottom: '3px solid #00E5FF', borderLeft: '3px solid #00E5FF', borderRadius: '0 0 0 4px' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
+        <div style={{ position: 'absolute', bottom: '10px', right: '10px', width: '24px', height: '24px', borderBottom: '3px solid #00E5FF', borderRight: '3px solid #00E5FF', borderRadius: '0 0 4px 0' }} />{/* i18n-ignore (coin du cadre de visée, symétrique) */}
         {/* Pulsing border */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: '24px',
-          border: '2px solid rgba(240,144,138,0.5)',
+          border: '2px solid rgba(0, 229, 255,0.5)',
           animation: 'pulseBorder 1.5s ease-in-out infinite',
         }} />
       </div>
@@ -880,12 +880,12 @@ export default function AIListingPage() {
         {/* Sparkle icon with rotation */}
         <div style={{
           width: '48px', height: '48px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.2), rgba(232,52,78,0.1))',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.2), rgba(0,229,255,0.1))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           animation: 'sparkleRotate 2s linear infinite',
         }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A"/>
+            <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#00E5FF"/>
           </svg>
         </div>
 
@@ -904,15 +904,15 @@ export default function AIListingPage() {
         }}>
           <div style={{
             height: '100%', borderRadius: '3px',
-            background: 'linear-gradient(90deg, #F0908A, #E8344E)',
+            background: 'linear-gradient(90deg, #00E5FF, #0091EA)',
             width: `${analysisProgress}%`,
             transition: 'width 0.3s ease',
-            boxShadow: '0 0 12px rgba(240,144,138,0.4)',
+            boxShadow: '0 0 12px rgba(0, 229, 255,0.4)',
           }} />
         </div>
 
         {/* Progress text */}
-        <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666' }}>
+        <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>
           {analysisProgress}%
         </p>
 
@@ -921,7 +921,7 @@ export default function AIListingPage() {
           {[0, 1, 2].map(i => (
             <div key={`dot-${i}`} style={{
               width: '8px', height: '8px', borderRadius: '50%',
-              backgroundColor: '#F0908A',
+              backgroundColor: '#00E5FF',
               animation: `dotPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
             }} />
           ))}
@@ -943,8 +943,8 @@ export default function AIListingPage() {
         {/* AI confidence banner */}
         <div style={{
           padding: '16px', borderRadius: '16px', marginBottom: '20px',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
-          border: '1px solid rgba(240,144,138,0.2)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12), rgba(0,229,255,0.06))',
+          border: '1px solid rgba(0, 229, 255,0.2)',
           display: 'flex', alignItems: 'center', gap: '14px',
         }}>
           <div style={{
@@ -963,22 +963,22 @@ export default function AIListingPage() {
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A"/>
+                <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#00E5FF"/>
               </svg>
-              <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+              <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                 {t.aiAnalysisComplete}
               </span>
             </div>
-            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>
-              {t.confidence}: <span style={{ color: '#10B981', fontWeight: 700 }}>{aiResult.confidence}%</span>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>
+              {t.confidence}: <span style={{ color: '#00E5FF', fontWeight: 700 }}>{aiResult.confidence}%</span>
             </p>
           </div>
           <div style={{
             padding: '8px 14px', borderRadius: '12px',
-            backgroundColor: 'rgba(16,185,129,0.1)',
-            border: '1px solid rgba(16,185,129,0.2)',
+            backgroundColor: 'rgba(0,229,255,0.1)',
+            border: '1px solid rgba(0,229,255,0.2)',
           }}>
-            <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#10B981' }}>
+            <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>
               {aiResult.confidence}%
             </span>
           </div>
@@ -987,7 +987,7 @@ export default function AIListingPage() {
         {/* Price estimate card */}
         <div style={{
           padding: '16px', borderRadius: '16px', marginBottom: '20px',
-          background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+          background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
           position: 'relative', overflow: 'hidden',
         }}>
           <div style={{
@@ -995,20 +995,20 @@ export default function AIListingPage() {
             width: '80px', height: '80px', borderRadius: '50%',
             backgroundColor: 'rgba(255,255,255,0.1)',
           }} />
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: '4px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', marginBottom: '4px' }}>
             {t.estimatedPrice}
           </p>
           <p style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 900, color: '#fff', marginBottom: '2px' }}>
             {formatMoney(aiResult.priceLow, currency)} – {formatMoney(aiResult.priceHigh, currency)}
           </p>
-          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: 'rgba(255,255,255,0.6)' }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
             {t.priceBasedOn}
           </p>
         </div>
 
         {/* Tags */}
         <div style={{ marginBottom: '20px' }}>
-          <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '10px', display: 'block' }}>
+          <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '10px', display: 'block' }}>
             {t.aiTags}
           </label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -1016,22 +1016,22 @@ export default function AIListingPage() {
               <div key={tag} style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '7px 12px', borderRadius: '100px',
-                backgroundColor: 'rgba(240,144,138,0.1)',
-                border: '1px solid rgba(240,144,138,0.25)',
+                backgroundColor: 'rgba(0, 229, 255,0.1)',
+                border: '1px solid rgba(0, 229, 255,0.25)',
               }}>
-                <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#F0908A', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>
                   #{tag}
                 </span>
                 <button
                   onClick={() => removeTag(i)}
                   style={{
                     width: '16px', height: '16px', borderRadius: '50%',
-                    backgroundColor: 'rgba(240,144,138,0.2)',
+                    backgroundColor: 'rgba(0, 229, 255,0.2)',
                     border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', padding: 0,
                   }}
                 >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="3">
                     <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/>
                   </svg>
                 </button>
@@ -1044,7 +1044,7 @@ export default function AIListingPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Title */}
           <div>
-            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '8px', display: 'block' }}>
               {t.titleLabel}
             </label>
             <input
@@ -1062,7 +1062,7 @@ export default function AIListingPage() {
 
           {/* Category */}
           <div>
-            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '8px', display: 'block' }}>
               {t.categoryLabel}
             </label>
             <select
@@ -1089,7 +1089,7 @@ export default function AIListingPage() {
 
           {/* Condition */}
           <div>
-            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '8px', display: 'block' }}>
               {t.conditionLabel}
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -1100,9 +1100,9 @@ export default function AIListingPage() {
                   style={{
                     padding: '10px 18px', borderRadius: '12px',
                     cursor: 'pointer', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
-                    backgroundColor: editCondition === conditionsFr[idx] ? 'rgba(240,144,138,0.15)' : '#0D0D0D',
-                    border: editCondition === conditionsFr[idx] ? '1px solid rgba(240,144,138,0.4)' : '1px solid #1A1A1A',
-                    color: editCondition === conditionsFr[idx] ? '#F0908A' : '#666',
+                    backgroundColor: editCondition === conditionsFr[idx] ? 'rgba(0, 229, 255,0.15)' : '#0D0D0D',
+                    border: editCondition === conditionsFr[idx] ? '1px solid rgba(0, 229, 255,0.4)' : '1px solid #1A1A1A',
+                    color: editCondition === conditionsFr[idx] ? '#00E5FF' : '#f0f0f0',
                   }}
                 >
                   {cond}
@@ -1113,7 +1113,7 @@ export default function AIListingPage() {
 
           {/* Price */}
           <div>
-            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '8px', display: 'block' }}>
               {t.startingPrice}
             </label>
             <div style={{ position: 'relative' }}>
@@ -1131,7 +1131,7 @@ export default function AIListingPage() {
               />
               <span style={{
                 position: 'absolute', insetInlineEnd: '16px', top: '50%', transform: 'translateY(-50%)',
-                fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#555',
+                fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0',
               }}>
                 {currencySymbol(currency)}
               </span>
@@ -1140,11 +1140,11 @@ export default function AIListingPage() {
 
           {/* Description */}
           <div>
-            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               {t.descriptionLabel}
               <span style={{
-                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#F0908A',
-                backgroundColor: 'rgba(240,144,138,0.1)',
+                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600, color: '#00E5FF',
+                backgroundColor: 'rgba(0, 229, 255,0.1)',
                 padding: '2px 8px', borderRadius: '100px',
               }}>
                 {t.generatedByAI}
@@ -1171,11 +1171,11 @@ export default function AIListingPage() {
           disabled={saving}
           style={{
             width: '100%', padding: '16px', borderRadius: '16px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
             border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
             marginTop: '24px',
-            boxShadow: '0 8px 32px rgba(240,144,138,0.25)',
+            boxShadow: '0 8px 32px rgba(0, 229, 255,0.25)',
             opacity: saving ? 0.6 : 1,
           }}
         >
@@ -1220,7 +1220,7 @@ export default function AIListingPage() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#F0908A"/>
+              <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#00E5FF"/>
             </svg>
             <h1 style={{
               fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0,
@@ -1241,9 +1241,9 @@ export default function AIListingPage() {
             <div key={s} style={{
               flex: 1, height: '3px', borderRadius: '2px',
               backgroundColor:
-                step === 'success' || (step === 'results' && i <= 2) ? '#F0908A'
-                : step === 'analyzing' && i <= 1 ? '#F0908A'
-                : step === 'upload' && i === 0 ? '#F0908A'
+                step === 'success' || (step === 'results' && i <= 2) ? '#00E5FF'
+                : step === 'analyzing' && i <= 1 ? '#00E5FF'
+                : step === 'upload' && i === 0 ? '#00E5FF'
                 : '#1A1A1A',
               transition: 'background-color 0.4s ease',
             }} />
@@ -1323,7 +1323,7 @@ export default function AIListingPage() {
             paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888' }}>{barcodeStatus}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{barcodeStatus}</p>
             {/* Manual barcode input fallback */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '12px', maxWidth: '340px', margin: '12px auto 0' }}>
               <input

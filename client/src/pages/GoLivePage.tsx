@@ -657,8 +657,8 @@ export default function GoLivePage() {
           {/* Big emoji icon */}
           <div style={{
             width: '100px', height: '100px', borderRadius: '28px',
-            background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
-            border: '1px solid rgba(240,144,138,0.2)',
+            background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.08))',
+            border: '1px solid rgba(0, 229, 255,0.2)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 'calc(48px * var(--fs, 1))',
           }}>
@@ -675,7 +675,7 @@ export default function GoLivePage() {
 
           {/* Description */}
           <p style={{
-            fontSize: 'calc(15px * var(--fs, 1))', color: '#999', textAlign: 'center',
+            fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
             lineHeight: 1.7, maxWidth: '300px', margin: 0,
           }}>
             {tip.desc}
@@ -701,7 +701,7 @@ export default function GoLivePage() {
                   height: '8px',
                   borderRadius: '4px',
                   background: i === tipIndex
-                    ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                    ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                     : '#333',
                   transition: 'all 0.3s ease',
                   cursor: 'pointer',
@@ -712,7 +712,7 @@ export default function GoLivePage() {
 
           {/* Page indicator + button */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', fontWeight: 600 }}>
+            <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600 }}>
               {tipIndex + 1} {th.page} {langTips.length}
             </span>
             <button
@@ -726,13 +726,13 @@ export default function GoLivePage() {
               style={{
                 padding: '14px 32px',
                 background: isLast
-                  ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                  ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                   : '#1A1A1A',
                 border: isLast ? 'none' : '1px solid #333',
                 borderRadius: '14px',
-                color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
+                color: isLast ? '#fff' : '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
-                boxShadow: isLast ? '0 4px 16px rgba(232,52,78,0.3)' : 'none',
+                boxShadow: isLast ? '0 4px 16px rgba(0,229,255,0.3)' : 'none',
               }}
             >
               {isLast ? th.start : th.next}
@@ -770,17 +770,17 @@ export default function GoLivePage() {
         {!manageMode && <><div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
-            border: '1px solid rgba(240,144,138,0.2)',
+            background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.08))',
+            border: '1px solid rgba(0, 229, 255,0.2)',
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: '16px',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
               <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
               <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.6, maxWidth: '320px', margin: '0 auto' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6, maxWidth: '320px', margin: '0 auto' }}>
             {ct.subtitle}
           </p>
         </div>
@@ -794,7 +794,7 @@ export default function GoLivePage() {
             placeholder={ct.titlePlaceholder}
             style={inputStyle}
           />
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textAlign: 'end', marginTop: '6px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'end', marginTop: '6px' }}>
             {liveTitle.length}/100
           </p>
         </div>
@@ -802,7 +802,7 @@ export default function GoLivePage() {
         {/* Category */}
         <div style={{ marginBottom: '32px' }}>
           <p style={{
-            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#888',
+            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0',
             marginBottom: '12px', letterSpacing: '1px', textTransform: 'uppercase',
           }}>
             {ct.category}
@@ -820,13 +820,13 @@ export default function GoLivePage() {
                     padding: '10px 18px',
                     borderRadius: '100px',
                     background: isSelected
-                      ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                      ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                       : '#111',
                     border: isSelected ? 'none' : '1px solid #222',
-                    color: isSelected ? '#fff' : '#999',
+                    color: isSelected ? '#fff' : '#f0f0f0',
                     fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
                     cursor: 'pointer', whiteSpace: 'nowrap',
-                    boxShadow: isSelected ? '0 4px 16px rgba(240,144,138,0.3)' : 'none',
+                    boxShadow: isSelected ? '0 4px 16px rgba(0, 229, 255,0.3)' : 'none',
                   }}
                 >
                   {i18nT(lang, cat.id as TranslationKey)}
@@ -839,7 +839,7 @@ export default function GoLivePage() {
         {/* Thumbnail */}
         <div style={{ marginBottom: '32px' }}>
           <p style={{
-            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#888',
+            fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0',
             marginBottom: '12px', letterSpacing: '1px', textTransform: 'uppercase',
           }}>
             {ct.thumbnail}
@@ -882,7 +882,7 @@ export default function GoLivePage() {
                 borderRadius: '14px',
                 background: '#0A0A0A',
                 border: '2px dashed #222',
-                color: '#666', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
               }}
@@ -904,14 +904,14 @@ export default function GoLivePage() {
           style={{
             width: '100%', padding: '16px',
             background: canProceed
-              ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+              ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
               : '#1A1A1A',
             borderRadius: '14px', border: 'none',
-            color: canProceed ? '#fff' : '#555',
+            color: canProceed ? '#fff' : '#f0f0f0',
             fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
             cursor: canProceed ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            boxShadow: canProceed ? '0 8px 32px rgba(232,52,78,0.3)' : 'none',
+            boxShadow: canProceed ? '0 8px 32px rgba(0,229,255,0.3)' : 'none',
             marginBottom: '12px',
           }}
         >
@@ -940,11 +940,11 @@ export default function GoLivePage() {
         {error && (
           <div style={{
             padding: '14px 16px', marginBottom: '12px',
-            backgroundColor: 'rgba(232,52,78,0.1)',
-            border: '1px solid rgba(232,52,78,0.3)',
+            backgroundColor: 'rgba(0,229,255,0.1)',
+            border: '1px solid rgba(0,229,255,0.3)',
             borderRadius: '12px',
           }}>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#E8344E', margin: 0 }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#00E5FF', margin: 0 }}>
               {error}
             </p>
           </div>
@@ -956,7 +956,7 @@ export default function GoLivePage() {
             width: '100%', padding: '16px',
             background: 'transparent',
             borderRadius: '14px', border: '1px solid #222',
-            color: '#888', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
+            color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
             cursor: 'pointer',
           }}
         >
@@ -991,9 +991,9 @@ export default function GoLivePage() {
                     onClick={() => { setSelectionMode(!selectionMode); setSelectedIds(new Set()) }}
                     style={{
                       padding: '6px 12px', borderRadius: '8px',
-                      background: selectionMode ? 'rgba(232,52,78,0.1)' : 'transparent',
-                      border: selectionMode ? '1px solid rgba(232,52,78,0.3)' : '1px solid #333',
-                      color: selectionMode ? '#E8344E' : '#ccc',
+                      background: selectionMode ? 'rgba(0,229,255,0.1)' : 'transparent',
+                      border: selectionMode ? '1px solid rgba(0,229,255,0.3)' : '1px solid #333',
+                      color: selectionMode ? '#00E5FF' : '#ccc',
                       fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
@@ -1007,13 +1007,13 @@ export default function GoLivePage() {
               <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
                 <div style={{
                   width: '32px', height: '32px', border: '3px solid #333',
-                  borderTopColor: '#F0908A', borderRadius: '50%',
+                  borderTopColor: '#00E5FF', borderRadius: '50%',
                   animation: 'spin 0.8s linear infinite',
                 }} />
               </div>
             ) : myStreams.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{ct.noLives}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.noLives}</p>
               </div>
             ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1023,7 +1023,7 @@ export default function GoLivePage() {
                   : stream.status === 'scheduled' ? ct.scheduled
                   : ct.ended
                 const statusColor = stream.status === 'live' ? '#E8344E'
-                  : stream.status === 'scheduled' ? '#F0908A'
+                  : stream.status === 'scheduled' ? '#00E5FF'
                   : '#555'
                 const isSelected = selectedIds.has(stream.id)
 
@@ -1044,8 +1044,8 @@ export default function GoLivePage() {
                       {selectionMode && (
                         <div style={{
                           width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
-                          border: isSelected ? '2px solid #E8344E' : '2px solid #444',
-                          backgroundColor: isSelected ? '#E8344E' : 'transparent',
+                          border: isSelected ? '2px solid #00E5FF' : '2px solid #444',
+                          backgroundColor: isSelected ? '#00E5FF' : 'transparent',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           marginTop: '2px',
                         }}>
@@ -1073,14 +1073,14 @@ export default function GoLivePage() {
                                 display: 'inline-block',
                                 width: '6px', height: '6px',
                                 borderRadius: '50%',
-                                backgroundColor: '#E8344E',
+                                backgroundColor: '#00E5FF',
                                 marginInlineEnd: '4px',
                                 animation: 'liveDot 1.5s ease infinite',
                               }} />
                             )}
                             {statusLabel}
                           </span>
-                          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
+                          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                             {itemsLabel(stream.item_count || 0)}
                           </span>
                         </div>
@@ -1090,7 +1090,7 @@ export default function GoLivePage() {
                         }}>
                           {stream.title}
                         </p>
-                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '2px 0 0' }}>
+                        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
                           {stream.category ? i18nT(lang, stream.category as TranslationKey) || stream.category : ''} — {new Date(stream.created_at).toLocaleDateString(getLocale())}
                         </p>
                       </div>
@@ -1120,9 +1120,9 @@ export default function GoLivePage() {
                           style={{
                             padding: '8px 14px',
                             backgroundColor: 'rgba(232,52,78,0.1)',
-                            border: '1px solid rgba(232,52,78,0.3)',
+                            border: '1px solid rgba(0,229,255,0.3)',
                             borderRadius: '8px',
-                            color: '#E8344E',
+                            color: '#00E5FF',
                             fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                             cursor: 'pointer',
                             }}
@@ -1154,9 +1154,9 @@ export default function GoLivePage() {
             onClick={handleBulkDelete}
             style={{
               width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #E8344E, #c42040)',
+              background: 'linear-gradient(135deg, #0091EA, #c42040)',
               borderRadius: '14px', border: 'none',
-              color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
+              color: '#001014', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}

@@ -88,13 +88,13 @@ export default function CitySearchField({ onPick, near, autoFocus, background = 
       </div>
 
       {state === 'searching' && (
-        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.searching}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.searching}</p>
       )}
       {state === 'error' && (
         <p style={{ color: '#f97316', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.error}</p>
       )}
       {state === 'done' && results.length === 0 && (
-        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.none}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 4px 0' }}>{ct.none}</p>
       )}
       {results.length > 0 && (
         <div role="listbox" aria-label={ct.label} style={{ marginTop: '6px', display: 'flex', flexDirection: 'column' }}>
@@ -112,14 +112,14 @@ export default function CitySearchField({ onPick, near, autoFocus, background = 
                 opacity: picking ? 0.5 : 1, touchAction: 'manipulation',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" style={{ flexShrink: 0 }}>
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" />
                 <circle cx="12" cy="10" r="3" />
               </svg>
               <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                 <span dir="auto" style={{ color: '#eee', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{r.label}</span>
                 {r.region && (
-                  <span dir="auto" style={{ color: '#777', fontSize: 'calc(12px * var(--fs, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.region}</span>
+                  <span dir="auto" style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.region}</span>
                 )}
               </span>
             </button>

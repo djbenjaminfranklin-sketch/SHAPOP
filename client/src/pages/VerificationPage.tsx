@@ -231,7 +231,7 @@ export default function VerificationPage() {
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -239,7 +239,7 @@ export default function VerificationPage() {
 
   const statusConfig: Record<VerifStatus, { color: string; bg: string; label: string; icon: string }> = {
     unverified: {
-      color: '#888', bg: '#222',
+      color: '#f0f0f0', bg: '#222',
       label: c.unverified,
       icon: '?',
     },
@@ -249,7 +249,7 @@ export default function VerificationPage() {
       icon: '...',
     },
     verified: {
-      color: '#22C55E', bg: 'rgba(34,197,94,0.1)',
+      color: '#00E5FF', bg: 'rgba(0,229,255,0.1)',
       label: c.verified,
       icon: '!',
     },
@@ -312,7 +312,7 @@ export default function VerificationPage() {
           </div>
           <div>
             <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: sc.color, margin: 0 }}>{sc.label}</p>
-            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0', lineHeight: 1.4 }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', lineHeight: 1.4 }}>
               {status === 'verified'
                 ? c.confirmed
                 : c.intro}
@@ -328,11 +328,11 @@ export default function VerificationPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
             <div style={{
               width: '32px', height: '32px', borderRadius: '50%',
-              background: selfieUrl ? 'rgba(34,197,94,0.2)' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+              background: selfieUrl ? 'rgba(0,229,255,0.2)' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               {selfieUrl ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
               ) : (
@@ -343,7 +343,7 @@ export default function VerificationPage() {
               <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {c.selfie}
               </p>
-              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
                 {c.selfieHint}
               </p>
             </div>
@@ -357,7 +357,7 @@ export default function VerificationPage() {
                 disabled={status === 'pending' || status === 'verified'}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', border: '1px solid #333',
-                  backgroundColor: 'transparent', color: '#888', fontSize: 'calc(13px * var(--fs, 1))',
+                  backgroundColor: 'transparent', color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 600, cursor: status === 'pending' || status === 'verified' ? 'default' : 'pointer',
                   opacity: status === 'pending' || status === 'verified' ? 0.4 : 1,
                 }}
@@ -372,13 +372,13 @@ export default function VerificationPage() {
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px',
                 border: '2px dashed #333', backgroundColor: 'transparent',
-                color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: '8px',
                 opacity: uploadingSelfie ? 0.5 : 1,
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
@@ -398,11 +398,11 @@ export default function VerificationPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
             <div style={{
               width: '32px', height: '32px', borderRadius: '50%',
-              background: idDocUrl ? 'rgba(34,197,94,0.2)' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+              background: idDocUrl ? 'rgba(0,229,255,0.2)' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               {idDocUrl ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
               ) : (
@@ -413,7 +413,7 @@ export default function VerificationPage() {
               <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
                 {c.idDoc}
               </p>
-              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
                 {c.idHint}
               </p>
             </div>
@@ -427,7 +427,7 @@ export default function VerificationPage() {
                 disabled={status === 'pending' || status === 'verified'}
                 style={{
                   padding: '8px 16px', borderRadius: '10px', border: '1px solid #333',
-                  backgroundColor: 'transparent', color: '#888', fontSize: 'calc(13px * var(--fs, 1))',
+                  backgroundColor: 'transparent', color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 600, cursor: status === 'pending' || status === 'verified' ? 'default' : 'pointer',
                   opacity: status === 'pending' || status === 'verified' ? 0.4 : 1,
                 }}
@@ -442,13 +442,13 @@ export default function VerificationPage() {
               style={{
                 width: '100%', padding: '14px', borderRadius: '12px',
                 border: '2px dashed #333', backgroundColor: 'transparent',
-                color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: '8px',
                 opacity: uploadingId ? 0.5 : 1,
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="2" y="3" width="20" height="18" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/>
                 <line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/>
               </svg>
@@ -468,9 +468,9 @@ export default function VerificationPage() {
             style={{
               width: '100%', padding: '16px', borderRadius: '14px',
               background: selfieUrl && idDocUrl
-                ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                 : '#333',
-              border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+              border: 'none', color: selfieUrl && idDocUrl ? '#fff' : '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
               cursor: selfieUrl && idDocUrl && !submitting ? 'pointer' : 'default',
               opacity: submitting ? 0.5 : 1,
             }}
@@ -482,7 +482,7 @@ export default function VerificationPage() {
         )}
 
         {/* Info text */}
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center', marginTop: '16px', lineHeight: 1.5 }}>
           {c.privacy}
         </p>
       </div>

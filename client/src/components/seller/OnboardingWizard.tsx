@@ -27,17 +27,17 @@ const TOTAL_STEPS = 11
 
 /* ─── Step hero illustrations (emoji in gradient circles) ─── */
 const stepHeroes: { emoji: string; gradient: string }[] = [
-  { emoji: '\u{1F4DC}', gradient: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #B91C3C 100%)' },  // 0 rules
-  { emoji: '\u{1F6CD}\u{FE0F}', gradient: 'linear-gradient(135deg, #F0908A 0%, #F59E0B 60%, #D97706 100%)' },  // 1 category
-  { emoji: '\u{1F3AF}', gradient: 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 60%, #4C1D95 100%)' },  // 2 sub
+  { emoji: '\u{1F4DC}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #B91C3C 100%)' },  // 0 rules
+  { emoji: '\u{1F6CD}\u{FE0F}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #00E5FF 100%)' },  // 1 category
+  { emoji: '\u{1F3AF}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #6D28D9 60%, #4C1D95 100%)' },  // 2 sub
   { emoji: '\u{1F464}', gradient: 'linear-gradient(135deg, #3B82F6 0%, #2563EB 60%, #1D4ED8 100%)' },  // 3 type
-  { emoji: '\u{1F30D}', gradient: 'linear-gradient(135deg, #10B981 0%, #059669 60%, #047857 100%)' },  // 4 where
-  { emoji: '\u{1F4F1}', gradient: 'linear-gradient(135deg, #EC4899 0%, #DB2777 60%, #BE185D 100%)' },  // 5 platforms
-  { emoji: '\u{1F4B0}', gradient: 'linear-gradient(135deg, #F59E0B 0%, #D97706 60%, #B45309 100%)' },  // 6 revenue
+  { emoji: '\u{1F30D}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #047857 100%)' },  // 4 where
+  { emoji: '\u{1F4F1}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #BE185D 100%)' },  // 5 platforms
+  { emoji: '\u{1F4B0}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #00E5FF 60%, #B45309 100%)' },  // 6 revenue
   { emoji: '\u{1F465}', gradient: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 60%, #4338CA 100%)' },  // 7 team
   { emoji: '\u{1F3A5}', gradient: 'linear-gradient(135deg, #EF4444 0%, #DC2626 60%, #B91C1C 100%)' },  // 8 hours
-  { emoji: '\u{1F504}', gradient: 'linear-gradient(135deg, #10B981 0%, #0D9488 60%, #0F766E 100%)' },  // 9 return policy
-  { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #9F1239 100%)' },  // 10 bank
+  { emoji: '\u{1F504}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0D9488 60%, #0F766E 100%)' },  // 9 return policy
+  { emoji: '\u{1F3E6}', gradient: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #9F1239 100%)' },  // 10 bank
 ]
 
 export default function OnboardingWizard({ onComplete, onClose }: Props) {
@@ -441,11 +441,11 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const progress = ((step + 1) / TOTAL_STEPS) * 100
 
   const rules = [
-    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="10"/></svg>, text: t.rule1 },
-    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>, text: t.rule2 },
-    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M18.36 6.64A9 9 0 015.64 18.36M5.64 5.64A9 9 0 0118.36 18.36" strokeLinecap="round"/><line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round"/></svg>, text: t.rule3 },
-    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: t.rule4 },
-    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: t.rule5 },
+    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2"><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="12" r="10"/></svg>, text: t.rule1 },
+    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>, text: t.rule2 },
+    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2"><path d="M18.36 6.64A9 9 0 015.64 18.36M5.64 5.64A9 9 0 0118.36 18.36" strokeLinecap="round"/><line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round"/></svg>, text: t.rule3 },
+    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: t.rule4 },
+    { icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" strokeLinecap="round" strokeLinejoin="round"/></svg>, text: t.rule5 },
   ]
 
   const toggleMultiSelect = (arr: string[], setArr: (v: string[]) => void, val: string) => {
@@ -462,7 +462,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     fontSize: 'calc(40px * var(--fs, 1))',
-    boxShadow: '0 8px 32px rgba(240,144,138,0.25), 0 0 0 6px rgba(240,144,138,0.08)',
+    boxShadow: '0 8px 32px rgba(0, 229, 255,0.25), 0 0 0 6px rgba(0, 229, 255,0.08)',
     margin: '0 auto 24px',
   })
 
@@ -478,7 +478,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
   const sectionDesc = {
     fontSize: 'calc(15px * var(--fs, 1))',
-    color: '#888',
+    color: '#f0f0f0',
     marginBottom: '28px',
     textAlign: 'center' as const,
     lineHeight: 1.5,
@@ -486,13 +486,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
   const glassCard = (selected: boolean) => ({
     background: selected
-      ? 'linear-gradient(135deg, rgba(240,144,138,0.12) 0%, rgba(232,52,78,0.08) 100%)'
+      ? 'linear-gradient(135deg, rgba(0, 229, 255,0.12) 0%, rgba(0,229,255,0.08) 100%)'
       : 'linear-gradient(135deg, #141414 0%, #0C0C0C 100%)',
-    border: selected ? '1.5px solid rgba(240,144,138,0.6)' : '1px solid #1E1E1E',
+    border: selected ? '1.5px solid rgba(0, 229, 255,0.6)' : '1px solid #1E1E1E',
     borderRadius: '16px',
     cursor: 'pointer',
     boxShadow: selected
-      ? '0 4px 20px rgba(240,144,138,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
+      ? '0 4px 20px rgba(0, 229, 255,0.15), inset 0 1px 0 rgba(255,255,255,0.05)'
       : '0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03)',
   })
 
@@ -501,12 +501,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     height: '22px',
     borderRadius: '50%',
     border: selected ? 'none' : '2px solid #444',
-    background: selected ? 'linear-gradient(135deg, #F0908A, #E8344E)' : 'transparent',
+    background: selected ? 'linear-gradient(135deg, #00E5FF, #0091EA)' : 'transparent',
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     flexShrink: 0 as const,
-    boxShadow: selected ? '0 2px 8px rgba(240,144,138,0.4)' : 'none',
+    boxShadow: selected ? '0 2px 8px rgba(0, 229, 255,0.4)' : 'none',
   })
 
   const checkboxSquare = (selected: boolean) => ({
@@ -514,12 +514,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
     height: '24px',
     borderRadius: '8px',
     border: selected ? 'none' : '2px solid #444',
-    background: selected ? 'linear-gradient(135deg, #F0908A, #E8344E)' : 'transparent',
+    background: selected ? 'linear-gradient(135deg, #00E5FF, #0091EA)' : 'transparent',
     display: 'flex' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     flexShrink: 0 as const,
-    boxShadow: selected ? '0 2px 8px rgba(240,144,138,0.4)' : 'none',
+    boxShadow: selected ? '0 2px 8px rgba(0, 229, 255,0.4)' : 'none',
   })
 
   const checkIcon = (
@@ -563,8 +563,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 }}>
                   <div style={{
                     width: '44px', height: '44px', borderRadius: '14px',
-                    background: 'linear-gradient(135deg, rgba(240,144,138,0.12) 0%, rgba(232,52,78,0.06) 100%)',
-                    border: '1px solid rgba(240,144,138,0.15)',
+                    background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12) 0%, rgba(0,229,255,0.06) 100%)',
+                    border: '1px solid rgba(0, 229, 255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
                     {rule.icon}
@@ -581,12 +581,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 display: 'flex', alignItems: 'center', gap: '14px', marginTop: '24px',
                 padding: '18px 20px', borderRadius: '16px', width: '100%',
                 background: rulesAccepted
-                  ? 'linear-gradient(135deg, rgba(240,144,138,0.12) 0%, rgba(232,52,78,0.06) 100%)'
+                  ? 'linear-gradient(135deg, rgba(0, 229, 255,0.12) 0%, rgba(0,229,255,0.06) 100%)'
                   : 'linear-gradient(135deg, #141414, #0C0C0C)',
-                border: rulesAccepted ? '1.5px solid rgba(240,144,138,0.5)' : '1px solid #1E1E1E',
+                border: rulesAccepted ? '1.5px solid rgba(0, 229, 255,0.5)' : '1px solid #1E1E1E',
                 cursor: 'pointer',
                 boxShadow: rulesAccepted
-                  ? '0 4px 20px rgba(240,144,138,0.15)'
+                  ? '0 4px 20px rgba(0, 229, 255,0.15)'
                   : '0 2px 8px rgba(0,0,0,0.3)',
               }}
             >
@@ -608,7 +608,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
                 <div style={{
                   width: '36px', height: '36px', borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+                  background: 'linear-gradient(135deg, #00E5FF, #00E5FF)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 'calc(18px * var(--fs, 1))', flexShrink: 0,
                 }}>
@@ -622,7 +622,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   padding: '10px 0',
                   borderBottom: i < 3 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 }}>
-                  <span style={{ color: '#F59E0B', fontSize: 'calc(14px * var(--fs, 1))', flexShrink: 0, marginTop: '1px' }}>
+                  <span style={{ color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', flexShrink: 0, marginTop: '1px' }}>
                     {i < 2 ? '\u{2022}' : i === 2 ? '\u{1F4CA}' : '\u{1F4C5}'}
                   </span>
                   <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#D4D4D4', lineHeight: 1.5 }}>{fee}</span>
@@ -681,12 +681,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
                       padding: '14px 6px 12px', borderRadius: '18px',
                       background: selected
-                        ? 'linear-gradient(135deg, rgba(240,144,138,0.15) 0%, rgba(232,52,78,0.08) 100%)'
+                        ? 'linear-gradient(135deg, rgba(0, 229, 255,0.15) 0%, rgba(0,229,255,0.08) 100%)'
                         : 'linear-gradient(160deg, #161616 0%, #0E0E0E 100%)',
-                      border: selected ? '2px solid #F0908A' : '1px solid #1C1C1C',
+                      border: selected ? '2px solid #00E5FF' : '1px solid #1C1C1C',
                       cursor: 'pointer',
                       boxShadow: selected
-                        ? '0 4px 20px rgba(240,144,138,0.2)'
+                        ? '0 4px 20px rgba(0, 229, 255,0.2)'
                         : '0 2px 8px rgba(0,0,0,0.3)',
                       position: 'relative',
                       overflow: 'hidden',
@@ -696,16 +696,16 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && (
                       <div style={{
                         position: 'absolute', top: 0, left: 0, right: 0, height: '1px',
-                        background: 'linear-gradient(90deg, transparent, rgba(240,144,138,0.4), transparent)',
+                        background: 'linear-gradient(90deg, transparent, rgba(0, 229, 255,0.4), transparent)',
                       }} />
                     )}
                     {cat.image ? (
                       <div style={{
                         width: '56px', height: '56px', borderRadius: '14px', overflow: 'hidden',
                         boxShadow: selected
-                          ? '0 4px 12px rgba(240,144,138,0.3)'
+                          ? '0 4px 12px rgba(0, 229, 255,0.3)'
                           : '0 2px 6px rgba(0,0,0,0.4)',
-                        border: selected ? '2px solid rgba(240,144,138,0.3)' : '1px solid #222',
+                        border: selected ? '2px solid rgba(0, 229, 255,0.3)' : '1px solid #222',
                       }}>
                         <img
                           src={cat.image}
@@ -717,17 +717,17 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     ) : (
                       <div style={{
                         width: '56px', height: '56px', borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+                        background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff',
-                        boxShadow: '0 4px 12px rgba(232,52,78,0.3)',
+                        fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#001014',
+                        boxShadow: '0 4px 12px rgba(0,229,255,0.3)',
                       }}>
                         {cat.label.charAt(0)}
                       </div>
                     )}
                     <span style={{
                       fontSize: 'calc(11px * var(--fs, 1))', fontWeight: selected ? 700 : 600,
-                      color: selected ? '#F0908A' : '#AAA',
+                      color: selected ? '#00E5FF' : '#f0f0f0',
                       textAlign: 'center', lineHeight: 1.2,
                     }}>
                       {i18nT(lang, cat.id as TranslationKey)}
@@ -757,13 +757,13 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     style={{
                       padding: '10px 18px', borderRadius: '24px',
                       background: selected
-                        ? 'linear-gradient(135deg, rgba(240,144,138,0.18) 0%, rgba(232,52,78,0.08) 100%)'
+                        ? 'linear-gradient(135deg, rgba(0, 229, 255,0.18) 0%, rgba(0,229,255,0.08) 100%)'
                         : 'linear-gradient(135deg, #151515 0%, #0E0E0E 100%)',
-                      border: selected ? '1.5px solid rgba(240,144,138,0.6)' : '1px solid #222',
-                      color: selected ? '#F0908A' : '#BBB',
+                      border: selected ? '1.5px solid rgba(0, 229, 255,0.6)' : '1px solid #222',
+                      color: selected ? '#00E5FF' : '#f0f0f0',
                       fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                       boxShadow: selected
-                        ? '0 2px 12px rgba(240,144,138,0.2)'
+                        ? '0 2px 12px rgba(0, 229, 255,0.2)'
                         : '0 1px 4px rgba(0,0,0,0.3)',
                     }}
                   >
@@ -787,7 +787,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
             </p>
             {[
               { id: 'individual', title: t.individual, desc: t.individualDesc, emoji: '\u{1F9D1}\u{200D}\u{1F4BB}', gradient: 'linear-gradient(135deg, #3B82F6, #1D4ED8)' },
-              { id: 'business', title: t.business, desc: t.businessDesc, emoji: '\u{1F3E2}', gradient: 'linear-gradient(135deg, #8B5CF6, #6D28D9)' },
+              { id: 'business', title: t.business, desc: t.businessDesc, emoji: '\u{1F3E2}', gradient: 'linear-gradient(135deg, #00E5FF, #6D28D9)' },
             ].map(opt => {
               const selected = sellerType === opt.id
               return (
@@ -812,7 +812,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{opt.title}</p>
-                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#777', lineHeight: 1.4 }}>{opt.desc}</p>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.4 }}>{opt.desc}</p>
                   </div>
                   <div style={radioCircle(selected)}>
                     {selected && innerDot}
@@ -847,7 +847,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && checkIcon}
                   </div>
                   <span style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -878,7 +878,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                       {selected && checkIcon}
                     </div>
                     <span style={{
-                      fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                      fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 600,
                     }}>{plat.localized ? tr(plat.localized) : plat.label}</span>
                   </button>
                   {plat.hasUrl && selected && (
@@ -894,7 +894,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                         color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box',
                         transition: 'border-color 0.2s ease',
                       }}
-                      onFocus={e => { e.target.style.borderColor = 'rgba(240,144,138,0.5)' }}
+                      onFocus={e => { e.target.style.borderColor = 'rgba(0, 229, 255,0.5)' }}
                       onBlur={e => { e.target.style.borderColor = '#2A2A2A' }}
                     />
                   )}
@@ -928,7 +928,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -960,7 +960,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -992,7 +992,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 600,
                   }}>{label}</span>
                 </button>
               )
@@ -1029,7 +1029,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     {selected && innerDot}
                   </div>
                   <span style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 600,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 600,
                   }}>{opt.label}</span>
                 </button>
               )
@@ -1081,7 +1081,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                     )}
                   </div>
                   <span style={{
-                    fontSize: 'calc(16px * var(--fs, 1))', color: selected ? '#fff' : '#BBB', fontWeight: 700,
+                    fontSize: 'calc(16px * var(--fs, 1))', color: selected ? '#fff' : '#f0f0f0', fontWeight: 700,
                     flex: 1,
                   }}>{label}</span>
                   <div style={radioCircle(selected)}>
@@ -1133,7 +1133,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
 
           {/* Step counter */}
           <span style={{
-            fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#555',
+            fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0',
             letterSpacing: '1px',
           }}>
             {step + 1} / {TOTAL_STEPS}
@@ -1158,10 +1158,10 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         }}>
           <div style={{
             height: '100%', borderRadius: '3px',
-            background: 'linear-gradient(90deg, #E8344E, #F0908A, #FFD700)',
+            background: 'linear-gradient(90deg, #0091EA, #00E5FF, #FFD700)',
             width: `${progress}%`,
             transition: 'width 0.4s cubic-bezier(0.4,0,0.2,1)',
-            boxShadow: '0 0 12px rgba(240,144,138,0.5), 0 0 4px rgba(240,144,138,0.3)',
+            boxShadow: '0 0 12px rgba(0, 229, 255,0.5), 0 0 4px rgba(0, 229, 255,0.3)',
           }} />
         </div>
       </div>
@@ -1198,15 +1198,15 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
           style={{
             width: '100%', padding: '18px',
             background: able
-              ? 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #B91C3C 100%)'
+              ? 'linear-gradient(135deg, #00E5FF 0%, #0091EA 50%, #B91C3C 100%)'
               : 'linear-gradient(135deg, #2A2A2A, #1A1A1A)',
             borderRadius: '16px', border: 'none',
-            color: able ? '#fff' : '#555',
+            color: able ? '#fff' : '#f0f0f0',
             fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
             cursor: able ? 'pointer' : 'not-allowed',
             opacity: saving ? 0.7 : 1,
             boxShadow: able
-              ? '0 6px 24px rgba(240,144,138,0.35), 0 2px 8px rgba(232,52,78,0.3)'
+              ? '0 6px 24px rgba(0, 229, 255,0.35), 0 2px 8px rgba(0,229,255,0.3)'
               : '0 2px 8px rgba(0,0,0,0.3)',
             letterSpacing: '0.3px',
             position: 'relative',

@@ -8,7 +8,7 @@ const input: React.CSSProperties = {
   backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', boxSizing: 'border-box', outline: 'none',
 }
 const label: React.CSSProperties = { fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#ccc' }
-const hint: React.CSSProperties = { fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }
+const hint: React.CSSProperties = { fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }
 
 /**
  * Réglages vendeur « Remise des commandes » : retrait en main propre (+ lieu indicatif),
@@ -72,7 +72,7 @@ export default function FulfillmentSettings() {
       </div>
 
       <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-        <input type="checkbox" checked={allowPickup} onChange={e => setAllowPickup(e.target.checked)} style={{ width: '20px', height: '20px', accentColor: '#F0908A' }} />
+        <input type="checkbox" checked={allowPickup} onChange={e => setAllowPickup(e.target.checked)} style={{ width: '20px', height: '20px', accentColor: '#00E5FF' }} />
         <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', fontWeight: 600 }}>{t.allow_pickup}</span>
       </label>
       {allowPickup && (
@@ -86,7 +86,7 @@ export default function FulfillmentSettings() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <p style={hint}>{t.post_price_suggested} {formatMoney(settings.suggested_post_price, settings.currency, lang)}</p>
           <button type="button" onClick={() => setPostPrice(String(settings.suggested_post_price))}
-            style={{ padding: '4px 10px', borderRadius: '8px', border: '1px solid #333', backgroundColor: 'transparent', color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer' }}>
+            style={{ padding: '4px 10px', borderRadius: '8px', border: '1px solid #333', backgroundColor: 'transparent', color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer' }}>
             {t.use_suggested}
           </button>
         </div>
@@ -99,8 +99,8 @@ export default function FulfillmentSettings() {
             <button key={d} type="button" onClick={() => setDelay(d)} aria-pressed={delay === d}
               style={{
                 minWidth: '44px', padding: '8px 10px', borderRadius: '10px', cursor: 'pointer', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))',
-                background: delay === d ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#0D0D0D',
-                border: delay === d ? 'none' : '1px solid #222', color: delay === d ? '#fff' : '#888',
+                background: delay === d ? 'linear-gradient(135deg, #00E5FF, #0091EA)' : '#0D0D0D',
+                border: delay === d ? 'none' : '1px solid #222', color: delay === d ? '#fff' : '#f0f0f0',
               }}>
               {(() => { try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'day', unitDisplay: 'long' }).format(d) } catch { return `${d} ${t.days}` } })()}
             </button>
@@ -112,7 +112,7 @@ export default function FulfillmentSettings() {
       {message && <div role="status" style={{ fontSize: 'calc(13px * var(--fs, 1))', color: message.ok ? '#22C55E' : '#F87171' }}>{message.text}</div>}
       <button type="button" onClick={save} disabled={saving}
         style={{ width: '100%', padding: '13px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: 'calc(15px * var(--fs, 1))', cursor: 'pointer',
-          background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', opacity: saving ? 0.6 : 1 }}>
+          background: 'linear-gradient(135deg, #00E5FF, #0091EA)', color: '#001014', opacity: saving ? 0.6 : 1 }}>
         {saving ? t.saving : t.save}
       </button>
     </div>

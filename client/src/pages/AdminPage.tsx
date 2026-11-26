@@ -1499,16 +1499,16 @@ export default function AdminPage() {
   // ======== RENDER ========
 
   const renderOverview = () => {
-    if (!stats) return <p style={{ color: '#666', textAlign: 'center', padding: '40px' }}>{ct.loading}</p>
+    if (!stats) return <p style={{ color: '#f0f0f0', textAlign: 'center', padding: '40px' }}>{ct.loading}</p>
     const statCards: { label: string; value: string; color: string }[] = [
       { label: ct.statUsers, value: sv(stats.users), color: '#3B82F6' },
       { label: ct.statSellers, value: sv(stats.sellers), color: '#10B981' },
       { label: ct.statOrders, value: sv(stats.orders), color: '#F59E0B' },
-      { label: ct.statOrders30d, value: sv(stats.orders_30d), color: '#8B5CF6' },
-      { label: ct.statLivesNow, value: sv(stats.lives_now), color: '#E8344E' },
+      { label: ct.statOrders30d, value: sv(stats.orders_30d), color: '#00E5FF' },
+      { label: ct.statLivesNow, value: sv(stats.lives_now), color: '#00E5FF' },
       { label: ct.statDisputes, value: sv(stats.disputes), color: '#EF4444' },
       { label: ct.statRevenue, value: fmtMoney(stats.total_revenue), color: '#10B981' },
-      { label: ct.statFees, value: fmtMoney(stats.total_fees), color: '#F0908A' },
+      { label: ct.statFees, value: fmtMoney(stats.total_fees), color: '#00E5FF' },
       { label: ct.statSuspended, value: sv(stats.suspended_users), color: '#F59E0B' },
       { label: ct.statBanned, value: sv(stats.banned_users), color: '#EF4444' },
       { label: ct.statOpenDisputes, value: sv(disputes.filter(d => sv(d.status) === 'open' || sv(d.status) === 'disputed' || sv(d.status) === 'under_review').length || stats.disputes), color: '#F97316' },
@@ -1518,7 +1518,7 @@ export default function AdminPage() {
         {statCards.map(s => (
           <div key={s.label} style={{ ...card, textAlign: 'center' }}>
             <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 900, color: s.color, margin: '0 0 4px' }}>{s.value}</p>
-            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>{s.label}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{s.label}</p>
           </div>
         ))}
       </div>
@@ -1548,7 +1548,7 @@ export default function AdminPage() {
         </select>
         <button onClick={() => fetchUsers(1)} style={btn('#3B82F6')}>{ct.search}</button>
       </div>
-      <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(usersTotal) + ' ' + ct.users}</p>
+      <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(usersTotal) + ' ' + ct.users}</p>
 
       {/* User list */}
       {Array.isArray(users) ? users.map((u, i) => (
@@ -1563,27 +1563,27 @@ export default function AdminPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ color: '#fff', fontWeight: 600, fontSize: 'calc(14px * var(--fs, 1))', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {sv(u.display_name) + ' '}<span style={{ color: '#555', fontWeight: 400 }}>{'@' + sv(u.username)}</span>
+              {sv(u.display_name) + ' '}<span style={{ color: '#f0f0f0', fontWeight: 400 }}>{'@' + sv(u.username)}</span>
             </p>
-            <p style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0' }}>
+            <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0' }}>
               {sv(u.country) + ' | ' + fmtDate(u.created_at) + ' | ' + fmtId(u.id)}
             </p>
           </div>
           <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', flexShrink: 0, alignItems: 'center' }}>
-            {sb(u.is_seller) ? <span style={badge('#10B981')}>{ct.badgeSeller}</span> : null}
-            {sb(u.is_suspended) ? <span style={badge('#F59E0B')}>{ct.badgeSuspended}</span> : null}
+            {sb(u.is_seller) ? <span style={badge('#00E5FF')}>{ct.badgeSeller}</span> : null}
+            {sb(u.is_suspended) ? <span style={badge('#00E5FF')}>{ct.badgeSuspended}</span> : null}
             {sb(u.is_banned) ? <span style={badge('#EF4444')}>{ct.badgeBanned}</span> : null}
             {(() => {
               const bs = buyerScores[String(u.id || '')]
               if (!bs) return null
               const score = Number(bs.buyer_score) || 0
               const risk = sv(bs.risk_level)
-              const riskColors: Record<string, string> = { low: '#10B981', medium: '#F59E0B', high: '#F97316', blocked: '#EF4444' }
+              const riskColors: Record<string, string> = { low: '#00E5FF', medium: '#00E5FF', high: '#00E5FF', blocked: '#EF4444' }
               const riskLabels: Record<string, string> = { low: ct.riskLow, medium: ct.riskMedium, high: ct.riskHigh, blocked: ct.riskBlocked }
               return (
                 <>
                   <span style={{ ...badge(riskColors[risk] || '#666'), fontSize: 'calc(10px * var(--fs, 1))' }}>{riskLabels[risk] || risk}</span>
-                  <span style={{ color: '#888', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600 }}>{ct.scoreLabel + sv(score)}</span>
+                  <span style={{ color: '#f0f0f0', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600 }}>{ct.scoreLabel + sv(score)}</span>
                 </>
               )
             })()}
@@ -1595,7 +1595,7 @@ export default function AdminPage() {
       {usersTotal > 30 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
           <button disabled={usersPage <= 1} onClick={() => fetchUsers(usersPage - 1)} style={btn('#333')}>{ct.prev}</button>
-          <span style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', padding: '6px' }}>{ct.page + ' ' + sv(usersPage) + ' / ' + sv(Math.ceil(usersTotal / 30))}</span>
+          <span style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', padding: '6px' }}>{ct.page + ' ' + sv(usersPage) + ' / ' + sv(Math.ceil(usersTotal / 30))}</span>
           <button disabled={usersPage * 30 >= usersTotal} onClick={() => fetchUsers(usersPage + 1)} style={btn('#333')}>{ct.next}</button>
         </div>
       ) : null}
@@ -1604,7 +1604,7 @@ export default function AdminPage() {
 
   const renderSellers = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(sellersTotal) + ' ' + ct.sellers}</p>
+      <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(sellersTotal) + ' ' + ct.sellers}</p>
       {Array.isArray(sellers) ? sellers.map((s, i) => {
         try {
           const rawProfiles = s.profiles
@@ -1617,13 +1617,13 @@ export default function AdminPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: 'calc(15px * var(--fs, 1))', margin: 0 }}>{sv(s.store_name)}</p>
-                  <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', margin: '2px 0 0' }}>
+                  <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '2px 0 0' }}>
                     {(p ? ('@' + sv(p.username) + ' | ' + sv(p.country)) : '') + ' | ' + fmtId(id) + ' | ' + ct.registered + fmtDate(p ? p.created_at : null)}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
                   {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{ct.blocked}</span> : null}
-                  {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{sv(s.reserve_percent) + '% ' + ct.reserveLabel}</span> : null}
+                  {Number(s.reserve_percent) > 0 ? <span style={badge('#00E5FF')}>{sv(s.reserve_percent) + '% ' + ct.reserveLabel}</span> : null}
                   {sb(s.documents_requested) ? <span style={badge('#3B82F6')}>{ct.docRequested}</span> : null}
                   {(p && sb(p.is_suspended)) ? <span style={badge('#F59E0B')}>{ct.badgeSuspended}</span> : null}
                   {sv(s.kyc_status) === 'verified' ? <span style={badge('#10B981')}>{ct.kycVerified}</span> : <span style={badge('#F59E0B')}>{ct.kycMissing}</span>}
@@ -1635,13 +1635,13 @@ export default function AdminPage() {
                 const trust = sellerTrusts[id]
                 if (!trust) return null
                 const trustLevel = sv(trust.trust_level)
-                const trustColors: Record<string, string> = { new: '#888', standard: '#3B82F6', trusted: '#10B981', premium: '#EAB308' }
+                const trustColors: Record<string, string> = { new: '#888', standard: '#3B82F6', trusted: '#00E5FF', premium: '#00E5FF' }
                 const trustLabels: Record<string, string> = { new: ct.trustNew, standard: ct.trustStandard, trusted: ct.trustTrusted, premium: ct.trustPremium }
                 return (
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '8px' }}>
                     <span style={badge(trustColors[trustLevel] || '#666')}>{trustLabels[trustLevel] || trustLevel}</span>
-                    {Number(trust.holdback_percent) > 0 ? <span style={{ color: '#F59E0B', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600 }}>{ct.retentionLabel + sv(trust.holdback_percent) + '%'}</span> : null}
-                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#8B5CF6', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600 }}>{ct.payoutDelayLabel + sv(trust.payout_delay_days) + ct.daysSuffix}</span> : null}
+                    {Number(trust.holdback_percent) > 0 ? <span style={{ color: '#00E5FF', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600 }}>{ct.retentionLabel + sv(trust.holdback_percent) + '%'}</span> : null}
+                    {Number(trust.payout_delay_days) > 0 ? <span style={{ color: '#00E5FF', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600 }}>{ct.payoutDelayLabel + sv(trust.payout_delay_days) + ct.daysSuffix}</span> : null}
                     <button onClick={() => setTrustModal({
                       sellerId: id,
                       trust_level: trustLevel || 'new',
@@ -1655,25 +1655,25 @@ export default function AdminPage() {
               {/* Risk metrics */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px', marginBottom: '10px' }}>
                 {[
-                  { l: ct.metricRevenue, v: fmtMoney(s.total_revenue), c: '#10B981' },
+                  { l: ct.metricRevenue, v: fmtMoney(s.total_revenue), c: '#00E5FF' },
                   { l: ct.metricOrders, v: sv(rm?.total_orders || 0), c: '#3B82F6' },
-                  { l: ct.metric30d, v: sv(rm?.orders_30d || 0), c: '#8B5CF6' },
+                  { l: ct.metric30d, v: sv(rm?.orders_30d || 0), c: '#00E5FF' },
                   { l: ct.metricRefundRate, v: sv(rm?.refund_rate || 0) + '%', c: (rm?.refund_rate || 0) > 5 ? '#EF4444' : '#10B981' },
                   { l: ct.metricDisputeRate, v: sv(rm?.dispute_rate || 0) + '%', c: (rm?.dispute_rate || 0) > 2 ? '#EF4444' : '#10B981' },
                 ].map(m => (
                   <div key={m.l} style={{ textAlign: 'center', padding: '6px', backgroundColor: '#0A0A0A', borderRadius: '8px' }}>
                     <p style={{ color: m.c, fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', margin: 0 }}>{m.v}</p>
-                    <p style={{ color: '#555', fontSize: 'calc(10px * var(--fs, 1))', margin: 0 }}>{m.l}</p>
+                    <p style={{ color: '#f0f0f0', fontSize: 'calc(10px * var(--fs, 1))', margin: 0 }}>{m.l}</p>
                   </div>
                 ))}
               </div>
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <button onClick={() => blockPayments(id, !sb(s.payments_blocked))} style={btn(sb(s.payments_blocked) ? '#10B981' : '#EF4444')}>
+                <button onClick={() => blockPayments(id, !sb(s.payments_blocked))} style={btn(sb(s.payments_blocked) ? '#00E5FF' : '#EF4444')}>
                   {sb(s.payments_blocked) ? ct.unblock : ct.block}
                 </button>
-                <button onClick={() => { const pInput = prompt(ct.reservePrompt, sv(s.reserve_percent || 0)); if (pInput !== null) setReserve(id, Number(pInput)) }} style={btn('#F59E0B')}>
+                <button onClick={() => { const pInput = prompt(ct.reservePrompt, sv(s.reserve_percent || 0)); if (pInput !== null) setReserve(id, Number(pInput)) }} style={btn('#00E5FF')}>
                   {ct.reserve}
                 </button>
                 {!sb(s.documents_requested) ? (
@@ -1700,14 +1700,14 @@ export default function AdminPage() {
         {['', 'pending_payment', 'paid', 'shipped', 'handed_over', 'delivered', 'refunded', 'disputed', 'cancelled'].map(s => (
           <button key={s} onClick={() => { setOrdersStatus(s); setTimeout(() => fetchOrders(1), 0) }}
             style={{
-              ...btn(ordersStatus === s ? '#F0908A' : '#222'),
+              ...btn(ordersStatus === s ? '#00E5FF' : '#222'),
               fontSize: 'calc(11px * var(--fs, 1))', padding: '5px 10px',
             }}>
             {s || ct.allOrders}
           </button>
         ))}
       </div>
-      <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(ordersTotal) + ' ' + ct.orders}</p>
+      <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(ordersTotal) + ' ' + ct.orders}</p>
       {Array.isArray(orders) ? orders.map((o, i) => {
         try {
           const rawBuyer = o.buyer
@@ -1718,7 +1718,7 @@ export default function AdminPage() {
           const item = (rawItem && typeof rawItem === 'object' && !Array.isArray(rawItem)) ? rawItem as Record<string, unknown> : null
           const statusColor: Record<string, string> = {
             pending_payment: '#F59E0B', paid: '#3B82F6', shipped: '#10B981',
-            delivered: '#10B981', refunded: '#8B5CF6', disputed: '#EF4444',
+            delivered: '#10B981', refunded: '#00E5FF', disputed: '#EF4444',
           }
           return (
             <div key={String(o.id || i)} style={{ ...card, display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
@@ -1726,11 +1726,11 @@ export default function AdminPage() {
                 <p style={{ color: '#fff', fontWeight: 600, fontSize: 'calc(13px * var(--fs, 1))', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {item ? sv(item.title) : fmtId(o.id)}
                 </p>
-                <p style={{ color: '#F0908A', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', margin: '2px 0' }}>{fmtMoney(o.amount, o.currency)}</p>
-                <p style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))', margin: 0 }}>
+                <p style={{ color: '#00E5FF', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', margin: '2px 0' }}>{fmtMoney(o.amount, o.currency)}</p>
+                <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: 0 }}>
                   {ct.buyerLabel + (buyer ? ('@' + sv(buyer.username)) : fmtId(o.buyer_id)) + ' | ' + ct.sellerLabel + (seller ? ('@' + sv(seller.username)) : fmtId(o.seller_id))}
                 </p>
-                <p style={{ color: '#444', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0' }}>
+                <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0' }}>
                   {fmtDate(o.created_at) + ' | ' + ct.feesLabel + fmtMoney(o.platform_fee, o.currency) + ' | ' + fmtId(o.id)}
                 </p>
               </div>
@@ -1748,7 +1748,7 @@ export default function AdminPage() {
       {ordersTotal > 30 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
           <button disabled={ordersPage <= 1} onClick={() => fetchOrders(ordersPage - 1)} style={btn('#333')}>{ct.prev}</button>
-          <span style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', padding: '6px' }}>{ct.page + ' ' + sv(ordersPage) + ' / ' + sv(Math.ceil(ordersTotal / 30))}</span>
+          <span style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', padding: '6px' }}>{ct.page + ' ' + sv(ordersPage) + ' / ' + sv(Math.ceil(ordersTotal / 30))}</span>
           <button disabled={ordersPage * 30 >= ordersTotal} onClick={() => fetchOrders(ordersPage + 1)} style={btn('#333')}>{ct.next}</button>
         </div>
       ) : null}
@@ -1758,7 +1758,7 @@ export default function AdminPage() {
   const renderDisputes = () => {
     const statusColors: Record<string, string> = {
       open: '#F59E0B', under_review: '#F97316', resolved_buyer: '#10B981',
-      resolved_seller: '#3B82F6', escalated: '#EF4444', disputed: '#EF4444', refunded: '#8B5CF6',
+      resolved_seller: '#3B82F6', escalated: '#EF4444', disputed: '#EF4444', refunded: '#00E5FF',
     }
     const statusLabels: Record<string, string> = {
       open: ct.statusOpen, under_review: ct.statusUnderReview, resolved_buyer: ct.statusResolvedBuyer,
@@ -1768,8 +1768,8 @@ export default function AdminPage() {
 
     return (
       <div style={{ padding: '0 16px' }}>
-        <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(disputes.length) + ' ' + ct.disputesLabel}</p>
-        {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{ct.noDisputes}</p> : null}
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(disputes.length) + ' ' + ct.disputesLabel}</p>
+        {(Array.isArray(disputes) && disputes.length === 0) ? <p style={{ color: '#f0f0f0', textAlign: 'center', padding: '40px' }}>{ct.noDisputes}</p> : null}
         {Array.isArray(disputes) ? disputes.map((d, i) => {
           try {
             const rawBuyer = d.buyer
@@ -1792,21 +1792,21 @@ export default function AdminPage() {
                     <span style={badge(statusColors[status] || '#666')}>{statusLabels[status] || status}</span>
                     {sb(d.auto_refund) ? <span style={badge('#10B981')}>{ct.autoRefunded}</span> : null}
                   </div>
-                  <p style={{ color: '#F0908A', fontWeight: 700, fontSize: 'calc(16px * var(--fs, 1))', margin: 0 }}>{fmtMoney(d.amount, d.currency)}</p>
+                  <p style={{ color: '#00E5FF', fontWeight: 700, fontSize: 'calc(16px * var(--fs, 1))', margin: 0 }}>{fmtMoney(d.amount, d.currency)}</p>
                 </div>
 
                 {/* Order context */}
                 {item ? (
                   <p style={{ color: '#ddd', fontWeight: 600, fontSize: 'calc(14px * var(--fs, 1))', margin: '0 0 8px' }}>{sv(item.title)}</p>
                 ) : (
-                  <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '0 0 8px' }}>{ct.orderLabel + fmtId(d.order_id || d.id)}</p>
+                  <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: '0 0 8px' }}>{ct.orderLabel + fmtId(d.order_id || d.id)}</p>
                 )}
 
                 {/* Buyer + Seller info side by side */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                   {/* Buyer */}
                   <div style={{ padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                    <p style={{ color: '#888', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.buyer}</p>
+                    <p style={{ color: '#f0f0f0', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.buyer}</p>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       <div style={{
                         width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#222',
@@ -1819,7 +1819,7 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <p style={{ color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, margin: 0 }}>{buyer ? (sv(buyer.display_name) || '@' + sv(buyer.username)) : '?'}</p>
-                        {buyer ? <p style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))', margin: '1px 0 0' }}>{'@' + sv(buyer.username)}</p> : null}
+                        {buyer ? <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '1px 0 0' }}>{'@' + sv(buyer.username)}</p> : null}
                       </div>
                     </div>
                     {/* Evidence photos */}
@@ -1836,9 +1836,9 @@ export default function AdminPage() {
 
                   {/* Seller */}
                   <div style={{ padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                    <p style={{ color: '#888', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller}</p>
+                    <p style={{ color: '#f0f0f0', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.seller}</p>
                     <p style={{ color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, margin: 0 }}>{seller ? (sv(seller.display_name) || '@' + sv(seller.username)) : '?'}</p>
-                    {seller ? <p style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))', margin: '1px 0 0' }}>{'@' + sv(seller.username)}</p> : null}
+                    {seller ? <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '1px 0 0' }}>{'@' + sv(seller.username)}</p> : null}
                     {/* Shipping proofs */}
                     {(shippingProofs.length > 0 || shippingProofUrl) ? (
                       <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
@@ -1859,18 +1859,18 @@ export default function AdminPage() {
 
                 {/* Timeline */}
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                  {d.opened_at ? <span style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.openedAt + fmtDate(d.opened_at)}</span> : null}
-                  {d.created_at ? <span style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.createdAt + fmtDate(d.created_at)}</span> : null}
-                  {d.paid_at ? <span style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.paidAt + fmtDate(d.paid_at)}</span> : null}
-                  {d.shipped_at ? <span style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.shippedAt + fmtDate(d.shipped_at)}</span> : null}
-                  {d.resolved_at ? <span style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.resolvedAt + fmtDate(d.resolved_at)}</span> : null}
+                  {d.opened_at ? <span style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.openedAt + fmtDate(d.opened_at)}</span> : null}
+                  {d.created_at ? <span style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.createdAt + fmtDate(d.created_at)}</span> : null}
+                  {d.paid_at ? <span style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.paidAt + fmtDate(d.paid_at)}</span> : null}
+                  {d.shipped_at ? <span style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.shippedAt + fmtDate(d.shipped_at)}</span> : null}
+                  {d.resolved_at ? <span style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))' }}>{ct.resolvedAt + fmtDate(d.resolved_at)}</span> : null}
                 </div>
 
                 {/* Dispute reason */}
-                {d.reason ? <p style={{ color: '#aaa', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 10px', fontStyle: 'italic' }}>{ct.reasonPrefix + sv(d.reason)}</p> : null}
+                {d.reason ? <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 10px', fontStyle: 'italic' }}>{ct.reasonPrefix + sv(d.reason)}</p> : null}
 
                 {/* Resolution note (if already resolved) */}
-                {d.resolution_note ? <p style={{ color: '#888', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 10px' }}>{ct.resolutionNotePrefix + sv(d.resolution_note)}</p> : null}
+                {d.resolution_note ? <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 10px' }}>{ct.resolutionNotePrefix + sv(d.resolution_note)}</p> : null}
 
                 {/* Resolution controls (only if not already resolved) */}
                 {!isResolved(status) ? (
@@ -1910,12 +1910,12 @@ export default function AdminPage() {
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
         {['live', 'scheduled', 'ended'].map(s => (
           <button key={s} onClick={() => { setStreamsFilter(s); setTimeout(fetchStreams, 0) }}
-            style={{ ...btn(streamsFilter === s ? '#F0908A' : '#222'), fontSize: 'calc(12px * var(--fs, 1))' }}>
+            style={{ ...btn(streamsFilter === s ? '#00E5FF' : '#222'), fontSize: 'calc(12px * var(--fs, 1))' }}>
             {s.charAt(0).toUpperCase() + s.slice(1)}
           </button>
         ))}
       </div>
-      {(Array.isArray(streams) && streams.length === 0) ? <p style={{ color: '#555', textAlign: 'center', padding: '40px' }}>{ct.noLives}</p> : null}
+      {(Array.isArray(streams) && streams.length === 0) ? <p style={{ color: '#f0f0f0', textAlign: 'center', padding: '40px' }}>{ct.noLives}</p> : null}
       {Array.isArray(streams) ? streams.map((s, i) => {
         try {
           const rawSeller = s.seller
@@ -1927,10 +1927,10 @@ export default function AdminPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div>
                   <p style={{ color: '#fff', fontWeight: 700, fontSize: 'calc(15px * var(--fs, 1))', margin: 0 }}>{sv(s.title)}</p>
-                  <p style={{ color: '#888', fontSize: 'calc(12px * var(--fs, 1))', margin: '2px 0 0' }}>
+                  <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '2px 0 0' }}>
                     {(seller ? sv(seller.store_name) : '?') + ' (' + (sellerProfile ? ('@' + sv(sellerProfile.username)) : '?') + ')'}
                   </p>
-                  <p style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0' }}>
+                  <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0' }}>
                     {ct.viewersLabel + sv(s.viewer_count) + ' | ' + ct.maxLabel + sv(s.peak_viewers) + ' | ' + sv(s.category) + ' | ' + fmtDate(s.started_at || s.scheduled_at)}
                   </p>
                 </div>
@@ -1964,13 +1964,13 @@ export default function AdminPage() {
 
   const renderAudit = () => (
     <div style={{ padding: '0 16px' }}>
-      <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(auditTotal) + ' ' + ct.entries}</p>
+      <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', marginBottom: '8px' }}>{sv(auditTotal) + ' ' + ct.entries}</p>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'calc(12px * var(--fs, 1))' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid #222' }}>
               {[ct.auditDate, ct.auditAdmin, ct.auditAction, ct.auditTarget, ct.auditId, ct.auditDetails].map(h => (
-                <th key={h} style={{ color: '#888', fontWeight: 600, padding: '8px 6px', textAlign: 'start', whiteSpace: 'nowrap' }}>{h}</th>
+                <th key={h} style={{ color: '#f0f0f0', fontWeight: 600, padding: '8px 6px', textAlign: 'start', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
@@ -1982,19 +1982,19 @@ export default function AdminPage() {
                 const detailsStr: string = (log.details && typeof log.details === 'object') ? safeStringify(log.details) : '-'
                 return (
                   <tr key={String(log.id || i)} style={{ borderBottom: '1px solid #111' }}>
-                    <td style={{ color: '#666', padding: '8px 6px', whiteSpace: 'nowrap' }}>{fmtDate(log.created_at)}</td>
-                    <td style={{ color: '#aaa', padding: '8px 6px' }}>{adminEmailStr.split('@')[0]}</td>
+                    <td style={{ color: '#f0f0f0', padding: '8px 6px', whiteSpace: 'nowrap' }}>{fmtDate(log.created_at)}</td>
+                    <td style={{ color: '#f0f0f0', padding: '8px 6px' }}>{adminEmailStr.split('@')[0]}</td>
                     <td style={{ padding: '8px 6px' }}>
                       <span style={badge(
                         actionStr.includes('ban') ? '#EF4444' :
-                        actionStr.includes('suspend') ? '#F59E0B' :
+                        actionStr.includes('suspend') ? '#00E5FF' :
                         actionStr.includes('block') ? '#EF4444' :
                         '#3B82F6'
                       )}>{actionStr}</span>
                     </td>
-                    <td style={{ color: '#888', padding: '8px 6px' }}>{sv(log.target_type)}</td>
-                    <td style={{ color: '#555', padding: '8px 6px', fontFamily: 'monospace' }}>{fmtId(log.target_id)}</td>
-                    <td style={{ color: '#555', padding: '8px 6px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <td style={{ color: '#f0f0f0', padding: '8px 6px' }}>{sv(log.target_type)}</td>
+                    <td style={{ color: '#f0f0f0', padding: '8px 6px', fontFamily: 'monospace' }}>{fmtId(log.target_id)}</td>
+                    <td style={{ color: '#f0f0f0', padding: '8px 6px', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {detailsStr}
                     </td>
                   </tr>
@@ -2015,7 +2015,7 @@ export default function AdminPage() {
       {auditTotal > 50 ? (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', padding: '16px 0' }}>
           <button disabled={auditPage <= 1} onClick={() => fetchAudit(auditPage - 1)} style={btn('#333')}>{ct.prev}</button>
-          <span style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', padding: '6px' }}>{ct.page + ' ' + sv(auditPage) + ' / ' + sv(Math.ceil(auditTotal / 50))}</span>
+          <span style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', padding: '6px' }}>{ct.page + ' ' + sv(auditPage) + ' / ' + sv(Math.ceil(auditTotal / 50))}</span>
           <button disabled={auditPage * 50 >= auditTotal} onClick={() => fetchAudit(auditPage + 1)} style={btn('#333')}>{ct.next}</button>
         </div>
       ) : null}
@@ -2039,7 +2039,7 @@ export default function AdminPage() {
       <div style={{ padding: '0 16px' }}>
         {/* Create form */}
         <div style={{ ...card, marginBottom: '20px' }}>
-          <p style={{ color: '#F0908A', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, margin: '0 0 14px' }}>{ct.promoNewPromo}</p>
+          <p style={{ color: '#00E5FF', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, margin: '0 0 14px' }}>{ct.promoNewPromo}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <input
               placeholder={ct.promoTitle}
@@ -2062,7 +2062,7 @@ export default function AdminPage() {
                 <option value="commission">{ct.promoTypeCommission}</option>
               </select>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', flexShrink: 0 }}>{ct.promoDiscount}</span>
+                <span style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', flexShrink: 0 }}>{ct.promoDiscount}</span>
                 <input
                   type="range"
                   min={10}
@@ -2070,16 +2070,16 @@ export default function AdminPage() {
                   step={10}
                   value={promoForm.discount_percent}
                   onChange={e => setPromoForm(f => ({ ...f, discount_percent: Number(e.target.value) }))}
-                  style={{ flex: 1, accentColor: '#F0908A' }}
+                  style={{ flex: 1, accentColor: '#00E5FF' }}
                 />
-                <span style={{ color: '#F0908A', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, minWidth: '44px', textAlign: 'end' }}>
+                <span style={{ color: '#00E5FF', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, minWidth: '44px', textAlign: 'end' }}>
                   {promoForm.discount_percent}%
                 </span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <div style={{ flex: 1 }}>
-                <label style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))', display: 'block', marginBottom: '4px' }}>{ct.promoStartDate}</label>
+                <label style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', display: 'block', marginBottom: '4px' }}>{ct.promoStartDate}</label>
                 <input
                   type="datetime-local"
                   value={promoForm.starts_at}
@@ -2088,7 +2088,7 @@ export default function AdminPage() {
                 />
               </div>
               <div style={{ flex: 1 }}>
-                <label style={{ color: '#666', fontSize: 'calc(11px * var(--fs, 1))', display: 'block', marginBottom: '4px' }}>{ct.promoEndDate}</label>
+                <label style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', display: 'block', marginBottom: '4px' }}>{ct.promoEndDate}</label>
                 <input
                   type="datetime-local"
                   value={promoForm.ends_at}
@@ -2100,7 +2100,7 @@ export default function AdminPage() {
             <button
               onClick={createPromotion}
               style={{
-                ...btn('linear-gradient(135deg, #F0908A, #E8344E)'),
+                ...btn('linear-gradient(135deg, #00E5FF, #0091EA)'),
                 padding: '12px 20px',
                 fontSize: 'calc(14px * var(--fs, 1))',
                 width: '100%',
@@ -2114,9 +2114,9 @@ export default function AdminPage() {
         </div>
 
         {/* Existing promotions */}
-        <p style={{ color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, margin: '0 0 10px' }}>{ct.promoExisting}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, margin: '0 0 10px' }}>{ct.promoExisting}</p>
         {promotions.length === 0 ? (
-          <p style={{ color: '#555', textAlign: 'center', padding: '30px', fontSize: 'calc(13px * var(--fs, 1))' }}>{ct.promoNoPromos}</p>
+          <p style={{ color: '#f0f0f0', textAlign: 'center', padding: '30px', fontSize: 'calc(13px * var(--fs, 1))' }}>{ct.promoNoPromos}</p>
         ) : promotions.map((p, i) => {
           const status = getPromoStatus(p)
           const color = statusColor[status]
@@ -2125,20 +2125,20 @@ export default function AdminPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, margin: '0 0 2px' }}>{sv(p.title)}</p>
-                  {p.description ? <p style={{ color: '#888', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 4px' }}>{sv(p.description)}</p> : null}
+                  {p.description ? <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 4px' }}>{sv(p.description)}</p> : null}
                 </div>
                 <span style={badge(color)}>{statusLabel[status]}</span>
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                <span style={badge('#8B5CF6')}>{typeLabel[sv(p.type)] || sv(p.type)}</span>
-                <span style={badge('#F0908A')}>-{sv(p.discount_percent)}%</span>
-                <span style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))' }}>
+                <span style={badge('#00E5FF')}>{typeLabel[sv(p.type)] || sv(p.type)}</span>
+                <span style={badge('#00E5FF')}>-{sv(p.discount_percent)}%</span>
+                <span style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))' }}>
                   {fmtDate(p.starts_at)} → {fmtDate(p.ends_at)}
                 </span>
               </div>
               {status === 'active' && (
                 <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                  <button onClick={() => notifyPromotion(sv(p.id))} style={btn('#8B5CF6')}>{ct.promoNotify}</button>
+                  <button onClick={() => notifyPromotion(sv(p.id))} style={btn('#00E5FF')}>{ct.promoNotify}</button>
                   <button onClick={() => deactivatePromotion(sv(p.id))} style={btn('#EF4444')}>{ct.promoDeactivate}</button>
                 </div>
               )}
@@ -2177,7 +2177,7 @@ export default function AdminPage() {
               <BackArrowButton fallback="/profile" />
               <div>
                 <h1 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 900, color: '#fff', margin: 0 }}>{ct.pageTitle}</h1>
-                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', margin: '2px 0 0' }}>{ct.backOffice}</p>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>{ct.backOffice}</p>
               </div>
             </div>
             {loading ? <div className="admin-spinner" style={{ width: '20px', height: '20px' }} /> : null}
@@ -2187,9 +2187,9 @@ export default function AdminPage() {
           {actionMsg ? (
             <div style={{
               position: 'fixed', top: '60px', left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage)
-              backgroundColor: '#10B981', color: '#fff', padding: '10px 24px',
+              backgroundColor: '#00E5FF', color: '#001014', padding: '10px 24px',
               borderRadius: '12px', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, zIndex: 9999,
-              boxShadow: '0 4px 20px rgba(16,185,129,0.3)',
+              boxShadow: '0 4px 20px rgba(0,229,255,0.3)',
             }}>
               {actionMsg}
             </div>
@@ -2207,9 +2207,9 @@ export default function AdminPage() {
                 style={{
                   padding: '8px 14px', borderRadius: '10px', flexShrink: 0,
                   cursor: 'pointer', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: tab === t.id ? 700 : 500,
-                  background: tab === t.id ? 'rgba(240,144,138,0.12)' : '#0D0D0D',
-                  border: tab === t.id ? '1px solid rgba(240,144,138,0.3)' : '1px solid #1A1A1A',
-                  color: tab === t.id ? '#F0908A' : '#666',
+                  background: tab === t.id ? 'rgba(0, 229, 255,0.12)' : '#0D0D0D',
+                  border: tab === t.id ? '1px solid rgba(0, 229, 255,0.3)' : '1px solid #1A1A1A',
+                  color: tab === t.id ? '#00E5FF' : '#f0f0f0',
                 }}
               >
                 {t.label}
@@ -2219,9 +2219,9 @@ export default function AdminPage() {
 
           {/* Error banner */}
           {pageError ? (
-            <div style={{ margin: '16px', padding: '16px', backgroundColor: '#1a0a0a', border: '1px solid #E8344E', borderRadius: '12px', textAlign: 'center' }}>
+            <div style={{ margin: '16px', padding: '16px', backgroundColor: '#1a0a0a', border: '1px solid #00E5FF', borderRadius: '12px', textAlign: 'center' }}>
               <p style={{ color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, margin: '0 0 8px' }}>{String(pageError)}</p>
-              <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 12px' }}>{ct.serverRequired}</p>
+              <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 12px' }}>{ct.serverRequired}</p>
               <button onClick={() => { setPageError(null); fetchStats() }} style={btn('#333')}>{ct.retry}</button>
             </div>
           ) : null}
@@ -2251,59 +2251,59 @@ export default function AdminPage() {
                   const s = (rawSeller && typeof rawSeller === 'object') ? rawSeller as Record<string, unknown> : null
                   const notes = Array.isArray(rawNotes) ? rawNotes as Record<string, unknown>[] : []
                   const st = (rawStats && typeof rawStats === 'object') ? rawStats as Record<string, number> : null
-                  if (!p) return <p style={{ color: '#666' }}>{ct.noData}</p>
+                  if (!p) return <p style={{ color: '#f0f0f0' }}>{ct.noData}</p>
                   const uid = String(p.id || '')
                   return (
                     <>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <div>
                           <p style={{ color: '#fff', fontWeight: 700, fontSize: 'calc(18px * var(--fs, 1))', margin: 0 }}>{sv(p.display_name)}</p>
-                          <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '2px 0 0' }}>{'@' + sv(p.username) + ' | ' + sv(p.country) + ' | ' + fmtId(uid)}</p>
+                          <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: '2px 0 0' }}>{'@' + sv(p.username) + ' | ' + sv(p.country) + ' | ' + fmtId(uid)}</p>
                         </div>
                         <button onClick={() => setUserDetail(null)} style={{ ...btn('#333'), marginInlineEnd: 0 }}>{'X'}</button>
                       </div>
 
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
-                        {sb(p.is_suspended) ? <span style={badge('#F59E0B')}>{ct.suspendedBadge}</span> : null}
+                        {sb(p.is_suspended) ? <span style={badge('#00E5FF')}>{ct.suspendedBadge}</span> : null}
                         {sb(p.is_banned) ? <span style={badge('#EF4444')}>{ct.bannedBadge}</span> : null}
                         {sb(p.is_seller) ? <span style={badge('#10B981')}>{ct.sellerBadge}</span> : null}
                         {(s && sv(s.kyc_status) === 'verified') ? <span style={badge('#3B82F6')}>{ct.kycVerifiedBadge}</span> : null}
                       </div>
 
-                      <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))' }}>
+                      <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))' }}>
                         {ct.registered + fmtDate(p.created_at) + ' | ' + ct.purchasesLabel + sv(st?.total_purchases || 0) + ' (' + fmtMoney(st?.total_spent || 0) + ') | ' + ct.salesLabel + sv(st?.total_sales || 0) + ' (' + fmtMoney(st?.total_earned || 0) + ')'}
                       </p>
 
                       {s ? (
                         <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#0A0A0A', borderRadius: '10px' }}>
-                          <p style={{ color: '#aaa', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, margin: '0 0 4px' }}>{ct.storeLabel + sv(s.store_name)}</p>
-                          <p style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))', margin: 0 }}>
+                          <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, margin: '0 0 4px' }}>{ct.storeLabel + sv(s.store_name)}</p>
+                          <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: 0 }}>
                             {ct.revenueLabel + fmtMoney(s.total_revenue) + ' | ' + ct.salesMetricLabel + sv(s.total_sales) + ' | ' + ct.stripeLabel + (s.stripe_account_id ? ct.stripeConnected : ct.stripeNo)}
                           </p>
                           {sb(s.payments_blocked) ? <span style={badge('#EF4444')}>{ct.paymentsBlocked}</span> : null}
-                          {Number(s.reserve_percent) > 0 ? <span style={badge('#F59E0B')}>{ct.reserveBadge + sv(s.reserve_percent) + '%'}</span> : null}
+                          {Number(s.reserve_percent) > 0 ? <span style={badge('#00E5FF')}>{ct.reserveBadge + sv(s.reserve_percent) + '%'}</span> : null}
                         </div>
                       ) : null}
 
                       {/* Actions */}
                       <div style={{ marginTop: '16px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         {(!sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                          <button onClick={() => { const r = prompt(ct.reasonPrompt); if (r) suspendUser(uid, r) }} style={btn('#F59E0B')}>{ct.suspend}</button>
+                          <button onClick={() => { const r = prompt(ct.reasonPrompt); if (r) suspendUser(uid, r) }} style={btn('#00E5FF')}>{ct.suspend}</button>
                         ) : null}
                         {(sb(p.is_suspended) && !sb(p.is_banned)) ? (
-                          <button onClick={() => unsuspendUser(uid)} style={btn('#10B981')}>{ct.reactivate}</button>
+                          <button onClick={() => unsuspendUser(uid)} style={btn('#00E5FF')}>{ct.reactivate}</button>
                         ) : null}
                         {!sb(p.is_banned) ? (
                           <button onClick={() => { const r = prompt(ct.reasonPrompt); if (r) banUser(uid, r) }} style={btn('#EF4444')}>{ct.ban}</button>
                         ) : null}
                         {sb(p.is_banned) ? (
-                          <button onClick={() => unbanUser(uid)} style={btn('#10B981')}>{ct.unban}</button>
+                          <button onClick={() => unbanUser(uid)} style={btn('#00E5FF')}>{ct.unban}</button>
                         ) : null}
                       </div>
 
                       {/* Notes */}
                       <div style={{ marginTop: '20px' }}>
-                        <p style={{ color: '#aaa', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '8px' }}>{ct.internalNotes + ' (' + sv(notes.length) + ')'}</p>
+                        <p style={{ color: '#f0f0f0', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '8px' }}>{ct.internalNotes + ' (' + sv(notes.length) + ')'}</p>
                         <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
                           <input value={noteText} onChange={e => setNoteText(e.target.value)} placeholder={ct.addNotePlaceholder} style={{ ...inputStyle, flex: 1 }} />
                           <button onClick={() => addNote(uid)} style={btn('#3B82F6')}>{ct.addNote}</button>
@@ -2311,7 +2311,7 @@ export default function AdminPage() {
                         {notes.map((n, i) => (
                           <div key={String(n.id || i)} style={{ padding: '8px', backgroundColor: '#0A0A0A', borderRadius: '8px', marginBottom: '6px' }}>
                             <p style={{ color: '#ddd', fontSize: 'calc(13px * var(--fs, 1))', margin: 0 }}>{sv(n.note)}</p>
-                            <p style={{ color: '#555', fontSize: 'calc(11px * var(--fs, 1))', margin: '4px 0 0' }}>{sv(n.admin_email) + ' - ' + fmtDate(n.created_at)}</p>
+                            <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '4px 0 0' }}>{sv(n.admin_email) + ' - ' + fmtDate(n.created_at)}</p>
                           </div>
                         ))}
                       </div>
@@ -2340,7 +2340,7 @@ export default function AdminPage() {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ color: '#888', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.trustLevelLabel}</label>
+                <label style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.trustLevelLabel}</label>
                 <select
                   value={trustModal.trust_level}
                   onChange={e => setTrustModal({ ...trustModal, trust_level: e.target.value })}
@@ -2354,7 +2354,7 @@ export default function AdminPage() {
               </div>
 
               <div style={{ marginBottom: '14px' }}>
-                <label style={{ color: '#888', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.retentionPercentLabel}</label>
+                <label style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.retentionPercentLabel}</label>
                 <input
                   type="number"
                   min={0}
@@ -2366,7 +2366,7 @@ export default function AdminPage() {
               </div>
 
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ color: '#888', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.payoutDelayDaysLabel}</label>
+                <label style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, display: 'block', marginBottom: '4px' }}>{ct.payoutDelayDaysLabel}</label>
                 <input
                   type="number"
                   min={0}
@@ -2376,7 +2376,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              <button onClick={updateSellerTrust} style={{ ...btn('#10B981'), width: '100%', padding: '10px', fontSize: 'calc(14px * var(--fs, 1))' }}>
+              <button onClick={updateSellerTrust} style={{ ...btn('#00E5FF'), width: '100%', padding: '10px', fontSize: 'calc(14px * var(--fs, 1))' }}>
                 {ct.save}
               </button>
             </div>
@@ -2403,8 +2403,8 @@ export default function AdminPage() {
             position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage)
             padding: '14px 24px', borderRadius: '12px',
             backgroundColor: '#3a1a1a',
-            border: '1px solid #E8344E',
-            color: '#E8344E',
+            border: '1px solid #00E5FF',
+            color: '#00E5FF',
             fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, zIndex: 10000,
             boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
             whiteSpace: 'nowrap',

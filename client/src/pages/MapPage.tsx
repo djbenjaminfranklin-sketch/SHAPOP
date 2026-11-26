@@ -159,7 +159,7 @@ export default function MapPage() {
         style={{
           display: 'flex', flexDirection: 'column',
           backgroundColor: '#0D0D0D',
-          border: selectedCity === key ? '1.5px solid #F0908A' : '1.5px solid #1A1A1A',
+          border: selectedCity === key ? '1.5px solid #00E5FF' : '1.5px solid #1A1A1A',
           borderRadius: '16px',
           overflow: 'hidden',
           cursor: data.count > 0 ? 'pointer' : 'default',
@@ -181,7 +181,7 @@ export default function MapPage() {
             <div style={{
               position: 'absolute', top: '8px', insetInlineEnd: '8px',
               display: 'flex', alignItems: 'center', gap: '4px',
-              backgroundColor: 'rgba(232,52,78,0.9)', backdropFilter: 'blur(4px)',
+              backgroundColor: 'rgba(0,229,255,0.9)', backdropFilter: 'blur(4px)',
               padding: '3px 8px', borderRadius: '8px',
             }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fff', animation: 'pulse-dot 1.5s ease-in-out infinite' }} />
@@ -192,7 +192,7 @@ export default function MapPage() {
           )}
           <div style={{ position: 'absolute', bottom: '8px', insetInlineStart: '10px', insetInlineEnd: '10px' }}>
             {isHere && (
-              <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#F0908A' }}>{ct.yourPosition}</span>
+              <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#00E5FF' }}>{ct.yourPosition}</span>
             )}
             <h3 dir="auto" style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
               {label}
@@ -212,9 +212,9 @@ export default function MapPage() {
                     <img src={stream.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <div style={{
-                      width: '100%', height: '100%', backgroundColor: '#F0908A',
+                      width: '100%', height: '100%', backgroundColor: '#00E5FF',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#fff',
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#001014',
                     }}>
                       {(stream.seller?.display_name || '?')[0].toUpperCase()}
                     </div>
@@ -222,12 +222,12 @@ export default function MapPage() {
                 </div>
               ))}
             </div>
-            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>{plural(ct.livesCount, data.count, lang)}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>{plural(ct.livesCount, data.count, lang)}</span>
           </div>
         ) : (
           <div style={{ padding: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#333' }} />
-            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>{ct.noLive}</span>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.noLive}</span>
           </div>
         )}
       </button>
@@ -245,15 +245,15 @@ export default function MapPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div>
             <h1 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>{ct.title}</h1>
-            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '4px 0 0' }}>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0' }}>
               {detecting ? ct.detecting : ct.subtitle}
             </p>
           </div>
           <button
             onClick={() => navigate('/communities')}
             style={{
-              background: 'rgba(240,144,138,0.12)', border: '1px solid rgba(240,144,138,0.3)',
-              borderRadius: '20px', padding: '8px 14px', color: '#F0908A',
+              background: 'rgba(0, 229, 255,0.12)', border: '1px solid rgba(0, 229, 255,0.3)',
+              borderRadius: '20px', padding: '8px 14px', color: '#00E5FF',
               fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >
@@ -274,14 +274,14 @@ export default function MapPage() {
             onClick={() => { setCenter(null); setSelectedCity(null) }}
             style={{
               marginTop: '10px', background: 'transparent', border: 'none', padding: 0,
-              color: '#F0908A', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+              color: '#00E5FF', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
             }}
           >
             {ct.backToMyPosition}
           </button>
         )}
         {locationOff && (
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f97316', margin: '10px 0 0' }}>{ct.locationUnavailable}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', margin: '10px 0 0' }}>{ct.locationUnavailable}</p>
         )}
       </div>
 
@@ -289,8 +289,8 @@ export default function MapPage() {
       {proposed.length > 0 && (
         <div style={{
           margin: '16px 20px 0', padding: '14px 20px',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(240,144,138,0.05))',
-          borderRadius: '14px', border: '1px solid rgba(240,144,138,0.2)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0, 229, 255,0.05))',
+          borderRadius: '14px', border: '1px solid rgba(0, 229, 255,0.2)',
           display: 'flex', alignItems: 'center', gap: '12px',
         }}>
           <div style={{
@@ -300,7 +300,7 @@ export default function MapPage() {
           <span style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
             {plural(ct.liveNowCount, totalLive, lang)}
           </span>
-          <span dir="auto" style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span dir="auto" style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {areaName}
           </span>
         </div>
@@ -314,7 +314,7 @@ export default function MapPage() {
       {loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '60px' }}>
           <div style={{
-            width: '32px', height: '32px', border: '2px solid #333', borderTopColor: '#F0908A',
+            width: '32px', height: '32px', border: '2px solid #333', borderTopColor: '#00E5FF',
             borderRadius: '50%', animation: 'spin 1s linear infinite',
           }} />
         </div>
@@ -343,7 +343,7 @@ export default function MapPage() {
           )}
 
           {proposed.length === 0 && otherCities.length === 0 && !detecting && (
-            <p style={{ textAlign: 'center', color: '#666', fontSize: 'calc(14px * var(--fs, 1))', padding: '48px 20px 0', margin: 0 }}>{ct.noLive}</p>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', padding: '48px 20px 0', margin: 0 }}>{ct.noLive}</p>
           )}
         </>
       )}

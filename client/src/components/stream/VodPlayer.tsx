@@ -118,7 +118,7 @@ export default function VodPlayer({ recordingUrl, title, startOffset, onClose }:
             borderRadius: '12px', backgroundColor: '#000',
           }}
         >
-          <p style={{ color: '#888' }}>{t.error}</p>
+          <p style={{ color: '#f0f0f0' }}>{t.error}</p>
         </video>
       </div>
 
@@ -128,7 +128,7 @@ export default function VodPlayer({ recordingUrl, title, startOffset, onClose }:
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
         textAlign: 'center',
       }}>
-        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>{t.replay}</span>
+        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{t.replay}</span>
       </div>
     </div>
   )

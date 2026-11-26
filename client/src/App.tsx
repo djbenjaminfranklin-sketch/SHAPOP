@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { MiniPlayerProvider } from './contexts/MiniPlayerContext'
 import MiniPlayerOverlay from './components/stream/MiniPlayerOverlay'
@@ -79,7 +79,7 @@ function PageLoader() {
         aria-label={t(getLang(), 'loading')}
         style={{
           width: '32px', height: '32px', border: '3px solid #333',
-          borderTopColor: '#E8344E', borderRadius: '50%',
+          borderTopColor: '#00E5FF', borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }}
       />
@@ -206,7 +206,7 @@ function useAppSettings() {
         const raw = localStorage.getItem('shapop_account_controls')
         const s = raw ? JSON.parse(raw) : {}
 
-        // Theme — default to light mode when no preference is set
+        // Thème : fond CLAIR par défaut (choix du 26/11/2026, identité cyan électrique)
         const html = document.documentElement
         const appearance = s.appearance || 'light'
         const isLight = appearance === 'light' || (appearance === 'auto' && !window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -229,7 +229,11 @@ function useAppSettings() {
             document.head.appendChild(styleEl)
           }
           styleEl.textContent = `
-            html.theme-light:not(.live-screen) { filter: invert(1) hue-rotate(180deg); }
+            /* Inversion posée sur la zone qui défile (#root) et non sur <html> : l'iPhone la calcule une fois
+               (calque à part, will-change) au lieu de la recalculer à chaque image -> défilement fluide */
+            html.theme-light:not(.live-screen), html.theme-light:not(.live-screen) body { background-color: #fff !important; }
+            html.theme-light:not(.live-screen) #root, html.theme-light:not(.live-screen) body > :not(#root):not(script):not(style) { filter: invert(1) hue-rotate(180deg); }
+            html.theme-light:not(.live-screen) #root { background-color: #0a0a0a; }
             html.theme-light.live-screen { background-color: #000 !important; }
             html.theme-light:not(.live-screen) video, html.theme-light:not(.live-screen) img, html.theme-light:not(.live-screen) canvas, html.theme-light:not(.live-screen) svg image { filter: invert(1) hue-rotate(180deg) !important; }
             html.theme-light:not(.live-screen) .no-theme-invert { filter: invert(1) hue-rotate(180deg) !important; }
@@ -270,11 +274,19 @@ function useAppSettings() {
   }, [])
 }
 
+// Chaque nouvel écran s'ouvre en haut (la zone de défilement est commune à toutes les pages)
+function ScrollToTopOnNavigate() {
+  const { pathname } = useLocation()
+  useEffect(() => { document.querySelector('.app-scroll')?.scrollTo(0, 0) }, [pathname])
+  return null
+}
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(() => {
     // Skip splash for password reset links
     if (window.location.pathname === '/change-password') return false
-    return !localStorage.getItem('shapop_splash_seen')
+    // Le S en 3D (2 s) s'affiche à chaque ouverture de l'appli, pas seulement la première fois
+    return !sessionStorage.getItem('shapop_splash_seen')
   })
   // Langue réactive : un changement redessine toute l'app (textes + sens de lecture)
   const lang = useLang()
@@ -327,7 +339,7 @@ export default function App() {
   }, [])
 
   if (showSplash) {
-    return <SplashScreen onFinish={() => { localStorage.setItem('shapop_splash_seen', '1'); setShowSplash(false) }} />
+    return <SplashScreen onFinish={() => { sessionStorage.setItem('shapop_splash_seen', '1'); setShowSplash(false) }} />
   }
 
   return (
@@ -336,14 +348,17 @@ export default function App() {
         <AuthProvider>
           <MiniPlayerProvider>
           <PushAutoRegister />
-          <div key={lang} dir={dir} lang={lang} className="min-h-screen" style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0a0a0a', minHeight: '100dvh' }}>
+          <ScrollToTopOnNavigate />
+          {/* .app-scroll = la zone qui défile. #root, lui, ne défile pas : en thème clair il porte le filtre
+              d'inversion, et les éléments fixes (barre du bas, bandeaux) restent ainsi collés à l'écran */}
+          <div key={lang} dir={dir} lang={lang} className="app-scroll" style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0a0a0a' }}>
             <a
               href="#main-content"
               style={{
                 position: 'absolute', insetInlineStart: '-9999px', top: 'auto',
                 width: '1px', height: '1px', overflow: 'hidden',
               }}
-              onFocus={(e) => { e.currentTarget.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px;background:#F0908A;color:#000;text-align:center;font-weight:700;' }}
+              onFocus={(e) => { e.currentTarget.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;padding:12px;background:#00E5FF;color:#000;text-align:center;font-weight:700;' }}
               onBlur={(e) => { e.currentTarget.style.cssText = 'position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;' }}
             >
               {t(lang, 'skip_to_content')}
@@ -410,6 +425,8 @@ export default function App() {
               </main>
             </Suspense>
             <MiniPlayerOverlay />
+            {/* Bande fixe sous l'heure et la batterie : le contenu qui défile ne passe plus dessous */}
+            <div className="status-bar-cover" aria-hidden="true" />
             <BottomNav />
           </div>
           </MiniPlayerProvider>

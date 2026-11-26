@@ -282,7 +282,7 @@ export default function Profile() {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
       }}>
-        <div role="status" aria-label={tr({ en: 'Loading profile', fr: 'Chargement du profil', es: 'Cargando perfil', ru: 'Загрузка профиля', he: 'טוען פרופיל' })} style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div role="status" aria-label={tr({ en: 'Loading profile', fr: 'Chargement du profil', es: 'Cargando perfil', ru: 'Загрузка профиля', he: 'טוען פרופיל' })} style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -302,25 +302,25 @@ export default function Profile() {
         <img src="/logo.png" alt="ShaPop" style={{ height: '40px', marginBottom: '32px', objectFit: 'contain' }} />
         <div style={{
           width: '96px', height: '96px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.15) 0%, rgba(232,52,78,0.1) 100%)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15) 0%, rgba(0,229,255,0.1) 100%)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginBottom: '24px', boxShadow: '0 0 40px rgba(240,144,138,0.1)',
+          marginBottom: '24px', boxShadow: '0 0 40px rgba(0, 229, 255,0.1)',
         }}>
-          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
         </div>
         <h1 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center', marginBottom: '8px' }}>
           {tr({ en: 'Sign in to ShaPop', fr: 'Connecte-toi à ShaPop', es: 'Inicia sesión en ShaPop', ru: 'Войди в ShaPop', he: 'התחברות ל-ShaPop' })}
         </h1>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', textAlign: 'center', marginBottom: '32px', lineHeight: 1.5, maxWidth: '280px' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center', marginBottom: '32px', lineHeight: 1.5, maxWidth: '280px' }}>
           {tr({ en: 'Buy, sell and join live shows', fr: 'Achète, vends et rejoins les lives', es: 'Compra, vende y únete a los directos', ru: 'Покупай, продавай и смотри эфиры', he: 'קונים, מוכרים ומצטרפים לשידורים חיים' })}
         </p>
         <Link to="/login" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px', borderRadius: '14px',
-          textDecoration: 'none', background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-          color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, textAlign: 'center',
-          boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
+          textDecoration: 'none', background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
+          color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, textAlign: 'center',
+          boxShadow: '0 6px 24px rgba(0, 229, 255,0.35)', marginBottom: '12px',
         }}>
           {tr({ en: 'Sign in', fr: 'Se connecter', es: 'Iniciar sesión', ru: 'Войти', he: 'התחברות' })}
         </Link>
@@ -515,7 +515,7 @@ export default function Profile() {
           {item.label}
         </span>
         {item.sub && (
-          <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', display: 'block', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.sub}
           </span>
         )}
@@ -550,7 +550,7 @@ export default function Profile() {
           >
             <div style={{
               width: '80px', height: '80px', borderRadius: '50%',
-              backgroundColor: '#E8344E', overflow: 'hidden',
+              backgroundColor: '#00E5FF', overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               opacity: uploading ? 0.5 : 1, transition: 'opacity 0.3s',
             }}>
@@ -597,7 +597,7 @@ export default function Profile() {
                   </svg>
                 </div>
                 {profile?.bio && (
-                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '4px 0 0', lineHeight: 1.4,
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', lineHeight: 1.4,
                     overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box',
                     WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
                   }}>
@@ -633,10 +633,10 @@ export default function Profile() {
                     color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600,
                     outline: 'none', boxSizing: 'border-box',
                   }}
-                  onFocus={e => { e.target.style.borderColor = '#F0908A' }}
+                  onFocus={e => { e.target.style.borderColor = '#00E5FF' }}
                   onBlur={e => { e.target.style.borderColor = '#333' }}
                 />
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', textAlign: 'end' }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'end' }}>
                   {editDisplayName.length}/50
                 </span>
               </div>
@@ -647,7 +647,7 @@ export default function Profile() {
         {/* ── Bio edit field (only in edit mode) ──────────────────── */}
         {editMode && (
           <div style={{ padding: '0 20px 12px', ...entrance('20ms') }}>
-            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
+            <label style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 500, display: 'block', marginBottom: '6px' }}>
               {tr({ en: 'Bio', fr: 'Bio', es: 'Biografía', ru: 'О себе', he: 'ביו' })}
             </label>
             <textarea
@@ -664,10 +664,10 @@ export default function Profile() {
                 outline: 'none', resize: 'none', boxSizing: 'border-box',
                 fontFamily: 'inherit',
               }}
-              onFocus={e => { e.target.style.borderColor = '#F0908A' }}
+              onFocus={e => { e.target.style.borderColor = '#00E5FF' }}
               onBlur={e => { e.target.style.borderColor = '#333' }}
             />
-            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', display: 'block', textAlign: 'end', marginTop: '2px' }}>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', display: 'block', textAlign: 'end', marginTop: '2px' }}>
               {editBio.length}/200
             </span>
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
@@ -688,9 +688,9 @@ export default function Profile() {
                 disabled={saving}
                 style={{
                   flex: 1, padding: '10px', borderRadius: '10px',
-                  background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+                  background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
                   border: 'none',
-                  color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                  color: '#001014', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                   cursor: saving ? 'not-allowed' : 'pointer',
                   opacity: saving ? 0.6 : 1,
                 }}
@@ -724,10 +724,10 @@ export default function Profile() {
                 }}>
                   <div style={{
                     width: '32px', height: '32px', borderRadius: '8px',
-                    backgroundColor: 'rgba(34,197,94,0.15)',
+                    backgroundColor: 'rgba(0,229,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22C55E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
                     </svg>
                   </div>
@@ -739,7 +739,7 @@ export default function Profile() {
                       } catch { return amount.toFixed(0) }
                     })()}
                   </p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                     {tr({ en: 'Total spent', fr: 'Total dépensé', es: 'Total gastado', ru: 'Всего потрачено', he: 'סה״כ הוצאות' })}
                   </p>
                 </div>
@@ -761,7 +761,7 @@ export default function Profile() {
                   <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {buyerStats?.order_count ?? 0}
                   </p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                     {tr({ en: 'Orders', fr: 'Commandes', es: 'Pedidos', ru: 'Заказы', he: 'הזמנות' })}
                   </p>
                 </div>
@@ -773,17 +773,17 @@ export default function Profile() {
                 }}>
                   <div style={{
                     width: '32px', height: '32px', borderRadius: '8px',
-                    backgroundColor: 'rgba(245,158,11,0.15)',
+                    backgroundColor: 'rgba(0,229,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                     </svg>
                   </div>
                   <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {buyerStats?.pending_count ?? 0}
                   </p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                     {tr({ en: 'In progress', fr: 'En cours', es: 'En curso', ru: 'В процессе', he: 'בתהליך' })}
                   </p>
                 </div>
@@ -795,17 +795,17 @@ export default function Profile() {
                 }}>
                   <div style={{
                     width: '32px', height: '32px', borderRadius: '8px',
-                    backgroundColor: 'rgba(139,92,246,0.15)',
+                    backgroundColor: 'rgba(0,229,255,0.15)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
                   </div>
                   <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {buyerStats?.buyer_score ?? 0}<span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 500, color: '#888' }}>/100</span>
+                    {buyerStats?.buyer_score ?? 0}<span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 500, color: '#f0f0f0' }}>/100</span>
                   </p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                     {tr({ en: 'Buyer score', fr: 'Score acheteur', es: 'Puntuación de comprador', ru: 'Рейтинг покупателя', he: 'ציון קונה' })}
                   </p>
                 </div>
@@ -817,8 +817,8 @@ export default function Profile() {
                 style={{
                   width: '100%', marginTop: '12px', padding: '12px',
                   borderRadius: '10px', border: 'none', cursor: 'pointer',
-                  background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-                  color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
+                  background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
+                  color: '#001014', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
                 }}
               >
                 {tr({ en: 'View my purchases', fr: 'Voir mes achats', es: 'Ver mis compras', ru: 'Мои покупки', he: 'הרכישות שלי' })}
@@ -873,7 +873,7 @@ export default function Profile() {
                         {tr({ en: 'TIER', fr: 'NIVEAU', es: 'NIVEL', ru: 'УРОВЕНЬ', he: 'רמה' })}
                       </span>
                     </div>
-                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
                       {tr({ en: `${loyalty.points} points`, fr: `${loyalty.points} points`, es: `${loyalty.points} puntos`, ru: `Баллы: ${loyalty.points}`, he: `${loyalty.points} נקודות` })}
                     </p>
                   </div>
@@ -883,10 +883,10 @@ export default function Profile() {
                 {loyalty.next_tier && (
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: 0 }}>
+                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                         {tierNames[tierKey] || loyalty.tier}
                       </p>
-                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: 0 }}>
+                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>
                         {tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}
                       </p>
                     </div>
@@ -900,7 +900,7 @@ export default function Profile() {
                         transition: 'width 0.5s ease',
                       }} />
                     </div>
-                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '6px 0 0', textAlign: 'center' }}>
+                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '6px 0 0', textAlign: 'center' }}>
                       {nextThreshold - loyalty.points > 0
                         ? tr({ en: `${nextThreshold - loyalty.points} points to reach ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`, fr: `Encore ${nextThreshold - loyalty.points} points pour atteindre ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`, es: `${nextThreshold - loyalty.points} puntos para llegar a ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}`, ru: `До уровня «${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}» осталось баллов: ${nextThreshold - loyalty.points}`, he: `עוד ${nextThreshold - loyalty.points} נקודות לרמת ${tierNames[loyalty.next_tier.toLowerCase()] || loyalty.next_tier}` })
                         : tr({ en: 'Top tier reached!', fr: 'Niveau maximum atteint !', es: '¡Nivel máximo alcanzado!', ru: 'Достигнут максимальный уровень!', he: 'הגעת לרמה הגבוהה ביותר!' })}
@@ -926,10 +926,10 @@ export default function Profile() {
             }}>
               <div style={{
                 width: '44px', height: '44px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(232,52,78,0.2), rgba(240,144,138,0.1))',
+                background: 'linear-gradient(135deg, rgba(0,229,255,0.2), rgba(0, 229, 255,0.1))',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
                   <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
                   <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -942,16 +942,16 @@ export default function Profile() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
                     <div style={{
                       width: '12px', height: '12px',
-                      border: '2px solid #333', borderTopColor: '#F0908A',
+                      border: '2px solid #333', borderTopColor: '#00E5FF',
                       borderRadius: '50%', animation: 'spin 0.8s linear infinite',
                     }} />
-                    <span style={{ color: '#666', fontSize: 'calc(12px * var(--fs, 1))' }}>
+                    <span style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))' }}>
                       {tr({ en: 'Loading…', fr: 'Chargement…', es: 'Cargando…', ru: 'Загрузка…', he: 'טוען…' })}
                     </span>
                   </div>
                 ) : myStreams.length > 0 ? (
-                  <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: '2px 0 0' }}>
-                    {myStreams.length} {tr({ en: `${myStreams.length} lives`, fr: `${myStreams.length} lives`, es: `${myStreams.length} directos`, ru: `Эфиров: ${myStreams.length}`, he: `${myStreams.length} שידורים` })}
+                  <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: '2px 0 0' }}>
+                    {tr({ en: `${myStreams.length} lives`, fr: `${myStreams.length} lives`, es: `${myStreams.length} directos`, ru: `Эфиров: ${myStreams.length}`, he: `${myStreams.length} שידורים` })}
                   </p>
                 ) : null}
               </div>
@@ -1004,8 +1004,8 @@ export default function Profile() {
 
         {/* ── Version ─────────────────────────────────────────────── */}
         <div style={{ textAlign: 'center', paddingBottom: '24px', ...entrance('280ms') }}>
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444', margin: 0 }}>{appVersion}</p>{/* i18n-ignore */}
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444', margin: '2px 0 0' }}>&copy; 2026 ShaPop</p>{/* i18n-ignore */}
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{appVersion}</p>{/* i18n-ignore */}
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>&copy; 2026 ShaPop</p>{/* i18n-ignore */}
         </div>
 
       </div>

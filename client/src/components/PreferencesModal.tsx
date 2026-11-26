@@ -209,7 +209,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
           <h2 style={{ color: '#fff', fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, margin: '0 0 4px 0' }}>
             {ct.personalizeYourFeed}
           </h2>
-          <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, lineHeight: 1.3 }}>
+          <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, lineHeight: 1.3 }}>
             {step === 'categories'
               ? ct.chooseCategories
               : ct.selectCities}
@@ -220,14 +220,14 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
               width: step === 'categories' ? '24px' : '8px',
               height: '6px',
               borderRadius: '3px',
-              backgroundColor: step === 'categories' ? '#F0908A' : '#444',
+              backgroundColor: step === 'categories' ? '#00E5FF' : '#444',
               transition: 'all 0.3s ease',
             }} />
             <div style={{
               width: step === 'cities' ? '24px' : '8px',
               height: '6px',
               borderRadius: '3px',
-              backgroundColor: step === 'cities' ? '#F0908A' : '#444',
+              backgroundColor: step === 'cities' ? '#00E5FF' : '#444',
               transition: 'all 0.3s ease',
             }} />
           </div>
@@ -257,9 +257,9 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                     style={{
                       padding: '10px 16px',
                       borderRadius: '20px',
-                      border: isSelected ? '2px solid #F0908A' : '1px solid #333',
-                      backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
-                      color: isSelected ? '#F0908A' : '#ccc',
+                      border: isSelected ? '2px solid #00E5FF' : '1px solid #333',
+                      backgroundColor: isSelected ? 'rgba(0, 229, 255, 0.15)' : '#1A1A1A',
+                      color: isSelected ? '#00E5FF' : '#ccc',
                       fontSize: 'calc(13px * var(--fs, 1))',
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer',
@@ -270,7 +270,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                     }}
                   >
                     {isSelected && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
@@ -300,7 +300,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
               borderRadius: '14px',
               border: '1px solid #333',
               backgroundColor: '#1A1A1A',
-              color: '#888',
+              color: '#f0f0f0',
               fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
@@ -318,9 +318,9 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                 borderRadius: '14px',
                 border: 'none',
                 background: selectedCategories.length > 0
-                  ? 'linear-gradient(135deg, #F0908A, #E8344E)'
+                  ? 'linear-gradient(135deg, #00E5FF, #0091EA)'
                   : '#333',
-                color: '#fff',
+                color: selectedCategories.length > 0 ? '#fff' : '#fff',
                 fontSize: 'calc(15px * var(--fs, 1))',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -337,8 +337,8 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
                 padding: '14px',
                 borderRadius: '14px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                color: '#fff',
+                background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                color: '#001014',
                 fontSize: 'calc(15px * var(--fs, 1))',
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -358,9 +358,9 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
 const chipStyle = (isSelected: boolean) => ({
   padding: '10px 16px',
   borderRadius: '16px',
-  border: isSelected ? '2px solid #F0908A' : '1px solid #333',
-  backgroundColor: isSelected ? 'rgba(240, 144, 138, 0.15)' : '#1A1A1A',
-  color: isSelected ? '#F0908A' : '#ccc',
+  border: isSelected ? '2px solid #00E5FF' : '1px solid #333',
+  backgroundColor: isSelected ? 'rgba(0, 229, 255, 0.15)' : '#1A1A1A',
+  color: isSelected ? '#00E5FF' : '#ccc',
   fontSize: 'calc(14px * var(--fs, 1))',
   fontWeight: isSelected ? 700 : 500,
   cursor: 'pointer',
@@ -371,7 +371,7 @@ const chipStyle = (isSelected: boolean) => ({
 })
 
 const CheckIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 )
@@ -406,10 +406,10 @@ function CitiesStep({ selected, onChange }: { selected: string[]; onChange: (cit
       <CitySearchField onPick={addFromSearch} near={coords} />
 
       {status === 'locating' && (
-        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, textAlign: 'center' }}>{ct.locating}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, textAlign: 'center' }}>{ct.locating}</p>
       )}
       {(status === 'denied' || status === 'unavailable') && (
-        <p style={{ color: '#888', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, textAlign: 'center' }}>{ct.locationOff}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, textAlign: 'center' }}>{ct.locationOff}</p>
       )}
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
@@ -436,7 +436,7 @@ function CitiesStep({ selected, onChange }: { selected: string[]; onChange: (cit
               <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.2 }}>
                 <span dir="auto">{city.label}</span>
                 {(isHere || isNear) && (
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 500, color: on ? '#F0908A' : '#777' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 500, color: on ? '#00E5FF' : '#f0f0f0' }}>
                     {isHere ? ct.yourPosition : ct.nearby}
                   </span>
                 )}

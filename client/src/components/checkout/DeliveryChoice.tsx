@@ -45,7 +45,7 @@ export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: P
   }, [orderId, t.error_generic])
 
   if (!options) {
-    return <div style={{ padding: '24px', textAlign: 'center', color: '#888' }}>{error || '…'}</div>
+    return <div style={{ padding: '24px', textAlign: 'center', color: '#f0f0f0' }}>{error || '…'}</div>
   }
 
   const shipping = method === 'post' ? options.post.price : 0
@@ -81,19 +81,19 @@ export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: P
         style={{
           display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '14px',
           borderRadius: '14px', cursor: 'pointer', textAlign: 'start',
-          border: selected ? '1.5px solid #F0908A' : '1px solid #2a2a2a',
-          backgroundColor: selected ? 'rgba(240,144,138,0.08)' : '#0D0D0D', color: '#fff',
+          border: selected ? '1.5px solid #00E5FF' : '1px solid #2a2a2a',
+          backgroundColor: selected ? 'rgba(0, 229, 255,0.08)' : '#0D0D0D', color: '#fff',
         }}
       >
         <span style={{
           width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
-          border: selected ? '5px solid #F0908A' : '2px solid #555',
+          border: selected ? '5px solid #00E5FF' : '2px solid #555',
         }} />
         <span style={{ flex: 1 }}>
           <span style={{ display: 'block', fontWeight: 700, fontSize: 'calc(15px * var(--fs, 1))' }}>{title}</span>
-          {subtitle && <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#999', marginTop: '2px' }}>{subtitle}</span>}
+          {subtitle && <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>{subtitle}</span>}
         </span>
-        <span style={{ fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', color: selected ? '#F0908A' : '#ccc' }}>{price}</span>
+        <span style={{ fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', color: selected ? '#00E5FF' : '#ccc' }}>{price}</span>
       </button>
     )
   }
@@ -108,7 +108,7 @@ export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: P
         formatMoney(0, options.currency, lang),
       )}
       {optionCard('post', t.method_post, '', formatMoney(options.post.price, options.currency, lang))}
-      {!options.pickup.allowed && <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{t.post_only}</p>}
+      {!options.pickup.allowed && <p style={{ margin: 0, fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{t.post_only}</p>}
 
       {method === 'post' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -137,17 +137,17 @@ export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: P
             autoComplete="tel"
             dir="ltr"
           />
-          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{t.whatsapp_hint}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{t.whatsapp_hint}</span>
         </div>
       )}
 
       <div style={{ borderTop: '1px solid #222', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', fontSize: 'calc(14px * var(--fs, 1))' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f0f0f0' }}>
           <span>{t.item_price}</span><span>{formatMoney(options.amount, options.currency, lang)}</span>
         </div>
         {/* Frais de port : seulement pour l'envoi par la poste */}
         {method === 'post' && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#aaa' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#f0f0f0' }}>
             <span>{t.shipping_fee}</span><span>{formatMoney(shipping, options.currency, lang)}</span>
           </div>
         )}
@@ -169,8 +169,8 @@ export default function DeliveryChoice({ orderId, onConfirmed, hasSavedCard }: P
         disabled={!canSubmit}
         style={{
           width: '100%', padding: '15px', borderRadius: '14px', border: 'none', fontWeight: 800, fontSize: 'calc(16px * var(--fs, 1))',
-          background: canSubmit ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
-          color: canSubmit ? '#fff' : '#777', cursor: canSubmit ? 'pointer' : 'not-allowed',
+          background: canSubmit ? 'linear-gradient(135deg, #00E5FF, #0091EA)' : '#333',
+          color: canSubmit ? '#fff' : '#f0f0f0', cursor: canSubmit ? 'pointer' : 'not-allowed',
         }}
       >
         {saving ? t.saving : (hasSavedCard ? t.confirm_with_saved_card : t.continue_to_payment)}

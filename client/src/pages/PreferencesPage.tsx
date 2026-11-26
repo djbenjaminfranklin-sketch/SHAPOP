@@ -292,9 +292,9 @@ export default function PreferencesPage() {
       </div>
       <div style={{ padding: '20px' }}>
         {/* Profile editing */}
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.profileSection}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.profileSection}</p>
         <div style={{ marginBottom: '28px' }}>
-          <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginBottom: '6px' }}>{c.displayName}</label>
+          <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '6px' }}>{c.displayName}</label>
           <input
             type="text"
             value={displayName}
@@ -305,7 +305,7 @@ export default function PreferencesPage() {
               borderRadius: '10px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box', marginBottom: '12px',
             }}
           />
-          <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginBottom: '6px' }}>{c.username}</label>
+          <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '6px' }}>{c.username}</label>
           <input
             type="text"
             value={username}
@@ -316,7 +316,7 @@ export default function PreferencesPage() {
               borderRadius: '10px', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box', marginBottom: '12px',
             }}
           />
-          <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginBottom: '6px' }}>{c.bio}</label>
+          <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '6px' }}>{c.bio}</label>
           <textarea
             value={bio}
             onChange={e => setBio(e.target.value)}
@@ -332,8 +332,8 @@ export default function PreferencesPage() {
             onClick={handleSaveProfile}
             disabled={savingProfile || !displayName.trim() || !username.trim()}
             style={{
-              width: '100%', padding: '12px', backgroundColor: savingProfile || !displayName.trim() || !username.trim() ? '#333' : '#F0908A',
-              color: '#fff', border: 'none', borderRadius: '10px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
+              width: '100%', padding: '12px', backgroundColor: savingProfile || !displayName.trim() || !username.trim() ? '#333' : '#00E5FF',
+              color: '#001014', border: 'none', borderRadius: '10px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
               cursor: savingProfile || !displayName.trim() || !username.trim() ? 'default' : 'pointer',
               opacity: savingProfile ? 0.7 : 1,
             }}
@@ -343,13 +343,13 @@ export default function PreferencesPage() {
         </div>
 
         {/* Language */}
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.langLabel}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.langLabel}</p>
         <div style={{ marginBottom: '28px' }}>
           <LanguageSelector variant="list" />
         </div>
 
         {/* Currency */}
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.currency}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.currency}</p>
         <div style={{ backgroundColor: '#111', borderRadius: '12px', padding: '14px 16px', marginBottom: '28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#fff' }}>{(() => {
             const cur = currencyForCountry(profile?.country || getStoredGPSCountry() || detectUserCountry())
@@ -359,13 +359,13 @@ export default function PreferencesPage() {
             return `${sym !== cur ? sym + ' ' : ''}${cur} (${name})`
           })()}</span>
         </div>
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '-20px', marginBottom: '28px' }}>{c.currencyHint}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '-20px', marginBottom: '28px' }}>{c.currencyHint}</p>
 
         {/* Danger zone */}
         <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#E8344E', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>{c.deleteTitle}</p>
         <button
           onClick={() => setDeleteStep(1)}
-          style={{ width: '100%', padding: '14px', backgroundColor: 'transparent', border: '1px solid #E8344E', borderRadius: '12px', color: '#E8344E', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}
+          style={{ width: '100%', padding: '14px', backgroundColor: 'transparent', border: '1px solid #00E5FF', borderRadius: '12px', color: '#00E5FF', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}
         >
           {c.deleteBtn}
         </button>
@@ -391,10 +391,10 @@ export default function PreferencesPage() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: '56px', height: '56px', borderRadius: '50%',
-                backgroundColor: '#E8344E1A',
+                backgroundColor: '#00E5FF1A',
               }}>
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L1 21h22L12 2z" fill="#E8344E" stroke="#E8344E" strokeWidth="1" strokeLinejoin="round"/>
+                  <path d="M12 2L1 21h22L12 2z" fill="#00E5FF" stroke="#00E5FF" strokeWidth="1" strokeLinejoin="round"/>
                   <path d="M12 9v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
                   <circle cx="12" cy="16" r="1" fill="#fff"/>
                 </svg>
@@ -411,7 +411,7 @@ export default function PreferencesPage() {
 
             {/* Warning text */}
             <p style={{
-              fontSize: 'calc(14px * var(--fs, 1))', color: '#999', textAlign: 'center',
+              fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
               marginBottom: '20px', lineHeight: '1.5',
             }}>
               {c.deleteStep1Warning}
@@ -424,12 +424,12 @@ export default function PreferencesPage() {
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '10px 14px', marginBottom: '6px',
                   backgroundColor: '#1A1A1A', borderRadius: '10px',
-                  border: i === 3 ? '1px solid #E8344E33' : '1px solid #222',
+                  border: i === 3 ? '1px solid #00E5FF33' : '1px solid #222',
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={i === 3 ? '#E8344E' : '#F0908A'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={i === 3 ? '#00E5FF' : '#00E5FF'} strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0 }}>
                     {i === 3 ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></> : <><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></>}
                   </svg>
-                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: i === 3 ? '#E8344E' : '#ccc', fontWeight: i === 3 ? 600 : 400 }}>
+                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: i === 3 ? '#00E5FF' : '#ccc', fontWeight: i === 3 ? 600 : 400 }}>
                     {item}
                   </span>
                 </div>
@@ -453,9 +453,9 @@ export default function PreferencesPage() {
                 onClick={() => setDeleteStep(2)}
                 style={{
                   flex: 1, padding: '14px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #E8344E, #C0392B)',
+                  background: 'linear-gradient(135deg, #0091EA, #C0392B)',
                   border: 'none',
-                  color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                  color: '#001014', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                   cursor: 'pointer',
                 }}
               >
@@ -486,10 +486,10 @@ export default function PreferencesPage() {
               <div style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 width: '48px', height: '48px', borderRadius: '50%',
-                backgroundColor: '#E8344E1A',
+                backgroundColor: '#00E5FF1A',
               }}>
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 2L1 21h22L12 2z" fill="#E8344E" stroke="#E8344E" strokeWidth="1" strokeLinejoin="round"/>
+                  <path d="M12 2L1 21h22L12 2z" fill="#00E5FF" stroke="#00E5FF" strokeWidth="1" strokeLinejoin="round"/>
                   <path d="M12 9v4" stroke="#fff" strokeWidth="2" strokeLinecap="round"/>
                   <circle cx="12" cy="16" r="1" fill="#fff"/>
                 </svg>
@@ -506,14 +506,14 @@ export default function PreferencesPage() {
 
             {/* Warning text */}
             <p style={{
-              fontSize: 'calc(14px * var(--fs, 1))', color: '#999', textAlign: 'center',
+              fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
               marginBottom: '24px', lineHeight: '1.5',
             }}>
               {c.deleteModalWarning}
             </p>
 
             {/* Confirm input */}
-            <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '8px' }}>
               {c.deleteModalInputLabel}{' '}
               <span style={{ fontWeight: 700, color: '#E8344E' }}>{c.deleteConfirmWord}</span>
               {' '}{c.deleteModalInputLabelEnd}
@@ -557,10 +557,10 @@ export default function PreferencesPage() {
                 style={{
                   flex: 1, padding: '13px', borderRadius: '10px',
                   background: confirmWordMatches && !deleting
-                    ? 'linear-gradient(135deg, #E8344E, #C0392B)'
+                    ? 'linear-gradient(135deg, #0091EA, #C0392B)'
                     : '#2A1A1A',
                   border: 'none',
-                  color: confirmWordMatches && !deleting ? '#fff' : '#666',
+                  color: confirmWordMatches && !deleting ? '#fff' : '#f0f0f0',
                   fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                   cursor: confirmWordMatches && !deleting ? 'pointer' : 'not-allowed',
                   opacity: deleting ? 0.7 : 1,

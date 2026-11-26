@@ -100,7 +100,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
     { num: '4', title: t.step4, desc: t.step4d, icon: '🚀' },
   ]
 
-  const confettiColors = ['#F0908A', '#FFD700', '#00D4FF', '#FF6B6B', '#7C3AED', '#10B981', '#F59E0B', '#EC4899', '#fff']
+  const confettiColors = ['#00E5FF', '#FFD700', '#00D4FF', '#FF6B6B', '#0091EA', '#00E5FF', '#00E5FF', '#00E5FF', '#fff']
 
   return (
     <div style={{
@@ -141,7 +141,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
       <div style={{
         position: 'absolute', top: '12%', left: '50%', transform: 'translateX(-50%)', // i18n-ignore
         width: '200px', height: '200px', borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(240,144,138,0.3) 0%, transparent 70%)',
+        background: 'radial-gradient(circle, rgba(0, 229, 255,0.3) 0%, transparent 70%)',
         filter: 'blur(30px)',
       }} />
 
@@ -159,7 +159,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
         }}>
           <div style={{
             position: 'absolute', inset: '-4px', borderRadius: '50%',
-            background: 'conic-gradient(#F0908A, #FFD700, #F0908A)',
+            background: 'conic-gradient(#00E5FF, #FFD700, #00E5FF)',
             animation: 'spinSlow 4s linear infinite',
           }} />
           <div style={{
@@ -180,7 +180,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
           {t.title}
         </h1>
         <p style={{
-          fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center', marginBottom: '36px',
+          fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center', marginBottom: '36px',
           padding: '0 20px',
         }}>
           {t.subtitle}
@@ -213,7 +213,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '2px' }}>{step.title}</p>
-                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>{step.desc}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{step.desc}</p>
               </div>
               <div style={{
                 width: '24px', height: '24px', borderRadius: '50%',
@@ -227,7 +227,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
         <div style={{
           margin: '20px 20px 0', padding: '18px 20px', borderRadius: '18px',
           background: 'linear-gradient(135deg, #1A0F1E, #1E150A)',
-          border: '1px solid rgba(240,144,138,0.2)',
+          border: '1px solid rgba(0, 229, 255,0.2)',
           maxWidth: '360px', width: 'calc(100% - 40px)',
           display: 'flex', alignItems: 'center', gap: '14px',
           opacity: show ? 1 : 0,
@@ -235,15 +235,15 @@ export default function OnboardingCelebration({ onDone }: Props) {
         }}>
           <div style={{
             width: '48px', height: '48px', borderRadius: '14px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             fontSize: 'calc(22px * var(--fs, 1))',
           }}>
             🎁
           </div>
           <div>
-            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{t.bonus}</p>
-            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#999', marginTop: '2px' }}>{t.bonusDesc}</p>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>{t.bonus}</p>
+            <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>{t.bonusDesc}</p>
           </div>
         </div>
       </div>
@@ -259,11 +259,11 @@ export default function OnboardingCelebration({ onDone }: Props) {
           onClick={onDone}
           style={{
             width: '100%', padding: '18px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
             borderRadius: '16px', border: 'none',
-            color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800,
+            color: '#001014', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800,
             cursor: 'pointer', letterSpacing: '-0.3px',
-            boxShadow: '0 8px 30px rgba(240,144,138,0.3)',
+            boxShadow: '0 8px 30px rgba(0, 229, 255,0.3)',
           }}
         >
           {t.cta}

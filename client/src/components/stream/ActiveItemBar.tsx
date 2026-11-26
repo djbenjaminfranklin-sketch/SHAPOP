@@ -161,10 +161,11 @@ export default function ActiveItemBar({
       position: 'fixed',
       bottom: 0, left: 0, right: 0,
       zIndex: 100,
-      backgroundColor: 'rgba(18,18,20,0.95)',
-      backdropFilter: 'blur(24px)',
-      WebkitBackdropFilter: 'blur(24px)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
+      // Plein écran façon Whatnot : la vidéo reste visible derrière (voile léger + flou)
+      background: 'linear-gradient(to top, rgba(0,0,0,0.62), rgba(0,0,0,0.25))',
+      backdropFilter: 'blur(6px)',
+      WebkitBackdropFilter: 'blur(6px)',
+      borderTop: '1px solid rgba(0,229,255,0.22)',
       padding: '6px 12px',
       paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
     }}>
@@ -177,15 +178,15 @@ export default function ActiveItemBar({
           {item.image_urls?.[0] && (
             <img src={item.image_urls[0]} alt="" loading="lazy" style={{ width: '24px', height: '24px', borderRadius: '5px', objectFit: 'cover', flexShrink: 0 }} />
           )}
-          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayItemTitle(item.title)}
           </span>
           {hasActiveMaxBid && (
             <span style={{
-              fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 700, color: '#8B5CF6',
-              backgroundColor: 'rgba(139,92,246,0.12)',
+              fontSize: 'calc(9px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF',
+              backgroundColor: 'rgba(0,229,255,0.12)',
               padding: '2px 6px', borderRadius: '6px',
-              border: '1px solid rgba(139,92,246,0.3)',
+              border: '1px solid rgba(0,229,255,0.3)',
               whiteSpace: 'nowrap', flexShrink: 0,
             }}>
               {labels.maxBidActive}
@@ -195,15 +196,15 @@ export default function ActiveItemBar({
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
           {timeLeft != null && timeLeft > 0 && (
             <div style={{
-              backgroundColor: timeLeft <= 10 ? 'rgba(232,52,78,0.3)' : 'rgba(240,144,138,0.15)',
-              border: timeLeft <= 10 ? '1.5px solid #E8344E' : '1px solid rgba(240,144,138,0.4)',
+              backgroundColor: timeLeft <= 10 ? 'rgba(0,229,255,0.3)' : 'rgba(0, 229, 255,0.15)',
+              border: timeLeft <= 10 ? '1.5px solid #00E5FF' : '1px solid rgba(0, 229, 255,0.4)',
               borderRadius: '8px',
               padding: '2px 8px',
               textAlign: 'center',
               animation: timeLeft <= 10 ? 'timerPulse 0.5s ease-in-out infinite' : 'none',
             }}>
               <span style={{
-                fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 900, color: timeLeft <= 10 ? '#E8344E' : '#F0908A',
+                fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 900, color: timeLeft <= 10 ? '#00E5FF' : '#00E5FF',
                 fontVariantNumeric: 'tabular-nums',
               }}>
                 {timeLeft}s {/* i18n-ignore */}
@@ -212,14 +213,14 @@ export default function ActiveItemBar({
           )}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: 'rgba(255,255,255,0.4)' }}>{labels.currentPrice}</span>
-              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{money(item.current_price)}</span>
+              <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#f0f0f0' }}>{labels.currentPrice}</span>
+              <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>{money(item.current_price)}</span>
             </div>
             {/* Prix minimum du vendeur : on dit s'il est atteint, sans en donner le montant */}
             {Number(item.min_price) > 0 && (
               <span style={{
                 fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, marginTop: '2px',
-                color: Number(item.current_price) >= Number(item.min_price) ? '#22C55E' : '#FF9632',
+                color: Number(item.current_price) >= Number(item.min_price) ? '#00E5FF' : '#FF9632',
               }}>
                 {Number(item.current_price) >= Number(item.min_price) ? labels.reserveMet : labels.reserveNotMet}
               </span>
@@ -230,14 +231,15 @@ export default function ActiveItemBar({
 
       {/* Bid action */}
       {!isActive ? (
-        <div style={{ textAlign: 'center', padding: '6px', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{ textAlign: 'center', padding: '6px', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0' }}>
           {labels.unavailable}
         </div>
       ) : hasCard === false ? (
         <button onClick={onAddCard} style={{
-          width: '100%', padding: '10px', borderRadius: '100px', border: 'none',
-          background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-          color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+          width: '100%', padding: '10px', borderRadius: '100px', border: '2px solid #00E5FF',
+          background: 'rgba(0,10,14,0.35)', // néon transparent : la vidéo se voit derrière
+          boxShadow: '0 0 14px rgba(0,229,255,0.55), inset 0 0 8px rgba(0,229,255,0.15)',
+          color: '#00E5FF', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
         }}>
           {labels.addCard}
         </button>
@@ -251,13 +253,16 @@ export default function ActiveItemBar({
               width: '100%',
               height: '48px',
               borderRadius: '100px',
-              border: 'none',
+              // Bouton néon : contour cyan lumineux, fond transparent (la vidéo se voit derrière)
+              border: disabled ? '1.5px solid rgba(255,255,255,0.2)' : '2px solid #00E5FF',
               background: disabled
-                ? 'rgba(255,255,255,0.1)'
+                ? 'rgba(255,255,255,0.08)'
                 : bidFlash
-                  ? 'linear-gradient(135deg, #FF6B6B, #E8344E)'
-                  : 'linear-gradient(135deg, #F0908A, #E8344E)',
-              color: '#fff',
+                  ? '#00E5FF'
+                  : 'rgba(0,10,14,0.35)',
+              boxShadow: disabled ? 'none' : '0 0 16px rgba(0,229,255,0.55), inset 0 0 10px rgba(0,229,255,0.18)',
+              textShadow: disabled || bidFlash ? 'none' : '0 0 8px rgba(0,229,255,0.7)',
+              color: disabled ? 'rgba(255,255,255,0.5)' : bidFlash ? '#001014' : '#00E5FF',
               fontSize: 'calc(17px * var(--fs, 1))',
               fontWeight: 800,
               cursor: disabled ? 'default' : 'pointer',
@@ -286,9 +291,9 @@ export default function ActiveItemBar({
                 height: '40px',
                 padding: '0 8px',
                 borderRadius: '100px',
-                border: '1.5px solid #10B981',
-                backgroundColor: 'rgba(16,185,129,0.15)',
-                color: '#10B981',
+                border: '1.5px solid rgba(255,255,255,0.75)',
+                backgroundColor: 'rgba(0,0,0,0.3)',
+                color: '#fff',
                 fontSize: 'calc(13px * var(--fs, 1))',
                 fontWeight: 800,
                 letterSpacing: '0.3px',
@@ -312,9 +317,9 @@ export default function ActiveItemBar({
               height: '40px',
               padding: '0 8px',
               borderRadius: '100px',
-              border: hasActiveMaxBid ? '1.5px solid #8B5CF6' : '1px solid rgba(139,92,246,0.4)',
-              backgroundColor: hasActiveMaxBid ? 'rgba(139,92,246,0.2)' : 'rgba(139,92,246,0.1)',
-              color: '#8B5CF6',
+              border: hasActiveMaxBid ? '1.5px solid #00E5FF' : '1px solid rgba(255,255,255,0.45)',
+              backgroundColor: hasActiveMaxBid ? 'rgba(0,229,255,0.15)' : 'rgba(0,0,0,0.3)',
+              color: hasActiveMaxBid ? '#00E5FF' : '#fff',
               fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 800,
               letterSpacing: '0.3px',
@@ -337,9 +342,9 @@ export default function ActiveItemBar({
               height: '40px',
               padding: '0 8px',
               borderRadius: '100px',
-              border: '1px solid rgba(255,215,0,0.3)',
-              backgroundColor: 'rgba(255,215,0,0.1)',
-              color: '#FFD700',
+              border: '1px solid rgba(255,255,255,0.45)',
+              backgroundColor: 'rgba(0,0,0,0.3)',
+              color: '#fff',
               fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 800,
               letterSpacing: '0.5px',

@@ -196,8 +196,8 @@ export default function FaqPage() {
               onClick={() => { setTab(t); setOpen(null) }}
               style={{
                 flex: 1, padding: '12px 0', background: 'none', border: 'none',
-                borderBottom: tab === t ? '2px solid #F0908A' : '2px solid transparent',
-                color: tab === t ? '#fff' : '#666', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                borderBottom: tab === t ? '2px solid #00E5FF' : '2px solid transparent',
+                color: tab === t ? '#fff' : '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {c[t]}
@@ -207,7 +207,7 @@ export default function FaqPage() {
       </div>
 
       <div style={{ padding: '16px 20px' }}>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', marginBottom: '16px' }}>{c.subtitle}</p>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '16px' }}>{c.subtitle}</p>
         {faqs.map((faq, i) => (
           <div key={`${tab}-${i}`} style={{ borderBottom: '1px solid #1A1A1A', marginBottom: '4px' }}>
             <button
@@ -224,7 +224,7 @@ export default function FaqPage() {
               </svg>
             </button>
             {open === i && (
-              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6, padding: '0 0 16px', whiteSpace: 'pre-line' }}>{faq.a}</p>
+              <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6, padding: '0 0 16px', whiteSpace: 'pre-line' }}>{faq.a}</p>
             )}
           </div>
         ))}

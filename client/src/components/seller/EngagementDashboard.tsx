@@ -218,9 +218,9 @@ interface EngagementDashboardProps {
 
 const ENERGY_COLORS = {
   low: { color: '#EF4444', gradient: 'linear-gradient(135deg, #EF4444, #DC2626)', percent: 25 },
-  medium: { color: '#F59E0B', gradient: 'linear-gradient(135deg, #F59E0B, #D97706)', percent: 50 },
-  high: { color: '#22C55E', gradient: 'linear-gradient(135deg, #22C55E, #16A34A)', percent: 75 },
-  peak: { color: '#A855F7', gradient: 'linear-gradient(135deg, #A855F7, #9333EA)', percent: 100 },
+  medium: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #00E5FF)', percent: 50 },
+  high: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #16A34A)', percent: 75 },
+  peak: { color: '#00E5FF', gradient: 'linear-gradient(135deg, #00E5FF, #00E5FF)', percent: 100 },
 }
 
 const AI_ICONS: Record<string, string> = {
@@ -394,7 +394,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             borderRadius: '10px',
             backgroundColor: 'rgba(255,255,255,0.08)',
             border: 'none',
-            color: '#999',
+            color: '#f0f0f0',
             fontSize: 'calc(18px * var(--fs, 1))',
             cursor: 'pointer',
             display: 'flex',
@@ -429,7 +429,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             justifyContent: 'space-between',
             marginBottom: '16px',
           }}>
-            <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', textTransform: 'uppercase', letterSpacing: '1px' }}>
               {ct.energyLevel}
             </span>
             <span style={{
@@ -482,7 +482,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
               <span key={level} style={{
                 fontSize: 'calc(9px * var(--fs, 1))',
                 fontWeight: 600,
-                color: metrics.energy_level === level ? ENERGY_COLORS[level].color : '#444',
+                color: metrics.energy_level === level ? ENERGY_COLORS[level].color : '#f0f0f0',
                 transition: 'color 0.4s ease',
               }}>
                 {ct.energyLabels[level]}
@@ -529,7 +529,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             label={ct.engagementRate}
             value={metrics.engagement_rate}
             suffix="%"
-            accentColor="#F0908A"
+            accentColor="#00E5FF"
           />
         </div>
 
@@ -537,8 +537,8 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
         <div style={{
           padding: '16px',
           borderRadius: '16px',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.08) 0%, rgba(168,85,247,0.08) 100%)',
-          border: '1px solid rgba(240,144,138,0.15)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.08) 0%, rgba(168,85,247,0.08) 100%)',
+          border: '1px solid rgba(0, 229, 255,0.15)',
           position: 'relative',
           overflow: 'hidden',
           minHeight: '80px',
@@ -552,7 +552,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             <span style={{
               fontSize: 'calc(10px * var(--fs, 1))',
               fontWeight: 700,
-              color: '#F0908A',
+              color: '#00E5FF',
               textTransform: 'uppercase',
               letterSpacing: '1.2px',
             }}>
@@ -562,7 +562,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              backgroundColor: '#F0908A',
+              backgroundColor: '#00E5FF',
               animation: 'pulse 2s ease infinite',
             }} />
           </div>
@@ -593,7 +593,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             <span style={{
               fontSize: 'calc(11px * var(--fs, 1))',
               fontWeight: 600,
-              color: '#888',
+              color: '#f0f0f0',
               textTransform: 'uppercase',
               letterSpacing: '0.8px',
             }}>
@@ -609,7 +609,7 @@ export default function EngagementDashboard({ streamId, isVisible, onClose }: En
             <span style={{
               fontSize: 'calc(13px * var(--fs, 1))',
               fontWeight: 700,
-              color: sentiment.key === 'positive' ? '#22C55E' : sentiment.key === 'neutral' ? '#F59E0B' : '#EF4444',
+              color: sentiment.key === 'positive' ? '#00E5FF' : sentiment.key === 'neutral' ? '#00E5FF' : '#EF4444',
               transition: 'color 0.3s ease',
             }}>
               {sentiment.label}
@@ -667,7 +667,7 @@ function MetricCard({
         <span style={{
           fontSize: 'calc(10px * var(--fs, 1))',
           fontWeight: 600,
-          color: '#777',
+          color: '#f0f0f0',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
         }}>
@@ -688,7 +688,7 @@ function MetricCard({
         {trend && (
           <span style={{
             fontSize: 'calc(14px * var(--fs, 1))',
-            color: trend === 'up' ? '#22C55E' : '#EF4444',
+            color: trend === 'up' ? '#00E5FF' : '#EF4444',
             fontWeight: 700,
             transition: 'color 0.3s ease',
           }}>

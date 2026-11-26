@@ -215,11 +215,11 @@ export default function DirectSalesPage() {
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{tx.title}</h1>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="#00E5FF" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
           </div>
-          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{tx.subtitle}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>{tx.subtitle}</p>
         </div>
       </div>
 
@@ -264,7 +264,7 @@ export default function DirectSalesPage() {
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }}>
           <div style={{
             width: '32px', height: '32px', border: '3px solid #333',
-            borderTopColor: '#E8344E', borderRadius: '50%',
+            borderTopColor: '#00E5FF', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -273,10 +273,10 @@ export default function DirectSalesPage() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))',
+            background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(0,229,255,0.06))',
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -286,11 +286,11 @@ export default function DirectSalesPage() {
             aria-label={tx.retry}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+              color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
             </svg>
             {tx.retry}
@@ -301,30 +301,30 @@ export default function DirectSalesPage() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
+            background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12), rgba(0,229,255,0.06))',
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
             </svg>
           </div>
           <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{tx.noResults}</h3>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>{tx.noResultsSub}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0, maxWidth: '260px' }}>{tx.noResultsSub}</p>
         </div>
       ) : displayItems.length === 0 ? (
         // No items at all
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
+            background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12), rgba(0,229,255,0.06))',
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
           <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{tx.emptyTitle}</h3>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>{tx.emptySubtitle}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0, maxWidth: '260px' }}>{tx.emptySubtitle}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 pt-2">
@@ -368,10 +368,10 @@ export default function DirectSalesPage() {
                     width: '100%', marginTop: '6px', padding: '8px',
                     borderRadius: '10px', border: 'none',
                     background: boughtItemId === item.id
-                      ? 'linear-gradient(135deg, #22C55E, #16A34A)'
+                      ? 'linear-gradient(135deg, #00E5FF, #16A34A)'
                       : buyingItemId === item.id
                         ? '#555'
-                        : 'linear-gradient(135deg, #E8344E, #D42A42)',
+                        : 'linear-gradient(135deg, #0091EA, #D42A42)',
                     color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                     cursor: buyingItemId === item.id ? 'default' : 'pointer',
                     opacity: buyingItemId === item.id ? 0.7 : 1,

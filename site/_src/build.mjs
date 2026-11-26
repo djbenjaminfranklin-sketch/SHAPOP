@@ -56,7 +56,7 @@ function head(page, { title, desc, pathName }) {
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Heebo:wght@400;500;700;800;900&display=swap">
-<link rel="stylesheet" href="/assets/style.css?v=7">
+<link rel="stylesheet" href="/assets/style.css?v=9">
 </head>
 <body data-page="${page}">
 <a class="skip" href="#main">Skip to content</a>`;
@@ -124,7 +124,7 @@ function footer(legal = false) {
 <script src="/assets/i18n-es-ru-he.js?v=7"></script>
 <script src="/assets/i18n-delete.js?v=7"></script>
 <script src="/assets/i18n-legal-rules.js?v=8"></script>
-${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=8"></script>
+${legal ? '<script src="/assets/legal-en-fr.js?v=7"></script>\n<script src="/assets/legal-es-ru-he.js?v=7"></script>\n' : ''}<script src="/assets/app.js?v=9"></script>
 </body>
 </html>
 `;

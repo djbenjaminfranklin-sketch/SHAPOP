@@ -73,8 +73,8 @@ export default function MiniPlayerOverlay() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
           <span style={{
-            fontSize: 'calc(8px * var(--fs, 1))', fontWeight: 700, color: '#fff',
-            backgroundColor: '#E8344E', padding: '1px 4px', borderRadius: '3px',
+            fontSize: 'calc(8px * var(--fs, 1))', fontWeight: 700, color: '#001014',
+            backgroundColor: '#00E5FF', padding: '1px 4px', borderRadius: '3px',
             lineHeight: '12px',
           }}>
             {tr({ en: 'LIVE', fr: 'LIVE', es: 'EN VIVO', ru: 'ЭФИР', he: 'שידור חי' })}

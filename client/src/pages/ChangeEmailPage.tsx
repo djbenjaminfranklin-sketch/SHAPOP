@@ -185,20 +185,20 @@ export default function ChangeEmailPage() {
       {/* Form */}
       <div style={{ padding: '24px 20px' }}>
         {/* Current email */}
-        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.currentEmail}
         </label>
         <div style={{
           padding: '14px 16px', backgroundColor: '#111', borderRadius: '12px',
           border: '1px solid #1A1A1A', marginBottom: '24px',
         }}>
-          <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#888' }}>
+          <span style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0' }}>
             {user?.email || '---'}
           </span>
         </div>
 
         {/* New email */}
-        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.newEmail}
         </label>
         <input
@@ -209,12 +209,12 @@ export default function ChangeEmailPage() {
           onChange={e => setNewEmail(e.target.value)}
           placeholder={c.newPlaceholder}
           style={{ ...inputStyle, marginBottom: '20px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#00E5FF'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
           onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
         />
 
         {/* Password for verification */}
-        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.passwordLabel}
         </label>
         <input
@@ -224,7 +224,7 @@ export default function ChangeEmailPage() {
           onChange={e => setPassword(e.target.value)}
           placeholder={c.passwordPlaceholder}
           style={{ ...inputStyle, marginBottom: '32px' }}
-          onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+          onFocus={e => { e.currentTarget.style.borderColor = '#00E5FF'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
           onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
         />
 
@@ -234,10 +234,10 @@ export default function ChangeEmailPage() {
           disabled={loading}
           style={{
             width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
-            background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+            background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
+            color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.6 : 1,
-            boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
+            boxShadow: '0 6px 24px rgba(0, 229, 255,0.35)',
           }}
         >
           {loading
@@ -253,8 +253,8 @@ export default function ChangeEmailPage() {
         <div style={{
           padding: '14px 24px', borderRadius: '12px', textAlign: 'center',
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : '#3a1a1a',
-          border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#E8344E'}`,
-          color: toast.type === 'success' ? '#4ADE80' : '#E8344E',
+          border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#00E5FF'}`,
+          color: toast.type === 'success' ? '#4ADE80' : '#00E5FF',
           fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>

@@ -40,8 +40,8 @@ function FollowingIcon({ size }: { size: number }) {
     <svg width={size} height={size} viewBox="0 0 80 80" fill="none">
       <defs>
         <linearGradient id="follow-grad" x1="0" y1="0" x2="80" y2="80" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#A78BFA" />
-          <stop offset="100%" stopColor="#7C3AED" />
+          <stop offset="0%" stopColor="#00E5FF" />
+          <stop offset="100%" stopColor="#0091EA" />
         </linearGradient>
       </defs>
       {/* Person back */}
@@ -51,7 +51,7 @@ function FollowingIcon({ size }: { size: number }) {
       <circle cx="32" cy="28" r="12" fill="url(#follow-grad)" />
       <path d="M8 66c0-13.255 10.745-24 24-24s24 10.745 24 24" fill="url(#follow-grad)" />
       {/* Heart link */}
-      <path d="M62.5 37.5l3.2-2.8a3.5 3.5 0 015 0 3.5 3.5 0 010 5L62.5 47l-8.2-7.3a3.5 3.5 0 010-5 3.5 3.5 0 015 0l3.2 2.8z" fill="#F0908A" />
+      <path d="M62.5 37.5l3.2-2.8a3.5 3.5 0 015 0 3.5 3.5 0 010 5L62.5 47l-8.2-7.3a3.5 3.5 0 010-5 3.5 3.5 0 015 0l3.2 2.8z" fill="#00E5FF" />
     </svg>
   )
 }
@@ -85,12 +85,12 @@ export function CategoryScroll({ selected, onSelect, lang: langProp }: CategoryS
           >
             <div style={{
               width: '116px', height: '116px', borderRadius: '10px', overflow: 'hidden', position: 'relative',
-              border: isActive ? '2.5px solid #F0908A' : '1.5px solid #2A2A2A',
+              border: isActive ? '2.5px solid #00E5FF' : '1.5px solid #2A2A2A',
               backgroundColor: '#1C1C1E',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: isActive ? '0 0 12px rgba(240,144,138,0.25)' : 'none',
+              boxShadow: isActive ? '0 0 12px rgba(0, 229, 255,0.25)' : 'none',
               transition: 'border-color 0.2s, box-shadow 0.2s',
-              ...(imageFailed ? { background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)' } : {})
+              ...(imageFailed ? { background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)' } : {})
             }}>
               {cat.id === 'for_you' ? (
                 <CartoonAvatar seed="shapop_pour_toi" size={116} />
@@ -135,7 +135,7 @@ export function CategoryScroll({ selected, onSelect, lang: langProp }: CategoryS
             {(cat.id === 'for_you' || cat.id === 'following') && (
               <span style={{
                 fontSize: 'calc(12px * var(--fs, 1))', fontWeight: isActive ? 700 : 600,
-                color: isActive ? '#fff' : '#999',
+                color: isActive ? '#fff' : '#f0f0f0',
                 marginTop: '6px', textAlign: 'center', lineHeight: 1.2,
                 maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',

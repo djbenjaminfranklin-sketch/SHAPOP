@@ -342,7 +342,7 @@ export default function LiveRecapPage() {
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', backgroundColor: '#000' }}>
         <div style={{
           width: '32px', height: '32px',
-          border: '3px solid #333', borderTopColor: '#F0908A',
+          border: '3px solid #333', borderTopColor: '#00E5FF',
           borderRadius: '50%', animation: 'spin 0.8s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -382,9 +382,9 @@ export default function LiveRecapPage() {
             onClick={() => setShowVod(true)}
             style={{
               width: '100%', padding: '14px',
-              background: 'linear-gradient(135deg, #7C3AED, #5B21B6)',
+              background: 'linear-gradient(135deg, #0091EA, #5B21B6)',
               borderRadius: '14px', border: 'none',
-              color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
+              color: '#001014', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
@@ -406,10 +406,10 @@ export default function LiveRecapPage() {
           backgroundColor: '#111', borderRadius: '14px', padding: '16px',
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
             {money(totalRevenue)}
           </p>
-          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.totalRevenue}
           </p>
         </div>
@@ -417,10 +417,10 @@ export default function LiveRecapPage() {
           backgroundColor: '#111', borderRadius: '14px', padding: '16px',
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: 0 }}>
+          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
             {soldCount}
           </p>
-          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.soldItems}
           </p>
         </div>
@@ -428,10 +428,10 @@ export default function LiveRecapPage() {
           backgroundColor: '#111', borderRadius: '14px', padding: '16px',
           textAlign: 'center',
         }}>
-          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#666', margin: 0 }}>
+          <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#f0f0f0', margin: 0 }}>
             {unsoldCount}
           </p>
-          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>
             {ct.unsoldItems}
           </p>
         </div>
@@ -447,10 +447,10 @@ export default function LiveRecapPage() {
             backgroundColor: '#111', borderRadius: '14px', padding: '16px',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#8B5CF6', margin: 0 }}>
+            <p style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
               {streamInfo.peak_viewers || 0}
             </p>
-            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>
               {ct.peakViewers}
             </p>
           </div>
@@ -463,7 +463,7 @@ export default function LiveRecapPage() {
                 ? `${Math.round((new Date(streamInfo.ended_at).getTime() - new Date(streamInfo.started_at).getTime()) / 60000)} ${ct.minutes}`
                 : '-'}
             </p>
-            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>
               {ct.duration}
             </p>
           </div>
@@ -483,7 +483,7 @@ export default function LiveRecapPage() {
             backgroundColor: '#111', borderRadius: '14px', padding: '32px',
             textAlign: 'center',
           }}>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{ct.noSales}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.noSales}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -512,7 +512,7 @@ export default function LiveRecapPage() {
                   {sale.item.image_urls?.[0] ? (
                     <img src={sale.item.image_urls[0]} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>
                       {formatLot(sale.lotNumber)}
                     </span>
                   )}
@@ -521,7 +521,7 @@ export default function LiveRecapPage() {
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                       {formatLot(sale.lotNumber)}
                     </span>
                     <span style={{
@@ -539,14 +539,14 @@ export default function LiveRecapPage() {
                   }}>
                     {sale.item.title}
                   </p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
                     {sale.buyerProfile?.display_name || sale.buyerProfile?.username || sale.item.winner_id?.slice(0, 8).toUpperCase()}
                   </p>
                 </div>
 
                 {/* Price */}
                 <div style={{ textAlign: 'end', flexShrink: 0 }}>
-                  <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
                     {money(sale.order?.amount ?? sale.item.current_price, sale.order?.currency)}
                   </p>
                 </div>
@@ -605,8 +605,8 @@ export default function LiveRecapPage() {
               backgroundColor: '#0D0D0D', borderRadius: '12px',
               padding: '14px', marginBottom: '14px',
             }}>
-              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{ct.orderRef}</p>
-              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: 0 }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 4px' }}>{ct.orderRef}</p>
+              <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', margin: 0 }}>
                 {selectedSale.order ? `#${selectedSale.order.id.slice(0, 8).toUpperCase()}` : '—'}
               </p>
             </div>
@@ -616,15 +616,15 @@ export default function LiveRecapPage() {
               <div style={{
                 flex: 1, backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '14px',
               }}>
-                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{ct.price}</p>
-                <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 4px' }}>{ct.price}</p>
+                <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
                   {money(selectedSale.order?.amount ?? selectedSale.item.current_price, selectedSale.order?.currency)}
                 </p>
               </div>
               <div style={{
                 flex: 1, backgroundColor: '#0D0D0D', borderRadius: '12px', padding: '14px',
               }}>
-                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{ct.status}</p>
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 4px' }}>{ct.status}</p>
                 <p style={{
                   fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, margin: 0,
                   color: getStatusColor(selectedSale.order),
@@ -644,13 +644,13 @@ export default function LiveRecapPage() {
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.name}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{ct.name}</p>
                   <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.buyerProfile?.display_name || selectedSale.item.winner_id?.slice(0, 8).toUpperCase() || '—'}
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.address}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{ct.address}</p>
                   <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.order?.shipping_address
                       ? `${selectedSale.order.shipping_address.street || ''}, ${selectedSale.order.shipping_address.zip || ''} ${selectedSale.order.shipping_address.city || ''}`
@@ -658,7 +658,7 @@ export default function LiveRecapPage() {
                   </p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: 0 }}>{ct.phone}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{ct.phone}</p>
                   <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', margin: '2px 0 0' }}>
                     {selectedSale.order?.shipping_address?.phone || '—'}
                   </p>
@@ -672,8 +672,8 @@ export default function LiveRecapPage() {
                 onClick={() => navigate(`/order/${selectedSale.order!.id}`)}
                 style={{
                   width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                  color: '#001014', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
                 {ct.viewOrder}
@@ -706,9 +706,9 @@ export default function LiveRecapPage() {
               }}
               style={{
                 padding: '8px 16px',
-                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
                 borderRadius: '8px', border: 'none',
-                color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
+                color: '#001014', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
@@ -735,7 +735,7 @@ export default function LiveRecapPage() {
               />
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipStart}</label>
+                  <label style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', display: 'block', marginBottom: '4px' }}>{ct.clipStart}</label>
                   <input
                     type="number"
                     value={clipStart}
@@ -748,7 +748,7 @@ export default function LiveRecapPage() {
                   />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', display: 'block', marginBottom: '4px' }}>{ct.clipDuration}</label>
+                  <label style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', display: 'block', marginBottom: '4px' }}>{ct.clipDuration}</label>
                   <input
                     type="number"
                     value={clipDuration}
@@ -770,7 +770,7 @@ export default function LiveRecapPage() {
                   }}
                   style={{
                     padding: '8px', borderRadius: '8px', border: '1px solid #333',
-                    backgroundColor: 'transparent', color: '#8B5CF6', fontSize: 'calc(12px * var(--fs, 1))',
+                    backgroundColor: 'transparent', color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))',
                     fontWeight: 600, cursor: 'pointer',
                   }}
                 >
@@ -803,7 +803,7 @@ export default function LiveRecapPage() {
                 }}
                 style={{
                   width: '100%', padding: '14px',
-                  background: clipCreating ? '#333' : 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                  background: clipCreating ? '#333' : 'linear-gradient(135deg, #00E5FF, #6D28D9)',
                   borderRadius: '12px', border: 'none',
                   color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
                   cursor: clipCreating ? 'default' : 'pointer',
@@ -821,7 +821,7 @@ export default function LiveRecapPage() {
               backgroundColor: '#111', borderRadius: '14px', padding: '24px',
               textAlign: 'center',
             }}>
-              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666' }}>{ct.noClips}</p>
+              <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.noClips}</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -832,10 +832,10 @@ export default function LiveRecapPage() {
                 }}>
                   <div style={{
                     width: '40px', height: '40px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                    background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="#001014">
                       <polygon points="5 3 19 12 5 21 5 3"/>
                     </svg>
                   </div>
@@ -843,7 +843,7 @@ export default function LiveRecapPage() {
                     <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {clip.title}
                     </p>
-                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
                       {Math.floor(clip.start_seconds / 60)}:{String(clip.start_seconds % 60).padStart(2, '0')} — {clip.duration_seconds} {ct.secondsShort}
                     </p>
                   </div>
@@ -851,8 +851,8 @@ export default function LiveRecapPage() {
                     onClick={() => setClipPlaying({ recording_url: clip.recording_url, start_seconds: clip.start_seconds, title: clip.title })}
                     style={{
                       padding: '6px 12px', borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                      border: 'none', color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #00E5FF, #6D28D9)',
+                      border: 'none', color: '#001014', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {ct.playClip}
@@ -870,7 +870,7 @@ export default function LiveRecapPage() {
                     style={{
                       padding: '6px 10px', borderRadius: '8px',
                       backgroundColor: '#1A1A1A', border: '1px solid #333',
-                      color: '#E8344E', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                      color: '#00E5FF', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                     }}
                   >
                     {ct.deleteClip}

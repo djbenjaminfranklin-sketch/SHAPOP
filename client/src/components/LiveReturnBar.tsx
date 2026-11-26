@@ -51,8 +51,8 @@ export default function LiveReturnBar({ live }: { live: { id: string; title: str
         position: 'fixed', left: 0, right: 0, zIndex: 49,
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 74px)', margin: '0 10px', borderRadius: '14px',
         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-        background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)', border: 'none', color: '#fff',
-        textAlign: 'start', cursor: 'pointer', boxShadow: '0 -4px 18px rgba(232,52,78,0.35)',
+        background: 'linear-gradient(135deg, #0091EA 0%, #00E5FF 100%)', border: 'none', color: '#001014',
+        textAlign: 'start', cursor: 'pointer', boxShadow: '0 -4px 18px rgba(0,229,255,0.35)',
       }}
     >
       <span style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#fff', flexShrink: 0, animation: 'liveDot 1.2s ease-in-out infinite' }} />
@@ -60,7 +60,7 @@ export default function LiveReturnBar({ live }: { live: { id: string; title: str
         <span style={{ display: 'block', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800 }}>{t.title}</span>
         <span style={{ display: 'block', fontSize: 'calc(13px * var(--fs, 1))', opacity: 0.9, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{live.title}</span>
       </span>
-      <span style={{ flexShrink: 0, fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, backgroundColor: '#fff', color: '#E8344E', padding: '8px 12px', borderRadius: '999px' }}>{t.back}</span>
+      <span style={{ flexShrink: 0, fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 800, backgroundColor: '#fff', color: '#00E5FF', padding: '8px 12px', borderRadius: '999px' }}>{t.back}</span>
       <style>{`@keyframes liveDot { 0%, 100% { opacity: 1 } 50% { opacity: 0.3 } }`}</style>
     </button>
   )

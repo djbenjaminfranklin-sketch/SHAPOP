@@ -126,11 +126,11 @@ export default function EulaPage() {
         <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>{c.title}</h1>
       </div>
       <div style={{ padding: '20px 20px' }}>
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '24px' }}>{c.updated}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '24px' }}>{c.updated}</p>
         {c.sections.map((s) => (
           <div key={s.h} style={{ marginBottom: '20px' }}>
             <h2 style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{s.h}</h2>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6 }}>{s.p}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6 }}>{s.p}</p>
           </div>
         ))}
       </div>

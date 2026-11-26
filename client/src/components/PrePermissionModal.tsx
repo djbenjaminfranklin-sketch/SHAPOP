@@ -55,7 +55,7 @@ export default function PrePermissionModal({
             width: '64px',
             height: '64px',
             borderRadius: '50%',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -76,7 +76,7 @@ export default function PrePermissionModal({
 
         <p style={{
           fontSize: 'calc(14px * var(--fs, 1))',
-          color: '#999',
+          color: '#f0f0f0',
           lineHeight: 1.5,
           margin: '0 0 24px',
         }}>
@@ -92,7 +92,7 @@ export default function PrePermissionModal({
               borderRadius: '12px',
               backgroundColor: '#2A2A2A',
               border: 'none',
-              color: '#999',
+              color: '#f0f0f0',
               fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
@@ -106,9 +106,9 @@ export default function PrePermissionModal({
               flex: 1,
               padding: '12px',
               borderRadius: '12px',
-              backgroundColor: '#F0908A',
+              backgroundColor: '#00E5FF',
               border: 'none',
-              color: '#fff',
+              color: '#001014',
               fontSize: 'calc(15px * var(--fs, 1))',
               fontWeight: 700,
               cursor: 'pointer',

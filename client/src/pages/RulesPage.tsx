@@ -128,7 +128,7 @@ export default function RulesPage() {
   const c = tr(content)
   const section = (s: Section) => (
     <section style={{ backgroundColor: '#111', border: '1px solid #222', borderRadius: '16px', padding: '16px', marginBottom: '12px' }}>
-      <h2 style={{ margin: '0 0 10px', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{s.title}</h2>
+      <h2 style={{ margin: '0 0 10px', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>{s.title}</h2>
       <ol style={{ margin: 0, paddingInlineStart: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {s.items.map(item => <li key={item} style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#ddd', lineHeight: 1.5 }}>{item}</li>)}
       </ol>
@@ -137,11 +137,11 @@ export default function RulesPage() {
   return (
     <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid #111', position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.9)' }}>
-        <button onClick={() => navigate(-1)} aria-label={c.back} style={{ background: 'none', border: 'none', color: '#999', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>&#8249;</button>
+        <button onClick={() => navigate(-1)} aria-label={c.back} style={{ background: 'none', border: 'none', color: '#f0f0f0', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>&#8249;</button>
         <h1 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, margin: 0 }}>{c.title}</h1>
       </div>
       <div style={{ padding: '16px' }}>
-        <p style={{ margin: '0 0 14px', fontSize: 'calc(14px * var(--fs, 1))', color: '#999', lineHeight: 1.5 }}>{c.intro}</p>
+        <p style={{ margin: '0 0 14px', fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.5 }}>{c.intro}</p>
         {section(c.buyer)}
         {section(c.seller)}
         {section(c.pickup)}

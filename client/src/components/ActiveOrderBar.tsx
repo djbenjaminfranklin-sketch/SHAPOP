@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { getDir, getLang, tr } from '../lib/i18n'
-import { formatDateTime } from '../lib/fulfillment'
+import { displayItemTitle, formatDateTime } from '../lib/fulfillment'
 
 const content = {
   en: {
@@ -65,7 +65,7 @@ export default function ActiveOrderBar({ userId, path }: { userId: string; path:
     const buyerOrders = (bought || []) as unknown as BarOrder[]
     const toPay = buyerOrders.filter(o => o.status === 'pending_payment')
     const inProgress = buyerOrders.filter(o => o.status !== 'pending_payment')
-    const title = (o: BarOrder) => o.item?.title || ''
+    const title = (o: BarOrder) => displayItemTitle(o.item?.title)
 
     if (toPay.length) {
       const o = toPay[0]
@@ -95,7 +95,8 @@ export default function ActiveOrderBar({ userId, path }: { userId: string; path:
     return () => clearInterval(t)
   }, [load, path])
 
-  const visible = !!bar && !HIDDEN_PREFIXES.some(p => path.startsWith(p))
+  // Seulement sur l'Accueil et Activité : ailleurs, il cachait le bas des pages (fiche article, boutique, communautés…)
+  const visible = !!bar && (path === '/' || path === '/home' || path === '/activity') && !HIDDEN_PREFIXES.some(p => path.startsWith(p))
 
   // Le bandeau flotte au-dessus du bas de page : on ajoute la même hauteur en bas de la page
   // pour que les derniers boutons (Acheter, Supprimer l'annonce…) restent atteignables en défilant.
@@ -111,23 +112,22 @@ export default function ActiveOrderBar({ userId, path }: { userId: string; path:
   return (
     <button
       dir={getDir()}
-      className="no-theme-invert"
       onClick={() => navigate(bar.to)}
       style={{
         position: 'fixed', left: 0, right: 0, zIndex: 49,
         bottom: 'calc(env(safe-area-inset-bottom, 0px) + 74px)', margin: '0 10px', borderRadius: '14px',
         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-        background: '#fff', border: '2px solid #F0908A', color: '#E8344E',
-        textAlign: 'start', cursor: 'pointer', boxShadow: '0 -4px 18px rgba(232,52,78,0.25)',
+        background: '#0d0d12', border: '1.5px solid rgba(0,229,255,0.62)', color: '#00E5FF',
+        textAlign: 'start', cursor: 'pointer', boxShadow: '0 0 14px rgba(0,229,255,0.28)',
       }}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M18 15l-6-6-6 6" /></svg>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M18 15l-6-6-6 6" /></svg>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.title}</span>
-        {bar.sub && <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.sub}</span>}
+        {bar.sub && <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bar.sub}</span>}
       </span>
       {bar.extra > 0 && (
-        <span style={{ flexShrink: 0, fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, padding: '4px 8px', borderRadius: '999px', backgroundColor: 'rgba(240,144,138,0.18)' }}>{c.more(bar.extra)}</span>
+        <span style={{ flexShrink: 0, fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, padding: '4px 8px', borderRadius: '999px', backgroundColor: 'rgba(0, 229, 255,0.18)' }}>{c.more(bar.extra)}</span>
       )}
     </button>
   )

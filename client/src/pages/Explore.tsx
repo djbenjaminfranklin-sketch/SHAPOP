@@ -272,7 +272,7 @@ export default function Explore() {
       {/* Trending searches */}
       {!search && (
         <div style={{ padding: '16px 16px 0' }}>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#666', margin: '0 0 10px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', margin: '0 0 10px' }}>
             {ct.trending}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -296,7 +296,7 @@ export default function Explore() {
 
       {/* Categories grid */}
       <div style={{ padding: '24px 16px 0' }} onClick={() => setShowSuggestions(false)}>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#666', margin: '0 0 14px' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', margin: '0 0 14px' }}>
           {ct.categoriesLabel}
         </p>
         <div style={{
@@ -343,7 +343,7 @@ export default function Explore() {
         </div>
         {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <p style={{ color: '#555', fontSize: 'calc(15px * var(--fs, 1))' }}>{ct.noCategoryFound}</p>
+            <p style={{ color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))' }}>{ct.noCategoryFound}</p>
           </div>
         )}
       </div>

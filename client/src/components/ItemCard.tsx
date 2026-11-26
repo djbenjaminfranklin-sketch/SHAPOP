@@ -19,6 +19,11 @@ const conditionLabels: Record<string, Localized<string>> = {
   like_new: { en: 'Like new', fr: 'Comme neuf', es: 'Como nuevo', ru: 'Как новое', he: 'כמו חדש' },
   good: { en: 'Good', fr: 'Bon état', es: 'Buen estado', ru: 'Хорошее', he: 'מצב טוב' },
   fair: { en: 'Fair', fr: 'Correct', es: 'Aceptable', ru: 'Удовлетворительное', he: 'סביר' },
+  // Anciennes annonces enregistrées avec le libellé français au lieu du code
+  'Neuf': { en: 'New', fr: 'Neuf', es: 'Nuevo', ru: 'Новое', he: 'חדש' }, // i18n-ignore (valeur enregistrée)
+  'Comme neuf': { en: 'Like new', fr: 'Comme neuf', es: 'Como nuevo', ru: 'Как новое', he: 'כמו חדש' }, // i18n-ignore (valeur enregistrée)
+  'Bon etat': { en: 'Good', fr: 'Bon état', es: 'Buen estado', ru: 'Хорошее', he: 'מצב טוב' }, // i18n-ignore (valeur enregistrée)
+  'Correct': { en: 'Fair', fr: 'Correct', es: 'Aceptable', ru: 'Удовлетворительное', he: 'סביר' }, // i18n-ignore (valeur enregistrée)
 }
 
 interface ItemCardProps {
@@ -44,7 +49,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
         <div style={{
           width: '28px', height: '28px', borderRadius: '50%', backgroundColor: '#222',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0
+          fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', overflow: 'hidden', flexShrink: 0
         }}>
           {item.seller?.avatar_url ? (
             <img src={item.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -75,12 +80,12 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
         <div style={{ position: 'absolute', top: '10px', ...rtlPos('left', '10px') }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '4px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+            color: '#001014', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
             padding: '4px 8px', borderRadius: '8px',
-            boxShadow: '0 2px 8px rgba(232, 52, 78, 0.4)',
+            boxShadow: '0 2px 8px rgba(0,229,255, 0.4)',
           }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" stroke="none">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#001014" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             {ct.ai}
@@ -126,7 +131,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
               padding: 0,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#E8344E' : 'none'} stroke={isFavorited ? '#E8344E' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#00E5FF' : 'none'} stroke={isFavorited ? '#00E5FF' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
             </svg>
           </button>
@@ -150,7 +155,7 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
         <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.title}
         </p>
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#F0908A', marginTop: '2px' }}>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#00E5FF', marginTop: '2px' }}>
           {item.category}
         </p>
       </div>

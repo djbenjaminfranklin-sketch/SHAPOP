@@ -86,13 +86,13 @@ export default function ReportSheet({ reportedId, streamId, itemId, context, onC
         paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)', maxHeight: '85vh', overflowY: 'auto', color: '#fff',
       }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800 }}>{c.title}</h3>
-        <p style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs, 1))', color: '#999' }}>{c.subtitle}</p>
+        <p style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>{c.subtitle}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {(Object.keys(c.reasons) as ReasonKey[]).map(k => (
             <button key={k} onClick={() => setReason(k)} style={{
               textAlign: 'start', padding: '13px 14px', borderRadius: '12px', cursor: 'pointer', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
-              border: reason === k ? '1px solid #E8344E' : '1px solid #2a2a2a',
-              backgroundColor: reason === k ? 'rgba(232,52,78,0.14)' : '#161616', color: '#fff',
+              border: reason === k ? '1px solid #00E5FF' : '1px solid #2a2a2a',
+              backgroundColor: reason === k ? 'rgba(0,229,255,0.14)' : '#161616', color: '#fff',
             }}>{c.reasons[k]}</button>
           ))}
         </div>
@@ -103,9 +103,9 @@ export default function ReportSheet({ reportedId, streamId, itemId, context, onC
         {error && <p style={{ color: '#E8344E', fontSize: 'calc(13px * var(--fs, 1))', margin: '8px 0 0' }}>{error}</p>}
         <button onClick={send} disabled={!reason || sending} style={{
           width: '100%', marginTop: '12px', padding: '15px', borderRadius: '14px', border: 'none', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800,
-          background: reason ? 'linear-gradient(135deg, #E8344E, #F0908A)' : '#2a2a2a', color: reason ? '#fff' : '#777', cursor: reason ? 'pointer' : 'default',
+          background: reason ? 'linear-gradient(135deg, #0091EA, #00E5FF)' : '#2a2a2a', color: reason ? '#fff' : '#f0f0f0', cursor: reason ? 'pointer' : 'default',
         }}>{sending ? c.sending : c.send}</button>
-        <button onClick={onClose} style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: 'transparent', color: '#bbb', fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer' }}>{c.cancel}</button>
+        <button onClick={onClose} style={{ width: '100%', marginTop: '8px', padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: 'transparent', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer' }}>{c.cancel}</button>
       </div>
     </div>
   )

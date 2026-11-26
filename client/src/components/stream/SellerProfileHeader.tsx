@@ -21,7 +21,7 @@ const FOLLOW_LABELS: Localized<{ follow: string; following: string }> = {
 // Star SVG icon
 function StarIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="#F0908A" stroke="none" style={{ flexShrink: 0 }}>
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="#00E5FF" stroke="none" style={{ flexShrink: 0 }}>
       <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
     </svg>
   )
@@ -73,13 +73,13 @@ export default function SellerProfileHeader({
         width: '28px',
         height: '28px',
         borderRadius: '50%',
-        border: '1.5px solid #F0908A',
+        border: '1.5px solid #00E5FF',
         overflow: 'hidden',
         flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: sellerAvatar ? '#111' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+        background: sellerAvatar ? '#111' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
       }}>
         {sellerAvatar ? (
           <img
@@ -123,7 +123,7 @@ export default function SellerProfileHeader({
               gap: '2px',
               fontSize: 'calc(9px * var(--fs, 1))',
               fontWeight: 700,
-              color: '#F0908A',
+              color: '#00E5FF',
               lineHeight: 1,
             }}>
               <StarIcon />
@@ -146,7 +146,7 @@ export default function SellerProfileHeader({
           padding: '4px 8px',
           borderRadius: '100px',
           border: 'none',
-          backgroundColor: isFollowing ? 'rgba(255,255,255,0.15)' : '#E8344E',
+          backgroundColor: isFollowing ? 'rgba(255,255,255,0.15)' : '#00E5FF',
           color: '#fff',
           fontSize: 'calc(11px * var(--fs, 1))',
           fontWeight: 700,

@@ -1,147 +1,53 @@
-import { useRef, useState, useEffect, useCallback } from 'react'
-import { getLang, t } from '../lib/i18n'
-import { rtlPos } from '../lib/rtl'
+// Écran de démarrage : intro vidéo du S de ShaPop (cyan néon, 2 secondes, générée avec Kie / Seedance).
+// La dernière image est le S de l'appli : on enchaîne sans saut. Un appui passe directement à l'appli.
+import { useEffect, useRef, useState, useCallback } from 'react'
 
 interface SplashScreenProps {
   onFinish: () => void
 }
 
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
-  const lang = getLang()
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [fadingOut, setFadingOut] = useState(false)
-  const [videoReady, setVideoReady] = useState(false)
-  const [videoFailed] = useState(false)
   const endedRef = useRef(false)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   const handleEnd = useCallback(() => {
     if (endedRef.current) return
     endedRef.current = true
     setFadingOut(true)
-    setTimeout(onFinish, 400)
+    setTimeout(onFinish, 250)
   }, [onFinish])
 
   useEffect(() => {
-    const video = videoRef.current
-    if (!video) {
-      // No video element — skip quickly
-      setTimeout(handleEnd, 800)
-      return
-    }
-
-    let cancelled = false
-
-    const onCanPlay = () => {
-      if (cancelled) return
-      setVideoReady(true)
-      video.playbackRate = 3.0 // Fast playback
-      video.play().catch(() => {
-        // Autoplay blocked on this platform — skip immediately
-        handleEnd()
-      })
-    }
-
-    const onError = () => {
-      if (cancelled) return
-      handleEnd()
-    }
-
-    video.addEventListener('canplay', onCanPlay, { once: true })
-    video.addEventListener('error', onError, { once: true })
-
-    // Kick off loading
-    video.load()
-
-    // Safety: skip after 2.5s no matter what
-    const timeout = setTimeout(handleEnd, 2500)
-
-    return () => {
-      cancelled = true
-      clearTimeout(timeout)
-    }
+    const v = videoRef.current
+    v?.play().catch(() => handleEnd()) // lecture automatique refusée : on passe à l'appli
+    const safety = setTimeout(handleEnd, 3200) // filet de sécurité si la vidéo ne se termine pas
+    return () => clearTimeout(safety)
   }, [handleEnd])
 
   return (
     <div
+      onClick={handleEnd}
+      className="no-theme-invert"
       style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        backgroundColor: '#000',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        opacity: fadingOut ? 0 : 1,
-        transition: 'opacity 0.4s ease-out',
+        position: 'fixed', inset: 0, zIndex: 9999, backgroundColor: '#000',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: fadingOut ? 0 : 1, transition: 'opacity 0.25s ease-out',
       }}
     >
-      {/* Video splash */}
       <video
         ref={videoRef}
+        src="/intro.mp4"
+        // Image noire avant la lecture : sinon Android affiche un gros bouton « lecture » gris
+        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        autoPlay
         muted
         playsInline
-        // @ts-ignore webkit-playsinline needed for older iOS
-        webkit-playsinline="true"
         preload="auto"
         onEnded={handleEnd}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          display: videoFailed ? 'none' : 'block',
-          opacity: videoReady ? 1 : 0,
-          transition: 'opacity 0.2s',
-        }}
-      >
-        <source src="/splash.mp4" type="video/mp4" />
-      </video>
-
-      {/* Logo fallback — shown while video loads or if video fails */}
-      {(!videoReady || videoFailed) && (
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: '16px',
-        }}>
-          <img
-            src="/logo.png"
-            alt="ShaPop"
-            style={{
-              width: '60%', maxWidth: '280px',
-              animation: 'splashFadeIn 0.6s ease-out',
-            }}
-          />
-        </div>
-      )}
-
-      {/* Skip button */}
-      <button
-        onClick={handleEnd}
-        style={{
-          position: 'absolute',
-          top: 'calc(env(safe-area-inset-top, 16px) + 16px)',
-          ...rtlPos('right', '20px'),
-          background: 'rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(8px)',
-          border: '1px solid rgba(255,255,255,0.25)',
-          borderRadius: '9999px',
-          padding: '8px 20px',
-          color: '#fff',
-          fontSize: 'calc(14px * var(--fs, 1))',
-          fontWeight: 600,
-          cursor: 'pointer',
-          zIndex: 1,
-        }}
-      >
-        {t(lang, 'skip')}
-      </button>
-
-      <style>{`
-        @keyframes splashFadeIn {
-          from { opacity: 0; transform: scale(0.9); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
+        onError={handleEnd}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', backgroundColor: '#000' }}
+      />
     </div>
   )
 }

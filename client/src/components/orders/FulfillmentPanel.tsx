@@ -15,10 +15,10 @@ const card: React.CSSProperties = {
   display: 'flex', flexDirection: 'column', gap: '10px', textAlign: 'start',
 }
 const title: React.CSSProperties = { margin: 0, fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#fff' }
-const hint: React.CSSProperties = { margin: 0, fontSize: 'calc(13px * var(--fs, 1))', color: '#999', lineHeight: 1.45 }
+const hint: React.CSSProperties = { margin: 0, fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.45 }
 const primaryBtn = (enabled: boolean): React.CSSProperties => ({
   width: '100%', padding: '14px', borderRadius: '12px', border: 'none', fontWeight: 800, fontSize: 'calc(15px * var(--fs, 1))',
-  background: enabled ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333', color: enabled ? '#fff' : '#777',
+  background: enabled ? 'linear-gradient(135deg, #00E5FF, #0091EA)' : '#333', color: enabled ? '#001014' : '#f0f0f0',
   cursor: enabled ? 'pointer' : 'not-allowed',
 })
 
@@ -65,7 +65,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
           <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff' }}>
             {data.fulfillment_method === 'pickup' ? t.method_pickup : data.fulfillment_method === 'post' ? t.method_post : data.fulfillment_method === 'legacy_carrier' ? t.method_legacy : ''}
           </span>
-          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: awaiting ? '#F0908A' : '#22C55E' }}>{statusLabel(data.status, lang)}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: awaiting ? '#00E5FF' : '#22C55E' }}>{statusLabel(data.status, lang)}</span>
         </div>
         {awaiting && data.handover_deadline && (
           <p style={hint}>
@@ -79,7 +79,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
         {data.handed_over_at && <p style={hint}>{t.handed_over_on} {formatDateTime(data.handed_over_at, lang)}</p>}
         {data.proof_submitted_at && <p style={hint}>{t.shipped_on} {formatDateTime(data.proof_submitted_at, lang)}</p>}
         {isSeller && data.payout_status && (
-          <p style={{ ...hint, color: data.payout_status === 'released' ? '#22C55E' : '#aaa' }}>
+          <p style={{ ...hint, color: data.payout_status === 'released' ? '#22C55E' : '#f0f0f0' }}>
             {data.payout_status === 'released'
               ? t.payout_released
               : data.payout_status === 'held' && data.payout_scheduled_at && data.status === 'shipped'
@@ -100,9 +100,9 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
 
       {/* Code de retrait : visible par l'acheteur seulement (le serveur ne l'envoie qu'à lui) */}
       {isBuyer && data.fulfillment_method === 'pickup' && data.handover?.code && awaiting && (
-        <div style={{ ...card, alignItems: 'center', textAlign: 'center', borderColor: 'rgba(240,144,138,0.4)' }}>
+        <div style={{ ...card, alignItems: 'center', textAlign: 'center', borderColor: 'rgba(0, 229, 255,0.4)' }}>
           <h3 style={title}>{t.your_code_title}</h3>
-          <div dir="ltr" aria-label={t.your_code_title} style={{ fontSize: 'calc(40px * var(--fs, 1))', fontWeight: 900, letterSpacing: '12px', color: '#F0908A', fontVariantNumeric: 'tabular-nums' }}>
+          <div dir="ltr" aria-label={t.your_code_title} style={{ fontSize: 'calc(40px * var(--fs, 1))', fontWeight: 900, letterSpacing: '12px', color: '#00E5FF', fontVariantNumeric: 'tabular-nums' }}>
             {data.handover.code}
           </div>
           <p style={hint}>{data.handover.locked ? t.code_locked : t.your_code_hint}</p>
@@ -145,7 +145,7 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
             {([['parcel_url', t.proof_parcel], ['slip_url', t.proof_slip]] as const).map(([key, label]) => data.proofs[key] ? (
               <a key={key} href={data.proofs[key]!} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>
                 <img src={data.proofs[key]!} alt={label} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: '10px', border: '1px solid #2a2a2a' }} />
-                <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', color: '#999', marginTop: '4px' }}>{label}</span>
+                <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', marginTop: '4px' }}>{label}</span>
               </a>
             ) : null)}
           </div>
@@ -159,9 +159,9 @@ export default function FulfillmentPanel({ orderId, onChanged }: Props) {
           {data.contact ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {data.contact.whatsapp_link && (
-                <a href={data.contact.whatsapp_link} target="_blank" rel="noreferrer" style={{
+                <a href={data.contact.whatsapp_link} target="_blank" rel="noreferrer" className="no-theme-invert" style={{
                   display: 'block', textAlign: 'center', padding: '13px', borderRadius: '12px', fontWeight: 800,
-                  backgroundColor: '#25D366', color: '#062b14', textDecoration: 'none', fontSize: 'calc(15px * var(--fs, 1))',
+                  backgroundColor: '#25D366', color: '#fff', textDecoration: 'none', fontSize: 'calc(15px * var(--fs, 1))',
                 }}>{t.contact_whatsapp}</a>
               )}
               {data.contact.email_link && (
@@ -259,14 +259,14 @@ function ConfirmReceipt({ orderId, onDone }: { orderId: string; onDone: () => vo
     }
   }
   return (
-    <div style={{ ...card, borderColor: 'rgba(240,144,138,0.4)' }}>
+    <div style={{ ...card, borderColor: 'rgba(0, 229, 255,0.4)' }}>
       {!done && <h3 style={title}>{t.receipt_title}</h3>}
       <p style={hint}>{done ? t.receipt_confirmed : t.receipt_hint}</p>
       {!done && (
         <>
           <button type="button" onClick={() => submit(true)} disabled={busy} style={primaryBtn(!busy)}>{busy ? t.sending : t.conform_button}</button>
-          <button type="button" onClick={() => submit(false)} disabled={busy} style={{ ...primaryBtn(!busy), background: 'transparent', border: '1px solid #F0908A', color: '#F0908A' }}>{t.check_button}</button>
-          <button type="button" onClick={() => navigate('/rules')} style={{ background: 'none', border: 'none', color: '#999', textDecoration: 'underline', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer', padding: 0 }}>{t.rules_link}</button>
+          <button type="button" onClick={() => submit(false)} disabled={busy} style={{ ...primaryBtn(!busy), background: 'transparent', border: '1px solid #00E5FF', color: '#00E5FF' }}>{t.check_button}</button>
+          <button type="button" onClick={() => navigate('/rules')} style={{ background: 'none', border: 'none', color: '#f0f0f0', textDecoration: 'underline', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer', padding: 0 }}>{t.rules_link}</button>
         </>
       )}
       {error && <p role="alert" style={{ ...hint, color: '#F87171' }}>{error}</p>}
@@ -279,10 +279,10 @@ function ClaimWindow({ orderId, deadline }: { orderId: string; deadline: string 
   const t = ft(lang)
   const navigate = useNavigate()
   return (
-    <div style={{ ...card, borderColor: 'rgba(240,144,138,0.4)' }}>
+    <div style={{ ...card, borderColor: 'rgba(0, 229, 255,0.4)' }}>
       <h3 style={title}>{t.claim_window_title}</h3>
       <p style={hint}>{t.claim_window_hint} <strong style={{ color: '#ddd' }}>{formatDateTime(deadline, lang)}</strong>{t.claim_window_after}</p>
-      <button type="button" onClick={() => navigate(`/dispute/${orderId}`)} style={{ ...primaryBtn(true), background: 'linear-gradient(135deg, #F97316, #E8344E)' }}>{t.report_problem}</button>
+      <button type="button" onClick={() => navigate(`/dispute/${orderId}`)} style={{ ...primaryBtn(true), background: 'linear-gradient(135deg, #F97316, #0091EA)' }}>{t.report_problem}</button>
     </div>
   )
 }
@@ -328,7 +328,7 @@ function ShipForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; ha
         onClick={() => inputs[kind].current?.click()}
         disabled={photoBusy !== null}
         style={{ padding: '9px 12px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer',
-          backgroundColor: sent[kind] ? '#222' : '#F0908A', color: sent[kind] ? '#ccc' : '#fff', whiteSpace: 'nowrap' }}
+          backgroundColor: sent[kind] ? '#222' : '#00E5FF', color: sent[kind] ? '#ccc' : '#fff', whiteSpace: 'nowrap' }}
       >
         {photoBusy === kind ? t.sending : sent[kind] ? t.retake_photo : t.take_photo}
       </button>
@@ -366,7 +366,7 @@ function ShipForm({ orderId, hasParcel, hasSlip, onDone }: { orderId: string; ha
         dir="ltr"
         style={{ width: '100%', padding: '12px', borderRadius: '10px', border: '1px solid #2a2a2a', backgroundColor: '#0D0D0D', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', boxSizing: 'border-box', letterSpacing: '1px' }}
       />
-      {!photosOk && tracking.trim().length > 0 && <p style={{ ...hint, color: '#F0908A' }}>{t.photos_required}</p>}
+      {!photosOk && tracking.trim().length > 0 && <p style={{ ...hint, color: '#00E5FF' }}>{t.photos_required}</p>}
       {error && <div role="alert" style={{ color: '#F87171', fontSize: 'calc(13px * var(--fs, 1))' }}>{error}</div>}
       <button type="button" onClick={submit} disabled={!ok} style={primaryBtn(ok)}>{busy ? t.sending : t.ship_button}</button>
     </div>

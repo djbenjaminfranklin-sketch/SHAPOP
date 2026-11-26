@@ -206,13 +206,13 @@ export default function ContactPage() {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
         <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#1a3a1a', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <h2 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.sent}</h2>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', textAlign: 'center', marginBottom: '32px', maxWidth: '280px' }}>{c.sentDesc}</p>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center', marginBottom: '32px', maxWidth: '280px' }}>{c.sentDesc}</p>
         <button
           onClick={() => navigate('/profile')}
-          style={{ padding: '14px 32px', backgroundColor: '#F0908A', color: '#fff', border: 'none', borderRadius: '12px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}
+          style={{ padding: '14px 32px', backgroundColor: '#00E5FF', color: '#001014', border: 'none', borderRadius: '12px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer' }}
         >
           {c.back}
         </button>
@@ -240,9 +240,9 @@ export default function ContactPage() {
               onClick={() => setTopic(t.id)}
               style={{
                 padding: '8px 16px', borderRadius: '9999px', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
-                backgroundColor: topic === t.id ? '#F0908A' : '#1A1A1A',
-                color: topic === t.id ? '#fff' : '#aaa',
-                border: topic === t.id ? '1px solid #F0908A' : '1px solid #333',
+                backgroundColor: topic === t.id ? '#00E5FF' : '#1A1A1A',
+                color: topic === t.id ? '#001014' : '#f0f0f0',
+                border: topic === t.id ? '1px solid #00E5FF' : '1px solid #333',
               }}
             >
               {t.label}
@@ -265,7 +265,7 @@ export default function ContactPage() {
 
         {/* User info note */}
         {user && (
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '16px' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '16px' }}>
             {c.sentFrom} <span dir="ltr">{user.email}</span>
           </p>
         )}
@@ -279,8 +279,8 @@ export default function ContactPage() {
           disabled={!topic || !message.trim() || sending}
           style={{
             width: '100%', padding: '14px',
-            backgroundColor: (!topic || !message.trim() || sending) ? '#333' : '#F0908A',
-            color: '#fff', border: 'none', borderRadius: '12px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
+            backgroundColor: (!topic || !message.trim() || sending) ? '#333' : '#00E5FF',
+            color: '#001014', border: 'none', borderRadius: '12px', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600,
             cursor: (!topic || !message.trim() || sending) ? 'default' : 'pointer',
             opacity: sending ? 0.7 : 1,
           }}
@@ -290,9 +290,9 @@ export default function ContactPage() {
 
         {/* Direct email */}
         <div style={{ marginTop: '32px', padding: '16px', backgroundColor: '#111', borderRadius: '12px' }}>
-          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginBottom: '8px' }}>{c.email}</p>
-          <a href="mailto:support@shapop.app" style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#F0908A', fontWeight: 600, textDecoration: 'none' }} dir="ltr">support@shapop.app</a>{/* i18n-ignore */}
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '8px' }}>{c.hours}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '8px' }}>{c.email}</p>
+          <a href="mailto:support@shapop.app" style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600, textDecoration: 'none' }} dir="ltr">support@shapop.app</a>{/* i18n-ignore */}
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '8px' }}>{c.hours}</p>
         </div>
       </div>
     </div>

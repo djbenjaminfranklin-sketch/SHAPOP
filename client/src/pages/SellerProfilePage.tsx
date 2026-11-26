@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { getLang, getLocale, type Lang, type Localized } from '../lib/i18n'
-import { formatMoney, currencyForCountry } from '../lib/fulfillment'
+import { formatMoney, currencyForCountry, displayItemTitle } from '../lib/fulfillment'
 import VodPlayer from '../components/stream/VodPlayer'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
@@ -28,7 +28,7 @@ const content: Localized<SellerText> = {
     livesTab: 'Lives',
     reviewsTab: 'Reviews',
     reviews: 'reviews',
-    handoverWithin: 'Handover within {n} d',
+    handoverWithin: 'Handover within {n}\u00A0d',
     messageError: 'Couldn\'t open the conversation. Check your connection and try again.',
     sold: 'Sold',
     noItems: 'No items for sale',
@@ -84,7 +84,7 @@ const content: Localized<SellerText> = {
     livesTab: 'Lives',
     reviewsTab: 'Avis',
     reviews: 'avis',
-    handoverWithin: 'Remise sous {n} j',
+    handoverWithin: 'Remise sous {n}\u00A0j',
     messageError: 'Impossible d\'ouvrir la conversation. Vérifie ta connexion et réessaie.',
     sold: 'Vendu',
     noItems: 'Aucun article en vente',
@@ -140,7 +140,7 @@ const content: Localized<SellerText> = {
     livesTab: 'Directos',
     reviewsTab: 'Opiniones',
     reviews: 'opiniones',
-    handoverWithin: 'Entrega en {n} d',
+    handoverWithin: 'Entrega en {n}\u00A0d',
     messageError: 'No se pudo abrir la conversación. Revisa tu conexión e inténtalo de nuevo.',
     sold: 'Vendido',
     noItems: 'No hay artículos en venta',
@@ -196,7 +196,7 @@ const content: Localized<SellerText> = {
     livesTab: 'Эфиры',
     reviewsTab: 'Отзывы',
     reviews: 'отзывов',
-    handoverWithin: 'Передача за {n} дн.',
+    handoverWithin: 'Передача за {n}\u00A0дн.',
     messageError: 'Не удалось открыть переписку. Проверь соединение и попробуй снова.',
     sold: 'Продано',
     noItems: 'Нет товаров в продаже',
@@ -252,7 +252,7 @@ const content: Localized<SellerText> = {
     livesTab: 'שידורים',
     reviewsTab: 'ביקורות',
     reviews: 'ביקורות',
-    handoverWithin: 'מסירה תוך {n} ימ׳',
+    handoverWithin: 'מסירה תוך {n}\u00A0ימ׳',
     messageError: 'לא הצלחנו לפתוח את השיחה. בדקו את החיבור ונסו שוב.',
     sold: 'נמכר',
     noItems: 'אין פריטים למכירה',
@@ -442,7 +442,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, currency, statusColor, 
               {group.length} {itemsLabel(group.length, lang)}
             </span>
           </div>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#F0908A', margin: 0 }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#00E5FF', margin: 0 }}>
             {t.total} : {formatMoney(total, group[0]?.currency || currency)}
           </p>
         </div>
@@ -469,7 +469,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, currency, statusColor, 
                   fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: 0,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
-                  {order.item_title}
+                  {displayItemTitle(order.item_title)}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
                   <span style={{
@@ -481,7 +481,7 @@ function BuyerGroupCard({ group, buyerName, total, lang, currency, statusColor, 
                   }}>
                     {statusLabel(order.status)}
                   </span>
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                     {new Date(order.created_at).toLocaleDateString(getLocale(), {
                       day: 'numeric', month: 'short',
                     })}
@@ -496,18 +496,18 @@ function BuyerGroupCard({ group, buyerName, total, lang, currency, statusColor, 
                   }}
                   style={{
                     width: '28px', height: '28px', borderRadius: '50%',
-                    background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.25)',
+                    background: 'rgba(0,229,255,0.12)', border: '1px solid rgba(0,229,255,0.25)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', flexShrink: 0, padding: 0,
                   }}
                   title={t.seeMoment}
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#8B5CF6" stroke="none">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#00E5FF" stroke="none">
                     <polygon points="5 3 19 12 5 21 5 3" />
                   </svg>
                 </button>
               )}
-              <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', flexShrink: 0 }}>
+              <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', flexShrink: 0 }}>
                 {formatMoney(order.amount || 0, order.currency || currency)}
               </span>
             </div>
@@ -666,11 +666,12 @@ export default function SellerProfilePage() {
       setItems((itemsData || []) as ItemData[])
 
       // Count sold items
+      // Articles vendus (lisibles par tous) : les commandes du vendeur ne le sont pas pour un visiteur
       const { count: soldCount } = await supabase
-        .from('orders')
+        .from('items')
         .select('id', { count: 'exact', head: true })
         .eq('seller_id', sellerId)
-        .in('status', ['paid', 'shipped', 'handed_over', 'delivered'])
+        .eq('status', 'sold')
       if (cancelledRef?.current) return
       setTotalSold(soldCount || 0)
 
@@ -809,7 +810,7 @@ export default function SellerProfilePage() {
   const renderStars = (rating: number, size = 14) => {
     const stars = []
     for (let i = 1; i <= 5; i++) {
-      const fill = i <= Math.round(rating) ? '#F0908A' : '#333'
+      const fill = i <= Math.round(rating) ? '#00E5FF' : '#333'
       stars.push(
         <svg key={`star-${i}`} width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="none">
           <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
@@ -831,7 +832,7 @@ export default function SellerProfilePage() {
           aria-label={t.loading}
           style={{
             width: '32px', height: '32px', border: '3px solid #333',
-            borderTopColor: '#E8344E', borderRadius: '50%',
+            borderTopColor: '#00E5FF', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}
         />
@@ -843,16 +844,16 @@ export default function SellerProfilePage() {
   if (error || !profile) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px' }}>
-        <p style={{ color: '#888', fontSize: 'calc(16px * var(--fs, 1))' }}>{t.notFound}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(16px * var(--fs, 1))' }}>{t.notFound}</p>
         <button
           onClick={() => fetchProfile()}
           style={{
-            background: 'none', border: 'none', color: '#E8344E',
+            background: 'none', border: 'none', color: '#00E5FF',
             fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
             display: 'flex', alignItems: 'center', gap: '6px',
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
           </svg>
           {t.retry}
@@ -898,12 +899,12 @@ export default function SellerProfilePage() {
           width: '96px', height: '96px', borderRadius: '50%', margin: '0 auto 12px',
           backgroundColor: '#222', overflow: 'hidden',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          border: '3px solid #F0908A',
+          border: '3px solid #00E5FF',
         }}>
           {profile.avatar_url ? (
             <img src={profile.avatar_url} alt={displayName} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
           ) : (
-            <span style={{ fontSize: 'calc(36px * var(--fs, 1))', fontWeight: 700, color: '#888' }}>
+            <span style={{ fontSize: 'calc(36px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0' }}>
               {displayName.charAt(0).toUpperCase()}
             </span>
           )}
@@ -914,7 +915,7 @@ export default function SellerProfilePage() {
           {displayName}
         </h2>
         {bio && (
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 16px', lineHeight: 1.5, maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 16px', lineHeight: 1.5, maxWidth: '300px', marginLeft: 'auto', marginRight: 'auto' }}>
             {bio}
           </p>
         )}
@@ -928,13 +929,13 @@ export default function SellerProfilePage() {
             flex: 1, backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '14px 8px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#00E5FF" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>
               {avgRating > 0 ? avgRating.toFixed(1) : '-'}
             </span>
-            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
               {reviewCount} {t.reviews}
             </span>
           </div>
@@ -944,7 +945,7 @@ export default function SellerProfilePage() {
             flex: 1, backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '14px 8px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px',
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
             <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>
@@ -957,20 +958,20 @@ export default function SellerProfilePage() {
             flex: 1, backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '14px 8px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
           }}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
             </svg>
             <span style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>
               {totalSold}
             </span>
-            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888' }}>
+            <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
               {t.sold}
             </span>
           </div>
         </div>
 
         {/* Followers / Following text */}
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', margin: '0 0 16px' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 16px' }}>
           <span style={{ fontWeight: 700, color: '#fff' }}>{followersCount}</span>{' '}{t.followers}
           {' '}&middot;{' '}{/* i18n-ignore (séparateur) */}
           <span style={{ fontWeight: 700, color: '#fff' }}>{followingCount}</span>{' '}{t.followingLabel}
@@ -996,8 +997,8 @@ export default function SellerProfilePage() {
                 onClick={() => navigate('/profile')}
                 style={{
                   flex: 1, maxWidth: '160px', padding: '12px 16px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  border: 'none', color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                  border: 'none', color: '#001014', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                 }}
               >
                 {t.editProfile}
@@ -1009,7 +1010,7 @@ export default function SellerProfilePage() {
                 onClick={toggleFollow}
                 style={{
                   flex: 1, maxWidth: '160px', padding: '12px 16px', borderRadius: '12px',
-                  background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
                   border: isFollowing ? '1px solid #333' : 'none',
                   color: isFollowing ? '#888' : '#fff',
                   fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
@@ -1094,12 +1095,12 @@ export default function SellerProfilePage() {
               key={tab}
               onClick={() => setActiveTab(tab)}
               style={{
-                flex: isOwnProfile ? 'none' : 1,
-                minWidth: isOwnProfile ? '0' : undefined,
-                padding: '14px 16px', border: 'none', background: 'none',
-                color: isActive ? '#F0908A' : '#666',
-                fontSize: 'calc(14px * var(--fs, 1))', fontWeight: isActive ? 700 : 500,
-                borderBottom: isActive ? '2px solid #F0908A' : '2px solid transparent',
+                // Les 5 onglets du propriétaire tiennent dans la largeur (plus de « Finances » coupé)
+                flex: 1, minWidth: 0,
+                padding: isOwnProfile ? '14px 8px' : '14px 16px', border: 'none', background: 'none',
+                color: isActive ? '#00E5FF' : '#f0f0f0',
+                fontSize: isOwnProfile ? 'calc(12.5px * var(--fs, 1))' : 'calc(14px * var(--fs, 1))', fontWeight: isActive ? 700 : 500,
+                borderBottom: isActive ? '2px solid #00E5FF' : '2px solid transparent',
                 cursor: 'pointer', transition: 'color 0.2s',
                 whiteSpace: 'nowrap',
               }}
@@ -1117,7 +1118,7 @@ export default function SellerProfilePage() {
         {/* ---------- BOUTIQUE TAB ---------- */}
         {activeTab === 'shop' && (
           items.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noItems}</p>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noItems}</p>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               {items.map(item => (
@@ -1145,7 +1146,7 @@ export default function SellerProfilePage() {
                     {item.status === 'sold' && (
                       <div style={{
                         position: 'absolute', top: '8px', insetInlineStart: '8px',
-                        backgroundColor: 'rgba(232,52,78,0.9)', color: '#fff',
+                        backgroundColor: 'rgba(0,229,255,0.9)', color: '#fff',
                         fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, padding: '3px 8px', borderRadius: '6px',
                       }}>
                         {t.sold}
@@ -1157,9 +1158,9 @@ export default function SellerProfilePage() {
                       fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '0 0 4px',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
-                      {item.title}
+                      {displayItemTitle(item.title)}
                     </p>
-                    <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                    <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
                       {formatMoney(item.current_price || item.starting_price, sellerCurrency)}
                     </p>
                   </div>
@@ -1172,7 +1173,7 @@ export default function SellerProfilePage() {
         {/* ---------- LIVES TAB ---------- */}
         {activeTab === 'lives' && (
           streams.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noLives}</p>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noLives}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {streams.map(stream => {
@@ -1256,13 +1257,13 @@ export default function SellerProfilePage() {
                           {statusLabels[stream.status] || stream.status}
                         </span>
                         {stream.peak_viewers > 0 && (
-                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>
+                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>
                             {stream.peak_viewers} {t.peakViewers}
                           </span>
                         )}
                       </div>
                       {stream.scheduled_at && (
-                        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>
+                        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>
                           {new Date(stream.scheduled_at).toLocaleDateString(getLocale(), {
                             day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                           })}
@@ -1274,7 +1275,7 @@ export default function SellerProfilePage() {
                           onClick={e => { e.stopPropagation(); navigate(`/live-recap/${stream.id}`) }}
                           style={{
                             background: 'none', border: 'none', padding: 0,
-                            color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
+                            color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                             cursor: 'pointer', textAlign: 'start', marginTop: '2px',
                           }}
                         >
@@ -1292,7 +1293,7 @@ export default function SellerProfilePage() {
         {/* ---------- AVIS (REVIEWS) TAB ---------- */}
         {activeTab === 'reviews' && (
           reviews.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noReviews}</p>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noReviews}</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {reviews.map(review => {
@@ -1311,7 +1312,7 @@ export default function SellerProfilePage() {
                         {buyerAvatar ? (
                           <img src={buyerAvatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                         ) : (
-                          <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#888' }}>
+                          <span style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0' }}>
                             {buyerName.charAt(0).toUpperCase()}
                           </span>
                         )}
@@ -1320,7 +1321,7 @@ export default function SellerProfilePage() {
                         <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{buyerName}</p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                           {renderStars(review.rating, 12)}
-                          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666' }}>
+                          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                             {new Date(review.created_at).toLocaleDateString(getLocale(), {
                               day: 'numeric', month: 'short', year: 'numeric',
                             })}
@@ -1329,7 +1330,7 @@ export default function SellerProfilePage() {
                       </div>
                     </div>
                     {review.comment && (
-                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#aaa', margin: 0, lineHeight: 1.5 }}>
+                      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', margin: 0, lineHeight: 1.5 }}>
                         {review.comment}
                       </p>
                     )}
@@ -1338,13 +1339,13 @@ export default function SellerProfilePage() {
                     {review.seller_response && (
                       <div style={{
                         marginTop: '10px', padding: '10px 12px', backgroundColor: '#222',
-                        borderRadius: '10px', borderInlineStart: '3px solid #F0908A',
+                        borderRadius: '10px', borderInlineStart: '3px solid #00E5FF',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 00-4-4H4"/>
                           </svg>
-                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#F0908A' }}>
+                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF' }}>
                             {t.sellerReply}
                           </span>
                         </div>
@@ -1367,7 +1368,7 @@ export default function SellerProfilePage() {
                               backgroundColor: '#111', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', resize: 'none',
                               minHeight: '60px', fontFamily: 'inherit', outline: 'none',
                             }}
-                            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A' }}
+                            onFocus={e => { e.currentTarget.style.borderColor = '#00E5FF' }}
                             onBlur={e => { e.currentTarget.style.borderColor = '#333' }}
                           />
                           <button
@@ -1375,7 +1376,7 @@ export default function SellerProfilePage() {
                             disabled={!replyText.trim() || replySending}
                             style={{
                               padding: '10px 16px', borderRadius: '10px', border: 'none',
-                              background: replyText.trim() ? 'linear-gradient(135deg, #F0908A, #E8344E)' : '#333',
+                              background: replyText.trim() ? 'linear-gradient(135deg, #00E5FF, #0091EA)' : '#333',
                               color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: replyText.trim() ? 'pointer' : 'default',
                               opacity: replySending ? 0.5 : 1, whiteSpace: 'nowrap',
                             }}
@@ -1389,7 +1390,7 @@ export default function SellerProfilePage() {
                           style={{
                             marginTop: '10px', padding: '6px 12px', borderRadius: '8px',
                             border: '1px solid #333', backgroundColor: 'transparent',
-                            color: '#888', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                            color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                             display: 'flex', alignItems: 'center', gap: '4px',
                           }}
                         >
@@ -1413,12 +1414,12 @@ export default function SellerProfilePage() {
                         }}
                         style={{
                           marginTop: '8px', padding: '6px 12px', borderRadius: '8px',
-                          border: '1px solid #F0908A', backgroundColor: 'transparent',
-                          color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                          border: '1px solid #00E5FF', backgroundColor: 'transparent',
+                          color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                           display: 'flex', alignItems: 'center', gap: '4px',
                         }}
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polygon points="5 3 19 12 5 21 5 3"/>
                         </svg>
                         {t.seePurchase}
@@ -1434,14 +1435,14 @@ export default function SellerProfilePage() {
         {activeTab === 'orders' && isOwnProfile && (
           dashboardLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-              <div style={{ width: '24px', height: '24px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: '24px', height: '24px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : !dashboardData || dashboardData.recent_orders.length === 0 ? (
-            <p style={{ textAlign: 'center', color: '#666', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noOrders}</p>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noOrders}</p>
           ) : (() => {
             const orders = dashboardData.recent_orders
             const statusColor: Record<string, string> = {
-              paid: '#22C55E', shipped: '#3B82F6', delivered: '#8B5CF6',
+              paid: '#22C55E', shipped: '#3B82F6', delivered: '#00E5FF',
               pending_payment: '#F59E0B', pending: '#F59E0B', preparing: '#F59E0B',
             }
             const statusLabel = (s: string) => {
@@ -1490,7 +1491,7 @@ export default function SellerProfilePage() {
                         fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, color: '#fff', margin: '0 0 4px',
                         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {order.item_title}
+                        {displayItemTitle(order.item_title)}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <span style={{
@@ -1501,13 +1502,13 @@ export default function SellerProfilePage() {
                         }}>
                           {statusLabel(order.status)}
                         </span>
-                        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>
+                        <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>
                           {new Date(order.created_at).toLocaleDateString(getLocale(), {
                             day: 'numeric', month: 'short',
                           })}
                         </span>
                         {order.buyer_name && (
-                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{order.buyer_name}</span>
+                          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{order.buyer_name}</span>
                         )}
                         {order.recording_url && order.purchase_stream_offset_seconds != null && (
                           <span
@@ -1519,14 +1520,14 @@ export default function SellerProfilePage() {
                                 offset: order.purchase_stream_offset_seconds!,
                               })
                             }}
-                            style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
+                            style={{ fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.12)', padding: '2px 8px', borderRadius: '100px', cursor: 'pointer' }}
                           >
                             {t.seeMoment}
                           </span>
                         )}
                       </div>
                     </div>
-                    <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', flexShrink: 0 }}>
+                    <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', flexShrink: 0 }}>
                       {formatMoney(order.amount || 0, order.currency || sellerCurrency)}
                     </span>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2" style={rtlFlip()}>
@@ -1539,7 +1540,7 @@ export default function SellerProfilePage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '12px',
                     border: '1px solid #333', backgroundColor: 'transparent',
-                    color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
+                    color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer', marginTop: '4px',
                   }}
                 >
@@ -1554,35 +1555,35 @@ export default function SellerProfilePage() {
         {activeTab === 'finances' && isOwnProfile && (
           dashboardLoading ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-              <div style={{ width: '24px', height: '24px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div style={{ width: '24px', height: '24px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {/* Stats grid 2x2 */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
                     {dashboardData ? formatMoney(dashboardData.total_revenue, sellerCurrency) : '-'}
                   </p>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>{t.totalRevenue}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>{t.totalRevenue}</p>
                 </div>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
-                  <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: 0 }}>
+                  <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: 0 }}>
                     {dashboardData ? formatMoney(dashboardData.monthly_revenue, sellerCurrency) : '-'}
                   </p>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>{t.monthlyRevenue}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>{t.monthlyRevenue}</p>
                 </div>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
                   <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {dashboardData?.total_sales ?? '-'}
                   </p>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>{t.totalSales}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>{t.totalSales}</p>
                 </div>
                 <div style={{ backgroundColor: '#1A1A1A', borderRadius: '14px', padding: '16px', textAlign: 'center' }}>
                   <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {dashboardData?.avg_viewers ?? '-'}
                   </p>
-                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '4px 0 0', fontWeight: 600 }}>{t.avgViewers}</p>
+                  <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '4px 0 0', fontWeight: 600 }}>{t.avgViewers}</p>
                 </div>
               </div>
 
@@ -1606,9 +1607,9 @@ export default function SellerProfilePage() {
                 onClick={() => navigate('/payments')}
                 style={{
                   width: '100%', padding: '16px',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+                  background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
                   borderRadius: '14px', border: 'none',
-                  color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+                  color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                   cursor: 'pointer',
                 }}
               >

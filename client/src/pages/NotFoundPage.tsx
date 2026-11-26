@@ -34,21 +34,21 @@ export default function NotFoundPage() {
         padding: '24px',
         textAlign: 'center',
       }}>
-        <div style={{ fontSize: 'calc(64px * var(--fs, 1))', fontWeight: 800, color: '#E8344E', marginBottom: '8px' }}>
+        <div style={{ fontSize: 'calc(64px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', marginBottom: '8px' }}>
           404
         </div>
         <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, marginBottom: '8px' }}>
           {t.title}
         </h1>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', marginBottom: '24px' }}>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '24px' }}>
           {t.desc}
         </p>
         <button
           onClick={() => navigate('/')}
           style={{
             padding: '12px 32px', borderRadius: '12px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+            border: 'none', color: '#001014', fontSize: 'calc(15px * var(--fs, 1))',
             fontWeight: 600, cursor: 'pointer',
           }}
         >

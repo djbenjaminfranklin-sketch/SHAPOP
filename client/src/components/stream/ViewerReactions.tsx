@@ -131,7 +131,7 @@ export default function ViewerReactions({ onReaction, sendReaction }: ViewerReac
             onTouchStart={e => {
               const el = e.currentTarget
               el.style.transform = 'scale(1.3)'
-              el.style.backgroundColor = 'rgba(240,144,138,0.2)'
+              el.style.backgroundColor = 'rgba(0, 229, 255,0.2)'
             }}
             onPointerUp={e => {
               const el = e.currentTarget

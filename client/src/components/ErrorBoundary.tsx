@@ -87,21 +87,21 @@ export default class ErrorBoundary extends Component<Props, State> {
           <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 700, marginBottom: '8px' }}>
             {t.title}
           </h1>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', marginBottom: '12px', maxWidth: '300px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '12px', maxWidth: '300px' }}>
             {t.desc}
           </p>
           {import.meta.env.DEV && this.state.error && (
-            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#E8344E', marginBottom: '12px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+            <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF', marginBottom: '12px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
               {this.state.error.message || String(this.state.error)}
             </p>
           )}
           {import.meta.env.DEV && this.state.errorInfo && (
-            <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#666', marginBottom: '24px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', textAlign: 'start', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto' }}>
+            <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '24px', maxWidth: '320px', wordBreak: 'break-all', fontFamily: 'monospace', textAlign: 'start', whiteSpace: 'pre-wrap', maxHeight: '200px', overflowY: 'auto' }}>
               {this.state.errorInfo}
             </p>
           )}
           {!import.meta.env.DEV && (
-            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', marginBottom: '24px', maxWidth: '320px' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '24px', maxWidth: '320px' }}>
               {t.technical}
             </p>
           )}
@@ -110,8 +110,8 @@ export default class ErrorBoundary extends Component<Props, State> {
               onClick={this.handleRetry}
               style={{
                 padding: '12px 32px', borderRadius: '12px',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                border: 'none', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))',
+                background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                border: 'none', color: '#001014', fontSize: 'calc(15px * var(--fs, 1))',
                 fontWeight: 600, cursor: 'pointer',
               }}
             >
@@ -122,7 +122,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               style={{
                 padding: '10px 24px', borderRadius: '12px',
                 background: 'none', border: '1px solid #333',
-                color: '#888', fontSize: 'calc(14px * var(--fs, 1))',
+                color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))',
                 fontWeight: 500, cursor: 'pointer',
               }}
             >

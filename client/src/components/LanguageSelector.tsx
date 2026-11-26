@@ -50,10 +50,10 @@ export default function LanguageSelector({ variant = 'compact', onChange }: Prop
         style={{
           display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
           padding: inList ? '14px 16px' : '11px 16px',
-          background: active && inList ? 'rgba(240,144,138,0.12)' : 'transparent',
-          border: inList ? `1px solid ${active ? '#F0908A' : '#2A2A2A'}` : 'none',
+          background: active && inList ? 'rgba(0, 229, 255,0.12)' : 'transparent',
+          border: inList ? `1px solid ${active ? '#00E5FF' : '#2A2A2A'}` : 'none',
           borderRadius: inList ? '12px' : 0,
-          color: active ? '#F0908A' : '#E5E5E5', fontSize: 'calc(15px * var(--fs, 1))',
+          color: active ? '#00E5FF' : '#E5E5E5', fontSize: 'calc(15px * var(--fs, 1))',
           fontWeight: active ? 700 : 500, cursor: 'pointer', textAlign: 'start',
         }}
       >

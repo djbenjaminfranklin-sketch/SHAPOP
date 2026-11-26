@@ -5,8 +5,8 @@
 
 
 @theme {
-  --color-accent: #F0908A;
-  --color-accent-hover: #E87A73;
+  --color-accent: #00E5FF;
+  --color-accent-hover: #00B8D4;
   --color-surface: #111111;
   --color-surface-2: #1A1A1A;
   --color-surface-3: #222222;
@@ -90,16 +90,22 @@ body {
 
 #root {
   max-width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: none;
+  overflow: hidden;
   width: 100%;
   height: 100%;
 }
 
+/* La zone qui défile (dans #root, qui reste fixe) */
+.app-scroll {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+}
+
 /* Bandeau de suivi de commande affiché : place en bas de page pour qu'il ne cache pas les derniers boutons */
-html.has-order-bar #root::after {
+html.has-order-bar .app-scroll::after {
   content: '';
   display: block;
   height: 100px;
@@ -139,7 +145,19 @@ html.has-order-bar #root::after {
   width: 32px;
   height: 32px;
   border: 3px solid #333;
-  border-top-color: #E8344E;
+  border-top-color: #00E5FF;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
+/* Bande sous la barre d'état (heure, batterie) : même fond que les pages, absente des écrans de direct */
+.status-bar-cover {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 45;
+  height: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px));
+  background-color: #0a0a0a;
+  pointer-events: none;
+}
+html.live-screen .status-bar-cover { display: none; }
+
+/* Barre du bas visible : place réservée en bas de chaque page (hauteur de la barre + marge système) */
+html.has-bottom-nav .app-scroll { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); box-sizing: border-box; }

@@ -263,7 +263,7 @@ export default function CommunitiesPage() {
           <BackArrowButton />
           <div style={{
             width: '36px', height: '36px', borderRadius: '10px',
-            background: 'linear-gradient(135deg, #F0908A, #E06860)',
+            background: 'linear-gradient(135deg, #00E5FF, #E06860)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -283,7 +283,7 @@ export default function CommunitiesPage() {
           </div>
         </div>
         <p style={{
-          fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '6px 0 0 0',
+          fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '6px 0 0 0',
           lineHeight: 1.4,
         }}>
           {ct.subtitle}
@@ -293,7 +293,7 @@ export default function CommunitiesPage() {
       {/* Country selector */}
       <div style={{ padding: '16px 20px 0' }}>
         <p style={{
-          fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600,
+          fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600,
           textTransform: 'uppercase', letterSpacing: '0.5px',
           marginBottom: '10px', margin: '0 0 10px 0',
         }}>
@@ -315,10 +315,10 @@ export default function CommunitiesPage() {
                 gap: '4px',
                 padding: '10px 14px', borderRadius: '12px',
                 border: selectedCountry === country.code
-                  ? '1.5px solid #F0908A'
+                  ? '1.5px solid #00E5FF'
                   : '1.5px solid #222',
                 backgroundColor: selectedCountry === country.code
-                  ? 'rgba(240,144,138,0.12)'
+                  ? 'rgba(0, 229, 255,0.12)'
                   : '#0D0D0D',
                 cursor: 'pointer',
                 flexShrink: 0,
@@ -328,7 +328,7 @@ export default function CommunitiesPage() {
               <span className="no-theme-invert" style={{ fontSize: 'calc(22px * var(--fs, 1))', lineHeight: 1 }}>{country.flag}</span>
               <span style={{
                 fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
-                color: selectedCountry === country.code ? '#F0908A' : '#888',
+                color: selectedCountry === country.code ? '#00E5FF' : '#f0f0f0',
                 whiteSpace: 'nowrap',
               }}>
                 {country.name[lang] || country.name.en}
@@ -376,9 +376,9 @@ export default function CommunitiesPage() {
       <div style={{
         margin: '20px 20px 0',
         padding: '16px 20px',
-        background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(240,144,138,0.05))',
+        background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0, 229, 255,0.05))',
         borderRadius: '16px',
-        border: '1px solid rgba(240,144,138,0.2)',
+        border: '1px solid rgba(0, 229, 255,0.2)',
         display: 'flex',
         justifyContent: 'space-around',
       }}>
@@ -388,8 +388,8 @@ export default function CommunitiesPage() {
           { value: formatCount(totalLives), label: ct.activeLives },
         ].map((stat) => (
           <div key={stat.label} style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{stat.value}</div>
-            <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>{stat.label}</div>
+            <div style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>{stat.value}</div>
+            <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>{stat.label}</div>
           </div>
         ))}
       </div>
@@ -397,7 +397,7 @@ export default function CommunitiesPage() {
       {/* Nearby Communities */}
       <div style={{ padding: '24px 20px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -428,7 +428,7 @@ export default function CommunitiesPage() {
       {discover.length > 0 && (
         <div style={{ padding: '28px 20px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
               <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
               <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -465,10 +465,10 @@ export default function CommunitiesPage() {
               <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
             </svg>
           </div>
-          <p style={{ color: '#555', fontSize: 'calc(15px * var(--fs, 1))', margin: 0 }}>
+          <p style={{ color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))', margin: 0 }}>
             {ct.noCommunityFound}
           </p>
-          <p style={{ color: '#444', fontSize: 'calc(13px * var(--fs, 1))', marginTop: '4px' }}>
+          <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', marginTop: '4px' }}>
             {ct.tryOtherKeyword}
           </p>
         </div>
@@ -517,7 +517,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
           <div style={{
             position: 'absolute', top: '8px', insetInlineStart: '8px',
             display: 'flex', alignItems: 'center', gap: '4px',
-            backgroundColor: 'rgba(232,52,78,0.9)', backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(0,229,255,0.9)', backdropFilter: 'blur(4px)',
             padding: '3px 8px', borderRadius: '8px',
           }}>
             <div style={{
@@ -550,7 +550,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>{community.city}</span>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{community.city}</span>
         </div>
 
         <div style={{
@@ -561,7 +561,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
             <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888' }}>
+          <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>
             {plural(ct.members, community.member_count)}
           </span>
         </div>
@@ -580,13 +580,13 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
             fontFamily: 'inherit',
             ...(joined
               ? {
-                  backgroundColor: 'rgba(240,144,138,0.15)',
-                  border: '1.5px solid rgba(240,144,138,0.3)',
-                  color: '#F0908A',
+                  backgroundColor: 'rgba(0, 229, 255,0.15)',
+                  border: '1.5px solid rgba(0, 229, 255,0.3)',
+                  color: '#00E5FF',
                 }
               : {
-                  backgroundColor: '#F0908A',
-                  border: '1.5px solid #F0908A',
+                  backgroundColor: '#00E5FF',
+                  border: '1.5px solid #00E5FF',
                   color: '#000',
                 }
             ),

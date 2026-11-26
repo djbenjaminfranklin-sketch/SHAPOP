@@ -157,31 +157,31 @@ export default function EngagementSummary() {
       emoji: '\u{1F441}',
       label: ct.peakViewers,
       value: data.peakViewers.toLocaleString(),
-      color: '#F0908A',
+      color: '#00E5FF',
     },
     {
       emoji: '\u{1F4C8}',
       label: ct.avgEngagement,
       value: `${data.avgEngagement}%`,
-      color: '#22C55E',
+      color: '#00E5FF',
     },
     {
       emoji: '\u{2764}\u{FE0F}',
       label: ct.totalReactions,
       value: data.totalReactions.toLocaleString(),
-      color: '#A855F7',
+      color: '#00E5FF',
     },
     {
       emoji: '\u{1F528}',
       label: ct.bidsPlaced,
       value: data.totalBids.toString(),
-      color: '#F59E0B',
+      color: '#00E5FF',
     },
     {
       emoji: '\u{1F465}',
       label: ct.newFollowers,
       value: `+${data.newFollowers}`,
-      color: '#F0908A',
+      color: '#00E5FF',
     },
   ]
 
@@ -231,17 +231,17 @@ export default function EngagementSummary() {
           <span style={{
             fontSize: 'calc(13px * var(--fs, 1))',
             fontWeight: 700,
-            color: '#999',
+            color: '#f0f0f0',
           }}>
             {ct.engagementRate7}
           </span>
           <span style={{
             fontSize: 'calc(12px * var(--fs, 1))',
             fontWeight: 600,
-            color: '#22C55E',
+            color: '#00E5FF',
             padding: '2px 8px',
             borderRadius: '6px',
-            backgroundColor: 'rgba(34,197,94,0.1)',
+            backgroundColor: 'rgba(0,229,255,0.1)',
           }}>
             {trendDelta >= 0 ? '\u{2191}' : '\u{2193}'} {trendDelta >= 0 ? '+' : ''}{trendDelta}%
           </span>
@@ -270,7 +270,7 @@ export default function EngagementSummary() {
                 <span style={{
                   fontSize: 'calc(9px * var(--fs, 1))',
                   fontWeight: 700,
-                  color: isLast ? '#F0908A' : '#555',
+                  color: isLast ? '#00E5FF' : '#f0f0f0',
                   fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace',
                 }}>
                   {val}%
@@ -282,15 +282,15 @@ export default function EngagementSummary() {
                   height: `${heightPercent}%`,
                   minHeight: '4px',
                   background: isLast
-                    ? 'linear-gradient(to top, #F0908A, #E8344E)'
+                    ? 'linear-gradient(to top, #00E5FF, #0091EA)'
                     : 'linear-gradient(to top, rgba(255,255,255,0.06), rgba(255,255,255,0.12))',
                   transition: 'height 0.6s ease',
-                  boxShadow: isLast ? '0 0 10px rgba(240,144,138,0.3)' : 'none',
+                  boxShadow: isLast ? '0 0 10px rgba(0, 229, 255,0.3)' : 'none',
                 }} />
                 <span style={{
                   fontSize: 'calc(9px * var(--fs, 1))',
                   fontWeight: 600,
-                  color: '#555',
+                  color: '#f0f0f0',
                 }}>
                   {dayLabels[i]}
                 </span>
@@ -327,7 +327,7 @@ export default function EngagementSummary() {
               <span style={{
                 fontSize: 'calc(11px * var(--fs, 1))',
                 fontWeight: 600,
-                color: '#777',
+                color: '#f0f0f0',
               }}>
                 {stat.label}
               </span>
@@ -345,13 +345,13 @@ export default function EngagementSummary() {
         ))}
       </div>
 
-      {/* Last live recap bar */}
-      <div style={{
+      {/* Récapitulatif du dernier live : texte figé (« 23 % plus engagée ») retiré tant qu'il n'est pas calculé */}
+      {false && <div style={{
         marginTop: '10px',
         padding: '14px 16px',
         borderRadius: '16px',
-        background: 'linear-gradient(135deg, rgba(240,144,138,0.08) 0%, rgba(168,85,247,0.06) 100%)',
-        border: '1px solid rgba(240,144,138,0.12)',
+        background: 'linear-gradient(135deg, rgba(0, 229, 255,0.08) 0%, rgba(168,85,247,0.06) 100%)',
+        border: '1px solid rgba(0, 229, 255,0.12)',
         display: 'flex',
         alignItems: 'center',
         gap: '10px',
@@ -360,7 +360,7 @@ export default function EngagementSummary() {
           width: '40px',
           height: '40px',
           borderRadius: '12px',
-          background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+          background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -370,14 +370,14 @@ export default function EngagementSummary() {
           {'\u{1F3AF}'}
         </div>
         <div>
-          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: 0 }}>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', margin: 0 }}>
             {ct.lastLive}
           </p>
-          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
             {ct.lastLiveDesc}
           </p>
         </div>
-      </div>
+      </div>}
     </div>
   )
 }

@@ -135,13 +135,13 @@ export default function PayOrderPage() {
   const page: React.CSSProperties = { minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }
   const declined = order?.auth_status === 'declined' || order?.auth_status === 'no_card'
 
-  if (loading) return <div style={page}><p style={{ color: '#888' }}>{ct.loading}</p></div>
-  if (!order) return <div style={page}><PageBackButton /><p style={{ marginTop: '40px', color: '#888' }}>{ct.notFound}</p></div>
+  if (loading) return <div style={page}><p style={{ color: '#f0f0f0' }}>{ct.loading}</p></div>
+  if (!order) return <div style={page}><PageBackButton /><p style={{ marginTop: '40px', color: '#f0f0f0' }}>{ct.notFound}</p></div>
   if (order.status !== 'pending_payment' && step !== 'done') {
     return (
       <div style={page}>
         <PageBackButton />
-        <p style={{ marginTop: '40px', color: '#888' }}>{order.status === 'cancelled' ? ct.closed : ct.alreadyPaid}</p>
+        <p style={{ marginTop: '40px', color: '#f0f0f0' }}>{order.status === 'cancelled' ? ct.closed : ct.alreadyPaid}</p>
         <button onClick={() => navigate(`/order/${order.id}`, { replace: true })} style={btnGhost}>{ct.viewOrder}</button>
       </div>
     )
@@ -156,7 +156,7 @@ export default function PayOrderPage() {
         )}
         <div style={{ minWidth: 0 }}>
           <h1 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, margin: 0 }}>{ct.heading}</h1>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>{order.item?.title || ''} · {formatMoney(order.amount, order.currency || undefined)}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>{order.item?.title || ''} · {formatMoney(order.amount, order.currency || undefined)}</p>
         </div>
       </div>
 
@@ -183,12 +183,12 @@ export default function PayOrderPage() {
           {clientSecret ? (
             <Elements stripe={getStripePromise()} options={{
               clientSecret, locale: lang,
-              appearance: { theme: 'night', variables: { colorPrimary: '#F0908A', colorBackground: '#0D0D0D', colorText: '#fff', borderRadius: '10px' } },
+              appearance: { theme: 'night', variables: { colorPrimary: '#00E5FF', colorBackground: '#0D0D0D', colorText: '#fff', borderRadius: '10px' } },
             }}>
               <PaymentFormInner onSuccess={handlePaymentSuccess} onError={msg => setError(msg)} loading={paying} setLoading={setPaying} payNowLabel={ct.payNow} paymentFailedLabel={ct.paymentFailed} />
             </Elements>
           ) : !error ? (
-            <div style={{ width: '32px', height: '32px', margin: '24px auto', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: '32px', height: '32px', margin: '24px auto', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
           ) : null}
           <button onClick={() => { setStep('delivery'); setClientSecret(null); setError(null) }} style={btnGhost}>{ft(lang).choose_delivery}</button>
         </>
@@ -197,8 +197,8 @@ export default function PayOrderPage() {
       {step === 'done' && (
         <div style={{ textAlign: 'center', padding: '32px 0' }}>
           <p style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#22C55E', margin: '0 0 8px' }}>{ct.success}</p>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 24px' }}>{ct.successDesc}</p>
-          <button onClick={() => navigate(`/order/${order.id}`, { replace: true })} style={{ ...btnGhost, background: 'linear-gradient(135deg, #F0908A, #E8344E)', border: 'none', color: '#fff' }}>{ct.viewOrder}</button>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 24px' }}>{ct.successDesc}</p>
+          <button onClick={() => navigate(`/order/${order.id}`, { replace: true })} style={{ ...btnGhost, background: 'linear-gradient(135deg, #00E5FF, #0091EA)', border: 'none', color: '#001014' }}>{ct.viewOrder}</button>
         </div>
       )}
     </div>
@@ -214,8 +214,8 @@ const btnGhost: React.CSSProperties = {
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0' }}>
-      <span style={{ fontSize: strong ? '14px' : '13px', color: strong ? '#fff' : '#888', fontWeight: strong ? 700 : 400 }}>{label}</span>
-      <span style={{ fontSize: strong ? '14px' : '13px', color: strong ? '#22C55E' : '#fff', fontWeight: 700 }}>{value}</span>
+      <span style={{ fontSize: strong ? '14px' : '13px', color: strong ? '#fff' : '#f0f0f0', fontWeight: strong ? 700 : 400 }}>{label}</span>
+      <span style={{ fontSize: strong ? '14px' : '13px', color: strong ? '#00E5FF' : '#fff', fontWeight: 700 }}>{value}</span>
     </div>
   )
 }

@@ -14,7 +14,7 @@ import StreamCard from '../components/stream/StreamCard'
 import ItemCard from '../components/ItemCard'
 import VodPlayer from '../components/stream/VodPlayer'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { formatMoney, formatItemPrice } from '../lib/fulfillment'
+import { formatMoney, formatItemPrice, displayItemTitle } from '../lib/fulfillment'
 import { ft, statusLabel } from '../lib/fulfillmentText'
 
 type StreamWithSeller = Stream & { seller?: { display_name: string; avatar_url: string | null; store_name?: string } }
@@ -23,7 +23,7 @@ type ItemWithSeller = Item & { seller?: { display_name?: string; avatar_url?: st
 type MainTab = 'purchases' | 'sales' | 'following' | 'messages' | 'favorites' | 'offers'
 type SubFilter = 'all' | 'active' | 'completed' | 'refunds'
 
-type ActivityText = Record<'title' | 'purchasesTab' | 'salesTab' | 'followingTab' | 'messagesTab' | 'favoritesTab' | 'offersTab' | 'emptyOffers' | 'emptyOffersDesc' | 'offerSent' | 'offerReceived' | 'offerAccept' | 'offerDecline' | 'offerPending' | 'offerAccepted' | 'offerDeclined' | 'emptyPurchases' | 'emptyPurchasesDesc' | 'emptySales' | 'emptySalesDesc' | 'notSeller' | 'notSellerDesc' | 'comingSoon' | 'comingSoonFollowing' | 'comingSoonMessages' | 'comingSoonFavorites' | 'emptyFavorites' | 'emptyFavoritesDesc' | 'buyer' | 'loading' | 'error' | 'errorDesc' | 'retry' | 'deliveredOn' | 'reportProblem' | 'deadlineExpired' | 'timeRemainingPrefix' | 'disputeOpen' | 'contactSeller' | 'contactBuyer' | 'seeVideoMoment' | 'emptyFollowing' | 'emptyFollowingDesc' | 'unfollow' | 'liveNow' | 'scheduled' | 'noUpcoming' | 'filterAll' | 'filterActive' | 'filterCompleted' | 'filterRefunds' | 'offerFallback' | 'exportCsv' | 'csvDate' | 'csvItem' | 'csvAmount' | 'csvCurrency' | 'csvStatus' | 'csvTracking' | 'csvSeller' | 'expired' | 'timeRemaining', string>
+type ActivityText = Record<'title' | 'purchasesTab' | 'salesTab' | 'followingTab' | 'messagesTab' | 'favoritesTab' | 'offersTab' | 'emptyOffers' | 'emptyOffersDesc' | 'offerSent' | 'offerReceived' | 'offerAccept' | 'offerDecline' | 'offerPending' | 'offerAccepted' | 'offerDeclined' | 'emptyPurchases' | 'emptyPurchasesDesc' | 'emptySales' | 'emptySalesDesc' | 'notSeller' | 'notSellerDesc' | 'comingSoon' | 'comingSoonFollowing' | 'comingSoonMessages' | 'comingSoonFavorites' | 'emptyFavorites' | 'emptyFavoritesDesc' | 'buyer' | 'buyerPrefix' | 'loading' | 'error' | 'errorDesc' | 'retry' | 'deliveredOn' | 'reportProblem' | 'deadlineExpired' | 'timeRemainingPrefix' | 'disputeOpen' | 'contactSeller' | 'contactBuyer' | 'seeVideoMoment' | 'emptyFollowing' | 'emptyFollowingDesc' | 'unfollow' | 'liveNow' | 'scheduled' | 'noUpcoming' | 'filterAll' | 'filterActive' | 'filterCompleted' | 'filterRefunds' | 'offerFallback' | 'exportCsv' | 'csvDate' | 'csvItem' | 'csvAmount' | 'csvCurrency' | 'csvStatus' | 'csvTracking' | 'csvSeller' | 'expired' | 'timeRemaining', string>
 
 const ACTIVITY_TEXT: Localized<ActivityText> = {
   en: {
@@ -56,6 +56,7 @@ const ACTIVITY_TEXT: Localized<ActivityText> = {
     emptyFavorites: 'No favorites yet',
     emptyFavoritesDesc: 'Tap the heart on a live to add it here',
     buyer: 'Buyer',
+    buyerPrefix: 'Buyer:',
     loading: 'Loading...',
     error: 'Couldn\'t load',
     errorDesc: 'Check your connection and try again.',
@@ -120,6 +121,7 @@ const ACTIVITY_TEXT: Localized<ActivityText> = {
     emptyFavorites: 'Aucun favori pour le moment',
     emptyFavoritesDesc: 'Appuie sur le cœur d\'un live pour l\'ajouter ici',
     buyer: 'Acheteur',
+    buyerPrefix: 'Acheteur\u00A0:',
     loading: 'Chargement...',
     error: 'Erreur de chargement',
     errorDesc: 'Vérifie ta connexion et réessaie.',
@@ -184,6 +186,7 @@ const ACTIVITY_TEXT: Localized<ActivityText> = {
     emptyFavorites: 'Aún no tienes favoritos',
     emptyFavoritesDesc: 'Toca el corazón de un directo para añadirlo aquí',
     buyer: 'Comprador',
+    buyerPrefix: 'Comprador:',
     loading: 'Cargando...',
     error: 'Error al cargar',
     errorDesc: 'Revisa tu conexión e inténtalo de nuevo.',
@@ -248,6 +251,7 @@ const ACTIVITY_TEXT: Localized<ActivityText> = {
     emptyFavorites: 'В избранном пока пусто',
     emptyFavoritesDesc: 'Нажми на сердечко в эфире, чтобы добавить его сюда',
     buyer: 'Покупатель',
+    buyerPrefix: 'Покупатель:',
     loading: 'Загрузка...',
     error: 'Ошибка загрузки',
     errorDesc: 'Проверь подключение и попробуй ещё раз.',
@@ -312,6 +316,7 @@ const ACTIVITY_TEXT: Localized<ActivityText> = {
     emptyFavorites: 'עדיין אין מועדפים',
     emptyFavoritesDesc: 'הקש/י על הלב בשידור חי כדי להוסיף אותו לכאן',
     buyer: 'קונה',
+    buyerPrefix: 'קונה:',
     loading: 'טוען...',
     error: 'שגיאה בטעינה',
     errorDesc: 'בדקו את החיבור ונסו שוב.',
@@ -671,6 +676,16 @@ export default function ActivityPage() {
     if (dx > 0 && idx > 0) { setMainTab(tabIds[idx - 1]); setSubFilter('all') }
   }, [mainTab, mainTabs])
 
+  // L'onglet choisi (même par glissement) défile horizontalement pour être visible en entier
+  const tabsRowRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    const row = tabsRowRef.current
+    const el = row?.querySelector<HTMLElement>(`[data-tab="${mainTab}"]`)
+    if (!row || !el) return
+    // scrollIntoView gère aussi l'hébreu (défilement de droite à gauche)
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
+  }, [mainTab])
+
   const subFilters: { id: SubFilter; label: string }[] = [
     { id: 'all', label: lt.filterAll },
     { id: 'active', label: lt.filterActive },
@@ -680,13 +695,13 @@ export default function ActivityPage() {
 
   const getOrderStatusColor = (status: OrderStatusExt) => {
     switch (status) {
-      case 'pending_payment': return '#F59E0B'
-      case 'paid': return '#3B82F6'
+      case 'pending_payment': return '#00E5FF'
+      case 'paid': return '#00E5FF'
       case 'shipped':
       case 'handed_over':
-      case 'delivered': return '#10B981'
+      case 'delivered': return '#00E5FF'
       case 'refunded':
-      case 'cancelled': return '#8B5CF6'
+      case 'cancelled': return '#00E5FF'
       case 'disputed': return '#E8344E'
       default: return '#666'
     }
@@ -777,12 +792,12 @@ export default function ActivityPage() {
         background: gradient,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 'calc(36px * var(--fs, 1))', marginBottom: '20px',
-        boxShadow: '0 8px 32px rgba(240,144,138,0.15)',
+        boxShadow: '0 8px 32px rgba(0, 229, 255,0.15)',
       }}>
         {icon}
       </div>
       <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{title}</p>
-      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', maxWidth: '260px' }}>{desc}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', maxWidth: '260px' }}>{desc}</p>
     </div>
   )
 
@@ -793,10 +808,10 @@ export default function ActivityPage() {
     }}>
       <div style={{
         width: '32px', height: '32px', border: '3px solid #222',
-        borderTopColor: '#F0908A', borderRadius: '50%',
+        borderTopColor: '#00E5FF', borderRadius: '50%',
         animation: 'spin 0.8s linear infinite', marginBottom: '16px',
       }} />
-      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666' }}>{lt.loading}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{lt.loading}</p>
     </div>
   )
 
@@ -807,26 +822,26 @@ export default function ActivityPage() {
     }}>
       <div style={{
         width: '80px', height: '80px', borderRadius: '50%',
-        background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))',
+        background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(0,229,255,0.06))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         marginBottom: '20px',
       }}>
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
           <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
       <p style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>{lt.error}</p>
-      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#666', maxWidth: '260px', marginBottom: '16px' }} title={errorMsg}>{lt.errorDesc}</p>
+      <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', maxWidth: '260px', marginBottom: '16px' }} title={errorMsg}>{lt.errorDesc}</p>
       <button
         onClick={onRetry}
         style={{
           background: 'transparent', border: 'none', cursor: 'pointer',
-          color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+          color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
           display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
         }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
         </svg>
         {lt.retry}
@@ -836,7 +851,7 @@ export default function ActivityPage() {
 
   const renderOrderCard = (order: PurchaseOrder | SaleOrder, index: number, isSale: boolean) => {
     const itemImage = getItemImage(order.item)
-    const itemTitle = order.item?.title || `Order #${order.id.slice(0, 8)}`
+    const itemTitle = displayItemTitle(order.item?.title) || `#${order.id.slice(0, 8).toUpperCase()}`
     const statusColor = getOrderStatusColor(order.status)
     const statusLabel = getOrderStatusLabel(order.status)
     const saleOrder = order as SaleOrder
@@ -868,59 +883,61 @@ export default function ActivityPage() {
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{
+            {/* dir="auto" : un titre en lettres latines reste coupé à la fin, même en hébreu */}
+            <p dir="auto" style={{
               fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '3px',
-              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              textAlign: 'start',
             }}>
               {itemTitle}
             </p>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#F0908A', fontWeight: 600, marginBottom: '3px' }}>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600, marginBottom: '3px' }}>
               {formatAmount(order.amount, order.currency)}
               {!isSale && order.shipping_cost != null && order.shipping_cost > 0 && (
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', fontWeight: 500 }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 500 }}>
                   {' '}+ {formatAmount(order.shipping_cost, order.currency)} {fx.shipping_fee}
                 </span>
               )}
             </p>
-            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#555' }}>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>
               {isSale && saleOrder.buyer_profile
-                ? `${lt.buyer}: ${saleOrder.buyer_profile.display_name} \u00B7 `
+                ? `${lt.buyerPrefix} ${saleOrder.buyer_profile.display_name} \u00B7 `
                 : ''
               }
               {formatDate(order.created_at)}
             </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
-            <span style={{
-              fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
-              color: statusColor,
-              backgroundColor: `${statusColor}14`,
-              padding: '5px 12px', borderRadius: '10px',
-              border: `1px solid ${statusColor}30`,
-              whiteSpace: 'nowrap',
-            }}>
-              {statusLabel}
-            </span>
-            {/* Dispute badge */}
-            {order.status === 'disputed' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
               <span style={{
-                fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
-                color: '#F97316',
-                backgroundColor: 'rgba(249,115,22,0.1)',
-                padding: '3px 8px', borderRadius: '8px',
-                border: '1px solid rgba(249,115,22,0.3)',
+                fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
+                color: statusColor,
+                backgroundColor: `${statusColor}14`,
+                padding: '5px 12px', borderRadius: '10px',
+                border: `1px solid ${statusColor}30`,
                 whiteSpace: 'nowrap',
               }}>
-                {lt.disputeOpen}
+                {statusLabel}
               </span>
-            )}
+              {/* Dispute badge */}
+              {order.status === 'disputed' && (
+                <span style={{
+                  fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700,
+                  color: '#00E5FF',
+                  backgroundColor: 'rgba(0,229,255,0.1)',
+                  padding: '3px 8px', borderRadius: '8px',
+                  border: '1px solid rgba(0,229,255,0.3)',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {lt.disputeOpen}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Remise : le vendeur saisit le code ou envoie les 2 photos dans le détail de la commande */}
         {order.status === 'paid' && (order.fulfillment_method === 'pickup' || order.fulfillment_method === 'post') && (
           <div style={{ marginTop: '10px', borderTop: '1px solid #1A1A1A', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs, 1))', color: '#F59E0B', fontWeight: 600 }}>
+            <span style={{ flex: 1, fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', fontWeight: 600 }}>
               {order.fulfillment_method === 'pickup' ? fx.method_pickup : fx.method_post}
               {isSale ? ` — ${order.fulfillment_method === 'pickup' ? fx.awaiting_code : fx.awaiting_photos}` : ''}
             </span>
@@ -928,7 +945,7 @@ export default function ActivityPage() {
               onClick={(e) => { e.stopPropagation(); navigate(`/order/${order.id}`) }}
               style={{
                 padding: '7px 14px', borderRadius: '8px', border: 'none', whiteSpace: 'nowrap',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)', color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                background: 'linear-gradient(135deg, #00E5FF, #0091EA)', color: '#001014', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
               }}
             >
               {isSale ? (order.fulfillment_method === 'pickup' ? fx.enter_code_button : fx.take_photo) : (order.fulfillment_method === 'pickup' ? fx.your_code_title : fx.contact_title)}
@@ -937,7 +954,7 @@ export default function ActivityPage() {
         )}
 
         {(order.status === 'shipped' || order.status === 'handed_over') && (order.shipped_at || order.handed_over_at) && (
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#10B981', margin: '10px 0 0' }}>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', margin: '10px 0 0' }}>
             {order.status === 'handed_over' ? fx.handed_over_on : fx.shipped_on} {formatDate((order.handed_over_at || order.shipped_at)!)}
           </p>
         )}
@@ -946,7 +963,7 @@ export default function ActivityPage() {
         {!isSale && order.status === 'delivered' && (
           <div style={{ marginTop: '8px' }}>
             {order.delivered_at && (
-              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#10B981', margin: '0 0 10px' }}>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', margin: '0 0 10px' }}>
                 {lt.deliveredOn} {formatDate(order.delivered_at)}
               </p>
             )}
@@ -957,15 +974,15 @@ export default function ActivityPage() {
                   onClick={(e) => { e.stopPropagation(); navigate(`/dispute/${order.id}`) }}
                   style={{
                     padding: '8px 16px', borderRadius: '10px',
-                    background: 'linear-gradient(135deg, #F97316, #E8344E)',
-                    border: 'none', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))',
+                    background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                    border: 'none', color: '#001014', fontSize: 'calc(13px * var(--fs, 1))',
                     fontWeight: 700, cursor: 'pointer',
                     marginBottom: '6px',
                   }}
                 >
                   {lt.reportProblem}
                 </button>
-                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#F97316', margin: 0 }}>
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF', margin: 0 }}>
                   {'\u23F1'} {formatTimeRemaining(order.claim_deadline)} {lt.timeRemainingPrefix}
                 </p>
               </div>
@@ -975,7 +992,7 @@ export default function ActivityPage() {
                 style={{
                   padding: '8px 16px', borderRadius: '10px',
                   background: '#333', border: 'none',
-                  color: '#666', fontSize: 'calc(13px * var(--fs, 1))',
+                  color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))',
                   fontWeight: 700, cursor: 'not-allowed',
                 }}
               >
@@ -999,12 +1016,12 @@ export default function ActivityPage() {
               }}
               style={{
                 padding: '7px 14px', borderRadius: '8px',
-                background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.25)',
-                color: '#8B5CF6', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
+                background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.25)',
+                color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
               {lt.seeVideoMoment}
@@ -1038,7 +1055,7 @@ export default function ActivityPage() {
               style={{
                 padding: '7px 14px', borderRadius: '8px',
                 background: 'transparent', border: '1px solid #333',
-                color: '#aaa', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
+                color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
               }}
             >
@@ -1060,7 +1077,7 @@ export default function ActivityPage() {
         '\uD83D\uDECD\uFE0F',
         lt.emptyPurchases,
         lt.emptyPurchasesDesc,
-        'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
+        'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
       )
     }
 
@@ -1077,7 +1094,7 @@ export default function ActivityPage() {
         '\uD83D\uDCB0',
         lt.notSeller,
         lt.notSellerDesc,
-        'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+        'linear-gradient(135deg, #00E5FF 0%, #00E5FF 100%)',
       )
     }
 
@@ -1095,10 +1112,10 @@ export default function ActivityPage() {
       >
         <div style={{
           width: '36px', height: '36px', borderRadius: '10px',
-          background: 'linear-gradient(135deg, #F59E0B, #D97706)',
+          background: 'linear-gradient(135deg, #00E5FF, #00E5FF)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#001014" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" />
           </svg>
         </div>
@@ -1106,14 +1123,14 @@ export default function ActivityPage() {
           <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
             {fx.to_hand_over}
           </p>
-          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0' }}>
+          <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>
             {fx.method_pickup} · {fx.method_post}
           </p>
         </div>
         {toHandOverCount > 0 && (
           <span style={{
-            fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F59E0B',
-            backgroundColor: 'rgba(245,158,11,0.12)', padding: '3px 10px',
+            fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF',
+            backgroundColor: 'rgba(0,229,255,0.12)', padding: '3px 10px',
             borderRadius: '10px', whiteSpace: 'nowrap',
           }}>
             {toHandOverCount}
@@ -1137,7 +1154,7 @@ export default function ActivityPage() {
             '\uD83D\uDCB0',
             lt.emptySales,
             lt.emptySalesDesc,
-            'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+            'linear-gradient(135deg, #00E5FF 0%, #00E5FF 100%)',
           )}
         </div>
       )
@@ -1159,7 +1176,7 @@ export default function ActivityPage() {
         '\uD83D\uDC65',
         lt.emptyFollowing,
         lt.emptyFollowingDesc,
-        'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+        'linear-gradient(135deg, #00E5FF 0%, #6D28D9 100%)',
       )
     }
 
@@ -1183,12 +1200,12 @@ export default function ActivityPage() {
                 <div style={{
                   width: '52px', height: '52px', borderRadius: '50%', flexShrink: 0,
                   backgroundColor: '#111', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: hasLive ? '2px solid #E8344E' : '2px solid #222',
+                  border: hasLive ? '2px solid #00E5FF' : '2px solid #222',
                 }}>
                   {avatarUrl ? (
                     <img src={avatarUrl} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
                   ) : (
-                    <span style={{ fontSize: 'calc(18px * var(--fs, 1))', color: '#666', fontWeight: 700 }}>{displayName[0]}</span>
+                    <span style={{ fontSize: 'calc(18px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 700 }}>{displayName[0]}</span>
                   )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -1196,18 +1213,18 @@ export default function ActivityPage() {
                     {displayName}
                   </p>
                   {seller.store_name && seller.store_name !== displayName && (
-                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 4px' }}>{seller.store_name}</p>
+                    <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 4px' }}>{seller.store_name}</p>
                   )}
                   {hasLive ? (
-                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#E8344E', backgroundColor: 'rgba(232,52,78,0.1)', padding: '3px 8px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.1)', padding: '3px 8px', borderRadius: '6px' }}>
                       {lt.liveNow}
                     </span>
                   ) : nextScheduled ? (
-                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#8B5CF6' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#00E5FF' }}>
                       {lt.scheduled} - {new Date(nextScheduled.scheduled_at).toLocaleDateString()}
                     </span>
                   ) : (
-                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#444' }}>{lt.noUpcoming}</span>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>{lt.noUpcoming}</span>
                   )}
                 </div>
                 <button
@@ -1215,7 +1232,7 @@ export default function ActivityPage() {
                   style={{
                     padding: '6px 12px', borderRadius: '8px',
                     background: 'transparent', border: '1px solid #333',
-                    color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                    color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                   }}
                 >
                   {lt.unfollow}
@@ -1233,7 +1250,7 @@ export default function ActivityPage() {
     if (loadingFavorites) {
       return (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-          <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )
     }
@@ -1247,17 +1264,17 @@ export default function ActivityPage() {
         }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
+            background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12), rgba(0,229,255,0.06))',
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
             </svg>
           </div>
           <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
             {lt.emptyFavorites}
           </h3>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0, maxWidth: '260px' }}>
             {lt.emptyFavoritesDesc}
           </p>
         </div>
@@ -1279,7 +1296,7 @@ export default function ActivityPage() {
     if (loadingOffers) {
       return (
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '60px' }}>
-          <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#E8344E', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: '28px', height: '28px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         </div>
       )
     }
@@ -1288,10 +1305,10 @@ export default function ActivityPage() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
           <div style={{
             width: '80px', height: '80px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(139,92,246,0.06))',
+            background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(0,229,255,0.06))',
             display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px',
           }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" />
               <line x1="7" y1="7" x2="7.01" y2="7" />
             </svg>
@@ -1299,7 +1316,7 @@ export default function ActivityPage() {
           <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
             {lt.emptyOffers}
           </h3>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0, maxWidth: '260px' }}>
             {lt.emptyOffersDesc}
           </p>
         </div>
@@ -1310,7 +1327,7 @@ export default function ActivityPage() {
       <div style={{ padding: '16px' }}>
         {offers.map((offer, idx) => {
           const isReceived = offer.seller_id === user?.id
-          const statusColor = offer.status === 'pending' ? '#F59E0B' : offer.status === 'accepted' ? '#10B981' : '#E8344E'
+          const statusColor = offer.status === 'pending' ? '#00E5FF' : offer.status === 'accepted' ? '#00E5FF' : '#00E5FF'
           const statusLabel = offer.status === 'pending' ? lt.offerPending
             : offer.status === 'accepted' ? lt.offerAccepted
             : lt.offerDeclined
@@ -1330,15 +1347,15 @@ export default function ActivityPage() {
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {offer.item?.title || lt.offerFallback}
+                  {displayItemTitle(offer.item?.title) || lt.offerFallback}
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
-                  <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#F0908A' }}>{offer.currency ? formatMoney(offer.amount, offer.currency) : formatItemPrice(offer.amount, offerSellerCountry[offer.seller_id] ?? profile?.country)}</span>
+                  <span style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF' }}>{offer.currency ? formatMoney(offer.amount, offer.currency) : formatItemPrice(offer.amount, offerSellerCountry[offer.seller_id] ?? profile?.country)}</span>
                   <span style={{
-                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: isReceived ? '#3B82F6' : '#8B5CF6',
-                    backgroundColor: isReceived ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)',
+                    fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: isReceived ? '#00E5FF' : '#00E5FF',
+                    backgroundColor: isReceived ? 'rgba(0,229,255,0.12)' : 'rgba(0,229,255,0.12)',
                     padding: '2px 6px', borderRadius: '6px',
-                    border: isReceived ? '1px solid rgba(59,130,246,0.25)' : '1px solid rgba(139,92,246,0.25)',
+                    border: isReceived ? '1px solid rgba(0,229,255,0.25)' : '1px solid rgba(0,229,255,0.25)',
                   }}>
                     {isReceived ? lt.offerReceived : lt.offerSent}
                   </span>
@@ -1358,8 +1375,8 @@ export default function ActivityPage() {
                     onClick={() => handleRespondToOffer(offer.id, 'accept')}
                     style={{
                       padding: '6px 10px', borderRadius: '8px', border: 'none',
-                      background: 'linear-gradient(135deg, #10B981, #059669)',
-                      color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #00E5FF, #00E5FF)',
+                      color: '#001014', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {lt.offerAccept}
@@ -1369,7 +1386,7 @@ export default function ActivityPage() {
                     style={{
                       padding: '6px 10px', borderRadius: '8px',
                       border: '1px solid #333', background: 'transparent',
-                      color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                      color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     }}
                   >
                     {lt.offerDecline}
@@ -1417,10 +1434,11 @@ export default function ActivityPage() {
         <div style={{
           display: 'flex', gap: '6px', padding: '16px 16px 12px',
           overflowX: 'auto',
-        }} className="no-scrollbar">
+        }} className="no-scrollbar" ref={tabsRowRef}>
           {mainTabs.map(tab => (
             <button
               key={tab.id}
+              data-tab={tab.id}
               onClick={() => {
                 setMainTab(tab.id); setSubFilter('all')
               }}
@@ -1429,19 +1447,18 @@ export default function ActivityPage() {
                 padding: '10px 16px', borderRadius: '14px',
                 flexShrink: 0, cursor: 'pointer',
                 background: mainTab === tab.id
-                  ? 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.1))'
+                  ? 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.1))'
                   : '#0D0D0D',
                 border: mainTab === tab.id
-                  ? '1px solid rgba(240,144,138,0.3)'
+                  ? '1px solid rgba(0, 229, 255,0.3)'
                   : '1px solid #1A1A1A',
                 position: 'relative',
               }}
             >
-              <span style={{ fontSize: 'calc(14px * var(--fs, 1))' }}>{tab.emoji}</span>
               <span style={{
                 fontSize: 'calc(13px * var(--fs, 1))',
                 fontWeight: mainTab === tab.id ? 700 : 500,
-                color: mainTab === tab.id ? '#F0908A' : '#666',
+                color: mainTab === tab.id ? '#00E5FF' : '#f0f0f0',
               }}>
                 {tab.label}
               </span>
@@ -1463,7 +1480,7 @@ export default function ActivityPage() {
                   padding: '6px 14px', borderRadius: '100px', flexShrink: 0,
                   backgroundColor: subFilter === filter.id ? '#fff' : 'transparent',
                   border: subFilter === filter.id ? 'none' : '1px solid #222',
-                  color: subFilter === filter.id ? '#000' : '#555',
+                  color: subFilter === filter.id ? '#000' : '#f0f0f0',
                   fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 }}
               >
@@ -1475,7 +1492,7 @@ export default function ActivityPage() {
               style={{
                 marginInlineStart: 'auto', padding: '6px 10px', borderRadius: '100px', flexShrink: 0,
                 backgroundColor: 'transparent', border: '1px solid #333',
-                color: '#888', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '4px',
               }}
             >

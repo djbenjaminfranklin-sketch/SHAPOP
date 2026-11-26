@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="shapop_pink">#F0908A</color>
+    <color name="shapop_pink">#00E5FF</color>
     <color name="shapop_red">#E8344E</color>
     <color name="shapop_white">#FFFFFF</color>
     <color name="shapop_background">#0A0A0A</color>
     <color name="colorPrimary">#E8344E</color>
     <color name="colorPrimaryDark">#0A0A0A</color>
-    <color name="colorAccent">#F0908A</color>
+    <color name="colorAccent">#00E5FF</color>
 </resources>

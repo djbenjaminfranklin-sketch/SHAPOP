@@ -111,7 +111,7 @@ const homeContent: Localized<HomeText> = {
     clear: 'Effacer',
     clearSearch: 'Effacer la recherche',
     city: 'Ville',
-    nearbyLives: 'Lives autour de moi',
+    nearbyLives: 'Lives autour de toi',
     cityPlaceholder: 'Londres, New York...',
     minSellerRating: 'Note minimale du vendeur',
     all: 'Tous',
@@ -527,7 +527,7 @@ export default function Home() {
           {ht.tagline}
         </h1>
         <p style={{
-          fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
+          fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
           lineHeight: 1.5, maxWidth: '320px', margin: '0 0 40px',
         }}>
           {ht.subtitle}
@@ -535,9 +535,9 @@ export default function Home() {
         <Link to="/login" style={{
           display: 'block', width: '100%', maxWidth: '320px', padding: '16px',
           borderRadius: '14px', textDecoration: 'none',
-          background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-          color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, textAlign: 'center',
-          boxShadow: '0 6px 24px rgba(240,144,138,0.35)', marginBottom: '12px',
+          background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
+          color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, textAlign: 'center',
+          boxShadow: '0 6px 24px rgba(0, 229, 255,0.35)', marginBottom: '12px',
         }}>
           {ht.signIn}
         </Link>
@@ -598,13 +598,13 @@ export default function Home() {
               position: 'relative', flexShrink: 0,
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(filterCity || filterMinRating > 0) ? '#F0908A' : '#999'} strokeWidth="1.5">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={(filterCity || filterMinRating > 0) ? '#00E5FF' : '#999'} strokeWidth="1.5">
               <line x1="4" y1="6" x2="20" y2="6" strokeLinecap="round"/>
               <line x1="7" y1="12" x2="17" y2="12" strokeLinecap="round"/>
               <line x1="10" y1="18" x2="14" y2="18" strokeLinecap="round"/>
             </svg>
             {(filterCity || filterMinRating > 0) && (
-              <div style={{ position: 'absolute', top: '6px', insetInlineEnd: '6px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#F0908A' }} />
+              <div style={{ position: 'absolute', top: '6px', insetInlineEnd: '6px', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#00E5FF' }} />
             )}
           </button>
           {/* Chat icon */}
@@ -658,7 +658,7 @@ export default function Home() {
                     style={{
                       display: 'flex', alignItems: 'center', gap: '10px', width: '100%',
                       padding: '11px 16px', background: 'transparent', border: 'none',
-                      color: lang === code ? '#F0908A' : '#ccc', fontSize: 'calc(14px * var(--fs, 1))',
+                      color: lang === code ? '#00E5FF' : '#ccc', fontSize: 'calc(14px * var(--fs, 1))',
                       fontWeight: lang === code ? 700 : 400, cursor: 'pointer', textAlign: 'start',
                     }}
                   >
@@ -676,12 +676,12 @@ export default function Home() {
         {searchFocused && !searchQuery && searchHistory.length > 0 && (
           <div style={{ padding: '4px 16px 8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', fontWeight: 600 }}>
+              <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600 }}>
                 {ht.recentSearches}
               </span>
               <button
                 onClick={() => { setSearchHistory([]); localStorage.removeItem('shapop_search_history') }}
-                style={{ background: 'none', border: 'none', color: '#F0908A', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#00E5FF', fontSize: 'calc(12px * var(--fs, 1))', cursor: 'pointer' }}
               >
                 {ht.clear}
               </button>
@@ -713,13 +713,13 @@ export default function Home() {
             aria-label={ht.city}
             style={{
               background: 'transparent', border: 'none',
-              padding: '2px 0', color: '#888', fontSize: 'calc(13px * var(--fs, 1))',
+              padding: '2px 0', color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))',
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               cursor: 'pointer',
             }}
           >
             {locationLoading ? (
-              <span style={{ color: '#555' }}>{t(lang, 'detecting_location')}</span>
+              <span style={{ color: '#f0f0f0' }}>{t(lang, 'detecting_location')}</span>
             ) : city ? (
               <>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
@@ -748,7 +748,7 @@ export default function Home() {
             onClick={() => navigate('/map')}
             style={{
               marginInlineStart: 'auto', background: 'transparent', border: 'none', padding: '2px 0',
-              color: '#E8344E', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+              color: '#00E5FF', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
             }}
           >
             {ht.nearbyLives} ›
@@ -788,7 +788,7 @@ export default function Home() {
         }}>
           {/* City filter */}
           <div>
-            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', marginBottom: '6px', display: 'block' }}>
               {ht.city}
             </label>
             <input
@@ -805,7 +805,7 @@ export default function Home() {
           </div>
           {/* Seller rating filter */}
           <div>
-            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888', marginBottom: '6px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', marginBottom: '6px', display: 'block' }}>
               {ht.minSellerRating}
             </label>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -815,10 +815,10 @@ export default function Home() {
                   onClick={() => setFilterMinRating(r)}
                   style={{
                     flex: 1, padding: '8px 0',
-                    backgroundColor: filterMinRating === r ? 'rgba(240,144,138,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: filterMinRating === r ? '1px solid #F0908A' : '1px solid #333',
+                    backgroundColor: filterMinRating === r ? 'rgba(0, 229, 255,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: filterMinRating === r ? '1px solid #00E5FF' : '1px solid #333',
                     borderRadius: '8px',
-                    color: filterMinRating === r ? '#F0908A' : '#888',
+                    color: filterMinRating === r ? '#00E5FF' : '#f0f0f0',
                     fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                   }}
                 >
@@ -834,7 +834,7 @@ export default function Home() {
               style={{
                 padding: '8px', backgroundColor: 'transparent',
                 border: '1px solid #444', borderRadius: '8px',
-                color: '#888', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
               }}
             >
               {ht.reset}
@@ -851,10 +851,10 @@ export default function Home() {
             margin: '0 16px 12px 16px',
             padding: '14px 16px',
             borderRadius: '14px',
-            background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #B91C3C 100%)',
+            background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #B91C3C 100%)',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 4px 20px rgba(232,52,78,0.3)',
+            boxShadow: '0 4px 20px rgba(0,229,255,0.3)',
           }}>
             {/* Close button */}
             <button
@@ -887,7 +887,7 @@ export default function Home() {
                 <p style={{ color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, margin: '0 0 2px', paddingInlineEnd: '20px' }}>
                   {activePromotion.title}
                 </p>
-                <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 4px' }}>
+                <p style={{ color: '#f0f0f0', fontSize: 'calc(12px * var(--fs, 1))', margin: '0 0 4px' }}>
                   {activePromotion.description || `${promoLabel} -${activePromotion.discount_percent}%`}
                 </p>
                 <span style={{
@@ -913,8 +913,8 @@ export default function Home() {
           margin: '0 16px 12px 16px',
           padding: '12px 16px',
           borderRadius: '14px',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
-          border: '1px solid rgba(240,144,138,0.25)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.08))',
+          border: '1px solid rgba(0, 229, 255,0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -922,10 +922,10 @@ export default function Home() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{
               width: '32px', height: '32px', borderRadius: '8px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+              background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#001014" stroke="none">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
@@ -945,8 +945,8 @@ export default function Home() {
           margin: '0 16px 12px 16px',
           padding: '12px 16px',
           borderRadius: '14px',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
-          border: '1px solid rgba(240,144,138,0.25)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.08))',
+          border: '1px solid rgba(0, 229, 255,0.25)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -956,13 +956,13 @@ export default function Home() {
               width: '32px',
               height: '32px',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
+              background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#fff" stroke="none">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="#001014" stroke="none">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
@@ -970,7 +970,7 @@ export default function Home() {
               <p style={{ color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, margin: 0 }}>
                 {ht.sortedByRelevance}
               </p>
-              <p style={{ color: '#888', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0 0' }}>
+              <p style={{ color: '#f0f0f0', fontSize: 'calc(11px * var(--fs, 1))', margin: '2px 0 0 0' }}>
                 {ht.basedOnPrefs}
               </p>
             </div>
@@ -979,10 +979,10 @@ export default function Home() {
             onClick={() => setShowPrefsModal(true)}
             style={{
               background: 'transparent',
-              border: '1px solid rgba(240,144,138,0.4)',
+              border: '1px solid rgba(0, 229, 255,0.4)',
               borderRadius: '10px',
               padding: '6px 12px',
-              color: '#F0908A',
+              color: '#00E5FF',
               fontSize: 'calc(12px * var(--fs, 1))',
               fontWeight: 600,
               cursor: 'pointer',
@@ -1004,10 +1004,10 @@ export default function Home() {
         >
           <div style={{
             width: '14px', height: '14px', border: '2px solid #333',
-            borderTopColor: '#F0908A', borderRadius: '50%',
+            borderTopColor: '#00E5FF', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
-          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555', fontWeight: 500 }}>
+          <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 500 }}>
             {ht.refreshing}
           </span>
         </div>
@@ -1020,8 +1020,8 @@ export default function Home() {
         </div>
       ) : fetchError ? (
         <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(232,52,78,0.12), rgba(232,52,78,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="1.5">
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(0,229,255,0.12), rgba(0,229,255,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M12 8v4M12 16h.01" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -1030,11 +1030,11 @@ export default function Home() {
             onClick={() => fetchStreams()}
             style={{
               background: 'transparent', border: 'none', cursor: 'pointer',
-              color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+              color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
               display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
             }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
             </svg>
             {ht.retry}
@@ -1042,8 +1042,8 @@ export default function Home() {
         </div>
       ) : displayStreams.length === 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 24px', textAlign: 'center' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5">
+          <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12), rgba(0,229,255,0.06))', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5">
               <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
               <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -1051,7 +1051,7 @@ export default function Home() {
           <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>
             {ht.emptyTitle}
           </h3>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', margin: 0, maxWidth: '260px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0, maxWidth: '260px' }}>
             {ht.emptySubtitle}
           </p>
         </div>
@@ -1082,7 +1082,7 @@ function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSel
   const suggestions = buildCitySuggestions({ detected, selected: current ? [current] : [], nearby, max: 8 })
   const itemStyle = (active: boolean, bold = false) => ({
     display: 'flex', alignItems: 'center', gap: '8px', width: '100%', textAlign: 'start' as const,
-    padding: '11px 16px', color: active ? '#F0908A' : '#ccc',
+    padding: '11px 16px', color: active ? '#00E5FF' : '#ccc',
     fontSize: 'calc(14px * var(--fs, 1))', background: 'transparent', border: 'none', cursor: 'pointer',
     fontWeight: bold ? 700 : 400,
   })
@@ -1104,7 +1104,7 @@ function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSel
         <CitySearchField onPick={onSelect} near={coords} background="#111" />
       </div>
       {status === 'locating' && suggestions.length === 0 && (
-        <p style={{ color: '#666', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, padding: '6px 16px' }}>{t(lang, 'detecting_location')}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(13px * var(--fs, 1))', margin: 0, padding: '6px 16px' }}>{t(lang, 'detecting_location')}</p>
       )}
       {suggestions.map(c => {
         const isHere = !!detected && sameCity(detected.key, c.key)
@@ -1115,7 +1115,7 @@ function HomeCityMenu({ current, onSelect }: { current: CityOption | null; onSel
               <circle cx="12" cy="10" r="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
             <span dir="auto">{c.label}</span>
-            {isHere && <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#777' }}>{tr(homeCityText, lang).here}</span>}
+            {isHere && <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>{tr(homeCityText, lang).here}</span>}
           </button>
         )
       })}

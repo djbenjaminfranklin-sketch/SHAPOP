@@ -206,7 +206,7 @@ export default function ChangePasswordPage() {
 
   const strengthLevel = getPasswordStrength(newPassword)
 
-  const strengthColor = strengthLevel === 1 ? '#E8344E' : strengthLevel === 2 ? '#F0908A' : strengthLevel === 3 ? '#4ADE80' : '#333'
+  const strengthColor = strengthLevel === 1 ? '#00E5FF' : strengthLevel === 2 ? '#00E5FF' : strengthLevel === 3 ? '#00E5FF' : '#333'
   const strengthLabel = strengthLevel === 0
     ? ''
     : strengthLevel === 1
@@ -290,7 +290,7 @@ export default function ChangePasswordPage() {
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{
           width: '32px', height: '32px', border: '3px solid #333',
-          borderTopColor: '#E8344E', borderRadius: '50%',
+          borderTopColor: '#00E5FF', borderRadius: '50%',
           animation: 'spin 0.8s linear infinite',
         }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -321,7 +321,7 @@ export default function ChangePasswordPage() {
       {/* Form */}
       <div style={{ padding: '24px 20px' }}>
         {isRecoveryMode && (
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.6, marginBottom: '24px' }}>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6, marginBottom: '24px' }}>
             {c.chooseNew}
           </p>
         )}
@@ -329,7 +329,7 @@ export default function ChangePasswordPage() {
         {/* Current password — only shown when NOT in recovery mode */}
         {!isRecoveryMode && (
           <>
-            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+            <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
               {c.currentPassword}
             </label>
             <div style={{ position: 'relative', marginBottom: '20px' }}>
@@ -340,7 +340,7 @@ export default function ChangePasswordPage() {
                 onChange={e => setCurrentPassword(e.target.value)}
                 placeholder={c.currentPlaceholder}
                 style={{ ...inputStyle, paddingInlineEnd: '48px' }}
-                onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+                onFocus={e => { e.currentTarget.style.borderColor = '#00E5FF'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
                 onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
               />
               <button
@@ -364,7 +364,7 @@ export default function ChangePasswordPage() {
         )}
 
         {/* New password */}
-        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.newPassword}
         </label>
         <div style={{ position: 'relative', marginBottom: '8px' }}>
@@ -375,7 +375,7 @@ export default function ChangePasswordPage() {
             onChange={e => setNewPassword(e.target.value)}
             placeholder={c.newPlaceholder}
             style={{ ...inputStyle, paddingInlineEnd: '48px' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#00E5FF'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
           />
           <button
@@ -418,7 +418,7 @@ export default function ChangePasswordPage() {
         )}
 
         {/* Confirm new password */}
-        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
+        <label style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px', display: 'block' }}>
           {c.confirmPassword}
         </label>
         <div style={{ position: 'relative', marginBottom: '32px' }}>
@@ -429,7 +429,7 @@ export default function ChangePasswordPage() {
             onChange={e => setConfirmPassword(e.target.value)}
             placeholder={c.confirmPlaceholder}
             style={{ ...inputStyle, paddingInlineEnd: '48px' }}
-            onFocus={e => { e.currentTarget.style.borderColor = '#F0908A'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
+            onFocus={e => { e.currentTarget.style.borderColor = '#00E5FF'; setTimeout(() => { (e.target as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' }) }, 300) }}
             onBlur={e => { e.currentTarget.style.borderColor = '#1A1A1A' }}
           />
           <button
@@ -456,10 +456,10 @@ export default function ChangePasswordPage() {
           disabled={loading}
           style={{
             width: '100%', padding: '16px', borderRadius: '14px', border: 'none',
-            background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 100%)',
-            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
+            background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 100%)',
+            color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
             opacity: loading ? 0.6 : 1,
-            boxShadow: '0 6px 24px rgba(240,144,138,0.35)',
+            boxShadow: '0 6px 24px rgba(0, 229, 255,0.35)',
           }}
         >
           {loading
@@ -475,8 +475,8 @@ export default function ChangePasswordPage() {
         <div style={{
           padding: '14px 24px', borderRadius: '12px', textAlign: 'center',
           backgroundColor: toast.type === 'success' ? '#1a3a1a' : '#3a1a1a',
-          border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#E8344E'}`,
-          color: toast.type === 'success' ? '#4ADE80' : '#E8344E',
+          border: `1px solid ${toast.type === 'success' ? '#4ADE80' : '#00E5FF'}`,
+          color: toast.type === 'success' ? '#4ADE80' : '#00E5FF',
           fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, zIndex: 100,
           boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         }}>

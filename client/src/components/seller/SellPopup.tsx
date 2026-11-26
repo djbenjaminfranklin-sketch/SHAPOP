@@ -225,24 +225,24 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
     {
       label: c.directSale,
       description: c.iaDescription,
-      gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
+      gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)',
       route: '/ai-listing',
       featured: true,
       badge: c.iaExpress,
       icon: (
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="white" stroke="white" strokeWidth="1"/>
+          <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#001014" stroke="#001014" strokeWidth="1"/>
         </svg>
       ),
     },
     {
       label: c.scheduleLive,
       description: c.scheduleDesc,
-      gradient: 'linear-gradient(135deg, #F0908A, #E8344E)',
+      gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)',
       route: '/schedule-live',
       featured: false,
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#001014" strokeWidth="2">
           <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -251,11 +251,11 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
     {
       label: c.startLive,
       description: c.startLiveDesc,
-      gradient: 'linear-gradient(135deg, #E8344E, #F0908A)',
+      gradient: 'linear-gradient(135deg, #0091EA, #00E5FF)',
       route: '/go-live',
       featured: false,
       icon: (
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#001014" strokeWidth="2">
           <polygon points="23 7 16 12 23 17 23 7" strokeLinecap="round" strokeLinejoin="round"/>
           <rect x="1" y="5" width="15" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -336,10 +336,10 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
             }}>
               <div style={{
                 width: '88px', height: '88px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 60%, #B91C3C 100%)',
+                background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #0091EA 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 'calc(40px * var(--fs, 1))',
-                boxShadow: '0 8px 32px rgba(240,144,138,0.25), 0 0 0 6px rgba(240,144,138,0.08)',
+                boxShadow: '0 8px 32px rgba(0, 229, 255,0.25), 0 0 0 6px rgba(0, 229, 255,0.08)',
               }}>
                 {'\u{1F6CD}\u{FE0F}'}
               </div>
@@ -347,7 +347,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
 
             {/* Description */}
             <p style={{
-              fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
+              fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
               lineHeight: 1.6, margin: '0 0 8px',
             }}>
               {c.becomeSellerDesc}
@@ -369,11 +369,11 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 }}>
                   <div style={{
                     width: '32px', height: '32px', borderRadius: '50%',
-                    background: 'linear-gradient(135deg, rgba(240,144,138,0.15), rgba(232,52,78,0.08))',
-                    border: '1px solid rgba(240,144,138,0.2)',
+                    background: 'linear-gradient(135deg, rgba(0, 229, 255,0.15), rgba(0,229,255,0.08))',
+                    border: '1px solid rgba(0, 229, 255,0.2)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
-                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
+                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF',
                   }}>
                     {i + 1}
                   </div>
@@ -386,7 +386,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
 
             {/* Time estimate */}
             <p style={{
-              fontSize: 'calc(13px * var(--fs, 1))', color: '#666', textAlign: 'center',
+              fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
               margin: '4px 0 0',
             }}>
@@ -402,11 +402,11 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               onClick={handleBecomeSeller}
               style={{
                 width: '100%', padding: '18px', marginTop: '8px',
-                background: 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #B91C3C 100%)',
+                background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 50%, #0091EA 100%)',
                 borderRadius: '16px', border: 'none',
-                color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
+                color: '#001014', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
-                boxShadow: '0 6px 24px rgba(240,144,138,0.35), 0 2px 8px rgba(232,52,78,0.3)',
+                boxShadow: '0 6px 24px rgba(0, 229, 255,0.35), 0 2px 8px rgba(0,229,255,0.3)',
                 letterSpacing: '0.3px',
                 position: 'relative',
                 overflow: 'hidden',
@@ -424,7 +424,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0' }}>
             <div style={{
               width: '32px', height: '32px',
-              border: '3px solid #333', borderTopColor: '#F0908A',
+              border: '3px solid #333', borderTopColor: '#00E5FF',
               borderRadius: '50%', animation: 'spin 0.8s linear infinite',
             }} />
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -437,7 +437,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
             }}>
               <div style={{
                 width: '88px', height: '88px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 60%, #0A2540 100%)',
+                background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 60%, #006F80 100%)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 'calc(40px * var(--fs, 1))',
                 boxShadow: '0 8px 32px rgba(99,91,255,0.25), 0 0 0 6px rgba(99,91,255,0.08)',
@@ -446,7 +446,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               </div>
             </div>
             <p style={{
-              fontSize: 'calc(15px * var(--fs, 1))', color: '#888', textAlign: 'center',
+              fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', textAlign: 'center',
               lineHeight: 1.6, margin: '0 0 16px',
             }}>
               {isIsraeli ? c.ilBankDesc : c.stripeRequiredDesc}
@@ -455,9 +455,9 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
               onClick={() => { onClose(); navigate(isIsraeli ? '/payouts-israel' : '/payments') }}
               style={{
                 width: '100%', padding: '18px', marginTop: '8px',
-                background: 'linear-gradient(135deg, #635BFF 0%, #7A73FF 50%, #0A2540 100%)',
+                background: 'linear-gradient(135deg, #00E5FF 0%, #0091EA 50%, #006F80 100%)',
                 borderRadius: '16px', border: 'none',
-                color: '#fff', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
+                color: '#001014', fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
                 cursor: 'pointer',
                 boxShadow: '0 6px 24px rgba(99,91,255,0.35), 0 2px 8px rgba(99,91,255,0.3)',
                 letterSpacing: '0.3px',
@@ -482,8 +482,8 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 onClick={() => handleAction(action.route)}
                 style={{
                   width: '100%',
-                  background: 'linear-gradient(135deg, rgba(240,144,138,0.12), rgba(232,52,78,0.06))',
-                  border: '1px solid rgba(240,144,138,0.3)',
+                  background: 'linear-gradient(135deg, rgba(0, 229, 255,0.12), rgba(0,229,255,0.06))',
+                  border: '1px solid rgba(0, 229, 255,0.3)',
                   borderRadius: '16px',
                   padding: '20px',
                   cursor: 'pointer',
@@ -499,14 +499,14 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                 <div style={{
                   position: 'absolute', top: '-15px', insetInlineEnd: '-15px',
                   width: '60px', height: '60px', borderRadius: '50%',
-                  backgroundColor: 'rgba(240,144,138,0.08)',
+                  backgroundColor: 'rgba(0, 229, 255,0.08)',
                 }} />
                 <div style={{
                   width: '52px', height: '52px', borderRadius: '50%',
                   background: action.gradient,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   flexShrink: 0,
-                  boxShadow: '0 4px 16px rgba(240,144,138,0.3)',
+                  boxShadow: '0 4px 16px rgba(0, 229, 255,0.3)',
                 }}>
                   {action.icon}
                 </div>
@@ -519,8 +519,8 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     {action.label}
                     {'badge' in action && action.badge && (
                       <span style={{
-                        fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
-                        backgroundColor: 'rgba(240,144,138,0.15)',
+                        fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF',
+                        backgroundColor: 'rgba(0, 229, 255,0.15)',
                         padding: '3px 10px', borderRadius: '100px',
                         textTransform: 'uppercase', letterSpacing: '0.5px',
                       }}>
@@ -528,7 +528,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#999' }}>
+                  <div style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>
                     {action.description}
                   </div>
                 </div>
@@ -573,7 +573,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
                     <div style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
                       {action.label}
                     </div>
-                    <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', lineHeight: 1.4 }}>
+                    <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.4 }}>
                       {action.description}
                     </div>
                   </div>

@@ -73,7 +73,7 @@ export default function PayoutsIsraelPage() {
 
   // On arrive depuis le bas de la page Paiements : remettre l'écran en haut
   useEffect(() => {
-    const top = () => { window.scrollTo(0, 0); document.scrollingElement?.scrollTo(0, 0); document.body.scrollTop = 0 }
+    const top = () => { window.scrollTo(0, 0); document.scrollingElement?.scrollTo(0, 0); document.body.scrollTop = 0; document.querySelector('.app-scroll')?.scrollTo(0, 0) }
     top(); const t = setTimeout(top, 80)
     return () => clearTimeout(t)
   }, [])
@@ -112,7 +112,7 @@ export default function PayoutsIsraelPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
       <PageBackButton />
       <h1 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, margin: '48px 0 8px' }}>🇮🇱 {ct.title}</h1>
-      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.5, margin: '0 0 16px' }}>{status?.provider === 'wise' ? ct.introWise : ct.intro}</p>
+      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.5, margin: '0 0 16px' }}>{status?.provider === 'wise' ? ct.introWise : ct.intro}</p>
 
       {status && !enabled && (
         <p style={{ margin: '0 0 16px', padding: '12px 14px', borderRadius: '12px', backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.4)', color: '#F59E0B', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>{ct.soon}</p>
@@ -123,7 +123,7 @@ export default function PayoutsIsraelPage() {
         {!showForm ? (
           <>
             <p style={{ margin: '0 0 6px', color: '#22C55E', fontWeight: 700 }}>✓ {ct.saved}</p>
-            {status?.bank_last4 && <p style={{ margin: '0 0 12px', color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))' }}>{ct.ending} {status.bank_last4}</p>}
+            {status?.bank_last4 && <p style={{ margin: '0 0 12px', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))' }}>{ct.ending} {status.bank_last4}</p>}
             <button onClick={() => setEditing(true)} style={{ ...btn(true), background: 'transparent', border: '1px solid #444', color: '#ddd' }}>{ct.change}</button>
           </>
         ) : (
@@ -131,7 +131,7 @@ export default function PayoutsIsraelPage() {
           <>
             <Field label={ct.holder} value={form.holder_name} onChange={v => setForm({ ...form, holder_name: v })} autoComplete="name" />
             <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder={IBAN_EXAMPLE} dir="ltr" />
-            <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#777' }}>{ct.ibanHint}</p>
+            <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.ibanHint}</p>
             <button onClick={save} disabled={!enabled || busy} style={btn(enabled && !busy)}>{busy ? ct.saving : ct.save}</button>
           </>
           ) : (
@@ -141,7 +141,7 @@ export default function PayoutsIsraelPage() {
               <Field label={ct.lastName} value={form.last_name} onChange={v => setForm({ ...form, last_name: v })} autoComplete="family-name" />
             </div>
             <Field label={ct.iban} value={form.iban} onChange={v => setForm({ ...form, iban: v.toUpperCase() })} placeholder={IBAN_EXAMPLE} dir="ltr" />
-            <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#777' }}>{ct.ibanHint}</p>
+            <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.ibanHint}</p>
             <Field label={ct.street} value={form.street} onChange={v => setForm({ ...form, street: v })} autoComplete="street-address" />
             <div style={{ display: 'flex', gap: '8px' }}>
               <Field label={ct.city} value={form.city} onChange={v => setForm({ ...form, city: v })} autoComplete="address-level2" />
@@ -160,14 +160,14 @@ export default function PayoutsIsraelPage() {
 
 const btn = (on: boolean): React.CSSProperties => ({
   width: '100%', marginTop: '6px', padding: '14px', borderRadius: '12px', border: 'none',
-  background: on ? 'linear-gradient(135deg, #E8344E, #F0908A)' : '#2A2A2A', color: on ? '#fff' : '#777',
+  background: on ? 'linear-gradient(135deg, #0091EA, #00E5FF)' : '#2A2A2A', color: on ? '#fff' : '#f0f0f0',
   fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 800, cursor: on ? 'pointer' : 'default',
 })
 
 function Field({ label, value, onChange, autoComplete, placeholder, dir }: { label: string; value: string; onChange: (v: string) => void; autoComplete?: string; placeholder?: string; dir?: 'ltr' | 'rtl' }) {
   return (
     <label style={{ display: 'block', flex: 1, marginBottom: '8px' }}>
-      <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#888', marginBottom: '4px' }}>{label}</span>
+      <span style={{ display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '4px' }}>{label}</span>
       <input
         value={value} onChange={e => onChange(e.target.value)} autoComplete={autoComplete} placeholder={placeholder} dir={dir}
         style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#0A0A0A', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))' }}

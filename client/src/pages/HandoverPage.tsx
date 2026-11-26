@@ -5,7 +5,7 @@ import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import { getDir, getLang } from '../lib/i18n'
 import { usePageTitle } from '../hooks/usePageTitle'
-import { formatDateTime, formatMoney, shortOrderRef } from '../lib/fulfillment'
+import { formatDateTime, formatMoney, shortOrderRef, displayItemTitle } from '../lib/fulfillment'
 import { ft } from '../lib/fulfillmentText'
 
 interface HandoverOrder {
@@ -50,7 +50,7 @@ export default function HandoverPage() {
     ].filter(Boolean).join('\n')
   }
   const orderLine = (o: HandoverOrder) =>
-    `${t.order_label} #${shortOrderRef(o.id)} — ${t.item_label} : ${o.item?.title || ''} — ${formatMoney(o.total_amount ?? o.amount, o.currency, lang)}`
+    `${t.order_label} #${shortOrderRef(o.id)} — ${t.item_label} : ${displayItemTitle(o.item?.title)} — ${formatMoney(o.total_amount ?? o.amount, o.currency, lang)}`
   const copy = async (key: string, text: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -102,7 +102,7 @@ export default function HandoverPage() {
   if (!user) return null
 
   return (
-    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: '#fff' }}>
+    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: '#fff', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)' /* barre du bas */ }}>
       <div style={{
         position: 'sticky', top: 0, zIndex: 50, backgroundColor: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)',
         borderBottom: '1px solid #1A1A1A', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)', paddingBottom: '8px',
@@ -120,15 +120,15 @@ export default function HandoverPage() {
       </div>
 
       <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', maxWidth: '640px', margin: '0 auto' }}>
-        {loading && <div style={{ color: '#888', textAlign: 'center', padding: '32px' }}>…</div>}
+        {loading && <div style={{ color: '#f0f0f0', textAlign: 'center', padding: '32px' }}>…</div>}
         {!loading && error && <div style={{ color: '#F87171', textAlign: 'center', padding: '32px' }}>{t.error_generic}</div>}
         {!loading && !error && orders.length === 0 && (
-          <div style={{ color: '#888', textAlign: 'center', padding: '48px 16px' }}>{t.to_hand_over_empty}</div>
+          <div style={{ color: '#f0f0f0', textAlign: 'center', padding: '48px 16px' }}>{t.to_hand_over_empty}</div>
         )}
         {postOrders.length > 1 && (
           <button
             onClick={() => copy('all', postOrders.map(o => `${addressBlock(o)}\n${orderLine(o)}`).join('\n\n────────\n\n'))}
-            style={{ padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#161616', color: copied === 'all' ? '#22C55E' : '#F0908A', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer' }}
+            style={{ padding: '12px', borderRadius: '12px', border: '1px solid #333', backgroundColor: '#161616', color: copied === 'all' ? '#22C55E' : '#00E5FF', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer' }}
           >{copied === 'all' ? `✓ ${t.copied}` : `📋 ${t.copy_all_addresses} (${postOrders.length})`}</button>
         )}
         {orders.map(o => {
@@ -148,17 +148,17 @@ export default function HandoverPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {o.item?.title || `#${shortOrderRef(o.id)}`}
+                  {displayItemTitle(o.item?.title) || `#${shortOrderRef(o.id)}`}
                 </div>
-                <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#aaa', marginTop: '2px' }}>
+                <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>
                   {o.fulfillment_method === 'pickup' ? t.method_pickup : t.method_post}
                   {o.buyer_profile?.display_name || o.buyer_profile?.username ? ` · ${o.buyer_profile?.display_name || o.buyer_profile?.username}` : ''}
                 </div>
-                <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#F0908A', marginTop: '2px' }}>
+                <div style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#00E5FF', marginTop: '2px' }}>
                   {o.fulfillment_method === 'pickup' ? t.awaiting_code : t.awaiting_photos}
                 </div>
                 {o.handover_deadline && (
-                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: late ? '#F87171' : '#777', marginTop: '2px' }}>
+                  <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: late ? '#F87171' : '#f0f0f0', marginTop: '2px' }}>
                     {t.deadline} {formatDateTime(o.handover_deadline, lang)}
                   </div>
                 )}
@@ -175,7 +175,7 @@ export default function HandoverPage() {
                 display: 'flex', alignItems: 'center', gap: '10px', margin: '-4px 0 0', padding: '12px',
                 borderRadius: (o.fulfillment_method === 'post' && o.shipping_address) ? '0' : '0 0 14px 14px',
                 border: '1px solid #222', borderTop: 'none', cursor: 'pointer', textAlign: 'start',
-                backgroundColor: o.prepared_at ? 'rgba(34,197,94,0.10)' : '#0f0f0f', color: '#fff', opacity: saving === o.id ? 0.6 : 1,
+                backgroundColor: o.prepared_at ? 'rgba(0,229,255,0.10)' : '#0f0f0f', color: '#fff', opacity: saving === o.id ? 0.6 : 1,
               }}
             >
               <span style={{
@@ -186,7 +186,7 @@ export default function HandoverPage() {
                 <span style={{ display: 'block', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: o.prepared_at ? '#22C55E' : '#fff' }}>
                   {o.prepared_at ? `${t.processed_on} ${formatDateTime(o.prepared_at, lang)}` : t.mark_processed}
                 </span>
-                {!o.prepared_at && <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>{t.processed_hint}</span>}
+                {!o.prepared_at && <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>{t.processed_hint}</span>}
               </span>
             </button>
             {o.fulfillment_method === 'post' && o.shipping_address && (
@@ -195,9 +195,9 @@ export default function HandoverPage() {
                 {o.item?.image_urls?.[0] && (
                   <img src={o.item.image_urls[0]} alt="" style={{ width: '100%', maxHeight: '260px', objectFit: 'cover', borderRadius: '12px', marginBottom: '10px', backgroundColor: '#1a1a1a' }} />
                 )}
-                <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.ship_to}</div>
+                <div style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>{t.ship_to}</div>
                 <div dir="auto" style={{ whiteSpace: 'pre-line', fontSize: 'calc(15px * var(--fs, 1))', lineHeight: 1.5, fontWeight: 600, color: '#fff', userSelect: 'text', WebkitUserSelect: 'text' }}>{addressBlock(o)}</div>
-                <div dir="auto" style={{ marginTop: '8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#aaa', userSelect: 'text', WebkitUserSelect: 'text' }}>{orderLine(o)}</div>
+                <div dir="auto" style={{ marginTop: '8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', userSelect: 'text', WebkitUserSelect: 'text' }}>{orderLine(o)}</div>
                 <button
                   onClick={() => copy(o.id, `${addressBlock(o)}\n${orderLine(o)}`)}
                   style={{ marginTop: '10px', width: '100%', padding: '10px', borderRadius: '10px', border: '1px solid #333', backgroundColor: '#161616', color: copied === o.id ? '#22C55E' : '#ddd', fontWeight: 700, fontSize: 'calc(13px * var(--fs, 1))', cursor: 'pointer' }}

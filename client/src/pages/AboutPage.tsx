@@ -136,10 +136,10 @@ const content: Localized<AboutText> = {
 }
 
 const iconMap: Record<string, React.JSX.Element> = {
-  video: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  map: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="10" r="3"/></svg>,
-  shield: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
-  zap: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  video: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  map: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round"/><circle cx="12" cy="10" r="3"/></svg>,
+  shield: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round"/><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  zap: <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
 }
 
 export default function AboutPage() {
@@ -159,15 +159,15 @@ export default function AboutPage() {
       <div style={{ padding: '32px 20px', textAlign: 'center' }}>
         {/* Logo */}
         <div style={{ fontSize: 'calc(42px * var(--fs, 1))', fontWeight: 800, color: '#fff', letterSpacing: '-1px', fontStyle: 'italic', marginBottom: '4px' }}>
-          Sha<span style={{ color: '#F0908A' }}>Pop</span>{/* i18n-ignore */}
+          Sha<span style={{ color: '#00E5FF' }}>Pop</span>{/* i18n-ignore */}
         </div>
-        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#aaa', fontStyle: 'italic', marginBottom: '24px' }}>{c.tagline}</p>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#888', lineHeight: 1.7, textAlign: 'start', marginBottom: '32px' }}>{c.desc}</p>
+        <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#f0f0f0', fontStyle: 'italic', marginBottom: '24px' }}>{c.tagline}</p>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.7, textAlign: 'start', marginBottom: '32px' }}>{c.desc}</p>
 
         {/* Mission */}
         <div style={{ backgroundColor: '#111', borderRadius: '16px', padding: '20px', marginBottom: '24px', textAlign: 'start' }}>
           <h2 style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>{c.missionTitle}</h2>
-          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6 }}>{c.mission}</p>
+          <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6 }}>{c.mission}</p>
         </div>
 
         {/* Features grid */}
@@ -176,14 +176,14 @@ export default function AboutPage() {
             <div key={f.icon} style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'start' }}>
               {iconMap[f.icon]}
               <h3 style={{ fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#fff', marginTop: '10px', marginBottom: '4px' }}>{f.title}</h3>
-              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', lineHeight: 1.4 }}>{f.desc}</p>
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.4 }}>{f.desc}</p>
             </div>
           ))}
         </div>
 
         {/* Legal links */}
         <div style={{ backgroundColor: '#111', borderRadius: '14px', padding: '16px', textAlign: 'start', marginBottom: '24px' }}>
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.legal}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{c.legal}</p>
           {[
             { label: c.terms, to: '/terms' },
             { label: c.privacy, to: '/privacy' },
@@ -200,15 +200,15 @@ export default function AboutPage() {
                 cursor: 'pointer', textAlign: 'start',
               }}
             >
-              <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa' }}>{link.label}</span>
+              <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{link.label}</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2" style={{ ...rtlFlip() }}><path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
           ))}
         </div>
 
         {/* Version & footer */}
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444' }}>{c.version} 1.0.0</p>
-        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444', marginTop: '4px' }}>{c.made}</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{c.version} 1.0.0</p>
+        <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '4px' }}>{c.made}</p>
       </div>
     </div>
   )

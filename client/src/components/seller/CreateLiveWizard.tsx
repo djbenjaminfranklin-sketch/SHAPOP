@@ -327,21 +327,21 @@ export default function CreateLiveWizard() {
 
   const sellingCategories = categories.filter(c => c.id !== 'for_you' && c.id !== 'following')
 
-  const tipColors = ['#FFD700', '#00D4FF', '#10B981']
+  const tipColors = ['#FFD700', '#00D4FF', '#00E5FF']
 
   const tips = [
     { title: t.tip1Title, desc: t.tip1Desc, emoji: '\u2600\uFE0F', color: '#FFD700', bg: 'linear-gradient(135deg, #332800 0%, #1A1500 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FFD700" strokeWidth="1.5"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> },
     { title: t.tip2Title, desc: t.tip2Desc, emoji: '\uD83D\uDC65', color: '#00D4FF', bg: 'linear-gradient(135deg, #001A33 0%, #000D1A 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-    { title: t.tip3Title, desc: t.tip3Desc, emoji: '\uD83D\uDCE6', color: '#10B981', bg: 'linear-gradient(135deg, #001A12 0%, #000D09 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> },
+    { title: t.tip3Title, desc: t.tip3Desc, emoji: '\uD83D\uDCE6', color: '#00E5FF', bg: 'linear-gradient(135deg, #001A12 0%, #000D09 100%)', icon: <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> },
   ]
 
   // Step hero data
   const stepHeroes = [
-    { emoji: '\uD83C\uDFA5', gradient: 'linear-gradient(135deg, #F0908A, #E8344E)' },
-    { emoji: '\u270D\uFE0F', gradient: 'linear-gradient(135deg, #A78BFA, #7C3AED)' },
-    { emoji: '\uD83D\uDCC5', gradient: 'linear-gradient(135deg, #60A5FA, #2563EB)' },
-    { emoji: '\uD83C\uDFF7\uFE0F', gradient: 'linear-gradient(135deg, #34D399, #059669)' },
-    { emoji: '\uD83D\uDDBC\uFE0F', gradient: 'linear-gradient(135deg, #FBBF24, #D97706)' },
+    { emoji: '\uD83C\uDFA5', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
+    { emoji: '\u270D\uFE0F', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
+    { emoji: '\uD83D\uDCC5', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
+    { emoji: '\uD83C\uDFF7\uFE0F', gradient: 'linear-gradient(135deg, #00E5FF, #00E5FF)' },
+    { emoji: '\uD83D\uDDBC\uFE0F', gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)' },
   ]
 
   const canProceed = (): boolean => {
@@ -730,7 +730,7 @@ export default function CreateLiveWizard() {
                 background: stepHeroes[0].gradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 'calc(42px * var(--fs, 1))',
-                boxShadow: '0 8px 32px rgba(240, 144, 138, 0.35), 0 0 0 8px rgba(240, 144, 138, 0.08)',
+                boxShadow: '0 8px 32px rgba(0, 229, 255, 0.35), 0 0 0 8px rgba(0, 229, 255, 0.08)',
               }}>
                 {stepHeroes[0].emoji}
               </div>
@@ -742,7 +742,7 @@ export default function CreateLiveWizard() {
             }}>
               {t.tipsTitle}
             </h2>
-            <p style={{ textAlign: 'center', color: '#666', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '28px' }}>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '28px' }}>
               {t.learnFromPros}
             </p>
 
@@ -796,7 +796,7 @@ export default function CreateLiveWizard() {
                     {tip.title}
                   </h3>
                   <p style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', color: '#aaa', lineHeight: 1.7,
+                    fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.7,
                     letterSpacing: '0.1px',
                   }}>
                     {tip.desc}
@@ -868,7 +868,7 @@ export default function CreateLiveWizard() {
               borderRadius: '16px',
               padding: '2px',
               background: titleFocused
-                ? 'linear-gradient(135deg, #A78BFA, #F0908A, #FBBF24)'
+                ? 'linear-gradient(135deg, #00E5FF, #00E5FF, #00E5FF)'
                 : 'transparent',
               transition: 'all 0.3s ease',
               marginBottom: '8px',
@@ -900,14 +900,14 @@ export default function CreateLiveWizard() {
                   height: '100%', borderRadius: '2px',
                   width: `${(title.length / 150) * 100}%`,
                   background: title.length > 120
-                    ? 'linear-gradient(90deg, #FBBF24, #EF4444)'
-                    : 'linear-gradient(90deg, #A78BFA, #F0908A)',
+                    ? 'linear-gradient(90deg, #00E5FF, #EF4444)'
+                    : 'linear-gradient(90deg, #00E5FF, #00E5FF)',
                   transition: 'width 0.3s ease, background 0.3s ease',
                 }} />
               </div>
               <p style={{
                 fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
-                color: title.length > 120 ? '#FBBF24' : '#555',
+                color: title.length > 120 ? '#00E5FF' : '#f0f0f0',
                 flexShrink: 0,
               }}>
                 {title.length}{t.charCount}
@@ -926,12 +926,12 @@ export default function CreateLiveWizard() {
                 borderBottom: '1px solid #141414',
                 display: 'flex', alignItems: 'center', gap: '6px',
               }}>
-                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+                <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
                   {t.livePreview}
                 </span>
                 <div style={{
                   width: '6px', height: '6px', borderRadius: '50%',
-                  backgroundColor: title.trim() ? '#10B981' : '#333',
+                  backgroundColor: title.trim() ? '#00E5FF' : '#333',
                   transition: 'background-color 0.3s ease',
                 }} />
               </div>
@@ -954,11 +954,11 @@ export default function CreateLiveWizard() {
                   display: 'flex', alignItems: 'center', gap: '6px',
                 }}>
                   <div style={{
-                    background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
+                    background: 'linear-gradient(135deg, #0091EA, #FF6B6B)',
                     borderRadius: '6px', padding: '4px 10px',
-                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff',
+                    fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#001014',
                     letterSpacing: '1px',
-                    boxShadow: '0 2px 12px rgba(232, 52, 78, 0.5)',
+                    boxShadow: '0 2px 12px rgba(0,229,255, 0.5)',
                     display: 'flex', alignItems: 'center', gap: '4px',
                   }}>
                     <div style={{
@@ -984,20 +984,20 @@ export default function CreateLiveWizard() {
               <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
-                  border: '2px solid #F0908A',
-                  boxShadow: '0 0 0 2px rgba(240, 144, 138, 0.2)',
+                  border: '2px solid #00E5FF',
+                  boxShadow: '0 0 0 2px rgba(0, 229, 255, 0.2)',
                 }}>
                   <CartoonAvatar seed={profile?.username || profile?.id || 'seller'} size={40} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{
-                    fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: title.trim() ? '#fff' : '#444',
+                    fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: title.trim() ? '#fff' : '#f0f0f0',
                     transition: 'color 0.3s ease',
                     whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                   }}>
                     {title.trim() || t.titlePlaceholder}
                   </p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>
                     {profile?.display_name || profile?.username || t.you}
                   </p>
                 </div>
@@ -1032,7 +1032,7 @@ export default function CreateLiveWizard() {
 
             {/* Date picker cards - horizontal scroll */}
             <label style={{
-              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '10px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '10px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px',
             }}>
@@ -1054,7 +1054,7 @@ export default function CreateLiveWizard() {
                       background: isSelected
                         ? 'linear-gradient(145deg, #1a3a5c 0%, #0d2240 100%)'
                         : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
-                      border: isSelected ? '1.5px solid #60A5FA' : '1px solid #1A1A1A',
+                      border: isSelected ? '1.5px solid #00E5FF' : '1px solid #1A1A1A',
                       cursor: 'pointer',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
                       boxShadow: isSelected ? '0 4px 20px rgba(96, 165, 250, 0.25)' : 'none',
@@ -1063,21 +1063,21 @@ export default function CreateLiveWizard() {
                   >
                     <span style={{
                       fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600,
-                      color: isSelected ? '#60A5FA' : '#555',
+                      color: isSelected ? '#00E5FF' : '#f0f0f0',
                       letterSpacing: '0.5px',
                     }}>
                       {d.isToday ? t.today : d.dayName}
                     </span>
                     <span style={{
                       fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800,
-                      color: isSelected ? '#fff' : '#888',
+                      color: isSelected ? '#fff' : '#f0f0f0',
                       lineHeight: 1,
                     }}>
                       {d.dayNum}
                     </span>
                     <span style={{
                       fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600,
-                      color: isSelected ? '#60A5FA99' : '#444',
+                      color: isSelected ? '#00E5FF99' : '#f0f0f0',
                     }}>
                       {d.month}
                     </span>
@@ -1121,7 +1121,7 @@ export default function CreateLiveWizard() {
                   <line x1="12" y1="8" x2="12" y2="16" />
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
-                <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#555', fontWeight: 600 }}>
+                <span style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 600 }}>
                   {t.more}
                 </span>
               </button>
@@ -1129,7 +1129,7 @@ export default function CreateLiveWizard() {
 
             {/* Time picker */}
             <label style={{
-              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '10px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '10px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px', marginTop: '16px',
             }}>
@@ -1156,10 +1156,10 @@ export default function CreateLiveWizard() {
                       background: isSelected
                         ? 'linear-gradient(145deg, #1a3a5c 0%, #0d2240 100%)'
                         : '#0A0A0A',
-                      border: isSelected ? '1.5px solid #60A5FA' : '1px solid #1A1A1A',
+                      border: isSelected ? '1.5px solid #00E5FF' : '1px solid #1A1A1A',
                       cursor: 'pointer',
                       fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
-                      color: isSelected ? '#60A5FA' : '#666',
+                      color: isSelected ? '#00E5FF' : '#f0f0f0',
                       boxShadow: isSelected ? '0 2px 12px rgba(96, 165, 250, 0.2)' : 'none',
                     }}
                   >
@@ -1171,7 +1171,7 @@ export default function CreateLiveWizard() {
 
             {/* Repeat selection */}
             <label style={{
-              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '10px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '10px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px', marginTop: '16px',
             }}>
@@ -1191,12 +1191,12 @@ export default function CreateLiveWizard() {
                     style={{
                       flex: 1, padding: '14px 8px', borderRadius: '14px',
                       background: isSelected
-                        ? 'linear-gradient(145deg, rgba(240,144,138,0.12) 0%, rgba(240,144,138,0.04) 100%)'
+                        ? 'linear-gradient(145deg, rgba(0, 229, 255,0.12) 0%, rgba(0, 229, 255,0.04) 100%)'
                         : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
-                      border: isSelected ? '1.5px solid #F0908A' : '1px solid #1A1A1A',
-                      color: isSelected ? '#F0908A' : '#666',
+                      border: isSelected ? '1.5px solid #00E5FF' : '1px solid #1A1A1A',
+                      color: isSelected ? '#00E5FF' : '#f0f0f0',
                       fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
-                      boxShadow: isSelected ? '0 4px 16px rgba(240, 144, 138, 0.15)' : 'none',
+                      boxShadow: isSelected ? '0 4px 16px rgba(0, 229, 255, 0.15)' : 'none',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
                     }}
                   >
@@ -1232,7 +1232,7 @@ export default function CreateLiveWizard() {
             }}>
               {t.categoryLabel}
             </h2>
-            <p style={{ textAlign: 'center', color: '#555', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '24px' }}>
+            <p style={{ textAlign: 'center', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '24px' }}>
               {t.categorySelect}
             </p>
 
@@ -1241,7 +1241,6 @@ export default function CreateLiveWizard() {
               display: 'flex', flexWrap: 'wrap', gap: '10px',
               justifyContent: 'center',
               marginBottom: '28px',
-              maxHeight: '280px', overflowY: 'auto',
               padding: '2px',
             }} className="no-scrollbar">
               {sellingCategories.map(cat => {
@@ -1253,9 +1252,9 @@ export default function CreateLiveWizard() {
                     style={{
                       padding: '10px 18px',
                       borderRadius: '20px',
-                      border: isSelected ? '2px solid #34D399' : '1px solid #333',
+                      border: isSelected ? '2px solid #00E5FF' : '1px solid #333',
                       backgroundColor: isSelected ? 'rgba(52, 211, 153, 0.15)' : '#1A1A1A',
-                      color: isSelected ? '#34D399' : '#ccc',
+                      color: isSelected ? '#00E5FF' : '#ccc',
                       fontSize: 'calc(14px * var(--fs, 1))',
                       fontWeight: isSelected ? 700 : 500,
                       cursor: 'pointer',
@@ -1267,7 +1266,7 @@ export default function CreateLiveWizard() {
                     }}
                   >
                     {isSelected && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34D399" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
@@ -1281,7 +1280,7 @@ export default function CreateLiveWizard() {
 
             {/* Format selection */}
             <label style={{
-              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginBottom: '12px',
+              display: 'block', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '12px',
               fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const,
               padding: '0 4px',
             }}>
@@ -1300,8 +1299,8 @@ export default function CreateLiveWizard() {
                       background: selected
                         ? 'linear-gradient(135deg, rgba(52,211,153,0.15) 0%, rgba(5,150,105,0.08) 100%)'
                         : 'linear-gradient(145deg, #111 0%, #0A0A0A 100%)',
-                      border: selected ? '1.5px solid #34D399' : '1px solid #1A1A1A',
-                      color: selected ? '#34D399' : '#888',
+                      border: selected ? '1.5px solid #00E5FF' : '1px solid #1A1A1A',
+                      color: selected ? '#00E5FF' : '#f0f0f0',
                       fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                       boxShadow: selected ? '0 2px 12px rgba(52, 211, 153, 0.2)' : 'none',
                     }}
@@ -1337,7 +1336,7 @@ export default function CreateLiveWizard() {
             }}>
               {t.thumbnailLabel}
             </h2>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', marginBottom: '28px', textAlign: 'center' }}>{t.thumbnailDesc}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '28px', textAlign: 'center' }}>{t.thumbnailDesc}</p>
 
             <input
               ref={fileInputRef}
@@ -1359,9 +1358,9 @@ export default function CreateLiveWizard() {
                     ? 'linear-gradient(145deg, rgba(251,191,36,0.08) 0%, rgba(217,119,6,0.04) 100%)'
                     : 'linear-gradient(145deg, #0D0D0D 0%, #080808 100%)',
                   border: dragOver
-                    ? '2px dashed #FBBF24'
+                    ? '2px dashed #00E5FF'
                     : '2px dashed #1E1E1E',
-                  color: '#888', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+                  color: '#f0f0f0', fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px',
                   boxShadow: dragOver ? '0 0 40px rgba(251, 191, 36, 0.1) inset' : 'none',
                 }}
@@ -1369,11 +1368,11 @@ export default function CreateLiveWizard() {
                 {/* Upload icon with gradient circle */}
                 <div style={{
                   width: '72px', height: '72px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #FBBF2415, #D9770615)',
-                  border: '1px solid #FBBF2420',
+                  background: 'linear-gradient(135deg, #00E5FF15, #0091EA15)',
+                  border: '1px solid #00E5FF20',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#FBBF24' : '#555'} strokeWidth="1.5" style={{ transition: 'stroke 0.3s ease' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#00E5FF' : '#555'} strokeWidth="1.5" style={{ transition: 'stroke 0.3s ease' }}>
                     <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" strokeLinecap="round" strokeLinejoin="round"/>
                     <polyline points="17 8 12 3 7 8" strokeLinecap="round" strokeLinejoin="round"/>
                     <line x1="12" y1="3" x2="12" y2="15" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1382,12 +1381,12 @@ export default function CreateLiveWizard() {
                 <div style={{ textAlign: 'center' }}>
                   <p style={{
                     fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
-                    color: dragOver ? '#FBBF24' : '#888',
+                    color: dragOver ? '#00E5FF' : '#f0f0f0',
                     marginBottom: '4px', transition: 'color 0.3s ease',
                   }}>
                     {t.uploadBtn}
                   </p>
-                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#444' }}>
+                  <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>
                     {t.dragDrop}
                   </p>
                 </div>
@@ -1399,7 +1398,7 @@ export default function CreateLiveWizard() {
                     <span key={fmt} style={{
                       padding: '3px 10px', borderRadius: '6px',
                       background: '#111', border: '1px solid #1A1A1A',
-                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#444',
+                      fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0',
                       letterSpacing: '0.5px',
                     }}>
                       {fmt}
@@ -1439,11 +1438,11 @@ export default function CreateLiveWizard() {
                       display: 'flex', alignItems: 'center', gap: '6px',
                     }}>
                       <div style={{
-                        background: 'linear-gradient(135deg, #E8344E, #FF6B6B)',
+                        background: 'linear-gradient(135deg, #0091EA, #FF6B6B)',
                         borderRadius: '6px', padding: '4px 10px',
-                        fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#fff',
+                        fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 800, color: '#001014',
                         letterSpacing: '1px',
-                        boxShadow: '0 2px 12px rgba(232, 52, 78, 0.5)',
+                        boxShadow: '0 2px 12px rgba(0,229,255, 0.5)',
                         display: 'flex', alignItems: 'center', gap: '4px',
                       }}>
                         <div style={{
@@ -1471,7 +1470,7 @@ export default function CreateLiveWizard() {
                   <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{
                       width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
-                      border: '2px solid #F0908A',
+                      border: '2px solid #00E5FF',
                     }}>
                       <CartoonAvatar seed={profile?.username || profile?.id || 'seller'} size={40} />
                     </div>
@@ -1482,10 +1481,10 @@ export default function CreateLiveWizard() {
                       }}>
                         {title || t.titlePreview}
                       </p>
-                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', marginTop: '2px' }}>
+                      <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>
                         {profile?.display_name || profile?.username || t.you}
                         {selectedCatObj && (
-                          <span style={{ color: '#444' }}>{' \u00B7 '}{i18nT(lang, selectedCatObj.id as TranslationKey)}</span>
+                          <span style={{ color: '#f0f0f0' }}>{' \u00B7 '}{i18nT(lang, selectedCatObj.id as TranslationKey)}</span>
                         )}
                       </p>
                     </div>
@@ -1497,7 +1496,7 @@ export default function CreateLiveWizard() {
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: 'linear-gradient(145deg, #141414 0%, #0D0D0D 100%)',
                     border: '1px solid #1E1E1E',
-                    color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                    color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                   }}
                 >
@@ -1513,14 +1512,14 @@ export default function CreateLiveWizard() {
 
             {error && (
               <div style={{
-                background: 'linear-gradient(135deg, rgba(232,52,78,0.12) 0%, rgba(232,52,78,0.04) 100%)',
-                color: '#E8344E',
+                background: 'linear-gradient(135deg, rgba(0,229,255,0.12) 0%, rgba(0,229,255,0.04) 100%)',
+                color: '#00E5FF',
                 padding: '14px 18px', borderRadius: '14px', marginTop: '16px', fontSize: 'calc(14px * var(--fs, 1))',
                 fontWeight: 600,
-                border: '1px solid rgba(232,52,78,0.2)',
+                border: '1px solid rgba(0,229,255,0.2)',
                 display: 'flex', alignItems: 'center', gap: '10px',
               }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 {error}
@@ -1562,7 +1561,7 @@ export default function CreateLiveWizard() {
           <div style={{ width: '44px' }} />
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 'calc(14px * var(--fs, 1))', color: '#888', margin: '0 0 16px' }}>
+        <p style={{ textAlign: 'center', fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 16px' }}>
           {t.trimDesc}
         </p>
 
@@ -1593,7 +1592,7 @@ export default function CreateLiveWizard() {
               </span>
               <span style={{
                 background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '4px 8px',
-                fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#888',
+                fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0',
               }}>
                 {t.totalDuration.replace('{n}', String(Math.floor(trimDuration)))}
               </span>
@@ -1613,8 +1612,8 @@ export default function CreateLiveWizard() {
               position: 'absolute', top: 0, bottom: 0,
               insetInlineStart: `${(trimStart / trimDuration) * 100}%`,
               width: `${(10 / trimDuration) * 100}%`,
-              background: 'linear-gradient(135deg, rgba(240,144,138,0.3), rgba(232,52,78,0.2))',
-              border: '2px solid #F0908A',
+              background: 'linear-gradient(135deg, rgba(0, 229, 255,0.3), rgba(0,229,255,0.2))',
+              border: '2px solid #00E5FF',
               borderRadius: '6px',
             }} />
           </div>
@@ -1630,7 +1629,7 @@ export default function CreateLiveWizard() {
               setTrimStart(val)
               if (trimVideoRef.current) trimVideoRef.current.currentTime = val
             }}
-            style={{ width: '100%', accentColor: '#F0908A' }}
+            style={{ width: '100%', accentColor: '#00E5FF' }}
           />
         </div>
 
@@ -1643,12 +1642,12 @@ export default function CreateLiveWizard() {
               width: '100%', padding: '18px',
               background: trimming
                 ? 'linear-gradient(135deg, #1A1A1A, #111)'
-                : 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #F0908A 100%)',
+                : 'linear-gradient(135deg, #00E5FF 0%, #0091EA 50%, #00E5FF 100%)',
               borderRadius: '16px', border: 'none',
               color: trimming ? '#666' : '#fff',
               fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, cursor: trimming ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-              boxShadow: trimming ? 'none' : '0 8px 32px rgba(240,144,138,0.35)',
+              boxShadow: trimming ? 'none' : '0 8px 32px rgba(0, 229, 255,0.35)',
               paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
             }}
           >
@@ -1702,8 +1701,8 @@ export default function CreateLiveWizard() {
                   borderRadius: '4px',
                   background: i <= step
                     ? i === step
-                      ? 'linear-gradient(90deg, #F0908A, #E8344E)'
-                      : '#F0908A66'
+                      ? 'linear-gradient(90deg, #00E5FF, #0091EA)'
+                      : '#00E5FF66'
                     : '#1A1A1A',
                   transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 }}
@@ -1715,7 +1714,7 @@ export default function CreateLiveWizard() {
               onClick={handleSkip}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#F0908A',
+                fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF',
                 minWidth: '42px', ...rtlTextAlign('right'), padding: '4px 0',
                 letterSpacing: '0.2px',
               }}
@@ -1724,7 +1723,7 @@ export default function CreateLiveWizard() {
             </button>
           ) : (
             <div style={{
-              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#444',
+              fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0',
               minWidth: '42px', ...rtlTextAlign('right'),
             }}>
               {step + 1}/{TOTAL_STEPS}
@@ -1740,10 +1739,10 @@ export default function CreateLiveWizard() {
         }}>
           <div style={{
             height: '100%', borderRadius: '4px',
-            background: 'linear-gradient(90deg, #E8344E, #F0908A, #FBBF24)',
+            background: 'linear-gradient(90deg, #0091EA, #00E5FF, #00E5FF)',
             width: `${progress}%`,
             transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            boxShadow: '0 0 12px rgba(240, 144, 138, 0.4)',
+            boxShadow: '0 0 12px rgba(0, 229, 255, 0.4)',
           }} />
         </div>
 
@@ -1761,9 +1760,10 @@ export default function CreateLiveWizard() {
             paddingTop: '20px',
             overflowY: 'auto',
             overflowX: 'hidden',
-            maxHeight: 'calc(100vh - 200px)',
+            maxHeight: 'calc(100vh - 120px)',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: '32px',
+            // Le bouton « Suivant » (fixe) et la barre du bas ne recouvrent plus la fin de l'étape
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 190px)',
           }}
         >
           {renderStep()}
@@ -1783,17 +1783,17 @@ export default function CreateLiveWizard() {
           style={{
             width: '100%', padding: '18px',
             background: canProceed()
-              ? 'linear-gradient(135deg, #F0908A 0%, #E8344E 50%, #F0908A 100%)'
+              ? 'linear-gradient(135deg, #00E5FF 0%, #0091EA 50%, #00E5FF 100%)'
               : 'linear-gradient(135deg, #1A1A1A, #111)',
             backgroundSize: '200% 100%',
             borderRadius: '16px', border: 'none',
-            color: canProceed() ? '#fff' : '#444',
+            color: canProceed() ? '#fff' : '#f0f0f0',
             fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800,
             cursor: canProceed() ? 'pointer' : 'not-allowed',
             opacity: loading ? 0.7 : 1,
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
             boxShadow: canProceed()
-              ? '0 8px 32px rgba(240, 144, 138, 0.35), 0 2px 8px rgba(240, 144, 138, 0.2)'
+              ? '0 8px 32px rgba(0, 229, 255, 0.35), 0 2px 8px rgba(0, 229, 255, 0.2)'
               : 'none',
             letterSpacing: '0.3px',
           }}
@@ -1855,10 +1855,10 @@ export default function CreateLiveWizard() {
           }}>
             <div style={{
               width: '72px', height: '72px', borderRadius: '50%',
-              background: 'linear-gradient(135deg, #10B981, #059669)',
+              background: 'linear-gradient(135deg, #00E5FF, #00E5FF)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               margin: '0 auto 20px',
-              boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
+              boxShadow: '0 8px 32px rgba(0,229,255, 0.3)',
             }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="20 6 9 17 4 12" />
@@ -1867,10 +1867,10 @@ export default function CreateLiveWizard() {
             <h3 style={{ fontSize: 'calc(22px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 12px' }}>
               {t.successTitle}
             </h3>
-            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#999', margin: '0 0 8px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 8px', lineHeight: 1.5 }}>
               {t.successMsg}
             </p>
-            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', margin: '0 0 28px' }}>
+            <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', margin: '0 0 28px' }}>
               {successDate}
             </p>
             <button
@@ -1878,10 +1878,10 @@ export default function CreateLiveWizard() {
               style={{
                 width: '100%', padding: '16px',
                 borderRadius: '14px', border: 'none',
-                background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+                background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                 cursor: 'pointer', touchAction: 'manipulation',
-                boxShadow: '0 6px 24px rgba(240,144,138,0.3)',
+                boxShadow: '0 6px 24px rgba(0, 229, 255,0.3)',
               }}
             >
               {t.successBtn}

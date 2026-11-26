@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { t, getLang, tr, type Localized } from '../lib/i18n'
@@ -130,6 +130,15 @@ export default function BottomNav() {
   const [showSell, setShowSell] = useState(false)
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const myLive = useMyActiveLive(user?.id || '', path)
+  // Barre du bas affichée : on réserve sa hauteur en bas de page, pour que les derniers boutons ne soient jamais cachés
+  const navShown = !!user && !['/stream/', '/live-seller/', '/prepare-live/', '/conversation/'].some(p => path.startsWith(p))
+    && !['/go-live', '/schedule-live', '/ai-listing'].includes(path)
+  useEffect(() => {
+    if (!navShown) return
+    const html = document.documentElement
+    html.classList.add('has-bottom-nav')
+    return () => html.classList.remove('has-bottom-nav')
+  }, [navShown])
 
   if (path.startsWith('/stream/')) return null
   if (path.startsWith('/live-seller/')) return null
@@ -152,7 +161,7 @@ export default function BottomNav() {
       labelKey: 'home_tab' as const,
       active: path === '/',
       icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'rgba(0,229,255,0.18)' : 'none'} stroke={active ? '#00E5FF' : 'rgba(255,255,255,0.6)'} strokeWidth="2">
           <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1v-9.5z" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
@@ -162,7 +171,7 @@ export default function BottomNav() {
       labelKey: 'categories_tab' as const,
       active: path === '/explore',
       icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={active ? '#00E5FF' : 'rgba(255,255,255,0.6)'} strokeWidth="2">
           <circle cx="11" cy="11" r="8" strokeLinecap="round" strokeLinejoin="round"/>
           <path d="M21 21l-4.35-4.35" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
@@ -176,10 +185,10 @@ export default function BottomNav() {
       icon: () => (
         <div style={{
           width: '48px', height: '48px', borderRadius: '50%', marginTop: '-16px',
-          backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 14px rgba(232,52,78,0.35)', border: '3px solid #F0908A'
+          backgroundColor: '#06060a', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 0 16px rgba(0,229,255,0.55)', border: '2px solid #00E5FF'
         }}>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2.8">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2.8">
             <path d="M12 5v14M5 12h14" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
@@ -190,7 +199,7 @@ export default function BottomNav() {
       labelKey: 'activity_tab' as const,
       active: path === '/activity',
       icon: (active: boolean) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'white' : 'none'} stroke={active ? 'white' : 'rgba(255,255,255,0.72)'} strokeWidth="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill={active ? 'rgba(0,229,255,0.18)' : 'none'} stroke={active ? '#00E5FF' : 'rgba(255,255,255,0.6)'} strokeWidth="2">
           <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       ),
@@ -200,14 +209,15 @@ export default function BottomNav() {
   // ── Profile menu items ──
   const menuItems: { icon: React.JSX.Element; label: string; to: string; color?: string }[] = [
     {
-      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h7M9 11h7"/></svg>,
-      label: nt.rules,
-      to: '/rules',
-    },
-    {
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
       label: nt.myProfile,
       to: `/seller/${user.id}`,
+    },
+    // « Règles » en 2e : la 1re entrée (Mon profil) est affichée à part, en tête de la feuille
+    {
+      icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M9 7h7M9 11h7"/></svg>,
+      label: nt.rules,
+      to: '/rules',
     },
     ...(profile?.is_seller ? [{
       icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>,
@@ -318,7 +328,7 @@ export default function BottomNav() {
             >
               <div style={{
                 width: '52px', height: '52px', borderRadius: '50%', overflow: 'hidden',
-                backgroundColor: '#E8344E', flexShrink: 0,
+                backgroundColor: '#00E5FF', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 {profile?.avatar_url ? (
@@ -331,7 +341,7 @@ export default function BottomNav() {
                 <div style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {profile?.display_name || profile?.username || nt.user}
                 </div>
-                <div style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#888', marginTop: '2px' }}>
+                <div style={{ fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0', marginTop: '2px' }}>
                   {nt.viewProfile}
                 </div>
               </div>
@@ -410,8 +420,8 @@ export default function BottomNav() {
         className="no-theme-invert"
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
-          background: 'linear-gradient(135deg, #E8344E 0%, #F0908A 100%)', borderTop: 'none', zIndex: 50,
-          boxShadow: '0 -4px 18px rgba(232,52,78,0.18)',
+          background: '#070709', borderTop: '1px solid rgba(0,229,255,0.28)', zIndex: 50,
+          boxShadow: '0 -6px 22px rgba(0,229,255,0.12)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
       >
@@ -431,7 +441,7 @@ export default function BottomNav() {
                   {tab.icon()}
                   <span style={{
                     fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 500,
-                    color: 'rgba(255,255,255,0.8)',
+                    color: '#f0f0f0',
                     marginTop: '8px',
                   }}>
                     {t(lang, tab.labelKey)}
@@ -453,7 +463,7 @@ export default function BottomNav() {
                 {tab.icon(tab.active)}
                 <span style={{
                   fontSize: 'calc(10px * var(--fs, 1))', fontWeight: tab.active ? 700 : 500,
-                  color: tab.active ? '#fff' : 'rgba(255,255,255,0.8)',
+                  color: tab.active ? '#00E5FF' : 'rgba(255,255,255,0.6)',
                   marginTop: '4px',
                 }}>
                   {t(lang, tab.labelKey)}
@@ -476,7 +486,7 @@ export default function BottomNav() {
               width: '26px', height: '26px', borderRadius: '50%', overflow: 'hidden',
               border: isProfileActive ? '2px solid #fff' : '2px solid transparent',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: '#E8344E',
+              backgroundColor: '#00E5FF',
             }}>
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />

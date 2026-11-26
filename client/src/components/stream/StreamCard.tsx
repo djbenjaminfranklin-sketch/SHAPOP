@@ -72,7 +72,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         <div style={{
           width: '30px', height: '30px', borderRadius: '50%', backgroundColor: '#222',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
+          fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', overflow: 'hidden', flexShrink: 0,
           border: '1.5px solid #333',
         }}>
           {stream.seller?.avatar_url ? (
@@ -88,9 +88,9 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '3px',
             backgroundColor: '#1A1A1A', padding: '2px 6px', borderRadius: '6px',
-            fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#F0908A', flexShrink: 0,
+            fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: '#00E5FF', flexShrink: 0,
           }}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#F0908A" stroke="none">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#00E5FF" stroke="none">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
             {stream.seller_score.toLocaleString(getLocale(lang), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}
@@ -115,7 +115,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           <div style={{ position: 'absolute', top: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '5px',
-              backgroundColor: '#E8344E', color: '#fff',
+              backgroundColor: '#00E5FF', color: '#001014',
               fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700, padding: '5px 10px', borderRadius: '8px',
               letterSpacing: '0.2px',
             }}>
@@ -140,11 +140,11 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           <div style={{ position: 'absolute', bottom: '10px', ...rtlPos('left', '10px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
-              background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-              color: '#fff', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800,
+              background: 'linear-gradient(135deg, #00E5FF, #00E5FF)',
+              color: '#001014', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 800,
               padding: '3px 8px', borderRadius: '6px',
               letterSpacing: '0.5px',
-              boxShadow: '0 2px 8px rgba(245,158,11,0.3)',
+              boxShadow: '0 2px 8px rgba(0,229,255,0.3)',
             }}>
               <span aria-hidden="true">⚡</span> {ct.boost}
             </span>
@@ -156,12 +156,12 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
           <div style={{ position: 'absolute', top: stream.status === 'live' ? '42px' : '10px', ...rtlPos('right', '8px') }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '3px',
-              background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-              color: '#fff', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
+              background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+              color: '#001014', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700,
               padding: '4px 8px', borderRadius: '8px',
-              boxShadow: '0 2px 8px rgba(232, 52, 78, 0.4)',
+              boxShadow: '0 2px 8px rgba(0,229,255, 0.4)',
             }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff" stroke="none">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="#001014" stroke="none">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               {ct.match.replace('{n}', String(stream.matching_score))}
@@ -189,7 +189,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
               cursor: 'pointer', padding: 0,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#E8344E' : 'none'} stroke={isFavorited ? '#E8344E' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorited ? '#00E5FF' : 'none'} stroke={isFavorited ? '#00E5FF' : '#fff'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
             </svg>
           </button>
@@ -201,11 +201,11 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
               backgroundColor: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
-              color: '#F0908A',
+              color: '#00E5FF',
               fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 700, padding: '4px 8px', borderRadius: '6px',
               maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2.5">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2.5">
                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" strokeLinecap="round" strokeLinejoin="round"/>
                 <circle cx="9" cy="7" r="4" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>

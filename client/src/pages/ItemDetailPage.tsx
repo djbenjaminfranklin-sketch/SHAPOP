@@ -201,6 +201,11 @@ const conditionLabels: Record<string, Localized<string>> = {
   like_new: { en: 'Like new', fr: 'Comme neuf', es: 'Como nuevo', ru: 'Как новое', he: 'כמו חדש' },
   good: { en: 'Good', fr: 'Bon état', es: 'Buen estado', ru: 'Хорошее', he: 'מצב טוב' },
   fair: { en: 'Fair', fr: 'Correct', es: 'Aceptable', ru: 'Удовлетворительное', he: 'סביר' },
+  // Anciennes annonces enregistrées avec le libellé français au lieu du code
+  'Neuf': { en: 'New', fr: 'Neuf', es: 'Nuevo', ru: 'Новое', he: 'חדש' }, // i18n-ignore (valeur enregistrée)
+  'Comme neuf': { en: 'Like new', fr: 'Comme neuf', es: 'Como nuevo', ru: 'Как новое', he: 'כמו חדש' }, // i18n-ignore (valeur enregistrée)
+  'Bon etat': { en: 'Good', fr: 'Bon état', es: 'Buen estado', ru: 'Хорошее', he: 'מצב טוב' }, // i18n-ignore (valeur enregistrée)
+  'Correct': { en: 'Fair', fr: 'Correct', es: 'Aceptable', ru: 'Удовлетворительное', he: 'סביר' }, // i18n-ignore (valeur enregistrée)
 }
 
 // Codes d'erreur renvoyés par POST /api/items/:id/buy-now → clé de texte traduite.
@@ -330,24 +335,24 @@ export default function ItemDetailPage() {
         <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '80px' }} role="status" aria-label={t.loadingItem}>
           <div style={{
             width: '32px', height: '32px', border: '3px solid #333',
-            borderTopColor: '#E8344E', borderRadius: '50%',
+            borderTopColor: '#00E5FF', borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       ) : fetchError || !item ? (
         <div role="alert" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', textAlign: 'center' }}>
-          <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#888', marginBottom: '16px' }}>{t.notFound}</p>
+          <p style={{ fontSize: 'calc(16px * var(--fs, 1))', color: '#f0f0f0', marginBottom: '16px' }}>{t.notFound}</p>
           {fetchError && (
             <button
               onClick={() => fetchItem()}
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
+                color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600,
                 display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px',
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E8344E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
               </svg>
               {retryLabel}
@@ -381,12 +386,12 @@ export default function ItemDetailPage() {
               <div style={{ position: 'absolute', top: '12px', insetInlineStart: '12px' }}>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                  color: '#fff', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
+                  background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                  color: '#001014', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                   padding: '5px 10px', borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(232, 52, 78, 0.4)',
+                  boxShadow: '0 2px 8px rgba(0,229,255, 0.4)',
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff" stroke="none">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="#001014" stroke="none">
                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
                   </svg>
                   {t.aiGenerated}
@@ -406,7 +411,7 @@ export default function ItemDetailPage() {
                   aria-pressed={i === selectedImage}
                   style={{
                     width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden',
-                    border: i === selectedImage ? '2px solid #E8344E' : '2px solid #333',
+                    border: i === selectedImage ? '2px solid #00E5FF' : '2px solid #333',
                     padding: 0, background: 'none', cursor: 'pointer', flexShrink: 0,
                   }}
                 >
@@ -423,7 +428,7 @@ export default function ItemDetailPage() {
               <span style={{ fontSize: 'calc(28px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{priceLabel}</span>
               {item.ai_condition && (
                 <span style={{
-                  backgroundColor: 'rgba(240,144,138,0.15)', color: '#F0908A',
+                  backgroundColor: 'rgba(0, 229, 255,0.15)', color: '#00E5FF',
                   fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, padding: '6px 12px', borderRadius: '10px',
                 }}>
                   {conditionLabels[item.ai_condition]?.[lang] ?? item.ai_condition}
@@ -439,7 +444,7 @@ export default function ItemDetailPage() {
             {/* Category */}
             <span style={{
               display: 'inline-block', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600,
-              color: '#F0908A', backgroundColor: 'rgba(240,144,138,0.1)',
+              color: '#00E5FF', backgroundColor: 'rgba(0, 229, 255,0.1)',
               padding: '4px 10px', borderRadius: '8px', marginBottom: '20px',
             }}>
               {item.category}
@@ -461,7 +466,7 @@ export default function ItemDetailPage() {
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#222',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#888', overflow: 'hidden', flexShrink: 0,
+                  fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 600, color: '#f0f0f0', overflow: 'hidden', flexShrink: 0,
                 }}>
                   {item.seller?.avatar_url ? (
                     <img src={item.seller.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
@@ -471,7 +476,7 @@ export default function ItemDetailPage() {
                 </div>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{sellerName}</p>
-                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#666', margin: '2px 0 0' }}>{t.seller}</p>
+                  <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>{t.seller}</p>
                 </div>
               </div>
               {user && item.seller_id !== user.id && (
@@ -480,7 +485,7 @@ export default function ItemDetailPage() {
                   style={{
                     padding: '6px 14px', borderRadius: '10px', fontSize: 'calc(12px * var(--fs, 1))', fontWeight: 700,
                     border: isFollowing ? '1px solid #333' : 'none',
-                    background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #F0908A, #E8344E)',
+                    background: isFollowing ? 'transparent' : 'linear-gradient(135deg, #00E5FF, #0091EA)',
                     color: isFollowing ? '#888' : '#fff',
                     cursor: 'pointer', flexShrink: 0,
                   }}
@@ -494,7 +499,7 @@ export default function ItemDetailPage() {
             {item.description && (
               <div style={{ marginBottom: '20px' }}>
                 <h3 style={{ fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 8px' }}>{t.description}</h3>
-                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', lineHeight: 1.6, margin: 0 }}>{item.description}</p>
+                <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.6, margin: 0 }}>{item.description}</p>
               </div>
             )}
 
@@ -503,7 +508,7 @@ export default function ItemDetailPage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px' }}>
                 {item.ai_tags.map((tag) => (
                   <span key={tag} style={{
-                    fontSize: 'calc(12px * var(--fs, 1))', color: '#888', backgroundColor: '#1a1a1a',
+                    fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', backgroundColor: '#1a1a1a',
                     padding: '4px 10px', borderRadius: '8px', border: '1px solid #222',
                   }}>
                     #{tag}
@@ -541,8 +546,8 @@ export default function ItemDetailPage() {
                   }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
-                    background: 'none', border: '1px solid #E8344E',
-                    color: '#E8344E', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+                    background: 'none', border: '1px solid #00E5FF',
+                    color: '#00E5FF', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
@@ -594,14 +599,15 @@ export default function ItemDetailPage() {
                   }}
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
-                    background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-                    border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
+                    background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+                    border: 'none', color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
                   {t.contact}
                 </button>
                 {/* Buy now button */}
+                {item.status !== 'sold' && (
                 <button
                   disabled={buyLoading || bought}
                   onClick={async () => {
@@ -627,8 +633,8 @@ export default function ItemDetailPage() {
                   style={{
                     width: '100%', padding: '14px', borderRadius: '14px',
                     background: bought
-                      ? 'linear-gradient(135deg, #22C55E, #16A34A)'
-                      : buyLoading ? '#555' : 'linear-gradient(135deg, #E8344E, #D42A42)',
+                      ? 'linear-gradient(135deg, #00E5FF, #16A34A)'
+                      : buyLoading ? '#555' : 'linear-gradient(135deg, #0091EA, #D42A42)',
                     border: 'none', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700,
                     cursor: buyLoading ? 'default' : 'pointer',
                     opacity: buyLoading ? 0.7 : 1,
@@ -636,6 +642,7 @@ export default function ItemDetailPage() {
                 >
                   {bought ? t.bought : buyLoading ? '...' : `${t.buy} — ${priceLabel}`}
                 </button>
+                )}
               </div>
             )}
           </div>

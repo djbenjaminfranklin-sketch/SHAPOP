@@ -7,7 +7,7 @@ import { getDir, getLang, getLocale, tr, type Lang, type Localized } from '../li
 import { usePageTitle } from '../hooks/usePageTitle'
 import VodPlayer from '../components/stream/VodPlayer'
 import FulfillmentPanel from '../components/orders/FulfillmentPanel'
-import { formatMoney, shortOrderRef } from '../lib/fulfillment'
+import { formatMoney, shortOrderRef, displayItemTitle } from '../lib/fulfillment'
 import { errorText, statusLabel } from '../lib/fulfillmentText'
 
 interface OrderDetail {
@@ -272,9 +272,9 @@ function getStatusColor(status: string) {
     case 'handed_over':
     case 'delivered': return '#10B981'
     case 'refunded':
-    case 'cancelled': return '#8B5CF6'
+    case 'cancelled': return '#00E5FF'
     case 'disputed':
-    case 'return_rejected': return '#E8344E'
+    case 'return_rejected': return '#00E5FF'
     case 'return_requested': return '#F59E0B'
     default: return '#666'
   }
@@ -409,8 +409,8 @@ export default function OrderDetailPage() {
   if (loading && !order) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-        <div style={{ width: '32px', height: '32px', border: '3px solid #222', borderTopColor: '#F0908A', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '16px' }} />
-        <p style={{ color: '#666', fontSize: 'calc(14px * var(--fs, 1))' }}>{ct.loading}</p>
+        <div style={{ width: '32px', height: '32px', border: '3px solid #222', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginBottom: '16px' }} />
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))' }}>{ct.loading}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -420,10 +420,10 @@ export default function OrderDetailPage() {
     return (
       <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', padding: '20px' }}>
         <p style={{ color: '#E8344E', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, marginBottom: '12px' }}>{error || ct.notFound}</p>
-        <button onClick={() => fetchOrder()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, padding: '8px 16px' }}>
+        <button onClick={() => fetchOrder()} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, padding: '8px 16px' }}>
           {ct.retry}
         </button>
-        <button onClick={() => navigate(-1)} style={{ color: '#F0908A', fontSize: 'calc(14px * var(--fs, 1))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: '8px' }}>{ct.back}</button>
+        <button onClick={() => navigate(-1)} style={{ color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: '8px' }}>{ct.back}</button>
       </div>
     )
   }
@@ -438,7 +438,7 @@ export default function OrderDetailPage() {
   const other = isSeller ? order.buyer_profile : order.seller_profile
 
   const timelineEvents = [
-    { label: ct.createdAt, date: order.created_at, color: '#666', done: true },
+    { label: ct.createdAt, date: order.created_at, color: '#f0f0f0', done: true },
     { label: ct.paidAt, date: order.paid_at, color: '#3B82F6', done: !!order.paid_at },
     { label: ct.preparedAt, date: order.prepared_at || null, color: '#F59E0B', done: !!order.prepared_at || !!order.shipped_at || !!order.handed_over_at },
     order.fulfillment_method === 'pickup'
@@ -464,11 +464,11 @@ export default function OrderDetailPage() {
           display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', borderBottom: '1px solid #111',
           backgroundColor: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 10,
         }}>
-          <button onClick={() => navigate(-1)} aria-label={ct.back} style={{ background: 'none', border: 'none', color: '#999', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>
+          <button onClick={() => navigate(-1)} aria-label={ct.back} style={{ background: 'none', border: 'none', color: '#f0f0f0', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>
             &#8249;
           </button>
           <h1 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>{ct.title}</h1>
-          <span dir="ltr" style={{ marginInlineStart: 'auto', fontSize: 'calc(12px * var(--fs, 1))', color: '#666' }}>#{shortOrderRef(order.id)}</span>
+          <span dir="ltr" style={{ marginInlineStart: 'auto', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>#{shortOrderRef(order.id)}</span>
         </div>
 
         {/* Article */}
@@ -480,9 +480,9 @@ export default function OrderDetailPage() {
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {order.item?.title || `#${shortOrderRef(order.id)}`}
+              {displayItemTitle(order.item?.title) || `#${shortOrderRef(order.id)}`}
             </p>
-            <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#F0908A', margin: '0 0 6px' }}>{money(order.amount)}</p>
+            <p style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#00E5FF', margin: '0 0 6px' }}>{money(order.amount)}</p>
             <span style={{
               display: 'inline-block', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 700, color: statusColor, backgroundColor: `${statusColor}14`,
               padding: '4px 12px', borderRadius: '10px', border: `1px solid ${statusColor}30`,
@@ -498,8 +498,8 @@ export default function OrderDetailPage() {
             <button
               onClick={() => setVodModal({ url: order.stream_recording_url!, title: order.item?.title || ct.video, offset: order.purchase_stream_offset_seconds! })}
               style={{
-                width: '100%', padding: '12px 16px', borderRadius: '12px', background: 'rgba(139,92,246,0.08)',
-                border: '1px solid rgba(139,92,246,0.25)', color: '#8B5CF6', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+                width: '100%', padding: '12px 16px', borderRadius: '12px', background: 'rgba(0,229,255,0.08)',
+                border: '1px solid rgba(0,229,255,0.25)', color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
               }}
             >
               ▶ {ct.seeVideoMoment}
@@ -513,10 +513,10 @@ export default function OrderDetailPage() {
             <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#1A1A1A', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
               {other?.avatar_url
                 ? <img src={other.avatar_url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#666', fontWeight: 700 }}>{(other?.display_name || '?')[0]}</span>}
+                : <span style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', fontWeight: 700 }}>{(other?.display_name || '?')[0]}</span>}
             </div>
             <div>
-              <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#666', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isSeller ? ct.buyer : ct.seller}</p>
+              <p style={{ fontSize: 'calc(10px * var(--fs, 1))', color: '#f0f0f0', margin: 0, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{isSeller ? ct.buyer : ct.seller}</p>
               <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#fff', fontWeight: 600, margin: 0 }}>{other?.display_name || '—'}</p>
             </div>
           </div>
@@ -526,11 +526,11 @@ export default function OrderDetailPage() {
             {shipping > 0 && <Line label={ct.shippingCost} value={money(shipping)} />}
             {isSeller ? (
               <>
-                <Line label={ct.platformFee} value={`-${money(order.platform_fee)}`} color="#E8344E" />
-                <Line label={ct.sellerPayout} value={money(order.seller_payout)} color="#10B981" strong />
+                <Line label={ct.platformFee} value={`-${money(order.platform_fee)}`} color="#00E5FF" />
+                <Line label={ct.sellerPayout} value={money(order.seller_payout)} color="#00E5FF" strong />
               </>
             ) : (
-              <Line label={order.status === 'pending_payment' ? ct.totalDue : ct.totalPaid} value={money(total)} color="#F0908A" strong />
+              <Line label={order.status === 'pending_payment' ? ct.totalDue : ct.totalPaid} value={money(total)} color="#00E5FF" strong />
             )}
           </div>
         </div>
@@ -545,7 +545,7 @@ export default function OrderDetailPage() {
             )}
             <button
               onClick={() => navigate(`/pay/${order.id}`)}
-              style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #22C55E, #16A34A)', color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer' }}
+              style={{ width: '100%', padding: '16px', borderRadius: '14px', border: 'none', background: 'linear-gradient(135deg, #00E5FF, #16A34A)', color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 800, cursor: 'pointer' }}
             >
               {ct.payNowBtn} · {money(total)}
             </button>
@@ -561,7 +561,7 @@ export default function OrderDetailPage() {
 
         {/* Chronologie */}
         <div style={{ padding: '16px', borderBottom: '1px solid #111' }}>
-          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#888', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.timeline}</p>
+          <p style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700, color: '#f0f0f0', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{ct.timeline}</p>
           <div style={{ position: 'relative', paddingInlineStart: '24px' }}>
             <div style={{ position: 'absolute', insetInlineStart: '7px', top: '4px', bottom: '4px', width: '2px', backgroundColor: '#222' }} />
             {timelineEvents.map((evt, i) => (
@@ -570,8 +570,8 @@ export default function OrderDetailPage() {
                   position: 'absolute', insetInlineStart: '-20px', top: '2px', width: '12px', height: '12px', borderRadius: '50%',
                   backgroundColor: evt.done ? evt.color : '#222', border: evt.done ? 'none' : '2px solid #333', boxSizing: 'border-box',
                 }} />
-                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: evt.done ? '#fff' : '#444', fontWeight: 600, margin: 0 }}>{evt.label}</p>
-                {evt.date && <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '2px 0 0' }}>{formatDate(evt.date, lang)}</p>}
+                <p style={{ fontSize: 'calc(13px * var(--fs, 1))', color: evt.done ? '#fff' : '#f0f0f0', fontWeight: 600, margin: 0 }}>{evt.label}</p>
+                {evt.date && <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0' }}>{formatDate(evt.date, lang)}</p>}
               </div>
             ))}
           </div>
@@ -580,14 +580,14 @@ export default function OrderDetailPage() {
         {/* Actions */}
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {canReport && (
-            <button onClick={() => navigate(`/dispute/${order.id}`)} style={actionBtn('linear-gradient(135deg, #F97316, #E8344E)')}>
+            <button onClick={() => navigate(`/dispute/${order.id}`)} style={actionBtn('linear-gradient(135deg, #F97316, #0091EA)')}>
               {ct.reportProblem}
               <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 500, opacity: 0.85, marginTop: '2px' }}>{ct.reportHint}</span>
             </button>
           )}
 
           {canRequestReturn && (
-            <button onClick={() => { setShowReturnModal(true); setReturnError(null) }} style={actionBtn('linear-gradient(135deg, #F0908A, #E8344E)')}>
+            <button onClick={() => { setShowReturnModal(true); setReturnError(null) }} style={actionBtn('linear-gradient(135deg, #00E5FF, #0091EA)')}>
               {ct.requestReturn}
             </button>
           )}
@@ -603,14 +603,14 @@ export default function OrderDetailPage() {
               <button onClick={handleApproveReturn} disabled={approvingReturn} style={actionBtn(approvingReturn ? '#333' : 'linear-gradient(135deg, #10B981, #059669)')}>
                 {approvingReturn ? ct.submitting : ct.approveReturn}
               </button>
-              <button onClick={() => { setShowRejectModal(true); setRejectReason('') }} style={actionBtn('linear-gradient(135deg, #E8344E, #B91C1C)')}>
+              <button onClick={() => { setShowRejectModal(true); setRejectReason('') }} style={actionBtn('linear-gradient(135deg, #0091EA, #B91C1C)')}>
                 {ct.rejectReturn}
               </button>
             </>
           )}
 
           {order.status !== 'pending_payment' && order.status !== 'cancelled' && (
-            <button onClick={handleChat} style={{ ...actionBtn('transparent'), border: '1px solid #333', color: '#aaa', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>
+            <button onClick={handleChat} style={{ ...actionBtn('transparent'), border: '1px solid #333', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600 }}>
               {ct.chatInApp}
             </button>
           )}
@@ -621,10 +621,10 @@ export default function OrderDetailPage() {
       {showReturnModal && (
         <Modal onClose={() => setShowReturnModal(false)}>
           <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>{ct.requestReturn}</h3>
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>{ct.returnReason}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 6px', fontWeight: 600 }}>{ct.returnReason}</p>
           <textarea value={returnReason} onChange={e => setReturnReason(e.target.value.slice(0, 500))} placeholder={ct.returnReasonPlaceholder} rows={4} style={textareaStyle} />
           {returnError && <p style={{ color: '#E8344E', fontSize: 'calc(13px * var(--fs, 1))', margin: '0 0 12px', textAlign: 'center' }}>{returnError}</p>}
-          <button onClick={handleRequestReturn} disabled={submittingReturn || !returnReason.trim()} style={actionBtn(submittingReturn || !returnReason.trim() ? '#333' : 'linear-gradient(135deg, #F0908A, #E8344E)')}>
+          <button onClick={handleRequestReturn} disabled={submittingReturn || !returnReason.trim()} style={actionBtn(submittingReturn || !returnReason.trim() ? '#333' : 'linear-gradient(135deg, #00E5FF, #0091EA)')}>
             {submittingReturn ? ct.submitting : ct.submitReturn}
           </button>
           <button onClick={() => setShowReturnModal(false)} style={cancelBtn}>{ct.cancel}</button>
@@ -635,9 +635,9 @@ export default function OrderDetailPage() {
       {showRejectModal && (
         <Modal onClose={() => setShowRejectModal(false)}>
           <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 20px', textAlign: 'center' }}>{ct.rejectReturn}</h3>
-          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#888', margin: '0 0 6px', fontWeight: 600 }}>{ct.rejectReason}</p>
+          <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 6px', fontWeight: 600 }}>{ct.rejectReason}</p>
           <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value.slice(0, 500))} placeholder={ct.rejectReasonPlaceholder} rows={4} style={textareaStyle} />
-          <button onClick={handleRejectReturn} disabled={submittingReject} style={actionBtn(submittingReject ? '#333' : 'linear-gradient(135deg, #E8344E, #B91C1C)')}>
+          <button onClick={handleRejectReturn} disabled={submittingReject} style={actionBtn(submittingReject ? '#333' : 'linear-gradient(135deg, #0091EA, #B91C1C)')}>
             {submittingReject ? ct.submitting : ct.confirmReject}
           </button>
           <button onClick={() => setShowRejectModal(false)} style={cancelBtn}>{ct.cancel}</button>
@@ -656,13 +656,13 @@ const textareaStyle: React.CSSProperties = {
   color: '#fff', fontSize: 'calc(14px * var(--fs, 1))', marginBottom: '16px', boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit',
 }
 const cancelBtn: React.CSSProperties = {
-  width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#666', fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer', marginTop: '8px',
+  width: '100%', padding: '12px', borderRadius: '12px', background: 'transparent', border: 'none', color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', cursor: 'pointer', marginTop: '8px',
 }
 
 function Line({ label, value, color = '#fff', strong = false }: { label: string; value: string; color?: string; strong?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', ...(strong ? { borderTop: '1px solid #222', paddingTop: '6px' } : {}) }}>
-      <span style={{ fontSize: strong ? '13px' : '12px', color: strong ? color : '#666', fontWeight: strong ? 700 : 400 }}>{label}</span>
+      <span style={{ fontSize: strong ? '13px' : '12px', color: strong ? color : '#f0f0f0', fontWeight: strong ? 700 : 400 }}>{label}</span>
       <span style={{ fontSize: strong ? '13px' : '12px', color, fontWeight: strong ? 700 : 600 }}>{value}</span>
     </div>
   )

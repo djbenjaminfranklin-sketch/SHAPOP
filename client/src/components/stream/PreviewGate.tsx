@@ -90,23 +90,23 @@ export function PreviewCardWall({ onAddCard, onLeave }: { onAddCard: () => void;
       <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center' }}>
         <div style={{
           width: '64px', height: '64px', borderRadius: '50%', margin: '0 auto 16px',
-          background: 'linear-gradient(135deg, rgba(240,144,138,0.2), rgba(240,144,138,0.05))',
-          border: '1px solid rgba(240,144,138,0.3)',
+          background: 'linear-gradient(135deg, rgba(0, 229, 255,0.2), rgba(0, 229, 255,0.05))',
+          border: '1px solid rgba(0, 229, 255,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#F0908A" strokeWidth="2" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#00E5FF" strokeWidth="2" aria-hidden="true">
             <rect x="1" y="4" width="22" height="16" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
             <line x1="1" y1="10" x2="23" y2="10" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
         <h2 style={{ fontSize: 'calc(20px * var(--fs, 1))', fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>{t.wallTitle}</h2>
-        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#aaa', margin: '0 0 24px', lineHeight: 1.45 }}>{t.wallDesc}</p>
+        <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 24px', lineHeight: 1.45 }}>{t.wallDesc}</p>
         <button
           onClick={onAddCard}
           style={{
             width: '100%', padding: '16px', border: 'none', borderRadius: '14px',
-            background: 'linear-gradient(135deg, #F0908A, #E8344E)',
-            color: '#fff', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
+            background: 'linear-gradient(135deg, #00E5FF, #0091EA)',
+            color: '#001014', fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer',
           }}
         >
           {t.addCard}
@@ -116,7 +116,7 @@ export function PreviewCardWall({ onAddCard, onLeave }: { onAddCard: () => void;
           style={{
             width: '100%', marginTop: '12px', padding: '12px',
             backgroundColor: 'transparent', border: '1px solid #333', borderRadius: '12px',
-            color: '#888', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
+            color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 600, cursor: 'pointer',
           }}
         >
           {t.leave}

@@ -7,6 +7,7 @@ import { getLang, tr, type Localized } from '../lib/i18n'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 import type { Conversation } from '../types/database'
+import { displayItemTitle } from '../lib/fulfillment'
 
 const pageContent = {
   en: {
@@ -209,7 +210,7 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
   if (!user) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-        <p className="text-gray-400">{ct.loginPrompt}</p>
+        <p className="text-gray-100">{ct.loginPrompt}</p>
       </div>
     )
   }
@@ -219,13 +220,13 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
       {/* Header */}
       {!embedded && <div className="sticky top-0 z-10 bg-black/90 backdrop-blur-sm border-b border-white/10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         <div className="flex items-center justify-between px-4 py-3">
-          <button onClick={() => navigate('/')} aria-label={ct.back} className="text-gray-400 hover:text-white">
+          <button onClick={() => navigate('/')} aria-label={ct.back} className="text-gray-100 hover:text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ ...rtlFlip() }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <h1 className="text-lg font-semibold">{ct.title}</h1>
-          <button onClick={() => navigate('/')} aria-label={ct.home} className="text-gray-400 hover:text-white">
+          <button onClick={() => navigate('/')} aria-label={ct.home} className="text-gray-100 hover:text-white">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M9 22V12h6v10" strokeLinecap="round" strokeLinejoin="round"/>
@@ -239,7 +240,7 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-gray-600 border-t-indigo-500 rounded-full animate-spin" />
-            <p className="text-gray-500 text-sm mt-3">{ct.loading}</p>
+            <p className="text-gray-100 text-sm mt-3">{ct.loading}</p>
           </div>
         ) : error ? (
           <div className="text-center py-20">
@@ -250,11 +251,11 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
           </div>
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <svg className="w-16 h-16 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-16 h-16 text-gray-100 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
-            <p className="text-gray-500 text-base">{ct.noConversations}</p>
-            <p className="text-gray-600 text-sm mt-1">{ct.messagesWillAppear}</p>
+            <p className="text-gray-100 text-base">{ct.noConversations}</p>
+            <p className="text-gray-100 text-sm mt-1">{ct.messagesWillAppear}</p>
           </div>
         ) : (
           <div className="divide-y divide-white/10">
@@ -270,7 +271,7 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
                 : ct.noMessage
               const lastTime = lastMsg?.created_at || conv.created_at
               // Item context: from direct conversation item_id or from order
-              const itemTitle = conv.item?.title || conv.order?.item?.title
+              const itemTitle = displayItemTitle(conv.item?.title || conv.order?.item?.title)
               const itemImage = conv.item?.image_urls?.[0] || conv.order?.item?.image_urls?.[0] as string | undefined
 
               return (
@@ -310,16 +311,16 @@ export default function MessagesPage({ embedded = false }: { embedded?: boolean 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between" style={{ gap: '8px' }}>
                       <span className="font-semibold truncate" style={{ fontSize: 'calc(16px * var(--fs, 1))' }}>{displayName}</span>
-                      <span className="text-gray-500 flex-shrink-0" style={{ fontSize: 'calc(12px * var(--fs, 1))' }}>{timeAgo(lastTime)}</span>
+                      <span className="text-gray-100 flex-shrink-0" style={{ fontSize: 'calc(12px * var(--fs, 1))' }}>{timeAgo(lastTime)}</span>
                     </div>
                     {itemTitle && (
-                      <p className="text-gray-500 truncate" style={{ fontSize: 'calc(13px * var(--fs, 1))', marginTop: '4px' }}>{itemTitle}</p>
+                      <p className="text-gray-100 truncate" style={{ fontSize: 'calc(13px * var(--fs, 1))', marginTop: '4px' }}>{itemTitle}</p>
                     )}
-                    <p className="text-gray-400 truncate" style={{ fontSize: 'calc(14px * var(--fs, 1))', marginTop: '4px' }}>{preview}</p>
+                    <p className="text-gray-100 truncate" style={{ fontSize: 'calc(14px * var(--fs, 1))', marginTop: '4px' }}>{preview}</p>
                   </div>
 
                   {/* Chevron */}
-                  <svg className="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ ...rtlFlip() }}>
+                  <svg className="w-4 h-4 text-gray-100 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ ...rtlFlip() }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>

@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
 import { getLang, getLocale, tr, type Localized } from '../lib/i18n'
-import { formatItemPrice } from '../lib/fulfillment'
+import { formatItemPrice, displayItemTitle } from '../lib/fulfillment'
 import { usePageTitle } from '../hooks/usePageTitle'
 import type { Conversation, ConversationMessage } from '../types/database'
 
@@ -437,7 +437,7 @@ export default function ConversationPage() {
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-        <p style={{ color: '#888' }}>{ct.loginRequired}</p>
+        <p style={{ color: '#f0f0f0' }}>{ct.loginRequired}</p>
       </div>
     )
   }
@@ -451,12 +451,12 @@ export default function ConversationPage() {
           style={{
             width: '36px', height: '36px',
             border: '3px solid #333',
-            borderTopColor: '#E8344E',
+            borderTopColor: '#00E5FF',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite',
           }}
         />
-        <p style={{ color: '#666', fontSize: 'calc(14px * var(--fs, 1))', marginTop: '12px' }}>{ct.loading}</p>
+        <p style={{ color: '#f0f0f0', fontSize: 'calc(14px * var(--fs, 1))', marginTop: '12px' }}>{ct.loading}</p>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
@@ -466,7 +466,7 @@ export default function ConversationPage() {
     return (
       <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
         <p role="alert" style={{ color: '#EF4444', fontSize: 'calc(14px * var(--fs, 1))' }}>{error}</p>
-        <button onClick={() => navigate(-1)} style={{ marginTop: '12px', color: '#E8344E', fontSize: 'calc(14px * var(--fs, 1))', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={() => navigate(-1)} style={{ marginTop: '12px', color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
           {ct.back}
         </button>
       </div>
@@ -505,7 +505,7 @@ export default function ConversationPage() {
             aria-label={ct.back}
             style={{
               background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
-              color: '#E8344E', flexShrink: 0, display: 'flex', alignItems: 'center',
+              color: '#00E5FF', flexShrink: 0, display: 'flex', alignItems: 'center',
             }}
           >
             <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -526,9 +526,9 @@ export default function ConversationPage() {
             ) : (
               <div style={{
                 width: '38px', height: '38px', borderRadius: '50%', flexShrink: 0,
-                background: 'linear-gradient(135deg, #E8344E, #F0908A)',
+                background: 'linear-gradient(135deg, #0091EA, #00E5FF)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#fff', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', letterSpacing: '0.5px',
+                color: '#001014', fontWeight: 700, fontSize: 'calc(14px * var(--fs, 1))', letterSpacing: '0.5px',
               }}>
                 {getInitials(otherName)}
               </div>
@@ -538,13 +538,13 @@ export default function ConversationPage() {
                 {otherName}
               </p>
               {conversation?.item?.title && (
-                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#888', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {conversation.item.title}{conversation.item.current_price ? ` — ${formatItemPrice(conversation.item.current_price, sellerCountry ?? profile?.country, lang)}` : ''}
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {displayItemTitle(conversation.item.title)}{conversation.item.current_price ? ` — ${formatItemPrice(conversation.item.current_price, sellerCountry ?? profile?.country, lang)}` : ''}
                 </p>
               )}
               {!conversation?.item?.title && conversation?.order_id && (
-                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {ct.order}{conversation.order_id.slice(0, 8)}
+                <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '2px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {ct.order}{conversation.order_id.slice(0, 8).toUpperCase()}
                 </p>
               )}
             </div>
@@ -568,7 +568,7 @@ export default function ConversationPage() {
             onClick={() => navigate('/')}
             style={{
               background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
-              color: '#888', flexShrink: 0, display: 'flex', alignItems: 'center',
+              color: '#f0f0f0', flexShrink: 0, display: 'flex', alignItems: 'center',
             }}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -603,8 +603,8 @@ export default function ConversationPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#555', margin: 0 }}>{ct.noMessages}</p>
-            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#444', margin: 0 }}>{ct.startConversation}</p>
+            <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{ct.noMessages}</p>
+            <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', margin: 0 }}>{ct.startConversation}</p>
           </div>
         )}
 
@@ -626,7 +626,7 @@ export default function ConversationPage() {
             return (
               <div key={msg.id} style={{ display: 'flex', justifyContent: 'center', margin: '12px 0' }}>
                 <p style={{
-                  fontSize: 'calc(12px * var(--fs, 1))', color: '#666', fontStyle: 'italic', textAlign: 'center',
+                  fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0', fontStyle: 'italic', textAlign: 'center',
                   maxWidth: '80%', padding: '4px 12px', margin: 0,
                   backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: '12px',
                 }}>
@@ -642,7 +642,7 @@ export default function ConversationPage() {
               <div key={msg.id} style={{ marginBottom: '4px' }}>
                 {showTimestamp && (
                   <div style={{ textAlign: 'center', margin: '16px 0 8px 0' }}>
-                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
+                    <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                       {formatRelativeTime(msg.created_at, ct, locale)}
                     </span>
                   </div>
@@ -654,7 +654,7 @@ export default function ConversationPage() {
                       borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                       backgroundColor: isOwn ? '#3A2020' : '#1A1A1A',
                     }}>
-                      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#777', fontStyle: 'italic', margin: 0 }}>{ct.messageFlagged}</p>
+                      <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', fontStyle: 'italic', margin: 0 }}>{ct.messageFlagged}</p>
                     </div>
                   </div>
                 </div>
@@ -667,7 +667,7 @@ export default function ConversationPage() {
             <div key={msg.id} style={{ marginBottom: isSameSenderAsPrev ? '2px' : '8px' }}>
               {showTimestamp && (
                 <div style={{ textAlign: 'center', margin: '16px 0 8px 0' }}>
-                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#555' }}>
+                  <span style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0' }}>
                     {formatRelativeTime(msg.created_at, ct, locale)}
                   </span>
                 </div>
@@ -697,7 +697,7 @@ export default function ConversationPage() {
                           width: '28px', height: '28px', borderRadius: '50%',
                           backgroundColor: '#2A2A2A',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: '#888', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600,
+                          color: '#f0f0f0', fontSize: 'calc(10px * var(--fs, 1))', fontWeight: 600,
                         }}>
                           {getInitials(msg.sender?.display_name || otherName)}
                         </div>
@@ -709,7 +709,7 @@ export default function ConversationPage() {
                 <div style={{ maxWidth: '75%' }}>
                   {/* Sender name for received messages — only show for first message in group */}
                   {!isOwn && msg.sender && !isSameSenderAsPrev && (
-                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#666', margin: '0 0 2px 4px' }}>
+                    <p style={{ fontSize: 'calc(11px * var(--fs, 1))', color: '#f0f0f0', margin: '0 0 2px 4px' }}>
                       {msg.sender.display_name}
                     </p>
                   )}
@@ -717,8 +717,8 @@ export default function ConversationPage() {
                   <div style={{
                     padding: '10px 14px',
                     borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                    backgroundColor: isOwn ? '#E8344E' : '#1A1A1A',
-                    color: '#fff',
+                    backgroundColor: isOwn ? '#00E5FF' : '#1A1A1A',
+                    color: isOwn ? '#001014' : '#fff', // texte foncé sur ma bulle cyan, clair sur la bulle reçue
                   }}>
                     {/* Message text */}
                     {msg.message && (
@@ -754,7 +754,7 @@ export default function ConversationPage() {
                               style={{
                                 display: 'flex', alignItems: 'center', gap: '4px',
                                 fontSize: 'calc(12px * var(--fs, 1))', textDecoration: 'underline',
-                                color: isOwn ? 'rgba(255,255,255,0.85)' : '#F0908A',
+                                color: isOwn ? 'rgba(255,255,255,0.85)' : '#00E5FF',
                               }}
                             >
                               <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
@@ -810,14 +810,14 @@ export default function ConversationPage() {
             aria-label={ct.attachment}
             style={{
               background: 'none', border: 'none', padding: '8px', cursor: 'pointer',
-              color: uploading ? '#444' : '#888', flexShrink: 0,
+              color: uploading ? '#444' : '#f0f0f0', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
             {uploading ? (
               <div style={{
                 width: '22px', height: '22px',
-                border: '2px solid #333', borderTopColor: '#E8344E',
+                border: '2px solid #333', borderTopColor: '#00E5FF',
                 borderRadius: '50%', animation: 'spin 0.8s linear infinite',
               }} />
             ) : (
@@ -864,7 +864,7 @@ export default function ConversationPage() {
             aria-label={ct.send}
             style={{
               width: '44px', height: '44px', borderRadius: '50%',
-              backgroundColor: canSend ? '#E8344E' : '#1A1A1A',
+              backgroundColor: canSend ? '#00E5FF' : '#1A1A1A',
               border: 'none', cursor: canSend ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
