@@ -155,7 +155,11 @@ export default function Dashboard() {
   const sellerCurrency = currencyForCountry(profile?.country)
   const [showFaq, setShowFaq] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const [wizardState, setWizardState] = useState<WizardState>('idle')
+  // Venu de l'inscription vendeur du site : l'assistant « Devenir vendeur » s'ouvre tout seul
+  const [wizardState, setWizardState] = useState<WizardState>(() => {
+    if (localStorage.getItem('shapop_open_seller_onboarding')) { localStorage.removeItem('shapop_open_seller_onboarding'); return 'onboarding' }
+    return 'idle'
+  })
   const [mounted, setMounted] = useState(false)
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
   const [dashboardLoading, setDashboardLoading] = useState(false)

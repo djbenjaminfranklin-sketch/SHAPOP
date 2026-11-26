@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { apiFetch } from '../lib/api'
 import { supabase } from '../lib/supabase'
@@ -116,7 +116,22 @@ export default function DirectSalesPage() {
   const lang = getLang()
   const tx = tr(content, lang)
   // Prix : le pays du vendeur n'est pas renvoyé par /api/items/direct-sales → devise du pays de l'utilisateur
-  const price = (n: number | null | undefined) => formatItemPrice(n, profile?.country, lang)
+  // Devise du VENDEUR (comme la carte et la fiche de l'article), pas celle de l'acheteur
+  const sellerCountries = useRef(new Map<string, string | null>())
+  const [, bumpCountries] = useState(0)
+  const price = (n: number | null | undefined, it?: { seller_id?: string; seller?: { country?: string | null } | null | undefined | Record<string, unknown> }) => {
+    const sid = it?.seller_id
+    let c = (it?.seller as { country?: string | null } | undefined)?.country
+    if (!c && sid) {
+      if (!sellerCountries.current.has(sid)) {
+        sellerCountries.current.set(sid, null)
+        supabase.from('profiles').select('country').eq('id', sid).maybeSingle()
+          .then(({ data }) => { sellerCountries.current.set(sid, (data?.country as string) || null); bumpCountries(x => x + 1) })
+      }
+      c = sellerCountries.current.get(sid)
+    }
+    return formatItemPrice(n, c || profile?.country, lang)
+  }
   usePageTitle(tx.title)
 
   // Fetch item favorites
@@ -339,7 +354,7 @@ export default function DirectSalesPage() {
                     e.preventDefault()
                     e.stopPropagation()
                     if (!user) { navigate('/login'); return }
-                    if (!confirm(tx.buyConfirm.replace('{price}', price(item.current_price ?? item.starting_price)))) return
+                    if (!confirm(tx.buyConfirm.replace('{price}', price(item.current_price ?? item.starting_price, item)))) return
                     setBuyingItemId(item.id)
                     setBuyError('')
                     try {
@@ -377,7 +392,7 @@ export default function DirectSalesPage() {
                     opacity: buyingItemId === item.id ? 0.7 : 1,
                   }}
                 >
-                  {boughtItemId === item.id ? tx.bought : buyingItemId === item.id ? '…' : `${tx.buy} — ${price(item.current_price ?? item.starting_price)}`}
+                  {boughtItemId === item.id ? tx.bought : buyingItemId === item.id ? '…' : `${tx.buy} — ${price(item.current_price ?? item.starting_price, item)}`}
                 </button>
               )}
             </div>

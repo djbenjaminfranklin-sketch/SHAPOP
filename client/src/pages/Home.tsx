@@ -294,6 +294,11 @@ export default function Home() {
   const [activePromotion, setActivePromotion] = useState<{ id: string; title: string; description: string | null; type: string; discount_percent: number } | null>(null)
   const [promoBannerDismissed, setPromoBannerDismissed] = useState(false)
   const navigate = useNavigate()
+  // Inscription vendeur faite sur le site : direction l'assistant « Devenir vendeur » (tableau de bord)
+  const { profile: siteProfile } = useAuth()
+  useEffect(() => {
+    if (siteProfile && localStorage.getItem('shapop_open_seller_onboarding')) navigate('/dashboard')
+  }, [siteProfile, navigate])
   const { city, cityLabel: cityName, cityOption, loading: locationLoading, setManualCity } = useLocation()
   const { user, loading: authLoading, updateCity } = useAuth()
 

@@ -60,6 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setProfile(data)
       cacheSet('profile_' + u.id, data)
+      // Inscription faite sur shapop.app (/sell ou /buy) : on reprend le pays choisi, et un futur
+      // vendeur arrive directement sur l'assistant « Devenir vendeur » à sa première connexion.
+      const siteMeta = u.user_metadata || {}
+      if (!(data as { country?: string | null }).country && typeof siteMeta.country === 'string' && siteMeta.country) {
+        supabase.from('profiles').update({ country: siteMeta.country }).eq('id', u.id).then(() => {}, () => {})
+      }
+      if (siteMeta.wants_to_sell === true && !(data as { is_seller?: boolean }).is_seller && !localStorage.getItem('shapop_site_seller_prompted_' + u.id)) {
+        localStorage.setItem('shapop_site_seller_prompted_' + u.id, '1')
+        localStorage.setItem('shapop_open_seller_onboarding', '1')
+      }
       // Le serveur écrit e-mails et notifications dans profiles.language :
       // on l'aligne sur la langue réellement affichée dans l'app.
       const appLang = getLang()
@@ -75,10 +85,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: u.id,
         username,
         display_name: name,
+        ...(typeof meta.country === 'string' && meta.country ? { country: meta.country } : {}),
         avatar_url: meta.avatar_url || meta.picture || null,
         language: getLang(),
       }).select().single()
       if (insertError) console.error('Failed to create profile:', insertError)
+      if (meta.wants_to_sell === true && !localStorage.getItem('shapop_site_seller_prompted_' + u.id)) {
+        localStorage.setItem('shapop_site_seller_prompted_' + u.id, '1')
+        localStorage.setItem('shapop_open_seller_onboarding', '1')
+      }
       setProfile(newProfile)
     }
   }
