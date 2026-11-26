@@ -11,7 +11,7 @@ for (const f of ['i18n-en-fr.js', 'i18n-es-ru-he.js', 'i18n-delete.js', 'legal-e
   vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'assets', f), 'utf8'), ctx);
 }
 const EN = ctx.window.SP_T.en;
-const STORE_URL = 'https://apps.apple.com/app/id6759213156';
+const STORE_URL = 'https://apps.apple.com/il/app/shapop-live-shopping/id6759213156'; // l'adresse sans pays renvoie « introuvable »
 const PLAY_URL = 'https://play.google.com/store/apps/details?id=com.shapop.app';
 const SITE = 'https://shapop.app';
 const MAIL = '<a class="email" href="mailto:support@shapop.app">support@shapop.app</a>';
@@ -27,7 +27,7 @@ const ico = (id, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use hr
 
 const playstore = () => `<a class="playstore" href="${PLAY_URL}" target="_blank" rel="noopener" data-i18n-aria="cta2.gpAria" aria-label="${esc(get('cta2.gpAria'))}">${ico('play')}<span>${t('small', 'cta2.gpSmall')}<b>Google Play</b></span></a>`;
 const stores = () => `<div class="stores">${appstore()}${playstore()}</div>`;
-const appstore = (extra = '') => `<span class="appstore soon${extra}" role="img" data-i18n-aria="store.aria" aria-label="${esc(get('store.aria'))}">${ico('apple')}<span>${t('small', 'store.small')}<b>App Store</b></span></span>`
+const appstore = (extra = '') => `<a class="appstore${extra}" href="${STORE_URL}" target="_blank" rel="noopener" data-i18n-aria="store.aria" aria-label="${esc(get('store.aria'))}">${ico('apple')}<span>${t('small', 'store.small')}<b>App Store</b></span></a>`
 
 const sVideo = () => `<video class="s-video" src="/assets/hero-s.mp4" poster="/assets/hero-poster.webp" autoplay muted loop playsinline preload="auto" aria-hidden="true" tabindex="-1"></video>`;
 
@@ -134,7 +134,7 @@ function footer(legal = false, extra = '') {
 <script src="/assets/i18n-delete.js?v=7"></script>
 <script src="/assets/i18n-legal-rules.js?v=9"></script>
 <script src="/assets/i18n-join.js?v=2"></script>
-<script src="/assets/i18n-home-rules.js?v=3"></script>
+<script src="/assets/i18n-home-rules.js?v=4"></script>
 ${legal ? '<script src="/assets/legal-en-fr.js?v=8"></script>\n<script src="/assets/legal-es-ru-he.js?v=8"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
 </body>
 </html>
