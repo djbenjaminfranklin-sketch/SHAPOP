@@ -23,6 +23,7 @@ import { cancelOverdueOrders, remindHandoverDeadline, remindPendingPayments } fr
 import { releaseDuePostPayouts } from './services/orderLifecycle'
 import { sendOrderReminders } from './services/reminders'
 import { prepareWiseBatch } from './services/wisePayouts'
+import { runCapacityWatch } from './services/capacityWatch'
 import { checkWiseConnection } from './payments/wise'
 import paymentRoutes from './routes/payments'
 import { processPaypalPayouts } from './routes/payments'
@@ -223,6 +224,12 @@ server.listen(PORT, () => {
       console.error('[Lives] Contrôle des lives abandonnés:', err)
     }
   }, 2 * 60 * 1000)
+
+  // Surveillance de capacité : alerte e-mail dès la moitié d'une limite (chaque minute)
+  console.log('[Capacity] Capacity watch enabled (every 1min)')
+  setInterval(async () => {
+    try { await runCapacityWatch() } catch (err) { console.error('[Capacity] Watch error:', err) }
+  }, 60 * 1000)
 
   // Remind buyers about pending payments every 6 hours
   console.log('[Payments] Payment reminder enabled (every 6h)')
