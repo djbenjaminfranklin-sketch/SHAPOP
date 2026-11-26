@@ -25,7 +25,7 @@ const strip = (s) => String(s).replace(/<[^>]+>/g, '');
 const t = (tag, key, attrs = '') => `<${tag} data-i18n="${key}"${attrs ? ' ' + attrs : ''}>${fill(get(key))}</${tag}>`;
 const ico = (id, cls = 'ico') => `<svg class="${cls}" aria-hidden="true"><use href="/assets/icons.svg#${id}"/></svg>`;
 
-const playstore = () => `<span class="playstore soon" role="img" data-i18n-aria="cta2.gpAria" aria-label="${esc(get('cta2.gpAria'))}">${ico('play')}<span>${t('small', 'cta2.gpSmall')}<b>Google Play</b></span></span>`; // appli pas encore en ligne : pas de lien
+const playstore = () => `<a class="playstore" href="${PLAY_URL}" target="_blank" rel="noopener" data-i18n-aria="cta2.gpAria" aria-label="${esc(get('cta2.gpAria'))}">${ico('play')}<span>${t('small', 'cta2.gpSmall')}<b>Google Play</b></span></a>`;
 const stores = () => `<div class="stores">${appstore()}${playstore()}</div>`;
 const appstore = (extra = '') => `<span class="appstore soon${extra}" role="img" data-i18n-aria="store.aria" aria-label="${esc(get('store.aria'))}">${ico('apple')}<span>${t('small', 'store.small')}<b>App Store</b></span></span>`
 
@@ -134,7 +134,7 @@ function footer(legal = false, extra = '') {
 <script src="/assets/i18n-delete.js?v=7"></script>
 <script src="/assets/i18n-legal-rules.js?v=9"></script>
 <script src="/assets/i18n-join.js?v=2"></script>
-<script src="/assets/i18n-home-rules.js?v=2"></script>
+<script src="/assets/i18n-home-rules.js?v=3"></script>
 ${legal ? '<script src="/assets/legal-en-fr.js?v=8"></script>\n<script src="/assets/legal-es-ru-he.js?v=8"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
 </body>
 </html>
