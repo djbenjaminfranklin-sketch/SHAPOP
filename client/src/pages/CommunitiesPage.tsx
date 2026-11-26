@@ -13,6 +13,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { usePageTitle } from '../hooks/usePageTitle'
 import { BackArrowButton } from '../components/PageBackButton'
+import CommunityCover from '../components/CommunityCover'
 
 type PluralForms = { one: string; few: string; many: string; other: string }
 type PageText = {
@@ -499,14 +500,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
     >
       {/* Image */}
       <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', overflow: 'hidden' }}>
-        <img
-          src={community.image_url || ''}
-          alt={community.name}
-          loading="lazy"
-          style={{
-            width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-          }}
-        />
+        <CommunityCover city={community.city || community.name} country={community.country || ''} size="card" />
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 60%)',
@@ -517,7 +511,7 @@ function CommunityCard({ community, joined, onToggleJoin, onTap, ct }: {
           <div style={{
             position: 'absolute', top: '8px', insetInlineStart: '8px',
             display: 'flex', alignItems: 'center', gap: '4px',
-            backgroundColor: 'rgba(0,229,255,0.9)', backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(232,52,78,0.92)', backdropFilter: 'blur(4px)', // en direct = rouge
             padding: '3px 8px', borderRadius: '8px',
           }}>
             <div style={{

@@ -123,7 +123,7 @@ const translations = {
     pets: 'Animaux',
     auto: 'Auto-Moto',
     garden: 'Jardin',
-    food: 'Food',
+    food: 'Alimentation',
     handmade: 'Fait main',
     collect: 'Collection',
     photo: 'Photo',

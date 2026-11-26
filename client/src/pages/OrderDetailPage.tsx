@@ -56,12 +56,12 @@ const pageContent = {
     cardDeclinedBuyer: 'Your card was declined: pay with another card.',
     platformFee: 'Platform fee',
     sellerPayout: 'Seller payout',
-    createdAt: 'Ordered on',
-    paidAt: 'Paid on',
-    preparedAt: 'Processed by the seller on',
-    handedOverAt: 'Handed over in person on',
-    shippedAt: 'Sent on',
-    deliveredAt: 'Receipt confirmed on',
+    createdAt: 'Ordered',
+    paidAt: 'Paid',
+    preparedAt: 'Processed by the seller',
+    handedOverAt: 'Handed over in person',
+    shippedAt: 'Sent',
+    deliveredAt: 'Receipt confirmed',
     reportProblem: 'Report a problem',
     reportHint: 'Item not received, damaged or different',
     chatInApp: 'Write in ShaPop messages',
@@ -99,12 +99,12 @@ const pageContent = {
     cardDeclinedBuyer: 'Ta carte a été refusée : paie avec une autre carte.',
     platformFee: 'Frais de la plateforme',
     sellerPayout: 'Versement vendeur',
-    createdAt: 'Commande passée le',
-    paidAt: 'Payée le',
-    preparedAt: 'Traitée par le vendeur le',
-    handedOverAt: 'Remise en main propre le',
-    shippedAt: 'Envoyée le',
-    deliveredAt: 'Réception confirmée le',
+    createdAt: 'Commande passée',
+    paidAt: 'Payée',
+    preparedAt: 'Traitée par le vendeur',
+    handedOverAt: 'Remise en main propre',
+    shippedAt: 'Envoyée',
+    deliveredAt: 'Réception confirmée',
     reportProblem: 'Signaler un problème',
     reportHint: 'Article non reçu, abîmé ou différent',
     chatInApp: 'Écrire dans la messagerie ShaPop',
@@ -142,12 +142,12 @@ const pageContent = {
     cardDeclinedBuyer: 'Tu tarjeta ha sido rechazada: paga con otra tarjeta.',
     platformFee: 'Comisión de la plataforma',
     sellerPayout: 'Pago al vendedor',
-    createdAt: 'Pedido el',
-    paidAt: 'Pagado el',
-    preparedAt: 'Tramitado por el vendedor el',
-    handedOverAt: 'Entregado en mano el',
-    shippedAt: 'Enviado el',
-    deliveredAt: 'Recepción confirmada el',
+    createdAt: 'Pedido',
+    paidAt: 'Pagado',
+    preparedAt: 'Tramitado por el vendedor',
+    handedOverAt: 'Entregado en mano',
+    shippedAt: 'Enviado',
+    deliveredAt: 'Recepción confirmada',
     reportProblem: 'Informar de un problema',
     reportHint: 'Artículo no recibido, dañado o diferente',
     chatInApp: 'Escribir en la mensajería de ShaPop',
@@ -228,12 +228,12 @@ const pageContent = {
     cardDeclinedBuyer: 'הכרטיס שלך נדחה: שלמו בכרטיס אחר.',
     platformFee: 'עמלת פלטפורמה',
     sellerPayout: 'תשלום למוכר',
-    createdAt: 'הוזמן ב-',
-    paidAt: 'שולם ב-',
-    preparedAt: 'טופלה על ידי המוכר ב-',
-    handedOverAt: 'נמסר ביד ב-',
-    shippedAt: 'נשלח ב-',
-    deliveredAt: 'הקבלה אושרה ב-',
+    createdAt: 'הוזמן',
+    paidAt: 'שולם',
+    preparedAt: 'טופלה על ידי המוכר',
+    handedOverAt: 'נמסר ביד',
+    shippedAt: 'נשלח',
+    deliveredAt: 'הקבלה אושרה',
     reportProblem: 'דווח על בעיה',
     reportHint: 'הפריט לא התקבל, פגום או שונה',
     chatInApp: 'כתוב בהודעות של ShaPop',
@@ -439,13 +439,13 @@ export default function OrderDetailPage() {
 
   const timelineEvents = [
     { label: ct.createdAt, date: order.created_at, color: '#f0f0f0', done: true },
-    { label: ct.paidAt, date: order.paid_at, color: '#3B82F6', done: !!order.paid_at },
-    { label: ct.preparedAt, date: order.prepared_at || null, color: '#F59E0B', done: !!order.prepared_at || !!order.shipped_at || !!order.handed_over_at },
+    { label: ct.paidAt, date: order.paid_at, color: '#00E5FF', done: !!order.paid_at },
+    { label: ct.preparedAt, date: order.prepared_at || null, color: '#00E5FF', done: !!order.prepared_at || !!order.shipped_at || !!order.handed_over_at },
     order.fulfillment_method === 'pickup'
-      ? { label: ct.handedOverAt, date: order.handed_over_at, color: '#10B981', done: !!order.handed_over_at }
-      : { label: ct.shippedAt, date: order.shipped_at, color: '#10B981', done: !!order.shipped_at },
+      ? { label: ct.handedOverAt, date: order.handed_over_at, color: '#00E5FF', done: !!order.handed_over_at }
+      : { label: ct.shippedAt, date: order.shipped_at, color: '#00E5FF', done: !!order.shipped_at },
     ...(order.fulfillment_method !== 'pickup'
-      ? [{ label: ct.deliveredAt, date: order.delivered_at, color: '#10B981', done: !!order.delivered_at }]
+      ? [{ label: ct.deliveredAt, date: order.delivered_at, color: '#00E5FF', done: !!order.delivered_at }]
       : []),
   ]
 
@@ -580,7 +580,7 @@ export default function OrderDetailPage() {
         {/* Actions */}
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {canReport && (
-            <button onClick={() => navigate(`/dispute/${order.id}`)} style={actionBtn('linear-gradient(135deg, #F97316, #0091EA)')}>
+            <button onClick={() => navigate(`/dispute/${order.id}`)} style={actionBtn('linear-gradient(135deg, #E8344E, #DC2626)')}>
               {ct.reportProblem}
               <span style={{ display: 'block', fontSize: 'calc(11px * var(--fs, 1))', fontWeight: 500, opacity: 0.85, marginTop: '2px' }}>{ct.reportHint}</span>
             </button>
@@ -600,10 +600,10 @@ export default function OrderDetailPage() {
 
           {isSeller && order.status === 'return_requested' && (
             <>
-              <button onClick={handleApproveReturn} disabled={approvingReturn} style={actionBtn(approvingReturn ? '#333' : 'linear-gradient(135deg, #10B981, #059669)')}>
+              <button onClick={handleApproveReturn} disabled={approvingReturn} style={actionBtn(approvingReturn ? '#333' : 'linear-gradient(135deg, #00E5FF, #0091EA)')}>
                 {approvingReturn ? ct.submitting : ct.approveReturn}
               </button>
-              <button onClick={() => { setShowRejectModal(true); setRejectReason('') }} style={actionBtn('linear-gradient(135deg, #0091EA, #B91C1C)')}>
+              <button onClick={() => { setShowRejectModal(true); setRejectReason('') }} style={actionBtn('linear-gradient(135deg, #E8344E, #B91C1C)')}>
                 {ct.rejectReturn}
               </button>
             </>

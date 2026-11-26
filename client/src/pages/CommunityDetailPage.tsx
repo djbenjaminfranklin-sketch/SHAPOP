@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { rtlPos, rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
 import PageBackButton from '../components/PageBackButton'
+import CommunityCover from '../components/CommunityCover'
 
 interface RecentStream {
   id: string
@@ -322,14 +323,7 @@ export default function CommunityDetailPage() {
     }}>
       {/* Banner image */}
       <div style={{ position: 'relative', width: '100%', height: '220px' }}>
-        <img
-          src={community.image_url || ''}
-          alt={community.name}
-          loading="lazy"
-          style={{
-            width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-          }}
-        />
+        <CommunityCover city={community.city || community.name} country={community.country || ''} size="banner" />
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(to top, #000 0%, rgba(0,0,0,0.3) 50%, rgba(0,0,0,0.5) 100%)',

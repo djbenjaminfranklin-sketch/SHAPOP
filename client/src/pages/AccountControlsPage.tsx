@@ -110,7 +110,7 @@ export default function AccountControlsPage() {
     try { return new Intl.NumberFormat(getLocale(), { style: 'unit', unit: 'minute', unitDisplay: 'short' }).format(n) } catch { return String(n) }
   }
   const newBadge = tr({ en: 'NEW', fr: 'NOUVEAU', es: 'NUEVO', ru: 'НОВОЕ', he: 'חדש' })
-  usePageTitle(tr({ en: 'Account controls', fr: 'Contrôles du compte', es: 'Controles de la cuenta', ru: 'Управление аккаунтом', he: 'בקרת חשבון' }))
+  usePageTitle(tr({ en: 'Settings', fr: 'Paramètres', es: 'Ajustes', ru: 'Настройки', he: 'הגדרות' }))
 
   const [activeTab, setActiveTab] = useState<Tab>('settings') // « Paramètres » ouvre directement les réglages (apparence, texte, langue)
   const [settings, setSettings] = useState<ControlSettings>(loadSettings)
@@ -341,7 +341,7 @@ export default function AccountControlsPage() {
           </svg>
         </button>
         <h1 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', margin: 0 }}>
-          {tr({ en: 'Account controls', fr: 'Contrôles du compte', es: 'Controles de la cuenta', ru: 'Управление аккаунтом', he: 'בקרת חשבון' })}
+          {tr({ en: 'Settings', fr: 'Paramètres', es: 'Ajustes', ru: 'Настройки', he: 'הגדרות' })}
         </h1>
       </div>
 

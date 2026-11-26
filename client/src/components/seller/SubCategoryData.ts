@@ -13,7 +13,7 @@ export const subCategories: Record<string, string[]> = {
   beauty: ['Maquillage', 'Soins visage', 'Soins corps', 'Parfums', 'Cheveux', 'Ongles', 'Bio/Naturel', 'Coffrets', 'Outils'],
   electronics: ['Smartphones', 'Ordinateurs', 'Tablettes', 'Audio', 'Photo/Video', 'TV', 'Objets connectes', 'Composants', 'Accessoires'],
   gaming: ['Consoles', 'Jeux video', 'PC Gaming', 'Accessoires', 'Retro gaming', 'Figurines', 'Cartes', 'Merchandise', 'Streaming'],
-  cards: ['Pokemon', 'Yu-Gi-Oh', 'Magic', 'Sports', 'Dragon Ball', 'One Piece', 'Panini', 'Boosters', 'PSA/Gradees', 'Lots'],
+  cards: ['Pokémon', 'Yu-Gi-Oh', 'Magic', 'Sports', 'Dragon Ball', 'One Piece', 'Panini', 'Boosters', 'PSA/Gradees', 'Lots'],
   toys: ['Figurines', 'LEGO', 'Peluches', 'Jeux de societe', 'Puzzles', 'Vehicules', 'Poupees', 'Educatifs', 'Retro', 'Collector'],
   vintage: ['Vetements', 'Accessoires', 'Decoration', 'Vaisselle', 'Affiches', 'Vinyles', 'Livres anciens', 'Bijoux', 'Mobilier'],
   art: ['Peinture', 'Dessin', 'Sculpture', 'Photographie', 'Art numerique', 'Street art', 'Estampes', 'Art contemporain', 'Materiaux'],

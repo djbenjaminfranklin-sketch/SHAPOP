@@ -102,13 +102,6 @@ function plural(forms: PluralForms, n: number, lang: Lang): string {
 }
 
 
-/** Teinte stable par ville (pas d'image codée en dur : un dégradé + l'initiale). */
-function cityHue(name: string): number {
-  let h = 0
-  for (const ch of name) h = (h * 31 + ch.codePointAt(0)!) % 360
-  return h
-}
-
 export default function MapPage() {
   const navigate = useNavigate()
   const { user, profile } = useAuth()
@@ -151,7 +144,6 @@ export default function MapPage() {
   const sheetData = selectedCity ? (cityData[selectedCity] || others[selectedCity]) : null
 
   const renderCard = (key: string, label: string, data: { count: number; streams: { id: string; seller?: { display_name: string; avatar_url: string | null } }[] }, isHere: boolean) => {
-    const hue = cityHue(key)
     return (
       <button
         key={key}
@@ -169,11 +161,13 @@ export default function MapPage() {
       >
         <div style={{
           position: 'relative', width: '100%', aspectRatio: '16/10', overflow: 'hidden',
-          background: `linear-gradient(135deg, hsl(${hue} 45% 28%), hsl(${(hue + 40) % 360} 55% 14%))`,
+          // Même style néon pour toutes les villes (plus de couleurs aléatoires)
+          background: 'radial-gradient(circle at 30% 30%, rgba(0,229,255,0.2), rgba(0,229,255,0) 65%), #06080c',
+          boxShadow: 'inset 0 0 0 1px rgba(0,229,255,0.3)',
         }}>
           <span aria-hidden="true" style={{
             position: 'absolute', top: '6px', insetInlineStart: '10px',
-            fontSize: 'calc(44px * var(--fs, 1))', fontWeight: 800, color: 'rgba(255,255,255,0.18)', lineHeight: 1,
+            fontSize: 'calc(44px * var(--fs, 1))', fontWeight: 800, color: 'rgba(0,229,255,0.22)', lineHeight: 1,
           }}>
             {Array.from(label)[0]?.toUpperCase()}
           </span>
@@ -181,7 +175,7 @@ export default function MapPage() {
             <div style={{
               position: 'absolute', top: '8px', insetInlineEnd: '8px',
               display: 'flex', alignItems: 'center', gap: '4px',
-              backgroundColor: 'rgba(0,229,255,0.9)', backdropFilter: 'blur(4px)',
+              backgroundColor: 'rgba(232,52,78,0.92)', backdropFilter: 'blur(4px)', // en direct = rouge
               padding: '3px 8px', borderRadius: '8px',
             }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fff', animation: 'pulse-dot 1.5s ease-in-out infinite' }} />

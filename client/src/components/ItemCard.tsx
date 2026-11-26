@@ -4,6 +4,7 @@ import { getLang, tr, type Localized } from '../lib/i18n'
 import { rtlPos } from '../lib/rtl'
 import { formatItemPrice } from '../lib/fulfillment'
 import { useAuth } from '../contexts/AuthContext'
+import { useSellerCountry } from '../hooks/useSellerCountry'
 
 type CardText = { seller: string; addFav: string; removeFav: string; ai: string }
 const cardText: Localized<CardText> = {
@@ -39,8 +40,9 @@ export default function ItemCard({ item, isFavorited, onToggleFavorite }: ItemCa
   const sellerName = item.seller?.display_name || ct.seller
   const price = item.current_price ?? item.starting_price
   const imageUrl = item.image_urls?.[0]
-  // Devise : pays du vendeur, à défaut celui de l'utilisateur connecté
-  const priceCountry = item.seller?.country || profile?.country
+  // Devise : pays du vendeur (chargé s'il manque), comme sur la fiche article
+  const sellerCountry = useSellerCountry(item.seller_id, item.seller?.country)
+  const priceCountry = sellerCountry || profile?.country
 
   return (
     <Link to={`/item/${item.id}`} style={{ display: 'block', textDecoration: 'none' }}>

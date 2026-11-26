@@ -34,7 +34,7 @@ const content: Localized<RefText> = {
     howTitle: 'Comment ça marche',
     step1: 'Partage ton lien de parrainage',
     step2: 'Ton ami s’inscrit avec ton code',
-    step3: 'Vous recevez chacun un code promo de -5 % !',
+    step3: 'Ton ami et toi recevez chacun un code promo de -5\u00A0%\u00A0!',
     yourCode: 'Ton code de parrainage',
     share: 'Partager le lien',
     copied: 'Copié !',

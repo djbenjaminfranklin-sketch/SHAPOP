@@ -5,7 +5,7 @@ import { getLang, tr, LANGS, type Localized } from '../lib/i18n'
 import { track } from '../lib/analytics'
 import { usePageTitle } from '../hooks/usePageTitle'
 
-const trendingSearches = ['Nike Dunk', 'Pokemon', 'iPhone 16', 'Vintage', 'Sneakers']
+const trendingSearches = ['Nike Dunk', 'Pokémon', 'iPhone 16', 'Vintage', 'Sneakers']
 
 // Maps to CategoryIcons IDs used on Home page
 const categoryIds = [

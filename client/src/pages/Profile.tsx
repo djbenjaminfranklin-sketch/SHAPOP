@@ -468,7 +468,7 @@ export default function Profile() {
     { icon: ico.card, label: tr({ en: 'Payments & handover', fr: 'Paiements et remise', es: 'Pagos y entrega', ru: 'Оплата и передача', he: 'תשלומים ומסירה' }), to: '/payments' },
     { icon: ico.pin, label: tr({ en: 'Addresses', fr: 'Adresses', es: 'Direcciones', ru: 'Адреса', he: 'כתובות' }), to: '/addresses' },
     { icon: ico.bell, label: tr({ en: 'Notifications', fr: 'Notifications', es: 'Notificaciones', ru: 'Уведомления', he: 'התראות' }), to: '/notifications' },
-    { icon: ico.controls, label: tr({ en: 'Account controls', fr: 'Contrôles du compte', es: 'Controles de la cuenta', ru: 'Настройки аккаунта', he: 'הגדרות חשבון' }), to: '/account-controls' },
+    { icon: ico.controls, label: tr({ en: 'Settings', fr: 'Paramètres', es: 'Ajustes', ru: 'Настройки', he: 'הגדרות' }), to: '/account-controls' },
     { icon: ico.mail, label: tr({ en: 'Change email', fr: 'Modifier l\'adresse e-mail', es: 'Cambiar correo electrónico', ru: 'Изменить e-mail', he: 'שינוי אימייל' }), sub: user.email || '', to: '/change-email' },
     { icon: ico.lock, label: tr({ en: 'Change password', fr: 'Modifier le mot de passe', es: 'Cambiar contraseña', ru: 'Изменить пароль', he: 'שינוי סיסמה' }), to: '/change-password' },
     { icon: ico.key, label: tr({ en: 'Passkey', fr: 'Clé d\'accès', es: 'Llave de acceso', ru: 'Ключ доступа', he: 'מפתח גישה' }), to: '/security' },
