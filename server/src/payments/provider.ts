@@ -37,8 +37,11 @@ export async function isWiseSeller(sellerId: string): Promise<boolean> {
   if (!wiseConfig().enabled) return false
   const [{ data: p }, { data: s }] = await Promise.all([
     supabase.from('profiles').select('country').eq('id', sellerId).maybeSingle(),
-    supabase.from('sellers').select('payout_iban').eq('id', sellerId).maybeSingle(),
+    supabase.from('sellers').select('payout_iban, bank_choice, paypal_email').eq('id', sellerId).maybeSingle(),
   ])
+  const sel = s as { payout_iban?: string | null; bank_choice?: string | null; paypal_email?: string | null } | null
+  // 27/11/2026 : le vendeur qui a choisi PayPal est payé par PayPal, même s'il a aussi un IBAN
+  if (sel?.bank_choice === 'paypal' && sel?.paypal_email) return false
   return ISRAEL_COUNTRIES.has(String((p as { country?: string | null } | null)?.country || '').toUpperCase())
-    && !!(s as { payout_iban?: string | null } | null)?.payout_iban
+    && !!sel?.payout_iban
 }

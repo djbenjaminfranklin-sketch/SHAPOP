@@ -446,10 +446,20 @@ const IsraeliBankBody = z.object({
 router.get('/api/payouts-il/status', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   const userId = req.user!.id
   const [{ data: seller }, { data: profile }] = await Promise.all([
-    supabase.from('sellers').select('airwallex_beneficiary_id, payout_bank_last4, payout_iban, payout_holder_name').eq('id', userId).maybeSingle(),
+    supabase.from('sellers').select('airwallex_beneficiary_id, payout_bank_last4, payout_iban, payout_holder_name, bank_choice, paypal_email').eq('id', userId).maybeSingle(),
     supabase.from('profiles').select('country').eq('id', userId).maybeSingle(),
   ])
-  const sel = seller as { airwallex_beneficiary_id?: string | null; payout_bank_last4?: string | null; payout_iban?: string | null; payout_holder_name?: string | null } | null
+  const sel = seller as { airwallex_beneficiary_id?: string | null; payout_bank_last4?: string | null; payout_iban?: string | null; payout_holder_name?: string | null; bank_choice?: string | null; paypal_email?: string | null } | null
+  // 27/11/2026 : Wise fermé → PayPal pour les vendeurs israéliens (seulement pour l'appli qui sait l'afficher : ?paypal=1)
+  if (process.env.IL_PAYOUT_PROVIDER === 'paypal' && req.query.paypal === '1') {
+    const hasPaypal = sel?.bank_choice === 'paypal' && !!sel?.paypal_email
+    res.json({
+      enabled: true, provider: 'paypal',
+      country: (profile as { country?: string | null } | null)?.country || null,
+      has_bank: hasPaypal, bank_last4: null, paypal_email: hasPaypal ? sel!.paypal_email : null,
+    })
+    return
+  }
   if (wiseConfig().enabled) {
     res.json({
       enabled: true, provider: 'wise',
