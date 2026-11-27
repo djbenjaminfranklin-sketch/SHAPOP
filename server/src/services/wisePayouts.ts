@@ -69,6 +69,9 @@ async function sendDailyMessage(subject: string, lines: string[]) {
 /** Prépare le lot du jour. Retourne le résumé (aussi envoyé par e-mail). */
 export async function prepareWiseBatch(): Promise<{ count: number; total: number; excluded: { ref: string; reason: string }[]; waiting: { ref: string; reason: string }[] } | null> {
   if (!wise.wiseConfig().enabled) return null
+  // 27/11/2026 : Wise a fermé le compte. Les ventes israéliennes restent « queued » (argent gardé sur le
+  // compte ShaPop) jusqu'au nouveau prestataire de virement : aucun lot, aucune vente retirée de la file.
+  if (process.env.WISE_PAYOUTS_PAUSED === 'true') return null
   // Une seule fois par jour
   const since = new Date(Date.now() - 20 * 3600000).toISOString()
   const { data: recent } = await supabase.from('wise_batches').select('id').gte('created_at', since).limit(1)

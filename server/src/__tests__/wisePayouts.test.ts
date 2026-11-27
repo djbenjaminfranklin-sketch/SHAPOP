@@ -96,4 +96,13 @@ describe('Lot quotidien Wise', () => {
     expect(await prepareWiseBatch()).toBeNull()
     expect(calls.filter(c => c === 'group')).toHaveLength(1)
   })
+
+  it('en pause (Wise fermé) : aucun lot et les ventes restent en file', async () => {
+    process.env.WISE_PAYOUTS_PAUSED = 'true'
+    try {
+      expect(await prepareWiseBatch()).toBeNull()
+      expect(calls).toEqual([])
+      expect(fakeDb.table('orders').every(o => o.wise_status === 'queued')).toBe(true)
+    } finally { delete process.env.WISE_PAYOUTS_PAUSED }
+  })
 })
