@@ -23,6 +23,7 @@ import { useCitySuggestions } from '../hooks/useCitySuggestions'
 import { buildCitySuggestions, sameCity, type CityOption } from '../lib/cities'
 import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 import { DIRECT_SALES_ENABLED } from '../lib/directSales'
+import { DEMO_LIVES_ENABLED, demoLives } from '../lib/demoLives'
 
 type HomeText = {
   sortedByRelevance: string
@@ -354,7 +355,9 @@ export default function Home() {
       }
 
       const { data } = await query
-      const fresh = ((data || []) as unknown as StreamWithSeller[])
+      const real = ((data || []) as unknown as StreamWithSeller[])
+      // Faux directs seulement dans une version d'essai compilée avec VITE_DEMO_LIVES=1 (lib/demoLives.ts)
+      const fresh = DEMO_LIVES_ENABLED ? [...real, ...demoLives<StreamWithSeller>()] : real
       setStreams(fresh)
       cacheSet('home_streams', fresh)
     } catch (err) {
