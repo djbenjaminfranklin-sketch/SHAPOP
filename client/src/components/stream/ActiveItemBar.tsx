@@ -167,7 +167,7 @@ export default function ActiveItemBar({
       WebkitBackdropFilter: 'blur(6px)',
       borderTop: '1px solid rgba(0,229,255,0.22)',
       padding: '6px 12px',
-      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6px)',
+      paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 6px)',
     }}>
       {/* Top: title + current price + max-bid badge */}
       <div style={{

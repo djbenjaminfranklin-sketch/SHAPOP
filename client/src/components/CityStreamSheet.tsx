@@ -66,7 +66,7 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
           display: 'flex',
           flexDirection: 'column',
           animation: 'sheetSlideUp 0.3s ease-out',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px))',
         }}
       >
         <style>{`

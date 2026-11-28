@@ -738,7 +738,7 @@ export default function Dashboard() {
         <div style={{
           position: 'fixed', bottom: '70px', left: 0, right: 0,
           padding: '0 16px 16px',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+          paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
           background: 'linear-gradient(to top, #000 70%, transparent)',
           pointerEvents: 'none',
         }}>

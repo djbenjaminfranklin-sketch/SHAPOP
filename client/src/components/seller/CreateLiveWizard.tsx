@@ -1657,7 +1657,7 @@ export default function CreateLiveWizard() {
               fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 800, cursor: trimming ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
               boxShadow: trimming ? 'none' : '0 8px 32px rgba(0, 229, 255,0.35)',
-              paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
+              paddingBottom: 'calc(18px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))',
             }}
           >
             {trimming && (
@@ -1775,7 +1775,7 @@ export default function CreateLiveWizard() {
             maxHeight: 'calc(100vh - 120px)',
             WebkitOverflowScrolling: 'touch',
             // Le bouton « Suivant » (fixe) et la barre du bas ne recouvrent plus la fin de l'étape
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 190px)',
+            paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 190px)',
           }}
         >
           {renderStep()}
@@ -1784,7 +1784,7 @@ export default function CreateLiveWizard() {
 
       {/* Footer with premium button */}
       <div style={{
-        position: 'fixed', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 56px)', left: 0, right: 0,
+        position: 'fixed', bottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 56px)', left: 0, right: 0,
         padding: '16px 20px',
         paddingBottom: '8px',
         background: 'linear-gradient(180deg, transparent 0%, #000 30%)',

@@ -127,7 +127,7 @@ html.has-order-bar .app-scroll::after {
   padding-top: env(safe-area-inset-top, 0px);
 }
 .safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
 }
 
 /* RTL support for Hebrew */
@@ -162,4 +162,4 @@ html.has-order-bar .app-scroll::after {
 html.live-screen .status-bar-cover { display: none; }
 
 /* Barre du bas visible : place réservée en bas de chaque page (hauteur de la barre + marge système) */
-html.has-bottom-nav .app-scroll { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 84px); box-sizing: border-box; }
+html.has-bottom-nav .app-scroll { padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 84px); box-sizing: border-box; }

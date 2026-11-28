@@ -1435,7 +1435,7 @@ export default function PaymentsPage() {
             style={{
               backgroundColor: '#fff', borderRadius: '20px 20px 0 0',
               width: '100%', maxWidth: '500px',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 20px)',
               animation: 'slideUp 0.3s ease',
             }}
             onClick={e => e.stopPropagation()}

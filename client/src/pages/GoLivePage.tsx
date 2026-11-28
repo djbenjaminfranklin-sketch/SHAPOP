@@ -694,7 +694,7 @@ export default function GoLivePage() {
         {/* Bottom: progress + button */}
         <div style={{
           padding: '20px 24px',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+          paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 20px)',
         }}>
           {/* Progress dots */}
           <div style={{
@@ -753,7 +753,7 @@ export default function GoLivePage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(120px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))' }}>
       {showStatusPrompt && user && (
         <SellerStatusPrompt userId={user.id} onCancel={() => setShowStatusPrompt(false)} onDone={() => { setShowStatusPrompt(false); handleCreate() }} />
       )}
@@ -1158,7 +1158,7 @@ export default function GoLivePage() {
         <div style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
           padding: '16px 20px',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+          paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
           backgroundColor: '#111', borderTop: '1px solid #222',
           zIndex: 20,
         }}>

@@ -6,11 +6,11 @@ import { supabase, stripe, STREAMS_SAFE_COLUMNS, LIVEKIT_API_KEY, LIVEKIT_API_SE
 import { userHasSavedCard, getOrStartPreview, schedulePreviewKick, cancelPreviewKick } from '../viewerPreview'
 import { StreamOutput, StreamProtocol } from 'livekit-server-sdk'
 import { startSellerRecording, recordingUrlFromEgress, getLivekitMaxParticipants } from '../recording'
-import { requireAuth, createLimiter } from '../middleware'
+import { requireAuth, createLimiter, aiLimiter } from '../middleware'
 import { computeSellerScore, notifyFollowersSellerLive } from '../utils'
 import { sellerHasWhatsapp } from './fulfillment'
 import type { AuthenticatedRequest } from '../types'
-import { MAX_TEXT, normalizeAnswer, submitAnswer } from '../services/giveawayQuiz'
+import { MAX_TEXT, normalizeAnswer, submitAnswer, suggestQuestion, type QuizLang } from '../services/giveawayQuiz'
 
 const router = Router()
 
@@ -1049,6 +1049,18 @@ router.post('/api/giveaways/:id/answer', requireAuth, async (req: AuthenticatedR
     res.status(code).json(r)
   } catch (err) {
     console.error('POST /api/giveaways/:id/answer error:', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// POST /api/giveaways/suggest-question — question toute prête (IA) pour le vendeur, dans sa langue
+router.post('/api/giveaways/suggest-question', aiLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const lang = (['en', 'fr', 'es', 'ru', 'he'].includes(String(req.body?.lang)) ? String(req.body.lang) : 'en') as QuizLang
+    const avoid = Array.isArray(req.body?.avoid) ? (req.body.avoid as unknown[]).map(String).slice(-10) : []
+    res.json(await suggestQuestion(lang, avoid))
+  } catch (err) {
+    console.error('POST /api/giveaways/suggest-question error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

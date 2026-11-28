@@ -125,7 +125,7 @@ export default function VodPlayer({ recordingUrl, title, startOffset, onClose }:
       {/* Footer label */}
       <div style={{
         padding: '12px 16px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 12px)',
         textAlign: 'center',
       }}>
         <span style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{t.replay}</span>

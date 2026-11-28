@@ -462,7 +462,7 @@ export default function OrderDetailPage() {
     && !!order.claim_deadline && new Date(order.claim_deadline) > new Date()
 
   return (
-    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))' }}>
       <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         {/* En-tête */}
         <div style={{

@@ -13,7 +13,7 @@ export default function CrossBorderNotice() {
   const t = tr(content)
   return (
     <div style={{
-      position: 'fixed', left: '12px', right: '12px', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)', zIndex: 30,
+      position: 'fixed', left: '12px', right: '12px', bottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 84px)', zIndex: 30,
       padding: '12px 14px', borderRadius: '14px', backgroundColor: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
       border: '1px solid rgba(255,255,255,0.2)', color: '#fff', fontSize: 'calc(13px * var(--fs, 1))', lineHeight: 1.45,
     }}>

@@ -83,7 +83,7 @@ export default function ReportSheet({ reportedId, streamId, itemId, context, onC
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 400, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end' }}>
       <div onClick={e => e.stopPropagation()} style={{
         width: '100%', backgroundColor: '#111', borderRadius: '20px 20px 0 0', padding: '20px 16px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)', maxHeight: '85vh', overflowY: 'auto', color: '#fff',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 20px)', maxHeight: '85vh', overflowY: 'auto', color: '#fff',
       }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800 }}>{c.title}</h3>
         <p style={{ margin: '0 0 14px', fontSize: 'calc(13px * var(--fs, 1))', color: '#f0f0f0' }}>{c.subtitle}</p>

@@ -252,7 +252,7 @@ export default function OnboardingCelebration({ onDone }: Props) {
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         padding: '16px 20px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
         background: 'linear-gradient(to top, #000 60%, transparent)',
       }}>
         <button

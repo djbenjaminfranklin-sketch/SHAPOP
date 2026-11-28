@@ -51,3 +51,22 @@ describe('cadeau en question-réponse : le premier juste gagne, jamais de hasard
     expect(fakeDb.table('giveaways')[0].status).toBe('active')
   })
 })
+
+describe('question toute prête pour le vendeur (28/11/2026)', () => {
+  it('variantes de réponse acceptées (chiffre ou lettres)', async () => {
+    const { isCorrect } = await import('../services/giveawayQuiz')
+    expect(isCorrect('7', '7|sept')).toBe(true)
+    expect(isCorrect('Sept', '7|sept')).toBe(true)
+    expect(isCorrect('huit', '7|sept')).toBe(false)
+  })
+  it('sans IA : une question de la liste, dans la langue demandée, avec sa réponse', async () => {
+    const { suggestQuestion, QUESTION_BANK } = await import('../services/giveawayQuiz')
+    const saved = process.env.ANTHROPIC_API_KEY
+    delete process.env.ANTHROPIC_API_KEY
+    const s = await suggestQuestion('he')
+    process.env.ANTHROPIC_API_KEY = saved
+    expect(s.source).toBe('bank')
+    expect(QUESTION_BANK.he.map(q => q.question)).toContain(s.question)
+    expect(s.answer.length).toBeGreaterThan(0)
+  })
+})

@@ -324,7 +324,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
       {/* Content */}
       <div style={{
         flex: 1, padding: '12px 20px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
         display: 'flex', flexDirection: 'column', gap: '16px',
         overflowY: 'auto',
       }}>

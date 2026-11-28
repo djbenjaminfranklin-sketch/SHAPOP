@@ -201,7 +201,7 @@ export default function Explore() {
     <div style={{
       minHeight: '100vh', backgroundColor: '#000',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
+      paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)',
     }}>
 
       {/* Search bar */}

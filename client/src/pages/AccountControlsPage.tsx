@@ -329,7 +329,7 @@ export default function AccountControlsPage() {
   })
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)' }}>
       {/* Header */}
       <div style={{
         padding: '12px 16px',

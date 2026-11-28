@@ -1414,7 +1414,7 @@ export default function ActivityPage() {
   const showSubFilters = mainTab === 'purchases' || mainTab === 'sales'
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(100px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))' }}>
       <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)' }}>
         {/* Header */}
         <div style={{

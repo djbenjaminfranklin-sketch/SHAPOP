@@ -127,7 +127,7 @@ export default function PayoutsIsraelPage() {
   const showForm = !status?.has_bank || editing
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 140px)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', padding: '16px', paddingTop: 'calc(env(safe-area-inset-top, 44px) + 12px)', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 140px)' }}>
       <PageBackButton />
       <h1 style={{ fontSize: 'calc(24px * var(--fs, 1))', fontWeight: 800, margin: '48px 0 8px' }}>🇮🇱 {ct.title}</h1>
       <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0', lineHeight: 1.5, margin: '0 0 16px' }}>{status?.provider === 'paypal' ? ct.introPaypal : status?.provider === 'wise' ? ct.introWise : ct.intro}</p>

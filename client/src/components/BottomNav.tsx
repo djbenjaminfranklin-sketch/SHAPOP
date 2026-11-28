@@ -422,7 +422,7 @@ export default function BottomNav() {
           position: 'fixed', bottom: 0, left: 0, right: 0,
           background: '#070709', borderTop: '1px solid rgba(0,229,255,0.28)', zIndex: 50,
           boxShadow: '0 -6px 22px rgba(0,229,255,0.12)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px))'
         }}
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', alignItems: 'end', padding: '6px 0 4px' }}>

@@ -4022,8 +4022,8 @@ export default function StreamView() {
       <div style={{
         position: 'absolute',
         bottom: activeAuction && !isSeller && isLive
-          ? 'calc(env(safe-area-inset-bottom, 0px) + 80px + var(--kb, 0px))'
-          : 'calc(env(safe-area-inset-bottom, 0px) + 4px + var(--kb, 0px))',
+          ? 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 80px + var(--kb, 0px))'
+          : 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 4px + var(--kb, 0px))',
         left: '10px', right: '10px',
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '6px',
@@ -4227,7 +4227,7 @@ export default function StreamView() {
           WebkitBackdropFilter: 'blur(20px)',
           borderTop: '1px solid rgba(255,255,255,0.08)',
           padding: '14px 16px',
-          paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
+          paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 14px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -4406,7 +4406,7 @@ export default function StreamView() {
       {reserveOffer && !soldAnimation && (
         <div className="no-theme-invert" style={{
           position: 'fixed', left: '12px', right: '12px', zIndex: 300,
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 90px)',
+          bottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 90px)',
           backgroundColor: 'rgba(17,17,17,0.97)', border: '1.5px solid #00E5FF', borderRadius: '18px',
           padding: '18px', boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
         }}>
@@ -4507,7 +4507,7 @@ export default function StreamView() {
             backgroundColor: '#111',
             borderRadius: '20px 20px 0 0',
             padding: '24px',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
             maxHeight: '85vh',
             overflowY: 'auto',
           }}>
@@ -4770,7 +4770,7 @@ export default function StreamView() {
             backgroundColor: '#111',
             borderRadius: '20px 20px 0 0',
             padding: '24px',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
             maxHeight: '85vh',
             overflowY: 'auto',
           }}>
@@ -4908,7 +4908,7 @@ export default function StreamView() {
               backgroundColor: '#111', borderRadius: '20px 20px 0 0',
               width: '100%', maxWidth: '500px',
               padding: '24px',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
               maxHeight: '80vh',
               overflowY: 'auto',
               animation: 'slideUp 0.3s ease',
@@ -5057,7 +5057,7 @@ export default function StreamView() {
               backgroundColor: '#1a1a1a',
               borderRadius: '20px 20px 0 0',
               padding: '24px 20px',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
             }}
           >
             <h3 style={{ fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 16px' }}>
@@ -5107,7 +5107,7 @@ export default function StreamView() {
               backgroundColor: '#1a1a1a',
               borderRadius: '20px 20px 0 0',
               padding: '16px 20px',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
             }}
           >
             {/* Message preview */}
@@ -5208,7 +5208,7 @@ export default function StreamView() {
               backgroundColor: '#111', borderRadius: '20px 20px 0 0',
               width: '100%', maxWidth: '500px',
               padding: '16px 24px',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
               animation: 'slideUp 0.3s ease',
             }}
           >
@@ -5335,7 +5335,7 @@ export default function StreamView() {
       {toastMessage && (
         <div style={{
           position: 'fixed',
-          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
+          bottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 80px)',
           left: '50%', transform: 'translateX(-50%)', // i18n-ignore (centrage, animation toastIn)
           padding: '10px 20px',
           backgroundColor: 'rgba(0,0,0,0.85)',
@@ -5510,7 +5510,7 @@ export default function StreamView() {
               width: '100%', maxWidth: '400px',
               maxHeight: '60vh',
               backgroundColor: '#1A1A1A', borderRadius: '20px 20px 0 0',
-              padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 20px) + 20px)',
+              padding: '20px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 20px), var(--safe-area-inset-bottom, 0px)) + 20px)',
               overflowY: 'auto',
             }}
           >

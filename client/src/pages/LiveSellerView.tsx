@@ -4,7 +4,7 @@ import { useLiveScreen } from '../hooks/useLiveScreen'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { tr, type Localized } from '../lib/i18n'
+import { tr, getLang, type Localized } from '../lib/i18n'
 import { formatMoney, currencyForCountry, currencySymbol, displayItemTitle } from '../lib/fulfillment'
 import { luxuryText } from '../lib/luxury'
 import { useLiveKitBroadcast } from '../hooks/useLiveKitBroadcast'
@@ -90,6 +90,9 @@ const pageContent = {
     giftAnswerPlaceholder: 'The right answer (hidden from viewers)',
     giftQuizHint: 'The first viewer to give the right answer wins. Free, no purchase needed. 3 tries each.',
     giftWaiting: 'Waiting for the right answer…',
+    giftDefaultPrize: 'Surprise gift',
+    giftOtherQuestion: 'Other question',
+    giftLoadingQuestion: 'Finding a question…',
     giftLaunch: 'Launch gift',
     giftLaunched: 'Gift launched!',
     giftActive: 'Gift active',
@@ -209,6 +212,9 @@ const pageContent = {
     giftAnswerPlaceholder: 'La bonne réponse (cachée aux spectateurs)',
     giftQuizHint: 'Le premier spectateur qui donne la bonne réponse gagne. Gratuit, sans achat. 3 essais chacun.',
     giftWaiting: 'En attente de la bonne réponse…',
+    giftDefaultPrize: 'Cadeau surprise',
+    giftOtherQuestion: 'Autre question',
+    giftLoadingQuestion: 'Recherche d’une question…',
     giftLaunch: 'Lancer le cadeau',
     giftLaunched: 'Cadeau lancé !',
     giftActive: 'Cadeau en cours',
@@ -328,6 +334,9 @@ const pageContent = {
     giftAnswerPlaceholder: 'La respuesta correcta (oculta a los espectadores)',
     giftQuizHint: 'Gana el primer espectador que dé la respuesta correcta. Gratis, sin compra. 3 intentos cada uno.',
     giftWaiting: 'Esperando la respuesta correcta…',
+    giftDefaultPrize: 'Regalo sorpresa',
+    giftOtherQuestion: 'Otra pregunta',
+    giftLoadingQuestion: 'Buscando una pregunta…',
     giftLaunch: 'Lanzar regalo',
     giftLaunched: '¡Regalo lanzado!',
     giftActive: 'Regalo activo',
@@ -447,6 +456,9 @@ const pageContent = {
     giftAnswerPlaceholder: 'Правильный ответ (зрители его не видят)',
     giftQuizHint: 'Побеждает первый зритель, давший правильный ответ. Бесплатно, без покупки. 3 попытки у каждого.',
     giftWaiting: 'Ждём правильный ответ…',
+    giftDefaultPrize: 'Подарок-сюрприз',
+    giftOtherQuestion: 'Другой вопрос',
+    giftLoadingQuestion: 'Ищем вопрос…',
     giftLaunch: 'Запустить конкурс',
     giftLaunched: 'Конкурс запущен!',
     giftActive: 'Конкурс идёт',
@@ -566,6 +578,9 @@ const pageContent = {
     giftAnswerPlaceholder: 'התשובה הנכונה (מוסתרת מהצופים)',
     giftQuizHint: 'הצופה הראשון שעונה נכון זוכה. חינם, ללא רכישה. 3 ניסיונות לכל אחד.',
     giftWaiting: 'ממתינים לתשובה הנכונה…',
+    giftDefaultPrize: 'מתנת הפתעה',
+    giftOtherQuestion: 'שאלה אחרת',
+    giftLoadingQuestion: 'מחפשים שאלה…',
     giftLaunch: 'הפעלת המתנה',
     giftLaunched: 'המתנה הופעלה!',
     giftActive: 'מתנה פעילה',
@@ -779,6 +794,8 @@ export default function LiveSellerView() {
   const [giveawayPrize, setGiveawayPrize] = useState('')
   const [giveawayQuestion, setGiveawayQuestion] = useState('')
   const [giveawayAnswer, setGiveawayAnswer] = useState('')
+  const [giveawaySuggesting, setGiveawaySuggesting] = useState(false)
+  const giveawayAskedRef = useRef<string[]>([])
   const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
 
@@ -1167,6 +1184,32 @@ export default function LiveSellerView() {
     }
     fetchGiveaway()
   }, [streamId])
+
+  // Question toute prête (IA) : le vendeur n'a pas le temps d'en écrire une pendant le direct (28/11/2026)
+  const suggestGiftQuestion = async () => {
+    setGiveawaySuggesting(true)
+    try {
+      const { data: s0 } = await supabase.auth.getSession()
+      const resp = await apiFetch('/api/giveaways/suggest-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${s0.session?.access_token || ''}` },
+        body: JSON.stringify({ lang: getLang(), avoid: giveawayAskedRef.current }),
+      })
+      if (resp.ok) {
+        const q = await resp.json() as { question: string; answer: string }
+        giveawayAskedRef.current = [...giveawayAskedRef.current, q.question].slice(-10)
+        setGiveawayQuestion(q.question)
+        setGiveawayAnswer(q.answer)
+      }
+    } catch { /* le vendeur peut toujours écrire sa question */ }
+    setGiveawaySuggesting(false)
+  }
+  useEffect(() => {
+    if (!showGiveawayForm || (activeGiveaway && activeGiveaway.status === 'active')) return
+    setGiveawayPrize(prev => prev || ct.giftDefaultPrize)
+    if (!giveawayQuestion) suggestGiftQuestion()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showGiveawayForm])
 
   const handleLaunchGiveaway = async () => {
     if (!giveawayPrize.trim() || !giveawayQuestion.trim() || !giveawayAnswer.trim() || !streamId) return
@@ -2353,7 +2396,7 @@ export default function LiveSellerView() {
         <div onClick={() => setShowItemsList(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'flex-end' }}>
           <div onClick={e => e.stopPropagation()} style={{
             width: '100%', maxHeight: '75vh', overflowY: 'auto', backgroundColor: '#111',
-            borderRadius: '20px 20px 0 0', padding: '16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+            borderRadius: '20px 20px 0 0', padding: '16px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <p style={{ margin: 0, fontSize: 'calc(19px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{ct.myItems} ({items.length})</p>
@@ -2425,7 +2468,7 @@ export default function LiveSellerView() {
       {/* ===== BOTTOM OVERLAY: chat + input + item panel ===== */}
       <div style={{
         position: 'fixed',
-        bottom: 'calc(env(safe-area-inset-bottom, 34px) + 16px + var(--kb, 0px))',
+        bottom: 'calc(max(env(safe-area-inset-bottom, 34px), var(--safe-area-inset-bottom, 0px)) + 16px + var(--kb, 0px))',
         left: '10px', right: '10px',
         zIndex: 15,
         display: 'flex', flexDirection: 'column', gap: '8px',
@@ -2912,7 +2955,7 @@ export default function LiveSellerView() {
               padding: '20px',
               display: 'flex', flexDirection: 'column', gap: '12px',
               border: '1px solid rgba(255,215,0,0.2)',
-              marginBottom: 'env(safe-area-inset-bottom, 34px)',
+              marginBottom: 'max(env(safe-area-inset-bottom, 34px), var(--safe-area-inset-bottom, 0px))',
               animation: 'slideUpGift 0.3s ease',
             }}
           >
@@ -2930,7 +2973,6 @@ export default function LiveSellerView() {
                   value={giveawayPrize}
                   onChange={e => setGiveawayPrize(e.target.value)}
                   placeholder={ct.giftPrizePlaceholder}
-                  autoFocus
                   style={{
                     width: '100%', padding: '12px 14px',
                     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -2970,6 +3012,17 @@ export default function LiveSellerView() {
                     outline: 'none', boxSizing: 'border-box',
                   }}
                 />
+                <button
+                  onClick={suggestGiftQuestion}
+                  disabled={giveawaySuggesting}
+                  style={{
+                    alignSelf: 'flex-start', padding: '8px 14px', borderRadius: '100px', cursor: 'pointer',
+                    border: '1px solid rgba(255,215,0,0.4)', background: 'transparent', color: '#FFD700',
+                    fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700,
+                  }}
+                >
+                  {giveawaySuggesting ? ct.giftLoadingQuestion : `🔄 ${ct.giftOtherQuestion}`}
+                </button>
                 <p style={{ margin: '0 0 6px', fontSize: 'calc(12px * var(--fs, 1))', color: '#ccc', lineHeight: 1.4 }}>
                   {ct.giftQuizHint}
                 </p>
@@ -3121,7 +3174,7 @@ export default function LiveSellerView() {
         >
           <div onClick={(e) => e.stopPropagation()} style={{
             backgroundColor: '#1A1A1A', borderRadius: '20px 20px 0 0',
-            padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            padding: '20px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 20px)',
             width: '100%', maxHeight: '70vh',
           }}>
             <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
@@ -3192,7 +3245,7 @@ export default function LiveSellerView() {
         >
           <div onClick={(e) => e.stopPropagation()} style={{
             backgroundColor: '#1A1A1A', borderRadius: '20px 20px 0 0',
-            padding: '20px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+            padding: '20px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 20px)',
             width: '100%',
           }}>
             <h3 style={{ color: '#fff', fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 700, margin: '0 0 16px', textAlign: 'center' }}>
@@ -3325,7 +3378,7 @@ export default function LiveSellerView() {
               backgroundColor: '#1a1a1a',
               borderRadius: '20px 20px 0 0',
               padding: '24px 20px',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>

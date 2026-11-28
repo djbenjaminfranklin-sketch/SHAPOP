@@ -353,7 +353,7 @@ export default function LiveRecapPage() {
   return (
     <div style={{
       minHeight: '100vh', backgroundColor: '#000',
-      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 80px)',
+      paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 80px)',
     }}>
       {/* Header */}
       <div style={{
@@ -575,7 +575,7 @@ export default function LiveRecapPage() {
             backgroundColor: '#111',
             borderRadius: '20px 20px 0 0',
             padding: '24px',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)',
+            paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 24px)',
             maxHeight: '80vh',
             overflowY: 'auto',
           }}>

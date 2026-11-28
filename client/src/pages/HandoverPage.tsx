@@ -102,7 +102,7 @@ export default function HandoverPage() {
   if (!user) return null
 
   return (
-    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: '#fff', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)' /* barre du bas */ }}>
+    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#0a0a0a', color: '#fff', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 110px)' /* barre du bas */ }}>
       <div style={{
         position: 'sticky', top: 0, zIndex: 50, backgroundColor: 'rgba(10,10,10,0.9)', backdropFilter: 'blur(12px)',
         borderBottom: '1px solid #1A1A1A', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)', paddingBottom: '8px',

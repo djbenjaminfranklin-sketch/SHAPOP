@@ -315,7 +315,7 @@ export default function ItemDetailPage() {
   const priceLabel = formatItemPrice(price, sellerCountry ?? profile?.country)
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)' }}>
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '12px',

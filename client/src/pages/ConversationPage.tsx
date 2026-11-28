@@ -490,7 +490,7 @@ export default function ConversationPage() {
       display: 'flex',
       flexDirection: 'column',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)',
-      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)',
+      paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 4px)',
     }}>
       {/* Header */}
       <div style={{

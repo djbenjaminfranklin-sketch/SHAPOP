@@ -49,7 +49,7 @@ export default function LiveReturnBar({ live }: { live: { id: string; title: str
       onClick={() => navigate(`/live-seller/${live.id}`)}
       style={{
         position: 'fixed', left: 0, right: 0, zIndex: 49,
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 74px)', margin: '0 10px', borderRadius: '14px',
+        bottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 74px)', margin: '0 10px', borderRadius: '14px',
         display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
         background: 'linear-gradient(135deg, #0091EA 0%, #00E5FF 100%)', border: 'none', color: '#001014',
         textAlign: 'start', cursor: 'pointer', boxShadow: '0 -4px 18px rgba(0,229,255,0.35)',

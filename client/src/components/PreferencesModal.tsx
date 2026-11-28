@@ -287,7 +287,7 @@ export default function PreferencesModal({ visible, onClose }: PreferencesModalP
         {/* Bottom actions */}
         <div style={{
           padding: '16px 20px',
-          paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(24px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))',
           display: 'flex',
           gap: '12px',
           borderTop: '1px solid #222',

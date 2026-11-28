@@ -948,7 +948,7 @@ export default function AIListingPage() {
 
     return (
       <div style={{
-        flex: 1, overflowY: 'auto', padding: '0 16px', paddingBottom: 'calc(180px + env(safe-area-inset-bottom, 0px))',
+        flex: 1, overflowY: 'auto', padding: '0 16px', paddingBottom: 'calc(180px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))',
         opacity: showResults ? 1 : 0,
         transform: showResults ? 'translateY(0)' : 'translateY(20px)',
         transition: 'all 0.5s ease',
@@ -1340,7 +1340,7 @@ export default function AIListingPage() {
           {/* Status */}
           <div style={{
             padding: '16px',
-            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+            paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
             textAlign: 'center',
           }}>
             <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#f0f0f0' }}>{barcodeStatus}</p>

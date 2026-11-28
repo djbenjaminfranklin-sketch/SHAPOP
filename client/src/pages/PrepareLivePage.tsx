@@ -2205,7 +2205,7 @@ export default function PrepareLivePage() {
               style={{ padding: '12px', borderRadius: '12px', border: '1px dashed #444', backgroundColor: 'transparent', color: '#00E5FF', fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 700, cursor: 'pointer' }}
             >+ {ct.addMorePhotos}</button>
           </div>
-          <div style={{ padding: '12px 16px', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)', borderTop: '1px solid #1A1A1A', display: 'flex', gap: '8px' }}>
+          <div style={{ padding: '12px 16px', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)', borderTop: '1px solid #1A1A1A', display: 'flex', gap: '8px' }}>
             <button
               onClick={closeBatch}
               disabled={batchSaving}
@@ -2228,7 +2228,7 @@ export default function PrepareLivePage() {
       {/* Bottom actions */}
       <div style={{
         padding: '16px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)',
         borderTop: '1px solid #1A1A1A',
         display: 'flex', flexDirection: 'column', gap: '10px',
         flexShrink: 0,

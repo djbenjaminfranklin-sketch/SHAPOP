@@ -525,7 +525,7 @@ export default function Home() {
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', padding: '0 32px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 16px)',
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ width: '60%', maxWidth: '260px', marginBottom: '40px', objectFit: 'contain' }} />
         <h1 style={{

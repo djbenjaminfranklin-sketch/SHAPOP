@@ -97,7 +97,7 @@ export default function SellerStatusPrompt({ userId, onDone, onCancel }: { userI
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 400, backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ width: '100%', maxWidth: '420px', backgroundColor: '#111', borderRadius: '20px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: 'env(safe-area-inset-bottom, 16px)' }}>
+      <div style={{ width: '100%', maxWidth: '420px', backgroundColor: '#111', borderRadius: '20px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: 'max(env(safe-area-inset-bottom, 16px), var(--safe-area-inset-bottom, 0px))' }}>
         <p style={{ margin: 0, fontSize: 'calc(18px * var(--fs, 1))', fontWeight: 800, color: '#fff' }}>{t.title}</p>
         <p style={{ margin: 0, fontSize: 'calc(13px * var(--fs, 1))', color: '#ccc' }}>{t.desc}</p>
         <div style={{ display: 'flex', gap: '10px' }}>{choice('individual', t.individual)}{choice('business', t.business)}</div>

@@ -2,6 +2,7 @@
 // articles de luxe le 26/11/2026, statut particulier/pro, droits légaux et cadeaux le 28/11/2026).
 // Mêmes textes que le site (site/assets/i18n-legal-rules.js, clé « rules »).
 // Mêmes textes que le site (site/assets/i18n-legal-rules.js, clé « rules »).
+// Mêmes textes que le site (site/assets/i18n-legal-rules.js, clé « rules »).
 import { useNavigate } from 'react-router-dom'
 import { getDir, tr } from '../lib/i18n'
 
@@ -188,7 +189,7 @@ export default function RulesPage() {
     </section>
   )
   return (
-    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
+    <div dir={getDir()} style={{ minHeight: '100vh', backgroundColor: '#000', color: '#fff', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)', borderBottom: '1px solid #111', position: 'sticky', top: 0, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.9)' }}>
         <button onClick={() => navigate(-1)} aria-label={c.back} style={{ background: 'none', border: 'none', color: '#f0f0f0', fontSize: 'calc(24px * var(--fs, 1))', cursor: 'pointer', padding: '4px', transform: getDir() === 'rtl' ? 'scaleX(-1)' : undefined }}>&#8249;</button>
         <h1 style={{ fontSize: 'calc(17px * var(--fs, 1))', fontWeight: 700, margin: 0 }}>{c.title}</h1>

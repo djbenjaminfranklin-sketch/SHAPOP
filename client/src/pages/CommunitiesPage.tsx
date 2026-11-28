@@ -256,7 +256,7 @@ export default function CommunitiesPage() {
       minHeight: '100vh',
       backgroundColor: '#000',
       paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
-      paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)',
+      paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)',
     }}>
       {/* Header */}
       <div style={{ padding: '20px 20px 0' }}>

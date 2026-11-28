@@ -280,7 +280,7 @@ export default function Profile() {
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 'calc(100px + env(safe-area-inset-bottom, 0px))',
+        paddingBottom: 'calc(100px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))',
       }}>
         <div role="status" aria-label={tr({ en: 'Loading profile', fr: 'Chargement du profil', es: 'Cargando perfil', ru: 'Загрузка профиля', he: 'טוען פרופיל' })} style={{ width: '32px', height: '32px', border: '3px solid #333', borderTopColor: '#00E5FF', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
@@ -296,7 +296,7 @@ export default function Profile() {
       <div style={{
         minHeight: '100vh', backgroundColor: '#000',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)', paddingInline: '32px',
+        paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)', paddingInline: '32px',
         paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)',
       }}>
         <img src="/logo.png" alt="ShaPop" style={{ height: '40px', marginBottom: '32px', objectFit: 'contain' }} />
@@ -528,7 +528,7 @@ export default function Profile() {
   // LOGGED IN RENDER
   // ════════════════════════════════════════════════════════════════════
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 100px)' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)) + 100px)' }}>
       <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
 
         {/* ── HEADER: Avatar + Username + "Afficher le profil" ──────── */}
