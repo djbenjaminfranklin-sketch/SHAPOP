@@ -39,7 +39,7 @@
     return v;
   }
   var MAIL = '<a class="email" href="mailto:support@shapop.app">support@shapop.app</a>';
-  var OP = '<bdi dir="ltr">Benjamin Franklin Charles TAIEB, entrepreneur individuel (SIRET 528 074 370 00032, 11 rue Jacques Duchesne, 75019 Paris, France)</bdi>';
+  var OP = '<bdi dir="ltr">Benjamin Franklin Charles TAIEB, entrepreneur individuel (EI), SIRET 528 074 370 00032, 11 rue Jacques Duchesne, 75019 Paris, France</bdi>';
   function fill(s) { return typeof s === 'string' ? s.replace(/\{mail\}/g, MAIL).replace(/\{op\}/g, OP) : s; }
 
   /* monnaie selon la langue (₪ en hébreu, $ en anglais, € ailleurs) */

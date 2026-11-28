@@ -32,7 +32,7 @@ window.SP_T.en = {
   sell: {
     kicker: 'For sellers', title: 'Your stall, open anywhere, any time', intro: 'Clear out your wardrobe, run your small shop or sell your collectibles: ShaPop brings you live buyers and guaranteed payment.',
     s1h: 'Go live', s1p: 'A title, a category, a thumbnail and you are on. Show your items, start auctions and reply to the chat in real time.',
-    s2h: 'Create a listing from one photo', s2p: 'AI fills in the title, category, condition and description, and suggests a price. Check it, publish it — live or as a direct sale.',
+    s2h: 'Create a listing from one photo', s2p: 'AI fills in the title, category, condition and description, and suggests a price. Check it, then sell it in your live.',
     s3h: 'Get paid on handover', s3p: 'In person, enter the buyer’s 4-digit code. By post, send two photos: the inside of the parcel and the stamped shipping receipt. You’re paid straight away with the code, and 3 days after the photos (or as soon as the buyer confirms receipt) for a shipment.'
   },
   ai: { badge: 'AI listing', f1l: 'Title', f1v: 'Retro digital watch', f2l: 'Category', f2v: 'Watches', f3l: 'Condition', f3v: 'Like new', f4l: 'Suggested price' },
@@ -111,7 +111,7 @@ window.SP_T.en = {
       ['How do I report a user or a live?', 'Use the report button in the app, or write to us with the account name and a screenshot.']
     ]
   },
-  legal: { kicker: 'Legal', updated: 'Last updated: 23 November 2026', operator: 'Operator' }
+  legal: { kicker: 'Legal', updated: 'Last updated: 28 November 2026', operator: 'Operator' }
 };
 
 window.SP_T.fr = {
@@ -147,7 +147,7 @@ window.SP_T.fr = {
   sell: {
     kicker: 'Pour le vendeur', title: 'Ton stand, ouvert partout, à tout moment', intro: 'Vide ton dressing, fais tourner ta petite boutique ou vends tes pièces de collection : ShaPop t’amène des acheteurs en direct et un paiement garanti.',
     s1h: 'Lance ton direct', s1p: 'Un titre, une catégorie, une miniature et c’est parti. Présente tes articles, lance les enchères, réponds au chat en temps réel.',
-    s2h: 'Crée une annonce en une photo', s2p: 'L’IA remplit le titre, la catégorie, l’état et la description, et te suggère un prix. Tu vérifies, tu publies — en direct ou en vente directe.',
+    s2h: 'Crée une annonce en une photo', s2p: 'L’IA remplit le titre, la catégorie, l’état et la description, et te suggère un prix. Tu vérifies, puis tu le vends pendant ton direct.',
     s3h: 'Sois payé à la remise', s3p: 'En main propre, tu saisis le code à 4 chiffres de l’acheteur. Par la poste, tu envoies deux photos : l’intérieur du colis et le bordereau tamponné. Tu es payé tout de suite avec le code, et 3 jours après les photos (ou dès que l’acheteur confirme la réception) pour un envoi.'
   },
   ai: { badge: 'Annonce IA', f1l: 'Titre', f1v: 'Montre rétro digitale', f2l: 'Catégorie', f2v: 'Montres', f3l: 'État', f3v: 'Comme neuf', f4l: 'Prix suggéré' },
@@ -226,5 +226,5 @@ window.SP_T.fr = {
       ['Comment signaler un utilisateur ou un direct ?', 'Utilise le bouton de signalement dans l’appli, ou écris-nous avec le nom du compte et une capture d’écran.']
     ]
   },
-  legal: { kicker: 'Légal', updated: 'Dernière mise à jour : 23 novembre 2026', operator: 'Exploitant' }
+  legal: { kicker: 'Légal', updated: 'Dernière mise à jour : 28 novembre 2026', operator: 'Exploitant' }
 };

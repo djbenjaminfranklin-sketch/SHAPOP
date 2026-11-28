@@ -85,11 +85,11 @@ const faqItems: { id: string; q: Localized<string>; a: Localized<string> }[] = [
       he: 'איך ומתי מקבלים את הכסף?',
     },
     a: {
-      en: 'In person: you get paid as soon as you enter the buyer\'s 4-digit code. By post: 3 days after you add your 2 photos (inside of the parcel + stamped postage receipt), or as soon as the buyer confirms receipt. The money is sent to your account through Stripe.',
-      fr: 'En main propre : tu es payé dès que tu saisis le code à 4 chiffres de l\'acheteur. Par la poste : 3 jours après tes 2 photos (intérieur du colis + bordereau tamponné), ou dès que l\'acheteur confirme la réception. Le virement passe par Stripe.',
-      es: 'En mano: cobras en cuanto introduces el código de 4 cifras del comprador. Por correo: 3 días después de subir tus 2 fotos (interior del paquete + resguardo sellado), o en cuanto el comprador confirma la recepción. El pago se hace a través de Stripe.',
-      ru: 'Лично: деньги приходят, как только ты вводишь 4-значный код покупателя. По почте: через 3 дня после твоих 2 фото (содержимое посылки + квитанция со штампом) или сразу, как покупатель подтвердит получение. Выплата идёт через Stripe.',
-      he: 'מסירה ידנית: מקבלים את הכסף ברגע שמזינים את הקוד בן 4 הספרות של הקונה. בדואר: 3 ימים אחרי ששולחים 2 תמונות (תוכן החבילה + קבלת משלוח חתומה), או ברגע שהקונה מאשר/ת קבלה. התשלום מועבר דרך Stripe.',
+      en: 'You are paid 24 hours after the buyer confirms receipt (right away if they say everything is fine), or 10 days after sending without news from the buyer; 30 days for luxury items. In person, the buyer confirms with their 4-digit code. The money is sent through Stripe or PayPal.',
+      fr: 'Tu es payé 24 h après la réception confirmée par l\'acheteur (tout de suite s\'il dit que tout est conforme), ou 10 jours après l\'envoi sans nouvelles de l\'acheteur ; 30 jours pour les articles de luxe. En main propre, l\'acheteur confirme avec son code à 4 chiffres. Le versement passe par Stripe ou PayPal.',
+      es: 'Cobras 24 h después de que el comprador confirme la recepción (enseguida si dice que todo está bien), o 10 días después del envío sin noticias del comprador; 30 días para artículos de lujo. En mano, el comprador confirma con su código de 4 cifras. El pago se hace a través de Stripe o PayPal.',
+      ru: 'Деньги приходят через 24 часа после того, как покупатель подтвердит получение (сразу, если всё в порядке), или через 10 дней после отправки без вестей от покупателя; 30 дней для товаров класса люкс. При личной встрече покупатель подтверждает 4-значным кодом. Выплата идёт через Stripe или PayPal.',
+      he: 'מקבלים את הכסף 24 שעות אחרי שהקונה מאשר/ת קבלה (מיד אם הכול תקין), או 10 ימים אחרי המשלוח בלי חדשות מהקונה; 30 יום לפריטי יוקרה. במסירה ידנית הקונה מאשר/ת עם הקוד בן 4 הספרות. התשלום מועבר דרך Stripe או PayPal.',
     },
   },
   {

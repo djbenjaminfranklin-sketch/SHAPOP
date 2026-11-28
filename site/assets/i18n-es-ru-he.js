@@ -32,7 +32,7 @@ window.SP_T.es = {
   sell: {
     kicker: 'Para vendedores', title: 'Tu puesto, abierto en cualquier sitio y a cualquier hora', intro: 'Vacía tu armario, mueve tu pequeña tienda o vende tus piezas de colección: ShaPop te trae compradores en directo y un pago garantizado.',
     s1h: 'Empieza un directo', s1p: 'Un título, una categoría, una miniatura y listo. Enseña tus artículos, lanza subastas y responde al chat en tiempo real.',
-    s2h: 'Crea un anuncio con una foto', s2p: 'La IA rellena el título, la categoría, el estado y la descripción, y te sugiere un precio. Lo revisas y lo publicas, en directo o en venta directa.',
+    s2h: 'Crea un anuncio con una foto', s2p: 'La IA rellena el título, la categoría, el estado y la descripción, y te sugiere un precio. Lo revisas y lo vendes en tu directo.',
     s3h: 'Cobra al entregar', s3p: 'En mano, introduces el código de 4 cifras del comprador. Por correo, envías dos fotos: el interior del paquete y el resguardo sellado. Con el código cobras al momento; por correo, 3 días después de las fotos (o en cuanto el comprador confirma la recepción).'
   },
   ai: { badge: 'Anuncio con IA', f1l: 'Título', f1v: 'Reloj digital retro', f2l: 'Categoría', f2v: 'Relojes', f3l: 'Estado', f3v: 'Como nuevo', f4l: 'Precio sugerido' },
@@ -111,7 +111,7 @@ window.SP_T.es = {
       ['¿Cómo denuncio a un usuario o un directo?', 'Usa el botón de denuncia en la app o escríbenos con el nombre de la cuenta y una captura de pantalla.']
     ]
   },
-  legal: { kicker: 'Legal', updated: 'Última actualización: 23 de noviembre de 2026', operator: 'Responsable' }
+  legal: { kicker: 'Legal', updated: 'Última actualización: 28 de noviembre de 2026', operator: 'Responsable' }
 };
 
 window.SP_T.ru = {
@@ -147,7 +147,7 @@ window.SP_T.ru = {
   sell: {
     kicker: 'Продавцам', title: 'Твой прилавок — где угодно и когда угодно', intro: 'Разбери шкаф, развивай свой маленький магазин или продавай коллекцию: ShaPop приведёт покупателей в эфир и гарантирует оплату.',
     s1h: 'Запусти эфир', s1p: 'Название, категория, обложка — и ты в эфире. Показывай вещи, запускай аукционы и отвечай в чате в реальном времени.',
-    s2h: 'Объявление по одному фото', s2p: 'ИИ заполнит название, категорию, состояние и описание и подскажет цену. Проверь и публикуй — в эфире или как обычную продажу.',
+    s2h: 'Объявление по одному фото', s2p: 'ИИ заполнит название, категорию, состояние и описание и подскажет цену. Проверь и продавай в своём эфире.',
     s3h: 'Получай деньги при передаче', s3p: 'Лично — введи 4-значный код покупателя. По почте — отправь два фото: содержимое посылки и квитанцию с почтовым штампом. С кодом деньги перечисляются сразу, а при отправке почтой — через 3 дня после фото (или как только покупатель подтвердит получение).'
   },
   ai: { badge: 'Объявление с ИИ', f1l: 'Название', f1v: 'Ретро-часы электронные', f2l: 'Категория', f2v: 'Часы', f3l: 'Состояние', f3v: 'Как новые', f4l: 'Рекомендуемая цена' },
@@ -226,7 +226,7 @@ window.SP_T.ru = {
       ['Как пожаловаться на пользователя или эфир?', 'Нажми кнопку «Пожаловаться» в приложении или напиши нам, указав имя аккаунта и приложив скриншот.']
     ]
   },
-  legal: { kicker: 'Правовая информация', updated: 'Последнее обновление: 23 ноября 2026 г.', operator: 'Оператор' }
+  legal: { kicker: 'Правовая информация', updated: 'Последнее обновление: 28 ноября 2026 г.', operator: 'Оператор' }
 };
 
 window.SP_T.he = {
@@ -262,7 +262,7 @@ window.SP_T.he = {
   sell: {
     kicker: 'למוכרים', title: 'הדוכן שלך, פתוח בכל מקום ובכל שעה', intro: 'מפנים את הארון, מריצים חנות קטנה או מוכרים פריטי אספנות: ShaPop מביאה לכם קונים בלייב ותשלום מובטח.',
     s1h: 'עולים לשידור', s1p: 'כותרת, קטגוריה, תמונה ממוזערת – ואתם באוויר. מציגים פריטים, פותחים מכירה פומבית ועונים בצ׳אט בזמן אמת.',
-    s2h: 'מודעה מתמונה אחת', s2p: 'הבינה המלאכותית ממלאת כותרת, קטגוריה, מצב ותיאור, ומציעה מחיר. בודקים ומפרסמים – בלייב או במכירה רגילה.',
+    s2h: 'מודעה מתמונה אחת', s2p: 'הבינה המלאכותית ממלאת כותרת, קטגוריה, מצב ותיאור, ומציעה מחיר. בודקים ומוכרים בלייב שלכם.',
     s3h: 'מקבלים תשלום במסירה', s3p: 'באיסוף עצמי – מקלידים את הקוד בן 4 הספרות של הקונה. בדואר – שולחים שתי תמונות: תוכן החבילה ואישור המשלוח החתום. עם הקוד הכסף מועבר מיד, ובמשלוח בדואר – 3 ימים אחרי התמונות (או ברגע שהקונה מאשר שקיבל).'
   },
   ai: { badge: 'מודעה עם AI', f1l: 'כותרת', f1v: 'שעון דיגיטלי רטרו', f2l: 'קטגוריה', f2v: 'שעונים', f3l: 'מצב', f3v: 'כמו חדש', f4l: 'מחיר מוצע' },
@@ -341,5 +341,5 @@ window.SP_T.he = {
       ['איך מדווחים על משתמש או על שידור?', 'משתמשים בכפתור הדיווח באפליקציה, או כותבים לנו עם שם החשבון וצילום מסך.']
     ]
   },
-  legal: { kicker: 'מידע משפטי', updated: 'עדכון אחרון: 23 בנובמבר 2026', operator: 'המפעיל' }
+  legal: { kicker: 'מידע משפטי', updated: 'עדכון אחרון: 28 בנובמבר 2026', operator: 'המפעיל' }
 };

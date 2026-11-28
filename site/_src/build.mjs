@@ -17,7 +17,7 @@ const SITE = 'https://shapop.app';
 const MAIL = '<a class="email" href="mailto:support@shapop.app">support@shapop.app</a>';
 
 const get = (k) => k.split('.').reduce((o, p) => (o == null ? o : o[p]), EN);
-const OP = '<bdi dir="ltr">Benjamin Franklin Charles TAIEB, entrepreneur individuel (SIRET 528 074 370 00032, 11 rue Jacques Duchesne, 75019 Paris, France)</bdi>';
+const OP = '<bdi dir="ltr">Benjamin Franklin Charles TAIEB, entrepreneur individuel (EI), SIRET 528 074 370 00032, 11 rue Jacques Duchesne, 75019 Paris, France</bdi>';
 const fill = (s) => String(s).replace(/\{mail\}/g, MAIL).replace(/\{op\}/g, OP);
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const strip = (s) => String(s).replace(/<[^>]+>/g, '');
@@ -129,13 +129,13 @@ function footer(legal = false, extra = '') {
     <p class="legal-line" data-i18n="foot.legalLine" style="margin:14px 0 0;font-size:13px;opacity:.75;line-height:1.5">${fill(get('foot.legalLine'))}</p>
   </div>
 </footer>
-<script src="/assets/i18n-en-fr.js?v=7"></script>
-<script src="/assets/i18n-es-ru-he.js?v=7"></script>
+<script src="/assets/i18n-en-fr.js?v=8"></script>
+<script src="/assets/i18n-es-ru-he.js?v=8"></script>
 <script src="/assets/i18n-delete.js?v=7"></script>
-<script src="/assets/i18n-legal-rules.js?v=9"></script>
-<script src="/assets/i18n-join.js?v=2"></script>
-<script src="/assets/i18n-home-rules.js?v=4"></script>
-${legal ? '<script src="/assets/legal-en-fr.js?v=8"></script>\n<script src="/assets/legal-es-ru-he.js?v=8"></script>\n' : ''}<script src="/assets/app.js?v=10"></script>${extra}
+<script src="/assets/i18n-legal-rules.js?v=10"></script>
+<script src="/assets/i18n-join.js?v=3"></script>
+<script src="/assets/i18n-home-rules.js?v=5"></script>
+${legal ? '<script src="/assets/legal-en-fr.js?v=9"></script>\n<script src="/assets/legal-es-ru-he.js?v=9"></script>\n' : ''}<script src="/assets/app.js?v=11"></script>${extra}
 </body>
 </html>
 `;
