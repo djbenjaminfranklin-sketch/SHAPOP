@@ -1121,7 +1121,7 @@ export default function SellerProfilePage() {
           items.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#f0f0f0', padding: '40px 0', fontSize: 'calc(14px * var(--fs, 1))' }}>{t.noItems}</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '10px' }}>
               {items.map(item => (
                 <div
                   key={item.id}

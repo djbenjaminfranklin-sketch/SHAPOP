@@ -63,7 +63,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
   }
 
   return (
-    <Link to={`/stream/${stream.id}`} onClick={() => trackStreamView(stream.category, sellerName)} style={{ display: 'block', textDecoration: 'none' }}>
+    <Link to={`/stream/${stream.id}`} onClick={() => trackStreamView(stream.category, sellerName)} style={{ display: 'block', textDecoration: 'none', minWidth: 0 }}>
       {/* Seller info above card */}
       <div
         onClick={goToSellerProfile}
@@ -82,7 +82,8 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
             sellerName.charAt(0).toUpperCase()
           )}
         </div>
-        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#E5E5E5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {/* minWidth 0 : le nom se coupe (…) au lieu d'élargir la carte au-delà de sa colonne (pastille Particulier/Pro, 28/11) */}
+        <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#E5E5E5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flexShrink: 1 }}>
           {sellerName}
         </span>
         <SellerTypeBadge type={stream.seller_type} small />

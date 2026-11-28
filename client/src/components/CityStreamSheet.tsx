@@ -118,7 +118,7 @@ export default function CityStreamSheet({ city, data, onClose }: CityStreamSheet
         }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             gap: '12px 12px',
           }}>
             {data.streams.map(stream => (

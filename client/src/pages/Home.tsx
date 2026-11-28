@@ -1067,7 +1067,7 @@ export default function Home() {
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', columnGap: '12px', rowGap: '24px', padding: '8px 16px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: '12px', rowGap: '24px', padding: '8px 16px 0' }}>
           {displayStreams.map(stream => (
             <StreamCard key={stream.id} stream={stream} isFavorited={favoriteIds.has(stream.id)} onToggleFavorite={toggleFavorite} />
           ))}
