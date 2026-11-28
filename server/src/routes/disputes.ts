@@ -8,6 +8,7 @@ import { requireAuth, disputeLimiter } from '../middleware'
 import { calculateFees } from '../utils'
 import { counterfeitDeadline } from '../luxury'
 import type { AuthenticatedRequest } from '../types'
+import { openCounterfeitCase, sellerAnswersCounterfeit } from '../services/counterfeit'
 
 const router = Router()
 
@@ -107,7 +108,7 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       .maybeSingle()
 
     const score = buyerScore?.score ?? 10
-    // Contrefaçon d'un article de luxe : toujours examinée par l'équipe (pénalité + fermeture du compte)
+    // Contrefaçon d'un article de luxe : jamais de remboursement express, traitement dédié (services/counterfeit.ts)
     const autoRefund = !luxuryCounterfeit && order.amount < 30 && score > 7
 
     const disputeData = {
@@ -202,6 +203,9 @@ router.post('/api/disputes', disputeLimiter, requireAuth, async (req: Authentica
       }
       await supabase.from('seller_trust').update(updates).eq('seller_id', order.seller_id)
     }
+
+    // Contrefaçon de luxe : traitement automatique (annonce retirée, versement bloqué, vendeur prévenu avec délai)
+    if (luxuryCounterfeit) await openCounterfeitCase(dispute.id)
 
     // Auto-create dispute conversation
     await supabase.from('conversations').insert({
@@ -316,6 +320,29 @@ router.post('/api/disputes/:id/seller-photos', requireAuth, async (req: Authenti
     res.json(updated)
   } catch (err) {
     console.error('[disputes]', err)
+    res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+// Réponse du vendeur à un signalement de contrefaçon (28/11/2026) : reconnaître, ou contester avec ses preuves
+const CounterfeitAnswerBody = z.object({
+  accept: z.boolean(),
+  message: z.string().max(2000).default(''),
+  proof_urls: z.array(z.string().url()).max(5).default([]),
+})
+router.post('/api/disputes/:id/counterfeit-answer', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const parsed = CounterfeitAnswerBody.safeParse(req.body)
+    if (!parsed.success) { res.status(400).json({ error: 'invalid' }); return }
+    // Contester demande une explication ou au moins une preuve
+    if (!parsed.data.accept && parsed.data.message.trim().length < 10 && parsed.data.proof_urls.length === 0) {
+      res.status(400).json({ error: 'proof_required' }); return
+    }
+    const r = await sellerAnswersCounterfeit(String(req.params.id), req.user!.id, parsed.data)
+    const code = r === 'not_found' ? 404 : r === 'forbidden' ? 403 : r === 'closed' ? 409 : 200
+    res.status(code).json({ result: r })
+  } catch (err) {
+    console.error('[disputes] counterfeit-answer', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })

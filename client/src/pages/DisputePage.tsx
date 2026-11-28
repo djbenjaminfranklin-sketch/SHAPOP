@@ -8,6 +8,7 @@ import { formatMoney, currencyForCountry } from '../lib/fulfillment'
 import type { Order, Dispute } from '../types/database'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import CounterfeitAnswerPanel from '../components/CounterfeitAnswerPanel'
 
 interface OrderWithItem extends Order {
   item?: { title: string; image_urls: string[]; category: string }
@@ -972,6 +973,18 @@ export default function DisputePage() {
                 ))}
               </div>
             </div>
+          )}
+
+          {/* Contrefaçon de luxe : réponse du vendeur (reconnaître / contester) avant la date limite */}
+          {user && dispute.seller_id === user.id && (dispute as unknown as Record<string, unknown>).reason === 'counterfeit'
+            && dispute.status === 'under_review' && !(dispute as unknown as Record<string, unknown>).seller_response_at
+            && !!(dispute as unknown as Record<string, unknown>).counterfeit_reply_deadline && (
+            <CounterfeitAnswerPanel
+              disputeId={dispute.id}
+              deadline={String((dispute as unknown as Record<string, unknown>).counterfeit_reply_deadline)}
+              proofUrls={dispute.seller_photo_urls || []}
+              onDone={() => window.location.reload()}
+            />
           )}
 
           {/* Seller photo upload section (only for the seller, when no seller photos yet) */}

@@ -37,6 +37,7 @@ import analyticsRoutes from './routes/analytics'
 import promotionRoutes from './routes/promotions'
 import reviewRoutes from './routes/reviews'
 import offerRoutes from './routes/offers'
+import { processCounterfeitDeadlines } from './services/counterfeit'
 
 // Webhook handlers (raw body — must be registered before express.json)
 import { stripeWebhookHandler, livekitWebhookHandler, paypalWebhookHandler, rapydWebhookHandler, airwallexWebhookHandler, ship24WebhookHandler } from './routes/webhooks'
@@ -224,6 +225,14 @@ server.listen(PORT, () => {
       console.error('[Lives] Contrôle des lives abandonnés:', err)
     }
   }, 2 * 60 * 1000)
+
+  // Contrefaçons de luxe : rappel au vendeur 2 jours avant la fin du délai, puis décision si pas de réponse (chaque heure)
+  setInterval(async () => {
+    try {
+      const r = await processCounterfeitDeadlines()
+      if (r.reminded || r.confirmed) console.log(`[Counterfeit] ${r.reminded} rappel(s), ${r.confirmed} contrefaçon(s) retenue(s) sans réponse`)
+    } catch (err) { console.error('[Counterfeit] deadlines:', err) }
+  }, 60 * 60 * 1000)
 
   // Surveillance de capacité : alerte e-mail dès la moitié d'une limite (chaque minute)
   console.log('[Capacity] Capacity watch enabled (every 1min)')
