@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import ConfirmModal from '../components/ConfirmModal'
 import PrePermissionModal from '../components/PrePermissionModal'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { apiFetch } from '../lib/api'
@@ -1248,6 +1248,16 @@ export default function PrepareLivePage() {
   // (sinon l'article était perdu et le live démarrait sans article)
   const pendingFormRef = useRef({ formTitle, formPrice, handleAddItem })
   pendingFormRef.current = { formTitle, formPrice, handleAddItem }
+
+  // Arrivée depuis « Passer en direct sans préparer les articles » : on lance le direct tout de suite
+  const [prepSearch] = useSearchParams()
+  const autoGoLiveRef = useRef(false)
+  useEffect(() => {
+    if (prepSearch.get('golive') === '1' && streamId && !autoGoLiveRef.current) {
+      autoGoLiveRef.current = true
+      handleGoLiveClick()
+    }
+  }, [prepSearch, streamId, handleGoLiveClick])
 
   const handleGoLive = async () => {
     if (!streamId) return

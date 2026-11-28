@@ -109,6 +109,7 @@ const goLiveContent = {
     noLives: 'No lives yet',
     deleteConfirm: 'Delete this live and its items?',
     liveNow: 'Live now',
+    goLiveNow: 'Go live now (without preparing items)',
     scheduled: 'Scheduled',
     ended: 'Ended',
     edit: 'Edit',
@@ -144,6 +145,7 @@ const goLiveContent = {
     noLives: 'Aucun live pour le moment',
     deleteConfirm: 'Supprimer ce live et ses articles ?',
     liveNow: 'En direct',
+    goLiveNow: 'Passer en direct sans préparer les articles',
     scheduled: 'Programmé',
     ended: 'Terminé',
     edit: 'Modifier',
@@ -179,6 +181,7 @@ const goLiveContent = {
     noLives: 'Aún no tienes directos',
     deleteConfirm: '¿Eliminar este directo y sus artículos?',
     liveNow: 'En directo',
+    goLiveNow: 'Ir en directo sin preparar artículos',
     scheduled: 'Programado',
     ended: 'Terminado',
     edit: 'Editar',
@@ -214,6 +217,7 @@ const goLiveContent = {
     noLives: 'Эфиров пока нет',
     deleteConfirm: 'Удалить этот эфир и его товары?',
     liveNow: 'В эфире',
+    goLiveNow: 'Начать эфир без подготовки товаров',
     scheduled: 'Запланирован',
     ended: 'Завершён',
     edit: 'Изменить',
@@ -249,6 +253,7 @@ const goLiveContent = {
     noLives: 'עדיין אין שידורים',
     deleteConfirm: 'למחוק את השידור ואת הפריטים שלו?',
     liveNow: 'בשידור חי',
+    goLiveNow: 'לעלות לשידור בלי להכין פריטים',
     scheduled: 'מתוזמן',
     ended: 'הסתיים',
     edit: 'עריכה',
@@ -531,7 +536,10 @@ export default function GoLivePage() {
     setThumbnailPreview(URL.createObjectURL(file))
   }
 
-  const handleCreate = async () => {
+  // Passer en direct tout de suite, sans préparer les articles (28/11/2026, demande de Benjamin)
+  const goNowRef = useRef(false)
+  const handleCreate = async (goNow: boolean = goNowRef.current) => {
+    goNowRef.current = goNow
     if (!user || !canProceed) return
 
     setCreating(true)
@@ -593,7 +601,7 @@ export default function GoLivePage() {
       if (!stream?.id) throw new Error('Stream creation failed')
 
       setCreating(false)
-      navigate(`/prepare-live/${stream.id}`)
+      navigate(goNow ? `/prepare-live/${stream.id}?golive=1` : `/prepare-live/${stream.id}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : ct.createError)
       setCreating(false)
@@ -755,7 +763,7 @@ export default function GoLivePage() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(120px + max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px)))' }}>
       {showStatusPrompt && user && (
-        <SellerStatusPrompt userId={user.id} onCancel={() => setShowStatusPrompt(false)} onDone={() => { setShowStatusPrompt(false); handleCreate() }} />
+        <SellerStatusPrompt userId={user.id} onCancel={() => setShowStatusPrompt(false)} onDone={() => { setShowStatusPrompt(false); handleCreate(goNowRef.current) }} />
       )}
       {/* Header */}
       <div style={{
@@ -911,7 +919,7 @@ export default function GoLivePage() {
 
         {/* Buttons */}
         <button
-          onClick={handleCreate}
+          onClick={() => handleCreate(false)}
           disabled={!canProceed}
           style={{
             width: '100%', padding: '16px',
@@ -947,6 +955,21 @@ export default function GoLivePage() {
               {ct.next}
             </>
           )}
+        </button>
+
+        <button
+          onClick={() => handleCreate(true)}
+          disabled={!canProceed || creating}
+          style={{
+            width: '100%', padding: '16px', marginBottom: '12px',
+            background: 'transparent', borderRadius: '14px',
+            border: canProceed ? '2px solid #00E5FF' : '1px solid #222',
+            color: canProceed ? '#00E5FF' : '#888',
+            fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 700,
+            cursor: canProceed ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {ct.goLiveNow}
         </button>
 
         {error && (
