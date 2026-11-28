@@ -1,8 +1,11 @@
 import { getLang, type Lang, type Localized } from '../../lib/i18n'
+import SellerTypeBadge, { type SellerIdentity } from './SellerTypeBadge'
 
 interface SellerProfileHeaderProps {
   sellerId: string
   sellerName: string
+  sellerType?: string | null
+  sellerIdentity?: SellerIdentity
   sellerAvatar?: string | null
   sellerScore: number | null
   isFollowing: boolean
@@ -48,6 +51,8 @@ function CheckIcon() {
 
 export default function SellerProfileHeader({
   sellerName,
+  sellerType,
+  sellerIdentity,
   sellerAvatar,
   sellerScore,
   isFollowing,
@@ -116,6 +121,7 @@ export default function SellerProfileHeader({
           {sellerName}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <SellerTypeBadge type={sellerType} identity={sellerIdentity} small />
           {sellerScore != null && (
             <span style={{
               display: 'inline-flex',

@@ -91,11 +91,11 @@ router.get('/api/streams/:id', async (req: Request, res: Response) => {
 
     // Enrich with seller info + trust score
     const [{ data: sellerInfo }, { data: trust }] = await Promise.all([
-      supabase.from('sellers').select('id, store_name, return_policy, shipping_delay_days').eq('id', data.seller_id).single(),
+      supabase.from('sellers').select('id, store_name, return_policy, shipping_delay_days, seller_type, business_name, business_number, business_address').eq('id', data.seller_id).single(),
       supabase.from('seller_trust').select('seller_id, trust_level, total_completed_orders, positive_delivery_rate, total_disputes_against, disputes_lost').eq('seller_id', data.seller_id).single(),
     ])
     if (sellerInfo) {
-      ;(data as Record<string, unknown>).seller = { ...(data.seller as unknown as Record<string, unknown> || {}), store_name: sellerInfo.store_name, id: sellerInfo.id, return_policy: sellerInfo.return_policy, shipping_delay_days: sellerInfo.shipping_delay_days }
+      ;(data as Record<string, unknown>).seller = { ...(data.seller as unknown as Record<string, unknown> || {}), store_name: sellerInfo.store_name, id: sellerInfo.id, return_policy: sellerInfo.return_policy, shipping_delay_days: sellerInfo.shipping_delay_days, seller_type: sellerInfo.seller_type, business_name: sellerInfo.business_name, business_number: sellerInfo.business_number, business_address: sellerInfo.business_address }
     }
     ;(data as Record<string, unknown>).seller_score = trust ? computeSellerScore(trust as Record<string, unknown>) : 8.0
     ;(data as Record<string, unknown>).seller_trust_level = trust ? trust.trust_level : 'new'
@@ -173,6 +173,16 @@ router.post('/api/streams', createLimiter, requireAuth, async (req: Authenticate
       console.error('Seller check error:', sellerError)
       res.status(500).json({ error: 'Failed to verify seller record' })
       return
+    }
+
+    // Statut particulier / pro obligatoire avant un direct (28/11/2026 : pastille sur chaque direct, obligation légale).
+    // Seulement pour les versions de l'appli qui savent le demander (les anciennes ne bloquent pas leurs vendeurs).
+    if (req.body?.supports_seller_status === true) {
+      const { data: st } = await supabase.from('sellers').select('seller_type').eq('id', userId).maybeSingle()
+      if (!st?.seller_type) {
+        res.status(409).json({ error: 'seller_status_required' })
+        return
+      }
     }
 
     // Numéro WhatsApp obligatoire pour vendre (mise en relation après paiement)

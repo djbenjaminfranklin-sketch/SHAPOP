@@ -15,11 +15,11 @@ export function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-// Helper: calcule tous les frais sur un montant de vente (TVA incluse sur les frais)
+// Helper: calcule tous les frais sur un montant de vente (TVA sur les frais : VAT_RATE, 0 en franchise)
 export function calculateFees(amount: number) {
   const platformFeeHT = amount * PLATFORM_COMMISSION
   const processingFeeHT = amount * PROCESSING_FEE_RATE + PROCESSING_FEE_FIXED
-  // TVA appliquee sur les frais de service (comme Whatnot Europe)
+  // TVA sur les frais seulement si VAT_RATE > 0 (aujourd'hui 0 : franchise en base, art. 293 B du CGI)
   const platformFee = Math.round(platformFeeHT * (1 + VAT_RATE) * 100) / 100
   const processingFee = Math.round(processingFeeHT * (1 + VAT_RATE) * 100) / 100
   const totalFees = Math.round((platformFee + processingFee) * 100) / 100

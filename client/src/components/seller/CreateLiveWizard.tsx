@@ -10,11 +10,13 @@ import { categories } from '../CategoryIcons'
 import { liveFormats, optionLabel } from './SubCategoryData'
 import CartoonAvatar from '../CartoonAvatar'
 import { rtlFlip, rtlTextAlign, rtlPos } from '../../lib/rtl'
+import SellerStatusPrompt from './SellerStatusPrompt'
 
 const TOTAL_STEPS = 5
 
 export default function CreateLiveWizard() {
   const { user, profile } = useAuth()
+  const [showStatusPrompt, setShowStatusPrompt] = useState(false)
   const navigate = useNavigate()
   const lang = getLang()
 
@@ -548,6 +550,7 @@ export default function CreateLiveWizard() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          supports_seller_status: true,
           title,
           category: selectedCategory,
           scheduled_at: scheduledAt,
@@ -558,6 +561,12 @@ export default function CreateLiveWizard() {
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: 'Erreur creation' }))
+        if (err.error === 'seller_status_required') {
+          // Particulier ou pro jamais déclaré : on le demande, puis on relance la création
+          setShowStatusPrompt(true)
+          setLoading(false)
+          return
+        }
         if (err.error === 'whatsapp_required') {
           // Numéro WhatsApp obligatoire pour vendre : réglages « Remise des commandes »
           alert(ft().whatsapp_required_to_sell)
@@ -1670,6 +1679,9 @@ export default function CreateLiveWizard() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: '120px' }}>
+      {showStatusPrompt && user && (
+        <SellerStatusPrompt userId={user.id} onCancel={() => setShowStatusPrompt(false)} onDone={() => { setShowStatusPrompt(false); handleCreate() }} />
+      )}
       <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         {/* Header */}
         <div style={{

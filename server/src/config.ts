@@ -19,7 +19,10 @@ if (!supabaseUrl || !supabaseServiceKey) {
 export const PLATFORM_COMMISSION = Number(process.env.PLATFORM_COMMISSION) || 0.08  // 8% HT
 export const PROCESSING_FEE_RATE = 0.029   // 2.9% HT (Stripe)
 export const PROCESSING_FEE_FIXED = 0.30   // 0.30EUR HT fixe (Stripe)
-export const VAT_RATE = 0.20               // 20% TVA (France)
+// TVA sur les frais : 0 (28/11/2026). L'exploitant est auto-entrepreneur en franchise en base :
+// « TVA non applicable, art. 293 B du CGI ». Si le seuil de franchise est dépassé un jour, régler VAT_RATE sur Render.
+export const VAT_RATE = Number(process.env.VAT_RATE ?? 0)
+export const VAT_MENTION = 'TVA non applicable, art. 293 B du CGI'
 export const AI_MODEL = process.env.AI_MODEL || 'claude-sonnet-4-5-20250929'
 export const APP_BASE_URL = process.env.APP_BASE_URL || 'https://shapop.app'
 

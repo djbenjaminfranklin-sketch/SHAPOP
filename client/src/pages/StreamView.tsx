@@ -954,6 +954,8 @@ export default function StreamView() {
   const [sellerScore, setSellerScore] = useState<number | null>(null)
   const [, setItemCount] = useState(0)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
+  // Particulier / pro + identité du pro (pastille sur le direct, 28/11/2026)
+  const [sellerStatus, setSellerStatus] = useState<{ type: string | null; business_name?: string | null; business_number?: string | null; business_address?: string | null } | null>(null)
   const [viewerMuted, setViewerMuted] = useState(false) // Benjamin 28/11 : le direct démarre TOUJOURS avec le son, jamais en muet
   const [isFollowing, setIsFollowing] = useState(false)
 
@@ -1336,12 +1338,13 @@ export default function StreamView() {
     const fetchSellerData = async () => {
       const { data } = await supabase
         .from('sellers')
-        .select('return_policy')
+        .select('return_policy, seller_type, business_name, business_number, business_address')
         .eq('id', stream.seller_id)
         .single()
       if (data?.return_policy) {
         setSellerReturnPolicy(data.return_policy)
       }
+      if (data) setSellerStatus({ type: data.seller_type, business_name: data.business_name, business_number: data.business_number, business_address: data.business_address })
     }
     fetchSellerProfile()
     fetchSellerData()
@@ -1747,7 +1750,7 @@ export default function StreamView() {
     try {
       const { data } = await supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, moderator_ids')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, moderator_ids, seller_type')
         .eq('id', id)
         .single()
       setStream(data as Stream | null)
@@ -3590,6 +3593,8 @@ export default function StreamView() {
                   <SellerProfileHeader
                     sellerId={stream.seller_id}
                     sellerName={sellerName}
+                    sellerType={sellerStatus?.type ?? stream.seller_type}
+                    sellerIdentity={sellerStatus ?? undefined}
                     sellerAvatar={sellerAvatar}
                     sellerScore={sellerScore}
                     isFollowing={isFollowing}

@@ -5,6 +5,7 @@ import { findCommunityById } from '../../lib/data/communitiesData'
 import { rtlPos, rtlPadding } from '../../lib/rtl'
 import { trackStreamView } from '../../lib/behaviorTracker'
 import { PAID_EXTRAS_ENABLED } from '../../lib/paidExtras'
+import SellerTypeBadge from './SellerTypeBadge'
 
 // Anciens identifiants de communautés (avant les identifiants par pays) → nom affiché
 const LEGACY_COMMUNITY_IDS: Record<string, string> = {
@@ -84,6 +85,7 @@ export default function StreamCard({ stream, isFavorited, onToggleFavorite }: St
         <span style={{ fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 600, color: '#E5E5E5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {sellerName}
         </span>
+        <SellerTypeBadge type={stream.seller_type} small />
         {stream.seller_score != null && (
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: '3px',

@@ -50,6 +50,9 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([])
   const [sellerType, setSellerType] = useState('')
+  const [businessName, setBusinessName] = useState('')
+  const [businessNumber, setBusinessNumber] = useState('')
+  const [businessAddress, setBusinessAddress] = useState('')
   const [selectedLocations, setSelectedLocations] = useState<string[]>([])
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [etsyUrl, setEtsyUrl] = useState('')
@@ -89,8 +92,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       understood: 'Got it!',
       accept: 'I accept the rules',
       feesTitle: 'Fees',
-      fee1: 'Platform commission: 8% + VAT where applicable (9.60% incl. VAT)',
-      fee2: 'Stripe processing: 2.9% + {fixed} + VAT (3.48% + {fixedVat} incl. VAT)',
+      fee1: 'Platform commission: 8% (no VAT: French VAT not applicable, art. 293 B CGI)',
+      fee2: 'Payment processing: 2.9% + {fixed}',
       fee3: 'Example: on a {sale} sale, total fees are {fees} and you receive {net}',
       fee4: 'Payment: in person, as soon as you enter the buyer\'s code; by post, 3 days after your 2 photos or as soon as the buyer confirms receipt',
       acceptFees: 'I accept the fees',
@@ -101,6 +104,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       type: 'Are you...',
       individual: 'Individual',
       individualDesc: 'Selling personal items or a small hobby',
+      businessName: 'Business name',
+      businessNumber: 'Registration number (e.g. company or tax ID)',
+      businessAddress: 'Business address',
+      businessHint: 'Shown to buyers before they pay (required by law). As a business, you must accept returns for at least 14 days.',
+      proReturnHint: 'Professional sellers must accept returns for at least 14 days (legal withdrawal right).',
+      privateSellerHint: 'Private seller: buyers do not have the legal 14-day withdrawal right. If you actually sell as a business, you must say so — false declarations are punishable.',
       business: 'Business',
       businessDesc: 'Registered business or professional seller',
       whereSell: 'Where do you sell today?',
@@ -141,8 +150,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       understood: 'J\'ai compris !',
       accept: 'J\'accepte les règles',
       feesTitle: 'Grille tarifaire',
-      fee1: 'Commission plateforme : 8 % HT + TVA le cas échéant (9,60 % TTC)',
-      fee2: 'Frais Stripe : 2,9 % + {fixed} HT + TVA (3,48 % + {fixedVat} TTC)',
+      fee1: 'Commission plateforme : 8 % (TVA non applicable, art. 293 B du CGI)',
+      fee2: 'Frais de paiement : 2,9 % + {fixed}',
       fee3: 'Exemple : pour une vente de {sale}, frais totaux de {fees}, tu reçois {net}',
       fee4: 'Paiement : en main propre, dès que tu saisis le code de l\'acheteur ; par la poste, 3 jours après tes 2 photos ou dès que l\'acheteur confirme la réception',
       acceptFees: 'J\'accepte la grille tarifaire',
@@ -153,6 +162,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       type: 'Tu es...',
       individual: 'Particulier',
       individualDesc: 'Vente d\'objets personnels ou petit hobby',
+      businessName: 'Nom de l\'entreprise',
+      businessNumber: 'Numéro d\'immatriculation (ex. SIRET, n° fiscal)',
+      businessAddress: 'Adresse de l\'entreprise',
+      businessHint: 'Affiché aux acheteurs avant le paiement (obligatoire). En pro, tu dois accepter les retours pendant au moins 14 jours.',
+      proReturnHint: 'Un vendeur professionnel doit accepter les retours pendant au moins 14 jours (droit de rétractation légal).',
+      privateSellerHint: 'Vendeur particulier : les acheteurs n\'ont pas le droit légal de rétractation de 14 jours. Si tu vends en réalité à titre professionnel, tu dois le déclarer : une fausse déclaration est sanctionnée.',
       business: 'Entreprise',
       businessDesc: 'Commerce enregistré ou vendeur professionnel',
       whereSell: 'Où vends-tu actuellement ?',
@@ -193,8 +208,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       understood: '¡Entendido!',
       accept: 'Acepto las normas',
       feesTitle: 'Tarifas',
-      fee1: 'Comisión de la plataforma: 8 % + IVA si aplica (9,60 % con IVA)',
-      fee2: 'Gastos de Stripe: 2,9 % + {fixed} + IVA (3,48 % + {fixedVat} con IVA)',
+      fee1: 'Comisión de la plataforma: 8 % (sin IVA: IVA francés no aplicable, art. 293 B CGI)',
+      fee2: 'Gastos de pago: 2,9 % + {fixed}',
       fee3: 'Ejemplo: en una venta de {sale}, las comisiones son {fees} y recibes {net}',
       fee4: 'Cobro: en mano, en cuanto introduces el código del comprador; por correo, 3 días después de tus 2 fotos o en cuanto el comprador confirma la recepción',
       acceptFees: 'Acepto las tarifas',
@@ -205,6 +220,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       type: '¿Eres...?',
       individual: 'Particular',
       individualDesc: 'Vendes cosas personales o es un pequeño hobby',
+      businessName: 'Nombre de la empresa',
+      businessNumber: 'Número de registro (p. ej. NIF)',
+      businessAddress: 'Dirección de la empresa',
+      businessHint: 'Se muestra a los compradores antes de pagar (obligatorio). Como profesional, debes aceptar devoluciones durante al menos 14 días.',
+      proReturnHint: 'Un vendedor profesional debe aceptar devoluciones durante al menos 14 días (derecho legal de desistimiento).',
+      privateSellerHint: 'Vendedor particular: los compradores no tienen el derecho legal de desistimiento de 14 días. Si en realidad vendes como profesional, debes declararlo: una declaración falsa está sancionada.',
       business: 'Empresa',
       businessDesc: 'Negocio registrado o vendedor profesional',
       whereSell: '¿Dónde vendes ahora?',
@@ -245,8 +266,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       understood: 'Понятно!',
       accept: 'Принимаю правила',
       feesTitle: 'Тарифы',
-      fee1: 'Комиссия платформы: 8 % + НДС, если применимо (9,60 % с НДС)',
-      fee2: 'Комиссия Stripe: 2,9 % + {fixed} + НДС (3,48 % + {fixedVat} с НДС)',
+      fee1: 'Комиссия платформы: 8 % (без НДС: французский НДС не применяется, ст. 293 B CGI)',
+      fee2: 'Комиссия за платёж: 2,9 % + {fixed}',
       fee3: 'Пример: при продаже на {sale} комиссии составят {fees}, ты получишь {net}',
       fee4: 'Оплата: лично — как только ты вводишь код покупателя; почтой — через 3 дня после твоих 2 фото или сразу, как покупатель подтвердит получение',
       acceptFees: 'Принимаю тарифы',
@@ -257,6 +278,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       type: 'Ты...',
       individual: 'Частное лицо',
       individualDesc: 'Продаёшь личные вещи или занимаешься хобби',
+      businessName: 'Название компании',
+      businessNumber: 'Регистрационный номер (например, налоговый)',
+      businessAddress: 'Адрес компании',
+      businessHint: 'Показывается покупателям до оплаты (обязательно по закону). Профессионал обязан принимать возврат не менее 14 дней.',
+      proReturnHint: 'Профессиональный продавец обязан принимать возврат не менее 14 дней (законное право на отказ).',
+      privateSellerHint: 'Частный продавец: у покупателей нет законного права на отказ в течение 14 дней. Если ты на самом деле продаёшь как бизнес, ты обязан это указать — ложное заявление наказуемо.',
       business: 'Компания',
       businessDesc: 'Зарегистрированный бизнес или профессиональный продавец',
       whereSell: 'Где ты продаёшь сейчас?',
@@ -297,8 +324,8 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       understood: 'הבנתי!',
       accept: 'אני מסכים/ה לכללים',
       feesTitle: 'עמלות',
-      fee1: 'עמלת פלטפורמה: 8% + מע״מ אם חל (9.60% כולל מע״מ)',
-      fee2: 'עמלת Stripe: ‏2.9% + {fixed} + מע״מ (3.48% + {fixedVat} כולל מע״מ)',
+      fee1: 'עמלת פלטפורמה: 8% (ללא מע״מ: מע״מ צרפתי לא חל, סעיף 293 B)',
+      fee2: 'עמלת תשלום: ‏2.9% + {fixed}',
       fee3: 'דוגמה: במכירה של {sale}, סך העמלות {fees} ואת/ה מקבל/ת {net}',
       fee4: 'תשלום: במסירה ביד, ברגע שמזינים את הקוד של הקונה; בדואר, 3 ימים אחרי 2 התמונות או ברגע שהקונה מאשר/ת קבלה',
       acceptFees: 'אני מסכים/ה לעמלות',
@@ -309,6 +336,12 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       type: 'את/ה...',
       individual: 'אדם פרטי',
       individualDesc: 'מכירת חפצים אישיים או תחביב קטן',
+      businessName: 'שם העסק',
+      businessNumber: 'מספר עוסק / ח.פ.',
+      businessAddress: 'כתובת העסק',
+      businessHint: 'מוצג לקונים לפני התשלום (חובה לפי חוק). כעסק, חובה לקבל החזרות לפחות 14 יום.',
+      proReturnHint: 'מוכר עסקי חייב לקבל החזרות לפחות 14 יום (זכות ביטול לפי חוק).',
+      privateSellerHint: 'מוכר פרטי: לקונים אין זכות ביטול חוקית של 14 יום. אם בפועל את/ה מוכר/ת כעסק, חובה להצהיר על כך — הצהרה כוזבת גוררת סנקציות.',
       business: 'עסק',
       businessDesc: 'עסק רשום או מוכר/ת מקצועי/ת',
       whereSell: 'איפה את/ה מוכר/ת היום?',
@@ -345,7 +378,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
   const money = (n: number) => formatItemPrice(n, profile?.country)
   const feeLines = [
     t.fee1,
-    t.fee2.replace('{fixed}', money(0.30)).replace('{fixedVat}', money(0.36)),
+    t.fee2.replace('{fixed}', money(0.30)),
     t.fee3.replace('{sale}', money(50)).replace('{fees}', money(6.90)).replace('{net}', money(43.10)),
     t.fee4,
   ]
@@ -358,7 +391,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
       case 0: return rulesAccepted && feesAccepted
       case 1: return selectedCategory !== ''
       case 2: return selectedSubCategories.length > 0
-      case 3: return sellerType !== ''
+      case 3: return sellerType === 'individual' || (sellerType === 'business' && !!businessName.trim() && !!businessNumber.trim() && !!businessAddress.trim())
       case 4: return selectedLocations.length > 0
       case 5: return selectedPlatforms.length > 0 || selectedLocations.includes('nowhere')
       case 6: return revenue !== ''
@@ -401,7 +434,10 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
         revenue_range: revenue,
         team_size: teamSize,
         live_hours: liveHours,
-        return_policy: returnPolicy,
+        return_policy: sellerType === 'business' && !['return_14', 'return_30'].includes(returnPolicy) ? 'return_14' : returnPolicy,
+        business_name: sellerType === 'business' ? businessName.trim() : null,
+        business_number: sellerType === 'business' ? businessNumber.trim() : null,
+        business_address: sellerType === 'business' ? businessAddress.trim() : null,
         bank_choice: bankChoice,
         fees_accepted_at: new Date().toISOString(),
         onboarding_completed_at: new Date().toISOString(),
@@ -793,7 +829,7 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
               return (
                 <button
                   key={opt.id}
-                  onClick={() => setSellerType(opt.id)}
+                  onClick={() => { setSellerType(opt.id); if (opt.id === 'business' && !['return_14', 'return_30'].includes(returnPolicy)) setReturnPolicy('return_14') }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '16px', width: '100%',
                     padding: '20px 18px', marginBottom: '14px', ...rtlTextAlign('left'),
@@ -820,6 +856,20 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
                 </button>
               )
             })}
+            {sellerType === 'business' && (
+              <div style={{ marginTop: '6px' }}>
+                <input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder={t.businessName} maxLength={200}
+                  style={{ width: '100%', padding: '14px 16px', marginBottom: '10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box' }} />
+                <input value={businessNumber} onChange={e => setBusinessNumber(e.target.value)} placeholder={t.businessNumber} maxLength={200}
+                  style={{ width: '100%', padding: '14px 16px', marginBottom: '10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box' }} />
+                <input value={businessAddress} onChange={e => setBusinessAddress(e.target.value)} placeholder={t.businessAddress} maxLength={200}
+                  style={{ width: '100%', padding: '14px 16px', marginBottom: '10px', borderRadius: '14px', border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.06)', color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none', boxSizing: 'border-box' }} />
+                <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#ccc', lineHeight: 1.4, margin: 0 }}>{t.businessHint}</p>
+              </div>
+            )}
+            {sellerType === 'individual' && (
+              <p style={{ fontSize: 'calc(12px * var(--fs, 1))', color: '#ccc', lineHeight: 1.4, margin: '6px 0 0' }}>{t.privateSellerHint}</p>
+            )}
           </div>
         )
 
@@ -1006,14 +1056,14 @@ export default function OnboardingWizard({ onComplete, onClose }: Props) {
           <div style={{ padding: '0 24px' }}>
             <div style={heroCircle(9)}>{stepHeroes[9].emoji}</div>
             <h2 style={sectionTitle}>{t.returnPolicyTitle}</h2>
-            <p style={sectionDesc}>{t.returnPolicyDesc}</p>
+            <p style={sectionDesc}>{sellerType === 'business' ? t.proReturnHint : t.returnPolicyDesc}</p>
             {[
               { id: 'no_return', label: t.noReturn },
               { id: 'exchange_only', label: t.exchangeOnly },
               { id: 'return_7', label: t.return7 },
               { id: 'return_14', label: t.return14 },
               { id: 'return_30', label: t.return30 },
-            ].map(opt => {
+            ].filter(opt => sellerType !== 'business' || opt.id === 'return_14' || opt.id === 'return_30').map(opt => {
               const selected = returnPolicy === opt.id
               return (
                 <button

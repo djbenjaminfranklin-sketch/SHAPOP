@@ -341,7 +341,7 @@ export default function Home() {
     try {
       let query = supabase
         .from('streams')
-        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, is_boosted, seller:profiles!seller_id(display_name, avatar_url)')
+        .select('id, seller_id, title, description, category, tags, status, thumbnail_url, viewer_count, peak_viewers, engagement_score, avg_watch_time_seconds, total_reactions, scheduled_at, started_at, ended_at, city, community_id, mux_playback_id, created_at, livekit_room_name, recording_url, is_boosted, seller_type, seller:profiles!seller_id(display_name, avatar_url)')
         .in('status', ['live', 'scheduled'])
       // Directs boostés en tête seulement si les extras payants sont actifs
       if (PAID_EXTRAS_ENABLED) query = query.order('is_boosted', { ascending: false, nullsFirst: false })

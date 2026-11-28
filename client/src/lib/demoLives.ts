@@ -25,7 +25,7 @@ export function demoLives<T>(): T[] {
     started_at: new Date(now - (i + 1) * 300_000).toISOString(),
     ended_at: null, city: 'Tel Aviv', community_id: null, mux_playback_id: null, // i18n-ignore (faux directs d essai, jamais en production)
     created_at: new Date(now - (i + 1) * 300_000).toISOString(),
-    livekit_room_name: null, recording_url: null, is_boosted: false,
+    livekit_room_name: null, recording_url: null, is_boosted: false, seller_type: i % 3 === 0 ? 'business' : 'individual',
     seller: { display_name: `Vendeur démo ${i + 1}`, avatar_url: `https://picsum.photos/seed/avatar${i}/80/80` }, // i18n-ignore (faux directs d essai, jamais en production)
   })) as unknown as T[]
 }

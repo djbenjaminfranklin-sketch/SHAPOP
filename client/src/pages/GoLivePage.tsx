@@ -9,6 +9,7 @@ import { ft } from '../lib/fulfillmentText'
 import { categories } from '../components/CategoryIcons'
 import { rtlFlip } from '../lib/rtl'
 import { usePageTitle } from '../hooks/usePageTitle'
+import SellerStatusPrompt from '../components/seller/SellerStatusPrompt'
 
 // Compress image to max 800px and JPEG quality 0.7 (~100-200KB)
 function compressImage(file: File, maxSize = 800, quality = 0.7): Promise<Blob> {
@@ -291,6 +292,7 @@ export default function GoLivePage() {
   const [searchParams] = useSearchParams()
   const manageMode = searchParams.get('manage') === 'true'
   const { user, profile } = useAuth()
+  const [showStatusPrompt, setShowStatusPrompt] = useState(false)
   const lang = getLang()
   const ct = tr(goLiveContent)
   usePageTitle(ct.title)
@@ -561,6 +563,7 @@ export default function GoLivePage() {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
+          supports_seller_status: true,
           title: liveTitle.trim(),
           category: selectedCategory,
           city: profile?.city || null,
@@ -570,6 +573,12 @@ export default function GoLivePage() {
 
       if (!resp.ok) {
         const err = await resp.json().catch(() => ({ error: ct.createError }))
+        if (err.error === 'seller_status_required') {
+          // Particulier ou pro jamais déclaré : on le demande, puis on relance la création
+          setShowStatusPrompt(true)
+          setCreating(false)
+          return
+        }
         if (err.error === 'whatsapp_required') {
           // Numéro WhatsApp obligatoire pour vendre : réglages « Remise des commandes »
           alert(ft().whatsapp_required_to_sell)
@@ -745,6 +754,9 @@ export default function GoLivePage() {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#000', paddingBottom: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
+      {showStatusPrompt && user && (
+        <SellerStatusPrompt userId={user.id} onCancel={() => setShowStatusPrompt(false)} onDone={() => { setShowStatusPrompt(false); handleCreate() }} />
+      )}
       {/* Header */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 10,

@@ -93,6 +93,8 @@ export interface Stream {
   livekit_room_name?: string | null
   recording_url?: string | null
   created_at: string
+  /** Particulier ('individual') ou pro ('business'), recopié du vendeur à la création du direct (28/11/2026) */
+  seller_type?: string | null
   seller?: Seller & { profiles?: Profile }
   matching_score?: number
 }
