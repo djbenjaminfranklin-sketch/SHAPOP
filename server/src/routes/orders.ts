@@ -9,13 +9,14 @@ import { localized, money } from '../i18n'
 import { shortOrderRef } from '../fulfillment'
 import { authorizeOrderPayment, releaseAuthorization, releaseAirwallexAuthorization } from '../services/cardAuthorization'
 import type { AuthenticatedRequest } from '../types'
+import { crossBorderGuard } from '../services/crossBorder'
 
 const router = Router()
 
 // =============================================
 // POST /api/orders — create an order for a won auction item (auth required)
 // =============================================
-router.post('/api/orders', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/orders', requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
 

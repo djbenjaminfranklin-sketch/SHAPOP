@@ -5,13 +5,14 @@ import { requireAuth, createLimiter } from '../middleware'
 import { notifyUserT, paramStr } from '../utils'
 import { localized, money, getUserCurrency, type NotifKey } from '../i18n'
 import type { AuthenticatedRequest } from '../types'
+import { crossBorderGuard } from '../services/crossBorder'
 
 const router = Router()
 
 // =============================================
 // POST /api/items/:id/offer — buyer makes an offer
 // =============================================
-router.post('/api/items/:id/offer', createLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/items/:id/offer', createLimiter, requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const userId = req.user!.id
     const itemId = paramStr(req.params.id)

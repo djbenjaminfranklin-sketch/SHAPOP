@@ -28,6 +28,8 @@ import { usePageTitle } from '../hooks/usePageTitle'
 import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 import { useLiveScreen } from '../hooks/useLiveScreen'
 import ReportSheet from '../components/ReportSheet'
+import { isCrossBorderBlocked } from '../lib/crossBorder'
+import CrossBorderNotice from '../components/stream/CrossBorderNotice'
 
 // Cadeau en question-réponse : 3 essais par personne (même règle que le serveur, services/giveawayQuiz.ts)
 const GIFT_MAX_ATTEMPTS = 3
@@ -4186,8 +4188,12 @@ export default function StreamView() {
       </div>
       )}
 
+      {/* Acheteur de l'UE + vendeur israélien pro : regarder oui, acheter non (règle du 28/11/2026) */}
+      {activeAuction && !isSeller && isLive && !isMultiView && isCrossBorderBlocked(profile?.country, sellerCountry, sellerStatus?.type ?? stream?.seller_type) && (
+        <CrossBorderNotice />
+      )}
       {/* ActiveItemBar — top-level (single-view only, multi-view has in-cell controls) */}
-      {activeAuction && !isSeller && isLive && !isMultiView && (
+      {activeAuction && !isSeller && isLive && !isMultiView && !isCrossBorderBlocked(profile?.country, sellerCountry, sellerStatus?.type ?? stream?.seller_type) && (
         <div id="active-item-bar">
           <ActiveItemBar
             item={activeAuction}

@@ -13,6 +13,7 @@ import { stripe } from '../config'
 import { authorizeOrderPayment } from '../services/cardAuthorization'
 import { userHasSavedCard } from '../viewerPreview'
 import type { AuthenticatedRequest } from '../types'
+import { crossBorderGuard } from '../services/crossBorder'
 
 const router = Router()
 
@@ -406,7 +407,7 @@ router.post('/api/items/:id/end-auction', requireAuth, async (req: Authenticated
 })
 
 // Buy Now — instant purchase at buy_now_price (or current_price for direct sales)
-router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/items/:id/buy-now', requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const buyerId = req.user!.id
     const { data: item } = await supabase
@@ -488,7 +489,7 @@ router.post('/api/items/:id/buy-now', requireAuth, async (req: AuthenticatedRequ
  * Prix minimum du vendeur non atteint : le meilleur enchérisseur peut, pendant RESERVE_OFFER_SECONDS,
  * acheter l'article AU prix minimum. Même suite qu'un achat immédiat (commande, notifications, paiement).
  */
-router.post('/api/items/:id/buy-at-reserve', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/items/:id/buy-at-reserve', requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const buyerId = req.user!.id
     const { data: item } = await supabase.from('items').select('*').eq('id', req.params.id).single()
@@ -965,7 +966,7 @@ router.post('/api/items/:id/activate', requireAuth, async (req: AuthenticatedReq
 })
 
 // Place a bid on an item (bypasses RLS)
-router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/items/:id/bid', bidLimiter, requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const itemId = paramStr(req.params.id)
     const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
@@ -1065,7 +1066,7 @@ router.post('/api/items/:id/bid', bidLimiter, requireAuth, async (req: Authentic
 // =============================================
 // MAX-BID — Set a maximum bid (proxy bidding)
 // =============================================
-router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/items/:id/max-bid', bidLimiter, requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const itemId = paramStr(req.params.id)
     const maxAmount = Math.round(parseFloat(req.body.max_amount) * 100) / 100
@@ -1168,7 +1169,7 @@ router.get('/api/items/:id/max-bid', requireAuth, async (req: AuthenticatedReque
 // =============================================
 // PRE-BID — Bid on items before they go live
 // =============================================
-router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/api/items/:id/pre-bid', bidLimiter, requireAuth, crossBorderGuard, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const itemId = paramStr(req.params.id)
     const amount = Math.round(parseFloat(req.body.amount) * 100) / 100
