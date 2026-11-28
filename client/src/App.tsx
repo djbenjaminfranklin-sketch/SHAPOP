@@ -16,6 +16,7 @@ import SplashScreen from './components/SplashScreen'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getLang, getDir, t, tr, useLang, applyDocumentLang, type Localized } from './lib/i18n'
 import { DIRECT_SALES_ENABLED } from './lib/directSales'
+import { installTapFeedback } from './lib/tapFeedback'
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'))
@@ -296,48 +297,8 @@ export default function App() {
 
   useAppSettings()
 
-  useEffect(() => {
-    // Use touchstart (fires ~40ms before pointerdown on iOS) for instant feedback
-    const handler = (e: TouchEvent) => {
-      const target = e.target as HTMLElement
-      const tappable = target.closest('button, a, [role="button"]')
-      if (tappable) {
-        hapticTap()
-        return
-      }
-      // Also trigger haptics for divs with onClick handlers (common pattern)
-      const clickable = target.closest('[data-tap], div[style*="cursor"]')
-      if (clickable || target.onclick || target.closest('[onclick]')) {
-        hapticTap()
-        // Add visual feedback class for non-button tappable elements
-        const el = (clickable || target) as HTMLElement
-        el.classList.add('tap-active')
-        const cleanup = () => {
-          el.classList.remove('tap-active')
-          el.removeEventListener('touchend', cleanup)
-          el.removeEventListener('touchcancel', cleanup)
-        }
-        el.addEventListener('touchend', cleanup, { passive: true })
-        el.addEventListener('touchcancel', cleanup, { passive: true })
-        // Safety timeout
-        setTimeout(cleanup, 300)
-      }
-    }
-    document.addEventListener('touchstart', handler, { passive: true })
-    // Fallback for non-touch (dev/desktop)
-    const pointerHandler = (e: Event) => {
-      if (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent) return // Already handled by touchstart
-      const target = e.target as HTMLElement
-      if (target.closest('button, a, [role="button"]')) {
-        hapticTap()
-      }
-    }
-    document.addEventListener('pointerdown', pointerHandler, { passive: true })
-    return () => {
-      document.removeEventListener('touchstart', handler)
-      document.removeEventListener('pointerdown', pointerHandler)
-    }
-  }, [])
+  // Vibration + effet d'appui : seulement pour un vrai appui, jamais au début d'un défilement (lib/tapFeedback.ts)
+  useEffect(() => installTapFeedback(document, hapticTap), [])
 
   if (showSplash) {
     return <SplashScreen onFinish={() => { sessionStorage.setItem('shapop_splash_seen', '1'); setShowSplash(false) }} />

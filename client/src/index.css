@@ -57,8 +57,8 @@ input, textarea {
   button:hover, a:hover, [role="button"]:hover {
     opacity: inherit;
   }
-  /* Instant active state feedback — buttons, links, and any JS-tapped element */
-  button:active, a:active, [role="button"]:active,
+  /* Effet « enfoncé » : posé par lib/tapFeedback.ts après 90 ms sans mouvement, retiré dès qu'on défile.
+     Plus de :active ici : il rétrécissait la carte sous le doigt au début de chaque défilement. */
   .tap-active {
     opacity: 0.7 !important;
     transform: scale(0.97) !important;
