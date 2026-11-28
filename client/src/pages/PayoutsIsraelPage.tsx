@@ -146,7 +146,7 @@ export default function PayoutsIsraelPage() {
           </>
         ) : (
           <>
-            <Field label={ct.paypalEmail} value={form.paypal_email} onChange={v => setForm({ ...form, paypal_email: v })} autoComplete="email" placeholder="email@paypal.com" dir="ltr" />
+            <Field label={ct.paypalEmail} value={form.paypal_email} onChange={v => setForm({ ...form, paypal_email: v })} autoComplete="email" placeholder="email@paypal.com" dir="ltr" /> {/* i18n-ignore (exemple d adresse, identique dans toutes les langues) */}
             <p style={{ margin: '-4px 0 8px', fontSize: 'calc(12px * var(--fs, 1))', color: '#f0f0f0' }}>{ct.noPaypal}</p>
             <button onClick={savePaypal} disabled={busy} style={btn(!busy)}>{busy ? ct.saving : ct.paypalSave}</button>
           </>

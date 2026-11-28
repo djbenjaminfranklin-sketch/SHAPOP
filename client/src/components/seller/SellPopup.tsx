@@ -5,6 +5,7 @@ import { tr, type Localized } from '../../lib/i18n'
 import { rtlTextAlign, rtlFlip } from '../../lib/rtl'
 import { supabase } from '../../lib/supabase'
 import { apiFetch } from '../../lib/api'
+import { DIRECT_SALES_ENABLED } from '../../lib/directSales'
 
 interface SellPopupProps {
   isOpen: boolean
@@ -222,7 +223,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
   }, [isOpen, isSeller])
 
   const actions = [
-    {
+    ...(DIRECT_SALES_ENABLED ? [{
       label: c.directSale,
       description: c.iaDescription,
       gradient: 'linear-gradient(135deg, #00E5FF, #0091EA)',
@@ -234,7 +235,7 @@ export default function SellPopup({ isOpen, onClose }: SellPopupProps) {
           <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="#001014" stroke="#001014" strokeWidth="1"/>
         </svg>
       ),
-    },
+    }] : []),
     {
       label: c.scheduleLive,
       description: c.scheduleDesc,

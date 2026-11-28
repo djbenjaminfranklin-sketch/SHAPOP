@@ -22,6 +22,7 @@ import CitySearchField from '../components/CitySearchField'
 import { useCitySuggestions } from '../hooks/useCitySuggestions'
 import { buildCitySuggestions, sameCity, type CityOption } from '../lib/cities'
 import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
+import { DIRECT_SALES_ENABLED } from '../lib/directSales'
 
 type HomeText = {
   sortedByRelevance: string
@@ -912,8 +913,8 @@ export default function Home() {
         )
       })()}
 
-      {/* Direct sales banner */}
-      <Link to="/direct-sales" style={{ textDecoration: 'none' }}>
+      {/* Direct sales banner (coupé tant que DIRECT_SALES_ENABLED est faux) */}
+      {DIRECT_SALES_ENABLED && <Link to="/direct-sales" style={{ textDecoration: 'none' }}>
         <div style={{
           margin: '0 16px 12px 16px',
           padding: '12px 16px',
@@ -942,7 +943,7 @@ export default function Home() {
             <path d="M9 18l6-6-6-6"/>
           </svg>
         </div>
-      </Link>
+      </Link>}
 
       {/* "Pour toi" personalized banner */}
       {selectedCategory === 'for_you' && hasPreferences() && loadPreferences()?.favorite_categories && loadPreferences()!.favorite_categories.length > 0 && (

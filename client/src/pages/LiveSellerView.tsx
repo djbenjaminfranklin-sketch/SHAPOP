@@ -682,7 +682,7 @@ export default function LiveSellerView() {
       const w = Math.ceil(v.videoWidth * s), h = Math.ceil(v.videoHeight * s)
       Object.assign(v.style, {
         position: 'absolute', width: `${w}px`, height: `${h}px`,
-        left: `${Math.round((W - w) / 2)}px`, top: `${Math.round((H - h) / 2)}px`, maxWidth: 'none',
+        left: `${Math.round((W - w) / 2)}px`, top: `${Math.round((H - h) / 2)}px`, maxWidth: 'none', // i18n-ignore (centrage physique de la vidéo, identique en hébreu)
       })
     }
     const v = videoRef.current
@@ -821,10 +821,27 @@ export default function LiveSellerView() {
       })
   }, [user])
 
-  const { isConnected: lkConnected, isBroadcasting, startBroadcast, stopBroadcast } = useLiveKitBroadcast({
+  const { isConnected: lkConnected, isBroadcasting, startBroadcast, stopBroadcast, localVideoTrack } = useLiveKitBroadcast({
     livekitUrl,
     livekitToken,
   })
+
+  // Une seule prise de caméra/micro pendant le direct (28/11) : dès que la diffusion tourne, l'aperçu du
+  // vendeur affiche LA piste envoyée aux acheteurs et la capture d'aperçu est arrêtée. Deux captures en
+  // même temps sur iPhone donnaient au vendeur une image avec deux bandes noires (les acheteurs, eux,
+  // recevaient une image correcte).
+  useEffect(() => {
+    if (!localVideoTrack || localVideoTrack.readyState === 'ended') return
+    const old = mediaStreamRef.current
+    if (old && old.getVideoTracks()[0] === localVideoTrack) return
+    old?.getTracks().forEach(t => { if (t !== localVideoTrack) t.stop() })
+    const ms = new MediaStream([localVideoTrack])
+    mediaStreamRef.current = ms
+    if (videoRef.current) {
+      videoRef.current.srcObject = ms
+      videoRef.current.play().catch(() => { /* relancé au prochain geste */ })
+    }
+  }, [localVideoTrack])
 
   // Start broadcast once LiveKit token is ready
   const broadcastStartedRef = useRef(false)
@@ -2026,7 +2043,6 @@ export default function LiveSellerView() {
       <div style={{
         // fixé à l'écran (et non à la page) : sinon la vidéo héritait du défilement de l'écran précédent (bande noire en haut)
         position: 'fixed', inset: 0, overflow: 'hidden',
-        transform: facingMode === 'user' ? 'scaleX(-1)' : 'none',
       }}>
         <video
           ref={videoRef}
@@ -2034,7 +2050,9 @@ export default function LiveSellerView() {
           autoPlay
           playsInline
           muted
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          // Miroir sur la vidéo et non sur le cadre (28/11) : comme chez l'acheteur, le cadre n'a plus aucune
+          // transformation ; la taille plein écran est calculée à la main (voir plus haut), object-fit n'y joue plus
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
         />
       </div>
 

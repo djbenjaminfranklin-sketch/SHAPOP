@@ -15,6 +15,7 @@ import BottomNav from './components/BottomNav'
 import SplashScreen from './components/SplashScreen'
 import ErrorBoundary from './components/ErrorBoundary'
 import { getLang, getDir, t, tr, useLang, applyDocumentLang, type Localized } from './lib/i18n'
+import { DIRECT_SALES_ENABLED } from './lib/directSales'
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/Home'))
@@ -391,8 +392,8 @@ export default function App() {
                 <Route path="/referrals" element={<ProtectedRoute><ReferralsPage /></ProtectedRoute>} />
                 <Route path="/communities" element={<CommunitiesPage />} />
                 <Route path="/community/:id" element={<CommunityDetailPage />} />
-                <Route path="/ai-listing" element={<ProtectedRoute><AIListingPage /></ProtectedRoute>} />
-                <Route path="/direct-sales" element={<ProtectedRoute><DirectSalesPage /></ProtectedRoute>} />
+                <Route path="/ai-listing" element={DIRECT_SALES_ENABLED ? <ProtectedRoute><AIListingPage /></ProtectedRoute> : <Navigate to="/" replace />} />
+                <Route path="/direct-sales" element={DIRECT_SALES_ENABLED ? <ProtectedRoute><DirectSalesPage /></ProtectedRoute> : <Navigate to="/" replace />} />
                 <Route path="/item/:id" element={<ItemDetailPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/change-password" element={<ChangePasswordPage />} />

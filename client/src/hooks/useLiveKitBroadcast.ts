@@ -21,12 +21,15 @@ interface UseLiveKitBroadcastReturn {
   error: string | null
   startBroadcast: () => void
   stopBroadcast: () => void
+  /** Piste caméra réellement diffusée : l'aperçu du vendeur l'affiche (même image que les acheteurs). */
+  localVideoTrack: MediaStreamTrack | null
 }
 
 export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroadcastOptions): UseLiveKitBroadcastReturn {
   const [isConnected, setIsConnected] = useState(false)
   const [isBroadcasting, setIsBroadcasting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [localVideoTrack, setLocalVideoTrack] = useState<MediaStreamTrack | null>(null)
 
   const roomRef = useRef<Room | null>(null)
   const stoppedRef = useRef(false)
@@ -52,6 +55,7 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
     if (!stoppedRef.current) {
       setIsConnected(false)
       setIsBroadcasting(false)
+      setLocalVideoTrack(null)
     }
   }, [])
 
@@ -121,6 +125,7 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
           // constraints not supported, continue with defaults
         }
       }
+      setLocalVideoTrack(camPub?.track?.mediaStreamTrack || null)
       setIsBroadcasting(true)
     } catch (err) {
       console.error('LiveKit error:', (err as Error).message) // i18n-ignore (journal)
@@ -137,6 +142,7 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
     stoppedRef.current = false
     setIsConnected(false)
     setIsBroadcasting(false)
+    setLocalVideoTrack(null)
   }, [cleanup])
 
   // Cleanup on unmount — fire-and-forget since useEffect cleanup must be sync
@@ -162,5 +168,6 @@ export function useLiveKitBroadcast({ livekitUrl, livekitToken }: UseLiveKitBroa
     error,
     startBroadcast,
     stopBroadcast,
+    localVideoTrack,
   }
 }
