@@ -2,12 +2,19 @@ import { Badge, Loading, Photos, UserLink, api, confirmAction, date, run, useApi
 
 export default function Lives() {
   const live = useApi<Row[]>('/api/admin/streams?status=live')
+  // Lives programmés (« Bientôt » sur l'accueil) : retirables par l'admin (28/11/2026)
+  const sched = useApi<Row[]>('/api/admin/streams?status=scheduled')
   const hist = useApi<Row[]>('/api/admin/streams-history?limit=150')
-  const reload = () => { live.reload(); hist.reload() }
+  const reload = () => { live.reload(); sched.reload(); hist.reload() }
   const stop = async (s: Row) => {
     const reason = await confirmAction({ title: `Arrêter le live « ${s.title} » ?`, message: 'Le live est coupé immédiatement pour tous les spectateurs.', confirmLabel: 'Arrêter le live' })
     if (reason === null) return
     run('Live arrêté', () => api(`/api/admin/streams/${s.id}/stop`, { method: 'POST', body: { reason } }), reload)
+  }
+  const remove = async (s: Row) => {
+    const reason = await confirmAction({ title: `Retirer le live programmé « ${s.title} » ?`, message: 'Il disparaît de l’accueil pour tout le monde (il passe en « terminé »).', confirmLabel: 'Retirer' })
+    if (reason === null) return
+    run('Live retiré', () => api(`/api/admin/streams/${s.id}/stop`, { method: 'POST', body: { reason } }), reload)
   }
   const suspend = async (s: Row) => {
     const reason = await confirmAction({ title: 'Arrêter le live ET suspendre le vendeur ?', confirmLabel: 'Arrêter et suspendre' })
@@ -28,6 +35,20 @@ export default function Lives() {
               <div><b>{s.title}</b> <Badge s={s.status} /><div className="small">Vendeur : <UserLink p={s.seller?.profiles && { ...s.seller.profiles, id: s.seller_id }} id={s.seller_id} /> · {s.viewer_count ?? 0} spectateurs · depuis {date(s.started_at)}</div></div>
             </div>
             <div className="actions"><button className="btn sm warnb" onClick={() => stop(s)}>Arrêter le live</button><button className="btn sm danger" onClick={() => suspend(s)}>Suspendre le vendeur</button></div>
+          </div>
+        ))}
+      </section>
+      <section className="card">
+        <h2>Programmés ({sched.data?.length ?? 0})</h2>
+        <Loading error={sched.error} loading={sched.loading && !sched.data} />
+        {sched.data && sched.data.length === 0 && <p className="muted">Aucun live programmé.</p>}
+        {sched.data?.map(s => (
+          <div key={s.id} className="report">
+            <div className="report-main row gap">
+              <Photos urls={s.thumbnail_url ? [s.thumbnail_url] : []} size={70} />
+              <div><b>{s.title}</b> <Badge s={s.status} /><div className="small">Vendeur : <UserLink p={s.seller?.profiles && { ...s.seller.profiles, id: s.seller_id }} id={s.seller_id} /> · prévu {date(s.scheduled_at)}</div></div>
+            </div>
+            <div className="actions"><button className="btn sm warnb" onClick={() => remove(s)}>Retirer</button></div>
           </div>
         ))}
       </section>
