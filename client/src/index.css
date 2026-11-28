@@ -101,7 +101,9 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: none;
+  /* « contain » et non « none » (28/11) : garde le rebond élastique natif de l'iPhone en bout de liste,
+     sans que la page entière ne bouge (le reste de l'écran est verrouillé plus haut) */
+  overscroll-behavior: contain;
 }
 
 /* Bandeau de suivi de commande affiché : place en bas de page pour qu'il ne cache pas les derniers boutons */

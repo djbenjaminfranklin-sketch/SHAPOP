@@ -562,8 +562,10 @@ export default function Home() {
   return (
     <div
       ref={scrollRef}
-      className="pb-20 min-h-screen"
-      style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', backgroundColor: '#0A0A0A' }}
+      className="pb-20"
+      // Hauteur = la zone qui défile, pas l'écran entier (28/11) : avec « min-h-screen », l'accueil dépassait
+      // toujours de la place de la barre du bas -> petite marge à faire défiler même sans contenu
+      style={{ overflowX: 'hidden', maxWidth: '100%', width: '100%', minHeight: '100%', backgroundColor: '#0A0A0A' }}
     >
       {/* Top bar — WhatNot-style clean header */}
       <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 4px)', backgroundColor: '#0A0A0A', position: 'sticky', top: 0, zIndex: 40 }}>
