@@ -3,10 +3,10 @@
 // jamais dans la base, jamais dans les versions des stores. Toucher une fausse carte ne mène nulle part.
 export const DEMO_LIVES_ENABLED = import.meta.env.VITE_DEMO_LIVES === '1'
 
-const TITLES = ['Sneakers rares', 'Montres vintage', 'Sacs de créateurs', 'Cartes Pokémon', 'Bijoux en or', 'Vinyles collector',
-  'Parfums de niche', 'Lunettes de soleil', 'Figurines manga', 'Vestes en cuir', 'Casques audio', 'Robes de soirée',
-  'Céramiques artisanales', 'Jeux vidéo rétro', 'Montres connectées', 'Sacs à dos', 'Mode enfant', 'Déco maison',
-  'Livres anciens', 'Accessoires vélo']
+const TITLES = ['Sneakers rares', 'Montres vintage', 'Sacs de créateurs', 'Cartes Pokémon', 'Bijoux en or', 'Vinyles collector', // i18n-ignore (faux directs d essai, jamais en production)
+  'Parfums de niche', 'Lunettes de soleil', 'Figurines manga', 'Vestes en cuir', 'Casques audio', 'Robes de soirée', // i18n-ignore (faux directs d essai, jamais en production)
+  'Céramiques artisanales', 'Jeux vidéo rétro', 'Montres connectées', 'Sacs à dos', 'Mode enfant', 'Déco maison', // i18n-ignore (faux directs d essai, jamais en production)
+  'Livres anciens', 'Accessoires vélo'] // i18n-ignore (faux directs d essai, jamais en production)
 
 export function demoLives<T>(): T[] {
   const now = Date.now()
@@ -23,9 +23,9 @@ export function demoLives<T>(): T[] {
     peak_viewers: 0, engagement_score: 0, avg_watch_time_seconds: 0, total_reactions: 0,
     scheduled_at: i % 4 === 3 ? new Date(now + (i + 1) * 3600_000).toISOString() : null,
     started_at: new Date(now - (i + 1) * 300_000).toISOString(),
-    ended_at: null, city: 'Tel Aviv', community_id: null, mux_playback_id: null,
+    ended_at: null, city: 'Tel Aviv', community_id: null, mux_playback_id: null, // i18n-ignore (faux directs d essai, jamais en production)
     created_at: new Date(now - (i + 1) * 300_000).toISOString(),
     livekit_room_name: null, recording_url: null, is_boosted: false,
-    seller: { display_name: `Vendeur démo ${i + 1}`, avatar_url: `https://picsum.photos/seed/avatar${i}/80/80` },
+    seller: { display_name: `Vendeur démo ${i + 1}`, avatar_url: `https://picsum.photos/seed/avatar${i}/80/80` }, // i18n-ignore (faux directs d essai, jamais en production)
   })) as unknown as T[]
 }

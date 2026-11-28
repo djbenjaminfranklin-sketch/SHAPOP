@@ -29,6 +29,9 @@ import { PAID_EXTRAS_ENABLED } from '../lib/paidExtras'
 import { useLiveScreen } from '../hooks/useLiveScreen'
 import ReportSheet from '../components/ReportSheet'
 
+// Cadeau en question-réponse : 3 essais par personne (même règle que le serveur, services/giveawayQuiz.ts)
+const GIFT_MAX_ATTEMPTS = 3
+
 const streamContent = {
   en: {
     liveTitle: 'Live',
@@ -63,7 +66,6 @@ const streamContent = {
     reserveOfferBuy: 'Buy at {price}',
     reserveOfferDecline: 'No thanks',
     reserveOfferFailed: 'This offer is no longer available.',
-    giveawayBuyersOnly: 'This gift is for buyers of this live: buy an item to take part.',
     toReceiveItem: 'To receive your item',
     fullName: 'Full name',
     cityPlaceholder: 'City',
@@ -132,8 +134,14 @@ const streamContent = {
     morePiP: 'Mini player',
     pipUnavailable: 'Mini player unavailable',
     giftTitle: 'Win a gift live!',
-    giftEnter: 'Enter to win!',
-    giftEntered: 'Entered ✓',
+    giftEnter: 'Answer',
+    giftAnswerPlaceholder: 'Your answer',
+    giftWrong: 'Wrong answer — {n} tries left',
+    giftNoTries: 'No tries left for this gift',
+    giftLate: 'Right answer, but someone was faster!',
+    giftYouWon: 'Well done, you won the gift! 🎉',
+    giftRules: 'Free, no purchase. The first right answer wins.',
+    giftEntered: 'Tries used ✓',
     giftWinner: 'won the gift!',
     maxBidTitle: 'Max bid',
     maxShort: 'MAX',
@@ -210,7 +218,6 @@ const streamContent = {
     reserveOfferBuy: 'Acheter à {price}',
     reserveOfferDecline: 'Non merci',
     reserveOfferFailed: 'Cette offre n’est plus disponible.',
-    giveawayBuyersOnly: 'Ce cadeau est réservé aux acheteurs de ce live : achète un article pour participer.',
     toReceiveItem: 'Pour recevoir ton article',
     fullName: 'Nom complet',
     cityPlaceholder: 'Ville',
@@ -279,8 +286,14 @@ const streamContent = {
     morePiP: 'Mini-lecteur',
     pipUnavailable: 'Mini-lecteur indisponible',
     giftTitle: 'Gagne un cadeau en live !',
-    giftEnter: 'Participe et gagne !',
-    giftEntered: 'Tu participes ✓',
+    giftEnter: 'Répondre',
+    giftAnswerPlaceholder: 'Ta réponse',
+    giftWrong: 'Mauvaise réponse — encore {n} essai(s)',
+    giftNoTries: 'Plus d\'essais pour ce cadeau',
+    giftLate: 'Bonne réponse, mais quelqu\'un a été plus rapide !',
+    giftYouWon: 'Bravo, tu as gagné le cadeau ! 🎉',
+    giftRules: 'Gratuit, sans achat. La première bonne réponse gagne.',
+    giftEntered: 'Essais utilisés ✓',
     giftWinner: 'a gagné le cadeau !',
     maxBidTitle: 'Enchère max',
     maxShort: 'MAX',
@@ -357,7 +370,6 @@ const streamContent = {
     reserveOfferBuy: 'Comprar a {price}',
     reserveOfferDecline: 'No, gracias',
     reserveOfferFailed: 'Esta oferta ya no está disponible.',
-    giveawayBuyersOnly: 'Este regalo es solo para quienes compran en este directo: compra un artículo para participar.',
     toReceiveItem: 'Para recibir tu artículo',
     fullName: 'Nombre completo',
     cityPlaceholder: 'Ciudad',
@@ -426,8 +438,14 @@ const streamContent = {
     morePiP: 'Minirreproductor',
     pipUnavailable: 'Minirreproductor no disponible',
     giftTitle: '¡Gana un regalo en directo!',
-    giftEnter: '¡Participa y gana!',
-    giftEntered: 'Participando ✓',
+    giftEnter: 'Responder',
+    giftAnswerPlaceholder: 'Tu respuesta',
+    giftWrong: 'Respuesta incorrecta — te quedan {n} intento(s)',
+    giftNoTries: 'No te quedan intentos para este regalo',
+    giftLate: '¡Respuesta correcta, pero alguien fue más rápido!',
+    giftYouWon: '¡Bravo, ganaste el regalo! 🎉',
+    giftRules: 'Gratis, sin compra. Gana la primera respuesta correcta.',
+    giftEntered: 'Intentos usados ✓',
     giftWinner: '¡ganó el regalo!',
     maxBidTitle: 'Puja máxima',
     maxShort: 'MÁX',
@@ -504,7 +522,6 @@ const streamContent = {
     reserveOfferBuy: 'Купить за {price}',
     reserveOfferDecline: 'Нет, спасибо',
     reserveOfferFailed: 'Это предложение больше недоступно.',
-    giveawayBuyersOnly: 'Подарок только для покупателей этого эфира: купи товар, чтобы участвовать.',
     toReceiveItem: 'Чтобы получить товар',
     fullName: 'Имя и фамилия',
     cityPlaceholder: 'Город',
@@ -573,8 +590,14 @@ const streamContent = {
     morePiP: 'Мини-плеер',
     pipUnavailable: 'Мини-плеер недоступен',
     giftTitle: 'Выиграй подарок в эфире!',
-    giftEnter: 'Участвуй и выигрывай!',
-    giftEntered: 'Ты участвуешь ✓',
+    giftEnter: 'Ответить',
+    giftAnswerPlaceholder: 'Твой ответ',
+    giftWrong: 'Неверно — осталось попыток: {n}',
+    giftNoTries: 'Попытки для этого подарка закончились',
+    giftLate: 'Ответ верный, но кто-то оказался быстрее!',
+    giftYouWon: 'Браво, ты выиграл подарок! 🎉',
+    giftRules: 'Бесплатно, без покупки. Побеждает первый правильный ответ.',
+    giftEntered: 'Попытки использованы ✓',
     giftWinner: 'выигрывает подарок!',
     maxBidTitle: 'Макс. ставка',
     maxShort: 'МАКС',
@@ -651,7 +674,6 @@ const streamContent = {
     reserveOfferBuy: 'לקנות ב-{price}',
     reserveOfferDecline: 'לא תודה',
     reserveOfferFailed: 'ההצעה כבר לא זמינה.',
-    giveawayBuyersOnly: 'המתנה מיועדת לקונים בשידור הזה: קנה פריט כדי להשתתף.',
     toReceiveItem: 'כדי לקבל את הפריט שלך',
     fullName: 'שם מלא',
     cityPlaceholder: 'עיר',
@@ -720,8 +742,14 @@ const streamContent = {
     morePiP: 'נגן מוקטן',
     pipUnavailable: 'הנגן המוקטן לא זמין',
     giftTitle: 'זכה במתנה בשידור חי!',
-    giftEnter: 'השתתף וזכה!',
-    giftEntered: 'נרשמת ✓',
+    giftEnter: 'לענות',
+    giftAnswerPlaceholder: 'התשובה שלך',
+    giftWrong: 'תשובה שגויה — נשארו {n} ניסיונות',
+    giftNoTries: 'לא נשארו ניסיונות למתנה הזו',
+    giftLate: 'תשובה נכונה, אבל מישהו היה מהיר יותר!',
+    giftYouWon: 'כל הכבוד, זכית במתנה! 🎉',
+    giftRules: 'חינם, ללא רכישה. התשובה הנכונה הראשונה זוכה.',
+    giftEntered: 'הניסיונות נוצלו ✓',
     giftWinner: 'זכה/תה במתנה!',
     maxBidTitle: 'הצעה מקסימלית',
     maxShort: 'מקס',
@@ -1004,11 +1032,13 @@ export default function StreamView() {
 
   const [hasEnteredGiveaway, setHasEnteredGiveaway] = useState(false)
   // Cadeau auquel on ne peut pas participer (réservé aux acheteurs) : on retire la grande case
-  const [giveawayDismissedId, setGiveawayDismissedId] = useState<string | null>(null)
+  const [giveawayDismissedId] = useState<string | null>(null)
   // Multi-vue : une case agrandie en plein écran (les autres restent connectées en arrière-plan)
   const [expandedMultiIdx, setExpandedMultiIdx] = useState<number | null>(null)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
   const [enteringGiveaway, setEnteringGiveaway] = useState(false)
+  const [giveawayAnswerText, setGiveawayAnswerText] = useState('')
+  const [giveawayFeedback, setGiveawayFeedback] = useState<string | null>(null)
   const giveawayWinnerShownRef = useRef<string | null>(null) // track which giveaway winner was already shown
 
   // More menu state
@@ -1027,7 +1057,7 @@ export default function StreamView() {
   const [multiBidLoading, setMultiBidLoading] = useState<string | null>(null)
   const [pendingWonItem, setPendingWonItem] = useState<{ title: string; price: number } | null>(null)
   const [likedCells, setLikedCells] = useState<Record<string, boolean>>({})
-  const [multiStreamGiveaways, setMultiStreamGiveaways] = useState<Record<string, { id: string; prize_description: string; entry_count: number; status: string }>>({})
+  const [multiStreamGiveaways, setMultiStreamGiveaways] = useState<Record<string, { id: string; prize_description: string; question?: string | null; entry_count: number; status: string }>>({})
   const [multiStreamGiveawayEntered, setMultiStreamGiveawayEntered] = useState<Record<string, boolean>>({})
   const [multiStreamSold, setMultiStreamSold] = useState<Record<string, { winner: string; price: number; isUnsold?: boolean } | null>>({})
   const [multiStreamGiveawayWinner, setMultiStreamGiveawayWinner] = useState<Record<string, { name: string } | null>>({})
@@ -1592,11 +1622,11 @@ export default function StreamView() {
         .then(r => r.json())
         .then(gw => {
           if (gw && gw.id) {
-            setMultiStreamGiveaways(prev => ({ ...prev, [ms.id]: { id: gw.id, prize_description: gw.prize_description, entry_count: gw.entry_count, status: gw.status } }))
+            setMultiStreamGiveaways(prev => ({ ...prev, [ms.id]: { id: gw.id, prize_description: gw.prize_description, question: gw.question, entry_count: gw.entry_count, status: gw.status } }))
             // Check if user entered
             if (user) {
-              supabase.from('giveaway_entries').select('id').eq('giveaway_id', gw.id).eq('user_id', user.id).maybeSingle()
-                .then(({ data }) => { if (data) setMultiStreamGiveawayEntered(prev => ({ ...prev, [ms.id]: true })) })
+              supabase.from('giveaway_entries').select('attempts').eq('giveaway_id', gw.id).eq('user_id', user.id).maybeSingle()
+                .then(({ data }) => { if (data && data.attempts >= GIFT_MAX_ATTEMPTS) setMultiStreamGiveawayEntered(prev => ({ ...prev, [ms.id]: true })) })
             }
           }
         })
@@ -1606,7 +1636,7 @@ export default function StreamView() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'giveaways', filter: `stream_id=eq.${ms.id}` }, (payload) => {
           const gw = payload.new as Record<string, unknown>
           if (gw) {
-            setMultiStreamGiveaways(prev => ({ ...prev, [ms.id]: { id: gw.id as string, prize_description: gw.prize_description as string, entry_count: gw.entry_count as number, status: gw.status as string } }))
+            setMultiStreamGiveaways(prev => ({ ...prev, [ms.id]: { id: gw.id as string, prize_description: gw.prize_description as string, question: gw.question as string | null, entry_count: gw.entry_count as number, status: gw.status as string } }))
             // Detect drawn giveaway — show winner once
             if (gw.status === 'drawn' && gw.winner_name && multiGiveawayWinnerShownRef.current[ms.id] !== (gw.id as string)) {
               multiGiveawayWinnerShownRef.current[ms.id] = gw.id as string
@@ -1628,7 +1658,7 @@ export default function StreamView() {
               setMultiStreamGiveaways(prev => {
                 const existing = prev[ms.id]
                 if (existing && existing.id === gw.id && existing.entry_count === gw.entry_count && existing.status === gw.status) return prev
-                return { ...prev, [ms.id]: { id: gw.id, prize_description: gw.prize_description, entry_count: gw.entry_count, status: gw.status } }
+                return { ...prev, [ms.id]: { id: gw.id, prize_description: gw.prize_description, question: gw.question, entry_count: gw.entry_count, status: gw.status } }
               })
               // Detect drawn giveaway — show winner once
               if (gw.status === 'drawn' && gw.winner_name && multiGiveawayWinnerShownRef.current[ms.id] !== gw.id) {
@@ -1637,8 +1667,8 @@ export default function StreamView() {
                 setTimeout(() => { setMultiStreamGiveawayWinner(prev => ({ ...prev, [ms.id]: null })) }, 6000)
               }
               if (user) {
-                supabase.from('giveaway_entries').select('id').eq('giveaway_id', gw.id).eq('user_id', user.id).maybeSingle()
-                  .then(({ data }) => { if (data) setMultiStreamGiveawayEntered(prev => ({ ...prev, [ms.id]: true })) })
+                supabase.from('giveaway_entries').select('attempts').eq('giveaway_id', gw.id).eq('user_id', user.id).maybeSingle()
+                  .then(({ data }) => { if (data && data.attempts >= GIFT_MAX_ATTEMPTS) setMultiStreamGiveawayEntered(prev => ({ ...prev, [ms.id]: true })) })
               }
             } else {
               // No active giveaway — clear it
@@ -1654,26 +1684,41 @@ export default function StreamView() {
     return () => { channels.forEach(ch => supabase.removeChannel(ch)); clearInterval(gwPollInterval) }
   }, [multiViewStreams, user])
 
-  // Multi-view: enter giveaway on an additional stream
-  const handleMultiGiveawayEnter = useCallback(async (streamId: string) => {
-    const gw = multiStreamGiveaways[streamId]
-    if (!gw || !user || multiStreamGiveawayEntered[streamId]) return
+  // Cadeau en question-réponse (28/11/2026) : envoie une réponse, le serveur dit si elle gagne
+  const submitGiftAnswer = useCallback(async (giveawayId: string, answer: string): Promise<{ status: string; attempts_left?: number } | null> => {
     try {
       const { data: session } = await supabase.auth.getSession()
       const token = session.session?.access_token
-      if (!token) return
-      const resp = await apiFetch(`/api/giveaways/${gw.id}/enter`, {
+      if (!token) return null
+      const resp = await apiFetch(`/api/giveaways/${giveawayId}/answer`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ answer }),
       })
-      if (resp.status === 403) { alert(ct.giveawayBuyersOnly); return }
-      if (resp.ok) {
-        setMultiStreamGiveawayEntered(prev => ({ ...prev, [streamId]: true }))
-        setMultiStreamGiveaways(prev => prev[streamId] ? { ...prev, [streamId]: { ...prev[streamId], entry_count: prev[streamId].entry_count + 1 } } : prev)
-        hapticTap()
-      }
-    } catch { /* ignore */ }
-  }, [multiStreamGiveaways, multiStreamGiveawayEntered, user])
+      return await resp.json()
+    } catch { return null }
+  }, [])
+  const giftResultText = (r: { status: string; attempts_left?: number }): string =>
+    r.status === 'won' ? ct.giftYouWon
+      : r.status === 'wrong' ? (r.attempts_left ? ct.giftWrong.replace('{n}', String(r.attempts_left)) : ct.giftNoTries)
+      : r.status === 'no_attempts_left' ? ct.giftNoTries
+      : ct.giftLate
+
+  // Multi-view : la question s'ouvre dans une petite fenêtre de réponse
+  const handleMultiGiveawayEnter = useCallback(async (streamId: string) => {
+    const gw = streamId === id ? (activeGiveaway ? { id: activeGiveaway.id, question: activeGiveaway.question } : null) : multiStreamGiveaways[streamId]
+    if (!gw || !user || multiStreamGiveawayEntered[streamId]) return
+    const answer = window.prompt(gw.question || ct.giftTitle, '')
+    if (!answer || !answer.trim()) return
+    const r = await submitGiftAnswer(gw.id, answer.trim())
+    if (!r) return
+    if (r.status === 'won') hapticTap()
+    if (r.status === 'no_attempts_left' || (r.status === 'wrong' && !r.attempts_left)) {
+      if (streamId === id) setHasEnteredGiveaway(true)
+      else setMultiStreamGiveawayEntered(prev => ({ ...prev, [streamId]: true }))
+    }
+    alert(giftResultText(r))
+  }, [id, activeGiveaway, multiStreamGiveaways, multiStreamGiveawayEntered, user, submitGiftAnswer])
 
   // Multi-view: bid on an additional stream's active item
   const handleMultiBid = useCallback(async (streamId: string) => {
@@ -1995,11 +2040,11 @@ export default function StreamView() {
         if (gw && gw.id) {
           const { data: entry } = await supabase
             .from('giveaway_entries')
-            .select('id')
+            .select('attempts')
             .eq('giveaway_id', gw.id)
             .eq('user_id', user.id)
             .maybeSingle()
-          if (entry) setHasEnteredGiveaway(true)
+          if (entry && entry.attempts >= GIFT_MAX_ATTEMPTS) setHasEnteredGiveaway(true)
         }
       } catch { /* ignore */ }
     }
@@ -2063,28 +2108,16 @@ export default function StreamView() {
 
   const handleEnterGiveaway = async () => {
     if (!activeGiveaway || !user || hasEnteredGiveaway || enteringGiveaway) return
+    const answer = giveawayAnswerText.trim()
+    if (!answer) return
     setEnteringGiveaway(true)
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      const token = session.session?.access_token
-      if (!token) return
-
-      const resp = await apiFetch(`/api/giveaways/${activeGiveaway.id}/enter`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      if (resp.ok || resp.status === 409) {
-        setHasEnteredGiveaway(true)
-        hapticTap()
-      } else if (resp.status === 403) {
-        alert(ct.giveawayBuyersOnly)
-        setGiveawayDismissedId(activeGiveaway.id)
-      }
-    } catch { /* ignore */ }
+    const r = await submitGiftAnswer(activeGiveaway.id, answer)
     setEnteringGiveaway(false)
+    if (!r) return
+    setGiveawayAnswerText('')
+    setGiveawayFeedback(giftResultText(r))
+    if (r.status === 'won') hapticTap()
+    if (r.status === 'no_attempts_left' || (r.status === 'wrong' && !r.attempts_left)) setHasEnteredGiveaway(true)
   }
 
   // Timer pour l'enchere
@@ -2885,8 +2918,7 @@ export default function StreamView() {
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   if (!cellEntered && user) {
-                                    if (cell.isMain) handleEnterGiveaway()
-                                    else handleMultiGiveawayEnter(cell.streamId)
+                                    handleMultiGiveawayEnter(cell.isMain ? id! : cell.streamId)
                                   }
                                 }}
                                 style={{
@@ -4313,28 +4345,46 @@ export default function StreamView() {
                 </span>
               </div>
 
-              {user && (
-                <button
-                  onClick={handleEnterGiveaway}
-                  disabled={enteringGiveaway}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
-                    border: 'none',
-                    borderRadius: '100px',
-                    color: '#000',
-                    fontSize: 'calc(16px * var(--fs, 1))', fontWeight: 900,
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation',
-                    boxShadow: '0 2px 12px rgba(255,165,0,0.4)',
-                    letterSpacing: '0.3px',
-                  }}
-                >
-                  {enteringGiveaway ? '...' : ct.giftEnter}
-                </button>
+              {activeGiveaway.question && (
+                <p style={{ fontSize: 'calc(15px * var(--fs, 1))', color: '#fff', margin: 0, fontWeight: 800, textAlign: 'center' }}>
+                  ❓ {activeGiveaway.question}
+                </p>
               )}
+              {user && (
+                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                  <input
+                    type="text"
+                    value={giveawayAnswerText}
+                    onChange={e => setGiveawayAnswerText(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleEnterGiveaway() }}
+                    placeholder={ct.giftAnswerPlaceholder}
+                    maxLength={200}
+                    style={{
+                      flex: 1, minWidth: 0, padding: '12px 14px', borderRadius: '100px',
+                      border: '1px solid rgba(255,215,0,0.4)', backgroundColor: 'rgba(255,255,255,0.08)',
+                      color: '#fff', fontSize: 'calc(15px * var(--fs, 1))', outline: 'none',
+                    }}
+                  />
+                  <button
+                    onClick={handleEnterGiveaway}
+                    disabled={enteringGiveaway || !giveawayAnswerText.trim()}
+                    style={{
+                      padding: '12px 18px',
+                      background: 'linear-gradient(135deg, #FFD700, #FF8C00)',
+                      border: 'none', borderRadius: '100px', color: '#000',
+                      fontSize: 'calc(15px * var(--fs, 1))', fontWeight: 900, cursor: 'pointer',
+                      opacity: giveawayAnswerText.trim() ? 1 : 0.5,
+                      WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+                    }}
+                  >
+                    {enteringGiveaway ? '...' : ct.giftEnter}
+                  </button>
+                </div>
+              )}
+              {giveawayFeedback && (
+                <p style={{ margin: 0, fontSize: 'calc(13px * var(--fs, 1))', color: '#FFD700', fontWeight: 700, textAlign: 'center' }}>{giveawayFeedback}</p>
+              )}
+              <p style={{ margin: 0, fontSize: 'calc(11px * var(--fs, 1))', color: '#ccc', textAlign: 'center' }}>{ct.giftRules}</p>
             </div>
           </div>
         )

@@ -85,14 +85,16 @@ const pageContent = {
     minPrice: 'min: {price}',
     giftTitle: 'Surprise gift',
     giftParticipants: 'participants',
-    giftDraw: 'Draw winner',
     giftPrizePlaceholder: 'Describe the gift...',
+    giftQuestionPlaceholder: 'Your question (e.g. what colour is my jacket?)',
+    giftAnswerPlaceholder: 'The right answer (hidden from viewers)',
+    giftQuizHint: 'The first viewer to give the right answer wins. Free, no purchase needed. 3 tries each.',
+    giftWaiting: 'Waiting for the right answer…',
     giftLaunch: 'Launch gift',
     giftLaunched: 'Gift launched!',
     giftActive: 'Gift active',
     giftCancel: 'Cancel',
     giftWinner: 'won the gift!',
-    buyersOnly: 'Buyers only',
     returningBuyers: 'returning',
     newBuyers: 'new',
     obsTitle: 'Stream from OBS',
@@ -126,7 +128,6 @@ const pageContent = {
     errReconnect: 'Error: please sign in again',
     errGeneric: 'Something went wrong. Please try again.',
     errNetwork: 'Network error',
-    errDraw: 'The draw failed',
     errActivation: 'Couldn’t start the auction',
     errAddItem: 'Couldn’t add the item',
     sessionExpired: 'Session expired',
@@ -203,14 +204,16 @@ const pageContent = {
     minPrice: 'min : {price}',
     giftTitle: 'Cadeau surprise',
     giftParticipants: 'participants',
-    giftDraw: 'Tirer au sort',
     giftPrizePlaceholder: 'Décris le cadeau...',
+    giftQuestionPlaceholder: 'Ta question (ex. : de quelle couleur est ma veste ?)',
+    giftAnswerPlaceholder: 'La bonne réponse (cachée aux spectateurs)',
+    giftQuizHint: 'Le premier spectateur qui donne la bonne réponse gagne. Gratuit, sans achat. 3 essais chacun.',
+    giftWaiting: 'En attente de la bonne réponse…',
     giftLaunch: 'Lancer le cadeau',
     giftLaunched: 'Cadeau lancé !',
     giftActive: 'Cadeau en cours',
     giftCancel: 'Annuler',
     giftWinner: 'a gagné le cadeau !',
-    buyersOnly: 'Acheteurs seulement',
     returningBuyers: 'fidèles',
     newBuyers: 'nouveaux',
     obsTitle: 'Streamer depuis OBS',
@@ -244,7 +247,6 @@ const pageContent = {
     errReconnect: 'Erreur : reconnecte-toi',
     errGeneric: 'Une erreur est survenue. Réessaie.',
     errNetwork: 'Erreur réseau',
-    errDraw: 'Le tirage au sort a échoué',
     errActivation: 'Impossible de lancer l’enchère',
     errAddItem: 'Impossible d’ajouter l’article',
     sessionExpired: 'Session expirée',
@@ -321,14 +323,16 @@ const pageContent = {
     minPrice: 'mín.: {price}',
     giftTitle: 'Regalo sorpresa',
     giftParticipants: 'participantes',
-    giftDraw: 'Sortear',
     giftPrizePlaceholder: 'Describe el regalo...',
+    giftQuestionPlaceholder: 'Tu pregunta (p. ej.: ¿de qué color es mi chaqueta?)',
+    giftAnswerPlaceholder: 'La respuesta correcta (oculta a los espectadores)',
+    giftQuizHint: 'Gana el primer espectador que dé la respuesta correcta. Gratis, sin compra. 3 intentos cada uno.',
+    giftWaiting: 'Esperando la respuesta correcta…',
     giftLaunch: 'Lanzar regalo',
     giftLaunched: '¡Regalo lanzado!',
     giftActive: 'Regalo activo',
     giftCancel: 'Cancelar',
     giftWinner: '¡ha ganado el regalo!',
-    buyersOnly: 'Solo compradores',
     returningBuyers: 'habituales',
     newBuyers: 'nuevos',
     obsTitle: 'Transmitir desde OBS',
@@ -362,7 +366,6 @@ const pageContent = {
     errReconnect: 'Error: vuelve a iniciar sesión',
     errGeneric: 'Algo salió mal. Inténtalo de nuevo.',
     errNetwork: 'Error de red',
-    errDraw: 'El sorteo ha fallado',
     errActivation: 'No se pudo iniciar la subasta',
     errAddItem: 'No se pudo añadir el artículo',
     sessionExpired: 'Sesión caducada',
@@ -439,14 +442,16 @@ const pageContent = {
     minPrice: 'мин.: {price}',
     giftTitle: 'Подарок-сюрприз',
     giftParticipants: 'участников',
-    giftDraw: 'Разыграть',
     giftPrizePlaceholder: 'Опиши подарок...',
+    giftQuestionPlaceholder: 'Твой вопрос (например: какого цвета моя куртка?)',
+    giftAnswerPlaceholder: 'Правильный ответ (зрители его не видят)',
+    giftQuizHint: 'Побеждает первый зритель, давший правильный ответ. Бесплатно, без покупки. 3 попытки у каждого.',
+    giftWaiting: 'Ждём правильный ответ…',
     giftLaunch: 'Запустить розыгрыш',
     giftLaunched: 'Розыгрыш запущен!',
     giftActive: 'Розыгрыш идёт',
     giftCancel: 'Отмена',
     giftWinner: 'выигрывает подарок!',
-    buyersOnly: 'Только покупатели',
     returningBuyers: 'постоянные',
     newBuyers: 'новые',
     obsTitle: 'Трансляция из OBS',
@@ -480,7 +485,6 @@ const pageContent = {
     errReconnect: 'Ошибка: войди снова',
     errGeneric: 'Что-то пошло не так. Попробуй ещё раз.',
     errNetwork: 'Ошибка сети',
-    errDraw: 'Не удалось провести розыгрыш',
     errActivation: 'Не удалось начать аукцион',
     errAddItem: 'Не удалось добавить товар',
     sessionExpired: 'Сессия истекла',
@@ -557,14 +561,16 @@ const pageContent = {
     minPrice: 'מינ׳: {price}',
     giftTitle: 'מתנת הפתעה',
     giftParticipants: 'משתתפים',
-    giftDraw: 'הגרלה',
     giftPrizePlaceholder: 'תאר/י את המתנה...',
+    giftQuestionPlaceholder: 'השאלה שלך (למשל: באיזה צבע המעיל שלי?)',
+    giftAnswerPlaceholder: 'התשובה הנכונה (מוסתרת מהצופים)',
+    giftQuizHint: 'הצופה הראשון שעונה נכון זוכה. חינם, ללא רכישה. 3 ניסיונות לכל אחד.',
+    giftWaiting: 'ממתינים לתשובה הנכונה…',
     giftLaunch: 'הפעלת המתנה',
     giftLaunched: 'המתנה הופעלה!',
     giftActive: 'מתנה פעילה',
     giftCancel: 'ביטול',
     giftWinner: 'זכה/תה במתנה!',
-    buyersOnly: 'לקונים בלבד',
     returningBuyers: 'חוזרים',
     newBuyers: 'חדשים',
     obsTitle: 'שידור מ-OBS',
@@ -598,7 +604,6 @@ const pageContent = {
     errReconnect: 'שגיאה: צריך להתחבר מחדש',
     errGeneric: 'משהו השתבש. אפשר לנסות שוב.',
     errNetwork: 'שגיאת רשת',
-    errDraw: 'ההגרלה נכשלה',
     errActivation: 'לא ניתן להתחיל את המכירה',
     errAddItem: 'לא ניתן להוסיף את הפריט',
     sessionExpired: 'פג תוקף החיבור',
@@ -772,9 +777,9 @@ export default function LiveSellerView() {
   // Giveaway
   const [showGiveawayForm, setShowGiveawayForm] = useState(false)
   const [giveawayPrize, setGiveawayPrize] = useState('')
-  const [giveawayBuyersOnly, setGiveawayBuyersOnly] = useState(false)
+  const [giveawayQuestion, setGiveawayQuestion] = useState('')
+  const [giveawayAnswer, setGiveawayAnswer] = useState('')
   const [activeGiveaway, setActiveGiveaway] = useState<Giveaway | null>(null)
-  const [giveawayDrawing, setGiveawayDrawing] = useState(false)
   const [giveawayWinner, setGiveawayWinner] = useState<{ name: string } | null>(null)
 
   // Return policy
@@ -1164,7 +1169,7 @@ export default function LiveSellerView() {
   }, [streamId])
 
   const handleLaunchGiveaway = async () => {
-    if (!giveawayPrize.trim() || !streamId) return
+    if (!giveawayPrize.trim() || !giveawayQuestion.trim() || !giveawayAnswer.trim() || !streamId) return
     // Always get a fresh token
     const { data: freshSession } = await supabase.auth.getSession()
     const token = freshSession.session?.access_token
@@ -1179,13 +1184,15 @@ export default function LiveSellerView() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ prize_description: giveawayPrize.trim(), buyers_only: giveawayBuyersOnly }),
+        body: JSON.stringify({ prize_description: giveawayPrize.trim(), question: giveawayQuestion.trim(), answer: giveawayAnswer.trim() }),
       })
       if (resp.ok) {
         const gw = await resp.json()
         setActiveGiveaway(gw)
         setShowGiveawayForm(false)
         setGiveawayPrize('')
+        setGiveawayQuestion('')
+        setGiveawayAnswer('')
         showToast(ct.giftLaunched)
       } else {
         const err = await resp.json().catch(() => ({ error: 'Erreur inconnue' }))
@@ -1198,44 +1205,30 @@ export default function LiveSellerView() {
     }
   }
 
-  const handleDrawWinner = async () => {
-    if (!activeGiveaway) return
-    const { data: freshSession } = await supabase.auth.getSession()
-    const token = freshSession.session?.access_token
-    if (!token) {
-      showToast(ct.errReconnect)
-      return
-    }
-    setGiveawayDrawing(true)
-    try {
-      const resp = await apiFetch(`/api/giveaways/${activeGiveaway.id}/draw`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      if (resp.ok) {
-        const drawn = await resp.json()
-        // Always clear activeGiveaway so a new one can be created
-        setActiveGiveaway(null)
-        if (drawn.winner_name) {
-          setGiveawayWinner({ name: drawn.winner_name })
-          setTimeout(() => {
-            setGiveawayWinner(null)
-          }, 5000)
+  // Question-réponse (28/11/2026) : plus de tirage. Le serveur désigne le premier qui répond juste ;
+  // on surveille le cadeau pour afficher le gagnant dès qu'il est trouvé.
+  useEffect(() => {
+    if (!activeGiveaway || activeGiveaway.status !== 'active' || !streamId) return
+    const gid = activeGiveaway.id
+    const t = setInterval(async () => {
+      try {
+        const resp = await apiFetch(`/api/streams/${streamId}/giveaway`)
+        const gw = await resp.json() as Giveaway | null
+        if (!gw || gw.id !== gid) { setActiveGiveaway(null); return }
+        if (gw.status === 'drawn') {
+          setActiveGiveaway(null)
+          setShowGiveawayForm(false)
+          if (gw.winner_name) {
+            setGiveawayWinner({ name: gw.winner_name })
+            setTimeout(() => setGiveawayWinner(null), 5000)
+          }
+        } else {
+          setActiveGiveaway(prev => prev && prev.id === gid ? { ...prev, entry_count: gw.entry_count } : prev)
         }
-      } else {
-        const err = await resp.json().catch(() => ({ error: 'Unknown error' }))
-        console.error('Draw error:', resp.status, err)
-        showToast(ct.errDraw)
-      }
-    } catch (err) {
-      console.error('Failed to draw winner:', err)
-      showToast(ct.errNetwork)
-    }
-    setGiveawayDrawing(false)
-  }
+      } catch { /* réseau : on réessaie au prochain tour */ }
+    }, 2500)
+    return () => clearInterval(t)
+  }, [activeGiveaway?.id, activeGiveaway?.status, streamId])
 
   const handleCancelGiveaway = async () => {
     if (!activeGiveaway || !sessionToken) return
@@ -2947,28 +2940,42 @@ export default function LiveSellerView() {
                     outline: 'none', boxSizing: 'border-box',
                   }}
                 />
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  marginTop: '10px', marginBottom: '10px',
-                  padding: '10px 12px',
-                  backgroundColor: giveawayBuyersOnly ? 'rgba(255,215,0,0.1)' : 'rgba(255,255,255,0.05)',
-                  border: giveawayBuyersOnly ? '1px solid rgba(255,215,0,0.3)' : '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                }}>
-                  <input
-                    type="checkbox"
-                    checked={giveawayBuyersOnly}
-                    onChange={e => setGiveawayBuyersOnly(e.target.checked)}
-                    style={{ accentColor: '#FFD700', width: '18px', height: '18px', flexShrink: 0 }}
-                  />
-                  <span style={{ fontSize: 'calc(13px * var(--fs, 1))', color: giveawayBuyersOnly ? '#FFD700' : '#f0f0f0', fontWeight: 600 }}>
-                    {ct.buyersOnly}
-                  </span>
-                </label>
+                <input
+                  type="text"
+                  value={giveawayQuestion}
+                  onChange={e => setGiveawayQuestion(e.target.value)}
+                  placeholder={ct.giftQuestionPlaceholder}
+                  maxLength={200}
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,215,0,0.2)',
+                    borderRadius: '12px',
+                    color: '#fff', fontSize: 'calc(14px * var(--fs, 1))',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                <input
+                  type="text"
+                  value={giveawayAnswer}
+                  onChange={e => setGiveawayAnswer(e.target.value)}
+                  placeholder={ct.giftAnswerPlaceholder}
+                  maxLength={200}
+                  style={{
+                    width: '100%', padding: '12px 14px',
+                    backgroundColor: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,215,0,0.2)',
+                    borderRadius: '12px',
+                    color: '#fff', fontSize: 'calc(14px * var(--fs, 1))',
+                    outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+                <p style={{ margin: '0 0 6px', fontSize: 'calc(12px * var(--fs, 1))', color: '#ccc', lineHeight: 1.4 }}>
+                  {ct.giftQuizHint}
+                </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button
-                    onClick={() => { setShowGiveawayForm(false); setGiveawayPrize(''); setGiveawayBuyersOnly(false) }}
+                    onClick={() => { setShowGiveawayForm(false); setGiveawayPrize(''); setGiveawayQuestion(''); setGiveawayAnswer('') }}
                     style={{
                       flex: 1, padding: '12px',
                       backgroundColor: 'rgba(255,255,255,0.08)',
@@ -2982,17 +2989,17 @@ export default function LiveSellerView() {
                   </button>
                   <button
                     onClick={handleLaunchGiveaway}
-                    disabled={!giveawayPrize.trim()}
+                    disabled={(!giveawayPrize.trim() || !giveawayQuestion.trim() || !giveawayAnswer.trim())}
                     style={{
                       flex: 1, padding: '12px',
-                      background: !giveawayPrize.trim()
+                      background: (!giveawayPrize.trim() || !giveawayQuestion.trim() || !giveawayAnswer.trim())
                         ? 'rgba(255,255,255,0.1)'
                         : 'linear-gradient(135deg, #FFD700, #FFA500)',
                       border: 'none',
                       borderRadius: '12px',
-                      color: !giveawayPrize.trim() ? '#666' : '#000',
+                      color: (!giveawayPrize.trim() || !giveawayQuestion.trim() || !giveawayAnswer.trim()) ? '#666' : '#000',
                       fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800,
-                      cursor: !giveawayPrize.trim() ? 'not-allowed' : 'pointer',
+                      cursor: (!giveawayPrize.trim() || !giveawayQuestion.trim() || !giveawayAnswer.trim()) ? 'not-allowed' : 'pointer',
                     }}
                   >
                     {ct.giftLaunch}
@@ -3008,6 +3015,11 @@ export default function LiveSellerView() {
                 }}>
                   {activeGiveaway.prize_description}
                 </p>
+                {activeGiveaway.question && (
+                  <p style={{ fontSize: 'calc(14px * var(--fs, 1))', color: '#FFD700', margin: 0, fontWeight: 700 }}>
+                    ❓ {activeGiveaway.question}
+                  </p>
+                )}
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   gap: '8px', padding: '8px 0',
@@ -3033,23 +3045,13 @@ export default function LiveSellerView() {
                   >
                     {ct.giftCancel}
                   </button>
-                  <button
-                    onClick={() => { handleDrawWinner(); setShowGiveawayForm(false) }}
-                    disabled={giveawayDrawing || activeGiveaway.entry_count === 0}
-                    style={{
-                      flex: 1, padding: '12px',
-                      background: activeGiveaway.entry_count === 0
-                        ? 'rgba(255,255,255,0.1)'
-                        : 'linear-gradient(135deg, #FFD700, #FFA500)',
-                      border: 'none',
-                      borderRadius: '12px',
-                      color: activeGiveaway.entry_count === 0 ? '#666' : '#000',
-                      fontSize: 'calc(14px * var(--fs, 1))', fontWeight: 800,
-                      cursor: activeGiveaway.entry_count === 0 ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {giveawayDrawing ? '...' : ct.giftDraw}
-                  </button>
+                  <div style={{
+                    flex: 1, padding: '12px', textAlign: 'center',
+                    borderRadius: '12px', border: '1px solid rgba(255,215,0,0.3)',
+                    color: '#FFD700', fontSize: 'calc(13px * var(--fs, 1))', fontWeight: 700,
+                  }}>
+                    {ct.giftWaiting}
+                  </div>
                 </div>
               </>
             )}

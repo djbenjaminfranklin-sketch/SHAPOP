@@ -322,6 +322,8 @@ export interface Giveaway {
   seller_id: string
   title: string
   prize_description: string
+  /** Question posée par le vendeur (28/11/2026) : le premier qui répond juste gagne. La réponse n est jamais envoyée aux téléphones. */
+  question?: string | null
   status: 'active' | 'drawn' | 'cancelled'
   winner_id: string | null
   winner_name: string | null

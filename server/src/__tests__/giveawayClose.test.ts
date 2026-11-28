@@ -1,14 +1,53 @@
-import { describe, it, expect, vi } from 'vitest'
-vi.mock('../config', () => ({ supabase: {} }))
-import { eligibleEntries } from '../services/giveawayClose'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const entries = [{ user_id: 'a', display_name: 'A' }, { user_id: 'b', display_name: 'B' }]
-describe('cadeau : participants éligibles', () => {
-  it('cadeau ouvert à tous : tout le monde', () => {
-    expect(eligibleEntries(entries, new Set(), false)).toHaveLength(2)
+vi.hoisted(() => {
+  process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://supabase.test'
+  process.env.SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'service-key-test'
+})
+vi.mock('../config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../config')>()
+  const { fakeDb } = await import('./helpers/fakeSupabase')
+  return { ...actual, supabase: fakeDb, resend: null }
+})
+
+import { fakeDb } from './helpers/fakeSupabase'
+import { normalizeAnswer, isCorrect, submitAnswer, MAX_ATTEMPTS } from '../services/giveawayQuiz'
+
+describe('cadeau en question-réponse : comparaison des réponses', () => {
+  it('ignore majuscules, accents, ponctuation et espaces', () => {
+    expect(isCorrect('  Rouge !', 'rouge')).toBe(true)
+    expect(isCorrect('ÉTÉ', 'ete')).toBe(true)
+    expect(isCorrect('Tel-Aviv', 'tel aviv')).toBe(true)
   })
-  it('réservé aux acheteurs : seulement ceux qui ont acheté pendant le live', () => {
-    expect(eligibleEntries(entries, new Set(['b']), true)).toEqual([{ user_id: 'b', display_name: 'B' }])
-    expect(eligibleEntries(entries, new Set(), true)).toEqual([])
+  it('ignore les points-voyelles hébreux', () => {
+    expect(normalizeAnswer('אָדֹם')).toBe(normalizeAnswer('אדם'))
+  })
+  it('une réponse vide ou différente est fausse', () => {
+    expect(isCorrect('', 'rouge')).toBe(false)
+    expect(isCorrect('!!!', '')).toBe(false)
+    expect(isCorrect('bleu', 'rouge')).toBe(false)
+  })
+})
+
+describe('cadeau en question-réponse : le premier juste gagne, jamais de hasard', () => {
+  beforeEach(() => {
+    fakeDb.reset()
+    fakeDb.table('giveaways').push({ id: 'G', status: 'active', stream_id: 'S', seller_id: 'V', title: 'Cadeau', entry_count: 0 })
+    fakeDb.table('giveaway_answers').push({ giveaway_id: 'G', answer: 'Rouge' })
+    fakeDb.table('profiles').push({ id: 'A', display_name: 'Alice' }, { id: 'B', display_name: 'Bob' })
+  })
+  it('mauvaise réponse : pas de gagnant, essais décomptés', async () => {
+    expect(await submitAnswer('G', 'A', 'bleu')).toEqual({ status: 'wrong', attempts_left: MAX_ATTEMPTS - 1 })
+    expect(fakeDb.table('giveaways')[0].status).toBe('active')
+  })
+  it('bonne réponse : gagne, puis le suivant arrive trop tard', async () => {
+    expect(await submitAnswer('G', 'A', ' rouge ')).toEqual({ status: 'won' })
+    expect(fakeDb.table('giveaways')[0]).toMatchObject({ status: 'drawn', winner_id: 'A', winner_name: 'Alice' })
+    expect(await submitAnswer('G', 'B', 'rouge')).toEqual({ status: 'closed' })
+  })
+  it(`${MAX_ATTEMPTS} essais au maximum par personne`, async () => {
+    for (let i = 0; i < MAX_ATTEMPTS; i++) await submitAnswer('G', 'A', 'non')
+    expect(await submitAnswer('G', 'A', 'rouge')).toEqual({ status: 'no_attempts_left' })
+    expect(fakeDb.table('giveaways')[0].status).toBe('active')
   })
 })

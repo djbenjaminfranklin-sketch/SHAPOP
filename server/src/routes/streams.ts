@@ -10,6 +10,7 @@ import { requireAuth, createLimiter } from '../middleware'
 import { computeSellerScore, notifyFollowersSellerLive } from '../utils'
 import { sellerHasWhatsapp } from './fulfillment'
 import type { AuthenticatedRequest } from '../types'
+import { MAX_TEXT, normalizeAnswer, submitAnswer } from '../services/giveawayQuiz'
 
 const router = Router()
 
@@ -946,9 +947,18 @@ router.post('/api/streams/:id/giveaway', requireAuth, async (req: AuthenticatedR
       return
     }
 
-    const { prize_description, title, buyers_only } = req.body
+    const { prize_description, title, question, answer } = req.body
     if (!prize_description || typeof prize_description !== 'string' || !prize_description.trim()) {
       res.status(400).json({ error: 'prize_description is required' })
+      return
+    }
+    // Question-réponse obligatoire (28/11/2026) : plus de tirage au hasard (loterie interdite en Israël)
+    if (typeof question !== 'string' || !question.trim() || typeof answer !== 'string' || !normalizeAnswer(answer)) {
+      res.status(400).json({ error: 'question_and_answer_required' })
+      return
+    }
+    if (question.length > MAX_TEXT || answer.length > MAX_TEXT || prize_description.length > MAX_TEXT) {
+      res.status(400).json({ error: 'too_long' })
       return
     }
 
@@ -971,13 +981,22 @@ router.post('/api/streams/:id/giveaway', requireAuth, async (req: AuthenticatedR
         seller_id: userId,
         title: title?.trim() || 'Cadeau Surprise',
         prize_description: prize_description.trim(),
-        buyers_only: buyers_only === true,
+        question: question.trim(),
+        buyers_only: false, // gratuit, sans achat : jamais réservé aux acheteurs
       })
       .select('*')
       .single()
 
     if (error) {
       console.error('Giveaway creation error:', error)
+      res.status(500).json({ error: 'Failed to create giveaway' })
+      return
+    }
+    // Bonne réponse rangée à part (jamais diffusée aux spectateurs)
+    const { error: ansError } = await supabase.from('giveaway_answers').insert({ giveaway_id: giveaway.id, answer: answer.trim() })
+    if (ansError) {
+      await supabase.from('giveaways').delete().eq('id', giveaway.id)
+      console.error('Giveaway answer error:', ansError)
       res.status(500).json({ error: 'Failed to create giveaway' })
       return
     }
@@ -1011,183 +1030,25 @@ router.get('/api/streams/:id/giveaway', async (req: Request, res: Response) => {
   }
 })
 
-// POST /api/giveaways/:id/enter — viewer enters the giveaway
-router.post('/api/giveaways/:id/enter', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+// POST /api/giveaways/:id/answer — un spectateur propose une réponse ; le premier juste gagne (28/11/2026)
+router.post('/api/giveaways/:id/answer', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.user!.id
-    const giveawayId = req.params.id
-
-    // Verify giveaway is active
-    const { data: giveaway } = await supabase
-      .from('giveaways')
-      .select('id, status, buyers_only, stream_id')
-      .eq('id', giveawayId)
-      .single()
-
-    if (!giveaway) {
-      res.status(404).json({ error: 'Giveaway not found' })
-      return
-    }
-    if (giveaway.status !== 'active') {
-      res.status(400).json({ error: 'Giveaway is no longer active' })
-      return
-    }
-    // Cadeau réservé aux acheteurs du live : on refuse l'inscription plutôt que de laisser croire qu'il participe
-    if (giveaway.buyers_only) {
-      const { count } = await supabase.from('orders').select('id', { count: 'exact', head: true })
-        .eq('stream_id', giveaway.stream_id).eq('buyer_id', userId).neq('status', 'cancelled')
-      if (!count) {
-        res.status(403).json({ error: 'buyers_only' })
-        return
-      }
-    }
-
-    // Get user display name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('display_name')
-      .eq('id', userId)
-      .single()
-
-    // Insert entry (unique constraint prevents duplicates)
-    const { error: entryError } = await supabase
-      .from('giveaway_entries')
-      .insert({
-        giveaway_id: giveawayId,
-        user_id: userId,
-        display_name: profile?.display_name || null,
-      })
-
-    if (entryError) {
-      if (entryError.code === '23505') {
-        res.status(409).json({ error: 'Already entered' })
-        return
-      }
-      console.error('Giveaway entry error:', entryError)
-      res.status(500).json({ error: 'Failed to enter giveaway' })
-      return
-    }
-
-    // Increment entry_count
-    const { data: updated } = await supabase
-      .from('giveaways')
-      .select('entry_count')
-      .eq('id', giveawayId)
-      .single()
-
-    if (updated) {
-      await supabase
-        .from('giveaways')
-        .update({ entry_count: (updated.entry_count || 0) + 1 })
-        .eq('id', giveawayId)
-    }
-
-    res.json({ success: true })
+    const answer = typeof req.body?.answer === 'string' ? req.body.answer.slice(0, MAX_TEXT) : ''
+    const r = await submitAnswer(String(req.params.id), req.user!.id, answer)
+    const code = r.status === 'not_found' ? 404 : r.status === 'closed' ? 409 : r.status === 'no_attempts_left' ? 429 : r.status === 'empty' ? 400 : 200
+    res.status(code).json(r)
   } catch (err) {
-    console.error('POST /api/giveaways/:id/enter error:', err)
+    console.error('POST /api/giveaways/:id/answer error:', err)
     res.status(500).json({ error: 'Internal server error' })
   }
 })
 
-// POST /api/giveaways/:id/draw — seller draws a winner
-router.post('/api/giveaways/:id/draw', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
-  try {
-    const userId = req.user!.id
-    const giveawayId = req.params.id
-
-    // Verify ownership
-    const { data: giveaway } = await supabase
-      .from('giveaways')
-      .select('id, stream_id, seller_id, title, status, entry_count, buyers_only')
-      .eq('id', giveawayId)
-      .single()
-
-    if (!giveaway) {
-      res.status(404).json({ error: 'Giveaway not found' })
-      return
-    }
-    if (giveaway.seller_id !== userId) {
-      res.status(403).json({ error: 'Not authorized' })
-      return
-    }
-    if (giveaway.status !== 'active') {
-      res.status(400).json({ error: 'Giveaway is not active' })
-      return
-    }
-
-    // Get all entries
-    const { data: entries } = await supabase
-      .from('giveaway_entries')
-      .select('user_id, display_name')
-      .eq('giveaway_id', giveawayId)
-
-    if (!entries || entries.length === 0) {
-      res.status(400).json({ error: 'No participants to draw from' })
-      return
-    }
-
-    // If buyers_only, filter to users who have an order in this stream
-    let eligible = entries
-    if (giveaway.buyers_only) {
-      const { data: buyerOrders } = await supabase
-        .from('orders')
-        .select('buyer_id')
-        .eq('stream_id', giveaway.stream_id)
-      const buyerIds = new Set((buyerOrders || []).map((o: { buyer_id: string }) => o.buyer_id))
-      eligible = entries.filter(e => buyerIds.has(e.user_id))
-      if (eligible.length === 0) {
-        res.status(400).json({ error: 'No buyers among participants' })
-        return
-      }
-    }
-
-    // Random winner
-    const winner = eligible[Math.floor(Math.random() * eligible.length)]
-
-    // Get winner display name (fallback to profile if not on entry)
-    let winnerName = winner.display_name
-    if (!winnerName) {
-      const { data: wp } = await supabase
-        .from('profiles')
-        .select('display_name, username')
-        .eq('id', winner.user_id)
-        .single()
-      winnerName = wp?.display_name || wp?.username || 'Unknown'
-    }
-
-    // Update giveaway
-    const { data: updated, error: updateError } = await supabase
-      .from('giveaways')
-      .update({
-        status: 'drawn',
-        winner_id: winner.user_id,
-        winner_name: winnerName,
-        drawn_at: new Date().toISOString(),
-      })
-      .eq('id', giveawayId)
-      .select('*')
-      .single()
-
-    if (updateError) {
-      console.error('Giveaway draw update error:', updateError)
-      res.status(500).json({ error: 'Failed to draw winner' })
-      return
-    }
-
-    // Insert system chat message announcing the winner
-    await supabase.from('chat_messages').insert({
-      stream_id: giveaway.stream_id,
-      user_id: userId,
-      // Code traduit par l'app dans la langue de chaque spectateur (client/src/lib/chatSystem.ts)
-      message: `__system:gift_won:${encodeURIComponent(winnerName)}:${encodeURIComponent(giveaway.title || '')}__`,
-      type: 'system',
-    })
-
-    res.json(updated)
-  } catch (err) {
-    console.error('POST /api/giveaways/:id/draw error:', err)
-    res.status(500).json({ error: 'Internal server error' })
-  }
+// Anciennes routes de tirage au hasard : coupées (anciennes versions de l'appli)
+router.post('/api/giveaways/:id/enter', requireAuth, (_req: AuthenticatedRequest, res: Response) => {
+  res.status(410).json({ error: 'random_draw_disabled' })
+})
+router.post('/api/giveaways/:id/draw', requireAuth, (_req: AuthenticatedRequest, res: Response) => {
+  res.status(410).json({ error: 'random_draw_disabled' })
 })
 
 // =============================================
