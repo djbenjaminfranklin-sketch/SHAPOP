@@ -926,7 +926,7 @@ export default function StreamView() {
   const [sellerScore, setSellerScore] = useState<number | null>(null)
   const [, setItemCount] = useState(0)
   const [_sellerReturnPolicy, setSellerReturnPolicy] = useState<string>('no_return')
-  const [viewerMuted, setViewerMuted] = useState(true)
+  const [viewerMuted, setViewerMuted] = useState(false) // Benjamin 28/11 : le direct démarre TOUJOURS avec le son, jamais en muet
   const [isFollowing, setIsFollowing] = useState(false)
 
   // LiveKit viewer state

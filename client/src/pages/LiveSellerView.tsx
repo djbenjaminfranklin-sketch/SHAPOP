@@ -669,6 +669,34 @@ export default function LiveSellerView() {
   const videoRef = useRef<HTMLVideoElement>(null)
 
   useLiveScreen()
+
+  // Aperçu vendeur plein écran calculé à la main (28/11) : sur iPhone, object-fit « cover » est parfois
+  // ignoré par la vidéo de la caméra -> bandes noires en haut et en bas. On agrandit la vidéo nous-mêmes
+  // pour couvrir tout l'écran (le surplus est rogné par le cadre), quel que soit le format reçu.
+  useEffect(() => {
+    const fit = () => {
+      const v = videoRef.current
+      if (!v || !v.videoWidth || !v.videoHeight) return
+      const W = window.innerWidth, H = window.innerHeight
+      const s = Math.max(W / v.videoWidth, H / v.videoHeight)
+      const w = Math.ceil(v.videoWidth * s), h = Math.ceil(v.videoHeight * s)
+      Object.assign(v.style, {
+        position: 'absolute', width: `${w}px`, height: `${h}px`,
+        left: `${Math.round((W - w) / 2)}px`, top: `${Math.round((H - h) / 2)}px`, maxWidth: 'none',
+      })
+    }
+    const v = videoRef.current
+    v?.addEventListener('loadedmetadata', fit)
+    v?.addEventListener('resize', fit)
+    window.addEventListener('resize', fit)
+    const t = setInterval(fit, 1000) // le format de la caméra change (retournement, relance) sans toujours prévenir
+    return () => {
+      v?.removeEventListener('loadedmetadata', fit)
+      v?.removeEventListener('resize', fit)
+      window.removeEventListener('resize', fit)
+      clearInterval(t)
+    }
+  }, [])
   const mediaStreamRef = useRef<MediaStream | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
