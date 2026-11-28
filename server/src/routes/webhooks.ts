@@ -397,6 +397,13 @@ export async function paypalWebhookHandler(req: Request, res: Response) {
   try {
     // Verify webhook signature
     const webhookId = process.env.PAYPAL_WEBHOOK_ID
+    // En réel, jamais de message PayPal non signé : un faux « versement échoué » relancerait
+    // le versement (double paiement). Sans identifiant de webhook, on refuse tout.
+    if (!webhookId && PAYPAL_MODE === 'live') {
+      console.error('[PayPal Webhook] PAYPAL_WEBHOOK_ID manquant en mode live : message refusé')
+      res.status(503).json({ error: 'Webhook not configured' })
+      return
+    }
     if (webhookId) {
       const transmissionId = req.headers['paypal-transmission-id'] as string
       const transmissionTime = req.headers['paypal-transmission-time'] as string
